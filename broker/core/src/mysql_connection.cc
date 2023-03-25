@@ -312,9 +312,8 @@ void mysql_connection::_commit(mysql_task* t) {
     SPDLOG_LOGGER_TRACE(log_v2::sql(), "mysql_connection {:p} : auto commit",
                         static_cast<const void*>(this));
   }
-  if (task) {
-    task->set_value(true);
-  }
+  if (task && !is_in_error())
+    task->promise.set_value();
 }
 
 void mysql_connection::_prepare(mysql_task* t) {
@@ -771,20 +770,20 @@ void mysql_connection::_run() {
             reconnect_failed_logged = true;
           } else if (config::applier::mode == config::applier::finished) {
             finish();
+            /* We avoid deadlocks in case of broker termination and database
+             * error */
             _send_exceptions_to_task_futures(tasks_list);
             _send_exceptions_to_task_futures(_tasks_list);
             break;
           }
           std::this_thread::sleep_for(std::chrono::seconds(10));
-          continue;
         } else
           reconnect_failed_logged = false;
       } else {
-        if (!tasks_list.empty()) {
+        if (!tasks_list.empty())
           _process_tasks(tasks_list);
-        } else {
+        else
           _process_while_empty_task(tasks_list);
-        }
       }
     }
   }
@@ -824,7 +823,7 @@ void mysql_connection::_send_exceptions_to_task_futures(
         send_ex(static_cast<mysql_task_statement_int<uint64_t>*>(task.get()));
         break;
       case mysql_task::COMMIT:
-        static_cast<mysql_task_commit*>(task.get())->set_exception();
+        send_ex(static_cast<mysql_task_commit*>(task.get()));
         break;
       default:
         break;
@@ -997,9 +996,8 @@ void mysql_connection::_push(std::unique_ptr<mysql_task>&& q) {
  *
  *  @param commit_data synchronisation data
  */
-void mysql_connection::commit(
-    const mysql_task_commit::mysql_task_commit_data::pointer& commit_data) {
-  _push(std::make_unique<mysql_task_commit>(commit_data));
+void mysql_connection::commit(std::promise<void>&& p) {
+  _push(std::make_unique<mysql_task_commit>(std::move(p)));
 }
 
 void mysql_connection::prepare_query(int stmt_id, std::string const& query) {

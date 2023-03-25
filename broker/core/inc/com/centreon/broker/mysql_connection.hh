@@ -150,9 +150,7 @@ class mysql_connection {
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
-  void commit(
-      const database::mysql_task_commit::mysql_task_commit_data::pointer&
-          commit_data);
+  void commit(std::promise<void>&& p);
   void run_query(std::string const& query, my_error::code ec);
   void run_query_and_get_result(std::string const& query,
                                 std::promise<database::mysql_result>&& promise);

@@ -62,27 +62,34 @@ mysql::~mysql() {
  *  If an error occures, an exception is thrown.
  */
 void mysql::commit(int thread_id) {
-  mysql_task_commit::mysql_task_commit_data::pointer commit_data;
+  std::string error;
   if (thread_id < 0) {
-    commit_data = std::make_shared<mysql_task_commit::mysql_task_commit_data>(
-        _connection.size());
-    for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
-             it(_connection.begin()),
-         end(_connection.end());
-         it != end; ++it) {
-      (*it)->commit(commit_data);
+    std::vector<std::future<void>> futures;
+    futures.reserve(_connection.size());
+    for (auto& c : _connection) {
+      std::promise<void> p;
+      futures.push_back(p.get_future());
+      c->commit(std::move(p));
+    }
+    for (auto& f : futures) {
+      try {
+        f.wait();
+      } catch (const std::exception& e) {
+        error = e.what();
+      }
     }
   } else {
-    commit_data =
-        std::make_shared<mysql_task_commit::mysql_task_commit_data>(1);
-    _connection[thread_id]->commit(commit_data);
+    std::promise<void> p;
+    std::future<void> f = p.get_future();
+    _connection[thread_id]->commit(std::move(p));
+    try {
+      f.wait();
+    } catch (const std::exception& e) {
+      error = e.what();
+    }
   }
-
-  try {
-    if (commit_data->get())
-      _pending_queries = 0;
-  } catch (std::exception const& e) {
-    throw;
+  if (!error.empty()) {
+    throw msg_fmt(error);
   }
 }
 
