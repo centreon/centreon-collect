@@ -72,6 +72,9 @@ void mysql::commit(int thread_id) {
       c->commit(std::move(p));
     }
     for (auto& f : futures) {
+      /* We must handle exceptions thrown only in case of cbd stopped. Errors
+       * are then all the same. We get the first one and send it to the caller.
+       */
       try {
         f.wait();
       } catch (const std::exception& e) {
