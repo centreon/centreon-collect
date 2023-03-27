@@ -33,7 +33,7 @@ jobs:
           fi
           case "$BRANCHNAME" in
             master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
-              echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_OUTPUT
+              echo "release=1" >> $GITHUB_OUTPUT
               ;;
             *)
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
@@ -210,7 +210,7 @@ jobs:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
   delivery-centos:
     needs: [rpm-packaging, create-version]
