@@ -18,7 +18,7 @@ BGRPCSS1
 	Config Broker	rrd
 	Change Broker tcp output to grpc	central
 	Change Broker tcp input to grpc	rrd
-	Repeat Keyword	5 times	Start Stop Service	0
+	Repeat Keyword	5 times	Start Stop Service	100ms
 
 BGRPCSS2
 	[Documentation]	Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
@@ -32,7 +32,7 @@ BGRPCSS3
 	[Tags]	Broker	start-stop	grpc
 	Config Broker	central
 	Change Broker tcp output to grpc	central
-	Repeat Keyword	5 times	Start Stop Instance	0
+	Repeat Keyword	5 times	Start Stop Instance	100ms
 
 BGRPCSS4
 	[Documentation]	Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
@@ -58,7 +58,7 @@ BGRPCSSU1
 	Config Broker Sql Output	central	unified_sql
 	Change Broker tcp output to grpc	central
 	Change Broker tcp input to grpc	rrd
-	Repeat Keyword	5 times	Start Stop Service	0
+	Repeat Keyword	5 times	Start Stop Service	100ms
 
 BGRPCSSU2
 	[Documentation]	Start/Stop with unified_sql 10 times broker configured with grpc stream with 300ms interval and no coredump
@@ -74,7 +74,7 @@ BGRPCSSU3
 	Config Broker	central
 	Change Broker tcp output to grpc	central
 	Config Broker Sql Output	central	unified_sql
-	Repeat Keyword	5 times	Start Stop Instance	0
+	Repeat Keyword	5 times	Start Stop Instance	100ms
 
 BGRPCSSU4
 	[Documentation]	Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
