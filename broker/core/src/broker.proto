@@ -93,7 +93,7 @@ message LogInfo {
 }
 
 message LogLevel {
-  string name = 1;
+  string logger = 1;
   enum LogLevelEnum {
     TRACE = 0;
     DEBUG = 1;

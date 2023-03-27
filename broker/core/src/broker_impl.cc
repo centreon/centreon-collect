@@ -307,7 +307,7 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
                                       [[maybe_unused]],
                                       const LogLevel* request,
                                       ::google::protobuf::Empty*) {
-  const std::string& logger_name{request->name()};
+  const std::string& logger_name{request->logger()};
   std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
   if (!logger) {
     std::string err_detail = fmt::format("unknow logger:{}", logger_name);
