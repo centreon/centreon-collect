@@ -3304,9 +3304,11 @@ grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
                                       [[maybe_unused]],
                                       const LogLevel* request,
                                       ::google::protobuf::Empty*) {
-  std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
+  const std::string& logger_name{request->logger()};
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
   if (!logger) {
-    std::string err_detail = fmt::format("unknow logger:{}", request->name());
+    std::string err_detail =
+        fmt::format("The '{}' logger does not exist", logger_name);
     SPDLOG_LOGGER_ERROR(log_v2::external_command(), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
