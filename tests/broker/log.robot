@@ -25,8 +25,8 @@ BLDIS1
         Should Be True	${result}	msg="No sql logs produced"
 
         ${content}=	Create List	[core]
-        ${result}=	Find In Log	${centralLog}	${start}	${content}
-        Should Be Equal	${result[0]}	${False}	msg="We should not have core logs"
+        ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be Equal	${result}	${False}	msg="We should not have core logs"
         Kindly Stop Broker
 
 BLEC1

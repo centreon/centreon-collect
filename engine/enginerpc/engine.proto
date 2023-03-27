@@ -105,34 +105,36 @@ service Engine {
   rpc ChangeContactObjectCustomVar(ChangeObjectCustomVar)
       returns (CommandSuccess) {}
   rpc ShutdownProgram(google.protobuf.Empty) returns (google.protobuf.Empty) {}
-  rpc EnableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {}
-  rpc DisableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {}
+  rpc EnableHostAndChildNotifications(HostIdentifier) returns (CommandSuccess) {
+  }
+  rpc DisableHostAndChildNotifications(HostIdentifier)
+      returns (CommandSuccess) {}
   rpc DisableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
   rpc EnableHostNotifications(HostIdentifier) returns (CommandSuccess) {}
   rpc DisableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc EnableNotifications(google.protobuf.Empty) returns (CommandSuccess) {}
   rpc DisableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
   rpc EnableServiceNotifications(ServiceIdentifier) returns (CommandSuccess) {}
-  rpc ChangeAnomalyDetectionSensitivity(ChangeServiceNumber) returns (CommandSuccess) {}
+  rpc ChangeAnomalyDetectionSensitivity(ChangeServiceNumber)
+      returns (CommandSuccess) {}
 
-  rpc GetLogInfo(google.protobuf.Empty) returns(LogInfo) {}
+  rpc GetLogInfo(google.protobuf.Empty) returns (LogInfo) {}
   /**
-  * @brief Set level of a logger.
-  *
-  * @param A message with a logger and a level as strings.
-  *
-  * @return nothing.
-  */
+   * @brief Set level of a logger.
+   *
+   * @param A message with a logger and a level as strings.
+   *
+   * @return nothing.
+   */
   rpc SetLogLevel(LogLevel) returns (google.protobuf.Empty) {}
 
-  
   /**
-  * @brief Set log flush period of all loggers.
-  *
-  * @param period in second, 0 means flush all the times
-  *
-  * @return nothing.
-  */
+   * @brief Set log flush period of all loggers.
+   *
+   * @param period in second, 0 means flush all the times
+   *
+   * @return nothing.
+   */
   rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
 }
 
@@ -518,7 +520,6 @@ message ChangeServiceNumber {
   }
 }
 
-
 /* used for a contact */
 message ChangeContactObjectInt {
   string contact_name = 1;
@@ -581,7 +582,7 @@ message LogFlushPeriod {
 }
 
 message LogLevel {
-  string name = 1;
+  string logger = 1;
   enum LogLevelEnum {
     TRACE = 0;
     DEBUG = 1;

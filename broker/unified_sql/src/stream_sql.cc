@@ -17,7 +17,6 @@
  */
 #include <fmt/format.h>
 
-#include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/database/table_max_size.hh"
