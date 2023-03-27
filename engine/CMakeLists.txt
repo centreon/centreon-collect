@@ -538,6 +538,7 @@ add_dependencies(centengine centreon_clib)
 # Link centengine with required libraries.
 target_link_libraries(
   centengine
+  CONAN_PKG::opentelemetry-cpp
   "-rdynamic"
   centreon_clib
   enginelog
