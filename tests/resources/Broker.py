@@ -1666,6 +1666,7 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
                 break
             except grpc.RpcError as rpc_error:
                 if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    logger.console("exception thrown")
                     res = rpc_error.details()
                 break
             except:
