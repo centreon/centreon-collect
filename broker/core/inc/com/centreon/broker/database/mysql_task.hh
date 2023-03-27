@@ -20,6 +20,9 @@
 #define CCB_MYSQL_TASK_HH
 
 #include "com/centreon/broker/database/mysql_bind_base.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 CCB_BEGIN()
 
@@ -57,41 +60,10 @@ class mysql_task {
 
 class mysql_task_commit : public mysql_task {
  public:
-  /**
-   * @brief the purpose of this class is to set the future once all connections
-   * are committed
-   *
-   */
-  class mysql_task_commit_data {
-    std::promise<bool> _promise;
-    std::atomic_int _count;
+  mysql_task_commit(std::promise<void>&& p)
+      : mysql_task(mysql_task::COMMIT), promise(std::move(p)) {}
 
-   public:
-    using pointer = std::shared_ptr<mysql_task_commit_data>;
-    /**
-     * @brief Construct a new mysql task commit data object
-     *
-     * @param connection_count number of connections to commit
-     */
-    mysql_task_commit_data(int connection_count) : _count(connection_count) {}
-    bool get() { return _promise.get_future().get(); }
-    bool set_value(bool value) {
-      int old = _count.fetch_sub(1);
-      if (old == 1) {  // commit is done on each connection => signal to get
-        _promise.set_value(value);
-        return true;
-      }
-      return false;
-    }
-  };
-  mysql_task_commit_data::pointer _data;
-
- public:
-  mysql_task_commit(const mysql_task_commit_data::pointer& data)
-      : mysql_task(mysql_task::COMMIT), _data(data) {}
-
-  bool get() { return _data->get(); }
-  bool set_value(bool value) { return _data->set_value(value); }
+  std::promise<void> promise;
 };
 
 class mysql_task_fetch : public mysql_task {
@@ -212,13 +184,12 @@ class mysql_task_statement_int : public mysql_task {
   mysql_task_statement_int(database::mysql_stmt_base& stmt,
                            std::promise<T>&& promise,
                            int_type type)
-      : mysql_task((std::is_same<T, int>::value)
-                       ? mysql_task::STATEMENT_INT
-                       : (std::is_same<T, int64_t>::value)
-                             ? mysql_task::STATEMENT_INT64
-                             : (std::is_same<T, uint32_t>::value)
-                                   ? mysql_task::STATEMENT_UINT
-                                   : mysql_task::STATEMENT_UINT64),
+      : mysql_task((std::is_same<T, int>::value) ? mysql_task::STATEMENT_INT
+                   : (std::is_same<T, int64_t>::value)
+                       ? mysql_task::STATEMENT_INT64
+                   : (std::is_same<T, uint32_t>::value)
+                       ? mysql_task::STATEMENT_UINT
+                       : mysql_task::STATEMENT_UINT64),
         promise(std::move(promise)),
         return_type(type),
         statement_id(stmt.get_id()),

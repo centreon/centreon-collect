@@ -281,10 +281,12 @@ BDBU1
 	Config Broker	rrd
 	Config Broker	module
 	Broker Config Output set	central	central-broker-unified-sql	db_name	centreon
+        Broker Config Log	central	sql	trace
+	Broker Config Flush Log	central	0
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	Table 'centreon.instances' doesn't exist
+	 ${content}=	Create List	Table 'centreon.hosts' doesn't exist
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	 Should Be True	${result}
 	 Kindly Stop Broker
@@ -350,8 +352,8 @@ BDBU10
 	Broker Config Log	module0	sql	debug
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	mysql_connection: commit
-	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	40
+	${content}=	Create List	mysql_connection 0x[0-9a-f]* : commit
+	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	40	regex=True
 	Should Be True	${result}	msg=Log concerning a commit (connection ok) is missing.
 	Kindly Stop Broker
 

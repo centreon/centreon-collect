@@ -136,6 +136,8 @@ class mysql_connection {
   void _prepare_connection();
   void _clear_connection();
   void _update_stats() noexcept;
+  void _send_exceptions_to_task_futures(
+      std::list<std::unique_ptr<database::mysql_task>>& tasks_list);
 
   inline void set_need_to_commit() { _need_commit = true; }
 
@@ -148,9 +150,7 @@ class mysql_connection {
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
-  void commit(
-      const database::mysql_task_commit::mysql_task_commit_data::pointer&
-          commit_data);
+  void commit(std::promise<void>&& p);
   void run_query(std::string const& query, my_error::code ec);
   void run_query_and_get_result(std::string const& query,
                                 std::promise<database::mysql_result>&& promise);
