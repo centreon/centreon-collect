@@ -660,7 +660,7 @@ BEPB_BA_DURATION_EVENT
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	core	trace
 	broker_config_source_log  central  1
@@ -699,7 +699,7 @@ BEPB_BA_DURATION_EVENT
 	FOR	${index}	IN RANGE	10
 		${output}=	Query	SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
 		Sleep	1s
-		EXIT FOR LOOP IF	len("""${output}""") > 10
+		EXIT FOR LOOP IF	${output} and len(${output[0]}) >= 5
 	END
 
 	Should Be True  ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
@@ -708,7 +708,6 @@ BEPB_BA_DURATION_EVENT
 	Should Be True  ${output[0][1]} > ${output[0][0]}
 	Should Be True  ${output[0][0]} >= ${start_event}
 	Should Be True  ${output[0][1]} <= ${end_event}
-
 
 	Stop Engine
 	Kindly Stop Broker  True
