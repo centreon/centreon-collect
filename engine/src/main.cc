@@ -25,7 +25,11 @@
 #include <unistd.h>
 #include <random>
 #include <string>
-#include <opentelemetry/version.h>
+
+#include <opentelemetry/exporters/jaeger/jaeger_exporter_factory.h>
+#include <opentelemetry/sdk/trace/simple_processor_factory.h>
+#include <opentelemetry/sdk/trace/tracer_provider_factory.h>
+#include <opentelemetry/trace/provider.h>
 
 #include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
@@ -34,7 +38,6 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
-#include <opentelemetry/exporters/otlp/otlp_grpc_exporter.h>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
@@ -66,14 +69,13 @@
 #include "com/centreon/logging/engine.hh"
 
 using namespace com::centreon::engine;
+namespace trace = opentelemetry::trace;
+namespace trace_sdk = opentelemetry::sdk::trace;
+namespace jaeger = opentelemetry::exporter::jaeger;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
 bool g_io_context_started = false;
-
-namespace trace_api = opentelemetry::trace;
-namespace trace_sdk = opentelemetry::sdk::trace;
-namespace trace_exporter = opentelemetry::exporter::trace;
 
 // Error message when configuration parsing fail.
 #define ERROR_CONFIGURATION                                                  \
@@ -85,18 +87,21 @@ namespace trace_exporter = opentelemetry::exporter::trace;
   "    files, as well as the version changelog to find out what has\n"       \
   "    changed.\n"
 
-void init_tracer() {
-  auto exporter = trace_exporter::OStreamSpanExporterFactory::Create();
-  auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  std::shared_ptr<trace_api::TracerProvider> provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
+opentelemetry::exporter::jaeger::JaegerExporterOptions opts;
 
-  /* Set the global tracer provider */
-  trace_api::Provider::SetTracerProvider(provider);
+void init_tracer() {
+  // Create Jaeger exporter instance
+  auto exporter = jaeger::JaegerExporterFactory::Create(opts);
+  auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
+    trace_sdk::TracerProviderFactory::Create(std::move(processor));
+  // Set the global trace provider
+  trace::Provider::SetTracerProvider(provider);
 }
 
 void cleanup_tracer() {
-  std::shared_ptr<trace_api::TracerProvider> none;
-  trace_api::Provider::SetTracerProvider(none);
+  std::shared_ptr<trace::TracerProvider> none;
+  trace::Provider::SetTracerProvider(none);
 }
 
 /**
@@ -360,9 +365,6 @@ int main(int argc, char* argv[]) {
     }
     // Else start to monitor things.
     else {
-      init_tracer();
-      auto provider = opentelemetry::trace::Provider::GetTracerProvider();
-      tracer = provider->GetTracer("centengine", "1.0.0");
       try {
         // Parse configuration.
         configuration::state config;
@@ -513,7 +515,6 @@ int main(int argc, char* argv[]) {
         broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
                              NEBFLAG_PROCESS_INITIATED);
       }
-      cleanup_tracer();
     }
 
     // Memory cleanup.
