@@ -310,7 +310,8 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   const std::string& logger_name{request->name()};
   std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
   if (!logger) {
-    std::string err_detail = fmt::format("unknow logger:{}", logger_name);
+    std::string err_detail =
+        fmt::format("The '{}' logger does not exist", logger_name);
     SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
