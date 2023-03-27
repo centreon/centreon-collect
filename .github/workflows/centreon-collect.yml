@@ -33,7 +33,7 @@ jobs:
           fi
           case "$BRANCHNAME" in
             master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
-              echo "release=$GITHUB_RUN_ATTEMPT" >> $GITHUB_OUTPUT
+              echo "release=1" >> $GITHUB_OUTPUT
               ;;
             *)
               echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
@@ -129,11 +129,9 @@ jobs:
 
       - name: Use cache RPM files
         uses: actions/cache@v3
-        env:
-          cache-name-rpmbuild: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.rpm
-          key: ${{ env.cache-name-rpmbuild }}
+          key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
 
   debian-packaging:
     needs: create-version
@@ -171,11 +169,9 @@ jobs:
 
       - name: Use cache DEB files
         uses: actions/cache@v3
-        env:
-          cache-name-debbuild: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
         with:
           path: ./*.deb
-          key: ${{ env.cache-name-debbuild }}
+          key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
 
   delivery-debian:
     needs: [debian-packaging, create-version]
@@ -198,7 +194,7 @@ jobs:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          cache_key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
 
   delivery-centos:
     needs: [rpm-packaging, create-version]
@@ -224,7 +220,7 @@ jobs:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}
+          cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-centreon-collect-${{ matrix.distrib }}
           update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
           cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
           yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
