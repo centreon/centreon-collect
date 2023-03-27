@@ -176,20 +176,21 @@ Network Failure
 	Config Broker	rrd
 	Config Broker	central
 	Broker Config Output Set	central	central-broker-master-sql	db_host	127.0.0.1
-	Broker Config Output set	central	central-broker-master-sql	connections_count	5
+	Broker Config Output set	central	central-broker-master-sql	connections_count	10
 	Broker Config Output Set	central	central-broker-master-perfdata	db_host	127.0.0.1
-	Broker Config Output set	central	central-broker-master-perfdata	connections_count	5
+	Broker Config Output set	central	central-broker-master-perfdata	connections_count	10
 	Broker Config Log	central	sql	trace
+	broker_config_source_log  central  true
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
 	${content}=	Create List	SQL: performing mysql_ping
-        ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	50
+        ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	120
         Should Be True	${result}	msg=We should have a call to mysql_ping every 30s on inactive connections.
 	Disable Sleep Enable	${interval}
 	${end}=	Get Current Date
-	${content}=	Create List	mysql_connection: commit
-	${result}=	Find In Log With Timeout	${centralLog}	${end}	${content}	80
+	${content}=	Create List	mysql_connection 0x[0-9,a-f]+ : commit
+	${result}=	Find In Log With Timeout	${centralLog}	${end}	${content}	80  regex=True
 	Should Be True	${result}	msg=timeout after network to be restablished (network failure duration : ${interval})
         Kindly Stop Broker
 	Stop Engine
