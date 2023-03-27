@@ -1544,7 +1544,7 @@ def add_bam_config_to_broker(name):
 def remove_poller(port, name, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        logger.console("Try to call removePoller")
+        logger.console(f"Try to call removePoller by name on port {port}")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
@@ -1567,12 +1567,12 @@ def remove_poller(port, name, timeout=TIMEOUT):
 def remove_poller_by_id(port, idx, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        logger.console("Try to call removePoller")
+        logger.console(f"Try to call removePoller by id (={idx}) on port {port}")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             ref = broker_pb2.GenericNameOrIndex()
-            ref.idx = idx
+            ref.idx = int(idx)
             try:
                 stub.RemovePoller(ref)
                 break

@@ -85,7 +85,7 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int, *, regex=Fal
     return False
 
 
-def find_in_log(log: str, date, content, regex):
+def find_in_log(log: str, date, content, regex=False):
     """Find content in log file from the given date
 
     Args:
