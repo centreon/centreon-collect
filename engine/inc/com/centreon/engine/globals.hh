@@ -23,6 +23,7 @@
 #define CCE_GLOBALS_HH
 
 #include <stdio.h>
+#include <opentelemetry/exporters/otlp/otlp_grpc_exporter.h>
 #include <opentelemetry/trace/tracer.h>
 
 #include "com/centreon/engine/circular_buffer.hh"

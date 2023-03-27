@@ -34,6 +34,7 @@
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
+#include <opentelemetry/exporters/otlp/otlp_grpc_exporter.h>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/broker/loader.hh"
