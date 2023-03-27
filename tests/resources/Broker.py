@@ -1650,12 +1650,19 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             ref = broker_pb2.LogLevel()
             ref.logger = log
-            ref.level = broker_pb2.LogLevel.LogLevelEnum.Value(level.upper())
+            try:
+                ref.level = broker_pb2.LogLevel.LogLevelEnum.Value(
+                    level.upper())
+            except ValueError as value_error:
+                res = str(value_error)
+                break
+
             try:
                 res = stub.SetLogLevel(ref)
                 break
             except grpc.RpcError as rpc_error:
                 if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    logger.console("exception thrown")
                     res = rpc_error.details()
                 break
             except:

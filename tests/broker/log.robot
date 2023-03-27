@@ -54,7 +54,7 @@ BLEC2
         ${result}=	Get Broker Log Level	51001	central	core
         Should Be Equal	${result}	trace
         ${result}=	Set Broker Log Level	51001	central	core	foo
-        Should Be Equal	${result}	The 'foo' level is unknown
+        Should Be Equal	${result}	Enum LogLevelEnum has no value defined for name 'FOO'
 
 BLEC3
 	[Documentation]	Change live the foo level log to trace raises an error
