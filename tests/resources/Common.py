@@ -3,6 +3,7 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 import time
+import psutil
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
@@ -175,7 +176,15 @@ def stop_mysql():
         logger.console("Mariadb stopped with systemd")
     else:
         logger.console("Stopping directly MariaDB")
-        getoutput("kill -SIGTERM $(pidof mariadbd)")
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                proc.terminate()
+                try:
+                    proc.wait(30)
+                except:
+                    logger.console("mariadb don't want to stop => kill")
+                    proc.kill()
+                break
         logger.console("Mariadb directly stopped")
 
 
@@ -566,8 +575,9 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
+                    "SELECT * FROM mod_bam WHERE name='{}'".format(ba_name))
                 result = cursor.fetchall()
+                logger.console(f"ba: {result[0]}")
                 if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(5)
