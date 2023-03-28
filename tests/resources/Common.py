@@ -146,6 +146,10 @@ def get_hostname():
 
 def create_key_and_certificate(host: str, key: str, cert: str):
     if len(key) > 0:
+        os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
+    if len(cert) > 0:
+        os.makedirs(os.path.dirname(cert), mode=0o777, exist_ok=True)
+    if len(key) > 0:
         retval = getoutput(
             "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {} -out {} -subj '/CN={}'".format(key,
                                                                                                                 cert,
