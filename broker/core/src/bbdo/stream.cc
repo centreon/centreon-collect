@@ -539,7 +539,7 @@ static io::raw* serialize(const io::data& e) {
       std::string r{info->get_operations().serialize(e)};
       size_t size = r.size();
       auto it = r.begin();
-      while (size > 0) {
+      do {
         // Serialization buffer.
         queue.emplace_back(std::vector<char>());
         auto* content = &queue.back();
@@ -570,7 +570,7 @@ static io::raw* serialize(const io::data& e) {
           size -= 0xffff;
           it += 0xffff;
         }
-      }
+      } while (size > 0);
     }
 
     // Finalization: concatenation of all the vectors in the queue.
@@ -1142,10 +1142,12 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
           ntohs(*reinterpret_cast<uint16_t const*>(pack + 2));
       uint32_t event_id = ntohl(*reinterpret_cast<uint32_t const*>(pack + 4));
       uint32_t source_id = ntohl(*reinterpret_cast<uint32_t const*>(pack + 8));
+      if ((event_id >> 16) == io::bbdo)
+        log_v2::bbdo()->info("stop asked by peer");
+
       uint32_t dest_id = ntohl(*reinterpret_cast<uint32_t const*>(pack + 12));
       uint16_t expected = misc::crc16_ccitt(pack + 2, BBDO_HEADER_SIZE - 2);
 
-      // FIXME DBR: We must check correctly this error.
       SPDLOG_LOGGER_TRACE(
           log_v2::bbdo(),
           "Reading: header eventID {} sourceID {} destID {} checksum {:x} and "
@@ -1385,7 +1387,7 @@ void stream::statistics(nlohmann::json& tree) const {
     _substream->statistics(tree);
 }
 
-void stream::_write(std::shared_ptr<io::data> const& d) {
+void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
   // Check if data exists.

@@ -227,9 +227,9 @@ events::events() {
                  &bbdo::ack::operations, bbdo::ack::entries);
   register_event(make_type(io::bbdo, bbdo::de_stop), "stop",
                  &bbdo::stop::operations, bbdo::stop::entries);
-  register_event(make_type(io::bbdo, bbdo::de_pb_ack), "ack",
+  register_event(make_type(io::bbdo, bbdo::de_pb_ack), "Ack",
                  &bbdo::pb_ack::operations);
-  register_event(make_type(io::bbdo, bbdo::de_pb_stop), "stop",
+  register_event(make_type(io::bbdo, bbdo::de_pb_stop), "Stop",
                  &bbdo::pb_stop::operations);
 
   // Register BBDO protocol.

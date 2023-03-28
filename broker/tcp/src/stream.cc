@@ -168,7 +168,7 @@ int32_t stream::stop() {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& d) {
-  log_v2::tcp()->trace("write on stream");
+  log_v2::tcp()->trace("write event of type {} on tcp stream", d->type());
   // Check that data exists and should be processed.
   assert(d);
 

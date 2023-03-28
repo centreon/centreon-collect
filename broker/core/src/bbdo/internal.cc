@@ -51,9 +51,9 @@ void bbdo::load() {
                    ack::entries);
   e.register_event(make_type(io::bbdo, bbdo::de_stop), "stop",
                    &stop::operations, stop::entries);
-  e.register_event(make_type(io::bbdo, bbdo::de_pb_ack), "ack",
+  e.register_event(make_type(io::bbdo, bbdo::de_pb_ack), "Ack",
                    &bbdo::pb_ack::operations);
-  e.register_event(make_type(io::bbdo, bbdo::de_pb_stop), "stop",
+  e.register_event(make_type(io::bbdo, bbdo::de_pb_stop), "Stop",
                    &bbdo::pb_stop::operations);
 
   // Register BBDO protocol.

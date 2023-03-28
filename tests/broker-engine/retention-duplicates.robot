@@ -218,6 +218,7 @@ BERDUCU2
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
+	Broker Config Log	central	sql	trace
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
@@ -297,6 +298,7 @@ BERDUC3U2
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
+	Broker Config Log	central	sql	trace
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
@@ -309,11 +311,22 @@ BERDUC3U2
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
+
+	# Let's wait for the lua to be correctly initialized
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
+
+	# Let's wait for all the services configuration.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+
+	# Let's wait for a first service status.
+	${content}=	Create List	SQL: pb service .* status .* type .* check result output
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60	regex=True
+
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
@@ -326,3 +339,109 @@ BERDUC3U2
 	Kindly Stop Broker
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
+
+BERDUCA300
+	[Documentation]	Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker.
+	[Tags]	Broker	Engine	start-stop	duplicate	retention	unified_sql
+	Clear Retention
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Config Broker	central
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
+	Broker Config Log	central	config	debug
+	Broker Config Log	central	bbdo	trace
+	Broker Config Log	central	tcp	trace
+	Config Broker	module
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	config	debug
+	Broker Config Log	module0	bbdo	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected.
+
+	# Let's wait for all the services configuration.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+
+	Stop Engine
+	${content}=	Create List	BBDO: sending pb stop packet to peer
+	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result}	msg=Engine should send a pb stop message to cbd.
+
+	${content}=	Create List	BBDO: received pb stop from peer
+	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Broker should receive a pb stop message from engine.
+
+	${content}=	Create List	send acknowledgement for [0-9]+ events
+	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30	regex=True
+	Should Be True	${result}	msg=Broker should send an ack for handled events.
+
+	${content}=	Create List	BBDO: received acknowledgement for [0-9]+ events before finishing
+	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30	regex=True
+	Should Be True	${result}	msg=Engine should receive an ack for handled events from broker.
+
+	Kindly Stop Broker
+
+BERDUCA301
+	[Documentation]	Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
+	[Tags]	Broker	Engine	start-stop	duplicate	retention	unified_sql
+	Clear Retention
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Config Broker	central
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
+	Broker Config Log	central	config	debug
+	Broker Config Log	central	bbdo	trace
+	Broker Config Log	central	tcp	trace
+	Config Broker	module
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	config	debug
+	Broker Config Log	module0	bbdo	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.1
+        Broker Config Add Item	central	bbdo_version	3.0.1
+        Broker Config Add Item	rrd	bbdo_version	3.0.1
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected.
+
+	# Let's wait for all the services configuration.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+
+	Stop Engine
+	${content}=	Create List	BBDO: sending pb stop packet to peer
+	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result}	msg=Engine should send a pb stop message to cbd.
+
+	${content}=	Create List	BBDO: received pb stop from peer
+	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Broker should receive a pb stop message from engine.
+
+	${content}=	Create List	send pb acknowledgement for [0-9]+ events
+	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30	regex=True
+	Should Be True	${result}	msg=Broker should send an ack for handled events.
+
+	${content}=	Create List	BBDO: received acknowledgement for [0-9]+ events before finishing
+	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30	regex=True
+	Should Be True	${result}	msg=Engine should receive an ack for handled events from broker.
+
+	Kindly Stop Broker
