@@ -159,8 +159,6 @@ BERDUCU1
 	Should Be True	${result}	msg=Lua not started in cbd
 	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
-	#${result}=	Check Connections
-	#Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
 	Kindly Stop Broker
 	Sleep	5s
