@@ -146,7 +146,8 @@ BEINSTANCE
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Execute SQL String	DELETE FROM instances
 
-	${start}=	Get Current Date  result_format=epoch  exclude_millis=True
+	#as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
+	${start}=  get_round_current_date
 	Start Broker
 	Start Engine
 	${engine_pid}=  Get Engine Pid  e0
@@ -161,7 +162,7 @@ BEINSTANCE
 	${result}=  check_field_db_value  SELECT end_time FROM instances WHERE instance_id=1  ${0}  3
 	Should Be True	${result}	msg=no correct end_time in instances table.
 	@{bdd_start_time}=	Query	SELECT start_time FROM instances WHERE instance_id=1
-	${now}=	Get Current Date  result_format=epoch  exclude_millis=True
+	${now}=	get_round_current_date
 	Should Be True  ${start} <= ${bdd_start_time[0][0]} and ${bdd_start_time[0][0]} <= ${now}  sg=no correct start_time in instances table.
 
 

@@ -685,7 +685,7 @@ BEPB_BA_DURATION_EVENT
 
 	# KPI set to critical
 	#as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
-	${start_event}=  Get Current Date  result_format=epoch  exclude_millis=True  increment=-00:00:01
+	${start_event}=  get_round_current_date
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
 	${result}=	Check Service Status With Timeout	host_16	service_314	2	60	HARD
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected

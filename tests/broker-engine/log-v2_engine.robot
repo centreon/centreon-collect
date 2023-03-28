@@ -437,9 +437,7 @@ LOGV2BEU2
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
         Engine Config Set Value	${0}    log_flush_period	0	True
 
-	${start}=	Get Current Date	 exclude_millis=yes
-	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+	${time_stamp}    get_round_current_date
 	Start Broker
 	Start Engine
 	${result}=	Check Connections
@@ -449,8 +447,8 @@ LOGV2BEU2
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	Log To Console	after connection
-	Log To Console	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
-	@{output}=	Query	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
+	Log To Console	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp} GROUP BY output HAVING c<>2
+	@{output}=	Query	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp} GROUP BY output HAVING c<>2
 
 	${res}=	engine log table duplicate	${output}
 	Should Be True	${res}	msg=one or other log are not duplicate in tables logs
