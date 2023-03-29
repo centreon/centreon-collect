@@ -280,7 +280,11 @@ def check_engine_logs_are_duplicated(log: str, date):
 
 
 def find_line_from(lines, date):
-    my_date = parser.parse(date)
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
     p = re.compile(r"\[([^\]]*)\]")
 
     # Let's find my_date
