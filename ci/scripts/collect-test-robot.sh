@@ -34,7 +34,7 @@ echo "Installation..."
 
 echo "########################### Install Robot Framework ###########################"
 cd /src/tests/
-pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
 
 yum groupinstall "Development Tools" -y
 yum install python3-devel -y

@@ -43,9 +43,9 @@ NetworkDBFail6
         [Tags]	Broker	Database	Network	unstable
 	Config Engine	${1}
         Config Broker	central
-	Broker Config Output Set	central	central-broker-master-sql	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-master-sql	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-master-sql	connections_count	5
-	Broker Config Output Set	central	central-broker-master-perfdata	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-master-perfdata	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-master-perfdata	connections_count	5
 	Broker Config Log	central	sql	trace
         Config Broker	rrd
@@ -73,7 +73,7 @@ NetworkDBFailU6
 	Config Engine	${1}
         Config Broker	central
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Output Set	central	central-broker-unified-sql	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-unified-sql	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-unified-sql	connections_count	5
 	Broker Config Log	central	sql	trace
         Config Broker	rrd
@@ -102,9 +102,9 @@ NetworkDBFail7
 	Config Engine	${1}
         Config Broker	central
         Reset Eth Connection
-	Broker Config Output Set	central	central-broker-master-sql	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-master-sql	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-master-sql	connections_count	5
-	Broker Config Output Set	central	central-broker-master-perfdata	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-master-perfdata	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-master-perfdata	connections_count	5
 	Broker Config Log	central	sql	trace
         Config Broker	rrd
@@ -136,7 +136,7 @@ NetworkDBFailU7
 	Config Engine	${1}
         Config Broker	central
 	Config Broker Sql Output	central	unified_sql
-	Broker Config Output Set	central	central-broker-unified-sql	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-unified-sql	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-unified-sql	connections_count	5
 	Broker Config Log	central	sql	trace
         Config Broker	rrd
@@ -175,9 +175,9 @@ Network Failure
 	Config Broker	module
 	Config Broker	rrd
 	Config Broker	central
-	Broker Config Output Set	central	central-broker-master-sql	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-master-sql	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-master-sql	connections_count	10
-	Broker Config Output Set	central	central-broker-master-perfdata	db_host	127.0.0.1
+	Broker Config Output Set	central	central-broker-master-perfdata	db_host	${DBHost}
 	Broker Config Output set	central	central-broker-master-perfdata	connections_count	10
 	Broker Config Log	central	sql	trace
 	broker_config_source_log  central  true
