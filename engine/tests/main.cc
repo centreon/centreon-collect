@@ -19,6 +19,11 @@
 
 #include <gtest/gtest.h>
 #include "com/centreon/clib.hh"
+#include "com/centreon/engine/log_v2.hh"
+
+std::shared_ptr<asio::io_context> g_io_context(
+    std::make_shared<asio::io_context>());
+bool g_io_context_started = false;
 
 class CentreonEngineEnvironment : public testing::Environment {
  public:
@@ -45,6 +50,9 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
+  com::centreon::engine::log_v2::load(g_io_context);
   // Run all tests.
-  return (RUN_ALL_TESTS());
+  int ret = RUN_ALL_TESTS();
+  spdlog::shutdown();
+  return ret;
 }

@@ -1426,7 +1426,7 @@ def compare_rrd_average_value(metric, value: float):
         return err < 0.05
     else:
         logger.console(
-            "It was impossible to get the average value from the file " + VAR_ROOT + "/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
+            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
 
@@ -1447,10 +1447,14 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
                 res = stub.GetSqlManagerStats(empty_pb2.Empty())
                 if len(res.connections) < count:
                     continue
+                count = 0
                 for c in res.connections:
                     if c.down_since:
-                        continue
-                return True
+                        pass
+                    else:
+                        count += 1
+                if count == 3:
+                    return True
             except:
                 logger.console("gRPC server not ready")
     return False
@@ -1545,7 +1549,7 @@ def add_bam_config_to_broker(name):
 def remove_poller(port, name, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        logger.console("Try to call removePoller")
+        logger.console(f"Try to call removePoller by name on port {port}")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
@@ -1568,12 +1572,12 @@ def remove_poller(port, name, timeout=TIMEOUT):
 def remove_poller_by_id(port, idx, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        logger.console("Try to call removePoller")
+        logger.console(f"Try to call removePoller by id (={idx}) on port {port}")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
             ref = broker_pb2.GenericNameOrIndex()
-            ref.idx = idx
+            ref.idx = int(idx)
             try:
                 stub.RemovePoller(ref)
                 break
@@ -1650,7 +1654,13 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             ref = broker_pb2.LogLevel()
             ref.logger = log
-            ref.level = level
+            try:
+                ref.level = broker_pb2.LogLevel.LogLevelEnum.Value(
+                    level.upper())
+            except ValueError as value_error:
+                res = str(value_error)
+                break
+
             try:
                 res = stub.SetLogLevel(ref)
                 break

@@ -24,9 +24,12 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class ApplierBoolexp : public ::testing::Test {
  public:
   void SetUp() override {
+    g_io_context->restart();
     // Initialization.
     config::applier::init(0, "test_broker", 0);
 

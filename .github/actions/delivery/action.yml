@@ -54,15 +54,38 @@ runs:
       shell: bash
       if: ${{ inputs.distrib == 'el7' || inputs.distrib == 'el8' }}
       run: |
-        echo "build=rpmbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=rpm" >> $GITHUB_ENV
 
     - name: Build name for DEB
       shell: bash
       if: ${{ inputs.distrib == 'bullseye' }}
       run: |
-        echo "build=debbuild-centreon-collect" >> $GITHUB_ENV
         echo "extfile=deb" >> $GITHUB_ENV
+
+    - name: detect stability
+      run: |
+        if [[ -z "$GITHUB_HEAD_REF" ]];
+        then
+          BRANCHNAME="$GITHUB_REF_NAME"
+        else
+          BRANCHNAME="$GITHUB_HEAD_REF"
+        fi
+
+        case "$BRANCHNAME" in
+          develop | dev-[2-9][0-9].[0-9][0-9].x)
+            echo "stability=unstable" >> $GITHUB_ENV
+            ;;
+          release* | hotfix*)
+            echo "stability=testing" >> $GITHUB_ENV
+            ;;
+          master | [2-9][0-9].[0-9][0-9].x)
+            echo "stability=stable" >> $GITHUB_ENV
+            ;;
+          *)
+            echo "stability=canary" >> $GITHUB_ENV
+            ;;
+        esac
+      shell: bash
 
     - name: Use cache files
       uses: actions/cache@v3
@@ -71,45 +94,77 @@ runs:
         key: ${{ inputs.cache_key }}
         restore-keys: ${{ inputs.cache_key }}
 
-    - name: Setup awscli
-      run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        sudo unzip -q awscliv2.zip
-        sudo ./aws/install
-      shell: bash
+    - uses: jfrog/setup-jfrog-cli@v3
+      env:
+        JF_URL: https://centreon.jfrog.io
+        JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
-    - name: Setup awscli
+    - if: ${{ startsWith(inputs.distrib, 'el') && env.stability != 'canary' }}
+      name: Publish RPMs
       run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        sudo unzip -q awscliv2.zip
-        sudo ./aws/install
-      shell: bash
+        FILES="*.${{ env.extfile }}"
 
-    - name: Publish packages
-      run: |
-        if [[ -z "$GITHUB_HEAD_REF" ]];
-        then
-          BRANCHNAME="$GITHUB_REF_NAME"
-        else
-          BRANCHNAME="$GITHUB_HEAD_REF"
+        echo "[DEBUG] - Version: ${{ inputs.version }}"
+        echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
+
+        if [ -z "${{ inputs.module_name }}" ]; then
+          echo "module name is required"
+          exit 1
         fi
-        echo "[DEBUG] - Branch name: $BRANCHNAME"
-        case "$BRANCHNAME" in
-          develop | dev-[2-9][0-9].[0-9][0-9].x)
-            SUBREPO="unstable"
-            ;;
-          release* | hotfix*)
-            SUBREPO="testing"
-            ;;
-          master | [2-9][0-9].[0-9][0-9].x)
-            SUBREPO="stable"
-            ;;
-          *)
-            echo -n "[INFO] NO DELIVERY FOR THIS BRANCH"
-            exit 0
-            ;;
-        esac
 
+        if [ -z "${{ inputs.distrib }}" ]; then
+          echo "distrib is required"
+          exit 1
+        fi
+
+        mkdir noarch x86_64
+
+        for FILE in $FILES; do
+          echo "[DEBUG] - File: $FILE"
+          ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
+          echo "[DEBUG] - Arch: $ARCH"
+          cp "$FILE" "$ARCH"
+        done
+
+        for ARCH in "noarch" "x86_64"; do
+          if [ "$(ls -A $ARCH)" ]; then
+            if [ "${{ env.stability }}" == "stable" ]; then
+              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ env.stability }}/$ARCH/" --flat
+            else
+              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ env.stability }}/$ARCH/${{ inputs.module_name }}/" --sync-deletes="rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ env.stability }}/$ARCH/${{ inputs.module_name }}/" --flat
+            fi
+          fi
+        done
+      shell: bash
+
+    - if: ${{ inputs.distrib == 'bullseye' && env.stability != 'canary' }}
+      name: Publish DEBs
+      run: |
+        FILES="*.${{ env.extfile }}"
+
+        for FILE in $FILES; do
+          echo "[DEBUG] - File: $FILE"
+
+          VERSION=${{ inputs.version }}
+          DISTRIB=$(echo $FILE | cut -d '_' -f2 | cut -d '-' -f2)
+          ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
+
+          echo "[DEBUG] - Version: $VERSION"
+
+          jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ env.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
+        done
+      shell: bash
+
+    - name: Setup awscli
+      run: |
+        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        sudo unzip -q awscliv2.zip
+        sudo ./aws/install
+      shell: bash
+
+    - if: ${{ env.stability != 'canary' }}
+      name: Publish packages
+      run: |
         if [[ "${{ env.extfile }}" == "rpm" ]] ; then
           eval `ssh-agent`
           ssh-add - <<< "${{ inputs.yum_repo_key }}"
@@ -124,19 +179,15 @@ runs:
           MAJOR="$VERSION"
           MINOR=${{ inputs.minor_version }}
           RELEASE=${{ inputs.release }}
-          REPOTYPE="$SUBREPO"
           PROJECT=${{ inputs.module_name }}
           PROJECT_PATH="standard"
 
-          echo "[DEBUG] - Suprepo: $SUBREPO"
           echo "[DEBUG] - Version: $VERSION"
 
-          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" == "stable" ]]; then
+          if [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ env.stability }}" == "stable" ]]; then
             curl --fail -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}/
-            curl --fail -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/apt-${{ inputs.version }}-$SUBREPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "$FILE"
-          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "$SUBREPO" != "stable" ]]; then
-            curl --fail -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}-$SUBREPO/
-            curl --fail -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/apt-${{ inputs.version }}-$SUBREPO/pool/$FILE;deb.distribution=bullseye;deb.component=main;deb.architecture=amd64" -T "$FILE"
+          elif [[ "${{ env.extfile }}" == "deb" ]] && [[ "${{ env.stability }}" != "stable" ]]; then
+            curl --fail -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILE" https://apt.centreon.com/repository/${{ inputs.version }}-${{ env.stability }}/
           else
             DISTRIB="${{ inputs.distrib }}"
             ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
@@ -144,14 +195,12 @@ runs:
             echo "[DEBUG] - DISTRIB: $DISTRIB"
             echo "[DEBUG] - Arch: $ARCH"
 
-            if [[ "$SUBREPO" == "stable" ]] ; then
-              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/RPMS"
-              curl --fail -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/rpm/$PROJECT_PATH/$MAJOR/$DISTRIB/$SUBREPO/$ARCH/$FILE" -T "./$FILE"              
+            if [[ "${{ env.stability }}" == "stable" ]] ; then
+              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/${{ env.stability }}/$ARCH/RPMS"
             else
               FOLDER="$PROJECT-$MAJOR.$MINOR-$RELEASE"
-              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT/$FOLDER"
-              PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/$PROJECT"
-              curl --fail -v -H "Authorization: Bearer ${{ inputs.artifactory_token }}" -X PUT "https://centreon.jfrog.io/artifactory/rpm/$PROJECT_PATH/$MAJOR/$DISTRIB/$SUBREPO/$ARCH/$PROJECT/$FOLDER/$FILE" -T "./$FILE"
+              TARGET="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/${{ env.stability }}/$ARCH/$PROJECT/$FOLDER"
+              PROJECT_LOCATION="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/${{ env.stability }}/$ARCH/$PROJECT"
             fi
 
             echo "[DEBUG] - Folder: $FOLDER"
@@ -166,17 +215,17 @@ runs:
         # run this only for rpm
         if [[ "${{ env.extfile }}" == "rpm" ]] ; then
           # Cleanup is done on unstable repository only
-          if [[ "$SUBREPO" == "unstable" ]] ; then
+          if [[ "${{ env.stability }}" == "unstable" ]] ; then
             ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "ls -drc $PROJECT_LOCATION/* 2>&- | head -n -1 | xargs rm -rf"
           fi
 
           # Update repository metadata
-          METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH"
+          METADATAS="/srv/centreon-yum/yum.centreon.com/$PROJECT_PATH/$MAJOR/$DISTRIB/${{ env.stability }}/$ARCH"
           ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" "sh "${{ inputs.update_repo_path }}" $METADATAS" 2>&-
 
           # Invalidate cloudfront cache
           ID="${{ inputs.cloudfront_id }}"
-          PATHS="/$PROJECT_PATH/$MAJOR/$DISTRIB/$REPOTYPE/$ARCH/*"
+          PATHS="/$PROJECT_PATH/$MAJOR/$DISTRIB/${{ env.stability }}/$ARCH/*"
           ITERATIONS=1
           until aws cloudfront create-invalidation --distribution-id "$ID" --paths "$PATHS"; do
             if [ ${ITERATIONS} -eq 10 ]; then

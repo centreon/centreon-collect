@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019-2022 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
+#include <absl/types/span.h>
 #include <gtest/gtest.h>
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
@@ -77,11 +78,11 @@ class write_thread {
 
   void callback() {
     char* buf = new char[_size];
-    for (int i(0); i < _size; ++i)
+    for (int i = 0; i < _size; ++i)
       buf[i] = i & 255;
 
     int wb = 0;
-    for (int j(0); j < _size; j += wb) {
+    for (int j = 0; j < _size; j += wb) {
       wb = _file->write(buf + j, 100);
       usleep(rand() % 100);
     }
@@ -164,4 +165,70 @@ TEST_F(FileSplitterConcurrent, MultipleFilesCreated) {
   std::list<std::string> entries = misc::filesystem::dir_content_with_filter(
       RETENTION_DIR, RETENTION_FILE "*");
   ASSERT_EQ(entries.size(), 0u);
+}
+
+// Given a splitter object
+// When twenty writers write in parallel in the splitter
+// Then the reader can read all what they wrote and data are not corrupted.
+TEST_F(FileSplitterConcurrent, ConcurrentWriteFile10) {
+  constexpr int COUNT = 20;
+  constexpr int LENGTH = 1000;
+  constexpr int BLOCK = 100;
+  std::vector<std::thread> v;
+  for (int i = 0; i < COUNT; i++)
+    v.emplace_back([file = _file.get()]() {
+      char* buf = new char[LENGTH];
+      char v = 1;
+      int block = BLOCK;
+      for (int i = 0; i < LENGTH; ++i) {
+        if (i >= block) {
+          block += BLOCK;
+          v++;
+        }
+        buf[i] = v;
+      }
+
+      int wb = 0;
+      for (int j = 0; j < LENGTH; j += wb) {
+        wb = file->write(buf + j, BLOCK);
+      }
+
+      delete[] buf;
+    });
+
+  std::vector<uint8_t> result(COUNT * LENGTH, '\0');
+
+  std::thread rt([file = _file.get(), &result]() {
+    int ret = 0;
+    int current = 0;
+    constexpr int size = COUNT * LENGTH;
+
+    do {
+      try {
+        ret = file->read(result.data() + current, size - current);
+        current += ret;
+        ASSERT_TRUE(current <= size);
+      } catch (...) {
+      }
+      usleep(100);
+    } while (current < size);
+  });
+
+  for (auto& t : v)
+    t.join();
+
+  rt.join();
+
+  ASSERT_EQ(result.size(), COUNT * LENGTH);
+  ASSERT_EQ(result.size() % BLOCK, 0);
+  for (uint32_t delta = 0; delta < result.size(); delta += BLOCK) {
+    absl::Span<uint8_t> res(const_cast<uint8_t*>(result.data()) + delta, BLOCK);
+
+    // Then
+    char v = res[0];
+    for (uint32_t i = 0; i < res.size(); i++) {
+      ASSERT_EQ(v, res[i]) << " where res[0] = " << v << " delta = " << delta
+                           << " and i = " << i;
+    }
+  }
 }

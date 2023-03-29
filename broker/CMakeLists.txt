@@ -76,7 +76,8 @@ endif()
 
 include_directories(
   "${PROJECT_SOURCE_DIR}/core/inc" "${PROJECT_SOURCE_DIR}/neb/inc"
-  "${CMAKE_SOURCE_DIR}/engine/inc")
+  "${CMAKE_SOURCE_DIR}/engine/inc"
+  "${PROJECT_SOURCE_DIR}/core/multiplexing/inc")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
@@ -343,7 +344,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/protocols.cc
     ${SRC_DIR}/io/raw.cc
     ${SRC_DIR}/io/stream.cc
-    ${SRC_DIR}/log_v2.cc
     ${SRC_DIR}/mapping/entry.cc
     ${SRC_DIR}/misc/diagnostic.cc
     ${SRC_DIR}/misc/filesystem.cc
@@ -356,13 +356,11 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/multiplexing/engine.cc
-    ${SRC_DIR}/multiplexing/muxer.cc
-    ${SRC_DIR}/multiplexing/publisher.cc
     ${SRC_DIR}/mysql.cc
     ${SRC_DIR}/pool.cc
     ${SRC_DIR}/database/mysql_bind_base.cc
     ${SRC_DIR}/database/mysql_bind.cc
+    ${SRC_DIR}/database/mysql_bind_result.cc
     ${SRC_DIR}/database/mysql_bulk_bind.cc
     ${SRC_DIR}/database/mysql_column.cc
     ${SRC_DIR}/mysql_manager.cc
@@ -442,13 +440,8 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/trash.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/multiplexing/engine.hh
-    ${INC_DIR}/multiplexing/muxer.hh
-    ${INC_DIR}/multiplexing/publisher.hh
     ${INC_DIR}/mysql.hh
     ${INC_DIR}/pool.hh
-    ${INC_DIR}/database/mysql_bind_base.hh
-    ${INC_DIR}/database/mysql_bind.hh
     ${INC_DIR}/database/mysql_bulk_bind.hh
     ${INC_DIR}/database/mysql_column.hh
     ${INC_DIR}/database/mysql_error.hh
@@ -480,6 +473,11 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/version.hh)
 
 # Static libraries.
+add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
+set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
+target_precompile_headers(rokerlog PRIVATE core/precomp_inc/precomp.hpp)
+target_link_libraries(rokerlog CONAN_PKG::spdlog)
+
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
@@ -502,14 +500,17 @@ target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
+add_dependencies(cbd multiplexing)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
   cbd
-  "-export-dynamic"
+  "-rdynamic"
+  rokerlog
   "-Wl,--whole-archive"
   rokerbase
   roker
+  multiplexing
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
@@ -546,6 +547,9 @@ add_broker_module(TLS ON)
 add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
+
+# multiplexing library linked in final executable such as cbd or cbmod
+add_subdirectory(core/multiplexing)
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)

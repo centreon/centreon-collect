@@ -36,6 +36,8 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class BamBA : public ::testing::Test {
  protected:
   std::unique_ptr<bam::configuration::applier::state> _aply_state;
@@ -45,6 +47,7 @@ class BamBA : public ::testing::Test {
  public:
   void SetUp() override {
     // Initialization.
+    g_io_context->restart();
     config::applier::init(0, "test_broker", 0);
 
     _aply_state = std::make_unique<bam::configuration::applier::state>();
@@ -453,12 +456,7 @@ TEST_F(BamBA, KpiServiceRatioPercent) {
   test_ba->set_level_warning(75);
 
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
-  std::stack<short> results;
-
-  results.push(2);
-  results.push(1);
-  results.push(0);
-  results.push(0);
+  std::stack<short> results({2, 1, 0, 0});
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);
@@ -499,12 +497,7 @@ TEST_F(BamBA, KpiServiceDtInheritAllCritical) {
   test_ba->set_downtime_behaviour(bam::configuration::ba::dt_inherit);
 
   std::vector<std::shared_ptr<bam::kpi_service>> kpis;
-  std::stack<bool> results;
-
-  results.push(true);
-  results.push(false);
-  results.push(false);
-  results.push(false);
+  std::stack<bool> results({true, false, false, false});
 
   for (int i = 0; i < 4; i++) {
     auto s = std::make_shared<bam::kpi_service>(i + 1, 1, i + 1, 1);

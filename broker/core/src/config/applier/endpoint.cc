@@ -99,16 +99,14 @@ endpoint::~endpoint() {
 void endpoint::apply(std::list<config::endpoint> const& endpoints) {
   // Log messages.
   log_v2::config()->info("endpoint applier: loading configuration");
-  log_v2::config()->debug("endpoint applier: {} endpoints to apply",
-                          endpoints.size());
 
   {
     std::vector<std::string> eps;
     for (auto& ep : endpoints)
       eps.push_back(ep.name);
-    log_v2::core()->debug("endpoint applier: {} endpoints to apply: {}",
-                          endpoints.size(),
-                          fmt::format("{}", fmt::join(eps, ", ")));
+    log_v2::config()->debug("endpoint applier: {} endpoints to apply: {}",
+                            endpoints.size(),
+                            fmt::format("{}", fmt::join(eps, ", ")));
   }
 
   // Copy endpoint configurations and apply eventual modifications.
@@ -128,7 +126,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       // resources that might be used by other endpoints.
       auto it = _endpoints.find(ep);
       if (it != _endpoints.end()) {
-        log_v2::core()->debug("removing old endpoint {}", it->first.name);
+        log_v2::config()->debug("endpoint applier: removing old endpoint {}",
+                                it->first.name);
+        /* failover::exit() is called. */
         it->second->exit();
         delete it->second;
         _endpoints.erase(it);
@@ -138,13 +138,14 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
 
   // Update existing endpoints.
   for (auto it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it) {
-    log_v2::core()->debug("updating endpoint {}", it->first.name);
+    log_v2::config()->debug("endpoint applier: updating endpoint {}",
+                            it->first.name);
     it->second->update();
   }
 
   // Debug message.
-  log_v2::core()->debug("endpoint applier: {} endpoints to create",
-                        endp_to_create.size());
+  log_v2::config()->debug("endpoint applier: {} endpoints to create",
+                          endp_to_create.size());
 
   // Create new endpoints.
   for (config::endpoint& ep : endp_to_create) {
@@ -153,11 +154,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
     if (ep.name.empty() ||
         std::find_if(endp_to_create.begin(), endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
-      log_v2::core()->debug("creating endpoint {}", ep.name);
-      // Create muxer and endpoint.
-      auto mux{std::make_shared<multiplexing::muxer>(
-          ep.name, _filters(ep.read_filters), _filters(ep.write_filters),
-          true)};
+      log_v2::config()->debug("endpoint applier: creating endpoint {}",
+                              ep.name);
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
       std::unique_ptr<processing::endpoint> endp;
@@ -180,8 +178,12 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         acceptr->set_read_filters(_filters(ep.read_filters));
         acceptr->set_write_filters(_filters(ep.write_filters));
         endp.reset(acceptr.release());
-      } else
+      } else {
+        // Create muxer and endpoint.
+        auto mux{multiplexing::muxer::create(ep.name, _filters(ep.read_filters),
+                                             _filters(ep.write_filters), true)};
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
+      }
       {
         std::lock_guard<std::timed_mutex> lock(_endpointsm);
         _endpoints[ep] = endp.get();
@@ -230,7 +232,7 @@ void endpoint::_discard() {
 
   // Stop multiplexing.
   try {
-    multiplexing::engine::instance().stop();
+    multiplexing::engine::instance_ptr()->stop();
   } catch (const std::exception& e) {
     log_v2::config()->warn("multiplexing engine stop interrupted: {}",
                            e.what());
@@ -541,7 +543,7 @@ absl::flat_hash_set<uint32_t> endpoint::_filters(
              it = tmp_elements.cbegin(),
              end = tmp_elements.cend();
          it != end; ++it) {
-      log_v2::config()->debug("endpoint applier: new filtering element: {}",
+      log_v2::config()->trace("endpoint applier: new filtering element: {}",
                               it->first);
       elements.insert(it->first);
       retval = true;

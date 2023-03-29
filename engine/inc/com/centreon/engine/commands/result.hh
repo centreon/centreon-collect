@@ -64,4 +64,10 @@ std::ostream& operator<<(std::ostream& s, const result& to_dump);
 
 CCE_END()
 
+namespace fmt {
+template <>
+struct formatter<com::centreon::engine::commands::result> : ostream_formatter {
+};
+}  // namespace fmt
+
 #endif  // !CCE_COMMANDS_RESULT_HH

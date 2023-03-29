@@ -29,6 +29,9 @@
 
 #include <asio.hpp>
 
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
 #include "com/centreon/broker/config/applier/init.hh"
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
@@ -46,6 +49,9 @@ using namespace com::centreon::broker;
 
 std::atomic<config::applier::applier_state> config::applier::mode{not_started};
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+extern bool g_io_context_started;
+
 /**
  * @brief Load necessary structures. It initializes exactly the same structures
  * as init(const config::state& conf) just with detailed parameters.
@@ -57,7 +63,8 @@ void config::applier::init(size_t n_thread,
                            const std::string&,
                            size_t event_queues_total_size) {
   // Load singletons.
-  pool::load(n_thread);
+  pool::load(g_io_context, n_thread);
+  g_io_context_started = true;
   stats::center::load();
   mysql_manager::load();
   config::applier::state::load();
@@ -75,14 +82,19 @@ void config::applier::init(size_t n_thread,
 void config::applier::deinit() {
   mode = finished;
   config::applier::endpoint::unload();
-  multiplexing::engine::instance().stop();
+  {
+    auto eng = multiplexing::engine::instance_ptr();
+    if (eng) {
+      multiplexing::engine::unload();
+    }
+  }
   config::applier::state::unload();
   io::events::unload();
   io::protocols::unload();
   mysql_manager::unload();
   stats::center::unload();
   file::disk_accessor::unload();
-  multiplexing::engine::unload();
+
   pool::unload();
 }
 

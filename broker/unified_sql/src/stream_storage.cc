@@ -431,7 +431,7 @@ void stream::_unified_sql_process_service_status(
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
           _mysql.run_statement_and_get_result(_index_data_query,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
 
           database::mysql_result res(future.get());
           if (_mysql.fetch_row(res))
@@ -466,7 +466,7 @@ void stream::_unified_sql_process_service_status(
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future = promise.get_future();
           _mysql.run_statement_and_get_result(_index_data_update,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
           future.get();
         }
 
@@ -666,14 +666,14 @@ void stream::_unified_sql_process_service_status(
           // Append perfdata to queue.
           std::string row;
           if (std::isinf(pd.value()))
-            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                               ss.current_state,
                               pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
           else if (std::isnan(pd.value()))
-            row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check,
                               ss.current_state);
           else
-            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                               ss.current_state, pd.value());
           _perfdata.push_query(row);
         }
@@ -752,7 +752,7 @@ void stream::_update_metrics() {
     int32_t conn = _mysql.choose_best_connection(-1);
     _finish_action(-1, actions::metrics);
     log_v2::sql()->trace("Send query: {}", query);
-    _mysql.run_query(query, database::mysql_error::update_metrics, false, conn);
+    _mysql.run_query(query, database::mysql_error::update_metrics, conn);
     _add_action(conn, actions::metrics);
   }
 }
@@ -797,9 +797,8 @@ void stream::_check_queues(asio::error_code ec) {
             // Setting the good bind to the stmt
             _hscr_bind->apply_to_stmt(conn);
             // Executing the stmt
-            _mysql.run_statement(*_hscr_update,
-                                 database::mysql_error::store_host_status,
-                                 false, conn);
+            _mysql.run_statement(
+                *_hscr_update, database::mysql_error::store_host_status, conn);
             _add_action(conn, actions::hosts);
           }
         }
@@ -818,7 +817,7 @@ void stream::_check_queues(asio::error_code ec) {
             // Executing the stmt
             _mysql.run_statement(*_sscr_update,
                                  database::mysql_error::store_service_status,
-                                 false, conn);
+                                 conn);
             _add_action(conn, actions::services);
           }
         }
@@ -835,7 +834,7 @@ void stream::_check_queues(asio::error_code ec) {
             // Executing the stmt
             _mysql.run_statement(*_hscr_resources_update,
                                  database::mysql_error::store_host_status,
-                                 false, conn);
+                                 conn);
             _add_action(conn, actions::resources);
           }
         }
@@ -850,7 +849,7 @@ void stream::_check_queues(asio::error_code ec) {
             // Executing the stmt
             _mysql.run_statement(*_sscr_resources_update,
                                  database::mysql_error::store_service_status,
-                                 false, conn);
+                                 conn);
             _add_action(conn, actions::resources);
           }
         }
@@ -871,7 +870,7 @@ void stream::_check_queues(asio::error_code ec) {
       std::string query = _cv.get_query();
       int32_t conn = special_conn::custom_variable % _mysql.connections_count();
       _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       false, conn);
+                       conn);
       _add_action(conn, actions::custom_variables);
       customvar_done = true;
     }
@@ -882,7 +881,7 @@ void stream::_check_queues(asio::error_code ec) {
       std::string query = _cvs.get_query();
       int32_t conn = special_conn::custom_variable % _mysql.connections_count();
       _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       false, conn);
+                       conn);
       _add_action(conn, actions::custom_variables);
       customvar_done = true;
     }
@@ -897,7 +896,7 @@ void stream::_check_queues(asio::error_code ec) {
                              actions::service_dependencies);
       int32_t conn = special_conn::downtime % _mysql.connections_count();
       _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       false, conn);
+                       conn);
       _add_action(conn, actions::downtimes);
       downtimes_done = true;
     }
@@ -908,7 +907,7 @@ void stream::_check_queues(asio::error_code ec) {
       std::string query = _logs.get_query();
       // Execute query.
       int32_t conn = special_conn::log % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_logs, false, conn);
+      _mysql.run_query(query, database::mysql_error::update_logs, conn);
       logs_done = true;
     }
 

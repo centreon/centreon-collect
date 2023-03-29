@@ -425,7 +425,7 @@ void availability_thread::_write_availability(
       builder.get_unknown_opened(), builder.get_downtime_opened()));
 
   log_v2::bam()->debug("Query: {}", query_str);
-  _mysql->run_query(query_str, database::mysql_error::insert_availability, true,
+  _mysql->run_query(query_str, database::mysql_error::insert_availability,
                     thread_id);
 }
 

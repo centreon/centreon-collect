@@ -20,6 +20,9 @@
 #define CCB_MYSQL_TASK_HH
 
 #include "com/centreon/broker/database/mysql_bind_base.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 CCB_BEGIN()
 
@@ -57,41 +60,10 @@ class mysql_task {
 
 class mysql_task_commit : public mysql_task {
  public:
-  /**
-   * @brief the purpose of this class is to set the future once all connections
-   * are committed
-   *
-   */
-  class mysql_task_commit_data {
-    std::promise<bool> _promise;
-    std::atomic_int _count;
+  mysql_task_commit(std::promise<void>&& p)
+      : mysql_task(mysql_task::COMMIT), promise(std::move(p)) {}
 
-   public:
-    using pointer = std::shared_ptr<mysql_task_commit_data>;
-    /**
-     * @brief Construct a new mysql task commit data object
-     *
-     * @param connection_count number of connections to commit
-     */
-    mysql_task_commit_data(int connection_count) : _count(connection_count) {}
-    bool get() { return _promise.get_future().get(); }
-    bool set_value(bool value) {
-      int old = _count.fetch_sub(1);
-      if (old == 1) {  // commit is done on each connection => signal to get
-        _promise.set_value(value);
-        return true;
-      }
-      return false;
-    }
-  };
-  mysql_task_commit_data::pointer _data;
-
- public:
-  mysql_task_commit(const mysql_task_commit_data::pointer& data)
-      : mysql_task(mysql_task::COMMIT), _data(data) {}
-
-  bool get() { return _data->get(); }
-  bool set_value(bool value) { return _data->set_value(value); }
+  std::promise<void> promise;
 };
 
 class mysql_task_fetch : public mysql_task {
@@ -114,11 +86,10 @@ class mysql_task_prepare : public mysql_task {
 
 class mysql_task_run : public mysql_task {
  public:
-  mysql_task_run(std::string const& q, mysql_error::code ec, bool fatal)
-      : mysql_task(mysql_task::RUN), query(q), error_code(ec), fatal(fatal) {}
+  mysql_task_run(std::string const& q, mysql_error::code ec)
+      : mysql_task(mysql_task::RUN), query(q), error_code(ec) {}
   std::string query;
   mysql_error::code error_code;
-  bool fatal;
 };
 
 class mysql_task_run_res : public mysql_task {
@@ -154,14 +125,11 @@ class mysql_task_run_int : public mysql_task {
 
 class mysql_task_statement : public mysql_task {
  public:
-  mysql_task_statement(database::mysql_stmt_base& stmt,
-                       mysql_error::code ec,
-                       bool fatal)
+  mysql_task_statement(database::mysql_stmt_base& stmt, mysql_error::code ec)
       : mysql_task(mysql_task::STATEMENT),
         statement_id(stmt.get_id()),
         param_count(stmt.get_param_count()),
-        error_code(ec),
-        fatal(fatal) {
+        error_code(ec) {
     if (stmt.in_bulk()) {
       database::mysql_bulk_stmt& s =
           *static_cast<database::mysql_bulk_stmt*>(&stmt);
@@ -173,19 +141,20 @@ class mysql_task_statement : public mysql_task {
       bulk = false;
     }
   }
-  int statement_id;
+  uint32_t statement_id;
   int param_count;
   std::unique_ptr<database::mysql_bind_base> bind;
   mysql_error::code error_code;
-  bool fatal;
   bool bulk;
 };
 
 class mysql_task_statement_res : public mysql_task {
  public:
   mysql_task_statement_res(database::mysql_stmt_base& stmt,
+                           size_t length,
                            std::promise<mysql_result>&& promise)
       : mysql_task(mysql_task::STATEMENT_RES),
+        length(length),
         promise(std::move(promise)),
         statement_id(stmt.get_id()),
         param_count(stmt.get_param_count()) {
@@ -201,8 +170,9 @@ class mysql_task_statement_res : public mysql_task {
     }
   }
 
+  size_t length;
   std::promise<mysql_result> promise;
-  int statement_id;
+  uint32_t statement_id;
   int param_count;
   std::unique_ptr<database::mysql_bind_base> bind;
   bool bulk;
@@ -237,7 +207,7 @@ class mysql_task_statement_int : public mysql_task {
   }
   std::promise<T> promise;
   int_type return_type;
-  int statement_id;
+  uint32_t statement_id;
   int param_count;
   std::unique_ptr<database::mysql_bind_base> bind;
   bool bulk;

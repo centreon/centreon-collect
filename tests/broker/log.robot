@@ -25,8 +25,8 @@ BLDIS1
         Should Be True	${result}	msg="No sql logs produced"
 
         ${content}=	Create List	[core]
-        ${result}=	Find In Log	${centralLog}	${start}	${content}
-        Should Be Equal	${result[0]}	${False}	msg="We should not have core logs"
+        ${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be Equal	${result}	${False}	msg="We should not have core logs"
         Kindly Stop Broker
 
 BLEC1
@@ -54,7 +54,7 @@ BLEC2
         ${result}=	Get Broker Log Level	51001	central	core
         Should Be Equal	${result}	trace
         ${result}=	Set Broker Log Level	51001	central	core	foo
-        Should Be Equal	${result}	The 'foo' level is unknown
+        Should Be Equal	${result}	Enum LogLevelEnum has no value defined for name 'FOO'
 
 BLEC3
 	[Documentation]	Change live the foo level log to trace raises an error

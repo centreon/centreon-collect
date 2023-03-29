@@ -71,11 +71,12 @@ def get_date(d: str):
     return retval
 
 
-def find_in_log_with_timeout(log: str, date, content, timeout: int):
+def find_in_log_with_timeout(log: str, date, content, timeout: int, *, regex=False):
+
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content)
+        ok, c = find_in_log(log, date, content, regex)
         if ok:
             return True
         time.sleep(5)
@@ -84,7 +85,7 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
-def find_in_log(log: str, date, content):
+def find_in_log(log: str, date, content, regex=False):
     """Find content in log file from the given date
 
     Args:
@@ -95,6 +96,8 @@ def find_in_log(log: str, date, content):
     Returns:
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
+    logger.info(f"regex={regex}")
+
     try:
         f = open(log, "r")
         lines = f.readlines()
@@ -105,7 +108,11 @@ def find_in_log(log: str, date, content):
             found = False
             for i in range(idx, len(lines)):
                 line = lines[i]
-                if c in line:
+                if regex:
+                    match = re.search(c, line)
+                else:
+                    match = c in line
+                if match:
                     logger.console(
                         "\"{}\" found at line {} from {}".format(c, i, idx))
                     found = True
@@ -841,6 +848,27 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
     return False
 
 
+def create_bad_queue(filename: str):
+    f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
+    buffer = bytearray(10000)
+    buffer[0] = 0
+    buffer[1] = 0
+    buffer[2] = 0
+    buffer[3] = 0
+    buffer[4] = 0
+    buffer[5] = 0
+    buffer[6] = 8
+    buffer[7] = 0
+    t = 0
+    for i in range(8, 10000):
+        buffer[i] = t
+        t += 1
+        if t > 100:
+            t = 0
+    f.write(buffer)
+    f.close()
+
+
 def check_types_in_resources(lst: list):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
@@ -877,3 +905,25 @@ def grep(file_path: str, pattern: str):
             if re.search(pattern, line):
                 return line.strip()
     return ""
+
+
+def get_version():
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda l: l.startswith("set(COLLECT_"), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(COLLECT_PATCH\s*([0-9]+)")
+    for l in filtered:
+        m1 = rmaj.match(l)
+        m2 = rmin.match(l)
+        m3 = rpatch.match(l)
+        if m1:
+            maj = m1.group(1)
+        elif m2:
+            mini = m2.group(1)
+        elif m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
