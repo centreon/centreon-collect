@@ -66,7 +66,7 @@ TEST_F(ConfigTag, NewTagWellFilled) {
   tg.parse("tag_name", "foobar");
   ASSERT_EQ(tg.key().first, 1);
   ASSERT_EQ(tg.key().second, engine::configuration::tag::servicegroup);
-  ASSERT_EQ(tg.name(), "foobar");
+  ASSERT_EQ(tg.tag_name(), "foobar");
   ASSERT_NO_THROW(tg.check_validity());
 }
 
