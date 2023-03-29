@@ -15,6 +15,7 @@ Library	DateTime
 BLDIS1
 	[Documentation]	Start broker with core logs 'disabled'
 	[Tags]	Broker	start-stop	log-v2
+	Config Broker	rrd
 	Config Broker	central
         Broker Config Log	central	core	disabled
         Broker Config Log	central	sql	debug
@@ -32,6 +33,7 @@ BLDIS1
 BLEC1
 	[Documentation]	Change live the core level log from trace to debug
 	[Tags]	Broker	log-v2	grpc
+	Config Broker	rrd
 	Config Broker	central
         Broker Config Log	central	core	trace
         Broker Config Log	central	sql	debug
@@ -46,6 +48,7 @@ BLEC1
 BLEC2
 	[Documentation]	Change live the core level log from trace to foo raises an error
 	[Tags]	Broker	log-v2	grpc
+	Config Broker	rrd
 	Config Broker	central
         Broker Config Log	central	core	trace
         Broker Config Log	central	sql	debug
@@ -59,6 +62,7 @@ BLEC2
 BLEC3
 	[Documentation]	Change live the foo level log to trace raises an error
 	[Tags]	Broker	log-v2	grpc
+	Config Broker	rrd
 	Config Broker	central
         Broker Config Log	central	core	trace
         Broker Config Log	central	sql	debug
