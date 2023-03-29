@@ -3,6 +3,7 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 import time
+import psutil
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
@@ -69,6 +70,12 @@ def get_date(d: str):
     except ValueError:
         retval = parser.parse(d[:-6])
     return retval
+
+
+#  When you use Get Current Date with exclude_millis=True
+#  it rounds result to nearest lower or upper second
+def get_round_current_date():
+    return int(time.time())
 
 
 def find_in_log_with_timeout(log: str, date, content, timeout: int, *, regex=False):
@@ -139,6 +146,10 @@ def get_hostname():
 
 def create_key_and_certificate(host: str, key: str, cert: str):
     if len(key) > 0:
+        os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
+    if len(cert) > 0:
+        os.makedirs(os.path.dirname(cert), mode=0o777, exist_ok=True)
+    if len(key) > 0:
         retval = getoutput(
             "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {} -out {} -subj '/CN={}'".format(key,
                                                                                                                 cert,
@@ -175,7 +186,15 @@ def stop_mysql():
         logger.console("Mariadb stopped with systemd")
     else:
         logger.console("Stopping directly MariaDB")
-        getoutput("kill -SIGTERM $(pidof mariadbd)")
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                proc.terminate()
+                try:
+                    proc.wait(30)
+                except:
+                    logger.console("mariadb don't want to stop => kill")
+                    proc.kill()
+                break
         logger.console("Mariadb directly stopped")
 
 
@@ -566,8 +585,9 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
+                    "SELECT * FROM mod_bam WHERE name='{}'".format(ba_name))
                 result = cursor.fetchall()
+                logger.console(f"ba: {result[0]}")
                 if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(5)
