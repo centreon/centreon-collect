@@ -132,7 +132,6 @@ add_library(
   "${SRC_DIR}/internal.cc"
   "${SRC_DIR}/neb.cc"
   "${SRC_DIR}/set_log_data.cc"
-
   # Headers.
   "${INC_DIR}/com/centreon/broker/neb/callback.hh"
   "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
@@ -152,14 +151,16 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     "${CBMOD}"
     rokerlog
     "-Wl,--whole-archive"
-    "rokerbase"
+    rokerbase
+    multiplexing
     "-Wl,--no-whole-archive"
     CONAN_PKG::nlohmann_json
     CONAN_PKG::spdlog
     CONAN_PKG::asio)
 else()
-  target_link_libraries("${CBMOD}" "rokerbase" CONAN_PKG::nlohmann_json
-                        CONAN_PKG::spdlog CONAN_PKG::asio)
+  target_link_libraries(
+    "${CBMOD}" rokerbase multiplexing CONAN_PKG::nlohmann_json
+    CONAN_PKG::spdlog CONAN_PKG::asio)
 endif()
 
 set_target_properties("${CBMOD}" PROPERTIES PREFIX "")

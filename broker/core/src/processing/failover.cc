@@ -361,7 +361,7 @@ void failover::_run() {
       log_v2::core()->error("failover: global error: {}", e.what());
       {
         if (_stream) {
-          int32_t ack_events;
+          int32_t ack_events = 0;
           try {
             ack_events = _stream->stop();
           } catch (const std::exception& e) {
@@ -385,7 +385,7 @@ void failover::_run() {
           "developers",
           _name);
       {
-        int32_t ack_events;
+        int32_t ack_events = 0;
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
@@ -408,7 +408,7 @@ void failover::_run() {
       std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
       if (_stream) {
         // If ack_events is not zero, then we will store data twice
-        int32_t ack_events;
+        int32_t ack_events = 0;
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
