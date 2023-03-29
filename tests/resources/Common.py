@@ -188,7 +188,7 @@ def stop_mysql():
         logger.console("Stopping directly MariaDB")
         for proc in psutil.process_iter():
             if ('mariadbd' in proc.name()):
-                logger.console("process '{proc.name()}' containing mariadbd found: stopping it")
+                logger.console(f"process '{proc.name()}' containing mariadbd found: stopping it")
                 proc.terminate()
                 try:
                     logger.console("Waiting for 30s mariadbd to stop")
@@ -196,13 +196,13 @@ def stop_mysql():
                 except:
                     logger.console("mariadb don't want to stop => kill")
                     proc.kill()
-                break
+
         for proc in psutil.process_iter():
             if ('mariadbd' in proc.name()):
-                logger.console("process '{proc.name()}' still alive")
+                logger.console(f"process '{proc.name()}' still alive")
                 logger.console("mariadb don't want to stop => kill")
                 proc.kill()
-                break
+
         logger.console("Mariadb directly stopped")
 
 
