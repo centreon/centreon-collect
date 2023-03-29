@@ -196,6 +196,7 @@ Save Logs
 	Copy files	${ENGINE_LOG}/config0/gcore_*	${failDir}
 	Copy Files	${EtcRoot}/centreon-engine/config0/*.cfg	${failDir}/etc/centreon-engine/config0
 	Copy Files	${EtcRoot}/centreon-broker/*.json	${failDir}/etc/centreon-broker
+	Move Files	/tmp/lua*.log	${failDir}
 
 
 Dump Process

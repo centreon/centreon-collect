@@ -812,14 +812,14 @@ def broker_config_output_set(name, output, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 

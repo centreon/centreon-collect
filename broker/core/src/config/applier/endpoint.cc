@@ -230,14 +230,6 @@ void endpoint::_discard() {
     }
   }
 
-  // Stop multiplexing.
-  try {
-    multiplexing::engine::instance_ptr()->stop();
-  } catch (const std::exception& e) {
-    log_v2::config()->warn("multiplexing engine stop interrupted: {}",
-                           e.what());
-  }
-
   // Exit threads.
   {
     log_v2::config()->debug("endpoint applier: requesting threads termination");
@@ -254,6 +246,15 @@ void endpoint::_discard() {
     }
 
     log_v2::config()->debug("endpoint applier: all threads are terminated");
+  }
+
+  // Stop multiplexing: we must stop the engine after failovers otherwise
+  // the stop/pb_stop message cannot go.
+  try {
+    multiplexing::engine::instance_ptr()->stop();
+  } catch (const std::exception& e) {
+    log_v2::config()->warn("multiplexing engine stop interrupted: {}",
+                           e.what());
   }
 }
 

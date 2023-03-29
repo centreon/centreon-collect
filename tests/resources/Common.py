@@ -197,16 +197,16 @@ def kill_engine():
 
 
 def clear_retention():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.memory.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.queue.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.unprocessed*' -delete")
-    getoutput("find " + VAR_ROOT + " -name 'retention.dat' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
+    getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
 
 
 def clear_cache():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
 
 def engine_log_table_duplicate(result: list):
