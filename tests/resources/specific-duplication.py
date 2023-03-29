@@ -210,6 +210,9 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
                                 0x1001b,        # pb_service
                                 0x1001e,        # pb_host
                                 0x1002b,        # pb_module
+                                0x10025,        # pb_custom_variable
+                                0x10027,        # pb_host_check
+                                0x10028,        # pb_service_check
                                 ]:
                     if md5 in lst:
                         lst[md5] += 1
@@ -233,6 +236,3 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
                 logger.console(
                     "In lst2: Bad {} {} with type {:x}".format(k, lst2[k], typ2[k]))
     return len(res1) == 1 and len(res2) == 1
-
-#print(files_contain_same_json("/tmp/lua-engine.log", "/tmp/lua.log"))
-#print(check_multiplicity_when_engine_restarted("/tmp/lua-engine.log", "/tmp/lua.log"))
