@@ -5,6 +5,16 @@ Library	OperatingSystem
 Library	Common.py
 
 *** Keywords ***
+Config BBDO3
+	[Arguments]	${nbEngine}
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        FOR	${i}	IN RANGE	${nbEngine}
+	 ${mod}=	Catenate	SEPARATOR=	module	${i}
+         Broker Config Add Item	${mod}	bbdo_version	3.0.0
+	END
+
 Clean Before Suite
 	Stop Processes
 	Clear Engine Logs
