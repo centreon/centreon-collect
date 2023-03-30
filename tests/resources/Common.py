@@ -188,7 +188,8 @@ def stop_mysql():
         logger.console("Stopping directly MariaDB")
         for proc in psutil.process_iter():
             if ('mariadbd' in proc.name()):
-                logger.console(f"process '{proc.name()}' containing mariadbd found: stopping it")
+                logger.console(
+                    f"process '{proc.name()}' containing mariadbd found: stopping it")
                 proc.terminate()
                 try:
                     logger.console("Waiting for 30s mariadbd to stop")
@@ -385,6 +386,23 @@ def set_command_status(cmd, status):
     f = open("/tmp/states", "w")
     f.writelines(lines)
     f.close()
+
+
+def truncate_resource_host_service():
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 autocommit=True,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute("DELETE FROM resources_tags")
+            cursor.execute("DELETE FROM resources")
+            cursor.execute("DELETE FROM hosts")
+            cursor.execute("DELETE FROM services")
 
 
 def check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
