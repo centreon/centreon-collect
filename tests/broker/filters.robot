@@ -16,6 +16,7 @@ BFC1
 	[Documentation]	Start broker with invalid filters but one filter ok
 	[Tags]	Broker	start-stop	log-v2
 	Config Broker	central
+        Config Broker  rrd
         Broker Config Log	central	config	info
         Broker Config Log	central	sql	error
         Broker Config Log	central	core	error
@@ -32,6 +33,7 @@ BFC2
 	[Documentation]	Start broker with only invalid filters on an output
 	[Tags]	Broker	start-stop	log-v2
 	Config Broker	central
+        Config Broker  rrd
         Broker Config Log	central	config	info
         Broker Config Log	central	sql	error
         Broker Config Log	central	core	error

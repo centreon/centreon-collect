@@ -225,6 +225,7 @@ void mysql_connection::_query(mysql_task* t) {
     if (_server_error(::mysql_errno(_conn)))
       set_error_message(err_msg);
   } else {
+    _last_access = time(nullptr);
     set_need_to_commit();
   }
   SPDLOG_LOGGER_TRACE(log_v2::sql(), "mysql_connection {:p}: end run query: {}",
@@ -250,6 +251,7 @@ void mysql_connection::_query_res(mysql_task* t) {
     }
   } else {
     /* All is good here */
+    _last_access = time(nullptr);
     set_need_to_commit();
     task->promise.set_value(mysql_result(this, mysql_store_result(_conn)));
   }
@@ -274,6 +276,7 @@ void mysql_connection::_query_int(mysql_task* t) {
     }
   } else {
     /* All is good here */
+    _last_access = time(nullptr);
     set_need_to_commit();
     if (task->return_type == mysql_task::AFFECTED_ROWS)
       task->promise.set_value(mysql_affected_rows(_conn));
@@ -359,6 +362,7 @@ void mysql_connection::_prepare(mysql_task* t) {
       SPDLOG_LOGGER_ERROR(log_v2::sql(), "mysql_connection: {}", err_msg);
       set_error_message(err_msg);
     } else {
+      _last_access = time(nullptr);
       _stmt[task->id] = stmt;
       SPDLOG_LOGGER_TRACE(log_v2::sql(),
                           "mysql_connection {:p}: statement prepared {} "
@@ -441,6 +445,7 @@ void mysql_connection::_statement(mysql_task* t) {
                             "{} attempt {}",
                             static_cast<const void*>(this), task->statement_id,
                             _stmt_query[task->statement_id]);
+        _last_access = time(nullptr);
         set_need_to_commit();
         break;
       }
@@ -529,6 +534,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
           return;
         }
       } else {
+        _last_access = time(nullptr);
         mysql_result res(this, task->statement_id);
         MYSQL_STMT* stmt(_stmt[task->statement_id]);
         MYSQL_RES* prepare_meta_result(mysql_stmt_result_metadata(stmt));
@@ -647,6 +653,7 @@ void mysql_connection::_statement_int(mysql_task* t) {
           return;
         }
       } else {
+        _last_access = time(nullptr);
         set_need_to_commit();
         if (task->return_type == mysql_task::AFFECTED_ROWS)
           task->promise.set_value(
@@ -710,9 +717,10 @@ void mysql_connection::clear_error() {
   _error.clear();
 }
 
-std::string mysql_connection::_get_stack() {
+std::string mysql_connection::_get_stack(
+    const std::list<std::unique_ptr<database::mysql_task>>& task) {
   std::string retval;
-  for (auto& t : _tasks_list) {
+  for (auto& t : task) {
     switch (t->type) {
       case mysql_task::RUN:
         retval += "RUN ; ";
@@ -919,7 +927,6 @@ void mysql_connection::_process_tasks(
 
     if (!_error.is_active()) {
       tasks_list.pop_front();
-      _last_access = time(nullptr);
     } else {
       return;
     }
@@ -935,24 +942,9 @@ void mysql_connection::_process_tasks(
 void mysql_connection::_process_while_empty_task(
     std::list<std::unique_ptr<database::mysql_task>>& tasks_list) {
   std::unique_lock<std::mutex> lock(_tasks_m);
-  /* We are waiting for some activity, nothing to do for now it is time
-   * to make some ping */
-  while (!_tasks_condition.wait_for(lock, std::chrono::seconds(5), [this] {
-    return _finish_asked || !_tasks_list.empty();
-  })) {
-    if (time(nullptr) > _last_commit + _max_second_commit_delay) {
-      _commit(nullptr);
-    }
-    _update_stats();
-  }
 
-  std::time_t now = std::time(nullptr);
-
-  if (_tasks_list.empty()) {
-    _state = finished;
-  } else {
-    tasks_list.swap(_tasks_list);
-    lock.unlock();
+  auto ping = [&]() {
+    std::time_t now = std::time(nullptr);
     if (now >= _last_access + 30) {
       SPDLOG_LOGGER_TRACE(log_v2::sql(),
                           "mysql_connection {:p} SQL: performing mysql_ping.",
@@ -975,6 +967,32 @@ void mysql_connection::_process_while_empty_task(
                           "database for this connection for {}s",
                           static_cast<const void*>(this), now - _last_access);
     }
+  };
+
+  /* We are waiting for some activity, nothing to do for now it is time
+   * to make some ping */
+  while (!_tasks_condition.wait_for(lock, std::chrono::seconds(5), [this] {
+    return _finish_asked || !_tasks_list.empty();
+  })) {
+    if (time(nullptr) > _last_commit + _max_second_commit_delay) {
+      _commit(nullptr);
+    }
+    SPDLOG_LOGGER_TRACE(log_v2::sql(), "_tasks_list.size()={}",
+                        _tasks_list.size());
+
+    lock.unlock();
+    ping();
+    lock.lock();
+    _update_stats();
+  }
+
+  if (_tasks_list.empty()) {
+    _state = finished;
+  } else {
+    tasks_list.swap(_tasks_list);
+    lock.unlock();
+    SPDLOG_LOGGER_TRACE(log_v2::sql(), "tasks_list={}", _get_stack(tasks_list));
+    ping();
   }
 }
 

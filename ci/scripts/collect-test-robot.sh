@@ -19,8 +19,8 @@ echo "########################### Init centreon database #######################
 mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
 
 mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
-mysql -e "CREATE USER IF NOT EXISTS 'root'@'localhost' IDENTIFIED BY 'centreon';"
-mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root'@'localhost'"
+mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED BY 'centreon';"
+mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root_centreon'@'localhost'"
 
 cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
 
@@ -34,7 +34,7 @@ echo "Installation..."
 
 echo "########################### Install Robot Framework ###########################"
 cd /src/tests/
-pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
 
 yum groupinstall "Development Tools" -y
 yum install python3-devel -y

@@ -115,7 +115,8 @@ class mysql_connection {
   void _process_while_empty_task(
       std::list<std::unique_ptr<database::mysql_task>>& task);
 
-  std::string _get_stack();
+  std::string _get_stack(
+      const std::list<std::unique_ptr<database::mysql_task>>& task);
   void _query(database::mysql_task* t);
   void _query_res(database::mysql_task* t);
   void _query_int(database::mysql_task* t);
@@ -176,12 +177,10 @@ class mysql_connection {
   void finish();
   bool fetch_row(database::mysql_result& result);
   mysql_bind_mapping get_stmt_mapping(int stmt_id) const;
-  int get_stmt_size() const;
   bool match_config(database_config const& db_cfg) const;
   int get_tasks_count() const;
   bool is_finish_asked() const;
   bool is_finished() const;
-  bool ping();
   bool is_in_error() const;
   void clear_error();
   std::string get_error_message();
