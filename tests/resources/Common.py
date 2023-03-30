@@ -87,8 +87,7 @@ def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
         if ok:
             return True, c
         time.sleep(5)
-    logger.console(
-        "Unable to find regex '{}' from {} during {}s".format(c, date, timeout))
+    logger.console(f"Unable to find regex '{c}' from {date} during {timeout}s")
     return False, c
 
 
@@ -101,9 +100,8 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
         if ok:
             return True
         time.sleep(5)
-    logger.console(
-        "Unable to find '{}' from {} during {}s".format(c, date, timeout))
-    return False, c
+    logger.console(f"Unable to find '{c}' from {date} during {timeout}s")
+    return False
 
 
 def find_in_log(log: str, date, content, regex=False):
