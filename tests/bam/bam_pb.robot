@@ -794,6 +794,134 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 	Stop Engine
 	Kindly Stop Broker  True
 
+BA_RATIO_NUMBER_BA_4_SERVICE
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+	[Tags]	Broker	engine	bam
+	Clear Commands Status
+	Clear Retention
+	Config Broker	module
+	Config Broker	central
+	Config Broker	rrd
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Broker Config Source Log  central   1
+    Config BBDO3	${1}
+	Config Engine	${1}
+
+	Clone Engine Config To DB
+	Add Bam Config To Engine
+	Add Bam Config To Broker	central
+
+	${id_ba__sid}=  create_ba  test  ratio_number  2  1
+	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the initial service states.
+    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
+    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+    Should Be True	${result}	msg=An Initial service state on service (16, 302) should be raised before we can start external commands.
+
+    #all serv ok => ba ok
+   	${result}=	check_ba_status_with_timeout	test	0	60
+	Should Be True	${result}	msg=The BA test is not OK as expected
+
+    #one serv critical => ba warning
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	1	30
+	Should Be True	${result}	msg=The BA test is not WARNING as expected
+
+    #two services critical => ba ok
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	2	30
+	Should Be True	${result}	msg=The BA test is not CRITICAL as expected
+
+    #all serv ok => ba ok
+    Process Service Check Result	host_16	service_302	0	output ok for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not OK as expected
+    Process Service Check Result	host_16	service_303	0	output ok for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not OK as expected
+	${result}=	check_ba_status_with_timeout	test	0	30
+	Should Be True	${result}	msg=The BA test is not OK as expected
+	
+
+	Stop Engine
+	Kindly Stop Broker
+
+
+BA_RATIO_PERCENT_BA_4_SERVICE
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+	[Tags]	Broker	engine	bam
+	Clear Commands Status
+	Clear Retention
+	Config Broker	module
+	Config Broker	central
+	Config Broker	rrd
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Broker Config Source Log  central   1
+    Config BBDO3	${1}
+	Config Engine	${1}
+
+	Clone Engine Config To DB
+	Add Bam Config To Engine
+	Add Bam Config To Broker	central
+
+	${id_ba__sid}=  create_ba  test  ratio_percent  50  25
+	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_305  ${id_ba__sid[0]}  40  30  20
+
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the initial service states.
+    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
+    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+    Should Be True	${result}	msg=An Initial service state on service (16, 302) should be raised before we can start external commands.
+
+    #all serv ok => ba ok
+   	${result}=	check_ba_status_with_timeout	test	0	60
+	Should Be True	${result}	msg=The BA test is not OK as expected
+
+    #one serv critical => ba warning
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	1	30
+	Should Be True	${result}	msg=The BA test is not WARNING as expected
+
+    #two services critical => ba ok
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	2	30
+	Should Be True	${result}	msg=The BA test is not CRITICAL as expected
+
+    #all serv ok => ba ok
+    Process Service Check Result	host_16	service_302	0	output ok for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not OK as expected
+    Process Service Check Result	host_16	service_303	0	output ok for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not OK as expected
+	${result}=	check_ba_status_with_timeout	test	0	30
+	Should Be True	${result}	msg=The BA test is not OK as expected
+	
+
+	Stop Engine
+	Kindly Stop Broker
 
 
 
