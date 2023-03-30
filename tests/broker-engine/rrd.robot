@@ -192,7 +192,7 @@ BRRDDMU1
 	${content}=	Create List	metrics .* erased from database
 
 	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	50
-	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
+	Should Be True	${result[0]}	msg=No log message telling about metrics ${metrics_str} deletion.
 
 	# We should have one line, but stored in an array.
 	FOR	${l}	IN	@{result[1]}
