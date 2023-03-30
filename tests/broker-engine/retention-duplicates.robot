@@ -325,7 +325,8 @@ BERDUC3U2
 
 	# Let's wait for a first service status.
 	${content}=	Create List	SQL: pb service .* status .* type .* check result output
-	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60	regex=True
+	${result}=	Find Regex In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result[0]}	msg=We did not get any pb service status for 60s
 
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -384,12 +385,12 @@ BERDUCA300
 	Should Be True	${result}	msg=Broker should receive a pb stop message from engine.
 
 	${content}=	Create List	send acknowledgement for [0-9]+ events
-	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30	regex=True
-	Should Be True	${result}	msg=Broker should send an ack for handled events.
+	${result}=	Find Regex in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Broker should send an ack for handled events.
 
 	${content}=	Create List	BBDO: received acknowledgement for [0-9]+ events before finishing
-	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30	regex=True
-	Should Be True	${result}	msg=Engine should receive an ack for handled events from broker.
+	${result}=	Find Regex in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Engine should receive an ack for handled events from broker.
 
 	Kindly Stop Broker
 
@@ -437,11 +438,11 @@ BERDUCA301
 	Should Be True	${result}	msg=Broker should receive a pb stop message from engine.
 
 	${content}=	Create List	send pb acknowledgement for [0-9]+ events
-	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30	regex=True
-	Should Be True	${result}	msg=Broker should send an ack for handled events.
+	${result}=	Find Regex in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Broker should send an ack for handled events.
 
 	${content}=	Create List	BBDO: received acknowledgement for [0-9]+ events before finishing
-	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30	regex=True
-	Should Be True	${result}	msg=Engine should receive an ack for handled events from broker.
+	${result}=	Find Regex in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Engine should receive an ack for handled events from broker.
 
 	Kindly Stop Broker

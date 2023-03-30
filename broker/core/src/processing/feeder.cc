@@ -158,9 +158,14 @@ void feeder::_callback() noexcept {
           stream_can_read = false;
         }
         if (d) {
-          log_v2::processing()->trace(
-              "feeder '{}': sending 1 event {} from stream to muxer", _name,
-              *d);
+          if (log_v2::processing()->level() == spdlog::level::trace)
+            log_v2::processing()->trace(
+                "feeder '{}': sending 1 event {} from stream to muxer", _name,
+                *d);
+          else
+            log_v2::processing()->debug(
+                "feeder '{}': sending 1 event {} from stream to muxer", _name,
+                d->type());
           {
             misc::read_lock lock(_client_m);
             _muxer->write(d);

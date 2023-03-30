@@ -303,11 +303,18 @@ void failover::_run() {
             muxer_can_read = false;
           }
           if (d) {
-            SPDLOG_LOGGER_DEBUG(
-                log_v2::processing(),
-                "failover: writing event {} of multiplexing engine to endpoint "
-                "'{}'",
-                *d, _name);
+            if (log_v2::processing()->level() == spdlog::level::trace)
+              SPDLOG_LOGGER_TRACE(log_v2::processing(),
+                                  "failover: writing event {} of multiplexing "
+                                  "engine to endpoint "
+                                  "'{}'",
+                                  *d, _name);
+            else
+              SPDLOG_LOGGER_DEBUG(log_v2::processing(),
+                                  "failover: writing event {} of multiplexing "
+                                  "engine to endpoint "
+                                  "'{}'",
+                                  d->type(), _name);
             _update_status("writing event to stream");
             int we(0);
 

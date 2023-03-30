@@ -194,7 +194,12 @@ bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump(std::ostream& s) const {
   data::dump(s);
-  s << " content:'" << _obj.DebugString() << '\'';
+  std::string dump{_obj.ShortDebugString()};
+  if (dump.size() > 200) {
+    dump.resize(200);
+    s << fmt::format(" content:'{}...'", dump);
+  } else
+    s << " content:'" << dump << '\'';
 }
 
 }  // namespace io

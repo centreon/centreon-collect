@@ -78,18 +78,32 @@ def get_round_current_date():
     return int(time.time())
 
 
-def find_in_log_with_timeout(log: str, date, content, timeout: int, *, regex=False):
+def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
 
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        ok, c = find_in_log(log, date, content, regex)
+        ok, c = find_in_log(log, date, content, True)
+        if ok:
+            return True, c
+        time.sleep(5)
+    logger.console(
+        "Unable to find regex '{}' from {} during {}s".format(c, date, timeout))
+    return False, c
+
+
+def find_in_log_with_timeout(log: str, date, content, timeout: int):
+
+    limit = time.time() + timeout
+    c = ""
+    while time.time() < limit:
+        ok, c = find_in_log(log, date, content, False)
         if ok:
             return True
         time.sleep(5)
     logger.console(
         "Unable to find '{}' from {} during {}s".format(c, date, timeout))
-    return False
+    return False, c
 
 
 def find_in_log(log: str, date, content, regex=False):
@@ -104,6 +118,7 @@ def find_in_log(log: str, date, content, regex=False):
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
     logger.info(f"regex={regex}")
+    res = []
 
     try:
         f = open(log, "r")
@@ -120,14 +135,15 @@ def find_in_log(log: str, date, content, regex=False):
                 else:
                     match = c in line
                 if match:
-                    logger.console(
-                        "\"{}\" found at line {} from {}".format(c, i, idx))
+                    logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
+                    if regex:
+                        res.append(line)
                     break
             if not found:
                 return False, c
 
-        return True, ""
+        return True, res
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False, content[0]
