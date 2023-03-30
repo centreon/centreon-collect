@@ -44,7 +44,6 @@ BRRDDM1
 	${empty}=	Create List
 	Remove Graphs	51001	${empty}	${metrics}
 	${metrics_str}=	Catenate	SEPARATOR=,	@{metrics}
-	#${content}=	Create List	metrics ${metrics_str} erased from database
 	${content}=	Create List	metrics .* erased from database
 
 	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	30
