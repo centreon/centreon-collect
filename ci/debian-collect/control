@@ -29,6 +29,7 @@ Package: centreon-clib-dev
 Architecture: any
 Depends:
     centreon-clib (>= ${centreon:version}~),
+    centreon-clib (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Clib is a common library for all Centreon products
@@ -40,6 +41,9 @@ Depends:
     centreon-clib (>= ${centreon:version}~),
     centreon-common (>= ${centreon:version}~),
     centreon-engine-extcommands (>= ${centreon:version}~),
+    centreon-clib (<< ${centreon:versionThreshold}~),
+    centreon-common (<< ${centreon:versionThreshold}~),
+    centreon-engine-extcommands (<< ${centreon:versionThreshold}~),
     monitoring-plugins-basic,
     ${misc:Depends},
     ${shlibs:Depends}
@@ -51,6 +55,8 @@ Architecture: any
 Depends:
     centreon-clib-dev (>= ${centreon:version}~),
     centreon-common (>= ${centreon:version}~),
+    centreon-clib-dev (<< ${centreon:versionThreshold}~),
+    centreon-common (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Engine devel provide include files to develop Centreon Engine
@@ -60,6 +66,7 @@ Package: centreon-engine-extcommands
 Architecture: any
 Depends:
     centreon-common (>= ${centreon:version}~),
+    centreon-common (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Engine External Commands allow to other applications to send
@@ -71,6 +78,7 @@ Package: centreon-connector-perl
 Architecture: any
 Depends:
     centreon-engine (>= ${centreon:version}~),
+    centreon-engine (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Connector Perl provide embedded perl for Centreon Engine
@@ -80,15 +88,18 @@ Package: centreon-connector-ssh
 Architecture: any
 Depends:
     centreon-engine (>= ${centreon:version}~),
+    centreon-engine (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
-Description: Centreon Connector SSH provide persistante connection between checks.
+Description: Centreon Connector SSH provide persistent connection between checks.
 
 Package: centreon-connector
 Architecture: any
 Depends:
     centreon-connector-perl (>= ${centreon:version}~),
     centreon-connector-ssh (>= ${centreon:version}~),
+    centreon-connector-perl (<< ${centreon:versionThreshold}~),
+    centreon-connector-ssh (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Connector provide a monitoring tools, compatible with
@@ -102,6 +113,11 @@ Depends:
     centreon-broker-core (>= ${centreon:version}~),
     centreon-broker-cbmod (>= ${centreon:version}~),
     centreon-broker-storage (>= ${centreon:version}~),
+    centreon-clib (<< ${centreon:versionThreshold}~),
+    centreon-engine (<< ${centreon:versionThreshold}~),
+    centreon-broker-core (<< ${centreon:versionThreshold}~),
+    centreon-broker-cbmod (<< ${centreon:versionThreshold}~),
+    centreon-broker-storage (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Broker is a Centreon Engine/Nagios module that report events in
@@ -111,6 +127,7 @@ Package: centreon-broker-core
 Architecture: any
 Depends:
     centreon-broker (>= ${centreon:version}~),
+    centreon-broker (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: core holds Centreon Broker's default modules.
@@ -120,6 +137,8 @@ Architecture: any
 Depends:
     centreon-engine (>= ${centreon:version}~),
     centreon-broker-core (>= ${centreon:version}~),
+    centreon-engine (<< ${centreon:versionThreshold}~),
+    centreon-broker-core (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: This module can be loaded by Centreon Engine.
@@ -128,6 +147,7 @@ Package: centreon-broker-dev
 Architecture: any
 Depends:
     centreon-broker-core (>= ${centreon:version}~),
+    centreon-broker-core (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: Centreon Broker development files.
@@ -137,15 +157,18 @@ Package: centreon-broker-storage
 Architecture: any
 Depends:
     centreon-broker-core (>= ${centreon:version}~),
+    centreon-broker-core (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
-Description: Storage holds Centreon Broker's prefdata storage.
+Description: Storage holds Centreon Broker's perfdata storage.
 
 Package: centreon-broker-influxdb
 Architecture: any
 Depends:
     centreon-broker-core (>= ${centreon:version}~),
     centreon-broker-storage (>= ${centreon:version}~),
+    centreon-broker-core (<< ${centreon:versionThreshold}~),
+    centreon-broker-storage (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: This module of Centreon Broker allows you to write performance data
@@ -156,6 +179,8 @@ Architecture: any
 Depends:
     centreon-broker-core (>= ${centreon:version}~),
     centreon-broker-storage (>= ${centreon:version}~),
+    centreon-broker-core (<< ${centreon:versionThreshold}~),
+    centreon-broker-storage (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: This module of Centreon Broker allows you to write performance data
@@ -166,6 +191,8 @@ Architecture: any
 Depends:
     centreon-broker (>= ${centreon:version}~),
     centreon-engine (>= ${centreon:version}~),
+    centreon-broker (<< ${centreon:versionThreshold}~),
+    centreon-engine (<< ${centreon:versionThreshold}~),
     ${misc:Depends},
     ${shlibs:Depends}
 Description: gRPC client to connect to Centreon Broker or Centreon Engine.
