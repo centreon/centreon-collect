@@ -188,13 +188,21 @@ def stop_mysql():
         logger.console("Stopping directly MariaDB")
         for proc in psutil.process_iter():
             if ('mariadbd' in proc.name()):
+                logger.console(f"process '{proc.name()}' containing mariadbd found: stopping it")
                 proc.terminate()
                 try:
+                    logger.console("Waiting for 30s mariadbd to stop")
                     proc.wait(30)
                 except:
                     logger.console("mariadb don't want to stop => kill")
                     proc.kill()
-                break
+
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                logger.console(f"process '{proc.name()}' still alive")
+                logger.console("mariadb don't want to stop => kill")
+                proc.kill()
+
         logger.console("Mariadb directly stopped")
 
 
@@ -280,7 +288,11 @@ def check_engine_logs_are_duplicated(log: str, date):
 
 
 def find_line_from(lines, date):
-    my_date = parser.parse(date)
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
     p = re.compile(r"\[([^\]]*)\]")
 
     # Let's find my_date

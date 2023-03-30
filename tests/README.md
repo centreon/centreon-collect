@@ -281,6 +281,8 @@ Here is the list of the currently implemented tests:
 - [x] **BERDUC2**: Starting/stopping Engine does not create duplicated events in usual cases
 - [x] **BERDUC3U1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql and BBDO 3.0
 - [x] **BERDUC3U2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql and BBDO 3.0
+- [x] **BERDUCA300**: Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker.
+- [x] **BERDUCA301**: Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
 - [x] **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
 - [x] **BERDUCU2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
 - [x] **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
@@ -290,6 +292,7 @@ Here is the list of the currently implemented tests:
 - [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
 - [x] **BESS4**: Start-Stop Broker/Engine - Engine started first - Broker stopped first
 - [x] **BESS5**: Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
+- [x] **BESSBQ1**: A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
 - [x] **BESS_CRYPTED_GRPC1**: Start-Stop grpc version Broker/Engine - well configured
 - [x] **BESS_CRYPTED_GRPC2**: Start-Stop grpc version Broker/Engine only server crypted
 - [x] **BESS_CRYPTED_GRPC3**: Start-Stop grpc version Broker/Engine only engine crypted

@@ -311,7 +311,7 @@ BRRDRMU1
         Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	Start Engine
 	${result}=	Check Connections
