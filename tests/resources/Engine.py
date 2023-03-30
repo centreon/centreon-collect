@@ -709,6 +709,26 @@ def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit")
     dbconf.create_ba_with_services(name, typ, svc, dt_policy)
 
 
+def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
+    global dbconf
+    return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
+
+
+def add_boolean_kpi(id_ba: int, expression: str, critical_impact: int):
+    dbconf.add_boolean_kpi(id_ba, expression, critical_impact)
+
+
+def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    dbconf.add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
+                      warning_impact, unknown_impact)
+
+
+def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    global dbconf
+    dbconf.add_service_kpi(
+        host, serv, id_ba, critical_impact, warning_impact, unknown_impact)
+
+
 def get_command_id(service: int):
     global engine
     global dbconf
