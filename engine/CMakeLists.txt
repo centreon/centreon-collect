@@ -510,6 +510,7 @@ target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 # Link target with required libraries.
 target_link_libraries(
   cce_core
+  CONAN_PKG::opentelemetry-cpp
   CONAN_PKG::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}

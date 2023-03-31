@@ -31,9 +31,9 @@
 #include <opentelemetry/sdk/trace/tracer_provider_factory.h>
 #include <opentelemetry/trace/provider.h>
 
-#include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+#include <asio.hpp>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
@@ -92,9 +92,10 @@ opentelemetry::exporter::jaeger::JaegerExporterOptions opts;
 void init_tracer() {
   // Create Jaeger exporter instance
   auto exporter = jaeger::JaegerExporterFactory::Create(opts);
-  auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  auto processor =
+      trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
-    trace_sdk::TracerProviderFactory::Create(std::move(processor));
+      trace_sdk::TracerProviderFactory::Create(std::move(processor));
   // Set the global trace provider
   trace::Provider::SetTracerProvider(provider);
 }
@@ -365,12 +366,18 @@ int main(int argc, char* argv[]) {
     }
     // Else start to monitor things.
     else {
+      init_tracer();
+      auto provider = opentelemetry::trace::Provider::GetTracerProvider();
+      auto tracer = provider->GetTracer("centengine", "1.0.0");
       try {
         // Parse configuration.
         configuration::state config;
         {
+          auto span = tracer->StartSpan("config");
+          auto scope = tracer->WithActiveSpan(span);
           configuration::parser p;
           p.parse(config_file, config);
+          span->End();
         }
 
         uint16_t port = config.rpc_port();

@@ -17,6 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <opentelemetry/trace/provider.h>
+
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
@@ -26,6 +28,8 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::io;
+
+namespace trace = opentelemetry::trace;
 
 parser::store parser::_store[] = {
     &parser::_store_into_map<command, &command::command_name>,
@@ -68,6 +72,10 @@ parser::~parser() throw() {}
  *  @param[in] config The state configuration to fill.
  */
 void parser::parse(std::string const& path, state& config) {
+  auto provider = opentelemetry::trace::Provider::GetTracerProvider();
+  auto tracer = provider->GetTracer("centengine", "1.0.0");
+  auto span = tracer->StartSpan("parse configuration");
+  auto scope = tracer->WithActiveSpan(span);
   _config = &config;
 
   // parse the global configuration file.
