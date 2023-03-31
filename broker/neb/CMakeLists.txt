@@ -132,6 +132,7 @@ add_library(
   "${SRC_DIR}/internal.cc"
   "${SRC_DIR}/neb.cc"
   "${SRC_DIR}/set_log_data.cc"
+
   # Headers.
   "${INC_DIR}/com/centreon/broker/neb/callback.hh"
   "${INC_DIR}/com/centreon/broker/neb/callbacks.hh"
