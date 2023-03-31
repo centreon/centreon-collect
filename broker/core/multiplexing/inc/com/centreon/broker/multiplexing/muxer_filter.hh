@@ -1,5 +1,5 @@
 /*
-** Copyright 2009-2017-2021 Centreon
+** Copyright 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -24,15 +24,16 @@
 
 CCB_BEGIN()
 
-namespace io {
+namespace multiplexing {
+
+constexpr unsigned max_filter_category =
+    io::data_category::max_data_category + 1;
 
 /**
  * @brief
  *
- * @tparam max_filter_category max value of category of an event + 1 not
  * included internal
  */
-template <int max_filter_category = data_category::max_data_category + 1>
 class muxer_filter {
   /**
    * @brief array that contains mask by category
@@ -46,12 +47,7 @@ class muxer_filter {
    * @brief default constructor
    * accept all events by default
    */
-  constexpr muxer_filter() {
-    for (uint64_t* to_fill = _mask; to_fill < _mask + max_filter_category;
-         ++to_fill) {
-      *to_fill = 0xFFFFFFFFFFFFFFFF;
-    }
-  }
+  constexpr muxer_filter() : _mask{0xFFFFFFFFFFFFFFFF} {}
 
   /**
    * @brief constructor
@@ -66,10 +62,10 @@ class muxer_filter {
       uint16_t elem = element_of_type(mess_type);
 
       if (cat == io::data_category::internal) {
-        _mask[max_filter_category - 1] |= 1 << elem;
+        _mask[max_filter_category - 1] |= 1ULL << elem;
       } else {
         assert(cat + 1 < max_filter_category);
-        _mask[cat] |= 1 << elem;
+        _mask[cat] |= 1ULL << elem;
       }
     }
   }
@@ -95,15 +91,15 @@ class muxer_filter {
     uint16_t elem = element_of_type(mess_type);
     assert(cat == io::data_category::internal || cat + 1 < max_filter_category);
     if (cat == io::data_category::internal) {
-      return _mask[max_filter_category - 1] & (1 << elem);
+      return _mask[max_filter_category - 1] & (1ULL << elem);
     } else {
       assert(cat + 1 < max_filter_category);
-      return _mask[cat] & (1 << elem);
+      return _mask[cat] & (1ULL << elem);
     }
   }
 };
 
-}  // namespace io
+}  // namespace multiplexing
 
 CCB_END()
 

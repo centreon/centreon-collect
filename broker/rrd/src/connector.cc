@@ -18,11 +18,26 @@
 
 #include "com/centreon/broker/rrd/connector.hh"
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/rebuild.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/rrd/internal.hh"
 #include "com/centreon/broker/rrd/output.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
+
+static constexpr multiplexing::muxer_filter _rrd_stream_filter = {
+    storage::metric::static_type(),
+    storage::pb_metric::static_type(),
+    storage::status::static_type(),
+    storage::pb_status::static_type(),
+    storage::rebuild::static_type(),
+    storage::pb_rebuild_message::static_type(),
+    storage::remove_graph::static_type(),
+    storage::pb_remove_graph_message::static_type()};
 
 /**
  *  Default constructor.
@@ -33,7 +48,9 @@ connector::connector()
       _cached_port(0),
       _ignore_update_errors(true),
       _write_metrics(true),
-      _write_status(true) {}
+      _write_status(true) {
+  _muxer_filter = _rrd_stream_filter;
+}
 
 /**
  *  Destructor.

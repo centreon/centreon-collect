@@ -622,6 +622,6 @@ void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
  *
  * @param filter
  */
-void muxer::set_stream_filter(const io::muxer_filter<>& filter) {
+void muxer::set_stream_filter(const muxer_filter& filter) {
   _stream_filter = filter;
 }

@@ -21,8 +21,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "com/centreon/broker/io/muxer_filter.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -45,7 +45,7 @@ class endpoint {
   bool _is_acceptor;
   std::set<uint32_t> _filter;
 
-  muxer_filter<> _muxer_filter;
+  multiplexing::muxer_filter _muxer_filter;
 
  public:
   endpoint(bool is_accptr);
@@ -60,7 +60,9 @@ class endpoint {
   virtual void stats(nlohmann::json& tree);
   void set_filter(std::set<uint32_t> const& filter);
 
-  const muxer_filter<>& get_muxer_filter() const { return _muxer_filter; }
+  const multiplexing::muxer_filter& get_muxer_filter() const {
+    return _muxer_filter;
+  }
 };
 }  // namespace io
 
