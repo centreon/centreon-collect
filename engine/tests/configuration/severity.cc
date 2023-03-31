@@ -67,7 +67,7 @@ TEST_F(ConfigSeverity, NewSeverityWellFilled) {
   sv.parse("type", "service");
   ASSERT_EQ(sv.key().first, 1);
   ASSERT_EQ(sv.level(), 2);
-  ASSERT_EQ(sv.name(), "foobar");
+  ASSERT_EQ(sv.severity_name(), "foobar");
   ASSERT_EQ(sv.type(), configuration::severity::service);
   ASSERT_NO_THROW(sv.check_validity());
 }
