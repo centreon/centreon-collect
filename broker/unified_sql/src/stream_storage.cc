@@ -311,6 +311,9 @@ void stream::_unified_sql_process_pb_service_status(
           m.set_rrd_len(rrd_len);
           m.set_value(pd.value());
           m.set_value_type(static_cast<Metric_ValueType>(pd.value_type()));
+          m.set_name(pd.name());
+          m.set_host_id(ss.host_id());
+          m.set_service_id(ss.service_id());
           log_v2::perfdata()->debug(
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",

@@ -178,14 +178,27 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   _cache.write(data);
 
   // Process metric events.
-  if (data->type() ==
-      io::events::data_type<io::storage, storage::de_metric>::value) {
-    if (_process_metric(*std::static_pointer_cast<storage::metric const>(data)))
-      ++_actual_query;
-  } else if (data->type() ==
-             io::events::data_type<io::storage, storage::de_status>::value) {
-    if (_process_status(*std::static_pointer_cast<storage::status const>(data)))
-      ++_actual_query;
+  switch (data->type()) {
+    case storage::metric::static_type():
+      if (_process_metric(
+              *std::static_pointer_cast<storage::metric const>(data)))
+        ++_actual_query;
+      break;
+    case storage::pb_metric::static_type():
+      if (_process_metric(
+              *std::static_pointer_cast<storage::pb_metric const>(data)))
+        ++_actual_query;
+      break;
+    case storage::status::static_type():
+      if (_process_status(
+              *std::static_pointer_cast<storage::status const>(data)))
+        ++_actual_query;
+      break;
+    case storage::pb_status::static_type():
+      if (_process_status(
+              *std::static_pointer_cast<storage::pb_status const>(data)))
+        ++_actual_query;
+      break;
   }
   if (_actual_query >= _queries_per_transaction)
     _commit_flag = true;
@@ -202,6 +215,26 @@ int stream::write(std::shared_ptr<io::data> const& data) {
  *  @param[in] me  The event to process.
  */
 bool stream::_process_metric(storage::metric const& me) {
+  storage::pb_metric converted;
+  Metric& obj = converted.mut_obj();
+  obj.set_metric_id(me.metric_id);
+  obj.set_rrd_len(me.rrd_len);
+  obj.set_interval(me.interval);
+  obj.set_value_type(Metric::ValueType(me.value_type));
+  obj.set_time(me.time.get_time_t());
+  obj.set_value(me.value);
+  obj.set_name(me.name);
+  obj.set_host_id(me.host_id);
+  obj.set_service_id(me.service_id);
+  return _process_metric(converted);
+}
+
+/**
+ *  Process a metric event.
+ *
+ *  @param[in] me  The event to process.
+ */
+bool stream::_process_metric(storage::pb_metric const& me) {
   std::string to_append = _metric_query.generate_metric(me);
   _query.append(to_append);
   return !to_append.empty();
@@ -213,6 +246,22 @@ bool stream::_process_metric(storage::metric const& me) {
  *  @param[in] st  The status event.
  */
 bool stream::_process_status(storage::status const& st) {
+  storage::pb_status converted;
+  Status& obj = converted.mut_obj();
+  obj.set_index_id(st.index_id);
+  obj.set_interval(st.interval);
+  obj.set_rrd_len(st.rrd_len);
+  obj.set_time(st.time.get_time_t());
+  obj.set_state(st.state);
+  return _process_status(converted);
+}
+
+/**
+ *  Process a status event.
+ *
+ *  @param[in] st  The status event.
+ */
+bool stream::_process_status(storage::pb_status const& st) {
   std::string to_append = _status_query.generate_status(st);
   _query.append(to_append);
   return !to_append.empty();
