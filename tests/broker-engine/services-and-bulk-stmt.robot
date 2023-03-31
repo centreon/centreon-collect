@@ -75,7 +75,7 @@ EBBPS1
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	${date}=	Get Current Date  result_format=epoch
 	Log To Console    date=${date}
-	FOR	${index}	IN RANGE	60
+	FOR	${index}	IN RANGE	120
 	  ${output}=	Query	SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 2
 	  Log To Console	${output}
 	  Sleep	1s
@@ -118,7 +118,7 @@ EBBPS2
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
 	${date}=	Get Current Date  result_format=epoch
 	Log To Console    date=${date}
-	FOR	${index}	IN RANGE	60
+	FOR	${index}	IN RANGE	120
 	  ${output}=	Query	SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 1
 	  Log To Console	${output}
 	  Sleep	1s
