@@ -159,7 +159,8 @@ void feeder::_callback() noexcept {
         }
         if (d) {
           log_v2::processing()->trace(
-              "feeder '{}': sending 1 event from stream to muxer", _name);
+              "feeder '{}': sending event '{}' of type {} from stream to muxer",
+              _name, d->type());
           {
             misc::read_lock lock(_client_m);
             _muxer->write(d);

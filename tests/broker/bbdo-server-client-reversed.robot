@@ -114,7 +114,7 @@ BSCSSTRR2
 	Broker Config Output set	central	central-broker-master-output	ca_certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Input set	rrd	rrd-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
 	Broker Config Input set	rrd	rrd-broker-master-input	certificate	${EtcRoot}/centreon-broker/client.crt
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Repeat Keyword	5 times	Start Stop Service	0
 	${content}=	Create List	TLS: successful handshake
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
