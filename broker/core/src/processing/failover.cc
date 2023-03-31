@@ -298,7 +298,6 @@ void failover::_run() {
           }
           if (d) {
             log_v2::processing()->debug(
-                log_v2::processing(),
                 "failover: writing event {} of multiplexing engine to endpoint "
                 "'{}'",
                 d->type(), _name);
