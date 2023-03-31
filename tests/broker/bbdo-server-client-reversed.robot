@@ -34,7 +34,7 @@ BSCSSRR1
 	Broker Config Output set	central	central-broker-master-output	retention	yes
 	Config Broker BBDO Input	rrd	bbdo_client	5670  tcp	localhost
 	Broker Config Log	central	config	debug
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Repeat Keyword	5 times	Start Stop Service	0
 	${content}=	Create List	failover 'central-broker-master-output' construction.
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
@@ -71,7 +71,7 @@ BSCSSGRR1
 	Broker Config Output set	central	central-broker-master-output	retention	yes
 	Config Broker BBDO Input	rrd	bbdo_client	5670  grpc	localhost
 	Broker Config Log	central	config	info
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Repeat Keyword	5 times	Start Stop Service	0
 	${content}=	Create List	endpoint applier: creating new failover 'central-broker-master-output'	failover 'central-broker-master-output' construction.
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
@@ -90,7 +90,7 @@ BSCSSTRR1
 	Broker Config Log	central	config	off
 	Broker Config Log	central	core	off
 	Broker Config Log	central	tls	debug
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Repeat Keyword	5 times	Start Stop Service	0
 	${content}=	Create List	TLS: successful handshake
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
@@ -145,7 +145,7 @@ BSCSSTGRR2
 	Broker Config Input set	rrd	rrd-broker-master-input	private_key	${EtcRoot}/centreon-broker/client.key
 	Broker Config Input set	rrd	rrd-broker-master-input	certificate	${EtcRoot}/centreon-broker/client.crt
 	Broker Config Input set	rrd	rrd-broker-master-input	ca_certificate	${EtcRoot}/centreon-broker/server.crt
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	${content}=	Create List	write: buff:	write done: buff:
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
@@ -165,7 +165,7 @@ BSCSSCRR1
 	Broker Config Log	central	core	trace
 	Broker Config Log	rrd	core	trace
 	Broker Config Flush Log	central	0
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	${content}=	Create List	compression: writing
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
@@ -186,7 +186,7 @@ BSCSSCRR2
 	Broker Config Log	rrd	core	trace
 	Broker Config Log	central	bbdo	trace
 	Broker Config Flush Log	central	0
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	${content}=	Create List	BBDO: we have extensions '' and peer has 'COMPRESSION'
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
@@ -208,7 +208,7 @@ BSCSSCGRR1
 	Broker Config Log	central	tls	debug
 	Broker Config Log	central	grpc	debug
 	Broker Config Flush Log	central	0
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	${content}=	Create List	server default compression deflate
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
@@ -230,7 +230,7 @@ BSCSSCGRR2
 	Broker Config Log	central	tls	debug
 	Broker Config Log	central	grpc	debug
 	Broker Config Flush Log	central	0
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	${content}=	Create List	server default compression deflate
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	15
