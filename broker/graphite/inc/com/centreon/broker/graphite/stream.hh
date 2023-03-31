@@ -77,6 +77,8 @@ class stream : public io::stream {
   // Process metric/status and generate query.
   bool _process_metric(storage::metric const& me);
   bool _process_status(storage::status const& st);
+  bool _process_metric(storage::pb_metric const& me);
+  bool _process_status(storage::pb_status const& st);
 
   void _commit();
 

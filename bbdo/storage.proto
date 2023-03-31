@@ -34,6 +34,9 @@ message Metric {
   ValueType value_type = 7;
   uint64 time = 8;
   double value = 9;
+  string name = 10;
+  uint64 host_id = 11;
+  uint64 service_id = 12;
 }
 
 message Status {
