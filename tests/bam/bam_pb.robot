@@ -41,10 +41,10 @@ BAPBSTATUS
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
     ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
@@ -89,10 +89,10 @@ BABEST_SERVICE_CRITICAL
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
     ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
@@ -152,10 +152,10 @@ BA_IMPACT_2KPI_SERVICES
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
     ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (1, 1) should be raised before we can start external commands.
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	#service_302 critical service_303 warning => ba warning 30%
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
@@ -224,11 +224,10 @@ BA_RATIO_PERCENT_BA_SERVICE
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (1, 1) should be raised before we can start external commands.
-
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	#one serv critical => ba ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
@@ -265,7 +264,7 @@ BA_RATIO_PERCENT_BA_SERVICE
 	Kindly Stop Broker
 
 BA_RATIO_NUMBER_BA_SERVICE
-	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 2 serv an 1 ba with one service
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
 	[Tags]	Broker	engine	bam
 	Clear Commands Status
 	Clear Retention
@@ -275,7 +274,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Broker Config Source Log  central   1
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
 
 	Clone Engine Config To DB
@@ -293,17 +292,16 @@ BA_RATIO_NUMBER_BA_SERVICE
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
     ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (1, 1) should be raised before we can start external commands.
-
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	#one serv critical => ba ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
 	${result}=	check_service_status_with_timeout	host_16	service_302	2	60	HARD
 	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
-	sleep  2s
+
 	${result}=	check_ba_status_with_timeout	test	0	60
 	Should Be True	${result}	msg=The BA test is not OK as expected
 
@@ -359,10 +357,10 @@ BA_BOOL_KPI
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
     ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (1, 1) should be raised before we can start external commands.
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	#302 warning and 303 critical  => ba critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	1	output warning for service_302
@@ -821,10 +819,10 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
     ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (16, 302) should be raised before we can start external commands.
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
     #all serv ok => ba ok
    	${result}=	check_ba_status_with_timeout	test	0	60
@@ -886,10 +884,10 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-    ${content}=	Create List	INITIAL SERVICE STATE: host_16;service_302;
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
     ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=An Initial service state on service (16, 302) should be raised before we can start external commands.
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
     #all serv ok => ba ok
    	${result}=	check_ba_status_with_timeout	test	0	60
