@@ -128,12 +128,12 @@ BEPBBEE5
 BEPBRI1
 	[Documentation]	bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
 	[Tags]	Broker	Engine	protobuf	bbdo
-    Remove File	/tmp/pbresponsiveinstance.log
+	Remove File	/tmp/pbresponsiveinstance.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Broker Config Add Item	module0	bbdo_version	3.0.0
-    Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
 	broker_config_output_set  central  central-broker-unified-sql  read_timeout  2
@@ -146,7 +146,7 @@ BEPBRI1
 	${start}=	Get Current Date
 	Start Broker  True
 	Start Engine
-    Wait Until Created	/tmp/pbresponsiveinstance.log	30s
+	Wait Until Created	/tmp/pbresponsiveinstance.log	30s
 	${grep_res}=  Grep File  /tmp/pbresponsiveinstance.log  "_type":65582, "category":1, "element":46,
 	${grep_res}=  Get Lines Containing String  ${grep_res}  "poller_id":1, "responsive":true
 	Should Not Be Empty  ${grep_res}  msg="responsive":true not found

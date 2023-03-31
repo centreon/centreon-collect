@@ -323,9 +323,10 @@ BERDUC3U2
 	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 
+	${start}=	Get Round Current Date
 	# Let's wait for a first service status.
 	${content}=	Create List	SQL: pb service .* status .* type .* check result output
-	${result}=	Find Regex In Log with Timeout	${engineLog0}	${start}	${content}	60
+	${result}=	Find Regex In Log with Timeout	${centralLog}	${start}	${content}	60
 	Should Be True	${result[0]}	msg=We did not get any pb service status for 60s
 
 	${result}=	Check Connections
