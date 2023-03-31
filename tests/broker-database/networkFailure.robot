@@ -190,8 +190,8 @@ Network Failure
 	Disable Sleep Enable	${interval}
 	${end}=	Get Current Date
 	${content}=	Create List	mysql_connection 0x[0-9,a-f]+ : commit
-	${result}=	Find In Log With Timeout	${centralLog}	${end}	${content}	80  regex=True
-	Should Be True	${result}	msg=timeout after network to be restablished (network failure duration : ${interval})
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${end}	${content}	80
+	Should Be True	${result[0]}	msg=timeout after network to be restablished (network failure duration : ${interval})
         Kindly Stop Broker
 	Stop Engine
 

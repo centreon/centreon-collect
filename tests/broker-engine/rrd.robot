@@ -30,6 +30,7 @@ BRRDDM1
         Broker Config Flush Log	central	0
         Broker Config Flush Log	rrd	0
 	Create Metrics	3
+
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
@@ -43,10 +44,18 @@ BRRDDM1
 	${empty}=	Create List
 	Remove Graphs	51001	${empty}	${metrics}
 	${metrics_str}=	Catenate	SEPARATOR=,	@{metrics}
-	${content}=	Create List	metrics ${metrics_str} erased from database
+	${content}=	Create List	metrics .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=No log message telling about some metrics deletion.
+
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the metrics are in this line
+	  FOR	${m}	IN	@{metrics}
+	    Should Be True	"${m}" in """${l}"""	msg=${m} is not in the line ${l}
+	  END
+	END
 	FOR	${m}	IN	@{metrics}
 		Log to Console	Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
 		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd      20s
@@ -103,10 +112,18 @@ BRRDDID1
 	${empty}=	Create List
 	Remove Graphs	51001	${indexes}	${empty}
 	${indexes_str}=	Catenate	SEPARATOR=,	@{indexes}
-	${content}=	Create List	indexes ${indexes_str} erased from database
+	${content}=	Create List	indexes .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=No log message telling about indexes ${indexes_str} deletion.
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the indexes are in this line
+	  FOR	${ii}	IN	@{indexes}
+	    Should Be True	"${ii}" in """${l}"""	msg=${ii} is not in the line ${l}
+	  END
+	END
+
 	FOR	${i}	IN	@{indexes}
 		log to console	Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
 		Wait Until Removed	${VarRoot}/lib/centreon/status/${i}.rrd	20s
@@ -172,10 +189,18 @@ BRRDDMU1
 	${empty}=	Create List
 	Remove Graphs	51001	${empty}	${metrics}
 	${metrics_str}=	Catenate	SEPARATOR=,	@{metrics}
-	${content}=	Create List	metrics ${metrics_str} erased from database
+	${content}=	Create List	metrics .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	50
-	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	50
+	Should Be True	${result[0]}	msg=No log message telling about metrics ${metrics_str} deletion.
+
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the metrics are in this line
+	  FOR	${m}	IN	@{metrics}
+	    Should Be True	"${m}" in """${l}"""	msg=${m} is not in the line ${l}
+	  END
+	END
 	FOR	${m}	IN	@{metrics}
 		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
@@ -208,10 +233,18 @@ BRRDDIDU1
 	${empty}=	Create List
 	Remove Graphs	51001	${indexes}	${empty}
 	${indexes_str}=	Catenate	SEPARATOR=,	@{indexes}
-	${content}=	Create List	indexes ${indexes_str} erased from database
+	${content}=	Create List	indexes .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=No log message telling about indexes ${indexes_str} deletion.
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the indexes are in this line
+	  FOR	${ii}	IN	@{indexes}
+	    Should Be True	"${ii}" in """${l}"""	msg=${ii} is not in the line ${l}
+	  END
+	END
+
 	FOR	${i}	IN	@{indexes}
 		Wait Until Removed	${VarRoot}/lib/centreon/status/${i}.rrd	20s
 	END
