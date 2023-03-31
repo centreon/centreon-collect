@@ -19,7 +19,17 @@
 #include "com/centreon/broker/bam/connector.hh"
 
 #include "bbdo/bam/ba_status.hh"
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_ba_timeperiod_relation.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/bam/dimension_kpi_event.hh"
+#include "bbdo/bam/dimension_timeperiod.hh"
+#include "bbdo/bam/dimension_truncate_table_signal.hh"
+#include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/kpi_status.hh"
+#include "bbdo/bam/rebuild.hh"
+
 #include "com/centreon/broker/bam/monitoring_stream.hh"
 #include "com/centreon/broker/bam/reporting_stream.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
@@ -30,13 +40,37 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
-static constexpr io::muxer_filter<> _monitoring_stream_filter = {
-    neb::service_status::static_type(),    neb::service::static_type(),
-    neb::pb_service_status::static_type(), neb::pb_service::static_type(),
-    neb::acknowledgement::static_type(),   neb::downtime::static_type(),
-    bam::ba_status::static_type(),         bam::kpi_status::static_type(),
-    inherited_downtime::static_type()};
+static constexpr multiplexing::muxer_filter _monitoring_stream_filter = {
+    neb::service_status::static_type(),  neb::pb_service_status::static_type(),
+    neb::service::static_type(),         neb::pb_service::static_type(),
+    neb::acknowledgement::static_type(), neb::pb_acknowledgement::static_type(),
+    neb::downtime::static_type(),        neb::pb_downtime::static_type(),
+    bam::ba_status::static_type(),       bam::pb_ba_status::static_type(),
+    bam::kpi_status::static_type(),      bam::pb_kpi_status::static_type(),
+    inherited_downtime::static_type(),   pb_inherited_downtime::static_type()};
 
+static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
+    bam::kpi_event::static_type(),
+    bam::pb_kpi_event::static_type(),
+    bam::ba_event::static_type(),
+    bam::pb_ba_event::static_type(),
+    bam::ba_duration_event::static_type(),
+    bam::pb_ba_duration_event::static_type(),
+    bam::dimension_truncate_table_signal::static_type(),
+    bam::pb_dimension_truncate_table_signal::static_type(),
+    bam::dimension_ba_event::static_type(),
+    bam::pb_dimension_ba_event::static_type(),
+    bam::dimension_bv_event::static_type(),
+    bam::pb_dimension_bv_event::static_type(),
+    bam::dimension_ba_bv_relation_event::static_type(),
+    bam::pb_dimension_ba_bv_relation_event::static_type(),
+    bam::dimension_kpi_event::static_type(),
+    bam::pb_dimension_kpi_event::static_type(),
+    bam::dimension_timeperiod::static_type(),
+    bam::pb_dimension_timeperiod::static_type(),
+    bam::dimension_ba_timeperiod_relation::static_type(),
+    bam::pb_dimension_ba_timeperiod_relation::static_type(),
+    bam::rebuild::static_type()};
 /**
  *  Default constructor.
  */
@@ -75,7 +109,7 @@ void connector::connect_reporting(database_config const& db_cfg) {
   _type = bam_reporting_type;
   _db_cfg = db_cfg;
   _storage_db_name.clear();
-  TODO reporting_stream_filter
+  _muxer_filter = _reporting_stream_filter;
 }
 
 /**
