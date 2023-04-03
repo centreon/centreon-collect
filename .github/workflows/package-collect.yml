@@ -12,6 +12,9 @@ on:
       release:
         required: true
         type: string
+      commit_hash:
+        required: true
+        type: string
 
 jobs:
   package-rpm:
@@ -44,6 +47,7 @@ jobs:
             -e DISTRIB="${{ matrix.distrib }}" \
             -e VERSION="${{ inputs.version }}" \
             -e RELEASE="${{ inputs.release }}" \
+            -e COMMIT_HASH="${{ inputs.commit_hash }}" \
             ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.image }}:${{ inputs.img_version }}
         shell: bash
 
