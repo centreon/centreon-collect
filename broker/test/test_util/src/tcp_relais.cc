@@ -112,7 +112,7 @@ class incomming_outgoing
 };
 
 /**
- * @brief This server class accept incomming connexions and start the connexion
+ * @brief This server class accept incoming connections and start the connection
  * to the dest
  *
  */
@@ -170,6 +170,11 @@ tcp_relais::tcp_relais(const std::string& listen_interface,
 
 void tcp_relais::shutdown_relays() {
   _impl->shutdown_relays();
+}
+
+tcp_relais::~tcp_relais() {
+  _io_context.stop();
+  // ctx_thread.reset();
 }
 
 /**************************************************************************

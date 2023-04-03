@@ -69,7 +69,15 @@ void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
 }
 
 /**
- *  Exit failover thread.
+ *  Exit failover thread. This method is called by the endpoint applier when
+ *  the configuration changed. The failover is destroyed and then may be newly
+ *  created.
+ *
+ *  Inside a failover, we have a muxer. This muxer lives its own life and
+ *  contains a queue file. If the muxer did not finish to write to its queue
+ *  file when exit() is called, we have to be careful with it because if we open
+ *  a new muxer with the same name, we'll have for a moment two splitters
+ *  writing to the same files.
  */
 void failover::exit() {
   log_v2::core()->trace("failover '{}' exit.", _name);
@@ -353,7 +361,7 @@ void failover::_run() {
       log_v2::core()->error("failover: global error: {}", e.what());
       {
         if (_stream) {
-          int32_t ack_events;
+          int32_t ack_events = 0;
           try {
             ack_events = _stream->stop();
           } catch (const std::exception& e) {
@@ -377,7 +385,7 @@ void failover::_run() {
           "developers",
           _name);
       {
-        int32_t ack_events;
+        int32_t ack_events = 0;
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
@@ -400,7 +408,7 @@ void failover::_run() {
       std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
       if (_stream) {
         // If ack_events is not zero, then we will store data twice
-        int32_t ack_events;
+        int32_t ack_events = 0;
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {

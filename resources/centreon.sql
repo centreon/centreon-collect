@@ -1,6 +1,6 @@
-CREATE DATABASE IF NOT EXISTS `centreon`;
+CREATE DATABASE IF NOT EXISTS `DBNameConf`;
 
-USE centreon;
+USE DBNameConf;
 
 SET FOREIGN_KEY_CHECKS=0;
 
@@ -2865,3 +2865,4 @@ LEFT JOIN meta_service AS meta ON meta.meta_id = k.meta_id
 LEFT JOIN mod_bam_boolean as boo ON boo.boolean_id = k.boolean_id
 ORDER BY b.name;
 
+SET FOREIGN_KEY_CHECKS=1;

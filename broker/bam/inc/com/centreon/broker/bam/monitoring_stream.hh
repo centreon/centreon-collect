@@ -48,6 +48,7 @@ class monitoring_stream : public io::stream {
   database::mysql_stmt _ba_update;
   database::mysql_stmt _kpi_update;
   int32_t _pending_events;
+  unsigned _pending_request;
   database_config _storage_db_cfg;
   std::shared_ptr<persistent_cache> _cache;
 
@@ -68,7 +69,6 @@ class monitoring_stream : public io::stream {
   int write(std::shared_ptr<io::data> const& d) override;
 
  private:
-  void _check_replication();
   void _prepare();
   void _rebuild();
   void _update_status(std::string const& status);

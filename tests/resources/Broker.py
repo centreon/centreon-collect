@@ -489,6 +489,15 @@ def add_path_to_rrd_output(name: str, path: str):
     _apply_conf(name, rrd_output)
 
 
+def add_path_to_rrd_output(name: str, path: str):
+    def rrd_output(conf):
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if v["type"] == "rrd":
+                v["path"] = path
+    _apply_conf(name, rrd_output)
+
+
 def change_broker_tcp_input_to_grpc(name: str):
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]

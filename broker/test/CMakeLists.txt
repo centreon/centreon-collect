@@ -1,17 +1,17 @@
 #
 # Copyright 2016-2021 Centreon
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 #
 # For more information : contact@centreon.com
 #
@@ -49,11 +49,13 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/test/test_util)
 add_definitions(-DCENTREON_BROKER_TEST_MODULE_PATH="${CMAKE_BINARY_DIR}/test/")
 add_definitions(-DCENTREON_BROKER_BAM_TEST_PATH="${BAM_TESTS_DIR}")
 add_definitions(-DCENTREON_BROKER_WD_TEST="${WDOG_TESTS_DIR}")
-add_definitions(-DCENTREON_BROKER_LUA_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/lua/test")
+add_definitions(
+  -DCENTREON_BROKER_LUA_SCRIPT_PATH="${PROJECT_SOURCE_DIR}/lua/test")
 add_definitions(-DCENTREON_BROKER_NEB_TEST="${PROJECT_SOURCE_DIR}/neb/test")
 
 add_library(null_module SHARED ${TEST_DIR}/modules/null_module.cc)
 add_library(bad_version_module SHARED ${TEST_DIR}/modules/bad_version_module.cc)
+
 # Unit test executable.
 if(WITH_SQL_TESTS)
   set(TESTS_SOURCES ${TESTS_SOURCES} ${TEST_DIR}/mysql/mysql.cc)
@@ -62,10 +64,25 @@ endif(WITH_SQL_TESTS)
 add_definitions(-DBROKERRPC_TESTS_PATH="${TESTS_DIR}/rpc")
 
 add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
-target_link_libraries(rpc_client berpc CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib dl pthread)
-#target_link_libraries(rpc_client berpc CONAN_PKG::grpc ${absl_LIBS} CONAN_PKG::openssl ${c-ares_LIBS} CONAN_PKG::zlib dl pthread)
+target_link_libraries(
+  rpc_client
+  berpc
+  CONAN_PKG::grpc
+  CONAN_PKG::openssl
+  CONAN_PKG::zlib
+  dl
+  pthread)
 
-add_executable(ut_broker
+if(WITH_ASAN)
+  set(CMAKE_BUILD_TYPE Debug)
+  set(CMAKE_CXX_FLAGS_DEBUG
+      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+  set(CMAKE_LINKER_FLAGS_DEBUG
+      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+endif()
+
+add_executable(
+  ut_broker
   # Core sources.
   ${TESTS_DIR}/bbdo/category.cc
   ${TESTS_DIR}/bbdo/output.cc
@@ -91,10 +108,6 @@ add_executable(ut_broker
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/misc/stringifier.cc
   ${TESTS_DIR}/modules/module.cc
-  ${TESTS_DIR}/multiplexing/engine/start_stop.cc
-  ${TESTS_DIR}/multiplexing/muxer/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/write.cc
   ${TESTS_DIR}/processing/acceptor.cc
   ${TESTS_DIR}/processing/feeder.cc
   ${TESTS_DIR}/time/timerange.cc
@@ -103,41 +116,55 @@ add_executable(ut_broker
   ${TESTS_DIR}/io.cc
   ${TESTS_DIR}/main.cc
   ${TESTS_DIR}/test_server.cc
-
   # Module sources.
-  ${TESTS_SOURCES}
-  )
+  ${TESTS_SOURCES})
 
-target_link_libraries(ut_broker test_util roker rokerbase ${TESTS_LIBRARIES} conflictmgr
-	CONAN_PKG::nlohmann_json CONAN_PKG::asio CONAN_PKG::fmt CONAN_PKG::spdlog CONAN_PKG::gtest CONAN_PKG::mariadb-connector-c CONAN_PKG::openssl CONAN_PKG::grpc )
+target_link_libraries(
+  ut_broker
+  test_util
+  roker
+  rokerbase
+  rokerlog
+  multiplexing
+  ${TESTS_LIBRARIES}
+  conflictmgr
+  CONAN_PKG::nlohmann_json
+  CONAN_PKG::asio
+  CONAN_PKG::fmt
+  CONAN_PKG::spdlog
+  CONAN_PKG::gtest
+  CONAN_PKG::mariadb-connector-c
+  CONAN_PKG::openssl
+  CONAN_PKG::grpc)
 
 target_precompile_headers(ut_broker PRIVATE precomp_inc/precomp.hpp)
 
+add_dependencies(
+  ut_broker
+  test_util
+  roker
+  rokerbase
+  rokerlog
+  multiplexing
+  conflictmgr)
+
 set_target_properties(
-    ut_broker rpc_client
-    PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
-    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
-)
- 
-#keys used by ut_broker grpc
-file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys DESTINATION ${CMAKE_BINARY_DIR}/tests)
+  ut_broker rpc_client
+  PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
+
+# keys used by ut_broker grpc
+file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_broker)
 
-if (WITH_COVERAGE)
-  set(COVERAGE_EXCLUDES
-      '*/main.cc'
-      '*/test/*'
-      '/usr/include/*'
-      '${CMAKE_BINARY_DIR}/*'
-      '*/.conan/*')
-  SETUP_TARGET_FOR_COVERAGE(
-    NAME broker-test-coverage
-    EXECUTABLE ut_broker
-    DEPENDENCIES ut_broker
-  )
-endif ()
+if(WITH_COVERAGE)
+  set(COVERAGE_EXCLUDES '*/main.cc' '*/test/*' '/usr/include/*'
+                        '${CMAKE_BINARY_DIR}/*' '*/.conan/*')
+  setup_target_for_coverage(NAME broker-test-coverage EXECUTABLE ut_broker
+                            DEPENDENCIES ut_broker)
+endif()

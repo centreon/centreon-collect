@@ -63,10 +63,10 @@ TEST_F(ConfigTag, NewTagWithNoName) {
 TEST_F(ConfigTag, NewTagWellFilled) {
   configuration::tag tg({1, 0});
   tg.parse("type", "servicegroup");
-  tg.parse("name", "foobar");
+  tg.parse("tag_name", "foobar");
   ASSERT_EQ(tg.key().first, 1);
   ASSERT_EQ(tg.key().second, engine::configuration::tag::servicegroup);
-  ASSERT_EQ(tg.name(), "foobar");
+  ASSERT_EQ(tg.tag_name(), "foobar");
   ASSERT_NO_THROW(tg.check_validity());
 }
 
@@ -76,7 +76,7 @@ TEST_F(ConfigTag, NewTagWellFilled) {
 TEST_F(ConfigTag, NewTagIconId) {
   configuration::tag tg({1, 0});
   tg.parse("type", "hostgroup");
-  tg.parse("name", "foobar");
+  tg.parse("tag_name", "foobar");
   ASSERT_EQ(tg.key().second, engine::configuration::tag::hostgroup);
   ASSERT_NO_THROW(tg.check_validity());
 }

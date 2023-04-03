@@ -1486,9 +1486,8 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(ah.host_id())]);
 
-    constexpr const char* buf = "UPDATE hosts SET";
-    constexpr size_t size = strlen(buf);
-    std::string query{buf};
+    constexpr absl::string_view buf("UPDATE hosts SET");
+    std::string query{buf.data(), buf.size()};
     if (ah.has_notify())
       query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
     if (ah.has_active_checks())
@@ -1540,7 +1539,7 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
                           get_services_col_size(services_notification_period)));
 
     // If nothing was added to query, we can exit immediately.
-    if (query.size() > size) {
+    if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
       query += fmt::format(" WHERE host_id={}", ah.host_id());
       log_v2::sql()->trace("SQL: query <<{}>>", query);
@@ -1548,9 +1547,8 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
       _add_action(conn, actions::hosts);
 
       if (_store_in_resources) {
-        constexpr const char* res_buf = "UPDATE resources SET";
-        constexpr size_t res_size = strlen(res_buf);
-        std::string res_query{res_buf};
+        constexpr absl::string_view res_buf("UPDATE resources SET");
+        std::string res_query{res_buf.data(), res_buf.size()};
         if (ah.has_notify())
           res_query +=
               fmt::format(" notifications_enabled='{}',", ah.notify() ? 1 : 0);
@@ -1564,7 +1562,7 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
           res_query +=
               fmt::format(" max_check_attempts={},", ah.max_check_attempts());
 
-        if (res_query.size() > res_size) {
+        if (res_query.size() > res_buf.size()) {
           res_query.resize(res_query.size() - 1);
           res_query +=
               fmt::format(" WHERE parent_id=0 AND id={}", ah.host_id());
@@ -1615,6 +1613,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_hscr_bind);
         if (!_hscr_bind->bind(conn))
           _hscr_bind->init_from_stmt(conn);
         auto* b = _hscr_bind->bind(conn).get();
@@ -1709,6 +1708,7 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(hscr.host_id())]);
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_hscr_resources_bind);
         if (!_hscr_resources_bind->bind(conn))
           _hscr_resources_bind->init_from_stmt(conn);
         auto* b = _hscr_resources_bind->bind(conn).get();
@@ -2054,7 +2054,7 @@ void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
         sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
         sd.service_id);
     std::string query(fmt::format(
-        "DELETE FROM serivces_services_dependencies WHERE dependent_host_id={} "
+        "DELETE FROM services_services_dependencies WHERE dependent_host_id={} "
         "AND dependent_service_id={} AND host_id={} AND service_id={}",
         sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
         sd.service_id));
@@ -2681,9 +2681,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     int32_t conn = _mysql.choose_connection_by_instance(
         _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
 
-    constexpr const char* buf = "UPDATE services SET";
-    constexpr size_t size = strlen(buf);
-    std::string query{buf};
+    constexpr absl::string_view buf("UPDATE services SET");
+    std::string query{buf.data(), buf.size()};
     if (as.has_notify())
       query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
     if (as.has_active_checks())
@@ -2735,7 +2734,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
                           get_services_col_size(services_notification_period)));
 
     // If nothing was added to query, we can exit immediately.
-    if (query.size() > size) {
+    if (query.size() > buf.size()) {
       query.resize(query.size() - 1);
       query += fmt::format(" WHERE host_id={} AND service_id={}", as.host_id(),
                            as.service_id());
@@ -2745,9 +2744,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
       _add_action(conn, actions::services);
 
       if (_store_in_resources) {
-        constexpr const char* res_buf = "UPDATE resources SET";
-        constexpr size_t res_size = strlen(res_buf);
-        std::string res_query{res_buf};
+        constexpr absl::string_view res_buf("UPDATE resources SET");
+        std::string res_query{res_buf.data(), res_buf.size()};
         if (as.has_notify())
           res_query +=
               fmt::format(" notifications_enabled='{}',", as.notify() ? 1 : 0);
@@ -2761,7 +2759,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
           res_query +=
               fmt::format(" max_check_attempts={},", as.max_check_attempts());
 
-        if (res_query.size() > res_size) {
+        if (res_query.size() > res_buf.size()) {
           res_query.resize(res_query.size() - 1);
           res_query += fmt::format(" WHERE parent_id={} AND id={}",
                                    as.host_id(), as.service_id());
@@ -2865,8 +2863,9 @@ void stream::_check_and_update_index_cache(const Service& ss) {
           "Attempt to get the index from the database for service ({}, {})",
           ss.host_id(), ss.service_id());
 
-      _mysql.run_statement_and_get_result(_index_data_query, std::move(pq),
-                                          conn);
+      _mysql.run_statement_and_get_result(
+          _index_data_query, std::move(pq), conn,
+          get_index_data_col_size(index_data_service_description));
 
       try {
         database::mysql_result res(future_pq.get());
@@ -3039,6 +3038,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       int32_t conn = _mysql.choose_connection_by_instance(
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_sscr_bind);
         if (!_sscr_bind->bind(conn))
           _sscr_bind->init_from_stmt(conn);
         auto* b = _sscr_bind->bind(conn).get();
@@ -3140,6 +3140,7 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
       size_t output_size = misc::string::adjust_size_utf8(
           sscr.output(), get_resources_col_size(resources_output));
       if (_bulk_prepared_statement) {
+        std::lock_guard<bulk_bind> lck(*_sscr_resources_bind);
         if (!_sscr_resources_bind->bind(conn))
           _sscr_resources_bind->init_from_stmt(conn);
         auto* b = _sscr_resources_bind->bind(conn).get();

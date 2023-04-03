@@ -153,7 +153,7 @@ apt install conan
 If it does not work, conan can be installed with pip3:
 
 ```shell
-pip3 install conan
+pip3 install conan==1.57.0
 ```
 
 > All the dependencies pulled by conan are located in conanfile.txt. If

@@ -54,9 +54,8 @@ class mysql_bind : public mysql_bind_base {
    *               the column contains strings. By default, this value is 0 and
    *               no reservation are made.
    */
-  mysql_bind(int size, int length = 0);
+  mysql_bind(int size);  //, int length = 0);
   ~mysql_bind() noexcept = default;
-  void set_size(int size);
 
   /**
    * @brief getter to the int32 value at index range. The type of the column
@@ -283,7 +282,6 @@ class mysql_bind : public mysql_bind_base {
    */
   void set_null_tiny(size_t range);
 
-  int get_size() const;
   bool value_is_null(size_t range) const;
   size_t rows_count() const;
 

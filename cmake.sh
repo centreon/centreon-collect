@@ -9,6 +9,7 @@ This program build Centreon-broker
     -f|--force    : force rebuild
     -r|--release  : Build on release mode
     -fcr|--force-conan-rebuild : rebuild conan data
+    -clang        : Compilation with clang++
     -h|--help     : help
 EOF
 }
@@ -24,6 +25,12 @@ for i in $(cat conanfile.txt) ; do
   fi
 done
 
+STD=14
+COMPILER=gcc
+LIBCXX=libstdc++11
+WITH_CLANG=OFF
+EE=
+
 for i in "$@"
 do
   case "$i" in
@@ -35,8 +42,16 @@ do
       BUILD_TYPE="Release"
       shift
       ;;
+    -clang)
+      COMPILER=clang
+      WITH_CLANG=ON
+      STD=14
+      EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
+      shift
+      ;;
     -fcr|--force-conan-rebuild)
       CONAN_REBUILD="1"
+      shift
       ;;
     -h|--help)
       show_help
@@ -47,6 +62,28 @@ do
     ;;
   esac
 done
+
+if [ "$COMPILER" = "clang" ] ; then
+  if [[ $(readlink -f /usr/bin/cc) =~ "gcc" ]] ; then
+    echo "/usr/bin/cc has not clang as target"
+    echo "You should execute as root commands like these ones:"
+    echo "  update-alternatives --install /usr/bin/cc cc /usr/bin/clang-11 100"
+    echo "  update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-11 100"
+    echo
+    echo "Please adapt the command following the clang version you have."
+  fi
+  VERSION=$(clang --version | awk -F "version " '$2 != "" { split($2, major, ".") ; print major[1]}')
+elif [ "$COMPILER" = "gcc" ] ; then
+  if [[ $(readlink -f /usr/bin/cc) =~ "clang" ]] ; then
+    echo "/usr/bin/cc has not gcc as target"
+    echo "You should execute as root commands like these ones:"
+    echo "  update-alternatives --install /usr/bin/cc cc /usr/bin/gcc-10 100"
+    echo "  update-alternatives --install /usr/bin/c++ c++ /usr/bin/g++-10 100"
+    echo
+    echo "Please adapt the command following the gcc version you have."
+  fi
+  VERSION=$(gcc --version | awk '$1 == "gcc" { split($0, array, ") ") ; split(array[2], major, /[ \.]/) ; print major[1]}')
+fi
 
 # Am I root?
 my_id=$(id -u)
@@ -156,7 +193,6 @@ elif [ -r /etc/issue ] ; then
       gcc
       g++
       pkg-config
-      libmariadb3
       librrd-dev
       libgnutls28-dev
       ninja-build
@@ -224,7 +260,7 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-pip3 install conan --upgrade
+pip3 install conan==1.57.0 --upgrade
 
 if which conan ; then
   conan=$(which conan)
@@ -238,6 +274,15 @@ else
   echo "'build' directory already there"
 fi
 
+case "$COMPILER" in
+clang)
+  VERSION=$(clang -dumpversion | awk -F '.' '{print $1}')
+  ;;
+gcc)
+  VERSION=$(gcc -dumpversion)
+  ;;
+esac
+
 if [ "$force" = "1" ] ; then
   rm -rf build
   mkdir build
@@ -246,18 +291,18 @@ cd build
 if [[ "$maj" == "centos7" ]] ; then
   rm -rf ~/.conan/profiles/default
   if [[ "$CONAN_REBUILD" == "1" ]] ; then
-    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build="*"
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
   else
-    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
   fi
 else
-    $conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
 elif [[ "$maj" == "Debian" ]] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
 else
-  CXXFLAGS="-Wall -Wextra" $cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
+  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $* ..
 fi

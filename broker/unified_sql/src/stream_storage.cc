@@ -267,7 +267,7 @@ void stream::_unified_sql_process_pb_service_status(
             {
               std::lock_guard<std::mutex> lck(_queues_m);
               _metrics[it_index_cache->second.metric_id] =
-                  &it_index_cache->second;
+                  it_index_cache->second;
             }
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
@@ -431,7 +431,7 @@ void stream::_unified_sql_process_service_status(
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
           _mysql.run_statement_and_get_result(_index_data_query,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
 
           database::mysql_result res(future.get());
           if (_mysql.fetch_row(res))
@@ -466,7 +466,7 @@ void stream::_unified_sql_process_service_status(
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future = promise.get_future();
           _mysql.run_statement_and_get_result(_index_data_update,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
           future.get();
         }
 
@@ -652,7 +652,7 @@ void stream::_unified_sql_process_service_status(
             {
               std::lock_guard<std::mutex> lck(_queues_m);
               _metrics[it_index_cache->second.metric_id] =
-                  &it_index_cache->second;
+                  it_index_cache->second;
             }
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
@@ -666,14 +666,14 @@ void stream::_unified_sql_process_service_status(
           // Append perfdata to queue.
           std::string row;
           if (std::isinf(pd.value()))
-            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                               ss.current_state,
                               pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
           else if (std::isnan(pd.value()))
-            row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check,
                               ss.current_state);
           else
-            row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                               ss.current_state, pd.value());
           _perfdata.push_query(row);
         }
@@ -700,7 +700,7 @@ void stream::_unified_sql_process_service_status(
 }
 
 void stream::_update_metrics() {
-  std::unordered_map<int32_t, metric_info*> metrics;
+  std::unordered_map<int32_t, metric_info> metrics;
   {
     std::lock_guard<std::mutex> lck(_queues_m);
     std::swap(_metrics, metrics);
@@ -708,34 +708,34 @@ void stream::_update_metrics() {
 
   std::deque<std::string> m;
   for (auto it = metrics.begin(); it != metrics.end(); ++it) {
-    metric_info* metric = it->second;
+    const metric_info& metric = it->second;
     m.emplace_back(fmt::format(
-        "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric->metric_id,
-        misc::string::escape(metric->unit_name,
+        "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric.metric_id,
+        misc::string::escape(metric.unit_name,
                              get_metrics_col_size(metrics_unit_name)),
-        std::isnan(metric->warn) || std::isinf(metric->warn)
+        std::isnan(metric.warn) || std::isinf(metric.warn)
             ? "NULL"
-            : fmt::format("{}", metric->warn),
-        std::isnan(metric->warn_low) || std::isinf(metric->warn_low)
+            : fmt::format("{}", metric.warn),
+        std::isnan(metric.warn_low) || std::isinf(metric.warn_low)
             ? "NULL"
-            : fmt::format("{}", metric->warn_low),
-        metric->warn_mode ? "1" : "0",
-        std::isnan(metric->crit) || std::isinf(metric->crit)
+            : fmt::format("{}", metric.warn_low),
+        metric.warn_mode ? "1" : "0",
+        std::isnan(metric.crit) || std::isinf(metric.crit)
             ? "NULL"
-            : fmt::format("{}", metric->crit),
-        std::isnan(metric->crit_low) || std::isinf(metric->crit_low)
+            : fmt::format("{}", metric.crit),
+        std::isnan(metric.crit_low) || std::isinf(metric.crit_low)
             ? "NULL"
-            : fmt::format("{}", metric->crit_low),
-        metric->crit_mode ? "1" : "0",
-        std::isnan(metric->min) || std::isinf(metric->min)
+            : fmt::format("{}", metric.crit_low),
+        metric.crit_mode ? "1" : "0",
+        std::isnan(metric.min) || std::isinf(metric.min)
             ? "NULL"
-            : fmt::format("{}", metric->min),
-        std::isnan(metric->max) || std::isinf(metric->max)
+            : fmt::format("{}", metric.min),
+        std::isnan(metric.max) || std::isinf(metric.max)
             ? "NULL"
-            : fmt::format("{}", metric->max),
-        std::isnan(metric->value) || std::isinf(metric->value)
+            : fmt::format("{}", metric.max),
+        std::isnan(metric.value) || std::isinf(metric.value)
             ? "NULL"
-            : fmt::format("{}", metric->value)));
+            : fmt::format("{}", metric.value)));
   }
   if (!m.empty()) {
     std::string query(fmt::format(
