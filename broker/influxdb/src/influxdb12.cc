@@ -67,7 +67,9 @@ void influxdb12::clear() {
  *  @param[in] m  The metric to write.
  */
 void influxdb12::write(storage::metric const& m) {
-  _query.append(_metric_query.generate_metric(m));
+  storage::pb_metric converted;
+  m.convert_to_pb(converted.mut_obj());
+  _query.append(_metric_query.generate_metric(converted));
 }
 
 /**
@@ -76,6 +78,26 @@ void influxdb12::write(storage::metric const& m) {
  *  @param[in] s  The status to write.
  */
 void influxdb12::write(storage::status const& s) {
+  storage::pb_status converted;
+  s.convert_to_pb(converted.mut_obj());
+  _query.append(_status_query.generate_status(converted));
+}
+
+/**
+ *  Write a metric to the query.
+ *
+ *  @param[in] m  The metric to write.
+ */
+void influxdb12::write(const storage::pb_metric& m) {
+  _query.append(_metric_query.generate_metric(m));
+}
+
+/**
+ *  Write a status to the query.
+ *
+ *  @param[in] s  The status to write.
+ */
+void influxdb12::write(const storage::pb_status& s) {
   _query.append(_status_query.generate_status(s));
 }
 

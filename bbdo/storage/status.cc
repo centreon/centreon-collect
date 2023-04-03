@@ -85,6 +85,19 @@ status& status::operator=(status const& s) {
   return *this;
 }
 
+/**
+ * @brief convert metric to protobuf version
+ *
+ * @param pb_status
+ */
+void status::convert_to_pb(Status& pb_status) const {
+  pb_status.set_index_id(index_id);
+  pb_status.set_interval(interval);
+  pb_status.set_rrd_len(rrd_len);
+  pb_status.set_time(time.get_time_t());
+  pb_status.set_state(state);
+}
+
 /**************************************
  *                                     *
  *           Private Methods           *

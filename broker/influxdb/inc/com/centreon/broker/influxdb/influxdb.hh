@@ -21,6 +21,7 @@
 
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -52,7 +53,19 @@ class influxdb {
    *  Write an event to the queue of event pending.
    *  @param[in] m  The event.
    */
+  virtual void write(storage::pb_metric const& m) = 0;
+
+  /**
+   *  Write an event to the queue of event pending.
+   *  @param[in] m  The event.
+   */
   virtual void write(storage::status const& m) = 0;
+
+  /**
+   *  Write an event to the queue of event pending.
+   *  @param[in] m  The event.
+   */
+  virtual void write(storage::pb_status const& m) = 0;
 
   /**
    *  Commit all the events pending to the db.

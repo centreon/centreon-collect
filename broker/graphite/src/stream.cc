@@ -216,16 +216,7 @@ int stream::write(std::shared_ptr<io::data> const& data) {
  */
 bool stream::_process_metric(storage::metric const& me) {
   storage::pb_metric converted;
-  Metric& obj = converted.mut_obj();
-  obj.set_metric_id(me.metric_id);
-  obj.set_rrd_len(me.rrd_len);
-  obj.set_interval(me.interval);
-  obj.set_value_type(Metric::ValueType(me.value_type));
-  obj.set_time(me.time.get_time_t());
-  obj.set_value(me.value);
-  obj.set_name(me.name);
-  obj.set_host_id(me.host_id);
-  obj.set_service_id(me.service_id);
+  me.convert_to_pb(converted.mut_obj());
   return _process_metric(converted);
 }
 
@@ -247,12 +238,7 @@ bool stream::_process_metric(storage::pb_metric const& me) {
  */
 bool stream::_process_status(storage::status const& st) {
   storage::pb_status converted;
-  Status& obj = converted.mut_obj();
-  obj.set_index_id(st.index_id);
-  obj.set_interval(st.interval);
-  obj.set_rrd_len(st.rrd_len);
-  obj.set_time(st.time.get_time_t());
-  obj.set_state(st.state);
+  st.convert_to_pb(converted.mut_obj());
   return _process_status(converted);
 }
 

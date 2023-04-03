@@ -59,10 +59,12 @@ class influxdb12 : public influxdb::influxdb {
   influxdb12(influxdb12 const& f) = delete;
   influxdb12& operator=(influxdb12 const& f) = delete;
 
-  void clear();
-  void write(storage::metric const& m);
-  void write(storage::status const& s);
-  void commit();
+  void clear() override;
+  void write(storage::metric const& m) override;
+  void write(storage::status const& s) override;
+  void write(const storage::pb_metric& m) override;
+  void write(const storage::pb_status& s) override;
+  void commit() override;
 
  private:
   std::string _post_header;
