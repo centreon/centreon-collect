@@ -19,6 +19,7 @@
 #ifndef CCB_STORAGE_METRIC_HH
 #define CCB_STORAGE_METRIC_HH
 
+#include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -60,6 +61,8 @@ class metric : public io::data {
   constexpr static uint32_t static_type() {
     return io::events::data_type<io::storage, storage::de_metric>::value;
   }
+
+  void convert_to_pb(Metric& pb_metric) const;
 
   timestamp time;
   uint32_t interval;

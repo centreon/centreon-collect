@@ -56,8 +56,8 @@ class line_protocol_query {
   std::string escape_measurement(std::string const& str);
   std::string escape_value(std::string const& str);
 
-  std::string generate_metric(storage::metric const& me);
-  std::string generate_status(storage::status const& st);
+  std::string generate_metric(storage::pb_metric const& me);
+  std::string generate_status(storage::pb_status const& st);
 
  private:
   void _append_compiled_getter(data_getter getter, data_escaper escaper);
@@ -77,6 +77,12 @@ class line_protocol_query {
   void _get_service(io::data const& d, std::ostream& is);
   void _get_service_id(io::data const& d, std::ostream& is);
   void _get_instance(io::data const& d, std::ostream& is);
+  void _get_metric_name(io::data const& d, std::ostream& is);
+  void _get_metric_id(io::data const& d, std::ostream& is);
+  void _get_metric_value(io::data const& d, std::ostream& is);
+  void _get_metric_time(io::data const& d, std::ostream& is);
+  void _get_status_state(io::data const& d, std::ostream& is);
+  void _get_status_time(io::data const& d, std::ostream& is);
 
   // Compiled data.
   std::vector<std::pair<data_getter, data_escaper> > _compiled_getters;
