@@ -39,6 +39,7 @@ jobs:
       version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
+      commit_hash: ${{ github.sha }}
     secrets: inherit
 
   robot-test:
