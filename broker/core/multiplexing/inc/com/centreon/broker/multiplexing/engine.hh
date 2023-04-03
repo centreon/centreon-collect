@@ -97,6 +97,8 @@ class engine : public std::enable_shared_from_this<engine> {
 
   friend class detail::callback_caller;
 
+  friend class detail::callback_caller;
+
  public:
   static void load();
   static void unload();

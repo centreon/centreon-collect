@@ -108,10 +108,6 @@ add_executable(
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/misc/stringifier.cc
   ${TESTS_DIR}/modules/module.cc
-  ${TESTS_DIR}/multiplexing/engine/start_stop.cc
-  ${TESTS_DIR}/multiplexing/muxer/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/write.cc
   ${TESTS_DIR}/processing/acceptor.cc
   ${TESTS_DIR}/processing/feeder.cc
   ${TESTS_DIR}/time/timerange.cc
@@ -129,6 +125,7 @@ target_link_libraries(
   roker
   rokerbase
   rokerlog
+  multiplexing
   ${TESTS_LIBRARIES}
   conflictmgr
   CONAN_PKG::nlohmann_json
@@ -141,6 +138,15 @@ target_link_libraries(
   CONAN_PKG::grpc)
 
 target_precompile_headers(ut_broker PRIVATE precomp_inc/precomp.hpp)
+
+add_dependencies(
+  ut_broker
+  test_util
+  roker
+  rokerbase
+  rokerlog
+  multiplexing
+  conflictmgr)
 
 set_target_properties(
   ut_broker rpc_client

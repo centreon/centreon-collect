@@ -54,7 +54,8 @@ endif()
 
 include_directories("${PROJECT_SOURCE_DIR}/core/inc")
 include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}/engine/inc")
+include_directories("${CMAKE_SOURCE_DIR}/engine/inc"
+                    "${PROJECT_SOURCE_DIR}/core/multiplexing/inc")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
@@ -308,9 +309,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/multiplexing/engine.cc
-    ${SRC_DIR}/multiplexing/muxer.cc
-    ${SRC_DIR}/multiplexing/publisher.cc
     ${SRC_DIR}/mysql.cc
     ${SRC_DIR}/pool.cc
     ${SRC_DIR}/database/mysql_bind_base.cc
@@ -396,9 +394,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/trash.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/multiplexing/engine.hh
-    ${INC_DIR}/multiplexing/muxer.hh
-    ${INC_DIR}/multiplexing/publisher.hh
     ${INC_DIR}/mysql.hh
     ${INC_DIR}/pool.hh
     ${INC_DIR}/database/mysql_bulk_bind.hh
@@ -467,6 +462,7 @@ target_link_libraries(
   "-Wl,--whole-archive"
   rokerbase
   roker
+  multiplexing
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
@@ -503,6 +499,9 @@ add_broker_module(TLS ON)
 add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
+
+# Multiplexing library linked in final executable such as cbd or cbmod
+add_subdirectory(core/multiplexing)
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)
