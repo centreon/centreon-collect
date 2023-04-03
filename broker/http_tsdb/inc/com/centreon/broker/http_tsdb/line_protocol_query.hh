@@ -118,6 +118,10 @@ class line_protocol_query {
                 unsigned& string_index,
                 std::ostream& is) const;
 
+  void _get_resource_id(io::data const& d,
+                        unsigned& string_index,
+                        std::ostream& is) const;
+
   void _get_tag_host_id(io::data const& d,
                         TagType tag_type,
                         std::ostream& is) const;

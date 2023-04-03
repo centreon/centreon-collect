@@ -60,10 +60,6 @@ struct metric_info {
   uint64_t index_id;
   interprocess::offset_ptr<const string> name;
   interprocess::offset_ptr<const string> unit;
-  uint64_t host_id;
-  interprocess::offset_ptr<const string> host_name;
-  uint64_t service_id;
-  interprocess::offset_ptr<const string> service_description;
   double min;
   double max;
 };

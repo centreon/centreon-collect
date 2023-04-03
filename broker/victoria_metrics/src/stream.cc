@@ -29,6 +29,7 @@ using namespace com::centreon::broker::victoria_metrics;
 
 const std::string stream::allowed_macros =
     "$INSTANCE$,$INSTANCEID$,$HOST$,$SERVICE$,$HOSTGROUP$,$SERVICE_GROUP$,"
+    "$RESOURCEID$,"
     "$HOST_TAG_CAT_ID$,$HOST_TAG_GROUP_ID$,$HOST_TAG_CAT_NAME$,"
     "$HOST_TAG_GROUP_NAME$,$SERV_TAG_CAT_ID$,$SERV_TAG_GROUP_ID$,"
     "$SERV_TAG_CAT_NAME$,$SERV_TAG_GROUP_NAME$,$MIN$,$MAX$";

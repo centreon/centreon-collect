@@ -324,24 +324,27 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(
             &line_protocol_query::_get_member<uint32_t, storage::metric,
                                               &storage::metric::metric_id>,
-            escaper);
+            nullptr);
       } else if (macro == "$INSTANCE$")
         _append_compiled_getter(&line_protocol_query::_get_instance, escaper);
       else if (macro == "$INSTANCEID$")
         _append_compiled_getter(
             &line_protocol_query::_get_member<uint32_t, io::data,
                                               &io::data::source_id>,
-            escaper);
+            nullptr);
       else if (macro == "$HOST$")
         _append_compiled_getter(&line_protocol_query::_get_host, escaper);
       else if (macro == "$HOSTID$")
-        _append_compiled_getter(&line_protocol_query::_get_host_id, escaper);
+        _append_compiled_getter(&line_protocol_query::_get_host_id, nullptr);
       else if (macro == "$HOSTGROUP$")
         _append_compiled_getter(&line_protocol_query::_get_host_group, escaper);
       else if (macro == "$SERVICE$")
         _append_compiled_getter(&line_protocol_query::_get_service, escaper);
       else if (macro == "$SERVICEID$")
-        _append_compiled_getter(&line_protocol_query::_get_service_id, escaper);
+        _append_compiled_getter(&line_protocol_query::_get_service_id, nullptr);
+      else if (macro == "$RESOURCEID$")
+        _append_compiled_getter(&line_protocol_query::_get_resource_id,
+                                nullptr);
       else if (macro == "$SERVICE_GROUP$")
         _append_compiled_getter(&line_protocol_query::_get_service_group,
                                 escaper);
@@ -675,6 +678,18 @@ void line_protocol_query::_get_max(io::data const& d,
   const cache::metric_info* infos = _get_metric_info(d);
   if (infos) {
     is << infos->max;
+  }
+}
+
+void line_protocol_query::_get_resource_id(io::data const& d,
+                                           unsigned& string_index,
+                                           std::ostream& is) const {
+  cache::global_cache::lock l;
+  const cache::resource_info* serv_info =
+      cache::global_cache::instance_ptr()->get_service_from_index_id(
+          _get_index_id(d));
+  if (serv_info) {
+    is << serv_info->resource_id;
   }
 }
 

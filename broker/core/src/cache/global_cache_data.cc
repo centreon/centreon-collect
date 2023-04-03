@@ -94,8 +94,6 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
       metric_info to_insert = {.index_id = index_id,
                                .name = &get_metric_name(name),
                                .unit = &get_metric_unit(unit),
-                               .host_name = nullptr,
-                               .service_description = nullptr,
                                .min = min,
                                .max = max};
       _metric_info->emplace(metric_id, to_insert);
