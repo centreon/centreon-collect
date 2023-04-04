@@ -558,12 +558,14 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     lines = f.readlines()
     f.close()
 
-    if force:
+    replaced = False
+    for i in range(len(lines)):
+        if lines[i].startswith(key + "="):
+            lines[i] = "{}={}\n".format(key, value)
+            replaced = True
+
+    if not replaced and force:
         lines.append("{}={}\n".format(key, value))
-    else:
-        for i in range(len(lines)):
-            if lines[i].startswith(key + "="):
-                lines[i] = "{}={}\n".format(key, value)
 
     f = open(filename, "w")
     f.writelines(lines)
@@ -706,7 +708,7 @@ def add_bam_config_to_engine():
 
 def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
     global dbconf
-    dbconf.create_ba_with_services(name, typ, svc, dt_policy)
+    return dbconf.create_ba_with_services(name, typ, svc, dt_policy)
 
 
 def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):

@@ -142,8 +142,8 @@ BRRDDMU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
@@ -186,8 +186,8 @@ BRRDDIDU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
@@ -233,8 +233,8 @@ BRRDDMIDU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
@@ -310,7 +310,7 @@ BRRDRMU1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
-	Config Broker Sql Output	central	unified_sql
+	Config BBDO3	${1}
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
         Broker Config Flush Log	central	0
@@ -319,7 +319,7 @@ BRRDRMU1
         Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	Start Engine
 	${result}=	Check Connections

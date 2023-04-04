@@ -584,21 +584,25 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
 
 def delete_service_downtime(hst: str, svc: str):
     now = int(time.time())
-    connection = pymysql.connect(host=DB_HOST,
-                                 user=DB_USER,
-                                 password=DB_PASS,
-                                 database=DB_NAME_STORAGE,
-                                 charset='utf8mb4',
-                                 cursorclass=pymysql.cursors.DictCursor)
+    while time.time() < now + TIMEOUT:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
 
-    with connection:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                f"select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{svc}' and h.name='{hst}' LIMIT 1")
-            result = cursor.fetchall()
-            did = int(result[0]['internal_id'])
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"select d.internal_id from downtimes d inner join hosts h on d.host_id=h.host_id inner join services s on d.service_id=s.service_id where d.deletion_time is null and s.scheduled_downtime_depth<>'0' and s.description='{svc}' and h.name='{hst}' LIMIT 1")
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    did = int(result[0]['internal_id'])
+                    break
+        time.sleep(1)
 
-    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}"
+    cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()

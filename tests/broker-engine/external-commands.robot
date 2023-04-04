@@ -2121,7 +2121,7 @@ BEEXTCMD_GRPC4
 	FOR  ${use_grpc}  IN RANGE  0  2
 		Log To Console	external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
 		Clear Retention
-		${start}=	Get Current Date
+		${start}=	Get Round Current Date
 		Start Broker
 		Start Engine
 			${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;

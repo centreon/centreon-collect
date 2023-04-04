@@ -9,6 +9,7 @@ Documentation	Centreon Broker and Engine start/stop tests
 Library	Process
 Library	DateTime
 Library	OperatingSystem
+Library	DateTime
 Library	../resources/Engine.py
 Library	../resources/Broker.py
 Library	../resources/Common.py
@@ -195,7 +196,7 @@ BESS_GRPC5
 	Should Be True	${result}
 	Stop Engine
 	${result}=  Check Poller Disabled In Database  1  10
-	Should Be True	${result}
+	Should Be True	${result}	msg=Poller not disabled in database.
 	Kindly Stop Broker
 
 BESS_GRPC_COMPRESS1
@@ -400,3 +401,4 @@ BESSBQ1
 	Should Be True	${result}	msg=Services should be updated after the ingestion of the queue file
 	Stop Engine
 	Kindly Stop Broker
+
