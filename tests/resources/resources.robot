@@ -48,16 +48,22 @@ Clear Broker Logs
 	Create Directory	${BROKER_LOG}
 
 Start Broker
+	[Arguments]	 ${only_central}=False
 	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
+	IF  not ${only_central}
+		Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
+	END
 
 Reload Broker
 	Send Signal To Process	SIGHUP	b1
 	Send Signal To Process	SIGHUP	b2
 
 Kindly Stop Broker
+	[Arguments]	 ${only_central}=False
 	Send Signal To Process	SIGTERM	b1
-	Send Signal To Process	SIGTERM	b2
+	IF  not ${only_central}
+		Send Signal To Process	SIGTERM	b2
+	END
 	${result}=	Wait For Process	b1	timeout=60s
 	# In case of process not stopping
 	IF	"${result}" == "${None}"
@@ -68,21 +74,26 @@ Kindly Stop Broker
 	  Should Be Equal As Integers	${result.rc}	0	msg=Central Broker not correctly stopped
 	END
 
-	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	# In case of process not stopping
-	IF	"${result}" == "${None}"
-	  Dump Process	b2	broker-rrd
-	  Send Signal To Process	SIGKILL	b2
-	  Fail	RRD Broker not correctly stopped (coredump generated)
-  	ELSE
-	  Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+	IF  not ${only_central}
+		${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
+		# In case of process not stopping
+		IF	"${result}" == "${None}"
+		  Dump Process	b2	broker-rrd
+		  Send Signal To Process	SIGKILL	b2
+		  Fail	RRD Broker not correctly stopped (coredump generated)
+		ELSE
+		  Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+		END
 	END
 
 Stop Broker
+	[Arguments]	 ${only_central}=False
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
-	${result}=	Terminate Process	b2	kill=False
-	Should Be Equal As Integers	${result.rc}	0
+	IF  not ${only_central}
+		${result}=	Terminate Process	b2	kill=False
+		Should Be Equal As Integers	${result.rc}	0
+	END
 
 Stop Processes
 	Terminate All Processes	kill=True
@@ -98,6 +109,11 @@ Start Engine
 	 ${lib}=	Catenate	SEPARATOR=	${VarRoot}  /lib/centreon-engine/config	${idx}
 	 Create Directory	${log}
 	 Create Directory	${lib}
+	 TRY
+	 	Remove File  ${lib}/rw/centengine.cmd
+	 EXCEPT
+	 	Log  can't remove ${lib}/rw/centengine.cmd don't worry
+	 END
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
 	END
 
@@ -129,6 +145,11 @@ Stop Engine
 	 END
 	END
 
+Get Engine Pid
+	[Arguments]  ${process_alias}
+	${pid}=  Get Process Id  ${process_alias} 
+	[Return]  ${pid}
+	
 Reload Engine
 	${count}=	Get Engines Count
 	FOR	${idx}	IN RANGE	0	${count}
@@ -169,11 +190,13 @@ Save Logs
 	${failDir}=	Catenate	SEPARATOR=	failed/	${Test Name}
 	Create Directory	${failDir}
 	Copy files	${centralLog}	${failDir}
+	Copy files	${rrdLog}	${failDir}
 	Copy files	${moduleLog0}	${failDir}
 	Copy files	${engineLog0}	${failDir}
 	Copy files	${ENGINE_LOG}/config0/gcore_*	${failDir}
 	Copy Files	${EtcRoot}/centreon-engine/config0/*.cfg	${failDir}/etc/centreon-engine/config0
 	Copy Files	${EtcRoot}/centreon-broker/*.json	${failDir}/etc/centreon-broker
+	Move Files	/tmp/lua*.log	${failDir}
 
 
 Dump Process

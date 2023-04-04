@@ -188,7 +188,8 @@ def start_mysql():
         logger.console("Mariadb started with systemd")
     else:
         logger.console("Starting Mariadb directly")
-        Popen(["mariadbd", "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
+        Popen(["mariadbd", "--socket=/var/lib/mysql/mysql.sock",
+              "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
         logger.console("Mariadb directly started")
 
 
@@ -201,13 +202,22 @@ def stop_mysql():
         logger.console("Stopping directly MariaDB")
         for proc in psutil.process_iter():
             if ('mariadbd' in proc.name()):
+                logger.console(
+                    f"process '{proc.name()}' containing mariadbd found: stopping it")
                 proc.terminate()
                 try:
+                    logger.console("Waiting for 30s mariadbd to stop")
                     proc.wait(30)
                 except:
                     logger.console("mariadb don't want to stop => kill")
                     proc.kill()
-                break
+
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                logger.console(f"process '{proc.name()}' still alive")
+                logger.console("mariadb don't want to stop => kill")
+                proc.kill()
+
         logger.console("Mariadb directly stopped")
 
 
@@ -229,16 +239,16 @@ def kill_engine():
 
 
 def clear_retention():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.memory.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.queue.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.unprocessed*' -delete")
-    getoutput("find " + VAR_ROOT + " -name 'retention.dat' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
+    getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
 
 
 def clear_cache():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
 
 def engine_log_table_duplicate(result: list):
@@ -293,7 +303,11 @@ def check_engine_logs_are_duplicated(log: str, date):
 
 
 def find_line_from(lines, date):
-    my_date = parser.parse(date)
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
     p = re.compile(r"\[([^\]]*)\]")
 
     # Let's find my_date
@@ -522,6 +536,31 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
     return False
 
 
+def check_downtimes_with_timeout(nb: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
+                result = cursor.fetchall()
+                if len(result) > 0 and not result[0]['count(*)'] is None:
+                    if result[0]['count(*)'] == int(nb):
+                        return True
+                    else:
+                        logger.console(
+                            f"We should have {nb} downtimes but we have {result[0]['count(*)']}")
+        time.sleep(2)
+    return False
+
+
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -539,7 +578,7 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
                 result = cursor.fetchall()
                 if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 

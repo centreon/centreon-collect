@@ -63,6 +63,10 @@ BEBAMIDT1
 	Delete Service Downtime	host_16	service_314
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
+
+	${result}=	Check Downtimes With Timeout	0	60
+	Should Be True	${result}	msg=We should have no more running downtimes
+
 	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	60
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
 
@@ -110,6 +114,10 @@ BEBAMIDT2
 	Schedule Service Downtime	host_16	service_314	3600
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	1	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is not in downtime as it should be
+
+	${result}=	Check Downtimes With Timeout	2	60
+	Should Be True	${result}	msg=We should have one running downtime
+
 	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	1	60
 	Should Be True	${result}	msg=The BA ba_1 is not in downtime as it should
 
@@ -131,19 +139,18 @@ BEBAMIDT2
 	END
 
 	# There are still two downtimes: the one on the ba and the one on the kpi.
-	${result}=	Number Of Downtimes is	2	60
-	Should Be True	${result}	msg=We should only have only two downtimes
+	${result}=	Check Downtimes With Timeout	2	60
+	Should Be True	${result}	msg=We should have two downtimes
 
 	# The downtime is deleted
 	Delete Service Downtime	host_16	service_314
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	60
 	Should Be True	${result}	msg=The service (host_16, service_314) is in downtime and should not.
+	${result}=	Check Downtimes With Timeout	0	60
+	Should Be True	${result}	msg=We should have no more downtime
+
 	${result}=	Check Service Downtime With Timeout	_Module_BAM_1	ba_1	0	60
 	Should Be True	${result}	msg=The BA ba_1 is in downtime as it should not
-
-	# We should have no more downtime
-	${result}=	Number Of Downtimes Is	0	60
-	Should Be True	${result}	msg=We should have no more downtime
 
         log to console	Broker is stopped (end of BEBAMIDT2)
 	Stop Engine
@@ -185,7 +192,7 @@ BEBAMIGNDT1
 	Set Command Status	${cmd_2}	2
 
 	Start Broker
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Engine
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
@@ -233,6 +240,9 @@ BEBAMIGNDT1
 	Should Be True	${result}	msg=The service (host_16, service_314) does not contain 1 downtime as it should
 	Log to console	Still one downtime applied to service_314.
 
+	${result}=	Check Downtimes With Timeout	1	60
+	Should Be True	${result}	msg=We should have one downtime
+
 	${result}=	Check Ba Status With Timeout	test	0	60
 	Should Be True	${result}	msg=The BA is not OK whereas the service_314 is still in downtime.
 	Log to console	The BA is still OK
@@ -243,6 +253,9 @@ BEBAMIGNDT1
 	${result}=	Check Service Downtime With Timeout	host_16	service_314	0	60
 	Should Be True	${result}	msg=The service (host_16, service_314) does not contain 0 downtime as it should
 	Log to console	No more downtime applied to service_314.
+
+	${result}=	Check Downtimes With Timeout	0	60
+	Should Be True	${result}	msg=We should have no more running downtimes
 
 	${result}=	Check Ba Status With Timeout	test	2	60
 	Should Be True	${result}	msg=The critical service is no more in downtime, the BA should be critical.
@@ -436,4 +449,4 @@ BAM Setup
         Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
         ${date}=	Get Current Date  result_format=epoch
         log to console    date=${date}
-        Query	UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
+	Execute SQL String	UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
