@@ -138,7 +138,6 @@ target_link_libraries(
   conflictmgr
   centreon_common
   CONAN_PKG::nlohmann_json
-  CONAN_PKG::asio
   CONAN_PKG::fmt
   CONAN_PKG::spdlog
   CONAN_PKG::gtest

@@ -39,31 +39,15 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace nlohmann;
 
-static std::shared_ptr<asio::io_context> io_context(
-    std::make_shared<asio::io_context>());
-static asio::executor_work_guard<asio::io_context::executor_type> worker(
-    asio::make_work_guard(*io_context));
-static std::thread io_context_t;
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class http_tsdb_stream_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
-    std::thread t([]() {
-      do {
-        io_context->run();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      } while (!io_context->stopped());
-    });
-    io_context_t.swap(t);
 
     log_v2::tcp()->set_level(spdlog::level::trace);
     file::disk_accessor::load(1000);
-  }
-  static void TearDownTestSuite() {
-    worker.reset();
-    io_context->stop();
-    io_context_t.join();
   }
 };
 
@@ -103,7 +87,7 @@ class stream_test : public http_tsdb::stream {
               http_client::client::connection_creator conn_creator =
                   http_client::http_connection::load)
       : http_tsdb::stream("stream_test",
-                          io_context,
+                          g_io_context,
                           log_v2::tcp(),
                           conf,
                           conn_creator) {}

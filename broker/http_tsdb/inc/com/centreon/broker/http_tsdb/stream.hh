@@ -145,7 +145,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 
   // used by flush only, avoid it
   void send_request(const request::pointer& request,
-                    const std::shared_ptr<std::promise<void>>& prom);
+                    std::shared_ptr<std::promise<void>>&& prom);
 
   void send_handler(const boost::beast::error_code& err,
                     const std::string& detail,

@@ -68,7 +68,9 @@
 #include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
 
 #include "com/centreon/engine/namespace.hh"
 

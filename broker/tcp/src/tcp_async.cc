@@ -246,9 +246,10 @@ void tcp_async::start_acceptor(
 
   log_v2::tcp()->debug("Reschedule available connections cleaning in 10s");
   _timer->expires_after(std::chrono::seconds(10));
-  _timer->async_wait([me = shared_from_this()](const asio::error_code& err) {
-    me->_clear_available_con(err);
-  });
+  _timer->async_wait(
+      [me = shared_from_this()](const boost::system::error_code& err) {
+        me->_clear_available_con(err);
+      });
 
   tcp_connection::pointer new_connection =
       std::make_shared<tcp_connection>(pool::io_context());
@@ -270,7 +271,7 @@ void tcp_async::stop_acceptor(
     std::shared_ptr<asio::ip::tcp::acceptor> acceptor) {
   log_v2::tcp()->debug("stop acceptor");
   std::lock_guard<std::mutex> l(_acceptor_available_con_m);
-  std::error_code ec;
+  boost::system::error_code ec;
   acceptor->cancel(ec);
   if (ec)
     log_v2::tcp()->warn("Error while cancelling acceptor: {}", ec.message());

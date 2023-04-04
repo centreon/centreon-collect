@@ -44,9 +44,7 @@ conflict_manager::instance_state conflict_manager::_state{
 std::mutex conflict_manager::_init_m;
 std::condition_variable conflict_manager::_init_cv;
 
-constexpr unsigned CFLT_MANAGER_TABLE_SIZE = 35;
-void (conflict_manager::*const
-          conflict_manager::_neb_processing_table[CFLT_MANAGER_TABLE_SIZE])(
+void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>&) = {
     nullptr,
     &conflict_manager::_process_acknowledgement,
@@ -623,19 +621,6 @@ void conflict_manager::_callback() {
                 log_v2::sql()->warn("SQL: no function defined for event {}:{}",
                                     cat, elem);
                 *std::get<2>(tpl) = true;
-              }
-              else {
-                void (com::centreon::broker::storage::conflict_manager::*fn)(
-                    std::tuple<std::shared_ptr<com::centreon::broker::io::data>,
-                               unsigned int, bool*>&) =
-                    _neb_processing_table[elem];
-                if (fn)
-                  (this->*fn)(tpl);
-                else {
-                  log_v2::sql()->warn(
-                      "SQL: no function defined for event {}:{}", cat, elem);
-                  *std::get<2>(tpl) = true;
-                }
               }
             } else if (std::get<1>(tpl) == storage && cat == io::neb &&
                        type == neb::service_status::static_type())

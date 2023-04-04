@@ -21,16 +21,7 @@
 
 using namespace asio::ip;
 
-static std::atomic_bool _io_context_started;
-static asio::io_context _io_context;
-
-static void start_io_context() {
-  bool expected = false;
-  if (_io_context_started.compare_exchange_strong(expected, true)) {
-    std::thread t([]() { _io_context.run(); });
-    t.detach();
-  }
-}
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 namespace com {
 namespace centreon {
@@ -100,8 +91,8 @@ class incomming_outgoing
  public:
   using pointer = std::shared_ptr<incomming_outgoing>;
   incomming_outgoing(const tcp::endpoint& dest, const relay_set_pointer& owner)
-      : _incomming(_io_context),
-        _outgoing(_io_context),
+      : _incomming(*g_io_context),
+        _outgoing(*g_io_context),
         _dest(dest),
         _owner(owner) {}
 
@@ -164,13 +155,9 @@ tcp_relais::tcp_relais(const std::string& listen_interface,
     : _impl(detail::tcp_relais_impl::create(listen_interface,
                                             listen_port,
                                             dest_host,
-                                            dest_port)) {
-  start_io_context();
-}
+                                            dest_port)) {}
 
-tcp_relais::~tcp_relais() {
-  _io_context.stop();
-}
+tcp_relais::~tcp_relais() {}
 
 void tcp_relais::shutdown_relays() {
   _impl->shutdown_relays();
@@ -181,11 +168,10 @@ void tcp_relais::shutdown_relays() {
  **************************************************************************/
 
 void incomming_outgoing::connect() {
-  _outgoing.async_connect(_dest,
-                          [me = shared_from_this()](
-                              const boost::system::error_code& err) {
-                            me->on_connect(err);
-                          });
+  _outgoing.async_connect(
+      _dest, [me = shared_from_this()](const boost::system::error_code& err) {
+        me->on_connect(err);
+      });
 }
 
 void incomming_outgoing::on_connect(const boost::system::error_code& err) {
@@ -259,7 +245,7 @@ tcp_relais_impl::tcp_relais_impl(const std::string& listen_interface,
                                  const std::string& dest_host,
                                  unsigned dest_port)
     : _relays(std::make_shared<relay_cont>()) {
-  tcp::resolver r(_io_context);
+  tcp::resolver r(*g_io_context);
   tcp::resolver::results_type endpoints =
       r.resolve(listen_interface, std::to_string(listen_port));
   if (endpoints.empty()) {
@@ -278,7 +264,8 @@ tcp_relais_impl::tcp_relais_impl(const std::string& listen_interface,
                                 std::to_string(dest_port)));
   }
   _dest = *dest_endpoints.begin();
-  _acceptor = std::make_unique<tcp::acceptor>(_io_context, *endpoints.begin());
+  _acceptor =
+      std::make_unique<tcp::acceptor>(*g_io_context, *endpoints.begin());
 }
 
 tcp_relais_impl::pointer tcp_relais_impl::create(

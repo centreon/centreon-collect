@@ -20,7 +20,7 @@
 
 using namespace com::centreon::broker::file;
 
-std::shared_ptr<disk_accessor> disk_accessor::_instance;
+disk_accessor* disk_accessor::_instance{nullptr};
 /**
  * @brief Constructor. limit_size is the maximum allowed size for the generated
  * files.
@@ -31,8 +31,8 @@ disk_accessor::disk_accessor(size_t limit_size)
     : _limit_size{limit_size}, _current_size{0u} {}
 
 void disk_accessor::load(size_t limit_size) {
-  if (!_instance)
-    _instance = std::shared_ptr<disk_accessor>(new disk_accessor(limit_size));
+  if (_instance == nullptr)
+    _instance = new disk_accessor(limit_size);
   else
     log_v2::core()->warn("disk accessor already loaded");
 }
@@ -41,7 +41,10 @@ void disk_accessor::load(size_t limit_size) {
  * @brief Static function used to unload the disk accessor instance.
  */
 void disk_accessor::unload() {
-  _instance.reset();
+  if (_instance) {
+    delete _instance;
+    _instance = nullptr;
+  }
 }
 
 /**
@@ -52,16 +55,6 @@ void disk_accessor::unload() {
 disk_accessor& disk_accessor::instance() {
   assert(_instance);
   return *_instance;
-}
-
-/**
- * @brief Accessor to the disk accessor instance.
- *
- * @return The instance shared_ptr.
- */
-std::shared_ptr<disk_accessor> disk_accessor::instance_ptr() {
-  assert(_instance);
-  return _instance;
 }
 
 /**
@@ -113,7 +106,7 @@ size_t disk_accessor::fwrite(const void* ptr,
  * @param nmemb
  * @param stream
  *
- * @return
+ * @return 
  */
 size_t disk_accessor::fread(void* ptr, size_t size, size_t nmemb, fd stream) {
   return ::fread(ptr, size, nmemb, stream);
@@ -147,7 +140,7 @@ size_t disk_accessor::current_size() const {
  * @param name
  * @param mode
  *
- * @return
+ * @return 
  */
 disk_accessor::fd disk_accessor::fopen(const std::string& name,
                                        const char* mode) {

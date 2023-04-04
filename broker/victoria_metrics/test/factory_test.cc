@@ -35,12 +35,10 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace nlohmann;
 
-static std::shared_ptr<asio::io_context> _io_context(
-    std::make_shared<asio::io_context>());
-
+extern std::shared_ptr<asio::io_context> g_io_context;
 class VictoriaMetricsFactory : public testing::Test {
  public:
-  static void SetUpTestSuite() { pool::load(1); }
+  static void SetUpTestSuite() { pool::load(g_io_context, 1); }
 };
 
 TEST_F(VictoriaMetricsFactory, MissingParams) {

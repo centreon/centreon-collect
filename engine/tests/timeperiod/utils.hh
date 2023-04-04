@@ -20,6 +20,8 @@
 #ifndef TESTS_TIMEPERIOD_UTILS_HH
 #define TESTS_TIMEPERIOD_UTILS_HH
 
+#include <ctime>
+#include <string>
 #include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/timeperiod.hh"
 

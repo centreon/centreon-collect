@@ -33,14 +33,13 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace nlohmann;
 
-static std::shared_ptr<asio::io_context> _io_context(
-    std::make_shared<asio::io_context>());
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class factory_test : public http_tsdb::factory {
  public:
   factory_test(const std::string& name,
                const std::shared_ptr<asio::io_context>& io_context)
-      : http_tsdb::factory(name, io_context) {}
+      : http_tsdb::factory(name, g_io_context) {}
 
   io::endpoint* new_endpoint(
       config::endpoint& cfg,
@@ -56,7 +55,7 @@ class factory_test : public http_tsdb::factory {
 };
 
 TEST(HttpTsdbFactory, MissingParams) {
-  factory_test fact("http_tsdb_test", _io_context);
+  factory_test fact("http_tsdb_test", g_io_context);
   config::endpoint cfg(config::endpoint::io_type::output);
   http_tsdb::http_tsdb_config conf;
 
@@ -74,7 +73,7 @@ TEST(HttpTsdbFactory, MissingParams) {
 }
 
 TEST(HttpTsdbFactory, DefaultParameter) {
-  factory_test fact("http_tsdb_test", _io_context);
+  factory_test fact("http_tsdb_test", g_io_context);
   config::endpoint cfg(config::endpoint::io_type::output);
   http_tsdb::http_tsdb_config conf;
 
@@ -97,7 +96,7 @@ TEST(HttpTsdbFactory, DefaultParameter) {
 }
 
 TEST(HttpTsdbFactory, ParseParameter) {
-  factory_test fact("http_tsdb_test", _io_context);
+  factory_test fact("http_tsdb_test", g_io_context);
   config::endpoint cfg(config::endpoint::io_type::output);
   http_tsdb::http_tsdb_config conf;
 

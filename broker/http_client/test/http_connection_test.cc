@@ -36,12 +36,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::http_client;
 namespace beast = boost::beast;
 
-static std::shared_ptr<asio::io_context> io_context(
-    std::make_shared<asio::io_context>());
-
-static asio::executor_work_guard<asio::io_context::executor_type> worker(
-    asio::make_work_guard(*io_context));
-static std::thread io_context_t;
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 constexpr unsigned port = 5796;
 
@@ -209,7 +204,7 @@ class dummy_connection : public connection_base {
 };
 
 TEST(http_keepalive_test, ConnectionClose) {
-  dummy_connection conn(io_context, log_v2::tcp(),
+  dummy_connection conn(g_io_context, log_v2::tcp(),
                         std::make_shared<http_config>(test_endpoint));
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(false);
@@ -220,7 +215,7 @@ TEST(http_keepalive_test, ConnectionClose) {
 
 TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
   auto conf = std::make_shared<http_config>(test_endpoint);
-  dummy_connection conn(io_context, log_v2::tcp(), conf);
+  dummy_connection conn(g_io_context, log_v2::tcp(), conf);
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(true);
   conn.set_state(connection_base::e_idle);
@@ -236,7 +231,7 @@ TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
 
 TEST(http_keepalive_test, KeepAliveWithTimeout) {
   auto conf = std::make_shared<http_config>(test_endpoint);
-  dummy_connection conn(io_context, log_v2::tcp(), conf);
+  dummy_connection conn(g_io_context, log_v2::tcp(), conf);
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(true);
   resp->set(beast::http::field::keep_alive, "timeout=5, max=1000");
@@ -407,7 +402,7 @@ class listener : public std::enable_shared_from_this<listener> {
   void do_accept() {
     // The new connection gets its own strand
     _acceptor.async_accept(
-        asio::make_strand(*io_context),
+        asio::make_strand(*g_io_context),
         beast::bind_front_handler(&listener::on_accept, shared_from_this()));
   }
 
@@ -428,7 +423,7 @@ class listener : public std::enable_shared_from_this<listener> {
   listener(unsigned port)
       : _ssl_context(std::make_shared<asio::ssl::context>(
             asio::ssl::context::sslv23_server)),
-        _acceptor(*io_context, test_endpoint, true) {
+        _acceptor(*g_io_context, test_endpoint, true) {
     load_server_certificate(*_ssl_context);
   }
 
@@ -450,13 +445,6 @@ class http_test : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
     create_client_certificate(client_cert_path);
-    std::thread t([]() {
-      do {
-        io_context->run();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      } while (!io_context->stopped());
-    });
-    io_context_t.swap(t);
     log_v2::tcp()->set_level(spdlog::level::trace);
     _listener = std::make_shared<listener>(port);
     _listener->start();
@@ -464,9 +452,6 @@ class http_test : public ::testing::TestWithParam<bool> {
   static void TearDownTestSuite() {
     _listener->shutdown();
     _listener.reset();
-    worker.reset();
-    io_context->stop();
-    io_context_t.join();
   }
   void SetUp() override {}
 
@@ -530,8 +515,8 @@ TEST_P(http_test, connect_send_answer_without_keepalive) {
   }
 
   auto client = GetParam()
-                    ? https_connection::load(io_context, log_v2::tcp(), conf)
-                    : http_connection::load(io_context, log_v2::tcp(), conf);
+                    ? https_connection::load(g_io_context, log_v2::tcp(), conf)
+                    : http_connection::load(g_io_context, log_v2::tcp(), conf);
   request_ptr request(std::make_shared<request_base>());
   request->method(beast::http::verb::put);
   request->target("/");
@@ -609,8 +594,8 @@ TEST_P(http_test, connect_send_answer_with_keepalive) {
   }
 
   auto client = GetParam()
-                    ? https_connection::load(io_context, log_v2::tcp(), conf)
-                    : http_connection::load(io_context, log_v2::tcp(), conf);
+                    ? https_connection::load(g_io_context, log_v2::tcp(), conf)
+                    : http_connection::load(g_io_context, log_v2::tcp(), conf);
   request_ptr request(std::make_shared<request_base>());
   request->method(beast::http::verb::put);
   request->target("/");

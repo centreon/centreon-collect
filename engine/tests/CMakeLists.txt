@@ -135,6 +135,9 @@ if(WITH_TESTING)
     )
   endif()
 
+  # utils.cc can't be compiled with precomp headers so it's compiled apart
+  add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
+
   add_executable(ut_engine ${ut_sources})
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
@@ -164,6 +167,7 @@ if(WITH_TESTING)
   target_link_libraries(
     ut_engine
     ${ENGINERPC}
+    ut_engine_utils
     cce_core
     enginelog
     pthread

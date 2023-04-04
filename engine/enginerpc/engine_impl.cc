@@ -22,7 +22,9 @@
 #include <sys/types.h>
 #include <future>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
 
 #include <absl/strings/str_join.h>
 

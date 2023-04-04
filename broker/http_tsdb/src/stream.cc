@@ -158,7 +158,7 @@ int stream::flush() {
       return acknowledged;
     }
   }
-  send_request(to_send, sent_prom);
+  send_request(to_send, std::move(sent_prom));
   to_wait.wait_for(std::chrono::seconds(1));
   std::lock_guard<std::mutex> l(_protect);
   unsigned acknowledged = _acknowledged;
@@ -227,9 +227,8 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   unsigned acknowledged = 0;
   if (!validate(data, get_name())) {
     std::lock_guard<std::mutex> l(_protect);
-    acknowledged = _acknowledged + 1;
-    _acknowledged = 0;
-    return acknowledged;
+    ++_acknowledged;
+    return 0;
   }
 
   request::pointer to_send;
@@ -313,11 +312,11 @@ void stream::send_request(const request::pointer& request) {
  * @param prom this promise will be set even request fails
  */
 void stream::send_request(const request::pointer& request,
-                          const std::shared_ptr<std::promise<void>>& prom) {
+                          std::shared_ptr<std::promise<void>>&& prom) {
   request->content_length(request->body().length());
   _http_client->send(
       request,
-      [me = shared_from_this(), request, prom](
+      [me = shared_from_this(), request, prom = std::move(prom)](
           const boost::beast::error_code& err, const std::string& detail,
           const http_client::response_ptr& response) mutable {
         me->send_handler(err, detail, request, response);

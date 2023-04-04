@@ -25,8 +25,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::cache;
 
-static std::shared_ptr<asio::io_context> _io_context(
-    std::make_shared<asio::io_context>());
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class global_cache_test : public testing::Test {
   static void SetUpTestSuite() {
@@ -39,7 +38,7 @@ TEST(global_cache_test, CanBeMoved) {
   global_cache::unload();
   ::remove("/tmp/cache_test");
   global_cache::pointer obj =
-      global_cache::load("/tmp/cache_test", _io_context, 0x100000);
+      global_cache::load("/tmp/cache_test", g_io_context, 0x100000);
 
   obj->set_metric_info(55, 1, "metric_name", "metric_unit", 1.48987, 897654.45);
 
@@ -58,7 +57,7 @@ TEST(global_cache_test, CanBeMoved) {
 
   global_cache::unload();
 
-  obj = global_cache::load("/tmp/cache_test", _io_context, 0x100000,
+  obj = global_cache::load("/tmp/cache_test", g_io_context, 0x100000,
                            ((const uint8_t*)mapping_begin));
 
   {
@@ -75,7 +74,7 @@ TEST(global_cache_test, CanBeMoved) {
 
   global_cache::unload();
 
-  obj = global_cache::load("/tmp/cache_test", _io_context, 0x100000,
+  obj = global_cache::load("/tmp/cache_test", g_io_context, 0x100000,
                            ((const uint8_t*)mapping_begin) - 4096);
   {
     global_cache::lock l;

@@ -37,8 +37,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 using namespace nlohmann;
 
-static std::shared_ptr<asio::io_context> io_context(
-    std::make_shared<asio::io_context>());
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class victoria_stream_test : public ::testing::Test {
  public:
@@ -56,6 +55,6 @@ TEST_F(victoria_stream_test, Auhtorization) {
       dummy, "/write", "Aladdin", "open sesame", 1, std::chrono::seconds(1),
       dummy2, dummy2);
 
-  std::shared_ptr<stream> s = stream::load(io_context, cfg);
+  std::shared_ptr<stream> s = stream::load(g_io_context, cfg);
   ASSERT_EQ(s->get_authorization(), "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==");
 }

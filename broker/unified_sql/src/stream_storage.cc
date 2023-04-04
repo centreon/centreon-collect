@@ -838,7 +838,7 @@ void stream::_update_metrics() {
   }
 }
 
-void stream::_check_queues(asio::error_code ec) {
+void stream::_check_queues(boost::system::error_code ec) {
   if (ec)
     log_v2::sql()->error(
         "unified_sql: the queues check encountered an error: {}", ec.message());

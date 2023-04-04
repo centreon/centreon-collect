@@ -254,7 +254,7 @@ void log_v2::start_flush_timer(spdlog::sink_ptr sink) {
   std::lock_guard<std::mutex> l(_flush_timer_m);
   _flush_timer.expires_after(_flush_interval);
   _flush_timer.async_wait([me = std::static_pointer_cast<log_v2>(_instance),
-                           sink](const asio::error_code& err) {
+                           sink](const boost::system::error_code& err) {
     if (err || !me->_flush_timer_active) {
       return;
     }

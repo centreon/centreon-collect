@@ -36,11 +36,7 @@ using duration = system_clock::duration;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::http_client;
 
-static std::shared_ptr<asio::io_context> io_context(
-    std::make_shared<asio::io_context>());
-static asio::executor_work_guard<asio::io_context::executor_type> worker(
-    asio::make_work_guard(*io_context));
-static std::thread io_context_t;
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 const asio::ip::tcp::endpoint test_endpoint(asio::ip::make_address("127.0.0.1"),
                                             1234);
@@ -49,20 +45,8 @@ class http_client_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
-    std::thread t([]() {
-      do {
-        io_context->run();
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-      } while (!io_context->stopped());
-    });
-    io_context_t.swap(t);
     log_v2::tcp()->set_level(spdlog::level::trace);
   };
-  static void TearDownTestSuite() {
-    worker.reset();
-    io_context->stop();
-    io_context_t.join();
-  }
 };
 
 class connection_ok : public connection_base {
@@ -109,7 +93,7 @@ class connection_ok : public connection_base {
 TEST_F(http_client_test, many_request_use_all_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
   client::pointer clt = client::load(
-      io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
+      g_io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
       [&conns](const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<spdlog::logger>& logger,
                const http_config::pointer& conf) {
@@ -153,7 +137,7 @@ TEST_F(http_client_test, recycle_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
   auto conf = std::make_shared<http_config>(test_endpoint);
   client::pointer clt =
-      client::load(io_context, log_v2::tcp(), conf,
+      client::load(g_io_context, log_v2::tcp(), conf,
                    [&conns](const std::shared_ptr<asio::io_context>& io_context,
                             const std::shared_ptr<spdlog::logger>& logger,
                             const http_config::pointer& conf) {
@@ -284,7 +268,7 @@ class client_test : public http_client::client {
 
 TEST_F(http_client_test, all_handler_called) {
   client::pointer clt = std::make_shared<client_test>(
-      io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
+      g_io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf) {
@@ -376,7 +360,7 @@ TEST_F(http_client_test, retry_until_success) {
   connection_retry::nb_failed_per_request.clear();
   auto conf = std::make_shared<http_config>(test_endpoint);
   client::pointer clt = std::make_shared<client_test>(
-      io_context, log_v2::tcp(), conf,
+      g_io_context, log_v2::tcp(), conf,
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf) {
