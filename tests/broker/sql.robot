@@ -259,7 +259,7 @@ BDBM1
 	 Config Broker	rrd
 	 Config Broker	module
 	 Config Engine	${1}
-	 ${start}=	Get Current Date
+	 ${start}=	Get Round Current Date
 	 Stop Mysql
 	 Start Broker
 	 Start Engine
