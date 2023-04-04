@@ -1031,13 +1031,13 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
           pb_version.major(), pb_version.minor(), pb_version.patch(),
           std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
           std::get<2>(_bbdo_version));
-    } else if ((event_id & 0xffff) == 2) {
+    } else if ((event_id & 0xffff) == bbdo::de_ack) {
       log_v2::bbdo()->info(
           "BBDO: received acknowledgement for {} events",
           std::static_pointer_cast<const ack>(d)->acknowledged_events);
       acknowledge_events(
           std::static_pointer_cast<const ack>(d)->acknowledged_events);
-    } else if ((event_id & 0xffff) == 3) {
+    } else if ((event_id & 0xffff) == bbdo::de_stop) {
       log_v2::bbdo()->info("BBDO: received stop from peer");
       send_event_acknowledgement();
     }
