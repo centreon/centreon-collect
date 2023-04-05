@@ -17,13 +17,58 @@ Library	../resources/Common.py
 
 *** Test Cases ***
 LOGV2EB1
-	[Documentation]	log-v2 enabled  old log disabled check broker sink
+	[Documentation]	Checking broker sink when log-v2 is enabled and legacy logs are disabled.
 	[Tags]	Broker	Engine	log-v2 sink broker
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module
         Broker Config Flush Log	module0	0
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Engine Config Set Value	${0}	log_level_config	trace
+        Engine Config Set Value	${0}    log_flush_period	0	True
+
+	${start}=	Get Current Date	 exclude_millis=yes
+	${time_stamp}	Convert Date    ${start}    epoch	exclude_millis=yes
+	${time_stamp2}	evaluate    int(${time_stamp})
+	Sleep	1s
+
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+
+	${pid}=	Get Process Id	e0
+	${content}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
+
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content}	30
+	Should Be True	${result1}	msg=No message telling configuration loaded.
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Log To Console	after connection
+        FOR    ${index}    IN RANGE    60
+	 Log To Console	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 Log To Console	${output}
+         Sleep	1s
+         EXIT FOR LOOP IF	"${output}" == "((1,),)"
+        END
+	Should Be Equal As Strings	${output}	((1,),)
+	Stop Engine
+	Kindly Stop Broker
+
+LOGV2EBU1
+	[Documentation]	Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
+	[Tags]	Broker	Engine	log-v2 sink broker	bbdo3	unified_sql
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+        Config BBDO3	${1}
+        Broker Config Flush Log	module0	0
+        Broker Config Flush Log	central	0
+	Broker Config Log	central	sql	trace
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
 	Engine Config Set Value	${0}	log_level_config	trace
@@ -66,6 +111,7 @@ LOGV2DB1
 	Config Broker	central
 	Config Broker	module
         Broker Config Flush Log	module0	0
+	Broker Config Log	central	sql	trace
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${0}
         Engine Config Set Value	${0}    log_flush_period	0	True
@@ -153,6 +199,52 @@ LOGV2EB2
 	Config Broker	central
 	Config Broker	module
         Broker Config Flush Log	module0	0
+	Engine Config Set Value	${0}	log_legacy_enabled	${1}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+        Engine Config Set Value	${0}    log_flush_period	0	True
+
+	${start}=	Get Current Date	 exclude_millis=yes
+	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
+    ${time_stamp2}    evaluate    int(${time_stamp})
+	Sleep	1s
+
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+
+	${pid}=	Get Process Id	e0
+	${content_v2}=	Create List	[process] [info] [${pid}] Configuration loaded, main loop starting.
+	${content_hold}=	Create List	[${pid}] Configuration loaded, main loop starting.
+
+	${result1}=	Find In Log With Timeout	${engineLog0}	${start}	${content_v2}	30
+	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_hold}	30
+	Should Be True	${result1}
+	Should Be True	${result2}
+
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Log To Console	after connection
+        FOR	${index}	IN RANGE	60
+	 Log To Console	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+	 ${output}=	Query	SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+	 Log To Console	${output}
+         Sleep	1s
+         EXIT FOR LOOP IF       "${output}" == "((2,),)"
+        END
+	Should Be Equal As Strings	${output}	((2,),)
+
+	Stop Engine
+	Kindly Stop Broker
+
+LOGV2EBU2
+	[Documentation]	Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
+	[Tags]	Broker	Engine	log-v2	sinkbroker	unified_sql	bbdo3
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+        Broker Config Flush Log	module0	0
+	Config BBDO3	${1}
 	Engine Config Set Value	${0}	log_legacy_enabled	${1}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
         Engine Config Set Value	${0}    log_flush_period	0	True
@@ -296,39 +388,6 @@ LOGV2EF2
 	${result2}=	Find In Log With Timeout	${engineLog0}	${start}	${content_hold}	15
 	Should Be True	${result1}
 	Should Be True	${result2}
-	Stop Engine
-	Kindly Stop Broker
-
-LOGV2BE2
-	[Documentation]	log-v2 enabled old log enabled check broker sink is equal
-	[Tags]	Broker	Engine	log-v2	sinkbroker
-	Config Engine	${1}
-	Config Broker	rrd
-	Config Broker	central
-	Config Broker	module
-        Broker Config Flush Log	module0	0
-	Engine Config Set Value	${0}	log_legacy_enabled	${1}
-	Engine Config Set Value	${0}	log_v2_enabled	${1}
-        Engine Config Set Value	${0}    log_flush_period	0	True
-
-	${start}=	Get Current Date	 exclude_millis=yes
-	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
-	Start Broker
-	Start Engine
-	${result}=	Check Connections
-	Should Be True	${result}	msg=Engine and Broker not connected
-
-	Sleep	3m
-
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	Log To Console	after connection
-	Log To Console	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
-	@{output}=	Query	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
-
-	${res}=	engine log table duplicate	${output}
-	Should Be True	${res}	msg=one or other log are not duplicate in tables logs
-
 	Stop Engine
 	Kindly Stop Broker
 

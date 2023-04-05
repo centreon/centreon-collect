@@ -259,7 +259,7 @@ BDBM1
 	 Config Broker	rrd
 	 Config Broker	module
 	 Config Engine	${1}
-	 ${start}=	Get Current Date
+	 ${start}=	Get Round Current Date
 	 Stop Mysql
 	 Start Broker
 	 Start Engine
@@ -353,8 +353,8 @@ BDBU10
 	${start}=	Get Current Date
 	Start Broker
 	${content}=	Create List	mysql_connection 0x[0-9a-f]* : commit
-	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	40	regex=True
-	Should Be True	${result}	msg=Log concerning a commit (connection ok) is missing.
+	${result}=	Find Regex In Log with timeout	${centralLog}	${start}	${content}	40
+	Should Be True	${result[0]}	msg=Log concerning a commit (connection ok) is missing.
 	Kindly Stop Broker
 
 BDBMU1

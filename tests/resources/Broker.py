@@ -812,14 +812,14 @@ def broker_config_output_set(name, output, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -1250,20 +1250,15 @@ def get_indexes_to_rebuild(count: int):
                 if int(r['metric_id']) in ids:
                     logger.console(
                         "building data for metric {}".format(r['metric_id']))
-                    start = int(time.time()) - 24 * 60 * 60 * 30
-                    # We go back to 30 days with steps of 5 mn
-                    value1 = int(r['metric_id'])
-                    value2 = 0
-                    value = value1
+                    # We go back to 180 days with steps of 5 mn
+                    start = int(time.time()) - 24 * 60 * 60 * 180
+                    value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
-                    for i in range(0, 24 * 60 * 60 * 30, 60 * 5):
+                    # We set the value to a constant on 180 days
+                    for i in range(0, 24 * 60 * 60 * 180, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
-                        if value == value1:
-                            value = value2
-                        else:
-                            value = value1
                     connection.commit()
                     retval.append(int(r['index_id']))
 
@@ -1413,7 +1408,7 @@ def rebuild_rrd_graphs_from_db(indexes):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
+    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
                     "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
                     .format(metric))
@@ -1423,7 +1418,7 @@ def compare_rrd_average_value(metric, value: float):
         err = abs(res - float(value)) / float(value)
         logger.console(
             f"expected value: {value} - result value: {res} - err: {err}")
-        return err < 0.05
+        return err < 0.005
     else:
         logger.console(
             f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
@@ -1497,7 +1492,7 @@ def add_bam_config_to_broker(name):
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -1572,7 +1567,8 @@ def remove_poller(port, name, timeout=TIMEOUT):
 def remove_poller_by_id(port, idx, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:
-        logger.console(f"Try to call removePoller by id (={idx}) on port {port}")
+        logger.console(
+            f"Try to call removePoller by id (={idx}) on port {port}")
         time.sleep(1)
         with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
             stub = broker_pb2_grpc.BrokerStub(channel)
