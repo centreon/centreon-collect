@@ -203,9 +203,17 @@ BECCC6
 	END
 	${version}=	Get Version
 	${vers}=	Split String	${version}	.
-	${mm}=	Evaluate	"""${vers}[0]""".lstrip("0")
-	${m}=	Evaluate	"""${vers}[1]""".lstrip("0")
-	Should Contain	${content}	{\n \"major\": ${mm},\n \"minor\": ${m}\n}	msg=A version as json string should be returned
+        IF	len(${vers}) == 3
+	 ${mm}=	Evaluate	"""${vers}[0]""".lstrip("0")
+	 ${m}=	Evaluate	"""${vers}[1]""".lstrip("0")
+	 ${p}=	Evaluate	"""${vers}[2]""".lstrip("0")
+	 ${match}=	Catenate	SEPARATOR=	{\n \"major\":	${SPACE}	${mm}	,\n \"minor\":	${SPACE}	${m}	,\n \"patch\":	${SPACE}	${p}	\n}\n
+	ELSE
+	 ${mm}=	Evaluate	"""${vers}[0]""".lstrip("0")
+	 ${m}=	Evaluate	"""${vers}[1]""".lstrip("0")
+	 ${match}=	Catenate	SEPARATOR=	{\n \"major\":	$${SPACE}	{mm}	,\n \"minor\":	${SPACE}	${m}	\n}
+	END
+	Should Contain	${content}	${match}	msg=A version as json string should be returned
 	Stop Engine
 	Kindly Stop Broker
 	Remove File	/tmp/output.txt
