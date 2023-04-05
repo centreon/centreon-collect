@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2015-2017 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,60 +20,80 @@
 #define CCB_INFLUXDB_INFLUXDB_HH
 
 #include "bbdo/storage/metric.hh"
-#include "bbdo/storage/status.hh"
-#include "com/centreon/broker/influxdb/internal.hh"
+#include "com/centreon/broker/influxdb/column.hh"
+#include "com/centreon/broker/influxdb/influxdb.hh"
+#include "com/centreon/broker/influxdb/line_protocol_query.hh"
+#include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "com/centreon/broker/namespace.hh"
+
+#if ASIO_VERSION < 101200
+namespace asio {
+typedef io_service io_context;
+}
+#endif
 
 CCB_BEGIN()
 
 namespace influxdb {
 /**
  *  @class influxdb influxdb.hh "com/centreon/broker/influxdb/influxdb.hh"
- *  @brief Interface for influxdb connection manager.
+ *  @brief Influxdb connection/query manager.
  *
- *  This object is an interface all influxdb connection manager needs
- *  to implements.
+ *  This object manage connection and query to influxdb through the Lina
+ *  API.
  */
 class influxdb {
  public:
-  virtual ~influxdb() {}
+  influxdb(std::string const& user,
+           std::string const& passwd,
+           std::string const& addr,
+           uint16_t port,
+           std::string const& db,
+           std::string const& status_ts,
+           std::vector<column> const& status_cols,
+           std::string const& metric_ts,
+           std::vector<column> const& metric_cols,
+           macro_cache const& cache);
+  ~influxdb();
 
-  /**
-   *  Clear all the events pending.
-   */
-  virtual void clear() = 0;
+  influxdb(influxdb const& f) = delete;
+  influxdb& operator=(influxdb const& f) = delete;
 
-  /**
-   *  Write an event to the queue of event pending.
-   *  @param[in] m  The event.
-   */
-  virtual void write(storage::metric const& m) = 0;
+  void clear();
+  void write(storage::metric const& m);
+  void write(storage::status const& s);
+  void write(const storage::pb_metric& m);
+  void write(const storage::pb_status& s);
+  void commit();
 
-  /**
-   *  Write an event to the queue of event pending.
-   *  @param[in] m  The event.
-   */
-  virtual void write(storage::pb_metric const& m) = 0;
+ private:
+  std::string _post_header;
+  std::string _query;
+  line_protocol_query _status_query;
+  line_protocol_query _metric_query;
 
-  /**
-   *  Write an event to the queue of event pending.
-   *  @param[in] m  The event.
-   */
-  virtual void write(storage::status const& m) = 0;
+  asio::io_context _io_context;
+  asio::ip::tcp::socket _socket;
 
-  /**
-   *  Write an event to the queue of event pending.
-   *  @param[in] m  The event.
-   */
-  virtual void write(storage::pb_status const& m) = 0;
+  std::string _host;
+  uint16_t _port;
 
-  /**
-   *  Commit all the events pending to the db.
-   */
-  virtual void commit() = 0;
+  macro_cache const& _cache;
+
+  void _connect_socket();
+  bool _check_answer_string(std::string const& ans,
+                            const std::string& addr,
+                            uint16_t port);
+  void _create_queries(std::string const& user,
+                       std::string const& passwd,
+                       std::string const& db,
+                       std::string const& status_ts,
+                       std::vector<column> const& status_cols,
+                       std::string const& metric_ts,
+                       std::vector<column> const& metric_cols);
 };
 }  // namespace influxdb
 
 CCB_END()
 
-#endif  // !CCB_INFLUXDB_INFLUXDB_HH
+#endif  // !CCB_INFLUXDB_INFLUXDB12_HH
