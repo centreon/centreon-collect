@@ -19,7 +19,7 @@
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/influxdb/influxdb12.hh"
+#include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
@@ -54,8 +54,8 @@ stream::stream(std::string const& user,
       _actual_query(0),
       _commit(false),
       _cache(cache) {
-  _influx_db.reset(new influxdb12(user, passwd, addr, port, db, status_ts,
-                                  status_cols, metric_ts, metric_cols, _cache));
+  _influx_db.reset(new influxdb(user, passwd, addr, port, db, status_ts,
+                                status_cols, metric_ts, metric_cols, _cache));
 }
 
 /**
