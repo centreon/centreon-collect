@@ -16,7 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/influxdb/influxdb12.hh"
+#include "com/centreon/broker/influxdb/influxdb.hh"
 #include <iterator>
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
@@ -31,16 +31,16 @@ static const char* query_footer = "\n";
 /**
  *  Constructor.
  */
-influxdb12::influxdb12(std::string const& user,
-                       std::string const& passwd,
-                       std::string const& addr,
-                       unsigned short port,
-                       std::string const& db,
-                       std::string const& status_ts,
-                       std::vector<column> const& status_cols,
-                       std::string const& metric_ts,
-                       std::vector<column> const& metric_cols,
-                       macro_cache const& cache)
+influxdb::influxdb(std::string const& user,
+                   std::string const& passwd,
+                   std::string const& addr,
+                   unsigned short port,
+                   std::string const& db,
+                   std::string const& status_ts,
+                   std::vector<column> const& status_cols,
+                   std::string const& metric_ts,
+                   std::vector<column> const& metric_cols,
+                   macro_cache const& cache)
     : _socket{_io_context}, _host(addr), _port(port), _cache(cache) {
   // Try to connect to the server.
   log_v2::influxdb()->debug("influxdb: connecting using 1.2 Line Protocol");
@@ -52,12 +52,12 @@ influxdb12::influxdb12(std::string const& user,
 /**
  *  Destructor.
  */
-influxdb12::~influxdb12() {}
+influxdb::~influxdb() {}
 
 /**
  *  Clear the query.
  */
-void influxdb12::clear() {
+void influxdb::clear() {
   _query.clear();
 }
 
@@ -66,7 +66,29 @@ void influxdb12::clear() {
  *
  *  @param[in] m  The metric to write.
  */
-void influxdb12::write(storage::metric const& m) {
+void influxdb::write(storage::metric const& m) {
+  storage::pb_metric converted;
+  m.convert_to_pb(converted.mut_obj());
+  _query.append(_metric_query.generate_metric(converted));
+}
+
+/**
+ *  Write a status to the query.
+ *
+ *  @param[in] s  The status to write.
+ */
+void influxdb::write(storage::status const& s) {
+  storage::pb_status converted;
+  s.convert_to_pb(converted.mut_obj());
+  _query.append(_status_query.generate_status(converted));
+}
+
+/**
+ *  Write a metric to the query.
+ *
+ *  @param[in] m  The metric to write.
+ */
+void influxdb::write(const storage::pb_metric& m) {
   _query.append(_metric_query.generate_metric(m));
 }
 
@@ -75,14 +97,14 @@ void influxdb12::write(storage::metric const& m) {
  *
  *  @param[in] s  The status to write.
  */
-void influxdb12::write(storage::status const& s) {
+void influxdb::write(const storage::pb_status& s) {
   _query.append(_status_query.generate_status(s));
 }
 
 /**
  *  Commit a query.
  */
-void influxdb12::commit() {
+void influxdb::commit() {
   if (_query.empty())
     return;
 
@@ -146,7 +168,7 @@ void influxdb12::commit() {
 /**
  *  Connect the socket to the endpoint.
  */
-void influxdb12::_connect_socket() {
+void influxdb::_connect_socket() {
   if (_socket.is_open()) {
     _socket.shutdown(ip::tcp::socket::shutdown_both);
     _socket.close();
@@ -194,9 +216,9 @@ void influxdb12::_connect_socket() {
  *
  *  @return         True of the answer was complete, false otherwise.
  */
-bool influxdb12::_check_answer_string(std::string const& ans,
-                                      const std::string& addr,
-                                      uint16_t port) {
+bool influxdb::_check_answer_string(std::string const& ans,
+                                    const std::string& addr,
+                                    uint16_t port) {
   size_t first_line = ans.find_first_of('\n');
   if (first_line == std::string::npos)
     return false;
@@ -240,13 +262,13 @@ bool influxdb12::_check_answer_string(std::string const& ans,
  *  @param[in] metric_ts    Name of the timeseries metric.
  *  @param[in] metric_cols  Column for the metrics.
  */
-void influxdb12::_create_queries(std::string const& user,
-                                 std::string const& passwd,
-                                 std::string const& db,
-                                 std::string const& status_ts,
-                                 std::vector<column> const& status_cols,
-                                 std::string const& metric_ts,
-                                 std::vector<column> const& metric_cols) {
+void influxdb::_create_queries(std::string const& user,
+                               std::string const& passwd,
+                               std::string const& db,
+                               std::string const& status_ts,
+                               std::vector<column> const& status_cols,
+                               std::string const& metric_ts,
+                               std::vector<column> const& metric_cols) {
   // Create POST HTTP header.
   std::string base_url;
   base_url.append("/write?u=")
