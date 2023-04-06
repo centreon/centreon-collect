@@ -26,6 +26,7 @@
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/pool.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
@@ -45,6 +46,7 @@ class http_client_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
+    pool::load(g_io_context, 1);
     log_v2::tcp()->set_level(spdlog::level::trace);
   };
 };

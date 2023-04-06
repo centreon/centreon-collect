@@ -179,9 +179,6 @@ void factory::create_conf(const config::endpoint& cfg,
     }
   };
 
-  duration max_send_interval = std::chrono::seconds(10);
-  extract_duration("max_send_interval", max_send_interval);
-
   //  time out
   duration connect_timeout = std::chrono::seconds(10);
   extract_duration("connect_timeout", connect_timeout);
@@ -253,9 +250,9 @@ void factory::create_conf(const config::endpoint& cfg,
       0, default_http_keepalive_duration, max_connections, ssl_method,
       certificate_path);
 
-  conf = http_tsdb_config(http_cfg, target, user, passwd,
-                          queries_per_transaction, max_send_interval,
-                          status_column_list, metric_column_list);
+  conf =
+      http_tsdb_config(http_cfg, target, user, passwd, queries_per_transaction,
+                       status_column_list, metric_column_list);
 }
 
 std::vector<column> factory::get_columns(const json& cfg) {

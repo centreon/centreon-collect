@@ -74,7 +74,6 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
   cfg.params["encryption"] = "true";
   cfg.params["db_port"] = "1024";
   cfg.params["queries_per_transaction"] = "100";
-  cfg.params["max_send_interval"] = "2";
   cfg.params["connect_timeout"] = "5";
   cfg.params["send_timeout"] = "6";
   cfg.params["receive_timeout"] = "7";
@@ -94,7 +93,6 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
   ASSERT_EQ(conf.get_pwd(), "pass");
   ASSERT_EQ(conf.get_endpoint().port(), 1024);
   ASSERT_EQ(conf.get_max_queries_per_transaction(), 100);
-  ASSERT_EQ(conf.get_max_send_interval(), std::chrono::seconds(2));
   ASSERT_EQ(conf.get_connect_timeout(), std::chrono::seconds(5));
   ASSERT_EQ(conf.get_send_timeout(), std::chrono::seconds(6));
   ASSERT_EQ(conf.get_receive_timeout(), std::chrono::seconds(7));

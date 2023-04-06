@@ -90,12 +90,7 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   unsigned _acknowledged;
   // the current request that buffers metric to send
   request::pointer _request;
-  // this timer is used to send periodicaly datas even if we haven't yet
-  // _conf->_max_queries_per_transaction events to send
-  asio::system_timer _timeout_send_timer;
-  std::atomic_bool _timeout_send_timer_run;
-
-  // the two beans stat_unit and stat_average are used to prouce statistics
+  // the two beans stat_unit and stat_average are used to produce statistics
   // about request time
   /**
    * @brief stat cumul
@@ -143,18 +138,10 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 
   void send_request(const request::pointer& request);
 
-  // used by flush only, avoid it
-  void send_request(const request::pointer& request,
-                    std::shared_ptr<std::promise<void>>&& prom);
-
   void send_handler(const boost::beast::error_code& err,
                     const std::string& detail,
                     const request::pointer& request,
                     const http_client::response_ptr& response);
-
-  void start_timeout_send_timer();
-  void start_timeout_send_timer_no_lock();
-  void timeout_send_timer_handler(const boost::system::error_code& err);
 
   void add_to_stat(stat& to_maj, unsigned to_add);
 

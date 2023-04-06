@@ -770,6 +770,31 @@ def broker_config_clear_outputs_except(name, ex: list):
     f.close()
 
 
+def config_broker_victoria_output():
+    filename = "central-broker.json"
+
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "victoria_metrics":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "victoria_metrics",
+        "type": "victoria_metrics",
+        "db_host": "localhost",
+        "db_port": "8000",
+        "db_user": "toto",
+        "db_password": "titi",
+        "queries_per_transaction": "1",
+    })
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
 def broker_config_add_item(name, key, value):
     if name == 'central':
         filename = "central-broker.json"

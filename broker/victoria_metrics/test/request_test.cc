@@ -111,10 +111,11 @@ TEST_F(victoria_request_test, request_body_test) {
   status.set_time(1674715598);
   req.add_status(status);
   std::cout << req.body() << std::endl;
-  ASSERT_EQ(req.body(),
-            "metric,id=123,name=\"metric_____xxx\",unit=\"metric_unit\","
-            "host_id=14,serv_id=78 val=1.5782 1674715597\n"
-            "status,id=45,host_id=14,serv_id=78 val=75 1674715598\n");
+  ASSERT_EQ(
+      req.body(),
+      "metric,id=123,name=metric_____xxx,unit=metric_unit,"
+      "host_id=14,serv_id=78,severity_id=3 val=1.5782 1674715597\n"
+      "status,id=45,host_id=14,serv_id=78,severity_id=3 val=75 1674715598\n");
 }
 
 TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
@@ -186,13 +187,17 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   status.set_time(1674715598);
   req.add_status(status);
   std::cout << req.body() << std::endl;
-  ASSERT_EQ(req.body(),
-            "metric,id=123,name=\"metric_____xxx\",unit=\"metric_unit\","
-            "host_id=14,serv_id=78,"
-            "host=\"my host\",serv=\"my service \","
-            "host_grp=\"88,89\",serv_grp=\"1278,1279\" "
-            "val=1.5782 1674715597\n"
-            "status,id=45,host_id=14,serv_id=78,"
-            "host=\"my host\",serv=\"my service \","
-            "host_grp=\"88,89\",serv_grp=\"1278,1279\" val=75 1674715598\n");
+  ASSERT_EQ(
+      req.body(),
+      "metric,id=123,name=metric_____xxx,unit=metric_unit,"
+      "host_id=14,serv_id=78,severity_id=3,"
+      "host=my_host,serv=my_service/tutu_,min=0.456,max=0.987,"
+      "host_grp=88\\,89,serv_grp=1278\\,1279,host_tag_cat=tag89,host_tag_grp="
+      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=112\\,123 "
+      "val=1.5782 1674715597\n"
+      "status,id=45,host_id=14,serv_id=78,severity_id=3,"
+      "host=my_host,serv=my_service/tutu_,"
+      "host_grp=88\\,89,serv_grp=1278\\,1279,host_tag_cat=tag89,host_tag_grp="
+      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=112\\,123 val=75 "
+      "1674715598\n");
 }

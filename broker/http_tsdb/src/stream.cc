@@ -124,8 +124,6 @@ stream::stream(const std::string& name,
       _logger(logger),
       _conf(conf),
       _acknowledged(0),
-      _timeout_send_timer(*io_context),
-      _timeout_send_timer_run(false),
       _success_request_stat{{0, 0}, {0, 0}},
       _failed_request_stat{{0, 0}, {0, 0}},
       _metric_stat{{0, 0}, {0, 0}},
@@ -144,8 +142,6 @@ stream::~stream() {}
  */
 int stream::flush() {
   request::pointer to_send;
-  auto sent_prom = std::make_shared<std::promise<void>>();
-  std::future<void> to_wait = sent_prom->get_future();
   {
     std::lock_guard<std::mutex> l(_protect);
     if (_request) {
@@ -158,8 +154,9 @@ int stream::flush() {
       return acknowledged;
     }
   }
-  send_request(to_send, std::move(sent_prom));
-  to_wait.wait_for(std::chrono::seconds(1));
+  SPDLOG_LOGGER_DEBUG(_logger, "{} flush {} event", get_name(),
+                      to_send->get_nb_data());
+  send_request(to_send);
   std::lock_guard<std::mutex> l(_protect);
   unsigned acknowledged = _acknowledged;
   _acknowledged = 0;
@@ -240,12 +237,14 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         if (!_request) {
           _request = create_request();
         }
+        SPDLOG_LOGGER_TRACE(_logger, "add metric: {}", *data);
         _request->add_metric(*std::static_pointer_cast<storage::metric>(data));
         break;
       case storage::pb_metric::static_type():
         if (!_request) {
           _request = create_request();
         }
+        SPDLOG_LOGGER_TRACE(_logger, "add metric: {}", *data);
         _request->add_metric(
             std::static_pointer_cast<storage::pb_metric>(data)->obj());
         break;
@@ -253,12 +252,14 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         if (!_request) {
           _request = create_request();
         }
+        SPDLOG_LOGGER_TRACE(_logger, "add status: {}", *data);
         _request->add_status(*std::static_pointer_cast<storage::status>(data));
         break;
       case storage::pb_status::static_type():
         if (!_request) {
           _request = create_request();
         }
+        SPDLOG_LOGGER_TRACE(_logger, "add status: {}", *data);
         _request->add_status(
             std::static_pointer_cast<storage::pb_status>(data)->obj());
         break;
@@ -276,8 +277,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   }
   if (to_send) {  // if enought metrics to send => send
     send_request(to_send);
-  } else {  // no start send timer if it's not yet done
-    start_timeout_send_timer();
   }
   return acknowledged;
 }
@@ -303,25 +302,6 @@ void stream::send_request(const request::pointer& request) {
                                   const http_client::response_ptr& response) {
     me->send_handler(err, detail, request, response);
   });
-}
-
-/**
- * @brief send_request used by blocking method (flush)
- *
- * @param request
- * @param prom this promise will be set even request fails
- */
-void stream::send_request(const request::pointer& request,
-                          std::shared_ptr<std::promise<void>>&& prom) {
-  request->content_length(request->body().length());
-  _http_client->send(
-      request,
-      [me = shared_from_this(), request, prom = std::move(prom)](
-          const boost::beast::error_code& err, const std::string& detail,
-          const http_client::response_ptr& response) mutable {
-        me->send_handler(err, detail, request, response);
-        prom->set_value();
-      });
 }
 
 static time_point _epoch = system_clock::from_time_t(0);
@@ -373,8 +353,6 @@ void stream::send_handler(const boost::beast::error_code& err,
       request->append(_request);
     }
     _request = request;
-    // in order to avoid a retry infinite loop, the job is given to the timer
-    start_timeout_send_timer_no_lock();
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "{} metrics and {} status sent to database",
                         request->get_nb_metric(), request->get_nb_status());
@@ -384,64 +362,6 @@ void stream::send_handler(const boost::beast::error_code& err,
     add_to_stat(_status_stat, request->get_nb_status());
     actu_stat_avg();
     _acknowledged += request->get_nb_data();
-  }
-}
-
-/**
- * @brief start _timeout_send_timer if itsn't started
- * There are two condition to send data:
- *  - we have buffered at least conf->_max_queries_per_transaction metrics or
- * status
- *  - we haven't send any data for at least _conf->get_max_send_interval() delay
- *  .
- *
- */
-void stream::start_timeout_send_timer() {
-  bool expected = false;
-  if (_timeout_send_timer_run.compare_exchange_strong(expected, true)) {
-    std::lock_guard<std::mutex> l(_protect);
-    _timeout_send_timer.expires_after(_conf->get_max_send_interval());
-    _timeout_send_timer.async_wait(
-        [me = shared_from_this()](const boost::system::error_code& err) {
-          me->timeout_send_timer_handler(err);
-        });
-  }
-}
-
-/**
- * @brief the same as start_timeout_send_timer without locking _protect
- *
- */
-void stream::start_timeout_send_timer_no_lock() {
-  bool expected = false;
-  if (_timeout_send_timer_run.compare_exchange_strong(expected, true)) {
-    _timeout_send_timer.expires_after(_conf->get_max_send_interval());
-    _timeout_send_timer.async_wait(
-        [me = shared_from_this()](const boost::system::error_code& err) {
-          me->timeout_send_timer_handler(err);
-        });
-  }
-}
-
-/**
- * @brief this handler send request if there is data to send
- *
- * @param err
- */
-void stream::timeout_send_timer_handler(const boost::system::error_code& err) {
-  if (err) {
-    return;
-  }
-  request::pointer to_send;
-  {
-    std::lock_guard<std::mutex> l(_protect);
-    if (_request) {
-      to_send.swap(_request);
-    }
-    _timeout_send_timer_run = false;
-  }
-  if (to_send) {
-    send_request(to_send);
   }
 }
 

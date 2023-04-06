@@ -376,6 +376,10 @@ void client::retry(const boost::beast::error_code& error,
         _conf->get_max_send_retry()) {  // retry in next_retry delay
       duration next_retry = _retry_unit * request->retry_counter;
 
+      if (next_retry > _conf->get_max_retry_interval()) {
+        next_retry = _conf->get_max_retry_interval();
+      }
+
       SPDLOG_LOGGER_ERROR(
           _logger, "fail to send request => resent in {} s",
           std::chrono::duration_cast<std::chrono::seconds>(next_retry).count());

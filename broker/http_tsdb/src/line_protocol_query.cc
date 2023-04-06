@@ -321,9 +321,7 @@ void line_protocol_query::_compile_scheme(
                                 escaper);
       if (macro == "$METRICID$") {
         _throw_on_invalid(data_type::metric);
-        _append_compiled_getter(
-            &line_protocol_query::_get_member<uint32_t, storage::metric,
-                                              &storage::metric::metric_id>,
+        _append_compiled_getter(&line_protocol_query::_get_metric_id, escaper);
             nullptr);
       } else if (macro == "$INSTANCE$")
         _append_compiled_getter(&line_protocol_query::_get_instance, escaper);
@@ -354,10 +352,8 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(&line_protocol_query::_get_max, nullptr);
       else if (macro == "$METRIC$") {
         _throw_on_invalid(data_type::metric);
-        _append_compiled_getter(
-            &line_protocol_query::_get_member<std::string, storage::metric,
-                                              &storage::metric::name>,
-            escaper);
+        _append_compiled_getter(&line_protocol_query::_get_metric_name,
+                                escaper);
       } else if (macro == "$INDEXID$")
         _append_compiled_getter(&line_protocol_query::_get_index_id, escaper);
       else if (macro == "$HOST_TAG_CAT_ID$")
@@ -386,26 +382,18 @@ void line_protocol_query::_compile_scheme(
                                 escaper);
       else if (macro == "$VALUE$") {
         if (_type == data_type::metric)
-          _append_compiled_getter(
-              &line_protocol_query::_get_member<double, storage::metric,
-                                                &storage::metric::value>,
-              escaper);
+          _append_compiled_getter(&line_protocol_query::_get_metric_value,
+                                  escaper);
         else if (_type == data_type::status)
-          _append_compiled_getter(
-              &line_protocol_query::_get_member<short, storage::status,
-                                                &storage::status::state>,
-              escaper);
+          _append_compiled_getter(&line_protocol_query::_get_status_state,
+                                  escaper);
       } else if (macro == "$TIME$") {
         if (_type == data_type::metric)
-          _append_compiled_getter(
-              &line_protocol_query::_get_member<timestamp, storage::metric,
-                                                &storage::metric::time>,
-              escaper);
+          _append_compiled_getter(&line_protocol_query::_get_metric_time,
+                                  escaper);
         else if (_type == data_type::status)
-          _append_compiled_getter(
-              &line_protocol_query::_get_member<timestamp, storage::status,
-                                                &storage::status::time>,
-              escaper);
+          _append_compiled_getter(&line_protocol_query::_get_status_time,
+                                  escaper);
       } else
         SPDLOG_LOGGER_INFO(_logger, "unknown macro '{}': ignoring it", macro);
     } else {
@@ -771,4 +759,76 @@ void line_protocol_query::_get_tag_serv_name(io::data const& d,
     cache::global_cache::instance_ptr()->append_serv_tag_name(
         host_serv.first, host_serv.second, tag_type, is);
   }
+}
+
+/**
+ * @brief extract name of a metric
+ *
+ * @param d
+ * @param is
+ */
+void line_protocol_query::_get_metric_name(io::data const& d,
+                                           unsigned& string_index,
+                                           std::ostream& is) const {
+  is << static_cast<storage::pb_metric const&>(d).obj().name();
+}
+
+/**
+ * @brief extract id of a metric
+ *
+ * @param d
+ * @param is
+ */
+void line_protocol_query::_get_metric_id(io::data const& d,
+                                         unsigned& string_index,
+                                         std::ostream& is) const {
+  is << static_cast<storage::pb_metric const&>(d).obj().metric_id();
+}
+
+/**
+ * @brief extract name of a value
+ *
+ * @param d
+ * @param is
+ */
+void line_protocol_query::_get_metric_value(io::data const& d,
+                                            unsigned& string_index,
+                                            std::ostream& is) const {
+  is << static_cast<storage::pb_metric const&>(d).obj().value();
+}
+
+/**
+ * @brief extract time of a metric
+ *
+ * @param d
+ * @param is
+ */
+void line_protocol_query::_get_metric_time(io::data const& d,
+                                           unsigned& string_index,
+                                           std::ostream& is) const {
+  is << static_cast<storage::pb_metric const&>(d).obj().time();
+}
+
+/**
+ * @brief extract state of a status
+ *
+ * @param d
+ * @param is
+ */
+void line_protocol_query::_get_status_state(io::data const& d,
+                                            unsigned& string_index,
+                                            std::ostream& is) const {
+  is << static_cast<storage::pb_status const&>(d).obj().state();
+}
+
+/**
+ * @brief extract time of a status
+ *
+ * @param d
+ * @param is
+ */
+void line_protocol_query::_get_status_time(io::data const& d,
+                                           unsigned& string_index,
+                                           std::ostream& is) const {
+  is << static_cast<storage::pb_status const&>(d).obj().time();
 }

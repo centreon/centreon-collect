@@ -33,6 +33,7 @@ using duration = system_clock::duration;
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -48,6 +49,7 @@ class http_tsdb_stream_test : public ::testing::Test {
 
     log_v2::tcp()->set_level(spdlog::level::trace);
     file::disk_accessor::load(1000);
+    pool::load(g_io_context, 1);
   }
 };
 
@@ -127,8 +129,8 @@ class connection_send_bagot : public http_client::connection_base {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
       });
     } else {
-      if (rand() & 1) {
-        SPDLOG_LOGGER_DEBUG(
+      if (rand() & 3) {
+        SPDLOG_LOGGER_ERROR(
             log_v2::tcp(), "fail id:{} nb_data={}",
             std::static_pointer_cast<request_test>(request)->get_request_id(),
             std::static_pointer_cast<request_test>(request)->get_nb_data());
@@ -166,12 +168,11 @@ TEST_F(http_tsdb_stream_test, all_event_sent) {
   http_client::http_config conf(
       asio::ip::tcp::endpoint(asio::ip::address_v4::loopback(), 80), false,
       std::chrono::seconds(10), std::chrono::seconds(10),
-      std::chrono::seconds(10), 30, std::chrono::seconds(10), 0,
+      std::chrono::seconds(10), 30, std::chrono::seconds(1), 100,
       std::chrono::seconds(1), 5);
 
   std::shared_ptr<stream_test> str(std::make_shared<stream_test>(
-      std::make_shared<http_tsdb::http_tsdb_config>(
-          conf, 10, std::chrono::milliseconds(500)),
+      std::make_shared<http_tsdb::http_tsdb_config>(conf, 10),
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_client::http_config::pointer& conf) {
@@ -191,11 +192,12 @@ TEST_F(http_tsdb_stream_test, all_event_sent) {
     std::this_thread::sleep_for(
         std::chrono::milliseconds(1));  // to let io_context thread fo the job
   }
+  str->flush();
   SPDLOG_LOGGER_DEBUG(log_v2::tcp(), "wait");
   std::mutex dummy;
   std::unique_lock<std::mutex> l(dummy);
   connection_send_bagot::success_cond.wait_for(
-      l, std::chrono::seconds(10),
+      l, std::chrono::seconds(60),
       []() { return connection_send_bagot::success == 1000; });
   ASSERT_EQ(connection_send_bagot::success, 1000);
 }

@@ -185,6 +185,24 @@ class line_protocol_query {
                                 std::ostream& is) const {
     _get_tag_serv_id(d, TagType::SERVICEGROUP, is);
   }
+  void _get_metric_name(io::data const& d,
+                        unsigned& string_index,
+                        std::ostream& is) const;
+  void _get_metric_id(io::data const& d,
+                      unsigned& string_index,
+                      std::ostream& is) const;
+  void _get_metric_value(io::data const& d,
+                         unsigned& string_index,
+                         std::ostream& is) const;
+  void _get_metric_time(io::data const& d,
+                        unsigned& string_index,
+                        std::ostream& is) const;
+  void _get_status_state(io::data const& d,
+                         unsigned& string_index,
+                         std::ostream& is) const;
+  void _get_status_time(io::data const& d,
+                        unsigned& string_index,
+                        std::ostream& is) const;
 
   const cache::metric_info* _get_metric_info(io::data const& d) const;
 
