@@ -48,17 +48,6 @@ static constexpr absl::string_view _sz_serv_id = ",serv_id=";
 static constexpr absl::string_view _sz_severity_id = ",severity_id=";
 static constexpr absl::string_view _sz_val = " val=";
 
-void request::add_metric(const storage::metric& metric) {
-  absl::StrAppend(&body(), _sz_metric, metric.metric_id);
-  append_metric_info(metric.metric_id);
-  _metric_formatter.append_metric(metric, body());
-  absl::StrAppend(&body(), _sz_val, metric.value);
-  body().push_back(' ');
-  absl::StrAppend(&body(), metric.time.get_time_t());
-  body().push_back('\n');
-  ++_nb_metric;
-}
-
 void request::add_metric(const storage::pb_metric& metric) {
   absl::StrAppend(&body(), _sz_metric, metric.obj().metric_id());
   append_metric_info(metric.obj().metric_id());
@@ -68,35 +57,6 @@ void request::add_metric(const storage::pb_metric& metric) {
   absl::StrAppend(&body(), metric.obj().time());
   body().push_back('\n');
   ++_nb_metric;
-}
-
-void request::add_status(const storage::status& status) {
-  if (status.state < 0 || status.state > 2) {
-    if (status.state != 3) {  // we don't write unknow but it's not an error
-      SPDLOG_LOGGER_ERROR(log_v2::victoria_metrics(), "unknown state: {}",
-                          status.state);
-    }
-    ++_nb_status;
-    return;
-  }
-  absl::StrAppend(&body(), _sz_status, status.index_id);
-  append_host_service_id(status.index_id);
-  _status_formatter.append_status(status, body());
-  switch (status.state) {
-    case 0:
-      absl::StrAppend(&body(), _sz_val, 100);
-      break;
-    case 1:
-      absl::StrAppend(&body(), _sz_val, 75);
-      break;
-    case 2:
-      absl::StrAppend(&body(), _sz_val, 0);
-      break;
-  }
-  body().push_back(' ');
-  absl::StrAppend(&body(), status.time.get_time_t());
-  body().push_back('\n');
-  ++_nb_status;
 }
 
 void request::add_status(const storage::pb_status& status) {
@@ -142,11 +102,16 @@ static std::string string_filter(const cache::string& to_filter) {
   std::string ret;
   ret.reserve(to_filter.length());
   for (char c : to_filter) {
-    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' ||
-        c == '/') {
-      ret.push_back(c);
+    if (c == ',') {
+      ret += "\\,";
+    } else if (c == '"') {
+      ret += "\\\"";
+    } else if (c == ' ') {
+      ret += "\\ ";
+    } else if (c == '\\') {
+      ret += "\\\\";
     } else {
-      ret.push_back('_');
+      ret.push_back(c);
     }
   }
   return ret;

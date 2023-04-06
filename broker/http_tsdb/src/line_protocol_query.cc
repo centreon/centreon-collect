@@ -125,15 +125,16 @@ void line_protocol_query::escape_key(std::string const& str,
 void line_protocol_query::escape_value(std::string const& str,
                                        std::ostream& is) const {
   for (const char c : str) {
-    if (isalnum(c) || c == '-' || c == '_' || c == '.' || c == '~' ||
-        c == '/') {
-      is << c;
-    } else if (c == ',') {
+    if (c == ',') {
       is << "\\,";
     } else if (c == '"') {
       is << "\\\"";
+    } else if (c == ' ') {
+      is << "\\ ";
+    } else if (c == '\\') {
+      is << "\\\\";
     } else {
-      is << '_';
+      is << c;
     }
   }
 }
@@ -322,7 +323,6 @@ void line_protocol_query::_compile_scheme(
       if (macro == "$METRICID$") {
         _throw_on_invalid(data_type::metric);
         _append_compiled_getter(&line_protocol_query::_get_metric_id, escaper);
-            nullptr);
       } else if (macro == "$INSTANCE$")
         _append_compiled_getter(&line_protocol_query::_get_instance, escaper);
       else if (macro == "$INSTANCEID$")

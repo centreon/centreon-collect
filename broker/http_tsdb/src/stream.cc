@@ -233,13 +233,17 @@ int stream::write(std::shared_ptr<io::data> const& data) {
     std::lock_guard<std::mutex> l(_protect);
     // Process metric events.
     switch (data->type()) {
-      case storage::metric::static_type():
+      case storage::metric::static_type(): {
         if (!_request) {
           _request = create_request();
         }
         SPDLOG_LOGGER_TRACE(_logger, "add metric: {}", *data);
-        _request->add_metric(*std::static_pointer_cast<storage::metric>(data));
+        Metric converted;
+        std::static_pointer_cast<storage::metric>(data)->convert_to_pb(
+            converted);
+        _request->add_metric(converted);
         break;
+      }
       case storage::pb_metric::static_type():
         if (!_request) {
           _request = create_request();
@@ -248,13 +252,17 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         _request->add_metric(
             std::static_pointer_cast<storage::pb_metric>(data)->obj());
         break;
-      case storage::status::static_type():
+      case storage::status::static_type(): {
         if (!_request) {
           _request = create_request();
         }
         SPDLOG_LOGGER_TRACE(_logger, "add status: {}", *data);
-        _request->add_status(*std::static_pointer_cast<storage::status>(data));
+        Status converted;
+        std::static_pointer_cast<storage::status>(data)->convert_to_pb(
+            converted);
+        _request->add_status(converted);
         break;
+      }
       case storage::pb_status::static_type():
         if (!_request) {
           _request = create_request();

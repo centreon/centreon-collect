@@ -113,14 +113,14 @@ TEST_F(victoria_request_test, request_body_test) {
   std::cout << req.body() << std::endl;
   ASSERT_EQ(
       req.body(),
-      "metric,id=123,name=metric_____xxx,unit=metric_unit,"
+      "metric,id=123,name=metric\\ \xC3\xA0\xC3\xA7xxx,unit=metric\\ unit,"
       "host_id=14,serv_id=78,severity_id=3 val=1.5782 1674715597\n"
       "status,id=45,host_id=14,serv_id=78,severity_id=3 val=75 1674715598\n");
 }
 
 TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   cache::global_cache::instance_ptr()->set_metric_info(
-      123, 45, "metric àçxxx", "metric unit", 0.456, 0.987);
+      123, 45, "metric name", "metric unit", 0.456, 0.987);
   com::centreon::broker::TagInfo host_tags[2];
   host_tags[0].set_id(89);
   host_tags[1].set_id(189);
@@ -189,14 +189,14 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   std::cout << req.body() << std::endl;
   ASSERT_EQ(
       req.body(),
-      "metric,id=123,name=metric_____xxx,unit=metric_unit,"
+      "metric,id=123,name=metric\\ name,unit=metric\\ unit,"
       "host_id=14,serv_id=78,severity_id=3,"
-      "host=my_host,serv=my_service/tutu_,min=0.456,max=0.987,"
+      "host=my\\ host,serv=my\\ service/tutu\\ ,min=0.456,max=0.987,"
       "host_grp=88\\,89,serv_grp=1278\\,1279,host_tag_cat=tag89,host_tag_grp="
       "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=112\\,123 "
       "val=1.5782 1674715597\n"
       "status,id=45,host_id=14,serv_id=78,severity_id=3,"
-      "host=my_host,serv=my_service/tutu_,"
+      "host=my\\ host,serv=my\\ service/tutu\\ ,"
       "host_grp=88\\,89,serv_grp=1278\\,1279,host_tag_cat=tag89,host_tag_grp="
       "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=112\\,123 val=75 "
       "1674715598\n");

@@ -51,10 +51,8 @@ class request : public http_client::request_base {
 
   void dump(std::ostream&) const override;
 
-  virtual void add_metric(const storage::metric& metric) = 0;
   virtual void add_metric(const storage::pb_metric& metric) = 0;
 
-  virtual void add_status(const storage::status& status) = 0;
   virtual void add_status(const storage::pb_status& status) = 0;
 
   virtual void append(const request::pointer& data_to_append);

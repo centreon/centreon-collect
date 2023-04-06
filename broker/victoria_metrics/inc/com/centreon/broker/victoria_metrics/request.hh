@@ -42,10 +42,8 @@ class request : public http_tsdb::request {
           const http_tsdb::line_protocol_query& status_formatter,
           const std::string& authorization = "");
 
-  virtual void add_metric(const storage::metric& metric) override;
   virtual void add_metric(const storage::pb_metric& metric) override;
 
-  virtual void add_status(const storage::status& status) override;
   virtual void add_status(const storage::pb_status& status) override;
 };
 
