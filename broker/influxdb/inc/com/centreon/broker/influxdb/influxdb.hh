@@ -26,6 +26,12 @@
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "com/centreon/broker/namespace.hh"
 
+#if ASIO_VERSION < 101200
+namespace asio {
+typedef io_service io_context;
+}
+#endif
+
 CCB_BEGIN()
 
 namespace influxdb {
