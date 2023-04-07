@@ -72,6 +72,12 @@ def get_date(d: str):
     return retval
 
 
+#  When you use Get Current Date with exclude_millis=True
+#  it rounds result to nearest lower or upper second
+def get_round_current_date():
+    return int(time.time())
+
+
 def find_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
