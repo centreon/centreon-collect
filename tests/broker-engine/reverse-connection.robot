@@ -133,7 +133,7 @@ BRCTSMN
 	# We should have exactly 1000 pb_service
 	${ret}=	Grep File	/tmp/map-output.log	65563
 	${ret}=	Get Line Count	${ret}
-	Should Be True	${ret} > 1000
+	Should Be True	${ret} >= 1000
 
 	# We should have exactly 50 pb_host
 	${ret}=	Grep File	/tmp/map-output.log	65566
