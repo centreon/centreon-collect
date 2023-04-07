@@ -3,6 +3,7 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 import time
+import psutil
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
@@ -167,7 +168,24 @@ def stop_mysql():
         logger.console("Mariadb stopped with systemd")
     else:
         logger.console("Stopping directly MariaDB")
-        getoutput("kill -SIGTERM $(pidof mariadbd)")
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                logger.console(
+                    f"process '{proc.name()}' containing mariadbd found: stopping it")
+                proc.terminate()
+                try:
+                    logger.console("Waiting for 30s mariadbd to stop")
+                    proc.wait(30)
+                except:
+                    logger.console("mariadb don't want to stop => kill")
+                    proc.kill()
+
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                logger.console(f"process '{proc.name()}' still alive")
+                logger.console("mariadb don't want to stop => kill")
+                proc.kill()
+
         logger.console("Mariadb directly stopped")
 
 
@@ -175,34 +193,30 @@ def stop_rrdcached():
     getoutput(
         "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
 
-def stop_rrdcached():
-        getoutput(
-            "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
-
 
 def kill_broker():
     getoutput(
-        "kill -SIGKILL $(ps aux | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $2}')")
+        "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $1}')")
     getoutput(
-        "kill -SIGKILL $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
+        "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $1}')")
 
 
 def kill_engine():
     getoutput(
-        "kill -SIGKILL $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")
+        "kill -SIGKILL $(ps ax | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $1}')")
 
 
 def clear_retention():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.memory.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.queue.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.unprocessed*' -delete")
-    getoutput("find " + VAR_ROOT + " -name 'retention.dat' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
+    getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
 
 
 def clear_cache():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
 
 def engine_log_table_duplicate(result: list):
@@ -257,7 +271,11 @@ def check_engine_logs_are_duplicated(log: str, date):
 
 
 def find_line_from(lines, date):
-    my_date = parser.parse(date)
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
     p = re.compile(r"\[([^\]]*)\]")
 
     # Let's find my_date
@@ -472,9 +490,10 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
+                    f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
-                if result[0]['current_status'] is not None and int(result[0]['current_status']) == status:
+                logger.console(f"ba: {result[0]}")
+                if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -495,9 +514,9 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
                 cursor.execute("SELECT s.scheduled_downtime_depth from services s LEFT JOIN hosts h ON s.host_id=h.host_id wHERE s.description='{}' AND h.name='{}'".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 
@@ -831,6 +850,7 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
                         return True
         time.sleep(1)
     return False
+
 
 def create_bad_queue(filename: str):
     f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
