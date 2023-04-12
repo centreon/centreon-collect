@@ -92,7 +92,7 @@ jobs:
           path: centreon-collect
 
       - name: Deliver sources
-        uses: ./.github/actions/release-sources
+        uses: ./centreon-collect/.github/actions/release-sources
         with:
           bucket_directory: centreon-collect
           module_directory: centreon-collect
