@@ -7,18 +7,18 @@ concurrency:
 on:
   workflow_dispatch:
   pull_request:
-    # paths:
-    #   - bbdo/**
-    #   - broker/**
-    #   - ccc/**
-    #   - clib/**
-    #   - connectors/**
-    #   - engine/**
-    #   - grpc/**
-    #   - packaging/**
-    #   - cmake.sh
-    #   - CMakeLists.txt
-    #   - conanfile.txt
+    paths:
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - engine/**
+      - grpc/**
+      - packaging/**
+      - cmake.sh
+      - CMakeLists.txt
+      - conanfile.txt
   push:
     branches:
       - develop
@@ -83,7 +83,7 @@ jobs:
   deliver-sources:
     runs-on: [self-hosted, common]
     needs: [get-version, package]
-    #if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
 
     steps:
       - name: Checkout sources
