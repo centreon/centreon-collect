@@ -35,8 +35,7 @@ runs:
         VERSION="${{ inputs.major_version }}.${{ inputs.minor_version }}"
         SRC_FILE="${{ inputs.module_name }}-$VERSION.tar.gz"
 
-        mv "${{ inputs.module_directory }}" ../"${{ inputs.module_name }}-$VERSION"
-        mv "../${{ inputs.module_name }}-$VERSION" ./
+        mv "${{ inputs.module_directory }}" "${{ inputs.module_name }}-$VERSION"
         tar czf $SRC_FILE "${{ inputs.module_name }}-$VERSION"
 
         SRC_HASH=$(md5sum $SRC_FILE | cut -d ' ' -f 1)

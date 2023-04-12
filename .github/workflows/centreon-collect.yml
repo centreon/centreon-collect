@@ -88,12 +88,14 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
+        with:
+          path: centreon-collect
 
       - name: Deliver sources
         uses: ./.github/actions/release-sources
         with:
           bucket_directory: centreon-collect
-          module_directory: .
+          module_directory: centreon-collect
           module_name: centreon-collect
           major_version: ${{ needs.get-version.outputs.version }}
           minor_version: ${{ needs.get-version.outputs.patch }}
