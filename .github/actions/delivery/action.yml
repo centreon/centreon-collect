@@ -92,6 +92,16 @@ runs:
       run: |
         FILES="*.${{ env.extfile }}"
 
+        if [ -z "${{ inputs.module_name }}" ]; then
+          echo "module name is required"
+          exit 1
+        fi
+
+        if [ -z "${{ inputs.distrib }}" ]; then
+          echo "distrib is required"
+          exit 1
+        fi
+
         for FILE in $FILES; do
           echo "[DEBUG] - File: $FILE"
 
@@ -101,6 +111,6 @@ runs:
 
           echo "[DEBUG] - Version: $VERSION"
 
-          jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ inputs.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
+          jf rt upload "$FILE" "apt-${{ inputs.version }}-${{ inputs.stability }}/pool/${{ inputs.module_name }}" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
       shell: bash
