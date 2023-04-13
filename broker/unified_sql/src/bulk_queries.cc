@@ -55,7 +55,7 @@ std::string bulk_queries::get_query() {
     /* Building the query */
     log_v2::sql()->debug("SQL: {} items sent in bulk", queue.size());
     query = fmt::format(_query, fmt::join(queue, ","));
-    log_v2::sql()->trace("sending query << {} >>", query);
+    log_v2::sql()->trace("Sending query << {} >>", query);
   }
   _next_time = std::time(nullptr) + _interval;
   return query;
