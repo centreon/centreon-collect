@@ -26,21 +26,21 @@ using namespace com::centreon::broker::http_tsdb;
 /**
  *  Create an empty column.
  */
-column::column() : _is_flag(false), _type{type::number} {}
+column::column() : _is_tag(true), _type{type::number} {}
 
 /**
  *  Create a column.
  *
  *  @param[in] name      The name of the column.
  *  @param[in] value     The value of the column.
- *  @param[in] is_flag   Is the column a flag?
+ *  @param[in] is_tag    Is the column a tag?
  *  @param[in] col_type  Is the value of this column a string or a number?
  */
 column::column(std::string const& name,
                std::string const& value,
-               bool is_flag,
+               bool is_tag,
                type col_type)
-    : _name(name), _value(value), _is_flag(is_flag), _type(col_type) {}
+    : _name(name), _value(value), _is_tag(is_tag), _type(col_type) {}
 
 /**
  *  Parse a string containing a type.

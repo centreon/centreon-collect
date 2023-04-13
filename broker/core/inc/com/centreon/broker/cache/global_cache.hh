@@ -57,9 +57,22 @@ inline bool operator!=(const string& left, const absl::string_view& right) {
 }
 
 struct metric_info {
+  template <class string_view_class>
+  metric_info(uint64_t i_index_id,
+              const string_view_class& i_name,
+              const string_view_class& i_unit,
+              double i_min,
+              double i_max,
+              const char_allocator& char_alloc)
+      : index_id(i_index_id),
+        name(i_name.data(), i_name.length(), char_alloc),
+        unit(i_unit.data(), i_unit.length(), char_alloc),
+        min(i_min),
+        max(i_max) {}
+
   uint64_t index_id;
-  interprocess::offset_ptr<const string> name;
-  interprocess::offset_ptr<const string> unit;
+  string name;
+  string unit;
   double min;
   double max;
 };

@@ -47,8 +47,8 @@ TEST(global_cache_test, CanBeMoved) {
     const metric_info* infos = obj->get_metric_info(55);
 
     ASSERT_NE(infos, nullptr);
-    ASSERT_EQ(*infos->name, "metric_name");
-    ASSERT_EQ(*infos->unit, "metric_unit");
+    ASSERT_EQ(infos->name, "metric_name");
+    ASSERT_EQ(infos->unit, "metric_unit");
     ASSERT_EQ(infos->min, 1.48987);
     ASSERT_EQ(infos->max, 897654.45);
   }
@@ -65,8 +65,8 @@ TEST(global_cache_test, CanBeMoved) {
     const metric_info* infos = obj->get_metric_info(55);
 
     ASSERT_NE(infos, nullptr);
-    ASSERT_EQ(*infos->name, "metric_name");
-    ASSERT_EQ(*infos->unit, "metric_unit");
+    ASSERT_EQ(infos->name, "metric_name");
+    ASSERT_EQ(infos->unit, "metric_unit");
     ASSERT_EQ(infos->min, 1.48987);
     ASSERT_EQ(infos->max, 897654.45);
   }
@@ -81,8 +81,8 @@ TEST(global_cache_test, CanBeMoved) {
     const metric_info* infos = obj->get_metric_info(55);
 
     ASSERT_NE(infos, nullptr);
-    ASSERT_EQ(*infos->name, "metric_name");
-    ASSERT_EQ(*infos->unit, "metric_unit");
+    ASSERT_EQ(infos->name, "metric_name");
+    ASSERT_EQ(infos->unit, "metric_unit");
     ASSERT_EQ(infos->min, 1.48987);
     ASSERT_EQ(infos->max, 897654.45);
   }

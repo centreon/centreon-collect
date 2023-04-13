@@ -36,6 +36,7 @@ const std::string stream::allowed_macros =
 
 stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+               const std::string& account_id,
                http_client::client::connection_creator conn_creator)
     : http_tsdb::stream("victoria_metrics",
                         io_context,
@@ -49,7 +50,8 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
       _status_formatter(allowed_macros,
                         conf->get_status_columns(),
                         http_tsdb::line_protocol_query::data_type::status,
-                        log_v2::victoria_metrics()) {
+                        log_v2::victoria_metrics()),
+      _account_id(account_id) {
   // in order to avoid reallocation of request body
   _body_size_to_reserve = conf->get_max_queries_per_transaction() *
                           (128 + std::max(conf->get_metric_columns().size(),
@@ -69,8 +71,10 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
 std::shared_ptr<stream> stream::load(
     const std::shared_ptr<asio::io_context>& io_context,
     const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+    const std::string& account_id,
     http_client::client::connection_creator conn_creator) {
-  return std::shared_ptr<stream>(new stream(io_context, conf, conn_creator));
+  return std::shared_ptr<stream>(
+      new stream(io_context, conf, account_id, conn_creator));
 }
 
 http_tsdb::request::pointer stream::create_request() const {
@@ -83,6 +87,7 @@ http_tsdb::request::pointer stream::create_request() const {
   ret->set(boost::beast::http::field::content_type, "text/plain");
   ret->set(boost::beast::http::field::accept, "application/json");
   ret->set(boost::beast::http::field::accept_encoding, "gzip");
+  ret->set("account_id", _account_id);
 
   return ret;
 }

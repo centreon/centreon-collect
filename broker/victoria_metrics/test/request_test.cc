@@ -103,19 +103,24 @@ TEST_F(victoria_request_test, request_body_test) {
   metric.set_metric_id(123);
   metric.set_value(1.5782);
   metric.set_time(1674715597);
+  metric.set_host_id(14);
+  metric.set_service_id(78);
+  metric.set_name("metric àçxxx");
   req.add_metric(metric);
 
   Status status;
   status.set_index_id(45);
   status.set_state(1);
   status.set_time(1674715598);
+  status.set_host_id(14);
+  status.set_service_id(78);
   req.add_status(status);
-  std::cout << req.body() << std::endl;
   ASSERT_EQ(
-      req.body(),
-      "metric,id=123,name=metric\\ \xC3\xA0\xC3\xA7xxx,unit=metric\\ unit,"
-      "host_id=14,serv_id=78,severity_id=3 val=1.5782 1674715597\n"
-      "status,id=45,host_id=14,serv_id=78,severity_id=3 val=75 1674715598\n");
+      "metric,id=123,name=metric\\ "
+      "\xC3\xA0\xC3\xA7xxx,host_id=14,serv_id=78,unit=metric\\ unit,"
+      "severity_id=3 val=1.5782 1674715597\n"
+      "status,id=45,host_id=14,serv_id=78,severity_id=3 val=75 1674715598\n",
+      req.body());
 }
 
 TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
@@ -136,8 +141,8 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   com::centreon::broker::TagInfo tags[4];
   tags[0].set_id(12);
   tags[1].set_id(23);
-  tags[0].set_id(112);
-  tags[1].set_id(123);
+  tags[2].set_id(112);
+  tags[3].set_id(123);
   cache::global_cache::instance_ptr()->add_tag(12, "tag12",
                                                TagType::SERVICECATEGORY, 5);
   cache::global_cache::instance_ptr()->add_tag(23, "tag23",
@@ -150,7 +155,7 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   cache::global_cache::instance_ptr()->store_service(14, 78, "my service/tutu ",
                                                      2, 3);
   cache::global_cache::instance_ptr()->set_serv_tag(14, 78, [&]() -> uint64_t {
-    return tag_iter >= tags + 2 ? 0 : (tag_iter++)->id();
+    return tag_iter >= tags + 4 ? 0 : (tag_iter++)->id();
   });
   cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
   cache::global_cache::instance_ptr()->add_host_group(89, 14);
@@ -179,25 +184,135 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
   metric.set_metric_id(123);
   metric.set_value(1.5782);
   metric.set_time(1674715597);
+  metric.set_host_id(14);
+  metric.set_service_id(78);
+  metric.set_name("metric name");
   req.add_metric(metric);
 
   Status status;
   status.set_index_id(45);
   status.set_state(1);
   status.set_time(1674715598);
+  status.set_host_id(14);
+  status.set_service_id(78);
   req.add_status(status);
-  std::cout << req.body() << std::endl;
   ASSERT_EQ(
-      req.body(),
-      "metric,id=123,name=metric\\ name,unit=metric\\ unit,"
-      "host_id=14,serv_id=78,severity_id=3,"
+      "metric,id=123,name=metric\\ name,host_id=14,serv_id=78,unit=metric\\ "
+      "unit,severity_id=3,"
       "host=my\\ host,serv=my\\ service/tutu\\ ,min=0.456,max=0.987,"
       "host_grp=88\\,89,serv_grp=1278\\,1279,host_tag_cat=tag89,host_tag_grp="
-      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=112\\,123 "
+      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=tag112\\,tag123 "
       "val=1.5782 1674715597\n"
       "status,id=45,host_id=14,serv_id=78,severity_id=3,"
       "host=my\\ host,serv=my\\ service/tutu\\ ,"
       "host_grp=88\\,89,serv_grp=1278\\,1279,host_tag_cat=tag89,host_tag_grp="
-      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=112\\,123 val=75 "
-      "1674715598\n");
+      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=tag112\\,tag123 val=75 "
+      "1674715598\n",
+      req.body());
+}
+
+TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
+  cache::global_cache::instance_ptr()->set_metric_info(
+      123, 45, "metric name", "metric unit", 0.456, 0.987);
+  com::centreon::broker::TagInfo host_tags[2];
+  host_tags[0].set_id(89);
+  host_tags[1].set_id(189);
+  cache::global_cache::instance_ptr()->add_tag(89, "tag89",
+                                               TagType::HOSTCATEGORY, 5);
+  cache::global_cache::instance_ptr()->add_tag(189, "tag189",
+                                               TagType::HOSTGROUP, 5);
+  const com::centreon::broker::TagInfo* tag_iter = host_tags;
+  cache::global_cache::instance_ptr()->store_host(14, "my host", 1, 2);
+  cache::global_cache::instance_ptr()->set_host_tag(14, [&]() -> uint64_t {
+    return tag_iter > host_tags + 1 ? 0 : (tag_iter++)->id();
+  });
+  com::centreon::broker::TagInfo tags[4];
+  tags[0].set_id(12);
+  tags[1].set_id(23);
+  tags[2].set_id(112);
+  tags[3].set_id(123);
+  cache::global_cache::instance_ptr()->add_tag(12, "tag12",
+                                               TagType::SERVICECATEGORY, 5);
+  cache::global_cache::instance_ptr()->add_tag(23, "tag23",
+                                               TagType::SERVICECATEGORY, 5);
+  cache::global_cache::instance_ptr()->add_tag(112, "tag112",
+                                               TagType::SERVICEGROUP, 5);
+  cache::global_cache::instance_ptr()->add_tag(123, "tag123",
+                                               TagType::SERVICEGROUP, 5);
+  tag_iter = tags;
+  cache::global_cache::instance_ptr()->store_service(14, 78, "my service/tutu ",
+                                                     2, 3);
+  cache::global_cache::instance_ptr()->set_serv_tag(14, 78, [&]() -> uint64_t {
+    return tag_iter >= tags + 4 ? 0 : (tag_iter++)->id();
+  });
+  cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
+  cache::global_cache::instance_ptr()->add_host_group(89, 14);
+  cache::global_cache::instance_ptr()->add_host_group(88, 14);
+  cache::global_cache::instance_ptr()->add_service_group(1278, 14, 78);
+  cache::global_cache::instance_ptr()->add_service_group(1279, 14, 78);
+
+  json column = R"([
+    {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"},
+    {"name" : "serv", "is_tag" : "true", "value" : "$SERVICE$", "type":"string"},
+    {"name" : "host_grp", "is_tag" : "true", "value" : "$HOSTGROUP$", "type":"string"},
+    {"name" : "serv_grp", "is_tag" : "true", "value" : "$SERVICE_GROUP$", "type":"string"},
+    {"name" : "host_tag_cat_id", "is_tag" : "true", "value" : "$HOST_TAG_CAT_ID$", "type":"string"},
+    {"name" : "host_tag_grp_id", "is_tag" : "true", "value" : "$HOST_TAG_GROUP_ID$", "type":"string"},
+    {"name" : "serv_tag_cat_id", "is_tag" : "true", "value" : "$SERV_TAG_CAT_ID$", "type":"string"},
+    {"name" : "serv_tag_grp_id", "is_tag" : "true", "value" : "$SERV_TAG_GROUP_ID$", "type":"string"},
+    {"name" : "host_tag_cat", "is_tag" : "true", "value" : "$HOST_TAG_CAT_NAME$", "type":"string"},
+    {"name" : "host_tag_grp", "is_tag" : "true", "value" : "$HOST_TAG_GROUP_NAME$", "type":"string"},
+    {"name" : "serv_tag_cat", "is_tag" : "true", "value" : "$SERV_TAG_CAT_NAME$", "type":"string"},
+    {"name" : "serv_tag_grp", "is_tag" : "true", "value" : "$SERV_TAG_GROUP_NAME$", "type":"string"}])"_json;
+
+  http_tsdb::line_protocol_query metric_columns(
+      victoria_metrics::stream::allowed_macros,
+      http_tsdb::factory::get_columns(column),
+      http_tsdb::line_protocol_query::data_type::status,
+      log_v2::victoria_metrics());
+
+  http_tsdb::line_protocol_query status_columns(
+      victoria_metrics::stream::allowed_macros,
+      http_tsdb::factory::get_columns(column),
+      http_tsdb::line_protocol_query::data_type::status,
+      log_v2::victoria_metrics());
+
+  victoria_metrics::request req(boost::beast::http::verb::post, "/", 0,
+                                metric_columns, status_columns, "toto");
+
+  Metric metric;
+  metric.set_metric_id(123);
+  metric.set_value(1.5782);
+  metric.set_time(1674715597);
+  metric.set_host_id(14);
+  metric.set_service_id(78);
+  metric.set_name("metric name");
+  req.add_metric(metric);
+
+  Status status;
+  status.set_index_id(45);
+  status.set_state(1);
+  status.set_time(1674715598);
+  status.set_host_id(14);
+  status.set_service_id(78);
+  req.add_status(status);
+  ASSERT_EQ(
+      "metric,id=123,name=metric\\ name,host_id=14,serv_id=78,unit=metric\\ "
+      "unit,severity_id=3,"
+      "host=my\\ host,serv=my\\ service/tutu\\ ,"
+      "host_grp=88\\,89,serv_grp=1278\\,1279,"
+      "host_tag_cat_id=89,host_tag_grp_id="
+      "189,serv_tag_cat_id=12\\,23,serv_tag_grp_id=112\\,123,"
+      "host_tag_cat=tag89,host_tag_grp="
+      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=tag112\\,tag123 "
+      "val=1.5782 1674715597\n"
+      "status,id=45,host_id=14,serv_id=78,severity_id=3,"
+      "host=my\\ host,serv=my\\ service/tutu\\ ,"
+      "host_grp=88\\,89,serv_grp=1278\\,1279,"
+      "host_tag_cat_id=89,host_tag_grp_id="
+      "189,serv_tag_cat_id=12\\,23,serv_tag_grp_id=112\\,123,"
+      "host_tag_cat=tag89,host_tag_grp="
+      "tag189,serv_tag_cat=tag12\\,tag23,serv_tag_grp=tag112\\,tag123 val=75 "
+      "1674715598\n",
+      req.body());
 }

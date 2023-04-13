@@ -48,12 +48,12 @@ class victoria_stream_test : public ::testing::Test {
   static void TearDownTestSuite() {}
 };
 
-TEST_F(victoria_stream_test, Auhtorization) {
+TEST_F(victoria_stream_test, Authorization) {
   http_client::http_config dummy;
   std::vector<http_tsdb::column> dummy2;
   auto cfg = std::make_shared<http_tsdb::http_tsdb_config>(
       dummy, "/write", "Aladdin", "open sesame", 1, dummy2, dummy2);
 
-  std::shared_ptr<stream> s = stream::load(g_io_context, cfg);
+  std::shared_ptr<stream> s = stream::load(g_io_context, cfg, "my_account");
   ASSERT_EQ(s->get_authorization(), "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==");
 }

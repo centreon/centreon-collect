@@ -56,11 +56,7 @@ class line_protocol_query {
   void escape_key(std::string const& str, std::ostream& is) const;
   void escape_value(std::string const& str, std::ostream& is) const;
 
-  void append_metric(storage::metric const& me,
-                     std::string& request_body) const;
   void append_metric(storage::pb_metric const& me,
-                     std::string& request_body) const;
-  void append_status(storage::status const& st,
                      std::string& request_body) const;
   void append_status(storage::pb_status const& st,
                      std::string& request_body) const;
@@ -183,7 +179,7 @@ class line_protocol_query {
   void _get_tag_serv_group_name(io::data const& d,
                                 unsigned& string_index,
                                 std::ostream& is) const {
-    _get_tag_serv_id(d, TagType::SERVICEGROUP, is);
+    _get_tag_serv_name(d, TagType::SERVICEGROUP, is);
   }
   void _get_metric_name(io::data const& d,
                         unsigned& string_index,

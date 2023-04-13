@@ -60,6 +60,10 @@ struct string_string_view_hash {
   }
 };
 
+/**
+ * @brief container of all datas of global cache
+ *
+ */
 class global_cache_data : public global_cache {
   using id_to_metric_info = interprocess::flat_map<
       uint64_t,
@@ -141,17 +145,6 @@ class global_cache_data : public global_cache {
               multi_index::identity<service_group_element>>>,
       managed_mapped_file::allocator<service_group_element>::type>;
 
-  /**
-   * @brief as metric are the same for differents services, we use this
-   * dictionnary to allocate only one time metric names
-   *
-   */
-  using dictionnary =
-      boost::unordered_set<string,
-                           string_string_view_hash,
-                           std::equal_to<string>,
-                           interprocess::allocator<string, segment_manager>>;
-
   // tags
   using id_to_tag = interprocess::flat_map<
       uint64_t,
@@ -217,21 +210,7 @@ class global_cache_data : public global_cache {
   host_tag* _host_tag;
   service_tag* _serv_tag;
 
-  // unit and name are many times identicals, so these dictionnary reduce file
-  // size and allocation
-  dictionnary* _metric_name;
-  dictionnary* _metric_unit;
-
   void managed_map(bool create) override;
-
-  const string& get_from_dictionnary(dictionnary& dico,
-                                     const absl::string_view& value);
-  const string& get_metric_name(const absl::string_view& name) {
-    return get_from_dictionnary(*_metric_name, name);
-  }
-  const string& get_metric_unit(const absl::string_view& unit) {
-    return get_from_dictionnary(*_metric_unit, unit);
-  }
 
  public:
   global_cache_data(const std::string& file_path,

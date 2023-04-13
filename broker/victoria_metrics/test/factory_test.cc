@@ -81,6 +81,9 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
   cfg.params["default_http_keepalive_duration"] = "9";
   cfg.params["max_connections"] = "10";
   cfg.params["http_target"] = "/WriteVictoria";
+  cfg.params["account_id"] = "my_account_id";
+  cfg.cfg["metrics_column"] = R"([
+    {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"}])"_json;
 
   bool is_acceptor;
   victoria_metrics::connector* conn = static_cast<victoria_metrics::connector*>(
@@ -101,4 +104,6 @@ TEST_F(VictoriaMetricsFactory, ParseParameter) {
             std::chrono::seconds(9));
   ASSERT_EQ(conf.get_max_connections(), 10);
   ASSERT_EQ(conf.get_http_target(), "/WriteVictoria");
+  ASSERT_EQ(conn->get_account_id(), "my_account_id");
+  ASSERT_EQ(conf.get_metric_columns().size(), 1);
 }

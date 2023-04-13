@@ -35,19 +35,19 @@ class column {
   column();
   column(std::string const& name,
          std::string const& value,
-         bool is_flag,
+         bool is_tag,
          type col_type);
 
   std::string const& get_name() const { return _name; }
   std::string const& get_value() const { return _value; }
-  bool is_flag() const { return _is_flag; }
+  bool is_tag() const { return _is_tag; }
   type get_type() const { return _type; }
   static type parse_type(std::string const& type);
 
  private:
   std::string _name;
   std::string _value;
-  bool _is_flag;
+  bool _is_tag;
   type _type;
 };
 }  // namespace http_tsdb

@@ -62,8 +62,12 @@ class http_tsdb_config : public http_client::http_config {
   unsigned get_max_queries_per_transaction() const {
     return _max_queries_per_transaction;
   };
-  const std::vector<column>& get_status_columns() { return _status_columns; }
-  const std::vector<column>& get_metric_columns() { return _metric_columns; }
+  const std::vector<column>& get_status_columns() const {
+    return _status_columns;
+  }
+  const std::vector<column>& get_metric_columns() const {
+    return _metric_columns;
+  }
 };
 }  // namespace http_tsdb
 

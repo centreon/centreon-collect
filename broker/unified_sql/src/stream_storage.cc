@@ -128,6 +128,8 @@ void stream::_unified_sql_process_pb_service_status(
       s.set_rrd_len(rrd_len);
       s.set_time(ss.last_check());
       s.set_state(ss.last_hard_state());
+      s.set_host_id(host_id);
+      s.set_service_id(service_id);
       multiplexing::publisher().write(status);
     }
 

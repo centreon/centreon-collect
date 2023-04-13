@@ -113,11 +113,13 @@ http_connection::http_connection(
     const http_config::pointer& conf)
     : connection_base(io_context, logger, conf),
       _socket(boost::beast::net::make_strand(*io_context)) {
-  SPDLOG_LOGGER_DEBUG(_logger, "create http_connection to {}", *conf);
+  SPDLOG_LOGGER_DEBUG(_logger, "create http_connection {:p} to {}",
+                      static_cast<void*>(this), *conf);
 }
 
 http_connection::~http_connection() {
-  SPDLOG_LOGGER_DEBUG(_logger, "delete http_connection to {}", *_conf);
+  SPDLOG_LOGGER_DEBUG(_logger, "delete http_connection {:p} to {}",
+                      static_cast<void*>(this), *_conf);
   shutdown();
 }
 
@@ -136,13 +138,14 @@ http_connection::pointer http_connection::load(
   return pointer(new http_connection(io_context, logger, conf));
 }
 
-#define BAD_CONNECT_STATE_ERROR(error_string)                      \
-  std::string detail =                                             \
-      fmt::format(error_string, *_conf, state_to_str(expected));   \
-  SPDLOG_LOGGER_ERROR(_logger, detail);                            \
-  _io_context->post([cb = std::move(callback), detail]() {         \
-    cb(std::make_error_code(std::errc::invalid_argument), detail); \
-  });                                                              \
+#define BAD_CONNECT_STATE_ERROR(error_string)                             \
+  std::string detail =                                                    \
+      fmt::format("{:p} " error_string, static_cast<void*>(this), *_conf, \
+                  state_to_str(expected));                                \
+  SPDLOG_LOGGER_ERROR(_logger, detail);                                   \
+  _io_context->post([cb = std::move(callback), detail]() {                \
+    cb(std::make_error_code(std::errc::invalid_argument), detail);        \
+  });                                                                     \
   return;
 
 /**
@@ -156,7 +159,8 @@ void http_connection::connect(connect_callback_type&& callback) {
     BAD_CONNECT_STATE_ERROR("can connect to {}, bad state {}");
   }
 
-  SPDLOG_LOGGER_DEBUG(_logger, "connect to {}", *_conf);
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} connect to {}", static_cast<void*>(this),
+                      *_conf);
   std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_connect_timeout());
   _socket.async_connect(
@@ -174,8 +178,9 @@ void http_connection::connect(connect_callback_type&& callback) {
 void http_connection::on_connect(const boost::beast::error_code& err,
                                  const connect_callback_type& callback) {
   if (err) {
-    std::string detail = fmt::format("fail connect to {}: {}",
-                                     _conf->get_endpoint(), err.message());
+    std::string detail =
+        fmt::format("{:p} fail connect to {}: {}", static_cast<void*>(this),
+                    _conf->get_endpoint(), err.message());
     SPDLOG_LOGGER_ERROR(_logger, detail);
     callback(err, detail);
     shutdown();
@@ -210,19 +215,21 @@ void http_connection::on_connect(const boost::beast::error_code& err,
             _logger, "fail to modify first keep alive delay for {}", *_conf);
       }
     }
-    SPDLOG_LOGGER_DEBUG(_logger, "connected to {}", _conf->get_endpoint());
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} connected to {}",
+                        static_cast<void*>(this), _conf->get_endpoint());
   }
   callback(err, {});
 }
 
-#define BAD_SEND_STATE_ERROR(error_string)                        \
-  std::string detail =                                            \
-      fmt::format(error_string, *_conf, state_to_str(expected));  \
-  SPDLOG_LOGGER_ERROR(_logger, detail);                           \
-  _io_context->post([cb = std::move(callback), detail]() {        \
-    cb(std::make_error_code(std::errc::invalid_argument), detail, \
-       response_ptr());                                           \
-  });                                                             \
+#define BAD_SEND_STATE_ERROR(error_string)                               \
+  std::string detail =                                                   \
+      fmt::format("{:p}" error_string, static_cast<void*>(this), *_conf, \
+                  state_to_str(expected));                               \
+  SPDLOG_LOGGER_ERROR(_logger, detail);                                  \
+  _io_context->post([cb = std::move(callback), detail]() {               \
+    cb(std::make_error_code(std::errc::invalid_argument), detail,        \
+       response_ptr());                                                  \
+  });                                                                    \
   return;
 
 /**
@@ -239,10 +246,12 @@ void http_connection::send(request_ptr request, send_callback_type&& callback) {
 
   request->_send = system_clock::now();
   if (_logger->level() == spdlog::level::trace) {
-    SPDLOG_LOGGER_TRACE(_logger, "send request {} to {}", *request,
+    SPDLOG_LOGGER_TRACE(_logger, "{:p} send request {} to {}",
+                        static_cast<void*>(this), *request,
                         _conf->get_endpoint());
   } else {
-    SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} send request to {}",
+                        static_cast<void*>(this), _conf->get_endpoint());
   }
   std::lock_guard<std::mutex> l(_socket_m);
   _socket.expires_after(_conf->get_send_timeout());
@@ -265,7 +274,8 @@ void http_connection::on_sent(const boost::beast::error_code& err,
                               send_callback_type& callback) {
   if (err) {
     std::string detail =
-        fmt::format("fail send {} to {}: {}", *request, *_conf, err.message());
+        fmt::format("{:p} fail send {} to {}: {}", static_cast<void*>(this),
+                    *request, *_conf, err.message());
     SPDLOG_LOGGER_ERROR(_logger, detail);
     callback(err, detail, response_ptr());
     shutdown();
@@ -278,9 +288,11 @@ void http_connection::on_sent(const boost::beast::error_code& err,
   }
 
   if (_logger->level() == spdlog::level::trace) {
-    SPDLOG_LOGGER_TRACE(_logger, "{} sent to {}", *request, *_conf);
+    SPDLOG_LOGGER_TRACE(_logger, "{:p} {} sent to {}", static_cast<void*>(this),
+                        *request, *_conf);
   } else {
-    SPDLOG_LOGGER_DEBUG(_logger, "request sent to {}", *_conf);
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} request sent to {}",
+                        static_cast<void*>(this), *_conf);
   }
 
   request->_sent = system_clock::now();
@@ -307,8 +319,9 @@ void http_connection::on_read(const boost::beast::error_code& err,
                               send_callback_type& callback,
                               const response_ptr& resp) {
   if (err) {
-    std::string detail = fmt::format("fail receive {} from {}: {}", *request,
-                                     *_conf, err.message());
+    std::string detail =
+        fmt::format("{:p} fail receive {} from {}: {}",
+                    static_cast<void*>(this), *request, *_conf, err.message());
     SPDLOG_LOGGER_ERROR(_logger, detail);
     callback(err, detail, response_ptr());
     shutdown();
@@ -325,10 +338,11 @@ void http_connection::on_read(const boost::beast::error_code& err,
   // http error code aren't managed in this layer, this the job of the caller
   // everything is fine at the transport level
   if (resp->result_int() >= 400) {
-    SPDLOG_LOGGER_ERROR(_logger, "err response for {} \n\n {}", *request,
-                        *resp);
+    SPDLOG_LOGGER_ERROR(_logger, "{:p} err response for {} \n\n {}",
+                        static_cast<void*>(this), *request, *resp);
   } else {
-    SPDLOG_LOGGER_DEBUG(_logger, "recv response from {} {}", *_conf, *resp);
+    SPDLOG_LOGGER_DEBUG(_logger, "{:p} recv response from {} {}",
+                        static_cast<void*>(this), *_conf, *resp);
   }
   // keepalive => idle state, otherwise => shutdown
   gest_keepalive(resp);
@@ -341,7 +355,8 @@ void http_connection::on_read(const boost::beast::error_code& err,
  *
  */
 void http_connection::shutdown() {
-  SPDLOG_LOGGER_DEBUG(_logger, "shutdown {}", *_conf);
+  SPDLOG_LOGGER_DEBUG(_logger, "{:p} shutdown {}", static_cast<void*>(this),
+                      *_conf);
   _state = e_not_connected;
   boost::system::error_code err;
   std::lock_guard<std::mutex> l(_socket_m);

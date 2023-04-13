@@ -28,9 +28,11 @@ namespace victoria_metrics {
 
 class connector : public io::endpoint {
   std::shared_ptr<http_tsdb::http_tsdb_config> _conf;
+  std::string _account_id;
 
  public:
-  connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf);
+  connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+            const std::string& account_id);
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   std::unique_ptr<io::stream> open() override;
@@ -38,6 +40,8 @@ class connector : public io::endpoint {
   std::shared_ptr<http_tsdb::http_tsdb_config> get_conf() const {
     return _conf;
   }
+
+  const std::string& get_account_id() const { return _account_id; }
 };
 }  // namespace victoria_metrics
 

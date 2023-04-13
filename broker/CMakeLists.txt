@@ -46,7 +46,7 @@ option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
 if(WITH_DEBUG_ASIO)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING"
+      "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_ASIO_ENABLE_BUFFER_DEBUGGING -DBOOST_ASIO_ENABLE_HANDLER_TRACKING"
   )
 endif()
 
@@ -138,7 +138,6 @@ include(cmake/tool.cmake)
 # Check and/or find required components.
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-add_definitions("-DASIO_STANDALONE")
 
 #
 # Options.

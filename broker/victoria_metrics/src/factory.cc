@@ -74,5 +74,11 @@ io::endpoint* factory::new_endpoint(
   } else {
     create_conf(cfg, *conf);
   }
-  return new connector(conf);
+  std::string account_id;
+  auto it = cfg.params.find("account_id");
+  if (it != cfg.params.end()) {
+    account_id = it->second;
+  }
+
+  return new connector(conf, account_id);
 }

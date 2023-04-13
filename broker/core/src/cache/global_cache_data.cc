@@ -25,10 +25,6 @@ void global_cache_data::managed_map(bool create) {
   global_cache::managed_map(create);
   _metric_info = _file->find_or_construct<id_to_metric_info>("metric_info")(
       _file->get_segment_manager());
-  _metric_name = _file->find_or_construct<dictionnary>("metric_name")(
-      _file->get_segment_manager());
-  _metric_unit = _file->find_or_construct<dictionnary>("metric_unit")(
-      _file->get_segment_manager());
   _index_id_mapping = _file->find_or_construct<index_id_mapping>(
       "index_id_mapping")(_file->get_segment_manager());
   _id_to_host = _file->find_or_construct<id_to_host>("id_to_host")(
@@ -49,22 +45,20 @@ void global_cache_data::managed_map(bool create) {
       _file->get_segment_manager());
 }
 
-const string& global_cache_data::get_from_dictionnary(
-    dictionnary& dico,
-    const absl::string_view& value) {
-  auto exist =
-      dico.find(value, string_string_view_hash(), string_string_view_equal());
-  if (exist != dico.end()) {
-    return *exist;
-  }
-  return *dico.emplace(value.data(), value.size(), _file->get_segment_manager())
-              .first;
-}
-
 /***********************************************************/
 /*                   feeders                               */
 /***********************************************************/
 
+/**
+ * @brief add metric infos to cache
+ *
+ * @param metric_id
+ * @param index_id
+ * @param name
+ * @param unit
+ * @param min
+ * @param max
+ */
 void global_cache_data::set_metric_info(uint64_t metric_id,
                                         uint64_t index_id,
                                         const absl::string_view& name,
@@ -77,11 +71,11 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
     auto exist = _metric_info->find(metric_id);
     if (exist != _metric_info->end()) {
       metric_info& to_update = exist->second;
-      if (*to_update.name != name) {
-        to_update.name = &get_metric_name(name);
+      if (to_update.name != name) {
+        to_update.name.assign(name.data(), name.length());
       }
-      if (*to_update.unit != unit) {
-        to_update.unit = &get_metric_unit(unit);
+      if (to_update.unit != unit) {
+        to_update.unit.assign(unit.data(), unit.length());
       }
       to_update.min = min;
       to_update.max = max;
@@ -91,12 +85,9 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
         _metric_info->reserve(_metric_info->capacity() + 0x10000);
       }
 
-      metric_info to_insert = {.index_id = index_id,
-                               .name = &get_metric_name(name),
-                               .unit = &get_metric_unit(unit),
-                               .min = min,
-                               .max = max};
-      _metric_info->emplace(metric_id, to_insert);
+      _metric_info->emplace(metric_id,
+                            metric_info(index_id, name, unit, min, max,
+                                        _file->get_segment_manager()));
     }
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
@@ -105,6 +96,12 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
   }
 }
 
+/**
+ * @brief store instance or poller name
+ *
+ * @param instance_id
+ * @param instance_name
+ */
 void global_cache_data::store_instance(uint64_t instance_id,
                                        const absl::string_view& instance_name) {
   try {
@@ -132,6 +129,14 @@ void global_cache_data::store_instance(uint64_t instance_id,
   }
 }
 
+/**
+ * @brief store host
+ *
+ * @param host_id
+ * @param host_name
+ * @param resource_id
+ * @param severity_id
+ */
 void global_cache_data::store_host(uint64_t host_id,
                                    const absl::string_view& host_name,
                                    uint64_t resource_id,
@@ -162,6 +167,15 @@ void global_cache_data::store_host(uint64_t host_id,
   }
 }
 
+/**
+ * @brief sotre service in cache
+ *
+ * @param host_id
+ * @param service_id
+ * @param service_description
+ * @param resource_id
+ * @param severity_id
+ */
 void global_cache_data::store_service(
     uint64_t host_id,
     uint64_t service_id,
@@ -199,6 +213,13 @@ void global_cache_data::store_service(
   }
 }
 
+/**
+ * @brief sotre index id <=> (host_id, service_id)
+ *
+ * @param index_id
+ * @param host_id
+ * @param service_id
+ */
 void global_cache_data::set_index_mapping(uint64_t index_id,
                                           uint64_t host_id,
                                           uint64_t service_id) {
@@ -221,6 +242,12 @@ void global_cache_data::set_index_mapping(uint64_t index_id,
   }
 }
 
+/**
+ * @brief add a host member into a host group
+ *
+ * @param group
+ * @param host
+ */
 void global_cache_data::add_host_group(uint64_t group, uint64_t host) {
   try {
     absl::WriterMutexLock l(&_protect);
@@ -234,18 +261,36 @@ void global_cache_data::add_host_group(uint64_t group, uint64_t host) {
   }
 }
 
+/**
+ * @brief remove host from a host group
+ *
+ * @param group
+ * @param host
+ */
 void global_cache_data::remove_host_from_group(uint64_t group, uint64_t host) {
   absl::WriterMutexLock l(&_protect);
   _checksum_to_compute = true;
   _host_group->get<2>().erase(host_group_element{host, group});
 }
 
+/**
+ * @brief remove host group
+ *
+ * @param group
+ */
 void global_cache_data::remove_host_group(uint64_t group) {
   absl::WriterMutexLock l(&_protect);
   _checksum_to_compute = true;
   _host_group->get<1>().erase(group);
 }
 
+/**
+ * @brief add (host, service) to a service group
+ *
+ * @param group
+ * @param host
+ * @param service
+ */
 void global_cache_data::add_service_group(uint64_t group,
                                           uint64_t host,
                                           uint64_t service) {
@@ -262,6 +307,13 @@ void global_cache_data::add_service_group(uint64_t group,
   }
 }
 
+/**
+ * @brief remove a (host,service) from a service group
+ *
+ * @param group
+ * @param host
+ * @param service
+ */
 void global_cache_data::remove_service_from_group(uint64_t group,
                                                   uint64_t host,
                                                   uint64_t service) {
@@ -270,12 +322,25 @@ void global_cache_data::remove_service_from_group(uint64_t group,
   _service_group->get<2>().erase(service_group_element{{host, service}, group});
 }
 
+/**
+ * @brief remove a service group
+ *
+ * @param group
+ */
 void global_cache_data::remove_service_group(uint64_t group) {
   absl::WriterMutexLock l(&_protect);
   _checksum_to_compute = true;
   _service_group->get<1>().erase(group);
 }
 
+/**
+ * @brief add a tag
+ *
+ * @param tag_id
+ * @param tag_name
+ * @param tag_type
+ * @param poller_id
+ */
 void global_cache_data::add_tag(uint64_t tag_id,
                                 const absl::string_view& tag_name,
                                 TagType tag_type,
@@ -306,6 +371,11 @@ void global_cache_data::add_tag(uint64_t tag_id,
   }
 }
 
+/**
+ * @brief remove a tag
+ *
+ * @param tag_id
+ */
 void global_cache_data::remove_tag(uint64_t tag_id) {
   absl::WriterMutexLock l(&_protect);
   _id_to_tag->erase(tag_id);
@@ -313,6 +383,12 @@ void global_cache_data::remove_tag(uint64_t tag_id) {
   _serv_tag->get<1>().erase(tag_id);
 }
 
+/**
+ * @brief add tags to a host
+ *
+ * @param host
+ * @param tag_filler lambda who returns tag ids, it ends when it returns 0
+ */
 void global_cache_data::set_host_tag(uint64_t host,
                                      tag_id_enumerator&& tag_filler) {
   try {
@@ -328,6 +404,12 @@ void global_cache_data::set_host_tag(uint64_t host,
   }
 }
 
+/**
+ * @brief add tags to a service
+ *
+ * @param host
+ * @param tag_filler lambda who returns tag ids, it ends when it returns 0
+ */
 void global_cache_data::set_serv_tag(uint64_t host,
                                      uint64_t serv,
                                      tag_id_enumerator&& tag_filler) {
@@ -347,6 +429,13 @@ void global_cache_data::set_serv_tag(uint64_t host,
 /***********************************************************/
 /*                   getters                               */
 /***********************************************************/
+
+/**
+ * @brief get metric infos
+ *
+ * @param metric_id
+ * @return const metric_info*
+ */
 const metric_info* global_cache_data::get_metric_info(
     uint32_t metric_id) const {
   auto search = _metric_info->find(metric_id);
@@ -356,6 +445,12 @@ const metric_info* global_cache_data::get_metric_info(
   return nullptr;
 }
 
+/**
+ * @brief get instance name
+ *
+ * @param instance_id
+ * @return const string*
+ */
 const string* global_cache_data::get_instance_name(uint64_t instance_id) const {
   auto search = _id_to_instance->find(instance_id);
   if (search != _id_to_instance->end()) {
@@ -364,6 +459,12 @@ const string* global_cache_data::get_instance_name(uint64_t instance_id) const {
   return nullptr;
 }
 
+/**
+ * @brief get infos of a host
+ *
+ * @param host_id
+ * @return const resource_info*
+ */
 const resource_info* global_cache_data::get_host(uint64_t host_id) const {
   auto search = _id_to_host->find(host_id);
   if (search != _id_to_host->end()) {
@@ -372,6 +473,12 @@ const resource_info* global_cache_data::get_host(uint64_t host_id) const {
   return nullptr;
 }
 
+/**
+ * @brief get info of a host
+ *
+ * @param index_id
+ * @return const resource_info*
+ */
 const resource_info* global_cache_data::get_host_from_index_id(
     uint64_t index_id) const {
   auto host_id_search = _index_id_mapping->find(index_id);
@@ -381,6 +488,13 @@ const resource_info* global_cache_data::get_host_from_index_id(
   return get_host(host_id_search->second.first);
 }
 
+/**
+ * @brief get infos of a service
+ *
+ * @param host_id
+ * @param service_id
+ * @return const resource_info*
+ */
 const resource_info* global_cache_data::get_service(uint64_t host_id,
                                                     uint64_t service_id) const {
   auto serv_search = _id_to_service->find(host_serv_pair(host_id, service_id));
@@ -390,6 +504,12 @@ const resource_info* global_cache_data::get_service(uint64_t host_id,
   return nullptr;
 }
 
+/**
+ * @brief get info of a service
+ *
+ * @param index_id
+ * @return const resource_info*
+ */
 const resource_info* global_cache_data::get_service_from_index_id(
     uint64_t index_id) const {
   auto host_serv_id_search = _index_id_mapping->find(index_id);
@@ -400,6 +520,12 @@ const resource_info* global_cache_data::get_service_from_index_id(
                      host_serv_id_search->second.second);
 }
 
+/**
+ * @brief get host_id service_id from an index_id
+ *
+ * @param index_id
+ * @return const host_serv_pair*
+ */
 const host_serv_pair* global_cache_data::get_host_serv_id(
     uint64_t index_id) const {
   auto host_serv_id_search = _index_id_mapping->find(index_id);
@@ -409,19 +535,23 @@ const host_serv_pair* global_cache_data::get_host_serv_id(
   return &host_serv_id_search->second;
 }
 
+/**
+ * @brief add service groups to a request body
+ *
+ * @param host
+ * @param service
+ * @param request_body
+ */
 void global_cache_data::append_service_group(uint64_t host,
                                              uint64_t service,
                                              std::ostream& request_body) {
   std::set<uint64_t> sorted;
-  {
-    absl::ReaderMutexLock l(&_protect);
-    auto range =
-        _service_group->get<0>().equal_range(host_serv_pair{host, service});
-    if (range.first != range.second) {
-      // in order to avoid cardinality, we sort results
-      for (; range.first != range.second; ++range.first) {
-        sorted.insert(range.first->group);
-      }
+  auto range =
+      _service_group->get<0>().equal_range(host_serv_pair{host, service});
+  if (range.first != range.second) {
+    // in order to avoid cardinality, we sort results
+    for (; range.first != range.second; ++range.first) {
+      sorted.insert(range.first->group);
     }
   }
   if (!sorted.empty()) {
@@ -433,17 +563,20 @@ void global_cache_data::append_service_group(uint64_t host,
   }
 }
 
+/**
+ * @brief append host groups to a request body
+ *
+ * @param host
+ * @param request_body
+ */
 void global_cache_data::append_host_group(uint64_t host,
                                           std::ostream& request_body) {
   std::set<uint64_t> sorted;
-  {
-    absl::ReaderMutexLock l(&_protect);
-    auto range = _host_group->get<0>().equal_range(host);
-    if (range.first != range.second) {
-      // in order to avoid cardinality, we sort results
-      for (; range.first != range.second; ++range.first) {
-        sorted.insert(range.first->group);
-      }
+  auto range = _host_group->get<0>().equal_range(host);
+  if (range.first != range.second) {
+    // in order to avoid cardinality, we sort results
+    for (; range.first != range.second; ++range.first) {
+      sorted.insert(range.first->group);
     }
   }
   if (!sorted.empty()) {
@@ -455,6 +588,13 @@ void global_cache_data::append_host_group(uint64_t host,
   }
 }
 
+/**
+ * @brief append tag ids of a host to a request body
+ *
+ * @param host
+ * @param tag_type
+ * @param request_body
+ */
 void global_cache_data::append_host_tag_id(uint64_t host,
                                            TagType tag_type,
                                            std::ostream& request_body) {
@@ -474,6 +614,14 @@ void global_cache_data::append_host_tag_id(uint64_t host,
   }
 }
 
+/**
+ * @brief append tag ids of a service to a request body
+ *
+ * @param host
+ * @param serv
+ * @param tag_type
+ * @param request_body
+ */
 void global_cache_data::append_serv_tag_id(uint64_t host,
                                            uint64_t serv,
                                            TagType tag_type,
@@ -494,6 +642,13 @@ void global_cache_data::append_serv_tag_id(uint64_t host,
   }
 }
 
+/**
+ * @brief append tag names of a host to a request body
+ *
+ * @param host
+ * @param tag_type
+ * @param request_body
+ */
 void global_cache_data::append_host_tag_name(uint64_t host,
                                              TagType tag_type,
                                              std::ostream& request_body) {
@@ -508,11 +663,25 @@ void global_cache_data::append_host_tag_name(uint64_t host,
         first = false;
       } else {
         request_body << ',' << tag_search->second.name;
-      }
+      } /**
+         * @brief add service group(s) of a metric or status to request
+         *
+         * @param d pb_status or pb_metric
+         * @param tag_type
+         * @param is
+         */
     }
   }
 }
 
+/**
+ * @brief append tag names of a service to a request body
+ *
+ * @param host
+ * @param serv
+ * @param tag_type
+ * @param request_body
+ */
 void global_cache_data::append_serv_tag_name(uint64_t host,
                                              uint64_t serv,
                                              TagType tag_type,

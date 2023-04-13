@@ -30,9 +30,9 @@ class request : public http_tsdb::request {
   const http_tsdb::line_protocol_query& _metric_formatter;
   const http_tsdb::line_protocol_query& _status_formatter;
 
-  void append_metric_info(uint64_t metric_id);
+  void append_metric_info(const Metric& metric);
 
-  void append_host_service_id(uint64_t index_id);
+  void append_status_info(const Status& status);
 
  public:
   request(boost::beast::http::verb method,

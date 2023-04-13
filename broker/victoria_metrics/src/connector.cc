@@ -24,16 +24,17 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 
-connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf)
-    : io::endpoint(false), _conf(conf) {}
+connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
+                     const std::string& account_id)
+    : io::endpoint(false), _conf(conf), _account_id(account_id) {}
 
 std::unique_ptr<io::stream> connector::open() {
   std::shared_ptr<stream> s;
   if (!_conf->is_crypted()) {
-    s = stream::load(pool::io_context_ptr(), _conf,
+    s = stream::load(pool::io_context_ptr(), _conf, _account_id,
                      http_client::http_connection::load);
   } else {
-    s = stream::load(pool::io_context_ptr(), _conf,
+    s = stream::load(pool::io_context_ptr(), _conf, _account_id,
                      http_client::https_connection::load);
   }
 

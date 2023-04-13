@@ -19,6 +19,7 @@
 #include "com/centreon/broker/http_tsdb/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -260,7 +261,22 @@ int stream::write(std::shared_ptr<io::data> const& data) {
         Status converted;
         std::static_pointer_cast<storage::status>(data)->convert_to_pb(
             converted);
-        _request->add_status(converted);
+        {
+          const cache::host_serv_pair* host_serv =
+              cache::global_cache::instance_ptr()->get_host_serv_id(
+                  converted.index_id());
+          if (!host_serv) {
+            SPDLOG_LOGGER_ERROR(
+                _logger, "unable to find host_id service_id from index_id:{}",
+                converted.index_id());
+          } else {
+            converted.set_host_id(host_serv->first);
+            converted.set_service_id(host_serv->second);
+          }
+        }
+        if (converted.service_id()) {
+          _request->add_status(converted);
+        }
         break;
       }
       case storage::pb_status::static_type():
@@ -291,6 +307,7 @@ int stream::write(std::shared_ptr<io::data> const& data) {
 
 int32_t stream::stop() {
   int32_t retval = flush();
+  _http_client->shutdown();
   SPDLOG_LOGGER_INFO(_logger, "{} stream stopped with {} acknowledged events",
                      get_name(), retval);
   return retval;
