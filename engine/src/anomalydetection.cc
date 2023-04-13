@@ -714,9 +714,9 @@ int anomalydetection::run_async_check(int check_options,
     my_check_command->reset_fake_result();  // execute original commands
   }
 
-  run_async_check_local(check_options, latency, scheduled_check,
-                        reschedule_check, time_is_valid, preferred_time,
-                        _dependent_service);
+  return run_async_check_local(check_options, latency, scheduled_check,
+                               reschedule_check, time_is_valid, preferred_time,
+                               _dependent_service);
 }
 
 int anomalydetection::handle_async_check_result(
