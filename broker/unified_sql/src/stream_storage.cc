@@ -280,17 +280,23 @@ void stream::_unified_sql_process_pb_service_status(
         if (_store_in_db) {
           // Append perfdata to queue.
           if (_bulk_prepared_statement) {
-            _perfdata_b->init_from_stmt(conn);
+            if (!_perfdata_b->bind(conn))
+              _perfdata_b->init_from_stmt(conn);
             auto* b = _perfdata_b->bind(conn).get();
-            b->set_value_as_u64(0, metric_id);
-            b->set_value_as_i64(1, ss.last_check());
-            b->set_value_as_tiny(2, ss.state());
+            b->set_value_as_i32(0, metric_id);
+            b->set_value_as_i32(1, ss.last_check());
+            char state[2];
+            state[0] = '0' + ss.state();
+            state[1] = 0;
+            b->set_value_as_str(2, state);
             if (std::isinf(pd.value()))
               b->set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
               b->set_null_f32(3);
             else
               b->set_value_as_f32(3, pd.value());
+            log_v2::sql()->trace("New value {} inserted on metric {} with state {}",
+                pd.value(), metric_id, ss.state());
             b->next_row();
           } else {
             std::string row;
@@ -680,11 +686,15 @@ void stream::_unified_sql_process_service_status(
         if (_store_in_db) {
           // Append perfdata to queue.
           if (_bulk_prepared_statement) {
-            _perfdata_b->init_from_stmt(conn);
+            if (!_perfdata_b->bind(conn))
+              _perfdata_b->init_from_stmt(conn);
             auto* b = _perfdata_b->bind(conn).get();
-            b->set_value_as_u64(0, metric_id);
-            b->set_value_as_i64(1, ss.last_check);
-            b->set_value_as_tiny(2, ss.current_state);
+            b->set_value_as_i32(0, metric_id);
+            b->set_value_as_i32(1, ss.last_check);
+            char state[2];
+            state[0] = '0' + ss.current_state;
+            state[1] = 0;
+            b->set_value_as_str(2, state);
             if (std::isinf(pd.value()))
               b->set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
@@ -805,7 +815,7 @@ void stream::_check_queues(asio::error_code ec) {
     if (_bulk_prepared_statement) {
       for (uint32_t conn = 0; conn < _hscr_bind->connections_count(); conn++) {
         if (_perfdata_b->ready(conn)) {
-          log_v2::sql()->trace("Sending {} perfdata on connection {}",
+          log_v2::sql()->debug("Sending {} perfdata on connection {}",
                                _perfdata_b->size(conn), conn);
           // Setting the good bind to the stmt
           _perfdata_b->apply_to_stmt(conn);
@@ -826,7 +836,7 @@ void stream::_check_queues(asio::error_code ec) {
         for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
              conn++) {
           if (_hscr_bind->ready(conn)) {
-            log_v2::sql()->trace(
+            log_v2::sql()->debug(
                 "Sending {} hosts rows of host status on connection {}",
                 _hscr_bind->size(conn), conn);
             // Setting the good bind to the stmt
@@ -845,7 +855,7 @@ void stream::_check_queues(asio::error_code ec) {
         for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
              conn++) {
           if (_sscr_bind->ready(conn)) {
-            log_v2::sql()->trace(
+            log_v2::sql()->debug(
                 "Sending {} services rows of service status on connection {}",
                 _sscr_bind->size(conn), conn);
             // Setting the good bind to the stmt
@@ -862,7 +872,7 @@ void stream::_check_queues(asio::error_code ec) {
         for (uint32_t conn = 0;
              conn < _hscr_resources_bind->connections_count(); conn++) {
           if (_hscr_resources_bind->ready(conn)) {
-            log_v2::sql()->trace(
+            log_v2::sql()->debug(
                 "Sending {} host rows of resource status on connection {}",
                 _hscr_resources_bind->size(conn), conn);
             // Setting the good bind to the stmt
@@ -877,7 +887,7 @@ void stream::_check_queues(asio::error_code ec) {
         for (uint32_t conn = 0;
              conn < _sscr_resources_bind->connections_count(); conn++) {
           if (_sscr_resources_bind->ready(conn)) {
-            log_v2::sql()->trace(
+            log_v2::sql()->debug(
                 "Sending {} service rows of resource status on connection {}",
                 _sscr_resources_bind->size(conn), conn);
             // Setting the good bind to the stmt
