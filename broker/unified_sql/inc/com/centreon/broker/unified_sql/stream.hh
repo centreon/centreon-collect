@@ -240,7 +240,12 @@ class stream : public io::stream {
    * _max_cv_queries/_max_log_queries. */
   bulk_queries _cv;
   bulk_queries _cvs;
-  bulk_queries _perfdata;
+
+  std::unique_ptr<bulk_queries> _perfdata_q;
+
+  std::unique_ptr<database::mysql_bulk_stmt> _perfdata_stmt;
+  std::unique_ptr<bulk_bind> _perfdata_b;
+
   bulk_queries _logs;
   bulk_queries _downtimes;
 
