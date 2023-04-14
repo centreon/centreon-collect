@@ -67,7 +67,6 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
                                         double max) {
   try {
     absl::WriterMutexLock l(&_protect);
-    _checksum_to_compute = true;
     auto exist = _metric_info->find(metric_id);
     if (exist != _metric_info->end()) {
       metric_info& to_update = exist->second;
@@ -108,8 +107,6 @@ void global_cache_data::store_instance(uint64_t instance_id,
     absl::WriterMutexLock l(&_protect);
     auto exist = _id_to_instance->find(instance_id);
     if (exist == _id_to_instance->end()) {
-      _checksum_to_compute = true;
-
       if (_id_to_instance->size() ==
           _id_to_instance->capacity()) {  // need to grow?
         _id_to_instance->reserve(_id_to_instance->capacity() + 0x100);
@@ -120,7 +117,6 @@ void global_cache_data::store_instance(uint64_t instance_id,
     } else if (instance_name.compare(0, exist->second.length(),
                                      exist->second.c_str())) {
       exist->second.assign(instance_name.data(), instance_name.length());
-      _checksum_to_compute = true;
     }
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
@@ -143,7 +139,6 @@ void global_cache_data::store_host(uint64_t host_id,
                                    uint64_t severity_id) {
   try {
     absl::WriterMutexLock l(&_protect);
-    _checksum_to_compute = true;
     auto exist = _id_to_host->find(host_id);
     if (exist == _id_to_host->end()) {
       if (_id_to_host->size() == _id_to_host->capacity()) {  // need to grow?
@@ -184,7 +179,6 @@ void global_cache_data::store_service(
     uint64_t severity_id) {
   try {
     absl::WriterMutexLock l(&_protect);
-    _checksum_to_compute = true;
     auto exist = _id_to_service->find({host_id, service_id});
     if (exist == _id_to_service->end()) {
       if (_id_to_service->size() ==
@@ -228,13 +222,8 @@ void global_cache_data::set_index_mapping(uint64_t index_id,
     if (_index_id_mapping->size() ==
         _index_id_mapping->capacity()) {  // need to grow
       _index_id_mapping->reserve(_index_id_mapping->size() + 0x10000);
-      _checksum_to_compute = true;
     }
-    if (_index_id_mapping
-            ->emplace(index_id, host_serv_pair(host_id, service_id))
-            .second) {
-      _checksum_to_compute = true;
-    }
+    _index_id_mapping->emplace(index_id, host_serv_pair(host_id, service_id));
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
     allocation_exception_handler();
@@ -251,9 +240,7 @@ void global_cache_data::set_index_mapping(uint64_t index_id,
 void global_cache_data::add_host_group(uint64_t group, uint64_t host) {
   try {
     absl::WriterMutexLock l(&_protect);
-    if (_host_group->emplace(host_group_element{host, group}).second) {
-      _checksum_to_compute = true;
-    }
+    _host_group->emplace(host_group_element{host, group});
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
     allocation_exception_handler();
@@ -269,7 +256,6 @@ void global_cache_data::add_host_group(uint64_t group, uint64_t host) {
  */
 void global_cache_data::remove_host_from_group(uint64_t group, uint64_t host) {
   absl::WriterMutexLock l(&_protect);
-  _checksum_to_compute = true;
   _host_group->get<2>().erase(host_group_element{host, group});
 }
 
@@ -280,7 +266,6 @@ void global_cache_data::remove_host_from_group(uint64_t group, uint64_t host) {
  */
 void global_cache_data::remove_host_group(uint64_t group) {
   absl::WriterMutexLock l(&_protect);
-  _checksum_to_compute = true;
   _host_group->get<1>().erase(group);
 }
 
@@ -296,10 +281,7 @@ void global_cache_data::add_service_group(uint64_t group,
                                           uint64_t service) {
   try {
     absl::WriterMutexLock l(&_protect);
-    if (_service_group->emplace(service_group_element{{host, service}, group})
-            .second) {
-      _checksum_to_compute = true;
-    }
+    _service_group->emplace(service_group_element{{host, service}, group});
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
     allocation_exception_handler();
@@ -318,7 +300,6 @@ void global_cache_data::remove_service_from_group(uint64_t group,
                                                   uint64_t host,
                                                   uint64_t service) {
   absl::WriterMutexLock l(&_protect);
-  _checksum_to_compute = true;
   _service_group->get<2>().erase(service_group_element{{host, service}, group});
 }
 
@@ -329,7 +310,6 @@ void global_cache_data::remove_service_from_group(uint64_t group,
  */
 void global_cache_data::remove_service_group(uint64_t group) {
   absl::WriterMutexLock l(&_protect);
-  _checksum_to_compute = true;
   _service_group->get<1>().erase(group);
 }
 
@@ -347,7 +327,6 @@ void global_cache_data::add_tag(uint64_t tag_id,
                                 uint64_t poller_id) {
   try {
     absl::WriterMutexLock l(&_protect);
-    _checksum_to_compute = true;
     auto exist = _id_to_tag->find(tag_id);
     if (exist == _id_to_tag->end()) {
       if (_id_to_tag->size() == _id_to_tag->capacity()) {  // need to grow?
@@ -663,13 +642,7 @@ void global_cache_data::append_host_tag_name(uint64_t host,
         first = false;
       } else {
         request_body << ',' << tag_search->second.name;
-      } /**
-         * @brief add service group(s) of a metric or status to request
-         *
-         * @param d pb_status or pb_metric
-         * @param tag_type
-         * @param is
-         */
+      }
     }
   }
 }

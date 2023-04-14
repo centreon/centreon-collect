@@ -119,6 +119,7 @@ struct resource_info {
  *
  * When you insert data, you must catch interprocess::bad_allo and call
  * allocation_exception_handler to grow file outside any lock
+ * a flag _dirty indicates if the file has been closed gracefully
  */
 class global_cache : public std::enable_shared_from_this<global_cache> {
  protected:
@@ -128,9 +129,6 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   std::unique_ptr<managed_mapped_file> _file;
 
   std::shared_ptr<asio::io_context> _io_context;
-
-  asio::system_timer _checksum_timer;
-  mutable bool _checksum_to_compute;
 
   mutable absl::Mutex _protect;
 
@@ -145,20 +143,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void allocation_exception_handler();
 
-  uint64_t calc_checksum() const;
-
-  void write_checksum() const;
-
-  void write_checksum_no_lock() const;
-  uint64_t read_checksum() const;
-
   virtual void managed_map(bool create){};
-
-  void start_checksum_timer();
-
-  void checksum_timer_handler(const boost::system::error_code& err);
-
-  void cancel_checksum_timer();
 
  public:
   using pointer = std::shared_ptr<global_cache>;

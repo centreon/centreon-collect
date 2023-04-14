@@ -39,14 +39,16 @@ std::shared_ptr<global_cache> global_cache::_instance;
 
 global_cache::global_cache(const std::string& file_path,
                            const std::shared_ptr<asio::io_context>& io_context)
-    : _file_path(file_path),
-      _file_size(0),
-      _io_context(io_context),
-      _checksum_timer(*io_context),
-      _checksum_to_compute(false) {}
+    : _file_path(file_path), _file_size(0), _io_context(io_context) {}
 
 global_cache::~global_cache() {
-  write_checksum();
+  if (_file) {
+    // file is gracefully closed => no dirty
+    bool* dirty = _file->find<bool>("dirty").first;
+    if (dirty) {
+      *dirty = false;
+    }
+  }
 }
 
 void global_cache::open(size_t initial_size_on_create, const void* address) {
@@ -60,15 +62,17 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
         _file_size = exist_info.st_size;
         _file = std::make_unique<managed_mapped_file>(
             interprocess::open_only, _file_path.c_str(), address);
-        uint64_t chk = calc_checksum();
-
-        if (chk != read_checksum()) {
-          SPDLOG_LOGGER_ERROR(log_v2::core(),
-                              "bad checksum on {} =>erase it and recreate",
-                              _file_path);
-        } else {
+        bool* dirty = _file->find<bool>("dirty").first;
+        if (dirty && !*dirty) {
+          // dirty will be erased by destructor
+          *dirty = true;
+          SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache open file {}", _file_path);
           this->managed_map(false);
           return;
+        } else {
+          SPDLOG_LOGGER_ERROR(
+              log_v2::core(),
+              "global_cache dirty flag not reset => erase file and recreate");
         }
       }
     } catch (const std::exception& e) {
@@ -82,32 +86,14 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
       ::remove(_file_path.c_str());
     }
 
-    SPDLOG_LOGGER_DEBUG(log_v2::core(), "create file {}", _file_path);
+    SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache create file {}", _file_path);
 
     ::remove(_file_path.c_str());
     ::remove((_file_path + checksum_extension).c_str());
     grow(initial_size_on_create);
+    *_file->find_or_construct<bool>("dirty")() = true;
     this->managed_map(true);
-    write_checksum_no_lock();
   }
-}
-
-/**
- * @brief calc the checksum of the data part of the file
- * beware, this method don't lock _protect
- * in order to improve performance, we sum uint64
- *
- * @return uint64_t checksum value
- */
-uint64_t global_cache::calc_checksum() const {
-  uint64_t checksum = 0;
-  const uint64_t* to_sum = static_cast<const uint64_t*>(_file->get_address());
-  const uint64_t* end = reinterpret_cast<const uint64_t*>(
-      static_cast<const uint8_t*>(_file->get_address()) + _file->get_size());
-  for (; to_sum != end; ++to_sum) {
-    checksum += *to_sum;
-  }
-  return checksum;
 }
 
 /**
@@ -171,7 +157,6 @@ void global_cache::allocation_exception_handler() {
     absl::WriterMutexLock l(&_protect);
     grow(_file_size + 0x1000000);
     this->managed_map(false);
-    write_checksum_no_lock();
   }
 }
 
@@ -200,9 +185,6 @@ global_cache::pointer global_cache::load(
  *
  */
 void global_cache::unload() {
-  if (_instance) {
-    _instance->cancel_checksum_timer();
-  }
   _instance.reset();
 }
 
@@ -216,51 +198,4 @@ const void* global_cache::get_address() const {
     return _file->get_address();
   }
   return nullptr;
-}
-
-void global_cache::start_checksum_timer() {
-  absl::WriterMutexLock l(&_protect);
-  _checksum_timer.expires_after(std::chrono::seconds(30));
-  _checksum_timer.async_wait(
-      [me = shared_from_this()](const boost::system::error_code& err) {
-        me->checksum_timer_handler(err);
-      });
-}
-
-void global_cache::cancel_checksum_timer() {
-  absl::WriterMutexLock l(&_protect);
-  _checksum_timer.cancel();
-}
-
-void global_cache::checksum_timer_handler(
-    const boost::system::error_code& err) {
-  if (err) {
-    return;
-  }
-  write_checksum();
-  start_checksum_timer();
-}
-
-void global_cache::write_checksum() const {
-  absl::ReaderMutexLock l(&_protect);
-  write_checksum_no_lock();
-}
-
-void global_cache::write_checksum_no_lock() const {
-  if (!_checksum_to_compute) {
-    return;
-  }
-  std::string check_path = _file_path + checksum_extension;
-  std::ofstream f(check_path.c_str(),
-                  std::ios_base::trunc | std::ios_base::out);
-  f << calc_checksum();
-  _checksum_to_compute = false;
-}
-
-uint64_t global_cache::read_checksum() const {
-  std::string check_path = _file_path + checksum_extension;
-  std::ifstream f(check_path.c_str());
-  uint64_t ret;
-  f >> ret;
-  return ret;
 }
