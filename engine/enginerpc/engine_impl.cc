@@ -3272,73 +3272,39 @@ engine_impl::get_serv(
   return grpc::Status::OK;
 }
 
-/**
- * @brief set log levels and other
- *
- * @param context
- * @param request
- * @param response contain string returned to grpc client
- * @return ::grpc::Status
- */
-
-::grpc::Status engine_impl::SetLogParam(
-    ::grpc::ServerContext* context,
-    const ::com::centreon::engine::LogParam* request,
-    ::google::protobuf::Empty* response) {
-  std::string err_detail;
-  switch (request->param()) {
-    case LogParam_LogParamType_FLUSH_PERIOD: {
-      std::shared_ptr<log_v2_logger> search;
-      std::set<std::string> available_loggers;
-      spdlog::apply_all([&search, &available_loggers, request](
-                            const std::shared_ptr<spdlog::logger> logger) {
-        if (!search) {
-          std::shared_ptr<log_v2_logger> test =
-              std::dynamic_pointer_cast<log_v2_logger>(logger);
-          if (test) {
-            if (test->get_parent()->log_name() == request->name()) {
-              search = test;
-            } else {
-              available_loggers.insert(test->get_parent()->log_name());
-            }
-          }
-        }
-      });
-      if (!search) {
-        err_detail =
-            fmt::format("unknow logger name:{}, available loggers:{}",
-                        request->name(), absl::StrJoin(available_loggers, " "));
-        log_v2::external_command()->error(err_detail);
-        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
-      }
-      unsigned new_interval;
-      if (!absl::SimpleAtoi(request->value(), &new_interval)) {
-        err_detail = fmt::format(
-            "value must be a positive integer instead of {}", request->value());
-        log_v2::external_command()->error(err_detail);
-        return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, err_detail);
-      }
-      search->get_parent()->set_flush_interval(new_interval);
-      return grpc::Status::OK;
-    }
-    case LogParam_LogParamType_LOG_LEVEL: {
-      std::shared_ptr<spdlog::logger> logger = spdlog::get(request->name());
-      if (!logger) {
-        err_detail = fmt::format("unknow logger:{}", request->name());
-        log_v2::external_command()->error(err_detail);
-        return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
-      } else {
-        spdlog::level::level_enum lvl =
-            spdlog::level::from_str(request->value());
-        if (lvl == spdlog::level::off && request->value() != "off") {
-          err_detail = fmt::format("unknow level:{}", request->value());
-          log_v2::external_command()->error(err_detail);
-          return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
-        }
-        logger->set_level(lvl);
-        return grpc::Status::OK;
-      }
-    }
+grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  const std::string& logger_name{request->logger()};
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
+  if (!logger) {
+    std::string err_detail =
+        fmt::format("The '{}' logger does not exist", logger_name);
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
   }
-  return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, "unknown param");
+}
+
+grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  // first get all log_v2 objects
+  std::set<log_v2_base*> loggers;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    std::shared_ptr<log_v2_logger> logger_base =
+        std::dynamic_pointer_cast<log_v2_logger>(logger);
+    if (logger_base) {
+      loggers.insert(logger_base->get_parent());
+    }
+  });
+
+  for (log_v2_base* to_update : loggers) {
+    to_update->set_flush_interval(request->period());
+  }
+  return grpc::Status::OK;
 }
