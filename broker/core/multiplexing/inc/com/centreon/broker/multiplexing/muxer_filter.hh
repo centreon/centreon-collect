@@ -35,6 +35,7 @@ constexpr unsigned max_filter_category =
  * included internal
  */
 class muxer_filter {
+ protected:
   /**
    * @brief array that contains mask by category
    * the last element of the array represents internal category mask
@@ -49,10 +50,18 @@ class muxer_filter {
    */
   constexpr muxer_filter() : _mask{0xFFFFFFFFFFFFFFFF} {}
 
+  // the goal of this class is to force a zero initialisation
+  struct zero_init {};
+
+  /**
+   * @brief constructor witch only initialize all to zero
+   *
+   */
+  constexpr muxer_filter(const zero_init&) : _mask{0} {}
+
   /**
    * @brief constructor
    * it allows event with mess_type type to be pushed
-   * other events can be add with () operator
    * @param mess_types event type
    */
   constexpr muxer_filter(const std::initializer_list<uint32_t> mess_types)
