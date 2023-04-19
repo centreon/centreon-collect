@@ -44,7 +44,7 @@ add_library("${SIMU}" SHARED
   "${INC_DIR}/luabinding.hh"
   "${INC_DIR}/stream.hh"
 )
-target_link_libraries("${SIMU}" ${LUA_LIBRARIES} CONAN_PKG::spdlog)
+target_link_libraries("${SIMU}" ${LUA_LIBRARIES} bbdo_storage bbdo_bam CONAN_PKG::spdlog)
 target_precompile_headers(${SIMU} PRIVATE precomp_inc/precomp.hpp)
 set_target_properties("${SIMU}" PROPERTIES PREFIX "")
 add_dependencies(${SIMU} target_broker_message)
