@@ -203,6 +203,74 @@ bool luabinding::read(std::shared_ptr<io::data>& data) {
   return retval;
 }
 
+static void _write_item(const std::map<std::string, misc::variant>& map,
+                        google::protobuf::Message* p,
+                        const google::protobuf::FieldDescriptor* f) {
+  const google::protobuf::Reflection* refl = p->GetReflection();
+  if (f) {
+    // FIXME DBO: Repeated fields are not supported by the simulator
+    assert(!f->is_repeated());
+
+    const std::string& entry_name = f->name();
+    if (map.find(entry_name) == map.end())
+      return;
+
+    const auto& value = map.at(entry_name);
+    switch (f->type()) {
+      case google::protobuf::FieldDescriptor::TYPE_BOOL:
+        refl->SetBool(p, f, value.as_bool());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+        refl->SetDouble(p, f, value.as_double());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT32:
+        refl->SetInt32(p, f, value.as_int());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT32:
+        refl->SetUInt32(p, f, value.as_uint());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_INT64:
+        refl->SetInt64(p, f, value.as_long());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_UINT64:
+        refl->SetUInt64(p, f, value.as_ulong());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_ENUM:
+        refl->SetEnumValue(p, f, value.as_int());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_STRING:
+        refl->SetString(p, f, value.as_string());
+        break;
+      case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
+        // FIXME DBO: This is not implemented
+        assert(1 == 0);
+        break;
+      default:
+        // FIXME DBO: This is not implemented
+        assert(2 == 0);
+        break;
+    }
+  }
+}
+
+static void _map_to_message(const std::map<std::string, misc::variant>& map,
+                            google::protobuf::Message* p) {
+  const google::protobuf::Descriptor* desc = p->GetDescriptor();
+  const google::protobuf::Reflection* refl = p->GetReflection();
+  for (int i = 0; i < desc->field_count(); i++) {
+    const google::protobuf::FieldDescriptor* f = desc->field(i);
+
+    auto oof = f->containing_oneof();
+    if (oof) {
+      if (!refl->GetOneofFieldDescriptor(*p, oof)) {
+        continue;
+      }
+    }
+
+    _write_item(map, p, f);
+  }
+}
+
 /**
  *  Given an event d, this method converts it to a Lua table.
  *  The result is stored on the Lua interpreter stack.
@@ -254,60 +322,67 @@ bool luabinding::_parse_event(std::shared_ptr<io::data>& d) {
   io::event_info const* info(
       io::events::instance().get_event_info(map["_type"].as_ulong()));
   if (info) {
-    // Create event
     std::unique_ptr<io::data> t(info->get_operations().constructor());
-    if (t) {
-      // Browse all mapping to unserialize the object.
-      for (mapping::entry const* current_entry(info->get_mapping());
-           !current_entry->is_null(); ++current_entry) {
-        if (!current_entry->get_name_v2())
-          continue;
-        std::map<std::string, misc::variant>::const_iterator it{
-            map.find(current_entry->get_name_v2())};
-        if (it != map.end()) {
-          // Skip entries that should not be serialized.
-          switch (current_entry->get_type()) {
-            case mapping::source::BOOL:
-              current_entry->set_bool(*t, it->second.as_bool());
-              break;
-            case mapping::source::DOUBLE:
-              current_entry->set_double(*t, it->second.as_double());
-              break;
-            case mapping::source::INT:
-              current_entry->set_int(*t, it->second.as_long());
-              break;
-            case mapping::source::SHORT:
-              current_entry->set_short(
-                  *t, static_cast<short>(it->second.as_long()));
-              break;
-            case mapping::source::STRING:
-              if (it->second.is_string())
-                current_entry->set_string(*t, it->second.as_string());
-              else
-                current_entry->set_string(*t, it->second.to_string());
-              break;
-            case mapping::source::TIME:
-              current_entry->set_time(*t, it->second.as_ulong());
-              break;
-            case mapping::source::UINT:
-              current_entry->set_uint(*t, it->second.as_ulong());
-              break;
-            default:
-              throw msg_fmt(
-                  "simu: invalid mapping for "
-                  "object of type '{}"
-                  "': {}"
-                  " is not a known type ID",
-                  info->get_name(), current_entry->get_type());
+    // Create event
+    if (info->get_mapping()) {
+      if (t) {
+        // Browse all mapping to unserialize the object.
+        for (mapping::entry const* current_entry(info->get_mapping());
+             !current_entry->is_null(); ++current_entry) {
+          if (!current_entry->get_name_v2())
+            continue;
+          std::map<std::string, misc::variant>::const_iterator it{
+              map.find(current_entry->get_name_v2())};
+          if (it != map.end()) {
+            // Skip entries that should not be serialized.
+            switch (current_entry->get_type()) {
+              case mapping::source::BOOL:
+                current_entry->set_bool(*t, it->second.as_bool());
+                break;
+              case mapping::source::DOUBLE:
+                current_entry->set_double(*t, it->second.as_double());
+                break;
+              case mapping::source::INT:
+                current_entry->set_int(*t, it->second.as_long());
+                break;
+              case mapping::source::SHORT:
+                current_entry->set_short(
+                    *t, static_cast<short>(it->second.as_long()));
+                break;
+              case mapping::source::STRING:
+                if (it->second.is_string())
+                  current_entry->set_string(*t, it->second.as_string());
+                else
+                  current_entry->set_string(*t, it->second.to_string());
+                break;
+              case mapping::source::TIME:
+                current_entry->set_time(*t, it->second.as_ulong());
+                break;
+              case mapping::source::UINT:
+                current_entry->set_uint(*t, it->second.as_ulong());
+                break;
+              default:
+                throw msg_fmt(
+                    "simu: invalid mapping for "
+                    "object of type '{}"
+                    "': {}"
+                    " is not a known type ID",
+                    info->get_name(), current_entry->get_type());
+            }
           }
         }
-      }
-      d.reset(t.release());
-    } else
-      throw msg_fmt(
-          "simu: cannot create object of ID {}"
-          " whereas it has been registered",
-          map["_type"].as_int());
+        d.reset(t.release());
+      } else
+        throw msg_fmt(
+            "simu: cannot create object of ID {}"
+            " whereas it has been registered",
+            map["_type"].as_int());
+    } else {
+      // Protobuf events
+      google::protobuf::Message* p =
+          static_cast<io::protobuf_base*>(t.get())->mut_msg();
+      _map_to_message(map, p);
+    }
   } else {
     log_v2::lua()->info(
         "simu: cannot unserialize event of ID {}: event was not registered and "
