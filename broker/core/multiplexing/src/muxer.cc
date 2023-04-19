@@ -250,16 +250,16 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       std::lock_guard<std::mutex> lock(_mutex);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
+        if (!_stream_filter.allowed((*evt)->type())) {
+          SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer::publish {} reject {}",
+                              _name, **evt);
+          continue;
+        }
         if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
               "muxer {} event of type {:x} rejected by write filter", _name,
               (*evt)->type());
-          continue;
-        }
-        if (!_stream_filter.allowed((*evt)->type())) {
-          SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer::publish {} reject {}",
-                              _name, **evt);
           continue;
         }
         SPDLOG_LOGGER_TRACE(log_v2::core(),
@@ -280,6 +280,11 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     // nothing pushed => to file
     std::lock_guard<std::mutex> lock(_mutex);
     for (; evt != event_queue.end(); ++evt) {
+      if (!_stream_filter.allowed((*evt)->type())) {
+        SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer::publish {} reject {}",
+                            _name, **evt);
+        continue;
+      }
       if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
         SPDLOG_LOGGER_TRACE(
             log_v2::core(),
@@ -287,11 +292,6 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
             (*evt)->type());
         continue;
       }
-      if (!_stream_filter.allowed((*evt)->type())) {
-        continue;
-      }
-      SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer {} event of type {:x} written",
-                          _name, (*evt)->type());
       if (!_file) {
         QueueFileStats* s =
             stats::center::instance().muxer_stats(_name)->mutable_queue_file();
@@ -300,8 +300,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       try {
         _file->write(*evt);
         SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "muxer::publish {} publish one event to file {}",
-                            _name, _queue_file_name);
+                            "muxer::publish {} publish {} to file {}", _name,
+                            **evt, _queue_file_name);
       } catch (const std::exception& ex) {
         // in case of exception, we lost event. It's mandatory to avoid infinite
         // loop in case of permanent disk problem

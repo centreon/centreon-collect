@@ -48,7 +48,11 @@ class muxer_filter {
    * @brief default constructor
    * accept all events by default
    */
-  constexpr muxer_filter() : _mask{0xFFFFFFFFFFFFFFFF} {}
+  constexpr muxer_filter() : _mask{0xFFFFFFFFFFFFFFFF} {
+    for (unsigned ind = 0; ind < max_filter_category; ++ind) {
+      _mask[ind] = 0xFFFFFFFFFFFFFFFF;
+    }
+  }
 
   // the goal of this class is to force a zero initialisation
   struct zero_init {};
@@ -57,7 +61,11 @@ class muxer_filter {
    * @brief constructor witch only initialize all to zero
    *
    */
-  constexpr muxer_filter(const zero_init&) : _mask{0} {}
+  constexpr muxer_filter(const zero_init&) : _mask{0} {
+    for (unsigned ind = 0; ind < max_filter_category; ++ind) {
+      _mask[ind] = 0;
+    }
+  }
 
   /**
    * @brief constructor
@@ -66,6 +74,10 @@ class muxer_filter {
    */
   constexpr muxer_filter(const std::initializer_list<uint32_t> mess_types)
       : _mask{0} {
+    for (unsigned ind = 0; ind < max_filter_category; ++ind) {
+      _mask[ind] = 0;
+    }
+
     for (uint32_t mess_type : mess_types) {
       uint16_t cat = category_of_type(mess_type);
       uint16_t elem = element_of_type(mess_type);

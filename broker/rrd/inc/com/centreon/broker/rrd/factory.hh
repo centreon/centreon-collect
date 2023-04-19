@@ -33,7 +33,7 @@ namespace rrd {
  */
 class factory : public io::factory {
  public:
-  factory() = default;
+  factory();
   ~factory() = default;
   factory(factory const& other) = delete;
   factory& operator=(factory const& other) = delete;

@@ -33,7 +33,7 @@ namespace influxdb {
  */
 class factory : public io::factory {
  public:
-  factory() = default;
+  factory();
   factory(factory const&) = delete;
   ~factory() = default;
   factory& operator=(factory const& other) = delete;

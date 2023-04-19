@@ -47,6 +47,15 @@ static std::string find_param(config::endpoint const& cfg,
 }
 
 /**
+ * @brief constructor
+ *
+ */
+factory::factory() {
+  _mandatory_category.insert(category_name(io::data_category::storage));
+  _mandatory_category.insert(category_name(io::data_category::neb));
+}
+
+/**
  *  Check if a configuration match the storage layer.
  *
  *  @param[in] cfg  Endpoint configuration.
