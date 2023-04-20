@@ -424,7 +424,7 @@ const std::string& state::listen_address() const noexcept {
   return _listen_address;
 }
 
-state::log& state::log_conf() {
+state::log& state::mut_log_conf() {
   return _log_conf;
 }
 
