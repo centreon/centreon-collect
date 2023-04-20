@@ -19,7 +19,7 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
-#include <future>
+#include <boost/circular_buffer.hpp>
 
 #include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
@@ -98,9 +98,96 @@ class mysql_connection {
    */
   bool _connected;
   std::time_t _switch_point;
-  SqlConnectionStats* _stats;
+  size_t _stats_idx;
   std::time_t _last_stats;
   uint32_t _qps;
+
+  class stats_stmt_span {
+    mysql_connection* const _parent;
+    const std::chrono::system_clock::time_point _start_time;
+    const uint32_t _statement_id;
+    std::string _query;
+    uint32_t _rows_count = 1;
+
+   public:
+    stats_stmt_span(mysql_connection* parent, uint32_t stmt_id)
+        : _parent{parent},
+          _start_time(std::chrono::system_clock::now()),
+          _statement_id{stmt_id} {
+      const std::string& query = parent->_stmt_query[stmt_id];
+      _query = query.size() > 50
+                   ? fmt::format("{}...", fmt::string_view(query.data(), 50))
+                   : query;
+    }
+    ~stats_stmt_span() noexcept {
+      auto end_time = std::chrono::system_clock::now();
+      float s = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    end_time - _start_time)
+                    .count() /
+                1000.0f;
+      if (s > 0) {
+        _parent->_stat_stmt.push_back({
+            .statement_query = std::move(_query),
+            .statement_id = _statement_id,
+            .start_time = std::chrono::system_clock::to_time_t(_start_time),
+            .duration = s,
+            .rows_count = _rows_count,
+        });
+      }
+    }
+    void set_rows_count(uint32_t rows_count) { _rows_count = rows_count; }
+  };
+
+  class stats_query_span {
+    mysql_connection* const _parent;
+    const std::chrono::system_clock::time_point _start_time;
+    const uint32_t _query_len;
+    std::string _query;
+
+   public:
+    stats_query_span(mysql_connection* parent, const std::string& query)
+        : _parent{parent},
+          _start_time(std::chrono::system_clock::now()),
+          _query_len(query.size()) {
+      _query = query.size() > 50
+                   ? fmt::format("{}...", fmt::string_view(query.data(), 50))
+                   : query;
+    }
+    ~stats_query_span() noexcept {
+      auto end_time = std::chrono::system_clock::now();
+      float s = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    end_time - _start_time)
+                    .count() /
+                1000.0f;
+      if (s > 0) {
+        _parent->_stat_query.push_back({
+            .query = std::move(_query),
+            .start_time = std::chrono::system_clock::to_time_t(_start_time),
+            .duration = s,
+            .length = _query_len,
+        });
+      }
+    }
+  };
+
+  struct stat_query {
+    std::string query;
+    time_t start_time;
+    float duration;
+    size_t length;
+  };
+
+  struct stat_statement {
+    std::string statement_query;
+    uint32_t statement_id;
+    time_t start_time;
+    float duration;
+    uint32_t rows_count;
+  };
+
+  /* Statistics */
+  boost::circular_buffer<stat_query> _stat_query;
+  boost::circular_buffer<stat_statement> _stat_stmt;
 
   /* mutex to protect the string access in _error */
   mutable std::mutex _error_m;
@@ -139,7 +226,7 @@ class mysql_connection {
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(database_config const& db_cfg, SqlConnectionStats* stats);
+  mysql_connection(database_config const& db_cfg, size_t stats_idx);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
