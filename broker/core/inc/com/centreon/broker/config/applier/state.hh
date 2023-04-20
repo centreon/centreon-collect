@@ -41,6 +41,11 @@ class state {
   size_t _pool_size;
   modules _modules;
 
+  struct stats {
+    uint32_t sql_slowest_statements_count = false;
+    uint32_t sql_slowest_queries_count = false;
+  } _stats_conf;
+
   state();
   ~state() noexcept = default;
 
@@ -60,6 +65,8 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
   modules& get_modules();
+  stats& mut_stats_conf();
+  const stats& stats_conf() const;
 };
 }  // namespace applier
 }  // namespace config

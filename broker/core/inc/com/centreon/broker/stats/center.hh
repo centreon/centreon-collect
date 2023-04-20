@@ -80,9 +80,10 @@ class center {
   void clear_muxer_queue_file(const std::string& name);
 
   bool get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
-  void get_sql_manager_stats(SqlManagerStats* response);
-  SqlConnectionStats* add_connection();
-  void remove_connection(SqlConnectionStats* stats);
+  void get_sql_manager_stats(SqlManagerStats* response, int32_t id = -1);
+  SqlConnectionStats* connection(size_t idx);
+  size_t add_connection();
+  void remove_connection(size_t idx);
   void get_conflict_manager_stats(ConflictManagerStats* response);
 
   int get_json_stats_file_creation(void);
@@ -133,7 +134,7 @@ class center {
     (ptr->*f)(value);
   }
 
-  void execute(std::function<void()> f) {
+  void execute(std::function<void()>&& f) {
     std::lock_guard<std::mutex> lck(_stats_m);
     f();
   }

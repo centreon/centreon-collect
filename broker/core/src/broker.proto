@@ -9,7 +9,9 @@ service Broker {
 
   // stats
   rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
-  rpc GetSqlManagerStats(google.protobuf.Empty) returns (SqlManagerStats) {}
+  rpc SetSqlManagerStats(SqlManagerStatsOptions)
+      returns (google.protobuf.Empty) {}
+  rpc GetSqlManagerStats(SqlConnection) returns (SqlManagerStats) {}
   rpc GetConflictManagerStats(google.protobuf.Empty)
       returns (ConflictManagerStats) {}
   rpc GetMuxerStats(GenericString) returns (MuxerStats) {}
@@ -32,13 +34,13 @@ service Broker {
   rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
   rpc RemoveGraphs(ToRemove) returns (google.protobuf.Empty) {}
   /**
-  * @brief Retrieve some informations about loggers. If a name is specified,
-  * Informations are concentrated on the logger of that name.
-  *
-  * @param A logger name.
-  *
-  * @return A LogInfo message.
-  */
+   * @brief Retrieve some informations about loggers. If a name is specified,
+   * Informations are concentrated on the logger of that name.
+   *
+   * @param A logger name.
+   *
+   * @return A LogInfo message.
+   */
   rpc GetLogInfo(GenericString) returns (LogInfo) {}
 
   /**
@@ -72,7 +74,6 @@ message LogInfo {
   uint32 log_flush_period = 3;
   map<string, string> level = 4;
 }
-
 
 message LogLevel {
   string logger = 1;
@@ -119,12 +120,43 @@ message GenericResponse {
   string err_msg = 2;
 }
 
+/**
+ * @brief This is the message given to the GetSqlManagerStats. It is possible
+ * to specify an index representing which connection to display. If no value
+ * is given all the connections are returned.
+ */
+message SqlConnection {
+  optional uint32 id = 1;
+}
+
 message SqlConnectionStats {
   int32 waiting_tasks = 1;
   oneof last_switch {
-    int64 up_since = 3;
-    int64 down_since = 4;
+    int64 up_since = 2;
+    int64 down_since = 3;
   };
+  message QueryStats {
+    uint32 length = 1;
+    float duration = 2;
+    int64 start_time = 3;
+    string query = 4;
+  };
+  message StatementStats {
+    float rows_count = 1;
+    float duration = 2;
+    int64 start_time = 3;
+    uint32 statement_id = 4;
+    string statement_query = 5;
+  };
+  QueryStats queries_average = 4;
+  repeated QueryStats slowest_queries = 5;
+  StatementStats statements_average = 6;
+  repeated StatementStats slowest_statements = 7;
+}
+
+message SqlManagerStatsOptions {
+  optional uint32 slowest_statements_count = 1;
+  optional uint32 slowest_queries_count = 2;
 }
 
 message SqlManagerStats {
