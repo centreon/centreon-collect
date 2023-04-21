@@ -1271,10 +1271,32 @@ def process_host_check_result(hst: str, state: int, output: str):
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
+    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};0;0;{4};admin;Downtime set by admin\n".format(
+        hst, svc, now, now+duration, duration)
+    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
+    now = int(time.time())
     cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin\n".format(
         hst, svc, now, now + duration, duration)
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
+    f.close()
+
+
+def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
+    now = int(time.time())
+    cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
+        hst, now, now + duration)
+    cmd2 = "[{1}] SCHEDULE_HOST_SVC_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
+        hst, now, now + duration)
+    f = open(
+        VAR_ROOT + "/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
+    f.write(cmd1)
+    f.write(cmd2)
     f.close()
 
 
@@ -1402,6 +1424,7 @@ def set_services_passive(poller: int, srv_regex):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
+
 
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")

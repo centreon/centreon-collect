@@ -130,7 +130,7 @@ BEDTMASS2
 	Kindly Stop Broker
 
 BEDTSVCREN1
-	[Documentation]	New services with several pollers
+	[Documentation]	New services with one pollers
 	[Tags]	Broker	Engine	services	protobuf
 	Config Engine	${1}
 	Engine Config Set Value	${0}	log_level_functions	trace
@@ -140,7 +140,6 @@ BEDTSVCREN1
 	Broker Config Log	central	sql	debug
 	Broker Config Log	module0	neb	debug
 
-	Broker Config Log	central	sql	debug
 	Clear Retention
 	${start}=	Get Current Date
 	Start Broker
@@ -164,6 +163,77 @@ BEDTSVCREN1
 	# Let's wait for the initial service states.
 
 	Delete service downtime full	${0}	host_1	toto_1
+
+	${result}=	check number of downtimes	${0}	${start}	${60}
+	Should be true	${result}	msg=We should have no downtime enabled.
+
+	Stop Engine
+	Kindly Stop Broker
+
+
+BEDTSVCFIXED
+	[Documentation]	fixed service downtime
+	[Tags]	Broker	Engine	services	
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_level_functions	trace
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	debug
+
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	# Let's wait for the initial service states.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+	# It's time to schedule a downtime
+	Schedule service downtime  host_1  service_1  ${3600}
+
+	${result}=	check number of downtimes	${1}	${start}	${60}
+	Should be true	${result}	msg=We should have 1 downtime enabled.
+
+	Delete service downtime full	${0}	host_1	service_1
+
+	${result}=	check number of downtimes	${0}	${start}	${60}
+	Should be true	${result}	msg=We should have no downtime enabled.
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEDTHOSTFIXED
+	[Documentation]	fixed host downtime
+	[Tags]	Broker	Engine	services	
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_level_functions	trace
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	debug
+	Config Broker Sql Output	central	unified_sql
+
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	# Let's wait for the initial service states.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+	# It's time to schedule downtimes
+	Schedule host fixed downtime	${0}	host_1	${3600}
+
+	${result}=	check number of downtimes	${21}	${start}	${60}
+	Should be true	${result}	msg=We should have 1 downtimes enabled.
+
+	# It's time to delete downtimes
+	Delete host downtimes	${0}	host_1
 
 	${result}=	check number of downtimes	${0}	${start}	${60}
 	Should be true	${result}	msg=We should have no downtime enabled.

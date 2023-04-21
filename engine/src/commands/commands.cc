@@ -1025,12 +1025,15 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   /* get the duration */
   if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(*ait, &duration)) {
-    log_v2::external_command()->error(
-        "Error: could not schedule downtime : duration '{}' must be an integer "
-        ">= 0",
-        *ait);
-    return ERROR;
+  if (!ait->empty()) {
+    if (!absl::SimpleAtoi(*ait, &duration)) {
+      log_v2::external_command()->error(
+          "Error: could not schedule downtime : duration '{}' must be an "
+          "integer "
+          ">= 0",
+          *ait);
+      return ERROR;
+    }
   }
   ++ait;
 
@@ -1051,8 +1054,11 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   ** strtoul converts a nullptr value to 0 so if set to 0, bail out as a
   ** duration>0 is needed.
   */
-  if (!fixed && !duration)
+  if (!fixed && !duration) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "no duration defined for a fixed downtime");
     return ERROR;
+  }
 
   /* duration should be auto-calculated, not user-specified */
   if (fixed)
