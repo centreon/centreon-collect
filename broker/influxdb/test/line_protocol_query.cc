@@ -56,7 +56,7 @@ TEST(InfluxDBLineProtoQuery, GenerateMetricExcept) {
       "test", columns, influxdb::line_protocol_query::status, cache);
   influxdb::line_protocol_query lpq3(
       "test", columns, influxdb::line_protocol_query::metric, cache);
-  storage::metric m1;
+  storage::pb_metric m1;
 
   ASSERT_THROW(lpq1.generate_metric(m1), msg_fmt);
   ASSERT_THROW(lpq2.generate_metric(m1), msg_fmt);
@@ -67,9 +67,37 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::metric m1{1u, 1u, "host1", 2000llu, 60, true, 42u, 42, 42.0, 4};
-  storage::metric m2{1u, 1u, "host2", 4000llu, 120, false, 43, 42, 42.0, 4};
-  storage::metric m3{2u, 3u, "hotst3", 2000llu, 60, true, 42u, 43, 43.0, 0};
+  storage::pb_metric pb_m1, pb_m2, pb_m3;
+  Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
+  m1.set_host_id(1);
+  m1.set_service_id(1);
+  m1.set_name("host1");
+  m1.set_time(2000llu);
+  m1.set_interval(60);
+  m1.set_metric_id(42u);
+  m1.set_rrd_len(42);
+  m1.set_value(42.0);
+  m1.set_value_type(Metric::AUTOMATIC);
+
+  m2.set_host_id(1);
+  m2.set_service_id(1);
+  m2.set_name("host2");
+  m2.set_time(4000llu);
+  m2.set_interval(120);
+  m2.set_metric_id(43u);
+  m2.set_rrd_len(42);
+  m2.set_value(42.0);
+  m2.set_value_type(Metric::AUTOMATIC);
+
+  m3.set_host_id(2);
+  m3.set_service_id(3);
+  m3.set_name("hotst3");
+  m3.set_time(2000llu);
+  m3.set_interval(60);
+  m3.set_metric_id(42u);
+  m3.set_rrd_len(43);
+  m3.set_value(43.0);
+  m3.set_value_type(Metric::GAUGE);
 
   columns.push_back(
       influxdb::column{"host1", "42.0", true, influxdb::column::number});
@@ -83,11 +111,11 @@ TEST(InfluxDBLineProtoQuery, GenerateMetric) {
   influxdb::line_protocol_query lpq(
       "test", columns, influxdb::line_protocol_query::metric, cache);
 
-  ASSERT_EQ(lpq.generate_metric(m1),
+  ASSERT_EQ(lpq.generate_metric(pb_m1),
             "test,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
-  ASSERT_EQ(lpq.generate_metric(m2),
+  ASSERT_EQ(lpq.generate_metric(pb_m2),
             "test,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 4000\n");
-  ASSERT_EQ(lpq.generate_metric(m3),
+  ASSERT_EQ(lpq.generate_metric(pb_m3),
             "test,host1=42.0,host3=43.0 host2=42.0,host2=\"42.0\" 2000\n");
 }
 
@@ -95,7 +123,17 @@ TEST(InfluxDBLineProtoQuery, ComplexMetric) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
+  storage::pb_metric m;
+  Metric& m_obj = m.mut_obj();
+  m_obj.set_host_id(1);
+  m_obj.set_service_id(1);
+  m_obj.set_name("host1");
+  m_obj.set_time(2000);
+  m_obj.set_interval(60);
+  m_obj.set_metric_id(40);
+  m_obj.set_rrd_len(42);
+  m_obj.set_value(42.0);
+  m_obj.set_value_type(Metric::AUTOMATIC);
   std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
   std::shared_ptr<neb::pb_instance> instance{
@@ -153,7 +191,13 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::status s{2000llu, 3, 60, true, 9, 2};
+  storage::pb_status s;
+  Status& obj_s = s.mut_obj();
+  obj_s.set_time(2000);
+  obj_s.set_index_id(3);
+  obj_s.set_interval(60);
+  obj_s.set_rrd_len(9);
+  obj_s.set_state(2);
 
   std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
@@ -209,7 +253,17 @@ TEST(InfluxDBLineProtoQuery, ComplexPbMetric) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::metric m{1u, 1u, "host1", 2000llu, 60, true, 40u, 42, 42.0, 4};
+  storage::pb_metric m;
+  Metric& m_obj = m.mut_obj();
+  m_obj.set_host_id(1);
+  m_obj.set_service_id(1);
+  m_obj.set_name("host1");
+  m_obj.set_time(2000);
+  m_obj.set_interval(60);
+  m_obj.set_metric_id(40);
+  m_obj.set_rrd_len(42);
+  m_obj.set_value(42.0);
+  m_obj.set_value_type(Metric::AUTOMATIC);
   auto host{std::make_shared<neb::pb_host>()};
   auto svc{std::make_shared<neb::pb_service>()};
   auto instance{std::make_shared<neb::pb_instance>()};
@@ -259,7 +313,13 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::status s{2000llu, 3, 60, true, 9, 2};
+  storage::pb_status s;
+  Status& obj_s = s.mut_obj();
+  obj_s.set_time(2000);
+  obj_s.set_index_id(3);
+  obj_s.set_interval(60);
+  obj_s.set_rrd_len(9);
+  obj_s.set_state(2);
 
   auto host{std::make_shared<neb::pb_host>()};
   auto svc{std::make_shared<neb::pb_service>()};
@@ -309,8 +369,8 @@ TEST(InfluxDBLineProtoQuery, Except) {
   std::vector<influxdb::column> columns;
   std::shared_ptr<persistent_cache> pcache{nullptr};
   influxdb::macro_cache cache(pcache);
-  storage::status s;
-  storage::metric m;
+  storage::pb_metric m;
+  storage::pb_status s;
 
   influxdb::line_protocol_query q{"test .", columns,
                                   influxdb::line_protocol_query::metric, cache};
@@ -344,8 +404,8 @@ TEST(InfluxDBLineProtoQuery, Except) {
     ASSERT_TRUE(true);
   }
 
-  m.metric_id = 3;
-  m.name = "A";
+  m.mut_obj().set_metric_id(3);
+  m.mut_obj().set_name("A");
 
   influxdb::line_protocol_query q4{"test . $METRICID$ $METRIC$", columns,
                                    influxdb::line_protocol_query::metric,
