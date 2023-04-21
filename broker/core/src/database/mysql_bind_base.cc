@@ -23,7 +23,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/mysql.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
@@ -67,7 +66,6 @@ void mysql_bind_base::_set_typed(uint32_t range) {
   _empty = false;
   _typed[range] = true;
 }
-
 
 void mysql_bind_base::set_empty() {
   _empty = true;

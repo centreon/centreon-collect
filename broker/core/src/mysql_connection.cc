@@ -18,7 +18,6 @@
 #include <errmsg.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -113,177 +112,66 @@ void mysql_connection::_clear_connection() {
  */
 void mysql_connection::_update_stats() noexcept {
   auto now = std::time(nullptr);
-  if (now > _last_stats) {
+  if (now > _last_stats + 2) {
     _last_stats = now;
 
-    bool there_are_stmts;
-    stat_statement slowest_stmt{};
-    stat_statement avg_stmt{};
-    if (!_stat_stmt.empty()) {
-      there_are_stmts = true;
-      for (auto& s : _stat_stmt) {
-        if (s.duration > slowest_stmt.duration)
-          slowest_stmt = s;
-        avg_stmt.duration += s.duration;
-        avg_stmt.rows_count += s.rows_count;
-      }
-      avg_stmt.duration /= _stat_stmt.size();
-      avg_stmt.rows_count /= _stat_stmt.size();
-    } else
-      there_are_stmts = false;
+    float stmt_avg = 0.0f;
+    for (float d : _stmt_duration) {
+      stmt_avg += d;
+      if (!_stmt_duration.empty())
+        stmt_avg /= _stmt_duration.size();
 
-    bool there_are_queries;
-    stat_query slowest_query{};
-    stat_query avg_query{};
-    if (!_stat_query.empty()) {
-      there_are_queries = true;
-      for (auto& s : _stat_query) {
-        if (s.duration > slowest_query.duration)
-          slowest_query = s;
-        avg_query.duration += s.duration;
-        avg_query.length += s.length;
-      }
-      avg_query.duration /= _stat_query.size();
-      avg_query.length /= _stat_query.size();
-    } else
-      there_are_queries = false;
+      float query_avg = 0.0f;
+      for (float d : _query_duration) {
+        query_avg += d;
+        if (!_query_duration.empty())
+          query_avg /= _query_duration.size();
 
-    stats::center::instance().execute([this, s_s = slowest_stmt, a_s = avg_stmt,
-                                       top_q =
-                                           config::applier::state::instance()
-                                               .stats_conf()
-                                               .sql_slowest_queries_count,
-                                       top_s =
-                                           config::applier::state::instance()
-                                               .stats_conf()
-                                               .sql_slowest_statements_count,
-                                       s_q = slowest_query, a_q = avg_query,
-                                       there_are_queries, there_are_stmts] {
-      SqlConnectionStats* stats =
-          stats::center::instance().connection(_stats_idx);
-      std::string dbg;
-      stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
-      if (static_cast<bool>(_connected))
-        stats->set_up_since(_switch_point);
-      else {
-        stats->set_down_since(_switch_point);
-        stats->clear_slowest_statements();
-        stats->clear_slowest_queries();
-        stats->mutable_statements_average()->set_duration(0);
-        stats->mutable_statements_average()->set_rows_count(0);
+        std::lock_guard<stats::center> lck(stats::center::instance());
+        SqlConnectionStats* stats =
+            stats::center::instance().connection(_stats_idx);
+        stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
+        if (static_cast<bool>(_connected)) {
+          stats->set_up_since(_switch_point);
 
-        stats->mutable_queries_average()->set_duration(0);
-        stats->mutable_queries_average()->set_length(0);
-        return;
-      }
+          stats->set_average_statement_duration(stmt_avg);
+          stats->set_average_query_duration(query_avg);
 
-      if (there_are_stmts) {
-        auto fill_stat = [](SqlConnectionStats_StatementStats* ss,
-                            float duration, uint32_t rows_count,
-                            int32_t start_time, uint32_t statement_id,
-                            const std::string& query) {
-          ss->set_duration(duration);
-          ss->set_rows_count(rows_count);
-          ss->set_start_time(start_time);
-          ss->set_statement_id(statement_id);
-          ss->set_statement_query(query);
-        };
-        stats->mutable_statements_average()->set_duration(a_s.duration);
-        stats->mutable_statements_average()->set_rows_count(a_s.rows_count);
-
-        int idx = 0;
-        float duration = 1000.0;
-        if (stats->slowest_statements().size() >= top_s) {
-          for (int i = 0; i < stats->slowest_statements().size(); i++) {
-            if (stats->slowest_statements()[i].duration() < duration) {
-              duration = stats->slowest_statements()[i].duration();
-              idx = i;
-            }
+          stats->clear_slowest_statements();
+          stats->mutable_slowest_statements()->Reserve(_stat_stmt.size());
+          for (auto& l_ss : _stat_stmt) {
+            auto* ss = stats->add_slowest_statements();
+            ss->set_rows_count(l_ss.rows_count);
+            ss->set_duration(l_ss.duration);
+            ss->set_start_time(l_ss.start_time);
+            ss->set_statement_id(l_ss.statement_id);
+            ss->set_statement_query(l_ss.statement_query);
           }
-          if (s_s.duration > duration) {
-            auto* new_ss = stats->mutable_slowest_statements(idx);
-            fill_stat(new_ss, s_s.duration, s_s.rows_count, s_s.start_time,
-                      s_s.statement_id, s_s.statement_query);
+
+          stats->clear_slowest_queries();
+          stats->mutable_slowest_queries()->Reserve(_stat_query.size());
+          for (auto& l_sq : _stat_query) {
+            auto* sq = stats->add_slowest_queries();
+            sq->set_length(l_sq.length);
+            sq->set_duration(l_sq.duration);
+            sq->set_start_time(l_sq.start_time);
+            sq->set_query(l_sq.query);
           }
-          if (stats->slowest_statements().size() > top_s) {
-            duration = 1000.0;
-            for (int i = 0; i < stats->slowest_statements().size(); i++) {
-              if (stats->slowest_statements()[i].duration() < duration) {
-                duration = stats->slowest_statements()[i].duration();
-                idx = i;
-              }
-            }
-            auto it = stats->mutable_slowest_statements()->begin() + idx;
-            stats->mutable_slowest_statements()->erase(it);
+          if (stats->slowest_queries().size() > _stat_query.size()) {
+            auto it =
+                stats->mutable_slowest_queries()->begin() + _stat_query.size();
+            stats->mutable_slowest_queries()->erase(
+                it, stats->mutable_slowest_queries()->end());
           }
         } else {
-          bool found = false;
-          for (int i = 0; i < stats->slowest_statements().size(); i++) {
-            if (stats->slowest_statements()[i].duration() == s_s.duration &&
-                stats->slowest_statements()[i].rows_count() == s_s.rows_count &&
-                stats->slowest_statements()[i].start_time() == s_s.start_time) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            auto* new_ss = stats->add_slowest_statements();
-            fill_stat(new_ss, s_s.duration, s_s.rows_count, s_s.start_time,
-                      s_s.statement_id, s_s.statement_query);
-          }
+          stats->set_down_since(_switch_point);
+          stats->clear_slowest_statements();
+          stats->clear_slowest_queries();
+          stats->set_average_statement_duration(0);
+          stats->set_average_query_duration(0);
         }
       }
-      if (there_are_queries) {
-        stats->mutable_queries_average()->set_duration(a_q.duration);
-        stats->mutable_queries_average()->set_length(a_q.length);
-
-        int idx = 0;
-        float duration = 1000.0;
-        if (stats->slowest_queries().size() >= top_q) {
-          for (int i = 0; i < stats->slowest_queries().size(); i++) {
-            if (stats->slowest_queries()[i].duration() < duration) {
-              duration = stats->slowest_queries()[i].duration();
-              idx = i;
-            }
-          }
-          if (s_q.duration > duration) {
-            auto* new_sq = stats->mutable_slowest_queries(idx);
-            new_sq->set_duration(s_q.duration);
-            new_sq->set_length(s_q.length);
-            new_sq->set_start_time(s_q.start_time);
-            new_sq->set_query(s_q.query);
-          }
-          if (stats->slowest_queries().size() > top_q) {
-            duration = 1000.0;
-            for (int i = 0; i < stats->slowest_queries().size(); i++) {
-              if (stats->slowest_queries()[i].duration() < duration) {
-                duration = stats->slowest_queries()[i].duration();
-                idx = i;
-              }
-            }
-            auto it = stats->mutable_slowest_queries()->begin() + idx;
-            stats->mutable_slowest_queries()->erase(it);
-          }
-        } else {
-          bool found = false;
-          for (int i = 0; i < stats->slowest_queries().size(); i++) {
-            if (stats->slowest_queries()[i].duration() == s_q.duration &&
-                stats->slowest_queries()[i].length() == s_q.length &&
-                stats->slowest_queries()[i].start_time() == s_q.start_time) {
-              found = true;
-              break;
-            }
-          }
-          if (!found) {
-            auto* new_sq = stats->add_slowest_queries();
-            new_sq->set_duration(s_q.duration);
-            new_sq->set_length(s_q.length);
-            new_sq->set_start_time(s_q.start_time);
-            new_sq->set_query(s_q.query);
-          }
-        }
-      }
-    });
+    }
   }
 }
 
@@ -922,8 +810,8 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _stats_idx{stats_idx},
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()),
-      _stat_query(20),
-      _stat_stmt(20) {
+      _query_duration(20),
+      _stmt_duration(20) {
   std::unique_lock<std::mutex> lck(_start_m);
   log_v2::sql()->info("mysql_connection: starting connection");
   _thread = std::make_unique<std::thread>(&mysql_connection::_run, this);
