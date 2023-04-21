@@ -118,6 +118,26 @@ class mysql_bulk_bind : public mysql_bind_base {
    */
   void set_value_as_i64(size_t range, int64_t value);
   /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG. if pred(value) ==
+   * false, a null is bind instead
+   *
+   * @tparam not_null_predicate
+   * @param range A non negative integer.
+   * @param value The long integer value to set.
+   * @param pred pred that will test value
+   */
+  template <typename not_null_predicate>
+  void set_value_as_i64(size_t range,
+                        int64_t value,
+                        const not_null_predicate& pred) {
+    if (pred(value))
+      set_value_as_i64(range, value);
+    else
+      set_null_i64(range);
+  }
+
+  /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONGLONG.
    *
@@ -142,6 +162,25 @@ class mysql_bulk_bind : public mysql_bind_base {
    * @param value The unsigned long integer value to set.
    */
   void set_value_as_u64(size_t range, uint64_t value);
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG. if pred(value) ==
+   * false, a null is bind instead
+   *
+   * @tparam not_null_predicate
+   * @param range A non negative integer.
+   * @param value The long integer value to set.
+   * @param pred pred that will test value
+   */
+  template <typename not_null_predicate>
+  void set_value_as_u64(size_t range,
+                        int64_t value,
+                        const not_null_predicate& pred) {
+    if (pred(value))
+      set_value_as_u64(range, value);
+    else
+      set_null_u64(range);
+  }
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONGLONG.
