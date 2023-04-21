@@ -89,6 +89,8 @@ class center {
   int get_json_stats_file_creation(void);
   void get_sql_connection_size(GenericSize* response);
   void get_processing_stats(ProcessingStats* response);
+  void lock();
+  void unlock();
 
   /**
    * @brief Set the value pointed by ptr to the value value.

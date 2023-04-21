@@ -375,3 +375,11 @@ void center::clear_muxer_queue_file(const std::string& name) {
         .mutable_queue_file()
         ->Clear();
 }
+
+void center::lock() {
+  _stats_m.lock();
+}
+
+void center::unlock() {
+  _stats_m.unlock();
+}
