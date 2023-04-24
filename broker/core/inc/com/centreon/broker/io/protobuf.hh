@@ -174,6 +174,7 @@ class protobuf : public protobuf_base {
   void set_obj(T&& obj) { _obj = std::move(obj); }
 
   void dump(std::ostream& s) const override;
+  void dump_more_detail(std::ostream& s) const override;
 
   /**
    * @brief An internal BBDO object used to access to the constructor,
@@ -200,6 +201,12 @@ void protobuf<T, Typ>::dump(std::ostream& s) const {
     s << fmt::format(" content:'{}...'", dump);
   } else
     s << " content:'" << dump << '\'';
+}
+
+template <typename T, uint32_t Typ>
+void protobuf<T, Typ>::dump_more_detail(std::ostream& s) const {
+  data::dump_more_detail(s);
+  s << " content:'" << _obj.ShortDebugString() << '\'';
 }
 
 }  // namespace io

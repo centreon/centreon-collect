@@ -469,8 +469,9 @@ int neb::callback_pb_custom_variable(int, void* data) {
           obj.set_type(com::centreon::broker::CustomVariable_VarType_HOST);
           obj.set_update_time(cvar->timestamp.tv_sec);
           if (add) {
-            obj.set_default_value(
-                misc::string::check_string_utf8(cvar->var_value));
+            std::string value(misc::string::check_string_utf8(cvar->var_value));
+            obj.set_value(value);
+            obj.set_default_value(value);
             SPDLOG_LOGGER_INFO(log_v2::neb(),
                                "callbacks: new custom variable '{}' on host {}",
                                name, host_id);
