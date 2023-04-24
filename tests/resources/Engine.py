@@ -183,6 +183,7 @@ class EngineInstance:
     register                        1
     active_checks_enabled           1
     passive_checks_enabled          1
+    _KEY_SERV{0}_{1}                VAL_SERV{1}
 }}
 """.format(
             host_id, service_id, self.service_cmd[service_id])
@@ -1402,6 +1403,7 @@ def set_services_passive(poller: int, srv_regex):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
+
 
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")

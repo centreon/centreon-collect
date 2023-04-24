@@ -156,3 +156,31 @@ BEPBRI1
 	${grep_res}=  Get Lines Containing String  ${grep_res}  "poller_id":1, "responsive":false
 	Should Not Be Empty  ${grep_res}  msg="responsive":false not found
 	Kindly Stop Broker  True
+
+BEPBCVS
+	[Documentation]	bbdo_version 3 communication of custom variables.
+	[Tags]	Broker	Engine	protobuf	bbdo
+	Config Engine	${1}
+	Config Broker	central
+	Config BBDO3  ${1}
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker  True
+	Start Engine
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+
+	FOR	${index}	IN RANGE	300
+		${output}=	Query	SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name in ('KEY1','KEY_SERV1_1') ORDER BY service_id
+		Log To Console	${output}
+		Sleep	1s
+		EXIT FOR LOOP IF	"${output}" == "(('VAL1',), ('VAL_SERV1',))"
+	END
+	Should Be Equal As Strings	${output}	(('VAL1',), ('VAL_SERV1',))
+
+	Stop Engine
+	Kindly Stop Broker  True
