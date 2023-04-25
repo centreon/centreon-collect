@@ -615,9 +615,8 @@ message Acknowledgement {
   uint64 service_id = 2;
   uint64 instance_id = 3;
   enum AcknowledgementType {
-    NONE = 0;
-    NORMAL = 1;
-    STICKY = 2;
+    HOST = 0;
+    SERVICE = 1;
   }
   AcknowledgementType type = 4;
   string author = 5;
