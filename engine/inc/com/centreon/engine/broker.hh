@@ -319,14 +319,15 @@
 extern "C" {
 #endif /* C++ */
 
-void broker_acknowledgement_data(int type,
-                                 int acknowledgement_type,
-                                 void* data,
-                                 const char* ack_author,
-                                 const char* ack_data,
-                                 int subtype,
-                                 int notify_contacts,
-                                 int persistent_comment);
+void broker_acknowledgement_data(
+    int type,
+    acknowledgement_resource_type acknowledgement_type,
+    void* data,
+    const char* ack_author,
+    const char* ack_data,
+    int subtype,
+    int notify_contacts,
+    int persistent_comment);
 void broker_adaptive_contact_data(int type,
                                   int flags,
                                   int attr,
