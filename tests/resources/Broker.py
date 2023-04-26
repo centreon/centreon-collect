@@ -17,8 +17,20 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
+from robot.libraries.BuiltIn import BuiltIn
 
 TIMEOUT = 30
+
+BuiltIn().import_resource('db_variables.robot')
+DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
+DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
+DB_USER = BuiltIn().get_variable_value("${DBUser}")
+DB_PASS = BuiltIn().get_variable_value("${DBPass}")
+DB_HOST = BuiltIn().get_variable_value("${DBHost}")
+DB_PORT = BuiltIn().get_variable_value("${DBPort}")
+VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+
 
 config = {
     "central": """{{
@@ -28,13 +40,16 @@ config = {
         "poller_id": 1,
         "poller_name": "Central",
         "module_directory": "/usr/share/centreon/lib/centreon-broker",
-        "log_timestamp": true,
-        "log_thread_id": false,
+        "log_timestamp": "yes",
+        "log_thread_id": "no",
         "event_queue_max_size": 100000,
-        "command_file": "/var/lib/centreon-broker/command.sock",
-        "cache_directory": "/var/lib/centreon-broker",
+        "command_file": "{7}/lib/centreon-broker/command.sock",
+        "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "directory": "/var/log/centreon-broker/",
+            "log_pid": "yes",
+            "log_source": "no",
+            "flush_period": 0,
+            "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
             "loggers": {{
@@ -44,11 +59,11 @@ config = {
                 "processing": "error",
                 "perfdata": "error",
                 "bbdo": "error",
-                "tcp": "error",
+                "tcp": "debug",
                 "tls": "error",
                 "lua": "error",
                 "bam": "error",
-                "grpc": "error"
+                "grpc": "debug"
             }}
         }},
         "input": [
@@ -71,11 +86,11 @@ config = {
                 "db_type": "mysql",
                 "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": "{2}",
+                "db_port": "{3}",
+                "db_user": "{4}",
+                "db_password": "{5}",
+                "db_name": "{6}",
                 "queries_per_transaction": "1000",
                 "connections_count": "3",
                 "read_timeout": "1",
@@ -101,11 +116,11 @@ config = {
                 "buffering_timeout": "0",
                 "length": "15552000",
                 "db_type": "mysql",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": "{2}",
+                "db_port": "{3}",
+                "db_user": "{4}",
+                "db_password": "{5}",
+                "db_name": "{6}",
                 "queries_per_transaction": "1000",
                 "read_timeout": "1",
                 "check_replication": "no",
@@ -119,7 +134,7 @@ config = {
             {{
                 "type": "stats",
                 "name": "central-broker-master-stats",
-                "json_fifo": "/var/lib/centreon-broker/central-broker-master-stats.json"
+                "json_fifo": "{7}/lib/centreon-broker/central-broker-master-stats.json"
             }}
         ],
         "grpc": {{
@@ -130,8 +145,8 @@ config = {
 
     "module": """{{
     "centreonBroker": {{
-        "broker_id": {},
-        "broker_name": "{}",
+        "broker_id": {0},
+        "broker_name": "{1}",
         "poller_id": 1,
         "poller_name": "Central",
         "module_directory": "/usr/share/centreon/lib/centreon-broker",
@@ -139,9 +154,11 @@ config = {
         "log_thread_id": false,
         "event_queue_max_size": 100000,
         "command_file": "",
-        "cache_directory": "/var/lib/centreon-engine",
+        "cache_directory": "{7}/lib/centreon-engine",
         "log": {{
-            "directory": "/var/log/centreon-broker/",
+            "log_pid": "yes",
+            "flush_period": 0,
+            "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
             "loggers": {{
@@ -154,7 +171,9 @@ config = {
                 "tcp": "debug",
                 "tls": "debug",
                 "lua": "debug",
-                "bam": "debug"
+                "bam": "debug",
+                "grpc": "debug",
+                "neb": "debug"
             }}
         }},
         "output": [
@@ -176,7 +195,7 @@ config = {
             {{
                 "type": "stats",
                 "name": "central-module-master-stats",
-                "json_fifo": "/var/lib/centreon-engine/central-module-master-stats.json"
+                "json_fifo": "{7}/lib/centreon-engine/central-module-master-stats.json"
             }}
         ],
         "grpc": {{
@@ -196,9 +215,12 @@ config = {
         "log_thread_id": false,
         "event_queue_max_size": 100000,
         "command_file": "",
-        "cache_directory": "/var/lib/centreon-broker",
+        "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "directory": "/var/log/centreon-broker/",
+            "log_pid": "yes",
+            "log_source": "no",
+            "flush_period": 0,
+            "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
             "loggers": {{
@@ -231,8 +253,8 @@ config = {
         "output": [
             {{
                 "name": "central-rrd-master-output",
-                "metrics_path": "/var/lib/centreon/metrics/",
-                "status_path": "/var/lib/centreon/status/",
+                "metrics_path": "{7}/lib/centreon/metrics/",
+                "status_path": "{7}/lib/centreon/status/",
                 "write_metrics": "yes",
                 "store_in_data_bin": "yes",
                 "write_status": "yes",
@@ -246,7 +268,7 @@ config = {
             {{
                 "type": "stats",
                 "name": "central-rrd-master-stats",
-                "json_fifo": "/var/lib/centreon-broker/central-rrd-master-stats.json"
+                "json_fifo": "{7}/lib/centreon-broker/central-rrd-master-stats.json"
             }}
         ],
         "grpc": {{ 
@@ -265,10 +287,10 @@ config = {
         "log_timestamp": true,
         "log_thread_id": false,
         "event_queue_max_size": 10,
-        "command_file": "/var/lib/centreon-broker/command.sock",
-        "cache_directory": "/var/lib/centreon-broker",
+        "command_file": "{7}/lib/centreon-broker/command.sock",
+        "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "directory": "/var/log/centreon-broker/",
+            "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
             "loggers": {{
@@ -305,11 +327,11 @@ config = {
                 "db_type": "mysql",
                 "retry_interval": "5",
                 "buffering_timeout": "0",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": "{2}",
+                "db_port": "{3}",
+                "db_user": "{4}",
+                "db_password": "{5}",
+                "db_name": "{6}",
                 "queries_per_transaction": "1000",
                 "connections_count": "3",
                 "read_timeout": "1",
@@ -347,11 +369,11 @@ config = {
                 "buffering_timeout": "0",
                 "length": "15552000",
                 "db_type": "mysql",
-                "db_host": "localhost",
-                "db_port": "3306",
-                "db_user": "centreon",
-                "db_password": "centreon",
-                "db_name": "centreon_storage",
+                "db_host": "{2}",
+                "db_port": "{3}",
+                "db_user": "{4}",
+                "db_password": "{5}",
+                "db_name": "{6}",
                 "queries_per_transaction": "1000",
                 "read_timeout": "1",
                 "check_replication": "no",
@@ -365,7 +387,7 @@ config = {
             {{
                 "type": "stats",
                 "name": "central-broker-master-stats",
-                "json_fifo": "/var/lib/centreon-broker/central-broker-master-stats.json"
+                "json_fifo": "{7}/lib/centreon-broker/central-broker-master-stats.json"
             }}
         ],
         "grpc": {{
@@ -384,17 +406,23 @@ def _apply_conf(name, callback):
     else:
         filename = "central-rrd.json"
 
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     callback(conf)
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
 
 def config_broker(name, poller_inst: int = 1):
+    makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
+    makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
+    makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
+    makedirs(VAR_ROOT + "/log/centreon-broker/", mode=0o777, exist_ok=True)
+    makedirs(VAR_ROOT + "/lib/centreon-broker/", mode=0o777, exist_ok=True)
+
     if name == 'central':
         broker_id = 1
         broker_name = "central-broker-master"
@@ -408,32 +436,33 @@ def config_broker(name, poller_inst: int = 1):
         broker_name = "central-module-master"
         filename = "central-module0.json"
     else:
-        if not exists("/var/lib/centreon/metrics/"):
-            makedirs("/var/lib/centreon/metrics/")
-        if not exists("/var/lib/centreon/status/"):
-            makedirs("/var/lib/centreon/status/")
-        if not exists("/var/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/metrics/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/status/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/status/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
             getoutput(
-                "rrdcreate /var/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
+                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
 
     if name == 'module':
         for i in range(poller_inst):
-            broker_name = "/etc/centreon-broker/central-module{}.json".format(
-                i)
+            broker_name = f"{ETC_ROOT}/centreon-broker/central-module{i}.json"
             buf = config[name].format(
-                broker_id, "central-module-master{}".format(i))
+                broker_id, f"central-module-master{i}", "", "", "", "", "", VAR_ROOT)
             conf = json.loads(buf)
+            conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
 
             f = open(broker_name, "w")
             f.write(json.dumps(conf, indent=2))
             f.close()
     else:
-        f = open("/etc/centreon-broker/{}".format(filename), "w")
-        f.write(config[name].format(broker_id, broker_name))
+        f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
+        f.write(config[name].format(broker_id, broker_name,
+                DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         f.close()
 
 
@@ -446,6 +475,15 @@ def change_broker_tcp_output_to_grpc(name: str):
     _apply_conf(name, output_to_grpc)
 
 
+def add_path_to_rrd_output(name: str, path: str):
+    def rrd_output(conf):
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if v["type"] == "rrd":
+                v["path"] = path
+    _apply_conf(name, rrd_output)
+
+
 def change_broker_tcp_input_to_grpc(name: str):
     def input_to_grpc(conf):
         input_dict = conf["centreonBroker"]["input"]
@@ -455,12 +493,157 @@ def change_broker_tcp_input_to_grpc(name: str):
     _apply_conf(name, input_to_grpc)
 
 
-def change_broker_compression_output(config_name: str, compression_value: str):
+def add_broker_crypto(json_dict, add_cert: bool, only_ca_cert: bool):
+    json_dict["encryption"] = "yes"
+    if (add_cert):
+        json_dict["ca_certificate"] = "/tmp/ca_1234.crt"
+        if (only_ca_cert == False):
+            json_dict["public_cert"] = "/tmp/server_1234.crt"
+            json_dict["private_key"] = "/tmp/server_1234.key"
+
+
+def add_broker_tcp_input_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+    def crypto_modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if v["type"] == "grpc":
+                add_broker_crypto(v, add_cert, reversed)
+    _apply_conf(name, crypto_modifier)
+
+
+def add_broker_tcp_output_grpc_crypto(name: str, add_cert: bool, reversed: bool):
+    def crypto_modifier(conf):
+        input_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(input_dict):
+            if v["type"] == "grpc":
+                add_broker_crypto(v, add_cert, not reversed)
+    _apply_conf(name, crypto_modifier)
+
+
+def add_host_to_broker_output(name: str, output_name: str, host_ip: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == output_name):
+                v["host"] = host_ip
+    _apply_conf(name, modifier)
+
+
+def add_host_to_broker_input(name: str, input_name: str, host_ip: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == input_name):
+                v["host"] = host_ip
+    _apply_conf(name, modifier)
+
+
+def remove_host_from_broker_output(name: str, output_name: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == output_name):
+                v.pop("host")
+    _apply_conf(name, modifier)
+
+
+def remove_host_from_broker_input(name: str, input_name: str):
+    def modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == input_name):
+                v.pop("host")
+    _apply_conf(name, modifier)
+
+
+def change_broker_compression_output(config_name: str, output_name: str, compression_value: str):
     def compression_modifier(conf):
         output_dict = conf["centreonBroker"]["output"]
         for i, v in enumerate(output_dict):
-            v["compression"] = compression_value
+            if (v["name"] == output_name):
+                v["compression"] = compression_value
     _apply_conf(config_name, compression_modifier)
+
+
+def change_broker_compression_input(config_name: str, input_name: str, compression_value: str):
+    def compression_modifier(conf):
+        input_dict = conf["centreonBroker"]["input"]
+        for i, v in enumerate(input_dict):
+            if (v["name"] == input_name):
+                v["compression"] = compression_value
+    _apply_conf(config_name, compression_modifier)
+
+
+def config_broker_bbdo_input(name, stream, port, proto, host=None):
+    if stream != "bbdo_server" and stream != "bbdo_client":
+        raise Exception(
+            "config_broker_bbdo_input_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+    if stream == "bbdo_client" and host is None:
+        raise Exception("A bbdo_client must specify a host to connect to")
+
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    io_dict = conf["centreonBroker"]["input"]
+    # Cleanup
+    for i, v in enumerate(io_dict):
+        if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
+            io_dict.pop(i)
+    stream = {
+        "name": f"{name}-broker-master-input",
+        "port": f"{port}",
+        "transport_protocol": proto,
+        "type": stream,
+    }
+    if host is not None:
+        stream["host"] = host
+    io_dict.append(stream)
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
+def config_broker_bbdo_output(name, stream, port, proto, host=None):
+    if stream != "bbdo_server" and stream != "bbdo_client":
+        raise Exception(
+            "config_broker_bbdo_output() function only accepts stream in ('bbdo_server', 'bbdo_client')")
+    if stream == "bbdo_client" and host is None:
+        raise Exception("A bbdo_client must specify a host to connect to")
+
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    io_dict = conf["centreonBroker"]["output"]
+    # Cleanup
+    for i, v in enumerate(io_dict):
+        if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
+            io_dict.pop(i)
+    stream = {
+        "name": f"{name}-broker-master-output",
+        "port": f"{port}",
+        "transport_protocol": proto,
+        "type": stream,
+    }
+    if host is not None:
+        stream["host"] = host
+    io_dict.append(stream)
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
 
 
 def config_broker_sql_output(name, output):
@@ -471,7 +654,7 @@ def config_broker_sql_output(name, output):
     else:
         filename = "central-rrd.json"
 
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -483,11 +666,11 @@ def config_broker_sql_output(name, output):
         output_dict.append({
             "name": "central-broker-unified-sql",
             "db_type": "mysql",
-            "db_host": "localhost",
-            "db_port": "3306",
-            "db_user": "centreon",
-            "db_password": "centreon",
-            "db_name": "centreon_storage",
+            "db_host": DB_HOST,
+            "db_port": DB_PORT,
+            "db_user": DB_USER,
+            "db_password": DB_PASS,
+            "db_name": DB_NAME_STORAGE,
             "interval": "60",
             "length": "15552000",
             "queries_per_transaction": "20000",
@@ -506,11 +689,11 @@ def config_broker_sql_output(name, output):
             "db_type": "mysql",
             "retry_interval": "5",
             "buffering_timeout": "0",
-            "db_host": "localhost",
-            "db_port": "3306",
-            "db_user": "centreon",
-            "db_password": "centreon",
-            "db_name": "centreon_storage",
+            "db_host": DB_HOST,
+            "db_port": DB_PORT,
+            "db_user": DB_USER,
+            "db_password": DB_PASS,
+            "db_name": DB_NAME_STORAGE,
             "queries_per_transaction": "1000",
             "connections_count": "3",
             "read_timeout": "1",
@@ -523,11 +706,11 @@ def config_broker_sql_output(name, output):
             "buffering_timeout": "0",
             "length": "15552000",
             "db_type": "mysql",
-            "db_host": "localhost",
-            "db_port": "3306",
-            "db_user": "centreon",
-            "db_password": "centreon",
-            "db_name": "centreon_storage",
+            "db_host": DB_HOST,
+            "db_port": DB_PORT,
+            "db_user": DB_USER,
+            "db_password": DB_PASS,
+            "db_name": DB_NAME_STORAGE,
             "queries_per_transaction": "1000",
             "read_timeout": "1",
             "check_replication": "no",
@@ -536,7 +719,7 @@ def config_broker_sql_output(name, output):
             "insert_in_index_data": "1",
             "type": "storage"
         })
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -549,7 +732,7 @@ def broker_config_clear_outputs_except(name, ex: list):
     else:
         filename = "central-rrd.json"
 
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -558,7 +741,7 @@ def broker_config_clear_outputs_except(name, ex: list):
         if v["type"] not in ex:
             output_dict.pop(i)
 
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -571,12 +754,12 @@ def broker_config_add_item(name, key, value):
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
 
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     conf["centreonBroker"][key] = value
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -589,12 +772,12 @@ def broker_config_remove_item(name, key):
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
 
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     conf["centreonBroker"].pop(key)
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -607,7 +790,7 @@ def broker_config_add_lua_output(name, output, luafile):
     else:
         filename = "central-rrd.json"
 
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -617,7 +800,7 @@ def broker_config_add_lua_output(name, output, luafile):
         "path": luafile,
         "type": "lua"
     })
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -629,14 +812,14 @@ def broker_config_output_set(name, output, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -648,7 +831,7 @@ def broker_config_output_set_json(name, output, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -656,7 +839,7 @@ def broker_config_output_set_json(name, output, key, value):
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     j = json.loads(value)
     output_dict[key] = j
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -668,7 +851,7 @@ def broker_config_output_remove(name, output, key):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -676,7 +859,7 @@ def broker_config_output_remove(name, output, key):
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     if key in output_dict:
         output_dict.pop(key)
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -688,14 +871,14 @@ def broker_config_input_set(name, inp, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     input_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     input_dict[key] = value
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -707,7 +890,7 @@ def broker_config_input_remove(name, inp, key):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -715,7 +898,7 @@ def broker_config_input_remove(name, inp, key):
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     if key in input_dict:
         input_dict.pop(key)
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -727,13 +910,13 @@ def broker_config_log(name, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     loggers = conf["centreonBroker"]["log"]["loggers"]
     loggers[key] = value
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -745,13 +928,31 @@ def broker_config_flush_log(name, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     log = conf["centreonBroker"]["log"]
     log["flush_period"] = value
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f.write(json.dumps(conf, indent=2))
+    f.close()
+
+
+def broker_config_source_log(name, value):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    buf = f.read()
+    f.close()
+    conf = json.loads(buf)
+    log = conf["centreonBroker"]["log"]
+    log["log_source"] = value
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -766,9 +967,9 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
         else:
             filename = "central-rrd-master-stats.json"
         retry = True
-        while retry:
+        while retry and time.time() < limit:
             retry = False
-            f = open("/var/lib/centreon-broker/{}".format(filename), "r")
+            f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
             buf = f.read()
             f.close()
 
@@ -794,9 +995,9 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
         else:
             filename = "central-rrd-master-stats.json"
         retry = True
-        while retry:
+        while retry and time.time() < limit:
             retry = False
-            f = open("/var/lib/centreon-broker/{}".format(filename), "r")
+            f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
             buf = f.read()
             f.close()
             try:
@@ -825,10 +1026,10 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
 #
 def get_not_existing_indexes(count: int):
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -863,14 +1064,14 @@ def get_not_existing_indexes(count: int):
 #
 def get_indexes_to_delete(count: int):
     files = [os.path.basename(x) for x in glob.glob(
-        "/var/lib/centreon/metrics/[0-9]*.rrd")]
+        VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -903,14 +1104,14 @@ def get_indexes_to_delete(count: int):
 #
 def get_not_existing_metrics(count: int):
     files = [os.path.basename(x) for x in glob.glob(
-        "/var/lib/centreon/metrics/[0-9]*.rrd")]
+        VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -941,14 +1142,14 @@ def get_not_existing_metrics(count: int):
 #
 def get_metrics_to_delete(count: int):
     files = [os.path.basename(x) for x in glob.glob(
-        "/var/lib/centreon/metrics/[0-9]*.rrd")]
+        VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -972,14 +1173,14 @@ def get_metrics_to_delete(count: int):
 
 def create_metrics(count: int):
     files = [os.path.basename(x) for x in glob.glob(
-        "/var/lib/centreon/metrics/[0-9]*.rrd")]
+        VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
 
@@ -999,18 +1200,18 @@ def create_metrics(count: int):
                 result = cursor.fetchall()
                 ids_index = [r['id'] for r in result]
                 if ids_index == []:
-                    sql = "INSERT INTO index_data (host_id, service_id) VALUES ('1', '1')"
+                    sql = "INSERT INTO index_data (host_id, service_id) VALUES (1, 1)"
                     cursor.execute(sql)
-                    ids_index = cursor.lastrowid
+                    ids_index.append(cursor.lastrowid)
                 for c in range(count):
                     sql = "INSERT INTO metrics (index_id,metric_name,unit_name,warn,warn_low,warn_threshold_mode,crit,crit_low,crit_threshold_mode,min,max,current_value,data_source_type) VALUES ('{}','metric_{}','unit_{}','10','1','0','1','1','0','0','100','25','0')".format(
                         ids_index[0], c, c)
                     cursor.execute(sql)
                     ids_metric = cursor.lastrowid
-                    connection.commit()
-                    shutil.copy("/var/lib/centreon/metrics/tmpl_15552000_300_0.rrd",
-                                "/var/lib/centreon/metrics/{}.rrd".format(ids_metric))
+                    shutil.copy(VAR_ROOT + "/lib/centreon/metrics/tmpl_15552000_300_0.rrd",
+                                VAR_ROOT + "/lib/centreon/metrics/{}.rrd".format(ids_metric))
                     logger.console("create metric file {}".format(ids_metric))
+                connection.commit()
 
 
 def run_reverse_bam(duration, interval):
@@ -1028,14 +1229,14 @@ def run_reverse_bam(duration, interval):
 # @return a list of indexes
 def get_indexes_to_rebuild(count: int):
     files = [os.path.basename(x) for x in glob.glob(
-        "/var/lib/centreon/metrics/[0-9]*.rrd")]
+        VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
 
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
     retval = []
@@ -1049,20 +1250,15 @@ def get_indexes_to_rebuild(count: int):
                 if int(r['metric_id']) in ids:
                     logger.console(
                         "building data for metric {}".format(r['metric_id']))
-                    start = int(time.time()) - 24 * 60 * 60 * 30
-                    # We go back to 30 days with steps of 5 mn
-                    value1 = int(r['metric_id'])
-                    value2 = 0
-                    value = value1
+                    # We go back to 180 days with steps of 5 mn
+                    start = int(time.time()) - 24 * 60 * 60 * 180
+                    value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
-                    for i in range(0, 24 * 60 * 60 * 30, 60 * 5):
+                    # We set the value to a constant on 180 days
+                    for i in range(0, 24 * 60 * 60 * 180, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
-                        if value == value1:
-                            value = value2
-                        else:
-                            value = value1
                     connection.commit()
                     retval.append(int(r['index_id']))
 
@@ -1082,10 +1278,10 @@ def get_indexes_to_rebuild(count: int):
 # @return a list of metric ids.
 def get_metrics_matching_indexes(indexes):
     # Connect to the database
-    connection = pymysql.connect(host='localhost',
-                                 user='centreon',
-                                 password='centreon',
-                                 database='centreon_storage',
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
                                  charset='utf8mb4',
                                  cursorclass=pymysql.cursors.DictCursor)
     with connection:
@@ -1117,8 +1313,42 @@ def remove_graphs(port, indexes, metrics, timeout=10):
             trm.metric_ids.extend(metrics)
             try:
                 stub.RemoveGraphs(trm)
+                break
             except:
                 logger.console("gRPC server not ready")
+
+
+##
+# @brief send a query to the db to remove graphs (by indexes or by metrics)
+#
+# @param indexes a list of indexes
+# @param metrics a list of metrics
+#
+def remove_graphs_from_db(indexes, metrics, timeout=10):
+    logger.console("rem1")
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    ids_db = []
+    with connection:
+        with connection.cursor() as cursor:
+            if len(indexes) > 0:
+                str_indexes = [str(i) for i in indexes]
+                sql = "UPDATE index_data SET to_delete=1 WHERE id in ({})".format(
+                    ",".join(str_indexes))
+                logger.console(sql)
+                cursor.execute(sql)
+            if len(metrics) > 0:
+                str_metrics = [str(i) for i in metrics]
+                sql = "UPDATE metrics SET to_delete=1 WHERE metric_id in ({})".format(
+                    ",".join(str_metrics))
+                logger.console(sql)
+                cursor.execute(sql)
+            connection.commit()
 
 
 ##
@@ -1137,11 +1367,36 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             k = 0.0
             idx = broker_pb2.IndexIds()
-            idx.index_id.extend(indexes)
+            idx.index_ids.extend(indexes)
             try:
                 stub.RebuildRRDGraphs(idx)
+                break
             except:
                 logger.console("gRPC server not ready")
+
+
+##
+# @brief Send a query to the db to rebuild graphs
+#
+# @param indexes The list of indexes corresponding to metrics to rebuild.
+#
+def rebuild_rrd_graphs_from_db(indexes):
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    ids_db = []
+    with connection:
+        with connection.cursor() as cursor:
+            if len(indexes) > 0:
+                sql = "UPDATE index_data SET must_be_rebuild='1' WHERE id in ({})".format(
+                    ",".join(map(str, indexes)))
+                logger.console(sql)
+                cursor.execute(sql)
+                connection.commit()
 
 
 ##
@@ -1153,16 +1408,20 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
-                    " DEF:x=/var/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
+    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
+                    " DEF:x=" + VAR_ROOT +
+                    "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
                     .format(metric))
     lst = res.split('\n')
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))
-        return abs(res - float(value)) < 2
+        err = abs(res - float(value)) / float(value)
+        logger.console(
+            f"expected value: {value} - result value: {res} - err: {err}")
+        return err < 0.005
     else:
         logger.console(
-            "It was impossible to get the average value from the file /var/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
+            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
 
@@ -1183,10 +1442,14 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
                 res = stub.GetSqlManagerStats(empty_pb2.Empty())
                 if len(res.connections) < count:
                     continue
+                count = 0
                 for c in res.connections:
                     if c.down_since:
-                        continue
-                return True
+                        pass
+                    else:
+                        count += 1
+                if count == 3:
+                    return True
             except:
                 logger.console("gRPC server not ready")
     return False
@@ -1229,7 +1492,7 @@ def add_bam_config_to_broker(name):
     else:
         filename = "central-rrd.json"
 
-    f = open("/etc/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -1238,15 +1501,15 @@ def add_bam_config_to_broker(name):
         "name": "centreon-bam-monitoring",
         "cache": "yes",
         "check_replication": "no",
-        "command_file": "/var/lib/centreon-engine/config0/rw/centengine.cmd",
-        "db_host": "127.0.0.1",
-        "db_name": "centreon",
-        "db_password": "centreon",
-        "db_port": "3306",
+        "command_file": VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd",
+        "db_host": DB_HOST,
+        "db_name": DB_NAME_CONF,
+        "db_password": DB_PASS,
+        "db_port": DB_PORT,
         "db_type": "mysql",
-        "db_user": "centreon",
+        "db_user": DB_USER,
         "queries_per_transaction": "0",
-        "storage_db_name": "centreon_storage",
+        "storage_db_name": DB_NAME_STORAGE,
         "type": "bam"
     })
     output_dict.append({
@@ -1257,15 +1520,150 @@ def add_bam_config_to_broker(name):
             ]
         },
         "check_replication": "no",
-        "db_host": "127.0.0.1",
-        "db_name": "centreon_storage",
-        "db_password": "centreon",
-        "db_port": "3306",
+        "db_host": DB_HOST,
+        "db_name": DB_NAME_STORAGE,
+        "db_password": DB_PASS,
+        "db_port": DB_PORT,
         "db_type": "mysql",
-        "db_user": "centreon",
+        "db_user": DB_USER,
         "queries_per_transaction": "0",
         "type": "bam_bi"
     })
-    f = open("/etc/centreon-broker/{}".format(filename), "w")
+    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
+
+##
+# @brief send a gRPC command to remove by name a poller
+#
+# @param port the gRPC port to use
+# @param name the poller name
+#
+
+
+def remove_poller(port, name, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console(f"Try to call removePoller by name on port {port}")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.str = name
+            try:
+                stub.RemovePoller(ref)
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+##
+# @brief send a gRPC command to remove by id a poller
+#
+# @param port the gRPC port to use
+# @param name the poller name
+#
+
+
+def remove_poller_by_id(port, idx, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console(
+            f"Try to call removePoller by id (={idx}) on port {port}")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericNameOrIndex()
+            ref.idx = int(idx)
+            try:
+                stub.RemovePoller(ref)
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def check_poller_disabled_in_database(poller_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                result = cursor.fetchall()
+                if len(result) == 0:
+                    return True
+        time.sleep(5)
+    return False
+
+
+def check_poller_enabled_in_database(poller_id: int, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT DISTINCT enabled FROM hosts WHERE instance_id = {} AND enabled > 0".format(poller_id))
+                result = cursor.fetchall()
+                if len(result) > 0:
+                    return True
+        time.sleep(5)
+    return False
+
+
+def get_broker_log_level(port, name, log, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetLogInfo")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericString()
+            ref.str_arg = log
+            try:
+                res = stub.GetLogInfo(ref)
+                res = res.level[log]
+                return res
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call SetLogLevel")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.LogLevel()
+            ref.logger = log
+            try:
+                ref.level = broker_pb2.LogLevel.LogLevelEnum.Value(
+                    level.upper())
+            except ValueError as value_error:
+                res = str(value_error)
+                break
+
+            try:
+                res = stub.SetLogLevel(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return res

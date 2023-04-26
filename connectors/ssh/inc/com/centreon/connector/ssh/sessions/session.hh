@@ -19,6 +19,8 @@
 #ifndef CCCS_SESSIONS_SESSION_HH
 #define CCCS_SESSIONS_SESSION_HH
 
+#include <libssh2.h>
+
 #include "com/centreon/connector/ssh/namespace.hh"
 #include "com/centreon/connector/ssh/sessions/credentials.hh"
 
@@ -216,5 +218,12 @@ std::ostream& operator<<(std::ostream& os, const session& sess);
 }  // namespace sessions
 
 CCCS_END()
+
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::connector::ssh::sessions::session>
+    : ostream_formatter {};
+}  // namespace fmt
 
 #endif  // !CCCS_SESSIONS_SESSION_HH

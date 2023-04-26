@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/bam/kpi_ba.hh"
 
-#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/log_v2.hh"
 
@@ -156,11 +155,10 @@ void kpi_ba::visit(io::stream* visitor) {
     // Generate BI events.
     {
       // BA event state.
-      ba_event* bae(_ba->get_ba_event());
-      bam::state ba_state =
-          bae ? static_cast<bam::state>(bae->status) : state_ok;
-      timestamp last_ba_update(bae ? bae->start_time
-                                   : timestamp(time(nullptr)));
+      std::shared_ptr<pb_ba_event> bae(_ba->get_ba_event());
+      com::centreon::broker::State ba_state =
+          bae ? bae->obj().status() : com::centreon::broker::State::OK;
+      timestamp last_ba_update(bae ? bae->obj().start_time() : time(nullptr));
 
       // If no event was cached, create one.
       if (!_event) {
@@ -169,10 +167,10 @@ void kpi_ba::visit(io::stream* visitor) {
                           last_ba_update);
       }
       // If state changed, close event and open a new one.
-      else if (_ba->get_in_downtime() != _event->in_downtime ||
-               ba_state != _event->status) {
-        _event->end_time = last_ba_update;
-        visitor->write(std::static_pointer_cast<io::data>(_event));
+      else if (_ba->get_in_downtime() != _event->in_downtime() ||
+               ba_state != _event->status()) {
+        _event->set_end_time(last_ba_update.get_time_t());
+        visitor->write(std::make_shared<pb_kpi_event>(*_event));
         _event.reset();
         _open_new_event(visitor, hard_values.get_nominal(), ba_state,
                         last_ba_update);
@@ -182,18 +180,20 @@ void kpi_ba::visit(io::stream* visitor) {
     // Generate status event.
     {
       log_v2::bam()->debug("Generating kpi status {} for BA {}", _id, _ba_id);
-      std::shared_ptr<kpi_status> status{std::make_shared<kpi_status>(_id)};
-      status->in_downtime = in_downtime();
-      status->level_acknowledgement_hard = hard_values.get_acknowledgement();
-      status->level_acknowledgement_soft = soft_values.get_acknowledgement();
-      status->level_downtime_hard = hard_values.get_downtime();
-      status->level_downtime_soft = soft_values.get_downtime();
-      status->level_nominal_hard = hard_values.get_nominal();
-      status->level_nominal_soft = soft_values.get_nominal();
-      status->state_hard = _ba->get_state_hard();
-      status->state_soft = _ba->get_state_soft();
-      status->last_state_change = get_last_state_change();
-      status->last_impact = hard_values.get_nominal();
+      std::shared_ptr<pb_kpi_status> status{std::make_shared<pb_kpi_status>()};
+      KpiStatus& ev(status->mut_obj());
+      ev.set_kpi_id(_id);
+      ev.set_in_downtime(in_downtime());
+      ev.set_level_acknowledgement_hard(hard_values.get_acknowledgement());
+      ev.set_level_acknowledgement_soft(soft_values.get_acknowledgement());
+      ev.set_level_downtime_hard(hard_values.get_downtime());
+      ev.set_level_downtime_soft(soft_values.get_downtime());
+      ev.set_level_nominal_hard(hard_values.get_nominal());
+      ev.set_level_nominal_soft(soft_values.get_nominal());
+      ev.set_state_hard(State(_ba->get_state_hard()));
+      ev.set_state_soft(State(_ba->get_state_soft()));
+      ev.set_last_state_change(get_last_state_change().get_time_t());
+      ev.set_last_impact(hard_values.get_nominal());
       visitor->write(std::static_pointer_cast<io::data>(status));
     }
   }
@@ -256,16 +256,18 @@ void kpi_ba::_fill_impact(impact_values& impact,
  */
 void kpi_ba::_open_new_event(io::stream* visitor,
                              int impact,
-                             state ba_state,
-                             timestamp event_start_time) {
-  _event = std::make_shared<kpi_event>(_id, _ba_id, event_start_time);
-  _event->impact_level = impact;
-  _event->in_downtime = _ba->get_in_downtime();
-  _event->output = _ba->get_output();
-  _event->perfdata = _ba->get_perfdata();
-  _event->status = ba_state;
+                             com::centreon::broker::State ba_state,
+                             const timestamp& event_start_time) {
+  _event_init();
+  _event->set_start_time(event_start_time.get_time_t());
+  _event->set_end_time(-1);
+  _event->set_impact_level(impact);
+  _event->set_in_downtime(_ba->get_in_downtime());
+  _event->set_output(_ba->get_output());
+  _event->set_perfdata(_ba->get_perfdata());
+  _event->set_status(com::centreon::broker::State(ba_state));
   if (visitor)
-    visitor->write(std::make_shared<kpi_event>(*_event));
+    visitor->write(std::make_shared<pb_kpi_event>(*_event));
 }
 
 /**

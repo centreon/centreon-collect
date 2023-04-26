@@ -18,6 +18,7 @@
  */
 #include "com/centreon/broker/misc/string.hh"
 
+#include <absl/strings/str_split.h>
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
@@ -26,13 +27,13 @@
 using namespace com::centreon::broker::misc;
 
 TEST(StringSplit, OnePart) {
-  std::list<std::string> lst{string::split("test", ' ')};
+  std::list<std::string> lst{absl::StrSplit("test", ' ')};
   ASSERT_EQ(lst.size(), 1u);
   ASSERT_EQ(lst.front(), "test");
 }
 
 TEST(StringSplit, ThreePart) {
-  std::list<std::string> lst{string::split("test foo bar", ' ')};
+  std::list<std::string> lst{absl::StrSplit("test foo bar", ' ')};
   ASSERT_EQ(lst.size(), 3u);
   std::list<std::string> res{"test", "foo", "bar"};
   ASSERT_EQ(lst, res);
@@ -40,7 +41,7 @@ TEST(StringSplit, ThreePart) {
 
 TEST(StringSplit, ManyPart) {
   std::list<std::string> lst{
-      string::split("  test foo bar a b  c d eeeee", ' ')};
+      absl::StrSplit("  test foo bar a b  c d eeeee", ' ')};
   ASSERT_EQ(lst.size(), 11u);
   std::list<std::string> res{"",  "", "test", "foo", "bar",  "a",
                              "b", "", "c",    "d",   "eeeee"};

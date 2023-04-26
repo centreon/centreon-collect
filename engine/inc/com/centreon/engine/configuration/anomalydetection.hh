@@ -113,7 +113,9 @@ class anomalydetection : public object {
   std::string const& service_description() const noexcept;
   uint64_t service_id() const noexcept;
   bool set_service_id(uint64_t value);
+  uint64_t internal_id() const noexcept;
   uint64_t dependent_service_id() const noexcept;
+  bool set_internal_id(uint64_t value);
   bool set_dependent_service_id(uint64_t value);
   unsigned short stalking_options() const noexcept;
   void timezone(std::string const& time_zone);
@@ -124,6 +126,7 @@ class anomalydetection : public object {
   uint64_t severity_id() const noexcept;
   uint64_t icon_id() const noexcept;
   const std::set<std::pair<uint64_t, uint16_t>>& tags() const noexcept;
+  double sensitivity() const { return _sensitivity; }
 
  private:
   typedef bool (*setter_func)(anomalydetection&, char const*);
@@ -176,6 +179,7 @@ class anomalydetection : public object {
   bool _set_icon_id(uint64_t icon_id);
   bool _set_category_tags(const std::string& value);
   bool _set_group_tags(const std::string& value);
+  bool _set_sensitivity(double value);
 
   opt<int> _acknowledgement_timeout;
   std::string _action_url;
@@ -220,6 +224,7 @@ class anomalydetection : public object {
   std::string _service_description;
   uint64_t _host_id;
   uint64_t _service_id;
+  uint64_t _internal_id;
   uint64_t _dependent_service_id;
   static std::unordered_map<std::string, setter_func> const _setters;
   opt<unsigned short> _stalking_options;
@@ -227,6 +232,7 @@ class anomalydetection : public object {
   opt<uint64_t> _severity_id;
   opt<uint64_t> _icon_id;
   std::set<std::pair<uint64_t, uint16_t>> _tags;
+  opt<double> _sensitivity;
 };
 
 typedef std::shared_ptr<anomalydetection> anomalydetection_ptr;

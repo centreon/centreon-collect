@@ -23,34 +23,60 @@ CCB_BEGIN()
 
 namespace grpc {
 class grpc_config {
+ public:
+  enum compression_active { NO = 0, AUTO = 1, YES = 2 };
+
+ private:
   std::string _hostport;
-  bool _crypted;
+  bool _crypted = false;
   std::string _certificate, _cert_key, _ca_cert, _authorization;
+  // grpc_compression_level _compress_level;
+  std::string _ca_name;
+  compression_active _compress;
+  int _second_keepalive_interval;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
-  grpc_config() : _crypted(false) {}
-  grpc_config(const std::string& hostp) : _hostport(hostp), _crypted(false) {}
+  grpc_config() : _compress(NO), _second_keepalive_interval(30) {}
+  grpc_config(const std::string& hostp)
+      : _hostport(hostp),
+        _crypted(false),
+        _compress(NO),
+        _second_keepalive_interval(30) {}
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
               const std::string& cert_key,
               const std::string& ca_cert,
-              const std::string& authorization)
+              const std::string& authorization,
+              const std::string& ca_name,
+              compression_active compression,
+              int second_keepalive_interval = 30)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
         _cert_key(cert_key),
         _ca_cert(ca_cert),
-        _authorization(authorization) {}
+        _authorization(authorization),
+        _ca_name(ca_name),
+        _compress(compression),
+        _second_keepalive_interval(second_keepalive_interval) {}
 
-  const std::string& get_hostport() const { return _hostport; }
-  bool is_crypted() const { return _crypted; }
-  const std::string& get_cert() const { return _certificate; }
-  const std::string& get_key() const { return _cert_key; }
-  const std::string& get_ca() const { return _ca_cert; }
-  const std::string& get_authorization() const { return _authorization; }
+  constexpr const std::string& get_hostport() const { return _hostport; }
+  constexpr bool is_crypted() const { return _crypted; }
+  constexpr const std::string& get_cert() const { return _certificate; }
+  constexpr const std::string& get_key() const { return _cert_key; }
+  constexpr const std::string& get_ca() const { return _ca_cert; }
+  constexpr const std::string& get_authorization() const {
+    return _authorization;
+  }
+  const std::string& get_ca_name() const { return _ca_name; }
+  constexpr compression_active get_compression() const { return _compress; }
+
+  int get_second_keepalive_interval() const {
+    return _second_keepalive_interval;
+  }
 
   friend class factory;
 };

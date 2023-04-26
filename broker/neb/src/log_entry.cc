@@ -23,12 +23,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb;
 
-/**************************************
- *                                     *
- *          Public Methods             *
- *                                     *
- **************************************/
-
 /**
  *  @brief Default constructor.
  *

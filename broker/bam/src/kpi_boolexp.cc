@@ -17,9 +17,9 @@
 */
 
 #include "com/centreon/broker/bam/kpi_boolexp.hh"
-#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -43,13 +43,13 @@ bool kpi_boolexp::child_has_update(computable* child, io::stream* visitor) {
   // It is useless to maintain a cache of boolean expression values in
   // this class, as the bool_expression class already cache most of them.
   if (child == _boolexp.get()) {
-    // Logging.
-    log_v2::bam()->debug(
-        "BAM: boolean expression KPI {} is getting notified of child update",
-        _id);
-
+    state old_state = _get_state();
     // Generate status event.
     visit(visitor);
+    log_v2::bam()->debug(
+        "BAM: boolean expression KPI {} is getting notified of child update "
+        "old_state={}, new_state={}",
+        _id, old_state, _get_state());
   }
   return true;
 }
@@ -139,9 +139,9 @@ void kpi_boolexp::visit(io::stream* visitor) {
       if (!_event)
         _open_new_event(visitor, values.get_nominal(), state);
       // If state changed, close event and open a new one.
-      else if (state != _event->status) {
-        _event->end_time = ::time(nullptr);
-        visitor->write(std::static_pointer_cast<io::data>(_event));
+      else if (state != _event->status()) {
+        _event->set_end_time(::time(nullptr));
+        visitor->write(std::make_shared<pb_kpi_event>(std::move(*_event)));
         _event.reset();
         _open_new_event(visitor, values.get_nominal(), state);
       }
@@ -149,18 +149,20 @@ void kpi_boolexp::visit(io::stream* visitor) {
 
     // Generate status event.
     {
-      std::shared_ptr<kpi_status> status(std::make_shared<kpi_status>(_id));
-      status->in_downtime = in_downtime();
-      status->level_acknowledgement_hard = values.get_acknowledgement();
-      status->level_acknowledgement_soft = values.get_acknowledgement();
-      status->level_downtime_hard = values.get_downtime();
-      status->level_downtime_soft = values.get_downtime();
-      status->level_nominal_hard = values.get_nominal();
-      status->level_nominal_soft = values.get_nominal();
-      status->state_hard = state;
-      status->state_soft = state;
-      status->last_state_change = get_last_state_change();
-      status->last_impact = values.get_nominal();
+      std::shared_ptr<pb_kpi_status> status(std::make_shared<pb_kpi_status>());
+      KpiStatus& ev(status->mut_obj());
+      ev.set_kpi_id(_id);
+      ev.set_in_downtime(in_downtime());
+      ev.set_level_acknowledgement_hard(values.get_acknowledgement());
+      ev.set_level_acknowledgement_soft(values.get_acknowledgement());
+      ev.set_level_downtime_hard(values.get_downtime());
+      ev.set_level_downtime_soft(values.get_downtime());
+      ev.set_level_nominal_hard(values.get_nominal());
+      ev.set_level_nominal_soft(values.get_nominal());
+      ev.set_state_hard(State(state));
+      ev.set_state_soft(State(state));
+      ev.set_last_state_change(get_last_state_change().get_time_t());
+      ev.set_last_impact(values.get_nominal());
       visitor->write(std::static_pointer_cast<io::data>(status));
     }
   }
@@ -195,14 +197,16 @@ void kpi_boolexp::_fill_impact(impact_values& impact) {
 void kpi_boolexp::_open_new_event(io::stream* visitor,
                                   int impact,
                                   state state) {
-  _event = std::make_shared<kpi_event>(_id, _ba_id, ::time(nullptr));
-  _event->impact_level = impact;
-  _event->in_downtime = false;
-  _event->output = "BAM boolean expression computed by Centreon Broker";
-  _event->perfdata = "";
-  _event->status = state;
+  _event_init();
+  _event->set_start_time(time(nullptr));
+  _event->set_end_time(-1);
+  _event->set_impact_level(impact);
+  _event->set_in_downtime(false);
+  _event->set_output("BAM boolean expression computed by Centreon Broker");
+  _event->set_perfdata("");
+  _event->set_status(com::centreon::broker::State(state));
   if (visitor) {
-    visitor->write(_event);
+    visitor->write(std::make_shared<pb_kpi_event>(*_event));
   }
 }
 
@@ -220,7 +224,7 @@ state kpi_boolexp::_get_state() const {
     return _boolexp->get_state();
   else {
     if (_event)
-      return static_cast<state>(_event->status);
+      return static_cast<state>(_event->status());
     else
       return _boolexp->get_state();
   }

@@ -221,10 +221,16 @@ events::events() {
   register_event(make_type(io::bbdo, bbdo::de_version_response),
                  "version_response", &bbdo::version_response::operations,
                  bbdo::version_response::entries);
+  register_event(make_type(io::bbdo, bbdo::de_welcome), "welcome",
+                 &bbdo::pb_welcome::operations);
   register_event(make_type(io::bbdo, bbdo::de_ack), "ack",
                  &bbdo::ack::operations, bbdo::ack::entries);
   register_event(make_type(io::bbdo, bbdo::de_stop), "stop",
                  &bbdo::stop::operations, bbdo::stop::entries);
+  register_event(make_type(io::bbdo, bbdo::de_pb_ack), "Ack",
+                 &bbdo::pb_ack::operations);
+  register_event(make_type(io::bbdo, bbdo::de_pb_stop), "Stop",
+                 &bbdo::pb_stop::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

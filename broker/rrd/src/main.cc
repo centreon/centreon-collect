@@ -54,11 +54,12 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances)
     // Deregister RRD layer.
     io::protocols::instance().unreg("RRD");
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -113,6 +114,11 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_remove_graph_message),
                        "remove_graphs_message",
                        &storage::pb_remove_graph_message::operations);
+
+      e.register_event(make_type(io::storage, storage::de_pb_metric),
+                       "pb_metric", &storage::pb_metric::operations);
+      e.register_event(make_type(io::storage, storage::de_pb_status),
+                       "pb_status", &storage::pb_status::operations);
     }
 
     // Register RRD layer.

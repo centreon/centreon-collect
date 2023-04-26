@@ -111,12 +111,14 @@ downtime_finder::result_set downtime_finder::find_matching_all(
  *
  *  @return True if downtime matches the criteria.
  */
-bool downtime_finder::_match_criteria(host_downtime const& dt,
+bool downtime_finder::_match_criteria(const host_downtime& dt,
                                       downtime_finder::criteria const& crit) {
-  bool retval{false};
-  if (crit.first == "host") {
-    retval = (crit.second == dt.get_hostname());
-  } else if (crit.first == "start") {
+  bool retval = false;
+  std::string hostname = engine::get_host_name(dt.host_id());
+
+  if (crit.first == "host")
+    retval = (crit.second == hostname);
+  else if (crit.first == "start") {
     time_t expected(strtoll(crit.second.c_str(), nullptr, 0));
     retval = (expected == dt.get_start_time());
   } else if (crit.first == "end") {
@@ -151,10 +153,12 @@ bool downtime_finder::_match_criteria(host_downtime const& dt,
 bool downtime_finder::_match_criteria(service_downtime const& dt,
                                       downtime_finder::criteria const& crit) {
   bool retval{false};
+  auto p = get_host_and_service_names(dt.host_id(), dt.service_id());
+
   if (crit.first == "host") {
-    retval = (crit.second == dt.get_hostname());
+    retval = (crit.second == p.first);
   } else if (crit.first == "service") {
-    retval = (crit.second == dt.get_service_description());
+    retval = (crit.second == p.second);
   } else if (crit.first == "start") {
     time_t expected(std::stoull(crit.second, nullptr, 0));
     retval = (expected == dt.get_start_time());

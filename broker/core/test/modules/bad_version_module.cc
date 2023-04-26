@@ -22,7 +22,9 @@ char const* broker_module_version = "42";
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {}
+bool broker_module_deinit() {
+  return true;  // ok to be unloaded
+}
 
 /**
  *  Module initialization routine.

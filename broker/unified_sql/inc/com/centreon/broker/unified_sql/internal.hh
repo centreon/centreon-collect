@@ -1,5 +1,5 @@
 /*
-** Copyright 2013 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,10 +20,10 @@
 #define CCB_UNIFIED_SQL_INTERNAL_HH
 
 #include "bbdo/events.hh"
-#include "bbdo/host.pb.h"
+#include "bbdo/neb.pb.h"
 #include "bbdo/rebuild_message.pb.h"
 #include "bbdo/remove_graph_message.pb.h"
-#include "bbdo/service.pb.h"
+#include "bbdo/storage.pb.h"
 #include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
@@ -33,10 +33,13 @@ namespace bbdo {
 /**
  * Here is a declaration of pb_rebuild_metrics which is a bbdo event we use to
  * ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
-using pb_rebuild_rrd_graphs =
-    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
+using pb_rebuild_graphs =
+    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_graphs)>;
 using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
+using pb_remove_poller =
+    io::protobuf<GenericNameOrIndex,
+                 make_type(io::bbdo, bbdo::de_remove_poller)>;
 }  // namespace bbdo
 
 namespace storage {
@@ -49,6 +52,17 @@ using pb_rebuild_message =
 using pb_remove_graph_message =
     io::protobuf<RemoveGraphMessage,
                  make_type(io::storage, storage::de_remove_graph_message)>;
+using pb_metric =
+    io::protobuf<Metric, make_type(io::storage, storage::de_pb_metric)>;
+using pb_status =
+    io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
+using pb_index_mapping =
+    io::protobuf<IndexMapping,
+                 make_type(io::storage, storage::de_pb_index_mapping)>;
+using pb_metric_mapping =
+    io::protobuf<MetricMapping,
+                 make_type(io::storage, storage::de_pb_metric_mapping)>;
+
 }  // namespace storage
 CCB_END()
 

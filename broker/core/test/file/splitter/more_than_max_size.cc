@@ -18,6 +18,7 @@
  */
 #include <gtest/gtest.h>
 #include "com/centreon/broker/file/cfile.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 
@@ -26,6 +27,7 @@ using namespace com::centreon::broker;
 class FileSplitterMoreThanMaxSize : public ::testing::Test {
  public:
   void SetUp() override {
+    file::disk_accessor::load(100000u);
     _path = "/tmp/queue";
     {
       std::list<std::string> parts{
@@ -33,9 +35,10 @@ class FileSplitterMoreThanMaxSize : public ::testing::Test {
       for (std::string const& f : parts)
         std::remove(f.c_str());
     }
-    _file.reset(new file::splitter(
-        _path, file::fs_file::open_read_write_truncate, 10000, true));
+    _file = std::make_unique<file::splitter>(_path, 10000, true);
   }
+
+  void TearDown() override { file::disk_accessor::unload(); }
 
  protected:
   std::unique_ptr<file::splitter> _file;
@@ -61,11 +64,12 @@ TEST_F(FileSplitterMoreThanMaxSize, MoreThanMaxSizeToNextFile) {
 
   // Then
   std::string first_file{_path};
-  ASSERT_EQ(misc::filesystem::file_size(first_file), 9u);
+  size_t size1 = misc::filesystem::file_size(first_file);
+  ASSERT_EQ(size1, 9u);
   std::string second_file{_path};
   second_file.append("1");
-  ASSERT_EQ(misc::filesystem::file_size(second_file),
-            static_cast<int64_t>(8 + sizeof(buffer)));
+  size_t size2 = misc::filesystem::file_size(second_file);
+  ASSERT_EQ(size2, static_cast<int64_t>(8 + sizeof(buffer)));
 }
 
 // Given a splitter object configured with a max_size of 10000
@@ -96,18 +100,23 @@ TEST_F(FileSplitterMoreThanMaxSize, ReadBeforeMoreThanMaxSize) {
 TEST_F(FileSplitterMoreThanMaxSize, ReadMoreThanMaxSize) {
   // Given
   char buffer[10010];
-  for (uint32_t i(0); i < sizeof(buffer); ++i)
+  for (uint32_t i = 0; i < sizeof(buffer); ++i)
     buffer[i] = i % 128;
   _file->write(buffer, 1);
   _file->write(buffer, 10001);
-  _file->read(buffer, sizeof(buffer));
+  size_t read_bytes = _file->read(buffer, sizeof(buffer));
+  ASSERT_EQ(read_bytes, 1);
 
   // When
   memset(buffer, 0, sizeof(buffer));
-  long read_bytes(_file->read(buffer, sizeof(buffer)));
+  read_bytes = _file->read(buffer, sizeof(buffer));
 
   // Then
   ASSERT_EQ(read_bytes, 10001);
-  for (int i(0); i < read_bytes; ++i)
+  for (size_t i = 0; i < read_bytes; ++i)
     ASSERT_EQ(buffer[i], i % 128);
+  try {
+    _file->read(buffer, sizeof(buffer));
+  } catch (const std::exception& e) {
+  }
 }

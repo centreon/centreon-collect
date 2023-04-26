@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2021 Centreon
+** Copyright 2014-2015, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -55,9 +55,14 @@ class service_listener {
   virtual void service_update(
       std::shared_ptr<neb::service_status> const& status,
       io::stream* visitor = nullptr);
+  virtual void service_update(
+      const std::shared_ptr<neb::pb_acknowledgement>& ack,
+      io::stream* visitor = nullptr);
   virtual void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
                               io::stream* visitor = nullptr);
   virtual void service_update(std::shared_ptr<neb::downtime> const& dt,
+                              io::stream* visitor = nullptr);
+  virtual void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
                               io::stream* visitor = nullptr);
 };
 }  // namespace bam

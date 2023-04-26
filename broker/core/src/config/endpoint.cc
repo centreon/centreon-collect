@@ -31,7 +31,7 @@ endpoint::endpoint(endpoint::io_type way)
     : _type(way),
       buffering_timeout(0),
       read_timeout((time_t)-1),
-      retry_interval(30),
+      retry_interval(15),
       cache_enabled(false) {}
 
 /**
@@ -39,7 +39,7 @@ endpoint::endpoint(endpoint::io_type way)
  *
  *  @param[in] other  Object to copy.
  */
-endpoint::endpoint(endpoint const& other)
+endpoint::endpoint(const endpoint& other)
     : _type(other._type),
       buffering_timeout{other.buffering_timeout},
       failovers{other.failovers},
@@ -52,12 +52,6 @@ endpoint::endpoint(endpoint const& other)
       write_filters{other.write_filters},
       cache_enabled{other.cache_enabled},
       cfg(other.cfg) {}
-
-/**
- * @brief endpoint destructor.
- *
- */
-endpoint::~endpoint() noexcept {}
 
 /**
  *  Assignment operator.
@@ -90,7 +84,7 @@ endpoint& endpoint::operator=(const endpoint& other) {
  *
  *  @return True if both objects are equal, false otherwise.
  */
-bool endpoint::operator==(endpoint const& other) const {
+bool endpoint::operator==(const endpoint& other) const {
   return type == other.type && buffering_timeout == other.buffering_timeout &&
          read_timeout == other.read_timeout &&
          retry_interval == other.retry_interval && name == other.name &&
@@ -106,7 +100,7 @@ bool endpoint::operator==(endpoint const& other) const {
  *
  *  @return True if both objects are not equal, false otherwise.
  */
-bool endpoint::operator!=(endpoint const& other) const {
+bool endpoint::operator!=(const endpoint& other) const {
   return !operator==(other);
 }
 
@@ -117,7 +111,7 @@ bool endpoint::operator!=(endpoint const& other) const {
  *
  *  @return True if this object is strictly less than the object e.
  */
-bool endpoint::operator<(endpoint const& other) const {
+bool endpoint::operator<(const endpoint& other) const {
   // Check properties that can directly be checked.
   if (type != other.type)
     return type < other.type;

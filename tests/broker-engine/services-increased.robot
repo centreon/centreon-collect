@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine progressively add services
 Library	Process
@@ -21,11 +22,11 @@ EBNSVC1
 	Config Broker	rrd
 	Config Broker	central
 	Config Broker	module	${3}
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	module1	bbdo_version	3.0.0
-        Broker Config Add Item	module2	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+        Broker Config Add Item	module0	bbdo_version	3.0.1
+        Broker Config Add Item	module1	bbdo_version	3.0.1
+        Broker Config Add Item	module2	bbdo_version	3.0.1
+        Broker Config Add Item	central	bbdo_version	3.0.1
+        Broker Config Add Item	rrd	bbdo_version	3.0.1
 	Broker Config Log	central	sql	debug
 	Config Broker Sql Output	central	unified_sql
 	Clear Retention

@@ -29,6 +29,14 @@ using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
+namespace fmt {
+
+// mandatory to log
+template <>
+struct formatter<io::raw> : ostream_formatter {};
+
+}  // namespace fmt
+
 com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
     : io::stream("GRPC"), _accept(false) {
   _channel = client::create(conf);
@@ -51,8 +59,8 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
       d = std::make_shared<io::raw>();                                        \
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
           to_convert.buffer().begin(), to_convert.buffer().end());            \
-      log_v2::grpc()->trace("stream::{} receive:{}", __FUNCTION__,            \
-                            *std::static_pointer_cast<io::raw>(d));           \
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
+                          *std::static_pointer_cast<io::raw>(d));             \
     } else {                                                                  \
       return false;                                                           \
     }                                                                         \
@@ -102,4 +110,20 @@ int32_t com::centreon::broker::grpc::stream::stop() {
 
 bool com::centreon::broker::grpc::stream::is_down() const {
   return _channel->is_down();
+}
+
+/**
+ * @brief wait for connection write queue empty
+ *
+ * @param ms_timeout
+ * @return true queue is empty
+ * @return false timeout expired
+ */
+bool com::centreon::broker::grpc::stream::wait_for_all_events_written(
+    unsigned ms_timeout) {
+  if (_channel->is_down()) {
+    return true;
+  }
+
+  return _channel->wait_for_all_events_written(ms_timeout);
 }

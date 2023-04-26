@@ -47,12 +47,12 @@ class endpoint {
  public:
   endpoint() = delete;
   endpoint(io_type way);
-  endpoint(endpoint const& other);
-  ~endpoint() noexcept;
-  endpoint& operator=(endpoint const& other);
-  bool operator==(endpoint const& other) const;
-  bool operator!=(endpoint const& other) const;
-  bool operator<(endpoint const& other) const;
+  endpoint(const endpoint& other);
+  ~endpoint() noexcept = default;
+  endpoint& operator=(const endpoint& other);
+  bool operator==(const endpoint& other) const;
+  bool operator!=(const endpoint& other) const;
+  bool operator<(const endpoint& other) const;
 
   io_type get_io_type() const { return _type; }
   time_t buffering_timeout;

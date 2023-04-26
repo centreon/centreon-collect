@@ -26,9 +26,11 @@ CCE_BEGIN()
 
 namespace downtimes {
 class service_downtime : public downtime {
+  const uint64_t _service_id;
+
  public:
-  service_downtime(std::string const& hostname,
-                   std::string const& service_desc,
+  service_downtime(const uint64_t host_id,
+                   const uint64_t service_id,
                    time_t entry_time,
                    std::string const& author,
                    std::string const& comment,
@@ -41,7 +43,7 @@ class service_downtime : public downtime {
   service_downtime(downtime const& other);
   service_downtime(downtime&& other);
   virtual ~service_downtime();
-  std::string const& get_service_description() const;
+  uint64_t service_id() const;
   virtual bool is_stale() const override;
   virtual void schedule() override;
   virtual int unschedule() override;
@@ -49,9 +51,6 @@ class service_downtime : public downtime {
   virtual int handle() override;
   virtual void print(std::ostream& os) const override;
   virtual void retention(std::ostream& os) const override;
-
- private:
-  std::string _service_description;
 };
 }  // namespace downtimes
 

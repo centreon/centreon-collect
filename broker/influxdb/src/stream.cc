@@ -19,7 +19,7 @@
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/influxdb/influxdb12.hh"
+#include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
@@ -54,8 +54,8 @@ stream::stream(std::string const& user,
       _actual_query(0),
       _commit(false),
       _cache(cache) {
-  _influx_db.reset(new influxdb12(user, passwd, addr, port, db, status_ts,
-                                  status_cols, metric_ts, metric_cols, _cache));
+  _influx_db.reset(new influxdb(user, passwd, addr, port, db, status_ts,
+                                status_cols, metric_ts, metric_cols, _cache));
 }
 
 /**
@@ -133,14 +133,27 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   _cache.write(data);
 
   // Process metric events.
-  if (data->type() ==
-      io::events::data_type<io::storage, storage::de_metric>::value) {
-    _influx_db->write(*std::static_pointer_cast<storage::metric const>(data));
-    ++_actual_query;
-  } else if (data->type() ==
-             io::events::data_type<io::storage, storage::de_status>::value) {
-    _influx_db->write(*std::static_pointer_cast<storage::status const>(data));
-    ++_actual_query;
+  switch (data->type()) {
+    case storage::metric::static_type():
+      _influx_db->write(*std::static_pointer_cast<storage::metric const>(data));
+      ++_actual_query;
+      break;
+    case storage::pb_metric::static_type():
+      _influx_db->write(
+          *std::static_pointer_cast<storage::pb_metric const>(data));
+      ++_actual_query;
+      break;
+    case storage::status::static_type():
+      _influx_db->write(*std::static_pointer_cast<storage::status const>(data));
+      ++_actual_query;
+      break;
+    case storage::pb_status::static_type():
+      _influx_db->write(
+          *std::static_pointer_cast<storage::pb_status const>(data));
+      ++_actual_query;
+      break;
+    default:
+      break;
   }
   if (_actual_query >= _queries_per_transaction)
     _commit = true;

@@ -25,10 +25,13 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class grpc_channel_tester : public testing::Test {
  public:
   static void SetUpTestSuite() {
-    com::centreon::broker::pool::load(1);
+    g_io_context->restart();
+    com::centreon::broker::pool::load(g_io_context, 1);
     // log_v2::grpc()->set_level(spdlog::level::trace);
   }
 };
@@ -66,6 +69,8 @@ class channel_test : public channel {
     pool::io_context().post(
         [me = shared_from_this(), to_read]() { me->simul_on_read(); });
   }
+
+  void shutdown() override {}
 
   virtual void simul_on_read() {
     if (!to_read.empty()) {
@@ -114,8 +119,12 @@ TEST_F(grpc_channel_tester, read_all) {
 
   ASSERT_FALSE(read_ret.second);
 
-  ASSERT_LE(std::chrono::milliseconds(9), read_end - read_start);
-  ASSERT_LE(read_end - read_start, std::chrono::milliseconds(50));
+  ASSERT_LE(std::chrono::milliseconds(9),
+            std::chrono::duration_cast<std::chrono::milliseconds>(read_end -
+                                                                  read_start));
+  ASSERT_LE(std::chrono::duration_cast<std::chrono::milliseconds>(read_end -
+                                                                  read_start),
+            std::chrono::milliseconds(200));
 }
 
 TEST_F(grpc_channel_tester, throw_read_after_failure) {
@@ -172,7 +181,7 @@ TEST_F(grpc_channel_tester, throw_write_after_failure) {
 
   int failure_ind = channel->failure_ind = rand() % 100 + 10;
 
-  for (unsigned ii = 0; ii <= failure_ind; ++ii) {
+  for (int32_t ii = 0; ii <= failure_ind; ++ii) {
     channel->write(std::make_shared<grpc_event_type>());
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(20));

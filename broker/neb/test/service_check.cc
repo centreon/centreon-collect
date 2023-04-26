@@ -25,7 +25,7 @@
 
 using namespace com::centreon::broker;
 
-class ServiceCheck : public ::testing::Test {
+class TestServiceCheck : public ::testing::Test {
   void SetUp() override { randomize_init(); };
 
   void TearDown() override { randomize_cleanup(); };
@@ -34,7 +34,7 @@ class ServiceCheck : public ::testing::Test {
 /**
  *  Check service_check's assignment operator.
  */
-TEST_F(ServiceCheck, Assign) {
+TEST_F(TestServiceCheck, Assign) {
   // Object #1.
   neb::service_check schk1;
   std::vector<randval> randvals1;
@@ -59,7 +59,7 @@ TEST_F(ServiceCheck, Assign) {
 /**
  *  Check service_check's copy constructor.
  */
-TEST_F(ServiceCheck, CopyCtor) {
+TEST_F(TestServiceCheck, CopyCtor) {
   // Object #1.
   neb::service_check schk1;
   std::vector<randval> randvals1;
@@ -80,7 +80,7 @@ TEST_F(ServiceCheck, CopyCtor) {
 /**
  *  Check service_check's default constructor.
  */
-TEST_F(ServiceCheck, DefaultCtor) {
+TEST_F(TestServiceCheck, DefaultCtor) {
   // Object.
   neb::service_check schk;
 

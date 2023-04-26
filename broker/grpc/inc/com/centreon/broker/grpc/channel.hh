@@ -25,7 +25,7 @@ namespace com {
 namespace centreon {
 namespace broker {
 namespace grpc {
-class detail_centreon_event;
+struct detail_centreon_event;
 std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
 }  // namespace grpc
 namespace stream {
@@ -55,8 +55,17 @@ struct detail_centreon_event {
 
 const std::string authorization_header("authorization");
 
+constexpr uint32_t calc_accept_all_compression_mask() {
+  uint32_t ret = 0;
+  for (size_t algo_ind = 0; algo_ind < GRPC_COMPRESS_ALGORITHMS_COUNT;
+       algo_ind++) {
+    ret += (1u << algo_ind);
+  }
+  return ret;
+}
+
 /**
- * @brief base class of grpc communication final class server or client
+ * @brief Abstract base class of grpc communication final class server or client
  *
  */
 class channel : public std::enable_shared_from_this<channel> {
@@ -85,7 +94,7 @@ class channel : public std::enable_shared_from_this<channel> {
   grpc_config::pointer _conf;
 
   mutable std::mutex _protect;
-  mutable std::condition_variable _read_cond;
+  mutable std::condition_variable _read_cond, _write_cond;
 
   channel(const std::string& class_name, const grpc_config::pointer& conf);
 
@@ -106,6 +115,7 @@ class channel : public std::enable_shared_from_this<channel> {
   virtual ~channel();
 
   void to_trash();
+  virtual void shutdown() = 0;
   bool is_down() const { return _error || _thrown; };
   bool is_alive() const { return !_error && !_thrown; }
 
@@ -120,9 +130,21 @@ class channel : public std::enable_shared_from_this<channel> {
   int write(const event_ptr&);
   int flush();
   virtual int stop();
+
+  bool wait_for_all_events_written(unsigned ms_timeout);
 };
 }  // namespace grpc
 
 CCB_END()
+
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<centreon_stream::centreon_event> : ostream_formatter {};
+
+template <>
+struct formatter<centreon_grpc::detail_centreon_event> : ostream_formatter {};
+
+}  // namespace fmt
 
 #endif  // !CCB_GRPC_CHANNEL_HH

@@ -46,10 +46,10 @@ extern "C" {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   delete thread;
   thread = NULL;
-  return;
+  return true;  // ok to be unloaded
 }
 
 /**

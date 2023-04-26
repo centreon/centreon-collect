@@ -44,11 +44,13 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances)
     // Unregister TCP protocol.
     io::protocols::instance().unreg("GRPC");
+  return false;  // don't unload library because grpc layers could run in other
+                 // threads
 }
 
 /**
@@ -62,8 +64,8 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TCP module.
-    log_v2::grpc()->info("GRPC: module for Centreon Broker {}",
-                         CENTREON_BROKER_VERSION);
+    SPDLOG_LOGGER_INFO(log_v2::grpc(), "Module for Centreon Broker {}",
+                       CENTREON_BROKER_VERSION);
 
     // Register TCP protocol.
     io::protocols::instance().reg(

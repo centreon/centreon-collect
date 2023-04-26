@@ -79,12 +79,13 @@ channel::channel(const std::string& class_name,
       _error(false),
       _thrown(false),
       _conf(conf) {
-  log_v2::grpc()->debug("channel::channel this={:p}", static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "channel::channel this={:p}",
+                      static_cast<void*>(this));
 }
 
 channel::~channel() {
-  log_v2::grpc()->debug("channel::~channel this={:p}",
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "channel::~channel this={:p}",
+                      static_cast<void*>(this));
 }
 
 void channel::start() {
@@ -94,9 +95,10 @@ void channel::start() {
 constexpr unsigned second_delay_before_delete = 60u;
 
 void channel::to_trash() {
+  this->shutdown();
   _thrown = true;
-  log_v2::grpc()->debug("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "to_trash this={:p}",
+                      static_cast<void*>(this));
   _trash->to_trash(shared_from_this(),
                    time(nullptr) + second_delay_before_delete);
 }
@@ -134,18 +136,17 @@ std::pair<event_ptr, bool> channel::read(
 void channel::start_read(bool first_read) {
   event_ptr to_read;
   {
-    unique_lock l(_protect);
+    lock_guard l(_protect);
     if (_read_pending) {
       return;
     }
     to_read = _read_current = std::make_shared<grpc_event_type>();
 
     _read_pending = true;
-    if (first_read) {
-      log_v2::grpc()->debug("{} start call and read", __PRETTY_FUNCTION__);
-    } else {
-      log_v2::grpc()->trace("{} start read", __PRETTY_FUNCTION__);
-    }
+    if (first_read)
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "Start call and read");
+    else
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "Start read");
   }
   if (to_read) {
     start_read(to_read, first_read);
@@ -155,14 +156,9 @@ void channel::start_read(bool first_read) {
 void channel::on_read_done(bool ok) {
   if (ok) {
     {
-      unique_lock l(_protect);
-      if (log_v2::grpc()->level() == spdlog::level::trace) {
-        log_v2::grpc()->trace("{}::{} receive:{}", _class_name, __FUNCTION__,
-                              detail_centreon_event(*_read_current));
-      } else {
-        log_v2::grpc()->debug("{}::{} receive:{}", _class_name, __FUNCTION__,
-                              *_read_current);
-      }
+      lock_guard l(_protect);
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "receive: {}", *_read_current);
+
       _read_queue.push_back(_read_current);
       _read_cond.notify_one();
       _read_pending = false;
@@ -170,6 +166,7 @@ void channel::on_read_done(bool ok) {
     start_read(false);
   } else {
     log_v2::grpc()->error("{}::{} ", _class_name, __FUNCTION__);
+    lock_guard l(_protect);
     _error = true;
   }
 }
@@ -182,7 +179,7 @@ int channel::write(const event_ptr& to_send) {
     throw(msg_fmt("{} connexion is down", __PRETTY_FUNCTION__));
   }
   {
-    unique_lock l(_protect);
+    lock_guard l(_protect);
     _write_queue.push_back(to_send);
   }
   start_write();
@@ -192,7 +189,7 @@ int channel::write(const event_ptr& to_send) {
 void channel::start_write() {
   event_ptr write_current;
   {
-    unique_lock l(_protect);
+    lock_guard l(_protect);
     if (_write_pending) {
       return;
     }
@@ -202,12 +199,7 @@ void channel::start_write() {
     _write_pending = true;
     write_current = _write_current = _write_queue.front();
   }
-  if (log_v2::grpc()->level() == spdlog::level::trace) {
-    log_v2::grpc()->trace("{} write:{}", __PRETTY_FUNCTION__,
-                          detail_centreon_event(*write_current));
-  } else {
-    log_v2::grpc()->debug("{} write:{}", __PRETTY_FUNCTION__, *write_current);
-  }
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write: {}", *write_current);
   start_write(write_current);
 }
 
@@ -215,30 +207,39 @@ void channel::on_write_done(bool ok) {
   if (ok) {
     bool data_to_write = false;
     {
-      unique_lock l(_protect);
+      lock_guard l(_protect);
       _write_pending = false;
-      if (log_v2::grpc()->level() == spdlog::level::trace) {
-        log_v2::grpc()->trace("{} write done :{}", __PRETTY_FUNCTION__,
-                              detail_centreon_event(*_write_current));
-      } else {
-        log_v2::grpc()->debug("{} write done :{}", __PRETTY_FUNCTION__,
-                              *_write_current);
-      }
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done: {}", *_write_current);
 
       _write_queue.pop_front();
       data_to_write = !_write_queue.empty();
     }
+    _write_cond.notify_all();
     if (data_to_write) {
       start_write();
     }
   } else {
-    unique_lock l(_protect);
-    log_v2::grpc()->error("{}::{} write failed :{}", _class_name, __FUNCTION__,
-                          *_write_current);
+    lock_guard l(_protect);
+    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}", *_write_current);
     _error = true;
   }
 }
 
 int channel::flush() {
   return 0;
+}
+
+/**
+ * @brief wait for all events sent on the wire
+ *
+ * @param ms_timeout
+ * @return true if all events are sent
+ * @return false if timeout expires
+ */
+bool channel::wait_for_all_events_written(unsigned ms_timeout) {
+  unique_lock l(_protect);
+  log_v2::grpc()->trace("wait_for_all_events_written _write_queue.size()={}",
+                        _write_queue.size());
+  return _write_cond.wait_for(l, std::chrono::milliseconds(ms_timeout),
+                              [this]() { return _write_queue.empty(); });
 }

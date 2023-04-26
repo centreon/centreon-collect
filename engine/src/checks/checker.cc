@@ -56,9 +56,9 @@ checker& checker::instance() {
   return *_instance;
 }
 
-void checker::init() {
+void checker::init(bool used_by_test) {
   if (!_instance)
-    _instance = new checker();
+    _instance = new checker(used_by_test);
 }
 
 void checker::deinit() {
@@ -71,21 +71,9 @@ void checker::deinit() {
 void checker::clear() noexcept {
   try {
     std::lock_guard<std::mutex> lock(_mut_reap);
-    while (!_to_reap_partial.empty()) {
-      check_result* result = _to_reap_partial.front();
-      _to_reap_partial.pop_front();
-      delete result;
-    }
-    while (!_to_reap.empty()) {
-      check_result* result = _to_reap.front();
-      _to_reap.pop_front();
-      delete result;
-    }
-    auto it = _waiting_check_result.begin();
-    while (it != _waiting_check_result.end()) {
-      delete it->second;
-      it = _waiting_check_result.erase(it);
-    }
+    _to_reap_partial.clear();
+    _to_reap.clear();
+    _waiting_check_result.clear();
     _to_forget.clear();
   } catch (...) {
   }
@@ -96,10 +84,10 @@ void checker::clear() noexcept {
  */
 void checker::reap() {
   engine_logger(dbg_functions, basic) << "checker::reap";
-  log_v2::functions()->trace("checker::reap()");
+  SPDLOG_LOGGER_TRACE(log_v2::functions(), "checker::reap()");
 
   engine_logger(dbg_checks, basic) << "Starting to reap check results.";
-  log_v2::checks()->trace("Starting to reap check results.");
+  SPDLOG_LOGGER_TRACE(log_v2::checks(), "Starting to reap check results.");
 
   // Time to start reaping.
   time_t reaper_start_time;
@@ -115,7 +103,6 @@ void checker::reap() {
           for (auto it = _waiting_check_result.begin();
                it != _waiting_check_result.end();) {
             if (it->second->get_notifier() == n) {
-              delete it->second;
               it = _waiting_check_result.erase(it);
             } else
               ++it;
@@ -123,7 +110,6 @@ void checker::reap() {
           for (auto it = _to_reap_partial.begin();
                it != _to_reap_partial.end();) {
             if ((*it)->get_notifier() == n) {
-              delete *it;
               it = _to_reap_partial.erase(it);
             } else
               ++it;
@@ -140,9 +126,10 @@ void checker::reap() {
       ++reaped_checks;
       engine_logger(dbg_checks, basic)
           << "Found a check result (#" << reaped_checks << ") to handle...";
-      log_v2::checks()->trace("Found a check result (#{}) to handle...",
-                              reaped_checks);
-      check_result* result = _to_reap.front();
+      SPDLOG_LOGGER_TRACE(log_v2::checks(),
+                          "Found a check result (#{}) to handle...",
+                          reaped_checks);
+      check_result::pointer result = _to_reap.front();
       _to_reap.pop_front();
 
       // Service check result->
@@ -151,18 +138,19 @@ void checker::reap() {
         try {
           // Check if the service exists.
           engine_logger(dbg_checks, more)
-              << "Handling check result for service " << svc->get_host_id()
-              << "/" << svc->get_service_id() << "...";
-          log_v2::checks()->debug("Handling check result for service {}/{}...",
-                                  svc->get_host_id(), svc->get_service_id());
-          svc->handle_async_check_result(result);
+              << "Handling check result for service " << svc->host_id() << "/"
+              << svc->service_id() << "...";
+          SPDLOG_LOGGER_DEBUG(log_v2::checks(),
+                              "Handling check result for service {}/{}...",
+                              svc->host_id(), svc->service_id());
+          svc->handle_async_check_result(*result);
         } catch (std::exception const& e) {
           engine_logger(log_runtime_warning, basic)
-              << "Check result queue errors for service " << svc->get_host_id()
-              << "/" << svc->get_service_id() << " : " << e.what();
-          log_v2::runtime()->warn(
-              "Check result queue errors for service {}/{} : {}",
-              svc->get_host_id(), svc->get_service_id(), e.what());
+              << "Check result queue errors for service " << svc->host_id()
+              << "/" << svc->service_id() << " : " << e.what();
+          SPDLOG_LOGGER_WARN(log_v2::runtime(),
+                             "Check result queue errors for service {}/{} : {}",
+                             svc->host_id(), svc->service_id(), e.what());
         }
       }
       // Host check result->
@@ -170,21 +158,20 @@ void checker::reap() {
         host* hst = static_cast<host*>(result->get_notifier());
         try {
           // Process the check result->
-          engine_logger(dbg_checks, more) << "Handling check result for host "
-                                          << hst->get_host_id() << "...";
-          log_v2::checks()->debug("Handling check result for host {}...",
-                                  hst->get_host_id());
-          hst->handle_async_check_result_3x(result);
+          engine_logger(dbg_checks, more)
+              << "Handling check result for host " << hst->host_id() << "...";
+          SPDLOG_LOGGER_DEBUG(log_v2::checks(),
+                              "Handling check result for host {}...",
+                              hst->host_id());
+          hst->handle_async_check_result_3x(*result);
         } catch (std::exception const& e) {
           engine_logger(log_runtime_error, basic)
               << "Check result queue errors for "
-              << "host " << hst->get_host_id() << " : " << e.what();
+              << "host " << hst->host_id() << " : " << e.what();
           log_v2::runtime()->error("Check result queue errors for host {} : {}",
-                                   hst->get_host_id(), e.what());
+                                   hst->host_id(), e.what());
         }
       }
-
-      delete result;
 
       // Check if reaping has timed out.
       time_t current_time;
@@ -194,7 +181,8 @@ void checker::reap() {
         engine_logger(dbg_checks, basic)
             << "Breaking out of check result reaper: "
             << "max reaper time exceeded";
-        log_v2::checks()->trace(
+        SPDLOG_LOGGER_TRACE(
+            log_v2::checks(),
             "Breaking out of check result reaper: max reaper time exceeded");
         break;
       }
@@ -203,7 +191,8 @@ void checker::reap() {
       if (sigshutdown) {
         engine_logger(dbg_checks, basic)
             << "Breaking out of check result reaper: signal encountered";
-        log_v2::checks()->trace(
+        SPDLOG_LOGGER_TRACE(
+            log_v2::checks(),
             "Breaking out of check result reaper: signal encountered");
         break;
       }
@@ -213,7 +202,8 @@ void checker::reap() {
   // Reaping finished.
   engine_logger(dbg_checks, basic)
       << "Finished reaping " << reaped_checks << " check results";
-  log_v2::checks()->trace("Finished reaping {} check results", reaped_checks);
+  SPDLOG_LOGGER_TRACE(log_v2::checks(), "Finished reaping {} check results",
+                      reaped_checks);
 }
 
 /**
@@ -234,29 +224,32 @@ void checker::run_sync(host* hst,
       << "checker::run: hst=" << hst << ", check_options=" << check_options
       << ", use_cached_result=" << use_cached_result
       << ", check_timestamp_horizon=" << check_timestamp_horizon;
-  log_v2::functions()->trace(
-      "checker::run: hst={:p}, check_options={}"
-      ", use_cached_result={}"
-      ", check_timestamp_horizon={}",
-      (void*)hst, check_options, use_cached_result, check_timestamp_horizon);
+  SPDLOG_LOGGER_TRACE(log_v2::functions(),
+                      "checker::run: hst={:p}, check_options={}"
+                      ", use_cached_result={}"
+                      ", check_timestamp_horizon={}",
+                      (void*)hst, check_options, use_cached_result,
+                      check_timestamp_horizon);
 
   // Preamble.
   if (!hst)
     throw engine_error() << "Attempt to run synchronous check on invalid host";
   if (!hst->get_check_command_ptr())
     throw engine_error() << "Attempt to run synchronous active check on host '"
-                         << hst->get_name() << "' with no check command";
+                         << hst->name() << "' with no check command";
 
   engine_logger(dbg_checks, basic)
-      << "** Run sync check of host '" << hst->get_name() << "'...";
-  log_v2::checks()->trace("** Run sync check of host '{}'...", hst->get_name());
+      << "** Run sync check of host '" << hst->name() << "'...";
+  SPDLOG_LOGGER_TRACE(log_v2::checks(), "** Run sync check of host '{}'...",
+                      hst->name());
 
   // Check if the host is viable now.
   if (!hst->verify_check_viability(check_options, nullptr, nullptr)) {
     if (check_result_code)
       *check_result_code = hst->get_current_state();
     engine_logger(dbg_checks, basic) << "Host check is not viable at this time";
-    log_v2::checks()->trace("Host check is not viable at this time");
+    SPDLOG_LOGGER_TRACE(log_v2::checks(),
+                        "Host check is not viable at this time");
     return;
   }
 
@@ -275,8 +268,8 @@ void checker::run_sync(host* hst,
         *check_result_code = hst->get_current_state();
       engine_logger(dbg_checks, more)
           << "* Using cached host state: " << hst->get_current_state();
-      log_v2::checks()->debug("* Using cached host state: {}",
-                              hst->get_current_state());
+      SPDLOG_LOGGER_DEBUG(log_v2::checks(), "* Using cached host state: {}",
+                          hst->get_current_state());
 
       // Update statistics.
       update_check_stats(ACTIVE_ONDEMAND_HOST_CHECK_STATS, start_time.tv_sec);
@@ -288,8 +281,9 @@ void checker::run_sync(host* hst,
   // Checking starts.
   engine_logger(dbg_checks, more)
       << "* Running actual host check: old state=" << hst->get_current_state();
-  log_v2::checks()->debug("* Running actual host check: old state={}",
-                          hst->get_current_state());
+  SPDLOG_LOGGER_DEBUG(log_v2::checks(),
+                      "* Running actual host check: old state={}",
+                      hst->get_current_state());
 
   // Update statistics.
   update_check_stats(ACTIVE_ONDEMAND_HOST_CHECK_STATS, start_time.tv_sec);
@@ -322,14 +316,8 @@ void checker::run_sync(host* hst,
   hst->set_check_type(checkable::check_active);
 
   // Send broker event.
-  timeval end_time;
-  memset(&end_time, 0, sizeof(end_time));
-  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, NEBFLAG_NONE, NEBATTR_NONE, hst,
-                    checkable::check_active, hst->get_current_state(),
-                    hst->get_state_type(), start_time, end_time,
-                    hst->check_command().c_str(), hst->get_latency(), 0.0,
-                    config->host_check_timeout(), false, 0, nullptr, nullptr,
-                    nullptr, nullptr, nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_INITIATE, hst, checkable::check_active,
+                    nullptr, nullptr);
 
   // Execute command synchronously.
   host::host_state host_result(_execute_sync(hst));
@@ -344,22 +332,13 @@ void checker::run_sync(host* hst,
   // Synchronous check is done.
   engine_logger(dbg_checks, more)
       << "* Sync host check done: new state=" << hst->get_current_state();
-  log_v2::checks()->debug("* Sync host check done: new state={}",
-                          hst->get_current_state());
-
-  // Get the end time of command.
-  gettimeofday(&end_time, nullptr);
+  SPDLOG_LOGGER_DEBUG(log_v2::checks(), "* Sync host check done: new state={}",
+                      hst->get_current_state());
 
   // Send event broker.
-  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, NEBFLAG_NONE, NEBATTR_NONE,
-                    hst, checkable::check_active, hst->get_current_state(),
-                    hst->get_state_type(), start_time, end_time,
-                    hst->check_command().c_str(), hst->get_latency(),
-                    hst->get_execution_time(), config->host_check_timeout(),
-                    false, hst->get_current_state(), nullptr,
-                    const_cast<char*>(hst->get_plugin_output().c_str()),
-                    const_cast<char*>(hst->get_long_plugin_output().c_str()),
-                    const_cast<char*>(hst->get_perf_data().c_str()), nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_PROCESSED, hst, checkable::check_active,
+                    nullptr,
+                    const_cast<char*>(hst->get_plugin_output().c_str()));
 }
 
 /**************************************
@@ -371,7 +350,10 @@ void checker::run_sync(host* hst,
 /**
  *  Default constructor.
  */
-checker::checker() : commands::command_listener() {}
+checker::checker(bool used_by_test)
+    : commands::command_listener(),
+      _used_by_test(used_by_test),
+      _finished(false) {}
 
 /**
  *  Default destructor.
@@ -388,19 +370,21 @@ checker::~checker() noexcept {
 void checker::finished(commands::result const& res) noexcept {
   // Debug message.
   engine_logger(dbg_functions, basic) << "checker::finished: res=" << &res;
-  log_v2::functions()->trace("checker::finished: res={:p}", (void*)&res);
+  SPDLOG_LOGGER_TRACE(log_v2::functions(), "checker::finished: res={:p}",
+                      (void*)&res);
 
   std::unique_lock<std::mutex> lock(_mut_reap);
   auto it_id = _waiting_check_result.find(res.command_id);
   if (it_id == _waiting_check_result.end()) {
     engine_logger(log_runtime_warning, basic)
         << "command ID '" << res.command_id << "' not found";
-    log_v2::runtime()->warn("command ID '{}' not found", res.command_id);
+    SPDLOG_LOGGER_WARN(log_v2::runtime(), "command ID '{}' not found",
+                       res.command_id);
     return;
   }
 
   // Find check result.
-  check_result* result = it_id->second;
+  check_result::pointer result = it_id->second;
   _waiting_check_result.erase(it_id);
   lock.unlock();
 
@@ -418,6 +402,42 @@ void checker::finished(commands::result const& res) noexcept {
   // Queue check result.
   lock.lock();
   _to_reap_partial.push_back(result);
+  if (_used_by_test) {
+    _finished = true;
+    lock.unlock();
+    _finish_cond.notify_one();
+  }
+}
+
+void checker::wait_completion(e_completion_filter filter) {
+  if (!_used_by_test) {
+    throw std::invalid_argument("checker not in test usage");
+  }
+  std::unique_lock<std::mutex> lock(_mut_reap);
+  _finished = false;
+  if (filter == e_completion_filter::all) {
+    _finish_cond.wait(lock, [this]() { return _finished; });
+  } else {
+    check_source filt =
+        filter == e_completion_filter::service ? service_check : host_check;
+    _finish_cond.wait(lock, [this, filt]() {
+      if (!_finished) {
+        return false;
+      } else {
+        auto found =
+            std::find_if(_to_reap_partial.begin(), _to_reap_partial.end(),
+                         [filt](const check_result::pointer& res) {
+                           return res->get_object_check_type() == filt;
+                         });
+        if (found != _to_reap_partial.end()) {
+          return true;
+        } else {
+          _finished = false;
+          return false;
+        }
+      }
+    });
+  }
 }
 
 /**
@@ -430,31 +450,26 @@ void checker::finished(commands::result const& res) noexcept {
  */
 com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   engine_logger(dbg_functions, basic) << "checker::_execute_sync: hst=" << hst;
-  log_v2::functions()->trace("checker::_execute_sync: hst={:p}", (void*)hst);
+  SPDLOG_LOGGER_TRACE(log_v2::functions(), "checker::_execute_sync: hst={:p}",
+                      (void*)hst);
 
   // Preamble.
   if (!hst)
     throw engine_error() << "Attempt to run synchronous check on invalid host";
   if (!hst->get_check_command_ptr())
     throw engine_error() << "Attempt to run synchronous active check on host '"
-                         << hst->get_name() << "' with no check command";
+                         << hst->name() << "' with no check command";
 
   engine_logger(dbg_checks, basic)
-      << "** Executing sync check of host '" << hst->get_name() << "'...";
-  log_v2::checks()->trace("** Executing sync check of host '{}'...",
-                          hst->get_name());
+      << "** Executing sync check of host '" << hst->name() << "'...";
+  SPDLOG_LOGGER_TRACE(log_v2::checks(),
+                      "** Executing sync check of host '{}'...", hst->name());
 
   // Send broker event.
-  timeval start_time;
-  timeval end_time;
-  memset(&start_time, 0, sizeof(start_time));
-  memset(&end_time, 0, sizeof(end_time));
-  int ret(broker_host_check(
-      NEBTYPE_HOSTCHECK_SYNC_PRECHECK, NEBFLAG_NONE, NEBATTR_NONE, hst,
-      checkable::check_active, hst->get_current_state(), hst->get_state_type(),
-      start_time, end_time, hst->check_command().c_str(), hst->get_latency(),
-      0.0, config->host_check_timeout(), false, 0, nullptr, nullptr, nullptr,
-      nullptr, nullptr));
+  timeval start_time{0, 0};
+  timeval end_time{0, 0};
+  int ret(broker_host_check(NEBTYPE_HOSTCHECK_SYNC_PRECHECK, hst,
+                            checkable::check_active, nullptr, nullptr));
 
   // Host sync check was cancelled or overriden by NEB module.
   if ((NEBERROR_CALLBACKCANCEL == ret) || (NEBERROR_CALLBACKOVERRIDE == ret))
@@ -474,31 +489,26 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   hst->set_last_check(start_time.tv_sec);
 
   // Get command object.
-  commands::command* cmd = hst->get_check_command_ptr();
+  commands::command::pointer cmd = hst->get_check_command_ptr();
   std::string processed_cmd(cmd->process_cmd(macros));
   const char* tmp_processed_cmd = processed_cmd.c_str();
 
   // Send broker event.
-  broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, NEBFLAG_NONE, NEBATTR_NONE,
-                    hst, checkable::check_active, host::state_up,
-                    hst->get_state_type(), start_time, end_time,
-                    hst->check_command().c_str(), 0.0, 0.0,
-                    config->host_check_timeout(), false, service::state_ok,
+  broker_host_check(NEBTYPE_HOSTCHECK_RAW_START, hst, checkable::check_active,
                     processed_cmd.c_str(),
-                    const_cast<char*>(hst->get_plugin_output().c_str()),
-                    const_cast<char*>(hst->get_long_plugin_output().c_str()),
-                    const_cast<char*>(hst->get_perf_data().c_str()), nullptr);
+                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Debug messages.
   engine_logger(dbg_commands, more)
       << "Raw host check command: "
       << hst->get_check_command_ptr()->get_command_line();
-  log_v2::commands()->trace("Raw host check command: {}",
-                            hst->get_check_command_ptr()->get_command_line());
+  SPDLOG_LOGGER_TRACE(log_v2::commands(), "Raw host check command: {}",
+                      hst->get_check_command_ptr()->get_command_line());
 
   engine_logger(dbg_commands, more)
       << "Processed host check ommand: " << processed_cmd;
-  log_v2::commands()->trace("Processed host check ommand: {}", processed_cmd);
+  SPDLOG_LOGGER_TRACE(log_v2::commands(), "Processed host check ommand: {}",
+                      processed_cmd);
 
   // Cleanup.
   hst->set_plugin_output("");
@@ -507,9 +517,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   // Send broker event.
   timeval start_cmd;
-  timeval end_cmd;
+  timeval end_cmd{0, 0};
   gettimeofday(&start_cmd, nullptr);
-  memset(&end_cmd, 0, sizeof(end_cmd));
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
                         NEBATTR_NONE, start_cmd, end_cmd, 0,
                         config->host_check_timeout(), false, 0,
@@ -531,12 +540,10 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     engine_logger(log_runtime_warning, basic)
         << "Error: Synchronous host check command execution failed: "
         << e.what();
-    log_v2::runtime()->warn(
+    SPDLOG_LOGGER_WARN(
+        log_v2::runtime(),
         "Error: Synchronous host check command execution failed: {}", e.what());
   }
-
-  // Get output.
-  char* output(string::dup(res.output));
 
   unsigned int execution_time(0);
   if (res.end_time >= res.start_time)
@@ -554,26 +561,24 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
                         start_cmd, end_cmd, execution_time,
                         config->host_check_timeout(),
                         res.exit_status == process::timeout, res.exit_code,
-                        tmp_processed_cmd, output, nullptr);
+                        tmp_processed_cmd, res.output.c_str(), nullptr);
 
   // Cleanup.
-  delete[] output;
   clear_volatile_macros_r(macros);
 
   // If the command timed out.
   if (res.exit_status == process::timeout) {
-    std::ostringstream oss;
-    oss << "Host check timed out after " << config->host_check_timeout()
-        << "  seconds";
-    res.output = oss.str();
+    res.output = fmt::format("Host check timed out after {}  seconds",
+                             config->host_check_timeout());
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host check command '" << processed_cmd << "' for host '"
-        << hst->get_name() << "' timed out after "
-        << config->host_check_timeout() << " seconds";
-    log_v2::runtime()->warn(
+        << hst->name() << "' timed out after " << config->host_check_timeout()
+        << " seconds";
+    SPDLOG_LOGGER_WARN(
+        log_v2::runtime(),
         "Warning: Host check command '{}' for host '{}' timed out after {} "
         "seconds",
-        processed_cmd, hst->get_name(), config->host_check_timeout());
+        processed_cmd, hst->name(), config->host_check_timeout());
   }
 
   // Update values.
@@ -619,20 +624,15 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   gettimeofday(&end_time, nullptr);
 
   // Send broker event.
-  broker_host_check(
-      NEBTYPE_HOSTCHECK_RAW_END, NEBFLAG_NONE, NEBATTR_NONE, hst,
-      checkable::check_active, return_result, hst->get_state_type(), start_time,
-      end_time, hst->check_command().c_str(), 0.0, execution_time,
-      config->host_check_timeout(), res.exit_status == process::timeout,
-      res.exit_code, tmp_processed_cmd,
-      const_cast<char*>(hst->get_plugin_output().c_str()),
-      const_cast<char*>(hst->get_long_plugin_output().c_str()),
-      const_cast<char*>(hst->get_perf_data().c_str()), nullptr);
+  broker_host_check(NEBTYPE_HOSTCHECK_RAW_END, hst, checkable::check_active,
+                    tmp_processed_cmd,
+                    const_cast<char*>(hst->get_plugin_output().c_str()));
 
   // Termination.
   engine_logger(dbg_checks, basic)
       << "** Sync host check done: state=" << return_result;
-  log_v2::checks()->trace("** Sync host check done: state={}", return_result);
+  SPDLOG_LOGGER_TRACE(log_v2::checks(), "** Sync host check done: state={}",
+                      return_result);
   return return_result;
 }
 
@@ -645,8 +645,9 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
  * @param id A command id
  * @param check_result A check_result coming from a service or a host.
  */
-void checker::add_check_result(uint64_t id,
-                               check_result* check_result) noexcept {
+void checker::add_check_result(
+    uint64_t id,
+    const check_result::pointer check_result) noexcept {
   std::lock_guard<std::mutex> lock(_mut_reap);
   _waiting_check_result[id] = check_result;
 }
@@ -657,7 +658,8 @@ void checker::add_check_result(uint64_t id,
  *
  * @param check_result The check_result already finished.
  */
-void checker::add_check_result_to_reap(check_result* check_result) noexcept {
+void checker::add_check_result_to_reap(
+    const check_result::pointer check_result) noexcept {
   std::lock_guard<std::mutex> lock(_mut_reap);
   _to_reap_partial.push_back(check_result);
 }

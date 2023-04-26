@@ -56,7 +56,7 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Deregister unified_sql layer.
@@ -64,6 +64,7 @@ void broker_module_deinit() {
     io::events::instance().unregister_category(io::storage);
     io::protocols::instance().unreg("storage");
   }
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -101,9 +102,8 @@ void broker_module_init(void const* arg) {
 
       /* Let's register the rebuild_metrics bbdo event. This is needed to send
        * the rebuild message from the gRPC interface. */
-      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
-                       "rebuild_metrics",
-                       &bbdo::pb_rebuild_rrd_graphs::operations);
+      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_graphs),
+                       "rebuild_metrics", &bbdo::pb_rebuild_graphs::operations);
 
       /* Let's register the message to start rebuilds, send rebuilds and
        * terminate rebuilds. This is pb_rebuild_message. */
@@ -121,6 +121,33 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_remove_graph_message),
                        "RemoveGraphMessage",
                        &storage::pb_remove_graph_message::operations);
+
+      /* Let's register the pb_remove_graphs bbdo event. This is needed to send
+       * the remove graphs message from the gRPC interface. */
+      e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
+                       "remove_graphs", &bbdo::pb_remove_poller::operations);
+
+      /* Let's register the remove_poller event. */
+      e.register_event(make_type(io::bbdo, bbdo::de_remove_poller),
+                       "remove_poller", &bbdo::pb_remove_poller::operations);
+
+      /* Let's register the pb_metric event. */
+      e.register_event(make_type(io::storage, storage::de_pb_metric),
+                       "pb_metric", &storage::pb_metric::operations);
+
+      /* Let's register the pb_status event. */
+      e.register_event(make_type(io::storage, storage::de_pb_status),
+                       "pb_status", &storage::pb_status::operations);
+
+      /* Let's register the pb_index_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
+                       "pb_index_mapping",
+                       &storage::pb_index_mapping::operations);
+
+      /* Let's register the pb_metric_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_metric_mapping),
+                       "pb_metric_mapping",
+                       &storage::pb_metric_mapping::operations);
     }
 
     // Register unified_sql layer.

@@ -33,7 +33,7 @@ using namespace com::centreon::engine::configuration::applier;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
 
-host_downtime::host_downtime(std::string const& host_name,
+host_downtime::host_downtime(const uint64_t host_id,
                              time_t entry_time,
                              std::string const& author,
                              std::string const& comment,
@@ -44,7 +44,7 @@ host_downtime::host_downtime(std::string const& host_name,
                              int32_t duration,
                              uint64_t downtime_id)
     : downtime(downtime::host_downtime,
-               host_name,
+               host_id,
                entry_time,
                author,
                comment,
@@ -58,12 +58,11 @@ host_downtime::host_downtime(std::string const& host_name,
 host_downtime::~host_downtime() {
   comment::delete_comment(_get_comment_id());
   /* send data to event broker */
-  broker_downtime_data(NEBTYPE_DOWNTIME_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                       downtime::host_downtime, _hostname.c_str(), nullptr,
-                       _entry_time, _author.c_str(), _comment.c_str(),
-                       get_start_time(), get_end_time(), is_fixed(),
-                       get_triggered_by(), get_duration(), get_downtime_id(),
-                       nullptr);
+  broker_downtime_data(NEBTYPE_DOWNTIME_DELETE, NEBATTR_NONE,
+                       downtime::host_downtime, host_id(), 0, _entry_time,
+                       _author.c_str(), _comment.c_str(), get_start_time(),
+                       get_end_time(), is_fixed(), get_triggered_by(),
+                       get_duration(), get_downtime_id(), nullptr);
 }
 
 /* adds a host downtime entry to the list in memory */
@@ -74,23 +73,24 @@ host_downtime::~host_downtime() {
  * @return a boolean
  */
 bool host_downtime::is_stale() const {
-  bool retval{false};
+  bool retval = false;
 
-  host_map::const_iterator it(host::hosts.find(get_hostname()));
+  auto it = host::hosts_by_id.find(host_id());
 
   /* delete downtimes with invalid host names */
-  if (it == host::hosts.end() || it->second == nullptr)
+  if (it == host::hosts_by_id.end() || it->second == nullptr)
     retval = true;
   /* delete downtimes that have expired */
-  else if (get_end_time() < time(NULL))
+  else if (get_end_time() < time(nullptr))
     retval = true;
 
   return retval;
 }
 
 void host_downtime::retention(std::ostream& os) const {
+  std::string name = engine::get_host_name(host_id());
   os << "hostdowntime {\n";
-  os << "host_name=" << get_hostname() << "\n";
+  os << "host_name=" << name << "\n";
   os << "author=" << get_author()
      << "\n"
         "comment="
@@ -121,8 +121,9 @@ void host_downtime::retention(std::ostream& os) const {
 }
 
 void host_downtime::print(std::ostream& os) const {
+  std::string name = engine::get_host_name(host_id());
   os << "hostdowntime {\n";
-  os << "\thost_name=" << get_hostname() << "\n";
+  os << "\thost_name=" << name << "\n";
   os << "\tdowntime_id=" << get_downtime_id()
      << "\n"
         "\tentry_time="
@@ -153,10 +154,10 @@ void host_downtime::print(std::ostream& os) const {
 }
 
 int host_downtime::unschedule() {
-  host_map::const_iterator it(host::hosts.find(get_hostname()));
+  auto it = host::hosts_by_id.find(host_id());
 
   /* delete downtimes with invalid host names */
-  if (it == host::hosts.end() || !it->second)
+  if (it == host::hosts_by_id.end() || it->second == nullptr)
     return ERROR;
 
   /* decrement pending flex downtime if necessary ... */
@@ -168,11 +169,10 @@ int host_downtime::unschedule() {
   if (is_in_effect()) {
     /* send data to event broker */
     broker_downtime_data(
-        NEBTYPE_DOWNTIME_STOP, NEBFLAG_NONE, NEBATTR_DOWNTIME_STOP_CANCELLED,
-        get_type(), get_hostname().c_str(), nullptr, _entry_time,
-        get_author().c_str(), get_comment().c_str(), get_start_time(),
-        get_end_time(), is_fixed(), get_triggered_by(), get_duration(),
-        get_downtime_id(), nullptr);
+        NEBTYPE_DOWNTIME_STOP, NEBATTR_DOWNTIME_STOP_CANCELLED, get_type(),
+        host_id(), 0, _entry_time, get_author().c_str(), get_comment().c_str(),
+        get_start_time(), get_end_time(), is_fixed(), get_triggered_by(),
+        get_duration(), get_downtime_id(), nullptr);
 
     it->second->dec_scheduled_downtime_depth();
     it->second->update_status();
@@ -180,14 +180,14 @@ int host_downtime::unschedule() {
     /* log a notice - this is parsed by the history CGI */
     if (it->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(log_info_message, basic)
-          << "HOST DOWNTIME ALERT: " << it->second->get_name()
+          << "HOST DOWNTIME ALERT: " << it->second->name()
           << ";CANCELLED; Scheduled downtime for host has been "
              "cancelled.";
       log_v2::events()->info(
           "HOST DOWNTIME ALERT: {};CANCELLED; Scheduled downtime for host has "
           "been "
           "cancelled.",
-          it->second->get_name());
+          it->second->name());
 
       /* send a notification */
       it->second->notify(notifier::reason_downtimecancelled, "", "",
@@ -201,10 +201,10 @@ int host_downtime::subscribe() {
   engine_logger(dbg_functions, basic) << "host_downtime::subscribe()";
   log_v2::functions()->trace("host_downtime::subscribe()");
 
-  host_map::const_iterator it(host::hosts.find(get_hostname()));
+  auto it = host::hosts_by_id.find(host_id());
 
   /* find the host or service associated with this downtime */
-  if (it == host::hosts.end() || !it->second)
+  if (it == host::hosts_by_id.end() || it->second == nullptr)
     return ERROR;
 
   host* hst = it->second.get();
@@ -223,27 +223,30 @@ int host_downtime::subscribe() {
   int seconds{get_duration() - hours * 3600 - minutes * 60};
 
   char const* type_string{"host"};
-  std::ostringstream oss;
+  std::string msg;
   if (is_fixed())
-    oss << "This " << type_string
-        << " has been scheduled for fixed downtime from " << start_time_string
-        << " to " << end_time_string << " Notifications for the " << type_string
-        << " will not be sent out during that time period.";
+    msg = fmt::format(
+        "This {}"
+        " has been scheduled for fixed downtime from {}"
+        " to {} Notifications for the {}"
+        " will not be sent out during that time period.",
+        type_string, start_time_string, end_time_string, type_string);
   else
-    oss << "This " << type_string
-        << " has been scheduled for flexible downtime starting between "
-        << start_time_string << " and " << end_time_string
-        << " and lasting for a period of " << hours << " hours and " << minutes
-        << " minutes. Notifications for the " << type_string
-        << " will not be sent out during that time period.";
+    msg = fmt::format(
+        "This {0}"
+        " has been scheduled for flexible downtime starting between {1}"
+        " and {2}"
+        " and lasting for a period of {3} hours and {4}"
+        " minutes. Notifications for the {0}"
+        " will not be sent out during that time period.",
+        type_string, start_time_string, end_time_string, hours, minutes);
 
   engine_logger(dbg_downtime, basic) << "Scheduled Downtime Details:";
   log_v2::downtimes()->trace("Scheduled Downtime Details:");
   engine_logger(dbg_downtime, basic) << " Type:        Host Downtime\n"
                                         " Host:        "
-                                     << hst->get_name();
-  log_v2::downtimes()->trace(" Type: Host Downtime ");
-  log_v2::downtimes()->trace(" Host: {}", hst->get_name());
+                                     << hst->name();
+  log_v2::downtimes()->trace(" Type: Host Downtime ; Host: {}", hst->name());
   engine_logger(dbg_downtime, basic)
       << " Fixed/Flex:  " << (is_fixed() ? "Fixed\n" : "Flexible\n")
       << " Start:       " << start_time_string
@@ -267,10 +270,10 @@ int host_downtime::subscribe() {
 
   /* add a non-persistent comment to the host or service regarding the scheduled
    * outage */
-  std::shared_ptr<comment> com{
-      new comment(comment::host, comment::downtime, hst->get_host_id(), 0,
-                  time(NULL), "(Centreon Engine Process)", oss.str(), false,
-                  comment::internal, false, (time_t)0)};
+  auto com = std::make_shared<comment>(comment::host, comment::downtime,
+                                       hst->host_id(), 0, time(nullptr),
+                                       "(Centreon Engine Process)", msg, false,
+                                       comment::internal, false, (time_t)0);
 
   comment::comments.insert({com->get_comment_id(), com});
   _comment_id = com->get_comment_id();
@@ -281,10 +284,11 @@ int host_downtime::subscribe() {
   /* only non-triggered downtime is scheduled... */
   if (get_triggered_by() == 0) {
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
-    timed_event* evt =
-        new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(),
-                        false, 0, NULL, false, (void*)new_downtime_id, NULL, 0);
-    events::loop::instance().schedule(evt, true);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(
+            timed_event::EVENT_SCHEDULED_DOWNTIME, get_start_time(), false, 0,
+            nullptr, false, (void*)new_downtime_id, nullptr, 0),
+        true);
   }
 
 #ifdef PROBABLY_NOT_NEEDED
@@ -307,10 +311,10 @@ int host_downtime::handle() {
   engine_logger(dbg_functions, basic) << "handle_downtime()";
   log_v2::functions()->trace("handle_downtime()");
 
-  host_map::const_iterator it_hst(host::hosts.find(get_hostname()));
+  auto it_hst = host::hosts_by_id.find(host_id());
 
   /* find the host or service associated with this downtime */
-  if (it_hst == host::hosts.end() || it_hst->second == nullptr)
+  if (it_hst == host::hosts_by_id.end() || it_hst->second == nullptr)
     return ERROR;
 
   /* if downtime is flexible and host/svc is in an ok state, don't do anything
@@ -334,10 +338,11 @@ int host_downtime::handle() {
           temp = get_end_time() + 1;
         /*** Sometimes, get_end_time() == longlong::max(), if we add 1 to it,
          * it becomes < 0 ***/
-        timed_event* evt =
-            new timed_event(timed_event::EVENT_EXPIRE_DOWNTIME, temp, false, 0,
-                            NULL, false, NULL, NULL, 0);
-        events::loop::instance().schedule(evt, true);
+        events::loop::instance().schedule(
+            std::make_unique<timed_event>(timed_event::EVENT_EXPIRE_DOWNTIME,
+                                          temp, false, 0, nullptr, false,
+                                          nullptr, nullptr, 0),
+            true);
         return OK;
       }
     }
@@ -347,34 +352,34 @@ int host_downtime::handle() {
   if (is_in_effect()) {
     /* send data to event broker */
     attr = NEBATTR_DOWNTIME_STOP_NORMAL;
-    broker_downtime_data(
-        NEBTYPE_DOWNTIME_STOP, NEBFLAG_NONE, attr, get_type(),
-        get_hostname().c_str(), nullptr, _entry_time, get_author().c_str(),
-        get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
-        get_triggered_by(), get_duration(), get_downtime_id(), NULL);
+    broker_downtime_data(NEBTYPE_DOWNTIME_STOP, attr, get_type(), host_id(), 0,
+                         _entry_time, get_author().c_str(),
+                         get_comment().c_str(), get_start_time(),
+                         get_end_time(), is_fixed(), get_triggered_by(),
+                         get_duration(), get_downtime_id(), nullptr);
 
     /* decrement the downtime depth variable */
     it_hst->second->dec_scheduled_downtime_depth();
 
     if (it_hst->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
-          << "Host '" << it_hst->second->get_name()
+          << "Host '" << it_hst->second->name()
           << "' has exited from a period of scheduled downtime (id="
           << get_downtime_id() << ").";
       log_v2::downtimes()->trace(
           "Host '{}' has exited from a period of scheduled downtime (id={}).",
-          it_hst->second->get_name(), get_downtime_id());
+          it_hst->second->name(), get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
       engine_logger(log_info_message, basic)
-          << "HOST DOWNTIME ALERT: " << it_hst->second->get_name()
+          << "HOST DOWNTIME ALERT: " << it_hst->second->name()
           << ";STOPPED; Host has exited from a period of scheduled "
              "downtime";
       log_v2::events()->info(
           "HOST DOWNTIME ALERT: {};STOPPED; Host has exited from a period of "
           "scheduled "
           "downtime",
-          it_hst->second->get_name());
+          it_hst->second->name());
 
       /* send a notification */
       it_hst->second->notify(notifier::reason_downtimeend, get_author(),
@@ -426,29 +431,29 @@ int host_downtime::handle() {
   /* else we are just starting the scheduled downtime */
   else {
     /* send data to event broker */
-    broker_downtime_data(
-        NEBTYPE_DOWNTIME_START, NEBFLAG_NONE, NEBATTR_NONE, get_type(),
-        get_hostname().c_str(), nullptr, _entry_time, get_author().c_str(),
-        get_comment().c_str(), get_start_time(), get_end_time(), is_fixed(),
-        get_triggered_by(), get_duration(), get_downtime_id(), nullptr);
+    broker_downtime_data(NEBTYPE_DOWNTIME_START, NEBATTR_NONE, get_type(),
+                         host_id(), 0, _entry_time, get_author().c_str(),
+                         get_comment().c_str(), get_start_time(),
+                         get_end_time(), is_fixed(), get_triggered_by(),
+                         get_duration(), get_downtime_id(), nullptr);
 
     if (it_hst->second->get_scheduled_downtime_depth() == 0) {
       engine_logger(dbg_downtime, basic)
-          << "Host '" << it_hst->second->get_name()
+          << "Host '" << it_hst->second->name()
           << "' has entered a period of scheduled downtime (id="
           << get_downtime_id() << ").";
       log_v2::downtimes()->trace(
           "Host '{}' has entered a period of scheduled downtime (id={}).",
-          it_hst->second->get_name(), get_downtime_id());
+          it_hst->second->name(), get_downtime_id());
 
       /* log a notice - this one is parsed by the history CGI */
       engine_logger(log_info_message, basic)
-          << "HOST DOWNTIME ALERT: " << it_hst->second->get_name()
+          << "HOST DOWNTIME ALERT: " << it_hst->second->name()
           << ";STARTED; Host has entered a period of scheduled downtime";
       log_v2::events()->info(
           "HOST DOWNTIME ALERT: {};STARTED; Host has entered a period of "
           "scheduled downtime",
-          it_hst->second->get_name());
+          it_hst->second->name());
 
       /* send a notification */
       it_hst->second->notify(notifier::reason_downtimestart, get_author(),
@@ -467,7 +472,7 @@ int host_downtime::handle() {
 
     /* schedule an event */
     if (!is_fixed())
-      event_time = (time_t)((uint64_t)time(NULL) + get_duration());
+      event_time = (time_t)((uint64_t)time(nullptr) + get_duration());
     else {
       /* Sometimes, get_end_time() == longlong::max(), if we add 1 to it, it
        * becomes < 0 */
@@ -478,10 +483,11 @@ int host_downtime::handle() {
     }
 
     uint64_t* new_downtime_id{new uint64_t{get_downtime_id()}};
-    timed_event* evt =
-        new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, event_time,
-                        false, 0, NULL, false, (void*)new_downtime_id, NULL, 0);
-    events::loop::instance().schedule(evt, true);
+    events::loop::instance().schedule(
+        std::make_unique<timed_event>(timed_event::EVENT_SCHEDULED_DOWNTIME,
+                                      event_time, false, 0, nullptr, false,
+                                      (void*)new_downtime_id, nullptr, 0),
+        true);
 
     /* handle (start) downtime that is triggered by this one */
     std::multimap<time_t, std::shared_ptr<downtime>>::const_iterator it,
@@ -497,12 +503,9 @@ int host_downtime::handle() {
 }
 
 void host_downtime::schedule() {
-  downtime_manager::instance().add_downtime(this);
-
   /* send data to event broker */
-  broker_downtime_data(NEBTYPE_DOWNTIME_LOAD, NEBFLAG_NONE, NEBATTR_NONE,
-                       downtime::host_downtime, _hostname.c_str(), nullptr,
-                       _entry_time, _author.c_str(), _comment.c_str(),
-                       _start_time, _end_time, _fixed, _triggered_by, _duration,
-                       _downtime_id, nullptr);
+  broker_downtime_data(
+      NEBTYPE_DOWNTIME_LOAD, NEBATTR_NONE, downtime::host_downtime, host_id(),
+      0, _entry_time, _author.c_str(), _comment.c_str(), _start_time, _end_time,
+      _fixed, _triggered_by, _duration, _downtime_id, nullptr);
 }

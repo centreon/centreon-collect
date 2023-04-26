@@ -126,8 +126,8 @@ void applier::command::modify_object(configuration::command const& obj) {
   // not referenced anywhere, only ::command objects are.
   commands::command::commands.erase(obj.command_name());
   if (obj.connector().empty()) {
-    std::shared_ptr<commands::raw> raw{new commands::raw(
-        obj.command_name(), obj.command_line(), &checks::checker::instance())};
+    auto raw = std::make_shared<commands::raw>(
+        obj.command_name(), obj.command_line(), &checks::checker::instance());
     commands::command::commands[raw->get_name()] = raw;
   } else {
     connector_map::iterator found_con{

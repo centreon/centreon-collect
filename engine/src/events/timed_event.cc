@@ -104,12 +104,12 @@ void timed_event::_exec_event_service_check() {
 
   engine_logger(dbg_events, basic)
       << "** Service Check Event ==> Host: '" << svc->get_hostname()
-      << "', Service: '" << svc->get_description()
+      << "', Service: '" << svc->description()
       << "', Options: " << event_options << ", Latency: " << latency << " sec";
   log_v2::events()->trace(
       "** Service Check Event ==> Host: '{}', Service: '{}', Options: {}, "
       "Latency: {} sec",
-      svc->get_hostname(), svc->get_description(), event_options, latency);
+      svc->get_hostname(), svc->description(), event_options, latency);
 
   // run the service check.
   svc->run_scheduled_check(event_options, latency);
@@ -124,8 +124,7 @@ void timed_event::_exec_event_command_check() {
   log_v2::events()->trace("** External Command Check Event");
 
   // send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, NEBFLAG_NONE,
-                          NEBATTR_NONE, CMD_NONE, time(NULL), NULL, NULL, NULL);
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE, NULL, NULL);
 }
 
 /**
@@ -292,11 +291,11 @@ void timed_event::_exec_event_host_check() {
                             (double)(tv.tv_usec / 1000) / 1000.0);
 
   engine_logger(dbg_events, basic)
-      << "** Host Check Event ==> Host: '" << hst->get_name()
+      << "** Host Check Event ==> Host: '" << hst->name()
       << "', Options: " << event_options << ", Latency: " << latency << " sec";
   log_v2::events()->trace(
       "** Host Check Event ==> Host: '{}', Options: {}, Latency: {} sec",
-      hst->get_name(), event_options, latency);
+      hst->name(), event_options, latency);
 
   // run the host check.
   hst->run_scheduled_check(event_options, latency);

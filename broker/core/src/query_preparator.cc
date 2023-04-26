@@ -336,6 +336,8 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
       google::protobuf::DescriptorPool::generated_pool()->FindMessageTypeByName(
           fmt::format("com.centreon.broker.{}", info->get_name()));
 
+  assert(desc);
+
   std::vector<std::tuple<std::string, uint32_t, uint16_t>> pb_mapping;
 
   std::string key;

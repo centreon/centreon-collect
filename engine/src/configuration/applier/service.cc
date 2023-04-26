@@ -193,9 +193,9 @@ void applier::service::add_object(configuration::service const& obj) {
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                             NEBATTR_NONE, svc, it->first.c_str(),
-                             it->second.get_value().c_str(), &tv);
+      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, svc,
+                             it->first.c_str(), it->second.get_value().c_str(),
+                             &tv);
     }
   }
 
@@ -227,9 +227,8 @@ void applier::service::add_object(configuration::service const& obj) {
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               svc, CMD_NONE, MODATTR_ALL, MODATTR_ALL, &tv);
+                               svc, MODATTR_ALL);
 }
 
 /**
@@ -347,9 +346,9 @@ void applier::service::modify_object(configuration::service const& obj) {
 
   // Modify properties.
   if (it_obj->second->get_hostname() != *obj.hosts().begin() ||
-      it_obj->second->get_description() != obj.service_description()) {
+      it_obj->second->description() != obj.service_description()) {
     engine::service::services.erase(
-        {it_obj->second->get_hostname(), it_obj->second->get_description()});
+        {it_obj->second->get_hostname(), it_obj->second->description()});
     engine::service::services.insert(
         {{*obj.hosts().begin(), obj.service_description()}, it_obj->second});
   }
@@ -483,9 +482,9 @@ void applier::service::modify_object(configuration::service const& obj) {
     for (auto& c : s->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(
-            NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-            s.get(), c.first.c_str(), c.second.get_value().c_str(), &tv);
+        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
+                               c.first.c_str(), c.second.get_value().c_str(),
+                               &tv);
       }
     }
     s->custom_variables.clear();
@@ -495,9 +494,9 @@ void applier::service::modify_object(configuration::service const& obj) {
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), c.first.c_str(),
-                               c.second.get_value().c_str(), &tv);
+        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
+                               c.first.c_str(), c.second.get_value().c_str(),
+                               &tv);
       }
     }
   }
@@ -530,10 +529,8 @@ void applier::service::modify_object(configuration::service const& obj) {
     }
   }
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), CMD_NONE, MODATTR_ALL,
-                               MODATTR_ALL, &tv);
+                               NEBATTR_NONE, s.get(), MODATTR_ALL);
 }
 
 /**
@@ -586,10 +583,8 @@ void applier::service::remove_object(configuration::service const& obj) {
       it_s->members.erase({host_name, service_description});
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
     broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, svc.get(), CMD_NONE, MODATTR_ALL,
-                                 MODATTR_ALL, &tv);
+                                 NEBATTR_NONE, svc.get(), MODATTR_ALL);
 
     // Unregister service.
     engine::service::services.erase({host_name, service_description});

@@ -85,7 +85,8 @@ std::unique_ptr<io::stream> acceptor::open() {
  *
  *  @return Encrypted stream.
  */
-std::unique_ptr<io::stream> acceptor::open(std::shared_ptr<io::stream> lower) {
+std::unique_ptr<io::stream> acceptor::open(
+    const std::shared_ptr<io::stream>& lower) {
   std::unique_ptr<io::stream> u;
   if (lower) {
     int ret;

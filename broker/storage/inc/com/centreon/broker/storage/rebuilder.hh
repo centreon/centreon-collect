@@ -66,7 +66,7 @@ class rebuilder {
   ~rebuilder() noexcept = default;
   rebuilder(const rebuilder&) = delete;
   rebuilder& operator=(const rebuilder&) = delete;
-  void rebuild_rrd_graphs(const std::shared_ptr<io::data>& d);
+  void rebuild_graphs(const std::shared_ptr<io::data>& d);
 };
 }  // namespace storage
 

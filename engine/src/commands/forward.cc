@@ -52,13 +52,18 @@ forward::forward(std::string const& command_name,
  *  @param[in] args    The command arguments.
  *  @param[in] macros  The macros data struct.
  *  @param[in] timeout The command timeout.
+ *  @param[in] to_push_to_checker This check_result will be pushed to checher.
+ *  @param[in] caller  pointer to the caller
  *
  *  @return The command id.
  */
 uint64_t forward::run(std::string const& processed_cmd,
                       nagios_macros& macros,
-                      uint32_t timeout) {
-  return _command->run(processed_cmd, macros, timeout);
+                      uint32_t timeout,
+                      const check_result::pointer& to_push_to_checker,
+                      const void* caller) {
+  return _command->run(processed_cmd, macros, timeout, to_push_to_checker,
+                       caller);
 }
 
 /**

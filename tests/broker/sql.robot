@@ -26,7 +26,7 @@ BDB1
 	 ${content}=	Create List	storage and sql streams do not have the same database configuration
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	 Should Be True	${result}	msg=A message should tell that sql and storage outputs do not have the same configuration.
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDB2
@@ -43,7 +43,7 @@ BDB2
 	 ${content}=	Create List	storage and sql streams do not have the same database configuration
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
 	 Should Be True	${result}	msg=A log telling the impossibility to establish a connection between the storage stream and the database should appear.
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDB3
@@ -59,7 +59,7 @@ BDB3
 	 ${content}=	Create List	global error: mysql_connection: error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	 Should Be True	${result}	msg=No message about the database not connected.
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDB4
@@ -76,7 +76,7 @@ BDB4
 	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
 	 Should Be True	${result}	msg=No message about the fact that cbd is not correctly connected to the database.
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDB5
@@ -93,7 +93,7 @@ BDB5
 	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	50
 	 Should Be True	${result}	msg=No message about the disconnection between cbd and the database
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDB6
@@ -109,7 +109,7 @@ BDB6
 	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
 	 Should Be True	${result}	msg=No message about the disconnection between cbd and the database
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDB7
@@ -125,7 +125,7 @@ BDB7
 	${content}=	Create List	mysql_connection: error while starting connection
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 
 BDB8
 	[Documentation]	access denied when database user password is wrong for perfdata/sql
@@ -140,7 +140,7 @@ BDB8
 	${content}=	Create List	mysql_connection: error while starting connection
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 
 BDB9
 	[Documentation]	access denied when database user password is wrong for sql
@@ -154,7 +154,7 @@ BDB9
 	${content}=	Create List	mysql_connection: error while starting connection
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 
 BDB10
 	[Documentation]	connection should be established when user password is good for sql/perfdata
@@ -168,7 +168,7 @@ BDB10
 	${content}=	Create List	sql stream initialization	storage stream initialization
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	40
 	Should Be True	${result}
-	Stop Broker
+	Kindly Stop Broker
 
 BEDB2
 	[Documentation]	start broker/engine and then start MariaDB => connection is established
@@ -187,7 +187,7 @@ BEDB2
 	Start Mysql
 	${result}=	Check Broker Stats exist	central	mysql manager	waiting tasks in connection 0
 	Should Be True	${result}	msg=Message about the connection to the database is missing.
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BEDB3
@@ -219,7 +219,7 @@ BEDB3
           Exit For Loop If	${result}
         END
         Should Be True	${result}	msg=gRPC does not return 3 connections as expected
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BEDB4
@@ -245,7 +245,7 @@ BEDB4
           Exit For Loop If	${result}
         END
         Should Be True	${result}	msg=gRPC does not return 3 connections as expected
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
 BDBM1
@@ -259,7 +259,7 @@ BDBM1
 	 Config Broker	rrd
 	 Config Broker	module
 	 Config Engine	${1}
-	 ${start}=	Get Current Date
+	 ${start}=	Get Round Current Date
 	 Stop Mysql
 	 Start Broker
 	 Start Engine
@@ -269,7 +269,7 @@ BDBM1
 	 Start Mysql
 	 ${result}=	Get Broker Stats Size	central	mysql manager
 	 Should Be True	${result} >= ${c} + 1	msg=The stats file should contain at less ${c} + 1 connections to the database.
-	 Stop Broker
+	 Kindly Stop Broker
 	 Stop Engine
 	END
 
@@ -281,13 +281,15 @@ BDBU1
 	Config Broker	rrd
 	Config Broker	module
 	Broker Config Output set	central	central-broker-unified-sql	db_name	centreon
+        Broker Config Log	central	sql	trace
+	Broker Config Flush Log	central	0
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	Table 'centreon.instances' doesn't exist
+	 ${content}=	Create List	Table 'centreon.hosts' doesn't exist
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	 Should Be True	${result}
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDBU3
@@ -304,7 +306,7 @@ BDBU3
 	 ${content}=	Create List	global error: mysql_connection: error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	 Should Be True	${result}
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDBU5
@@ -321,7 +323,7 @@ BDBU5
 	 ${content}=	Create List	error while starting connection
 	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	50
 	 Should Be True	${result}	msg=Cannot find the message telling cbd is not connected to the database.
-	 Stop Broker
+	 Kindly Stop Broker
 	END
 
 BDBU7
@@ -337,7 +339,7 @@ BDBU7
 	${content}=	Create List	mysql_connection: error while starting connection
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	20
 	Should Be True	${result}	msg=Error concerning cbd not connected to the database is missing.
-	Stop Broker
+	Kindly Stop Broker
 
 BDBU10
 	[Documentation]	Connection should be established when user password is good for unified sql
@@ -350,10 +352,10 @@ BDBU10
 	Broker Config Log	module0	sql	debug
 	${start}=	Get Current Date
 	Start Broker
-	${content}=	Create List	mysql_connection: commit
-	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	40
-	Should Be True	${result}	msg=Log concerning a commit (connection ok) is missing.
-	Stop Broker
+	${content}=	Create List	mysql_connection 0x[0-9a-f]* : commit
+	${result}=	Find Regex In Log with timeout	${centralLog}	${start}	${content}	40
+	Should Be True	${result[0]}	msg=Log concerning a commit (connection ok) is missing.
+	Kindly Stop Broker
 
 BDBMU1
 	[Documentation]	start broker/engine with unified sql and then start MariaDB => connection is established
@@ -379,6 +381,6 @@ BDBMU1
 	 Should Be True	${result}	msg=No stats on mysql manager found
 	 ${result}=	Get Broker Stats size	central	mysql manager	${60}
 	 Should Be True	${result} >= ${c} + 1	msg=Broker mysql manager stats do not show the ${c} connections
-	 Stop Broker
+	 Kindly Stop Broker
 	 Stop Engine
 	END

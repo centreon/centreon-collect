@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker tests on dublicated data that could come from retention when centengine or cbd are restarted
 Library	Process
@@ -24,6 +25,7 @@ BERD1
 	Broker Config Clear Outputs Except	central	["ipv4"]
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
+        Broker Config Flush Log	central	0
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
@@ -35,18 +37,18 @@ BERD1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Files Contain Same Json	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
@@ -58,13 +60,16 @@ BERD2
 	Config Engine	${1}
 	Engine Config Set Value	${0}	log_legacy_enabled	${0}
 	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Engine Config Set Value	${0}	log_level_runtime	info
 	Config Broker	central
 	Broker Config Clear Outputs Except	central	["ipv4"]
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
+        Broker Config Flush Log	central	0
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+	Broker Config Log	module0	neb	debug
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -73,18 +78,16 @@ BERD2
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
-	Sleep	5s
+	Sleep	15s
 	Stop Engine
-	Sleep	5s
-	Clear Cache
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Files Contain Same Json	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
@@ -101,6 +104,7 @@ BERDUC1
 	Broker Config Log	central	lua	debug
 	Broker Config Log	central	perfdata	debug
 	Broker Config Log	central	sql	debug
+        Broker Config Flush Log	central	0
 
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
@@ -114,18 +118,18 @@ BERDUC1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -142,6 +146,9 @@ BERDUCU1
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
+        Broker Config Flush Log	module0	0
 	Config Broker	rrd
 	Clear Retention
 	${start}=	Get Current Date
@@ -150,18 +157,16 @@ BERDUCU1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
-	${result}=	Check Connections
-	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -178,6 +183,8 @@ BERDUC2
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
 	Config Broker	rrd
 	${start}=	Get Current Date
 	Start Broker
@@ -185,7 +192,7 @@ BERDUC2
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -196,7 +203,7 @@ BERDUC2
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -211,9 +218,12 @@ BERDUCU2
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
+	Broker Config Log	central	sql	trace
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
 	Config Broker	rrd
 	${start}=	Get Current Date
 	Start Broker
@@ -221,7 +231,7 @@ BERDUCU2
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
@@ -232,7 +242,7 @@ BERDUCU2
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -249,6 +259,8 @@ BERDUC3U1
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
 	Config Broker	rrd
         Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
@@ -260,18 +272,18 @@ BERDUC3U1
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
-	Stop Broker
+	Kindly Stop Broker
 	Sleep	5s
 	Clear Cache
 	Start Broker
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Broker Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -286,9 +298,12 @@ BERDUC3U2
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
 	Broker Config Log	central	lua	debug
+	Broker Config Log	central	sql	trace
 	Config Broker	module
 	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
 	Broker Config Log	module0	lua	debug
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
 	Config Broker	rrd
         Broker Config Add Item	module0	bbdo_version	3.0.0
         Broker Config Add Item	central	bbdo_version	3.0.0
@@ -296,11 +311,24 @@ BERDUC3U2
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
+
+	# Let's wait for the lua to be correctly initialized
 	${content}=	Create List	lua: initializing the Lua virtual machine
 	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in cbd
-	${result}=	Find In Log with timeout	${moduleLog}	${start}	${content}	30
+	${result}=	Find In Log with timeout	${moduleLog0}	${start}	${content}	30
 	Should Be True	${result}	msg=Lua not started in centengine
+
+	# Let's wait for all the services configuration.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+
+	${start}=	Get Round Current Date
+	# Let's wait for a first service status.
+	${content}=	Create List	SQL: pb service .* status .* type .* check result output
+	${result}=	Find Regex In Log with Timeout	${centralLog}	${start}	${content}	60
+	Should Be True	${result[0]}	msg=We did not get any pb service status for 60s
+
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected.
 	Sleep	5s
@@ -310,7 +338,112 @@ BERDUC3U2
 	Start Engine
 	Sleep	25s
 	Stop Engine
-	Stop Broker
+	Kindly Stop Broker
 	${result}=	Check Multiplicity When Engine Restarted	/tmp/lua-engine.log	/tmp/lua.log
 	Should Be True	${result}	msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
+BERDUCA300
+	[Documentation]	Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker.
+	[Tags]	Broker	Engine	start-stop	duplicate	retention	unified_sql
+	Clear Retention
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Config Broker	central
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
+	Broker Config Log	central	config	debug
+	Broker Config Log	central	bbdo	trace
+	Broker Config Log	central	tcp	trace
+	Config Broker	module
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	config	debug
+	Broker Config Log	module0	bbdo	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected.
+
+	# Let's wait for all the services configuration.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+
+	Stop Engine
+	${content}=	Create List	BBDO: sending pb stop packet to peer
+	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result}	msg=Engine should send a pb stop message to cbd.
+
+	${content}=	Create List	BBDO: received pb stop from peer
+	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Broker should receive a pb stop message from engine.
+
+	${content}=	Create List	send acknowledgement for [0-9]+ events
+	${result}=	Find Regex in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Broker should send an ack for handled events.
+
+	${content}=	Create List	BBDO: received acknowledgement for [0-9]+ events before finishing
+	${result}=	Find Regex in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Engine should receive an ack for handled events from broker.
+
+	Kindly Stop Broker
+
+BERDUCA301
+	[Documentation]	Starting/stopping Engine is stopped ; it should emit a stop event and receive an ack event with events to clean from broker with bbdo 3.0.1.
+	[Tags]	Broker	Engine	start-stop	duplicate	retention	unified_sql
+	Clear Retention
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_legacy_enabled	${0}
+	Engine Config Set Value	${0}	log_v2_enabled	${1}
+	Config Broker	central
+	Config Broker Sql Output	central	unified_sql
+	Broker Config Add Lua Output	central	test-doubles	${SCRIPTS}test-doubles-c.lua
+	Broker Config Log	central	config	debug
+	Broker Config Log	central	bbdo	trace
+	Broker Config Log	central	tcp	trace
+	Config Broker	module
+	Broker Config Add Lua Output	module0	test-doubles	${SCRIPTS}test-doubles.lua
+	Broker Config Log	module0	config	debug
+	Broker Config Log	module0	bbdo	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	module0	0
+	Config Broker	rrd
+        Broker Config Add Item	module0	bbdo_version	3.0.1
+        Broker Config Add Item	central	bbdo_version	3.0.1
+        Broker Config Add Item	rrd	bbdo_version	3.0.1
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected.
+
+	# Let's wait for all the services configuration.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+
+	Stop Engine
+	${content}=	Create List	BBDO: sending pb stop packet to peer
+	${result}=	Find in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result}	msg=Engine should send a pb stop message to cbd.
+
+	${content}=	Create List	BBDO: received pb stop from peer
+	${result}=	Find in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	msg=Broker should receive a pb stop message from engine.
+
+	${content}=	Create List	send pb acknowledgement for [0-9]+ events
+	${result}=	Find Regex in Log with Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Broker should send an ack for handled events.
+
+	${content}=	Create List	BBDO: received acknowledgement for [0-9]+ events before finishing
+	${result}=	Find Regex in Log with Timeout	${moduleLog0}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=Engine should receive an ack for handled events from broker.
+
+	Kindly Stop Broker

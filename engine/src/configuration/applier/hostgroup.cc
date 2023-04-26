@@ -64,17 +64,15 @@ void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
   config->hostgroups().insert(obj);
 
   // Create host group.
-  std::shared_ptr<com::centreon::engine::hostgroup> hg{new engine::hostgroup(
+  auto hg = std::make_shared<com::centreon::engine::hostgroup>(
       obj.hostgroup_id(), obj.hostgroup_name(), obj.alias(), obj.notes(),
-      obj.notes_url(), obj.action_url())};
+      obj.notes_url(), obj.action_url());
 
   // Add new items to the configuration state.
   engine::hostgroup::hostgroups.insert({hg->get_group_name(), hg});
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  broker_group(NEBTYPE_HOSTGROUP_ADD, NEBFLAG_NONE, NEBATTR_NONE, hg.get(),
-               &tv);
+  broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
 
   // Apply resolved hosts on hostgroup.
   for (set_string::const_iterator it(obj.members().begin()),
@@ -145,9 +143,8 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
     for (host_map_unsafe::iterator it(it_obj->second->members.begin()),
          end(it_obj->second->members.end());
          it != end; ++it) {
-      timeval tv(get_broker_timestamp(NULL));
-      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, NEBFLAG_NONE,
-                          NEBATTR_NONE, it->second, it_obj->second.get(), &tv);
+      broker_group_member(NEBTYPE_HOSTGROUPMEMBER_DELETE, it->second,
+                          it_obj->second.get());
     }
     it_obj->second->members.clear();
 
@@ -158,9 +155,7 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  broker_group(NEBTYPE_HOSTGROUP_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-               it_obj->second.get(), &tv);
+  broker_group(NEBTYPE_HOSTGROUP_UPDATE, it_obj->second.get());
 }
 
 /**
@@ -181,9 +176,7 @@ void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
     engine::hostgroup* grp(it->second.get());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
-    broker_group(NEBTYPE_HOSTGROUP_DELETE, NEBFLAG_NONE, NEBATTR_NONE, grp,
-                 &tv);
+    broker_group(NEBTYPE_HOSTGROUP_DELETE, grp);
 
     // Erase host group object (will effectively delete the object).
     engine::hostgroup::hostgroups.erase(it);

@@ -1,0 +1,59 @@
+[mysqld]
+#mariadb conf optimized for a 16Gb ram machine
+port            = 3306
+
+max_heap_table_size=1G
+open_files_limit = 32000
+group_concat_max_len = 1M
+
+#By request( all engines)
+tmp_table_size=1G
+sort_buffer_size = 128M
+join_buffer_size = 512M
+
+#During load or enable keys
+bulk_insert_buffer_size = 1G
+myisam_sort_buffer_size=1G
+
+table_open_cache = 2048
+thread_cache_size = 64
+
+#Time out and linked problems
+connect_timeout=28800
+innodb_lock_wait_timeout=28800
+wait_timeout=28000
+interactive_timeout=28800
+max_allowed_packet = 128M
+
+#At startup
+key_buffer_size = 2G
+query_cache_size=8M
+query_cache_type=1
+query_cache_limit=1048576
+innodb_buffer_pool_size = 6G
+innodb_buffer_pool_instances=1
+
+#Innob DB
+innodb_stats_on_metadata=0
+innodb_flush_method=O_DIRECT
+innodb_flush_log_at_trx_commit=2
+innodb_log_buffer_size=2G #taille buffer redo log
+innodb_log_file_size=1G
+innodb_log_files_in_group=3
+innodb_file_per_table
+innodb_open_files=1024
+innodb_max_dirty_pages_pct=30
+
+#activate queries log
+general_log=1
+general_log_file=/scripts/tests/mariadb_log/mariadb.log
+slow_query_log=1
+slow_query_log_file=/scripts/tests/mariadb_log/slow_query.log
+long_query_time=30
+log-error=/scripts/tests/mariadb_log/error.log
+
+
+[mysqld_safe]
+pid-file=/var/run/mysqld/mysqld.pid
+innodb_lock_wait_timeout=30
+

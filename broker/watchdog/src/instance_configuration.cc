@@ -41,8 +41,8 @@ instance_configuration::instance_configuration(std::string const& name,
                                                std::string const& config_file,
                                                bool should_run,
                                                bool should_reload,
-                                               __attribute__((__unused__))
-                                               uint32_t seconds_per_tentative)
+                                               uint32_t seconds_per_tentative
+                                               [[maybe_unused]])
     : _name{name},
       _executable{executable},
       _config_file{config_file},

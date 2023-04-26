@@ -2,7 +2,8 @@
 Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
-Test Setup	Stop Processes
+Test Setup	Init Test
+Test Teardown	Save logs If Failed
 
 Documentation	Engine/Broker tests on tags.
 Library	Process
@@ -605,3 +606,8 @@ BEUTAG12
 	Stop Engine
 	Kindly Stop Broker
 
+*** Keywords ***
+Init Test
+	Stop Processes
+	truncate_resource_host_service
+	

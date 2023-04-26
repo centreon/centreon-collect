@@ -17,7 +17,7 @@
 */
 
 #ifndef CCB_GRPC_CLIENT_HH
-#define CCB_GPRC_CLIENT_HH
+#define CCB_GRPC_CLIENT_HH
 
 #include "channel.hh"
 
@@ -62,6 +62,8 @@ class client : public channel,
   static pointer create(const grpc_config::pointer& conf);
 
   ~client();
+
+  void shutdown() override;
 
   void OnReadDone(bool ok) override;
   void OnWriteDone(bool ok) override;

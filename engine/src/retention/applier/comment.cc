@@ -54,10 +54,10 @@ void applier::comment::_add_host_comment(
     return;
 
   // add the comment.
-  std::shared_ptr<engine::comment> com{new engine::comment(
+  auto com{std::make_shared<engine::comment>(
       engine::comment::host,
       static_cast<engine::comment::e_type>(obj.entry_type()),
-      it->second->get_host_id(), 0, obj.entry_time(), obj.author(),
+      it->second->host_id(), 0, obj.entry_time(), obj.author(),
       obj.comment_data(), obj.persistent(),
       static_cast<engine::comment::src>(obj.source()), obj.expires(),
       obj.expire_time(), obj.comment_id())};
@@ -89,11 +89,11 @@ void applier::comment::_add_service_comment(
     return;
 
   // add the comment.
-  std::shared_ptr<engine::comment> com{new engine::comment(
+  auto com{std::make_shared<engine::comment>(
       engine::comment::service,
       static_cast<engine::comment::e_type>(obj.entry_type()),
-      it_svc->second->get_host_id(), it_svc->second->get_service_id(),
-      obj.entry_time(), obj.author(), obj.comment_data(), obj.persistent(),
+      it_svc->second->host_id(), it_svc->second->service_id(), obj.entry_time(),
+      obj.author(), obj.comment_data(), obj.persistent(),
       static_cast<engine::comment::src>(obj.source()), obj.expires(),
       obj.expire_time(), obj.comment_id())};
 

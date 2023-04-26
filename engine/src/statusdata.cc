@@ -66,8 +66,7 @@ int update_program_status(int aggregated_dump) {
   if (now >= next_program_status) {
     next_program_status += instance_heartbeat_interval;
     if (!aggregated_dump)
-      broker_program_status(NEBTYPE_PROGRAMSTATUS_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, NULL);
+      broker_program_status();
   }
   return OK;
 }

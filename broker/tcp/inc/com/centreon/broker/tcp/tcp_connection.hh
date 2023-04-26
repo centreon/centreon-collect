@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   std::queue<std::vector<char>> _write_queue;
   std::atomic_bool _write_queue_has_events;
   std::atomic_bool _writing;
+  std::condition_variable _writing_cv;
 
   std::atomic<int32_t> _acks;
   std::atomic_bool _reading;
@@ -79,6 +80,8 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   const std::string peer() const;
   const std::string& address() const;
   uint16_t port() const;
+
+  bool wait_for_all_events_written(unsigned ms_timeout);
 };
 
 }  // namespace tcp

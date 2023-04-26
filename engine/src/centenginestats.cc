@@ -200,6 +200,8 @@ void get_time_breakdown(unsigned long, int*, int*, int*, int*);
 int read_config_file();
 int read_stats_file();
 int read_status_file();
+/* strip newline, carriage return, and tab characters from beginning and end of
+ * a string */
 void strip(char*);
 
 /**

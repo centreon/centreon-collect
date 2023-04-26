@@ -28,9 +28,9 @@ class host;
 class servicegroup;
 CCE_END()
 
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::servicegroup>>
-    servicegroup_map;
+using servicegroup_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::servicegroup>>;
 
 CCE_BEGIN()
 class servicegroup {

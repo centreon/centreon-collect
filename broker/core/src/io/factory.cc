@@ -38,7 +38,7 @@ using namespace com::centreon::broker::io;
 std::shared_ptr<stream> factory::new_stream(
     std::shared_ptr<stream> to,
     bool is_acceptor,
-    const std::unordered_map<std::string, std::string>& options) {
+    const std::unordered_map<std::string, std::string>&) {
   (void)to;
   (void)is_acceptor;
   throw msg_fmt(

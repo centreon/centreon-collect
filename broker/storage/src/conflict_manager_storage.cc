@@ -171,7 +171,7 @@ void conflict_manager::_storage_process_service_status(
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
           _mysql.run_statement_and_get_result(_index_data_query,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
 
           database::mysql_result res(future.get());
           if (_mysql.fetch_row(res))
@@ -205,7 +205,7 @@ void conflict_manager::_storage_process_service_status(
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future = promise.get_future();
           _mysql.run_statement_and_get_result(_index_data_update,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
           future.get();
         }
 
@@ -474,7 +474,7 @@ void conflict_manager::_update_metrics() {
   int32_t conn = _mysql.choose_best_connection(-1);
   _finish_action(-1, actions::metrics);
   log_v2::sql()->trace("Send query: {}", query);
-  _mysql.run_query(query, database::mysql_error::update_metrics, false, conn);
+  _mysql.run_query(query, database::mysql_error::update_metrics, conn);
   _add_action(conn, actions::metrics);
   _metrics.clear();
 }
@@ -585,8 +585,7 @@ void conflict_manager::_check_deleted_index() {
     std::string err_msg;
     for (int64_t i : metrics_to_delete) {
       query = fmt::format("DELETE FROM metrics WHERE metric_id={}", i);
-      _mysql.run_query(query, database::mysql_error::delete_metric, false,
-                       conn);
+      _mysql.run_query(query, database::mysql_error::delete_metric, conn);
       _add_action(conn, actions::metrics);
 
       // Remove associated graph.
@@ -602,7 +601,7 @@ void conflict_manager::_check_deleted_index() {
     // Delete index from DB.
     for (int64_t i : index_to_delete) {
       query = fmt::format("DELETE FROM index_data WHERE id={}", i);
-      _mysql.run_query(query, database::mysql_error::delete_index, false, conn);
+      _mysql.run_query(query, database::mysql_error::delete_index, conn);
       _add_action(conn, actions::index_data);
 
       // Remove associated graph.

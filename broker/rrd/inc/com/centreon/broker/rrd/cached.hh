@@ -77,7 +77,8 @@ class cached : public backend {
             uint32_t length,
             time_t from,
             uint32_t step,
-            short value_type = 0) {
+            short value_type = 0,
+            bool without_cache = false) {
     // Close previous file.
     this->close();
 
@@ -87,7 +88,7 @@ class cached : public backend {
     /* We are unfortunately forced to use librrd to create RRD file as
     ** rrdcached does not support RRD file creation.
     */
-    _lib.open(filename, length, from, step, value_type);
+    _lib.open(filename, length, from, step, value_type, without_cache);
   }
 
   /**
@@ -110,6 +111,7 @@ class cached : public backend {
    */
   void remove(std::string const& filename) {
     // Build rrdcached command.
+    log_v2::rrd()->trace("RRD: FORGET the {} file", filename);
     std::string cmd(fmt::format("FORGET {}\n", filename));
 
     try {
@@ -134,10 +136,8 @@ class cached : public backend {
     asio::write(_socket, asio::buffer(command), asio::transfer_all(), err);
 
     if (err)
-      throw msg_fmt(
-          "RRD: error while sending "
-          "command to rrdcached: {}",
-          err.message());
+      throw msg_fmt("RRD: error while sending command to rrdcached: {}",
+                    err.message());
 
     // Read response.
     if (!_batch) {
@@ -147,10 +147,8 @@ class cached : public backend {
       asio::read_until(_socket, stream, '\n', err);
 
       if (err)
-        throw msg_fmt(
-            "RRD: error while getting "
-            "response from rrdcached: {}",
-            err.message());
+        throw msg_fmt("RRD: error while getting response from rrdcached: {}",
+                      err.message());
 
       std::istream is(&stream);
       std::getline(is, line);
@@ -295,6 +293,8 @@ class cached : public backend {
         fmt::format("UPDATE {} {}\n", _filename, fmt::join(pts, " "))};
     try {
       _send_to_cached(cmd);
+      log_v2::rrd()->trace("RRD: flushing file '{}'", _filename);
+      _send_to_cached(fmt::format("FLUSH {}\n", _filename));
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());

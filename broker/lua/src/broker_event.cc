@@ -28,6 +28,10 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
 
+static void _write_item(lua_State* L,
+                        const google::protobuf::Message* p,
+                        const google::protobuf::FieldDescriptor* f);
+
 /**
  *  The Lua broker_event constructor
  *
@@ -51,7 +55,7 @@ static void _message_to_table(lua_State* L,
   const google::protobuf::Descriptor* desc = p->GetDescriptor();
   const google::protobuf::Reflection* refl = p->GetReflection();
   for (int i = 0; i < desc->field_count(); i++) {
-    auto f = desc->field(i);
+    const google::protobuf::FieldDescriptor* f = desc->field(i);
 
     auto oof = f->containing_oneof();
     if (oof) {
@@ -60,51 +64,118 @@ static void _message_to_table(lua_State* L,
       }
     }
 
+    _write_item(L, p, f);
+    lua_rawset(L, -3);
+  }
+}
+
+static void _write_item(lua_State* L,
+                        const google::protobuf::Message* p,
+                        const google::protobuf::FieldDescriptor* f) {
+  const google::protobuf::Reflection* refl = p->GetReflection();
+  if (f) {
     const std::string& entry_name = f->name();
     lua_pushlstring(L, entry_name.c_str(), entry_name.size());
-    switch (f->type()) {
-      case google::protobuf::FieldDescriptor::TYPE_BOOL:
-        lua_pushboolean(L, refl->GetBool(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-        lua_pushnumber(L, refl->GetDouble(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_INT32:
-        lua_pushinteger(L, refl->GetInt32(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_UINT32:
-        lua_pushinteger(L, refl->GetUInt32(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_INT64:
-        lua_pushinteger(L, refl->GetInt64(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_UINT64:
-        lua_pushinteger(L, refl->GetUInt64(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_ENUM:
-        lua_pushinteger(L, refl->GetEnumValue(*p, f));
-        break;
-      case google::protobuf::FieldDescriptor::TYPE_STRING: {
-        const std::string& s = refl->GetString(*p, f);
-        lua_pushlstring(L, s.c_str(), s.size());
-      } break;
-      case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
-        if (f->is_repeated()) {
-          size_t s = refl->FieldSize(*p, f);
-          // const google::protobuf::Message& msg = refl->GetMessage(*p, f);
-          lua_newtable(L);
+    if (f->is_repeated()) {
+      size_t s = refl->FieldSize(*p, f);
+      lua_newtable(L);
+      switch (f->type()) {
+        case google::protobuf::FieldDescriptor::TYPE_BOOL:
+          for (size_t i = 0; i < s; i++) {
+            lua_pushboolean(L, refl->GetRepeatedBool(*p, f, i));
+            lua_rawseti(L, -2, i + 1);
+          }
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+          for (size_t i = 0; i < s; i++) {
+            lua_pushnumber(L, refl->GetRepeatedDouble(*p, f, i));
+            lua_rawseti(L, -2, i + 1);
+          }
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT32:
+          for (size_t i = 0; i < s; i++) {
+            lua_pushinteger(L, refl->GetRepeatedInt32(*p, f, i));
+            lua_rawseti(L, -2, i + 1);
+          }
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT32:
+          for (size_t i = 0; i < s; i++) {
+            lua_pushinteger(L, refl->GetRepeatedUInt32(*p, f, i));
+            lua_rawseti(L, -2, i + 1);
+          }
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT64:
+          for (size_t i = 0; i < s; i++) {
+            lua_pushinteger(L, refl->GetRepeatedInt64(*p, f, i));
+            lua_rawseti(L, -2, i + 1);
+          }
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT64:
+          for (size_t i = 0; i < s; i++) {
+            lua_pushinteger(L, refl->GetRepeatedUInt64(*p, f, i));
+            lua_rawseti(L, -2, i + 1);
+          }
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_ENUM:
+          for (size_t i = 0; i < s; i++) {
+            lua_pushinteger(L, refl->GetRepeatedEnumValue(*p, f, i));
+            lua_rawseti(L, -2, i + 1);
+          }
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_STRING: {
+          for (size_t i = 0; i < s; i++) {
+            const std::string& s = refl->GetRepeatedString(*p, f, i);
+            lua_pushlstring(L, s.c_str(), s.size());
+            lua_rawseti(L, -2, i + 1);
+          }
+        } break;
+        case google::protobuf::FieldDescriptor::TYPE_MESSAGE: {
           for (size_t i = 0; i < s; i++) {
             lua_newtable(L);
             _message_to_table(L, &refl->GetRepeatedMessage(*p, f, i));
             lua_rawseti(L, -2, i + 1);
           }
-        }
-        break;
-      default:
-        lua_pushlstring(L, "not_implemented", 15);
-        break;
+        } break;
+        default:
+          lua_pushlstring(L, "not_implemented", 15);
+          break;
+      }
+    } else {
+      switch (f->type()) {
+        case google::protobuf::FieldDescriptor::TYPE_BOOL:
+          lua_pushboolean(L, refl->GetBool(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
+          lua_pushnumber(L, refl->GetDouble(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT32:
+          lua_pushinteger(L, refl->GetInt32(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT32:
+          lua_pushinteger(L, refl->GetUInt32(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_INT64:
+          lua_pushinteger(L, refl->GetInt64(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_UINT64:
+          lua_pushinteger(L, refl->GetUInt64(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_ENUM:
+          lua_pushinteger(L, refl->GetEnumValue(*p, f));
+          break;
+        case google::protobuf::FieldDescriptor::TYPE_STRING: {
+          const std::string& s = refl->GetString(*p, f);
+          lua_pushlstring(L, s.c_str(), s.size());
+        } break;
+        case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
+          lua_newtable(L);
+          _message_to_table(L, &refl->GetMessage(*p, f));
+          break;
+        default:
+          lua_pushlstring(L, "not_implemented", 15);
+          break;
+      }
     }
-    lua_rawset(L, -3);
   }
 }
 
@@ -480,43 +551,7 @@ static int l_broker_event_next(lua_State* L) {
             return 0;
           }
         }
-
-        const std::string& entry_name = f->name();
-        lua_pushlstring(L, entry_name.c_str(), entry_name.size());
-        switch (f->type()) {
-          case google::protobuf::FieldDescriptor::TYPE_BOOL:
-            lua_pushboolean(L, refl->GetBool(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-            lua_pushnumber(L, refl->GetDouble(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_INT32:
-            lua_pushinteger(L, refl->GetInt32(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_UINT32:
-            lua_pushinteger(L, refl->GetUInt32(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_INT64:
-            lua_pushinteger(L, refl->GetInt64(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_UINT64:
-            lua_pushinteger(L, refl->GetUInt64(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_ENUM:
-            lua_pushinteger(L, refl->GetEnumValue(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_STRING: {
-            const std::string& s = refl->GetString(*p, f);
-            lua_pushlstring(L, s.c_str(), s.size());
-          } break;
-          case google::protobuf::FieldDescriptor::TYPE_MESSAGE: {
-            std::string s{"Protobuf message"};
-            lua_pushlstring(L, s.c_str(), s.size());
-          } break;
-          default:
-            lua_pushlstring(L, "not implemented", 15);
-            break;
-        }
+        _write_item(L, p, f);
         return 2;
       }
     }
@@ -686,50 +721,8 @@ static int l_broker_event_index(lua_State* L) {
           if (!refl->GetOneofFieldDescriptor(*p, oof))
             return 0;
         }
-        const std::string& entry_name = f->name();
-        lua_pushlstring(L, entry_name.c_str(), entry_name.size());
-        switch (f->type()) {
-          case google::protobuf::FieldDescriptor::TYPE_BOOL:
-            lua_pushboolean(L, refl->GetBool(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_DOUBLE:
-            lua_pushnumber(L, refl->GetDouble(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_INT32:
-            lua_pushinteger(L, refl->GetInt32(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_UINT32:
-            lua_pushinteger(L, refl->GetUInt32(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_INT64:
-            lua_pushinteger(L, refl->GetInt64(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_UINT64:
-            lua_pushinteger(L, refl->GetUInt64(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_ENUM:
-            lua_pushinteger(L, refl->GetEnumValue(*p, f));
-            break;
-          case google::protobuf::FieldDescriptor::TYPE_STRING: {
-            const std::string& s = refl->GetString(*p, f);
-            lua_pushlstring(L, s.c_str(), s.size());
-          } break;
-          case google::protobuf::FieldDescriptor::TYPE_MESSAGE:
-            if (f->is_repeated()) {
-              size_t s = refl->FieldSize(*p, f);
-              // const google::protobuf::Message& msg = refl->GetMessage(*p, f);
-              lua_newtable(L);
-              for (size_t i = 0; i < s; i++) {
-                lua_newtable(L);
-                _message_to_table(L, &refl->GetRepeatedMessage(*p, f, i));
-                lua_rawseti(L, -2, i + 1);
-              }
-            }
-            break;
-          default:
-            lua_pushlstring(L, "not_implemented", 15);
-            break;
-        }
+
+        _write_item(L, p, f);
         return 1;
       }
     }

@@ -16,6 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/graphite/factory.hh"
 #include "com/centreon/broker/graphite/stream.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -46,12 +48,13 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Deregister storage layer.
     io::protocols::instance().unreg("graphite");
   }
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -83,6 +86,21 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric_mapping),
                        "metric_mapping", &storage::metric_mapping::operations,
                        storage::metric_mapping::entries);
+
+      /* Let's register the pb_index_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
+                       "pb_index_mapping",
+                       &storage::pb_index_mapping::operations);
+      /* Let's register the pb_metric_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_metric_mapping),
+                       "pb_metric_mapping",
+                       &storage::pb_metric_mapping::operations);
+      /* Let's register the pb_metric event. */
+      e.register_event(make_type(io::storage, storage::de_pb_metric),
+                       "pb_metric", &storage::pb_metric::operations);
+      /* Let's register the pb_status event. */
+      e.register_event(make_type(io::storage, storage::de_pb_status),
+                       "pb_status", &storage::pb_status::operations);
     }
 
     // Register storage layer.

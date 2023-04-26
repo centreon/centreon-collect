@@ -83,67 +83,73 @@ void creator::clear() {
  *  @param[in] step       Specifies the base interval in seconds with
  *                        which data will be fed into the RRD.
  *  @param[in] value_type Type of the metric.
+ *  @param[in] without_cache  We force the creation of the file (needed by the
+ * rebuild).
  */
 void creator::create(std::string const& filename,
                      uint32_t length,
                      time_t from,
                      uint32_t step,
-                     short value_type) {
+                     short value_type,
+                     bool without_cache) {
   // Fill template informations.
   if (!step)
     step = 5 * 60;  // Default to every 5 minutes.
   if (!length)
     length = 31 * 24 * 60 * 60;  // Default to one month long.
-  tmpl_info info;
-  info.length = length;
-  info.step = step;
-  info.value_type = value_type;
+  if (!without_cache) {
+    tmpl_info info;
+    info.length = length;
+    info.step = step;
+    info.value_type = value_type;
 
-  // Find fd informations.
-  std::map<tmpl_info, fd_info>::const_iterator it(_fds.find(info));
-  // Is in the cache, just duplicate file.
-  if (it != _fds.end())
-    _duplicate(filename, it->second);
-  // Not is the cache, but we have enough space in the cache.
-  // Create new entry.
-  else if (_fds.size() < _cache_size) {
-    std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}.rrd", _tmpl_path,
-                                          length, step, value_type));
+    // Find fd informations.
+    std::map<tmpl_info, fd_info>::const_iterator it(_fds.find(info));
+    // Is in the cache, just duplicate file.
+    if (it != _fds.end())
+      _duplicate(filename, it->second);
+    // Not in the cache, but we have enough space in the cache.
+    // Create new entry.
+    else if (_fds.size() < _cache_size) {
+      std::string tmpl_filename(fmt::format("{}/tmpl_{}_{}_{}.rrd", _tmpl_path,
+                                            length, step, value_type));
 
-    // Create new template.
-    _open(tmpl_filename, length, from, step, value_type);
+      // Create new template.
+      _open(tmpl_filename, length, from, step, value_type);
 
-    // Get template file size.
-    struct stat s;
-    if (stat(tmpl_filename.c_str(), &s) < 0) {
-      char const* msg(strerror(errno));
-      throw exceptions::open(
-          "RRD: could not create template file '{}"
-          "': {}",
-          tmpl_filename, msg);
+      // Get template file size.
+      struct stat s;
+      if (stat(tmpl_filename.c_str(), &s) < 0) {
+        char const* msg(strerror(errno));
+        throw exceptions::open(
+            "RRD: could not create template file '{}"
+            "': {}",
+            tmpl_filename, msg);
+      }
+
+      // Get template file fd.
+      int in_fd(open(tmpl_filename.c_str(), O_RDONLY));
+      if (in_fd < 0) {
+        char const* msg(strerror(errno));
+        throw exceptions::open(
+            "RRD: could not open template file '{}"
+            "': {}",
+            tmpl_filename, msg);
+      }
+
+      // Store fd informations into the cache.
+      fd_info fdinfo;
+      fdinfo.fd = in_fd;
+      fdinfo.size = s.st_size;
+      _fds[info] = fdinfo;
+
+      _duplicate(filename, fdinfo);
     }
-
-    // Get template file fd.
-    int in_fd(open(tmpl_filename.c_str(), O_RDONLY));
-    if (in_fd < 0) {
-      char const* msg(strerror(errno));
-      throw exceptions::open(
-          "RRD: could not open template file '{}"
-          "': {}",
-          tmpl_filename, msg);
-    }
-
-    // Store fd informations into the cache.
-    fd_info fdinfo;
-    fdinfo.fd = in_fd;
-    fdinfo.size = s.st_size;
-    _fds[info] = fdinfo;
-
-    _duplicate(filename, fdinfo);
-  }
-  // No more space in the cache, juste create rrd file.
-  else
-    _open(filename, length, from, step, value_type);
+    // No more space in the cache, just create rrd file.
+    else
+      _open(filename, length, from - 1, step, value_type);
+  } else
+    _open(filename, length, from - 1, step, value_type);
 }
 
 /**

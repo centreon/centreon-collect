@@ -19,8 +19,6 @@
 #ifndef CCB_GRAPHITE_QUERY_HH
 #define CCB_GRAPHITE_QUERY_HH
 
-#include "bbdo/storage/metric.hh"
-#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/graphite/macro_cache.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -47,8 +45,8 @@ class query {
   query(query const& other) = delete;
   query& operator=(query const& other) = delete;
 
-  std::string generate_metric(storage::metric const& me);
-  std::string generate_status(storage::status const& st);
+  std::string generate_metric(storage::pb_metric const& me);
+  std::string generate_status(storage::pb_status const& st);
 
  private:
   // Compiled data.
@@ -70,8 +68,6 @@ class query {
 
   template <typename T, typename U, T(U::*member)>
   void _get_member(io::data const& d, std::ostream& is);
-  template <typename U, std::string(U::*member)>
-  void _get_string_member(io::data const& d, std::ostream& is);
   void _get_string(io::data const& d, std::ostream& is);
   void _get_dollar_sign(io::data const& d, std::ostream& is);
   uint64_t _get_index_id(io::data const& d);
@@ -81,6 +77,8 @@ class query {
   void _get_service(io::data const& d, std::ostream& is);
   void _get_service_id(io::data const& d, std::ostream& is);
   void _get_instance(io::data const& d, std::ostream& is);
+  void _get_metric_id(io::data const& d, std::ostream& is);
+  void _get_metric_name(io::data const& d, std::ostream& is);
 };
 }  // namespace graphite
 

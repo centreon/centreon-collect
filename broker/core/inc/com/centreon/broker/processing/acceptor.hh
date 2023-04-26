@@ -53,7 +53,7 @@ class acceptor : public endpoint {
   std::list<processing::feeder*> _feeders;
   absl::flat_hash_set<uint32_t> _read_filters;
   std::string _read_filters_str;
-  time_t _retry_interval;
+  time_t _retry_interval = 15;
   absl::flat_hash_set<uint32_t> _write_filters;
   std::string _write_filters_str;
   std::atomic_bool _listening;
@@ -80,6 +80,8 @@ class acceptor : public endpoint {
   void set_read_filters(const absl::flat_hash_set<uint32_t>& filters);
   void set_retry_interval(time_t retry_interval);
   void set_write_filters(const absl::flat_hash_set<uint32_t>& filters);
+
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 }  // namespace processing
 

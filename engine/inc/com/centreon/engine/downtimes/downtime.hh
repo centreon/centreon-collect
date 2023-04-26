@@ -30,8 +30,32 @@ namespace downtimes {
 class downtime {
  public:
   enum type { service_downtime = 1, host_downtime = 2, any_downtime = 3 };
+
+ private:
+  type _type;
+
+ protected:
+  const uint64_t _host_id;
+  time_t _entry_time;
+  std::string _author;
+  std::string _comment;
+  time_t _start_time;
+  time_t _end_time;
+  bool _fixed;
+  uint64_t _triggered_by;
+  int32_t _duration;
+  uint64_t _downtime_id;
+  bool _in_effect;
+  uint64_t _comment_id;
+  int _start_flex_downtime;
+  bool _incremented_pending_downtime;
+
+  void _set_in_effect(bool in_effect);
+  uint64_t _get_comment_id() const;
+
+ public:
   downtime(type type,
-           std::string const& host_name,
+           const uint64_t host_id,
            time_t entry_time,
            std::string const& author,
            std::string const& comment,
@@ -51,7 +75,8 @@ class downtime {
   virtual int unschedule() = 0;
   virtual int subscribe() = 0;
   virtual int handle() = 0;
-  std::string const& get_hostname() const;
+  uint64_t host_id() const;
+  virtual const char* service_description() const;
   virtual void print(std::ostream& os) const = 0;
   virtual void retention(std::ostream& os) const = 0;
   std::string const& get_author() const;
@@ -65,28 +90,6 @@ class downtime {
   int32_t get_duration() const;
   bool is_in_effect() const;
   void start_flex_downtime();
-
- private:
-  type _type;
-
- protected:
-  void _set_in_effect(bool in_effect);
-  uint64_t _get_comment_id() const;
-
-  std::string _hostname;
-  time_t _entry_time;
-  std::string _author;
-  std::string _comment;
-  time_t _start_time;
-  time_t _end_time;
-  bool _fixed;
-  uint64_t _triggered_by;
-  int32_t _duration;
-  uint64_t _downtime_id;
-  bool _in_effect;
-  uint64_t _comment_id;
-  int _start_flex_downtime;
-  bool _incremented_pending_downtime;
 };
 }  // namespace downtimes
 

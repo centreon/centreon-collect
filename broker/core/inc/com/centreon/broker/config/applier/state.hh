@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012, 2021 Centreon
+** Copyright 2011-2012, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
 
+#include <absl/container/flat_hash_map.h>
+
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 
@@ -36,10 +38,12 @@ class state {
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
-  std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
+  bbdo::bbdo_version _bbdo_version;
   std::string _poller_name;
   size_t _pool_size;
   modules _modules;
+  absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
+  mutable std::mutex _connected_pollers_m;
 
   state();
   ~state() noexcept = default;
@@ -55,11 +59,14 @@ class state {
   void apply(const config::state& s, bool run_mux = true);
   const std::string& cache_dir() const noexcept;
   uint32_t rpc_port() const noexcept;
-  const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version() const noexcept;
+  bbdo::bbdo_version get_bbdo_version() const noexcept;
   uint32_t poller_id() const noexcept;
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
   modules& get_modules();
+  void add_poller(uint64_t poller_id, const std::string& poller_name);
+  void remove_poller(uint64_t poller_id);
+  bool has_connection_from_poller(uint64_t poller_id) const;
 };
 }  // namespace applier
 }  // namespace config

@@ -25,6 +25,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
@@ -41,13 +42,17 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class StatsTest : public ::testing::Test {
  public:
   void SetUp() override {
-    pool::load(0);
+    g_io_context->restart();
+    com::centreon::broker::pool::load(g_io_context, 0);
     stats::center::load();
     mysql_manager::load();
     config::applier::state::load();
+    file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
     io::events::load();
@@ -56,13 +61,14 @@ class StatsTest : public ::testing::Test {
 
   void TearDown() override {
     config::applier::endpoint::unload();
-    multiplexing::engine::instance().clear();
+    multiplexing::engine::instance_ptr()->clear();
     multiplexing::engine::unload();
     config::applier::state::unload();
     io::events::unload();
     io::protocols::unload();
     mysql_manager::unload();
     stats::center::unload();
+    file::disk_accessor::unload();
     pool::unload();
   }
 };

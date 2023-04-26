@@ -153,9 +153,7 @@ mapping::entry const comment::entries[] = {
     mapping::entry(&comment::poller_id,
                    "instance_id",
                    mapping::entry::invalid_on_zero),
-    mapping::entry(&comment::service_id,
-                   "service_id",
-                   mapping::entry::invalid_on_zero),
+    mapping::entry(&comment::service_id, "service_id"),
     mapping::entry(&comment::source, "source"),
     mapping::entry()};
 

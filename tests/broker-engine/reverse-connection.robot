@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine communication with or without compression
 Library	Process
@@ -33,14 +34,14 @@ BRGC1
 
 	Run Reverse Bam	${50}	${0.2}
 
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
-	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
 	Should Be True	${result}	msg=Connection to map has failed.
-	File Should Not Exist	/var/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist que map files.
+	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist que map files.
 
 
 BRCTS1
@@ -61,19 +62,19 @@ BRCTS1
 
 	Run Reverse Bam	${150}	${10}
 
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
-	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
 	Should Be True	${result}	msg=Connection to map has failed
-	File Should Not Exist	/var/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist queue map files.
+	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist queue map files.
 
 
 BRCS1
 	[Documentation]	Broker reverse connection stopped
-	[Tags]	Broker	map	reverse connection stopped
+	[Tags]	Broker	map	reversed
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central_map
@@ -87,11 +88,11 @@ BRCS1
 	${result}=	Check Connections
 	Should Be True	${result}	msg=Engine and Broker not connected
 
-	Stop Broker
+	Kindly Stop Broker
 	Stop Engine
 
-	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '/var/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
+	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
 	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
 	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
 	Should Not Be True	${result}	msg=Connection to map has failed
-	File Should Not Exist	/var/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2	msg=There should not exist queue map files.
+	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map-2	msg=There should not exist queue map files.

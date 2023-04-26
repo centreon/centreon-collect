@@ -125,41 +125,41 @@ bool object::operator!=(object const& right) const noexcept {
 object_ptr object::create(std::string const& type_name) {
   object_ptr obj;
   if (type_name == "service")
-    obj = object_ptr(new configuration::service());
+    obj = std::make_shared<configuration::service>();
   else if (type_name == "host")
-    obj = object_ptr(new configuration::host());
+    obj = std::make_shared<configuration::host>();
   else if (type_name == "contact")
-    obj = object_ptr(new configuration::contact());
+    obj = std::make_shared<configuration::contact>();
   else if (type_name == "contactgroup")
-    obj = object_ptr(new configuration::contactgroup());
+    obj = std::make_shared<configuration::contactgroup>();
   else if (type_name == "servicegroup")
-    obj = object_ptr(new configuration::servicegroup());
+    obj = std::make_shared<configuration::servicegroup>();
   else if (type_name == "hostgroup")
-    obj = object_ptr(new configuration::hostgroup());
+    obj = std::make_shared<configuration::hostgroup>();
   else if (type_name == "servicedependency")
-    obj = object_ptr(new configuration::servicedependency());
+    obj = std::make_shared<configuration::servicedependency>();
   else if (type_name == "serviceescalation")
-    obj = object_ptr(new configuration::serviceescalation());
+    obj = std::make_shared<configuration::serviceescalation>();
   else if (type_name == "hostdependency")
-    obj = object_ptr(new configuration::hostdependency());
+    obj = std::make_shared<configuration::hostdependency>();
   else if (type_name == "hostescalation")
-    obj = object_ptr(new configuration::hostescalation());
+    obj = std::make_shared<configuration::hostescalation>();
   else if (type_name == "command")
-    obj = object_ptr(new configuration::command());
+    obj = std::make_shared<configuration::command>();
   else if (type_name == "timeperiod")
-    obj = object_ptr(new configuration::timeperiod());
+    obj = std::make_shared<configuration::timeperiod>();
   else if (type_name == "connector")
-    obj = object_ptr(new configuration::connector());
+    obj = std::make_shared<configuration::connector>();
   else if (type_name == "serviceextinfo")
-    obj = object_ptr(new configuration::serviceextinfo());
+    obj = std::make_shared<configuration::serviceextinfo>();
   else if (type_name == "hostextinfo")
-    obj = object_ptr(new configuration::hostextinfo());
+    obj = std::make_shared<configuration::hostextinfo>();
   else if (type_name == "anomalydetection")
-    obj = object_ptr(new configuration::anomalydetection());
+    obj = std::make_shared<configuration::anomalydetection>();
   else if (type_name == "severity")
-    obj = object_ptr(new configuration::severity());
+    obj = std::make_shared<configuration::severity>();
   else if (type_name == "tag")
-    obj = object_ptr(new configuration::tag());
+    obj = std::make_shared<configuration::tag>();
   return obj;
 }
 

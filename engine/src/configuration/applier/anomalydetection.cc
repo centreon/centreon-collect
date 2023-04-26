@@ -100,8 +100,9 @@ void applier::anomalydetection::add_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Creating new anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
-  log_v2::config()->debug("Creating new anomalydetection '{}' of host '{}'.",
-                          obj.service_description(), obj.host_name());
+  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+                      "Creating new anomalydetection '{}' of host '{}'.",
+                      obj.service_description(), obj.host_name());
 
   // Add anomalydetection to the global configuration set.
   config->anomalydetections().insert(obj);
@@ -109,8 +110,9 @@ void applier::anomalydetection::add_object(
   // Create anomalydetection.
   engine::anomalydetection* ad{add_anomalydetection(
       obj.host_id(), obj.service_id(), obj.host_name(),
-      obj.service_description(), obj.display_name(), obj.dependent_service_id(),
-      obj.metric_name(), obj.thresholds_file(), obj.status_change(),
+      obj.service_description(), obj.display_name(), obj.internal_id(),
+      obj.dependent_service_id(), obj.metric_name(), obj.thresholds_file(),
+      obj.status_change(),
       static_cast<engine::anomalydetection::service_state>(obj.initial_state()),
       obj.max_check_attempts(), obj.check_interval(), obj.retry_interval(),
       obj.notification_interval(), obj.first_notification_delay(),
@@ -151,7 +153,7 @@ void applier::anomalydetection::add_object(
       obj.notes(), obj.notes_url(), obj.action_url(), obj.icon_image(),
       obj.icon_image_alt(), obj.retain_status_information(),
       obj.retain_nonstatus_information(), obj.obsess_over_service(),
-      obj.timezone(), obj.icon_id())};
+      obj.timezone(), obj.icon_id(), obj.sensitivity())};
   if (!ad)
     throw engine_error() << "Could not register anomalydetection '"
                          << obj.service_description() << "' of host '"
@@ -187,16 +189,15 @@ void applier::anomalydetection::add_object(
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                             NEBATTR_NONE, ad, it->first.c_str(),
-                             it->second.get_value().c_str(), &tv);
+      broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, ad,
+                             it->first.c_str(), it->second.get_value().c_str(),
+                             &tv);
     }
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                               ad, CMD_NONE, MODATTR_ALL, MODATTR_ALL, &tv);
+                               ad, MODATTR_ALL);
 }
 
 /**
@@ -238,8 +239,9 @@ void applier::anomalydetection::modify_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Modifying new anomalydetection '" << service_description
       << "' of host '" << host_name << "'.";
-  log_v2::config()->debug("Modifying new anomalydetection '{}' of host '{}'.",
-                          service_description, host_name);
+  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+                      "Modifying new anomalydetection '{}' of host '{}'.",
+                      service_description, host_name);
 
   // Find the configuration object.
   set_anomalydetection::iterator it_cfg(
@@ -266,9 +268,9 @@ void applier::anomalydetection::modify_object(
 
   // Modify properties.
   if (it_obj->second->get_hostname() != obj.host_name() ||
-      it_obj->second->get_description() != obj.service_description()) {
+      it_obj->second->description() != obj.service_description()) {
     engine::service::services.erase(
-        {it_obj->second->get_hostname(), it_obj->second->get_description()});
+        {it_obj->second->get_hostname(), it_obj->second->description()});
     engine::service::services.insert(
         {{obj.host_name(), obj.service_description()}, it_obj->second});
   }
@@ -405,9 +407,9 @@ void applier::anomalydetection::modify_object(
     for (auto& c : s->custom_variables) {
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(
-            NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-            s.get(), c.first.c_str(), c.second.get_value().c_str(), &tv);
+        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_DELETE, s.get(),
+                               c.first.c_str(), c.second.get_value().c_str(),
+                               &tv);
       }
     }
     s->custom_variables.clear();
@@ -417,18 +419,16 @@ void applier::anomalydetection::modify_object(
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), c.first.c_str(),
-                               c.second.get_value().c_str(), &tv);
+        broker_custom_variable(NEBTYPE_SERVICECUSTOMVARIABLE_ADD, s.get(),
+                               c.first.c_str(), c.second.get_value().c_str(),
+                               &tv);
       }
     }
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, s.get(), CMD_NONE, MODATTR_ALL,
-                               MODATTR_ALL, &tv);
+                               NEBATTR_NONE, s.get(), MODATTR_ALL);
 }
 
 /**
@@ -447,8 +447,9 @@ void applier::anomalydetection::remove_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Removing anomalydetection '" << service_description << "' of host '"
       << host_name << "'.";
-  log_v2::config()->debug("Removing anomalydetection '{}' of host '{}'.",
-                          service_description, host_name);
+  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+                      "Removing anomalydetection '{}' of host '{}'.",
+                      service_description, host_name);
 
   // Find anomalydetection.
   service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));
@@ -473,10 +474,8 @@ void applier::anomalydetection::remove_object(
       it_s->members.erase({host_name, service_description});
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
     broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
-                                 NEBATTR_NONE, ad.get(), CMD_NONE, MODATTR_ALL,
-                                 MODATTR_ALL, &tv);
+                                 NEBATTR_NONE, ad.get(), MODATTR_ALL);
 
     // Unregister anomalydetection.
     engine::anomalydetection::services.erase({host_name, service_description});
@@ -498,8 +497,9 @@ void applier::anomalydetection::resolve_object(
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving anomalydetection '" << obj.service_description()
       << "' of host '" << obj.host_name() << "'.";
-  log_v2::config()->debug("Resolving anomalydetection '{}' of host '{}'.",
-                          obj.service_description(), obj.host_name());
+  SPDLOG_LOGGER_DEBUG(log_v2::config(),
+                      "Resolving anomalydetection '{}' of host '{}'.",
+                      obj.service_description(), obj.host_name());
 
   // Find anomalydetection.
   service_id_map::iterator it(

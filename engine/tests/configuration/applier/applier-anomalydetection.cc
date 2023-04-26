@@ -100,6 +100,7 @@ TEST_F(ApplierAnomalydetection, NewADFromConfig) {
   ASSERT_NO_THROW(svc_aply.add_object(svc));
 
   ASSERT_TRUE(ad.parse("service_description", "test description"));
+  ASSERT_TRUE(ad.parse("internal_id", "112"));
   ASSERT_TRUE(ad.parse("dependent_service_id", "13"));
   ASSERT_TRUE(ad.parse("service_id", "4"));
   ASSERT_TRUE(ad.parse("host_id", "12"));
@@ -114,12 +115,17 @@ TEST_F(ApplierAnomalydetection, NewADFromConfig) {
   ad_aply.add_object(ad);
   service_id_map const& sm(engine::service::services_by_id);
   ASSERT_EQ(sm.size(), 2u);
-  ASSERT_EQ(sm.begin()->first.first, 12u);
-  ASSERT_EQ(sm.begin()->first.second, 4u);
+  auto my_ad = sm.find({12u, 4u});
+  ASSERT_EQ(my_ad->first.first, 12u);
+  ASSERT_EQ(my_ad->first.second, 4u);
 
   // Service is not resolved, host is null now.
-  ASSERT_TRUE(!sm.begin()->second->get_host_ptr());
-  ASSERT_TRUE(sm.begin()->second->get_description() == "test description");
+  ASSERT_TRUE(!my_ad->second->get_host_ptr());
+  ASSERT_EQ(std::static_pointer_cast<com::centreon::engine::anomalydetection>(
+                my_ad->second)
+                ->get_internal_id(),
+            112u);
+  ASSERT_TRUE(my_ad->second->description() == "test description");
 }
 
 // Given service configuration without service_id

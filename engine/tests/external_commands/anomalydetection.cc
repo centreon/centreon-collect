@@ -75,13 +75,13 @@ class ADExtCmd : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
     service_map const& sm{engine::service::services};
     for (auto& p : sm) {
       std::shared_ptr<engine::service> svc = p.second;
-      if (svc->get_service_id() == 12)
+      if (svc->service_id() == 12)
         _ad = std::static_pointer_cast<engine::anomalydetection>(svc);
       else
         _svc = svc;

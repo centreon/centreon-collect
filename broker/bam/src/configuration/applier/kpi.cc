@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
-#include "bbdo/bam/kpi_status.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/applier/ba.hh"
 #include "com/centreon/broker/bam/configuration/applier/bool_expression.hh"
@@ -158,8 +157,9 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
   //
   // OBJECT RESOLUTION
   //
-  for (std::map<uint32_t, applied>::const_iterator kpi_it(_applied.begin()),
-       next_kpi_it(_applied.begin());
+  for (std::map<uint32_t, applied>::const_iterator
+           kpi_it = _applied.begin(),
+           next_kpi_it = _applied.begin();
        kpi_it != _applied.end(); kpi_it = next_kpi_it) {
     ++next_kpi_it;
     configuration::kpi const& cfg(kpi_it->second.cfg);
@@ -185,17 +185,19 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
 void applier::kpi::_invalidate_ba(configuration::kpi const& kpi) {
   // Set KPI as invalid.
   {
-    std::shared_ptr<kpi_status> ks{std::make_shared<kpi_status>(kpi.get_id())};
-    ks->state_hard = 3;
-    ks->state_soft = 3;
-    ks->level_acknowledgement_hard = 0.0;
-    ks->level_acknowledgement_soft = 0.0;
-    ks->level_downtime_hard = 0.0;
-    ks->level_downtime_soft = 0.0;
-    ks->level_nominal_hard = 0.0;
-    ks->level_nominal_soft = 0.0;
-    ks->last_state_change = time(nullptr);
-    ks->valid = false;
+    std::shared_ptr<pb_kpi_status> ks{std::make_shared<pb_kpi_status>()};
+    KpiStatus& ev(ks->mut_obj());
+    ev.set_kpi_id(kpi.get_id());
+    ev.set_state_hard(State::UNKNOWN);
+    ev.set_state_soft(State::UNKNOWN);
+    ev.set_level_acknowledgement_hard(0.0);
+    ev.set_level_acknowledgement_soft(0.0);
+    ev.set_level_downtime_hard(0.0);
+    ev.set_level_downtime_soft(0.0);
+    ev.set_level_nominal_hard(0.0);
+    ev.set_level_nominal_soft(0.0);
+    ev.set_last_state_change(time(nullptr));
+    ev.set_valid(false);
     multiplexing::publisher().write(ks);
   }
 
@@ -267,9 +269,9 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
     log_v2::bam()->info(
         "BAM: creating new KPI {} of service ({}, {}) impacting BA {}",
         cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), cfg.get_ba_id());
-    auto obj{std::make_shared<bam::kpi_service>(
-        cfg.get_id(), cfg.get_ba_id(), cfg.get_host_id(),
-        cfg.get_service_id())};
+    auto obj{std::make_shared<bam::kpi_service>(cfg.get_id(), cfg.get_ba_id(),
+                                                cfg.get_host_id(),
+                                                cfg.get_service_id())};
     obj->set_acknowledged(cfg.is_acknowledged());
     obj->set_downtimed(cfg.is_downtimed());
     obj->set_impact_critical(cfg.get_impact_critical());
@@ -312,7 +314,7 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
  * @param kpi The Kpi itself.
  */
 void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
-                                std::shared_ptr<bam::kpi> kpi) {
+                                const std::shared_ptr<bam::kpi>& kpi) {
   // Find target BA.
   uint32_t ba_id = cfg.get_ba_id();
   std::shared_ptr<bam::ba> my_ba(_bas->find_ba(ba_id));
@@ -346,7 +348,7 @@ void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
   }
 
   // Link KPI with BA.
-  if (cfg.get_opened_event().kpi_id != 0)
+  if (cfg.get_opened_event().kpi_id() != 0)
     kpi->set_initial_event(cfg.get_opened_event());
 
   my_ba->add_impact(kpi);

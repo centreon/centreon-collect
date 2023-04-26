@@ -30,6 +30,7 @@ class comment;
 class contact;
 class customvariable;
 class service;
+class anomalydetection;
 namespace downtimes {
 class downtime;
 }
@@ -57,7 +58,15 @@ std::ostream& info(std::ostream& os);
 std::ostream& program(std::ostream& os);
 bool save(std::string const& path);
 std::ostream& service(std::ostream& os,
+                      const absl::string_view& class_name,
                       com::centreon::engine::service const& obj);
+
+std::ostream& service(std::ostream& os,
+                      com::centreon::engine::service const& obj);
+
+std::ostream& anomalydetection(
+    std::ostream& os,
+    com::centreon::engine::anomalydetection const& obj);
 std::ostream& services(std::ostream& os);
 }  // namespace dump
 }  // namespace retention

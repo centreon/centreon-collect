@@ -67,13 +67,13 @@ TEST_F(DowntimeExternalCommand, AddHostDowntime) {
 
   time_t now = time(nullptr);
 
-  std::stringstream s;
-  s << "test_srv;" << now << ";" << now + 1 << ";1;0;1;admin;host";
+  std::string query{
+      fmt::format("test_srv;{};{};1;0;1;admin;host", now, now + 1)};
 
   ASSERT_EQ(0u, downtime_manager::instance().get_scheduled_downtimes().size());
 
   ASSERT_EQ(cmd_schedule_downtime(CMD_SCHEDULE_HOST_DOWNTIME, now,
-                                  const_cast<char*>(s.str().c_str())),
+                                  const_cast<char*>(query.c_str())),
             OK);
 
   ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
@@ -83,8 +83,8 @@ TEST_F(DowntimeExternalCommand, AddHostDowntime) {
   ASSERT_EQ(downtime_manager::instance()
                 .get_scheduled_downtimes()
                 .begin()
-                ->second->get_hostname(),
-            "test_srv");
+                ->second->host_id(),
+            1);
   ASSERT_EQ(downtime_manager::instance()
                 .get_scheduled_downtimes()
                 .begin()

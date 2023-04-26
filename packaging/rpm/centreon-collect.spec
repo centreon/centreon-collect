@@ -1,17 +1,17 @@
 ##
-## Copyright 2021 Centreon
+## Copyright 2023 Centreon
 ##
 
 Summary: Centreon collect's softwares collection
 Name: centreon-collect
 Version: %{VERSION}
 Release: %{RELEASE}%{?dist}
-License:        ASL 2.0
+License: Apache-2.0
 Source: %{name}-%{version}.tar.gz
 Source1: centreonengine_integrate_centreon_engine2centreon.sh
 
-%define thismajor 22.10.0
-%define nextmajor 22.11.0
+%define thismajor 23.04.0
+%define nextmajor 23.10.0
 
 Group: Applications/Communications
 URL: https://github.com/centreon/centreon-collect.git
@@ -19,6 +19,7 @@ Packager: David Boucher <dboucher@centreon.com>
 Vendor: Centreon Entreprise Server (CES) Repository, http://yum.centreon.com/standard/
 
 %description
+%{COMMIT_HASH}
 Centreon Collect is a software collection containing centreon-broker,
 centreon-engine, centreon-clib and centreon-connectors.
 
@@ -44,16 +45,20 @@ Requires: centreon-connector = %{version}-%{release}
 %package -n centreon-clib
 Summary: Centreon core library.
 Group: Development/Libraries
+License: Apache-2.0
 
 %description -n centreon-clib
+%{COMMIT_HASH}
 Centreon Clib is a common library for all Centreon
 products written in C/C++.
 
 %package -n centreon-clib-devel
 Summary: Provide include files for Centreon Clib.
 Group: Development/Libraries
+License: Apache-2.0
 
 %description -n centreon-clib-devel
+%{COMMIT_HASH}
 Centreon Clib devel provide include files to build
 Centreon products written in C/C++.
 
@@ -61,10 +66,12 @@ Centreon products written in C/C++.
 %package -n centreon-engine
 Summary: Centreon Engine monitoring core.
 Group: Applications/System
+License: Apache-2.0
 Requires: centreon-engine-daemon = %{version}-%{release}
 Requires: centreon-engine-extcommands = %{version}-%{release}
 
 %description -n centreon-engine
+%{COMMIT_HASH}
 Centreon Engine is a monitoring engine, compatible with Nagios
 configuration, designed to monitor hosts and services on your network.
 
@@ -72,10 +79,12 @@ configuration, designed to monitor hosts and services on your network.
 %package -n centreon-engine-daemon
 Summary: Centreon Engine Daemon is the daemon to schedule checks.
 Group: Application/System
+License: Apache-2.0
 Requires: centreon-clib = %{version}-%{release}
 %{?systemd_requires}
 
 %description -n centreon-engine-daemon
+%{COMMIT_HASH}
 Centreon Engine is a monitoring engine that schedule checks on your
 network services and hosts.
 
@@ -83,9 +92,11 @@ network services and hosts.
 %package -n centreon-engine-extcommands
 Summary: Centreon Engine External Commands allow to other applications to send command into the daemon.
 Group: Application/System
+License: Apache-2.0
 Requires: centreon-engine-daemon = %{version}-%{release}
 
 %description -n centreon-engine-extcommands
+%{COMMIT_HASH}
 Centreon Engine External Commands allow to other applications to send
 command into the daemon. External applications can submit commands by
 writing to the command file, which is periodically processed by the
@@ -95,9 +106,11 @@ engine daemon.
 %package -n centreon-engine-devel
 Summary: Provide include files for Centreon Engine.
 Group: Application/System
+License: Apache-2.0
 Requires: centreon-clib-devel = %{version}-%{release}
 
 %description -n centreon-engine-devel
+%{COMMIT_HASH}
 Centreon Engine devel provide include files to develop Centreon Engine
 Modules or Centreon Engine Connector.
 
@@ -105,19 +118,23 @@ Modules or Centreon Engine Connector.
 %package -n centreon-engine-bench
 Summary: Centreon Engine benchmarking tools.
 Group: Application/System
+License: Apache-2.0
 Requires: centreon-clib = %{version}-%{release}
 
 %description -n centreon-engine-bench
+%{COMMIT_HASH}
 Some Centreon Engine benchmarking tools.
 
 
 %package -n centreon-connector
 Summary: Centreon Connector provide some tools for Centreon Engine to monitoring and management system.
 Group: Application/System
+License: Apache-2.0
 Requires: centreon-connector-perl = %{version}-%{release}
 Requires: centreon-connector-ssh = %{version}-%{release}
 
 %description -n centreon-connector
+%{COMMIT_HASH}
 Centreon Connector provide a monitoring tools, compatible with
 Centreon-Engine configuration, designed to monitor and manage system.
 
@@ -125,10 +142,12 @@ Centreon-Engine configuration, designed to monitor and manage system.
 %package -n centreon-connector-perl
 Summary: Centreon Connector Perl provide embedded perl for Centreon-Engine.
 Group: Application/System
+License: Apache-2.0
 Requires: centreon-clib = %{version}-%{release}
 Requires: perl
 
 %description -n centreon-connector-perl
+%{COMMIT_HASH}
 Centreon Connector Perl provide embedded perl for Centreon Engine
 a monitoring engine.
 
@@ -136,21 +155,25 @@ a monitoring engine.
 %package -n centreon-connector-ssh
 Summary: Centreon Connector SSH provide persistante connection between checks.
 Group: Application/System
+License: Apache-2.0
 Requires: centreon-clib = %{version}-%{release}
 Requires: libgcrypt
 
 %description -n centreon-connector-ssh
+%{COMMIT_HASH}
 Centreon Connector SSH provide persistante connection between checks.
 
 
 %package -n centreon-broker
 Summary: Store Centreon Engine/Nagios events in a database.
 Group: Applications/Communications
+License: Apache-2.0
 Requires: centreon-common >= %{thismajor}
 Requires: centreon-common < %{nextmajor}
 Requires: coreutils
 
 %description -n centreon-broker
+%{COMMIT_HASH}
 Centreon Broker is a Centreon Engine/Nagios module that report events in
 one or multiple databases.
 
@@ -158,30 +181,36 @@ one or multiple databases.
 %package -n centreon-broker-core
 Summary: Centreon Broker's shared library.
 Group: Applications/Communications
+License: Apache-2.0
 Requires: gnutls >= 3.3.29
 Requires: lua
 Requires: centreon-broker = %{version}-%{release}
 Requires: centreon-broker-storage = %{version}-%{release}
 
 %description -n centreon-broker-core
+%{COMMIT_HASH}
 Centreon core holds Centreon Broker's default modules;
 
 
 %package -n centreon-broker-storage
 Summary: Centreon Broker's shared library for prefdata storage.
 Group: Applications/Communications
+License: Apache-2.0
 Requires: centreon-broker-core = %{version}-%{release}
 
 %description -n centreon-broker-storage
+%{COMMIT_HASH}
 storage holds Centreon Broker's prefdata storage.
 
 
 %package -n centreon-broker-graphite
 Summary: Write Centreon performance data to Graphite.
 Group: Applications/Communications
+License: Apache-2.0
 Requires: centreon-broker-core = %{version}-%{release}
 
 %description -n centreon-broker-graphite
+%{COMMIT_HASH}
 This module of Centreon Broker allows you to write performance data
 generated by plugins (run themselves by Centreon Engine) to a Graphite
 database.
@@ -190,9 +219,11 @@ database.
 %package -n centreon-broker-influxdb
 Summary: Write Centreon performance data to InfluxDB.
 Group: Applications/Communications
+License: Apache-2.0
 Requires: centreon-broker-core = %{version}-%{release}
 
 %description -n centreon-broker-influxdb
+%{COMMIT_HASH}
 This module of Centreon Broker allows you to write performance data
 generated by plugins (run themselves by Centreon Engine) to a Graphite
 database.
@@ -201,39 +232,59 @@ database.
 %package -n centreon-broker-cbd
 Summary: Centreon Broker daemon.
 Group: System Environment/Daemons
+License: Apache-2.0
 Requires: centreon-broker-core = %{version}-%{release}
 %{?systemd_requires}
 
 %description -n centreon-broker-cbd
+%{COMMIT_HASH}
 The Centreon Broker daemon can aggregates output of multiple cbmod and store
 events in a DB from a single point.
 
 %package -n centreon-broker-cbmod
 Summary: Centreon Broker as Centreon Engine 2 module.
 Group: Applications/Communications
+License: Apache-2.0
 Requires: centreon-broker-core = %{version}-%{release}
 Requires: centreon-engine = %{version}-%{release}
 
 %description -n centreon-broker-cbmod
+%{COMMIT_HASH}
 This module can be loaded by Centreon Engine.
 
 
 %package -n centreon-broker-devel
 Summary: Centreon Broker devel libraries.
 Group: Applications/Communications
+License: Apache-2.0
 
 %description -n centreon-broker-devel
+%{COMMIT_HASH}
 Include files needed to develop a module Centreon Broker.
+
+
+%package -n centreon-collect-client
+Summary: Centreon Collect gRPC Client. It can be used to exchange with cbd or centengine
+Group: Applications/Communications
+License: Apache-2.0
+Requires: centreon-broker-core = %{version}-%{release}
+Requires: centreon-engine = %{version}-%{release}
+
+%description -n centreon-collect-client
+%{COMMIT_HASH}
+This software is a gRPC client designed to easily send commands to cbd or
+centengine.
 
 
 %prep
 %setup -q -n %{name}-%{version}
 
 %build
-pip3 install conan --upgrade
+pip3 install conan==1.57.0 --upgrade
 conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 cmake3 \
+        -G "Ninja" \
         -DWITH_TESTING=0 \
         -DWITH_BENCH=1 \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -248,7 +299,8 @@ cmake3 \
         -DWITH_CONFIG_FILES=y \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         .
-%{__make} %{?_smp_mflags}
+
+ninja -j 8
 
 %install
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -269,7 +321,8 @@ cmake3 \
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/centengine.debug
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra
 %{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
-%{__make} install DESTDIR="$RPM_BUILD_ROOT"
+
+DESTDIR="$RPM_BUILD_ROOT" ninja -j 8 install
 
 %clean
 %{__rm} -rf $RPM_BUILD_ROOT
@@ -451,6 +504,10 @@ fi
 %{_prefix}/include/centreon-broker
 %doc broker/LICENSE
 %{_includedir}/centreon-broker
+
+%files -n centreon-collect-client
+%defattr(-,root,root,-)
+%{_bindir}/ccc
 
 %files
 %{_exec_prefix}/lib/systemd/system/cbd.service

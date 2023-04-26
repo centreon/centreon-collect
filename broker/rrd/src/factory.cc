@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2015 Centreon
+** Copyright 2011-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,18 +19,13 @@
 #include "com/centreon/broker/rrd/factory.hh"
 
 #include "com/centreon/broker/config/parser.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
-
-/**************************************
- *                                     *
- *            Local Objects            *
- *                                     *
- **************************************/
 
 /**
  *  Search for a property value.
@@ -89,35 +84,19 @@ io::endpoint* factory::new_endpoint(
   std::string path{find_param(cfg, "path", false)};
 
   // Network connection.
-  unsigned short port{0};
-  {
-    try {
-      port = static_cast<uint16_t>(
-          std::stoul(find_param(cfg, "port", false, "0")));
-    } catch (...) {
-      throw msg_fmt(
-          "RRD: bad port"
-          " defined "
-          " for endpoint '{}'",
-          cfg.name);
-    }
+  uint32_t port = 0;
+  if (!absl::SimpleAtoi(find_param(cfg, "port", false, "0"), &port)) {
+    throw msg_fmt("RRD: bad port defined for endpoint '{}'", cfg.name);
   }
 
   // Get rrd creator cache size.
-  uint32_t cache_size(16);
+  uint32_t cache_size = 16;
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("cache_size")};
-    if (it != cfg.params.end())
-      try {
-        cache_size = std::stoul(it->second);
-      } catch (std::exception const& e) {
-        throw msg_fmt(
-            "RRD: bad port"
-            " defined "
-            " for endpoint '{}'",
-            cfg.name);
-      }
+    if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &cache_size)) {
+      throw msg_fmt("RRD: bad port defined for endpoint '{}'", cfg.name);
+    }
   }
 
   // Should metrics be written ?
@@ -125,9 +104,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("write_metrics"));
-    if (it != cfg.params.end())
-      write_metrics = config::parser::parse_boolean(it->second);
-    else
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &write_metrics)) {
+        log_v2::rrd()->error(
+            "factory: cannot parse the 'write_metrics' boolean: the content is "
+            "'{}'",
+            it->second);
+        write_metrics = true;
+      }
+    } else
       write_metrics = true;
   }
 
@@ -136,9 +121,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("write_status")};
-    if (it != cfg.params.end())
-      write_status = config::parser::parse_boolean(it->second);
-    else
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &write_status)) {
+        log_v2::rrd()->error(
+            "factory: cannot parse the 'write_status' boolean: the content is "
+            "'{}'",
+            it->second);
+        write_status = true;
+      }
+    } else
       write_status = true;
   }
 
@@ -154,14 +145,20 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("ignore_update_errors")};
-    if (it != cfg.params.end())
-      ignore_update_errors = config::parser::parse_boolean(it->second);
-    else
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &ignore_update_errors)) {
+        log_v2::rrd()->error(
+            "factory: cannot parse the 'ignore_update_errors' boolean: the "
+            "content is '{}'",
+            it->second);
+        ignore_update_errors = true;
+      }
+    } else
       ignore_update_errors = true;
   }
 
   // Create endpoint.
-  std::unique_ptr<rrd::connector> endp{new rrd::connector};
+  std::unique_ptr<rrd::connector> endp{std::make_unique<rrd::connector>()};
   if (write_metrics)
     endp->set_metrics_path(metrics_path);
   if (write_status)

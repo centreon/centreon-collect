@@ -19,9 +19,9 @@
 #ifndef CCB_MYSQL_BIND_HH
 #define CCB_MYSQL_BIND_HH
 
-#include <mysql.h>
+#include <absl/types/variant.h>
+#include "com/centreon/broker/database/mysql_bind_base.hh"
 #include "com/centreon/broker/database/mysql_column.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -29,55 +29,270 @@ CCB_BEGIN()
 class mysql;
 
 namespace database {
-class mysql_bind {
+class mysql_bind : public mysql_bind_base {
+  using mysql_type = absl::variant<int32_t,
+                                   int64_t,
+                                   uint32_t,
+                                   uint64_t,
+                                   float,
+                                   double,
+                                   std::string,
+                                   char>;
+  // Each data in the bind.
+  std::vector<mysql_type> _buffer;
+
  public:
-  mysql_bind();
-  mysql_bind(int size, int length = 0);
-  ~mysql_bind();
-  void set_size(int size, int length = 0);
-  int value_as_i32(int range) const;
-  void set_value_as_i32(int range, int value);
-  uint32_t value_as_u32(int range) const;
-  void set_value_as_u32(int range, uint32_t value);
-  int64_t value_as_i64(int range) const;
-  void set_value_as_i64(int range, int64_t value);
-  uint64_t value_as_u64(int range) const;
-  void set_value_as_u64(int range, uint64_t value);
-  bool value_as_bool(int range) const;
-  void set_value_as_bool(int range, bool value);
-  float value_as_f32(int range) const;
-  void set_value_as_f32(int range, float value);
-  double value_as_f64(int range) const;
-  void set_value_as_f64(int range, double value);
-  void set_value_as_null(int range);
-  void set_value_as_tiny(int range, char value);
-  char* value_as_str(int range);
-  void set_value_as_str(int range, const fmt::string_view& value);
-  int get_size() const;
-  bool value_is_null(int range) const;
-  bool is_empty() const;
-  void set_empty(bool empty);
-  int get_rows_count() const;
+  /**
+   * @brief Default constructor
+   */
+  mysql_bind() = default;
+  /**
+   * @brief Constructor
+   *
+   * @param size Number of columns in this bind
+   * @param length Size to reserve for each column's buffer. This is useful when
+   *               the column contains strings. By default, this value is 0 and
+   *               no reservation are made.
+   */
+  mysql_bind(int size);  //, int length = 0);
+  ~mysql_bind() noexcept = default;
 
-  MYSQL_BIND const* get_bind() const;
-  MYSQL_BIND* get_bind();
+  /**
+   * @brief getter to the int32 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An int32 integer.
+   */
+  int value_as_i32(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   * @param value The integer value to set.
+   */
+  void set_value_as_i32(size_t range, int32_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_i32(size_t range);
 
-  void debug();
+  /**
+   * @brief getter to the uint32 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An uint32 integer.
+   */
+  uint32_t value_as_u32(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   * @param value The unsigned integer value to set.
+   */
+  void set_value_as_u32(size_t range, uint32_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_u32(size_t range);
 
- private:
-  bool _prepared(int range) const;
-  void _prepare_type(int range, enum enum_field_types type);
+  /**
+   * @brief getter to the int64 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An int64 integer.
+   */
+  int64_t value_as_i64(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   * @param value The long integer value to set.
+   */
+  void set_value_as_i64(size_t range, int64_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_i64(size_t range);
 
-  std::vector<MYSQL_BIND> _bind;
+  /**
+   * @brief getter to the uint64 value at index range. The type of the column
+   * must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   *
+   * @return An uint64 integer.
+   */
+  uint64_t value_as_u64(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   * @param value The unsigned long integer value to set.
+   */
+  void set_value_as_u64(size_t range, uint64_t value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_u64(size_t range);
 
-  // The buffers contained by _bind
-  std::vector<database::mysql_column> _column;
+  /**
+   * @brief getter to the bool value at index range. The type of the column
+   * must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A boolean.
+   */
+  bool value_as_bool(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   * @param value The boolean value to set.
+   */
+  void set_value_as_bool(size_t range, bool value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_bool(size_t range);
 
-  // A vector telling if bindings are already typed or not.
-  std::vector<bool> _typed;
+  /**
+   * @brief getter to the float value at index range. The type of the column
+   * must be MYSQL_TYPE_FLOAT.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A float.
+   */
+  float value_as_f32(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_FLOAT.
+   *
+   * @param range A non negative integer.
+   * @param value The float value to set.
+   */
+  void set_value_as_f32(size_t range, float value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_FLOAT.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_f32(size_t range);
 
-  bool _is_empty;
+  /**
+   * @brief getter to the double value at index range. The type of the column
+   * must be MYSQL_TYPE_DOUBLE.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A double.
+   */
+  double value_as_f64(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_DOUBLE.
+   *
+   * @param range A non negative integer.
+   * @param value The double value to set.
+   */
+  void set_value_as_f64(size_t range, double value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_DOUBLE.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_f64(size_t range);
+
+  /**
+   * @brief getter to the string value at index range. The type of the column
+   * must be MYSQL_TYPE_STRING.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A const char* pointer.
+   */
+  const char* value_as_str(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_STRING.
+   *
+   * @param range A non negative integer.
+   * @param value The string to set.
+   */
+  void set_value_as_str(size_t range, const fmt::string_view& value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_STRING.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_str(size_t range);
+
+  /**
+   * @brief getter to the char value at index range. The type of the column
+   * must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   *
+   * @return A char.
+   */
+  char value_as_tiny(size_t range) const;
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   * @param value The char to set.
+   */
+  void set_value_as_tiny(size_t range, char value);
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_tiny(size_t range);
+
+  bool value_is_null(size_t range) const;
+  size_t rows_count() const;
+
+  size_t current_row() const;
+  void next_row();
+  void reserve(size_t size);
+  void* get_value_pointer(size_t range);
+
+  // void debug();
 };
+
 }  // namespace database
 
 CCB_END()

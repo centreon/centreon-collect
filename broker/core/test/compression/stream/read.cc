@@ -26,11 +26,14 @@
 
 using namespace com::centreon::broker;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class CompressionStreamRead : public ::testing::Test {
  public:
   void SetUp() override {
+    g_io_context->restart();
     try {
-      config::applier::init(0, "test_broker");
+      config::applier::init(0, "test_broker", 0);
     } catch (const std::exception& e) {
       (void)e;
     }

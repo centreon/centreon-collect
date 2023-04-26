@@ -34,7 +34,8 @@ class object {
     host = 3,
     info = 4,
     program = 5,
-    service = 6
+    service = 6,
+    anomalydetection = 7
   };
 
  private:

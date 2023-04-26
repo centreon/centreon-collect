@@ -26,6 +26,7 @@
 #endif  // Windows or POSIX.
 #include <getopt.h>
 #include <cstdlib>
+#include "absl/strings/numbers.h"
 #include "com/centreon/connector/ssh/orders/options.hh"
 #include "com/centreon/exceptions/basic.hh"
 #include "com/centreon/misc/command_line.hh"
@@ -217,8 +218,18 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'p':  // Set port.
-        _port = atoi(optarg);
-        break;
+      {
+        unsigned int temp;
+        if (!absl::SimpleAtoi(optarg, &temp)) {
+          throw basic_error() << "the argument '" << optarg
+                              << "' must be an unsigned short integer";
+        }
+        if (temp > 65535) {
+          throw basic_error() << "the argument '" << optarg
+                              << "' must be an integer between 0 and 65535";
+        }
+        _port = temp;
+      } break;
 
       case '4':  // Enable IPv4.
         _ip_protocol = ip_v4;
@@ -237,7 +248,12 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'E':  // Skip stderr.
-        _skip_stderr = (optarg ? atoi(optarg) : 0);
+        if (!optarg)
+          _skip_stderr = 0;
+        else if (!absl::SimpleAtoi(optarg, &_skip_stderr)) {
+          throw basic_error()
+              << "the argument '" << optarg << "' must be an integer";
+        }
         break;
 
       case 'f':  // Fork ssh.
@@ -265,11 +281,19 @@ void options::parse(std::string const& cmdline) {
         break;
 
       case 'S':  // Skip stdout.
-        _skip_stdout = (optarg ? atoi(optarg) : 0);
+        if (!optarg)
+          _skip_stdout = 0;
+        else if (!absl::SimpleAtoi(optarg, &_skip_stdout)) {
+          throw basic_error()
+              << "the argument '" << optarg << "' must be an integer";
+        }
         break;
 
       case 't':  // Set timeout.
-        _timeout = atoi(optarg);
+        if (!absl::SimpleAtoi(optarg, &_timeout)) {
+          throw basic_error()
+              << "the argument '" << optarg << "' must be an unsigned integer";
+        }
         break;
 
       case 'h':  // Help.

@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker only start/stop tests
 Library	Process
@@ -18,7 +19,7 @@ BGRPCSS1
 	Config Broker	rrd
 	Change Broker tcp output to grpc	central
 	Change Broker tcp input to grpc	rrd
-	Repeat Keyword	5 times	Start Stop Service	0
+	Repeat Keyword	5 times	Start Stop Service	100ms
 
 BGRPCSS2
 	[Documentation]	Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
@@ -32,7 +33,7 @@ BGRPCSS3
 	[Tags]	Broker	start-stop	grpc
 	Config Broker	central
 	Change Broker tcp output to grpc	central
-	Repeat Keyword	5 times	Start Stop Instance	0
+	Repeat Keyword	5 times	Start Stop Instance	100ms
 
 BGRPCSS4
 	[Documentation]	Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
@@ -58,7 +59,7 @@ BGRPCSSU1
 	Config Broker Sql Output	central	unified_sql
 	Change Broker tcp output to grpc	central
 	Change Broker tcp input to grpc	rrd
-	Repeat Keyword	5 times	Start Stop Service	0
+	Repeat Keyword	5 times	Start Stop Service	100ms
 
 BGRPCSSU2
 	[Documentation]	Start/Stop with unified_sql 10 times broker configured with grpc stream with 300ms interval and no coredump
@@ -74,7 +75,7 @@ BGRPCSSU3
 	Config Broker	central
 	Change Broker tcp output to grpc	central
 	Config Broker Sql Output	central	unified_sql
-	Repeat Keyword	5 times	Start Stop Instance	0
+	Repeat Keyword	5 times	Start Stop Instance	100ms
 
 BGRPCSSU4
 	[Documentation]	Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
@@ -97,20 +98,16 @@ BGRPCSSU5
 *** Keywords ***
 Start Stop Service
 	[Arguments]	${interval}
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-rrd.json	alias=b2
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-rrd.json	alias=b2
 	Sleep	${interval}
-	Send Signal To Process	SIGTERM	b1
-	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
-	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
-	Send Signal To Process	SIGTERM	b2
-	${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
-	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker service badly stopped
+	Kindly Stop Broker
 
 Start Stop Instance
 	[Arguments]	${interval}
-	Start Process	/usr/sbin/cbd	/etc/centreon-broker/central-broker.json	alias=b1
+	Start Process	/usr/sbin/cbd	${EtcRoot}/centreon-broker/central-broker.json	alias=b1
 	Sleep	${interval}
+	Kindly Stop Broker	True
 	Send Signal To Process	SIGTERM	b1
 	${result}=	Wait For Process	b1	timeout=60s	on_timeout=kill
 	Should Be True	${result.rc} == -15 or ${result.rc} == 0	msg=Broker instance badly stopped

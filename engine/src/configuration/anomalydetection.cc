@@ -49,6 +49,7 @@ std::unordered_map<std::string, anomalydetection::setter_func> const
         {"service_id", SETTER(uint64_t, set_service_id)},
         {"_SERVICE_ID", SETTER(uint64_t, set_service_id)},
         {"dependent_service_id", SETTER(uint64_t, set_dependent_service_id)},
+        {"internal_id", SETTER(uint64_t, set_internal_id)},
         {"acknowledgement_timeout", SETTER(int, set_acknowledgement_timeout)},
         {"description", SETTER(std::string const&, _set_service_description)},
         {"display_name", SETTER(std::string const&, _set_display_name)},
@@ -111,6 +112,7 @@ std::unordered_map<std::string, anomalydetection::setter_func> const
         {"category_tags", SETTER(std::string const&, _set_category_tags)},
         {"group_tags", SETTER(std::string const&, _set_group_tags)},
         {"icon_id", SETTER(uint64_t, _set_icon_id)},
+        {"sensitivity", SETTER(double, _set_sensitivity)},
     };
 
 // Default values.
@@ -181,7 +183,8 @@ anomalydetection::anomalydetection()
       _dependent_service_id(0),
       _stalking_options(default_stalking_options),
       _severity_id{0u},
-      _icon_id{0u} {}
+      _icon_id{0u},
+      _sensitivity(0.0) {}
 
 /**
  *  Copy constructor.
@@ -233,12 +236,14 @@ anomalydetection::anomalydetection(anomalydetection const& other)
       _service_description(other._service_description),
       _host_id(other._host_id),
       _service_id(other._service_id),
+      _internal_id(other._internal_id),
       _dependent_service_id(other._dependent_service_id),
       _stalking_options(other._stalking_options),
       _timezone(other._timezone),
       _severity_id{other._severity_id},
       _icon_id{other._icon_id},
-      _tags{other._tags} {}
+      _tags{other._tags},
+      _sensitivity(other._sensitivity) {}
 
 /**
  *  Destructor.
@@ -298,12 +303,14 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
     _service_description = other._service_description;
     _host_id = other._host_id;
     _service_id = other._service_id;
+    _internal_id = other._internal_id;
     _dependent_service_id = other._dependent_service_id;
     _stalking_options = other._stalking_options;
     _timezone = other._timezone;
     _severity_id = other._severity_id;
     _icon_id = other._icon_id;
     _tags = other._tags;
+    _sensitivity = other._sensitivity;
   }
   return *this;
 }
@@ -692,6 +699,12 @@ bool anomalydetection::operator==(
         "equality => service_id don't match");
     return false;
   }
+  if (_internal_id != other._internal_id) {
+    log_v2::config()->debug(
+        "configuration::anomalydetection::equality => internal_id "
+        "don't match");
+    return false;
+  }
   if (_dependent_service_id != other._dependent_service_id) {
     engine_logger(dbg_config, more)
         << "configuration::anomalydetection::equality => dependent_service_id "
@@ -736,6 +749,13 @@ bool anomalydetection::operator==(
         << "configuration::anomalydetection::equality => tags don't match";
     log_v2::config()->debug(
         "configuration::anomalydetection::equality => tags don't match");
+    return false;
+  }
+  if (_sensitivity != other._sensitivity) {
+    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
+                                       "equality => sensitivity don't match";
+    log_v2::config()->debug(
+        "configuration::anomalydetection::equality => sensitivity don't match");
     return false;
   }
   engine_logger(dbg_config, more)
@@ -862,6 +882,8 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
     return _severity_id < other._severity_id;
   else if (_icon_id != other._icon_id)
     return _icon_id < other._icon_id;
+  else if (_sensitivity != other._sensitivity)
+    return _sensitivity < other._sensitivity;
   return _tags < other._tags;
 }
 
@@ -967,6 +989,7 @@ void anomalydetection::merge(object const& obj) {
   MRG_OPTION(_timezone);
   MRG_OPTION(_severity_id);
   MRG_OPTION(_icon_id);
+  MRG_OPTION(_sensitivity);
   MRG_MAP(_tags);
 }
 
@@ -1484,6 +1507,15 @@ uint64_t anomalydetection::host_id() const noexcept {
  */
 uint64_t anomalydetection::service_id() const noexcept {
   return _service_id;
+}
+
+/**
+ *  Get the internal id.
+ *
+ *  @return  The internal id.
+ */
+uint64_t anomalydetection::internal_id() const noexcept {
+  return _internal_id;
 }
 
 /**
@@ -2169,6 +2201,18 @@ bool anomalydetection::set_service_id(uint64_t value) {
 }
 
 /**
+ *  Set internal_id value.
+ *
+ *  @param[in] value The new internal_id value.
+ *
+ *  @return True on success, otherwise false.
+ */
+bool anomalydetection::set_internal_id(uint64_t value) {
+  _internal_id = value;
+  return true;
+}
+
+/**
  *  Set dependent_service_id value.
  *
  *  @param[in] value The new dependent_service_id value.
@@ -2247,7 +2291,7 @@ bool anomalydetection::_set_category_tags(const std::string& value) {
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;
-    parse_ok = SimpleAtoi(tag, &id);
+    parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
       _tags.emplace(id, tag::servicecategory);
     } else {
@@ -2282,7 +2326,7 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;
-    parse_ok = SimpleAtoi(tag, &id);
+    parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
       _tags.emplace(id, tag::servicegroup);
     } else {
@@ -2347,4 +2391,15 @@ bool anomalydetection::_set_icon_id(uint64_t icon_id) {
  */
 uint64_t anomalydetection::icon_id() const noexcept {
   return _icon_id;
+}
+
+/**
+ * @brief sensitivity setter
+ *
+ * @param value
+ * @return true on success
+ */
+bool anomalydetection::_set_sensitivity(double value) {
+  _sensitivity = value;
+  return true;
 }

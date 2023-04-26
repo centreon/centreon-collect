@@ -37,12 +37,28 @@ class data {
   const uint32_t _type;
 
  public:
+  /**
+   * @brief this sub class is used to dump data or inherited by using
+   * dump_more_detail instead of dump
+   * example:
+   * @code {.c++}
+   * io::data event;
+   * log_v2::core()->trace("event:{}", io::data::dump_detail{event});
+   * @endcode
+   */
+  struct dump_detail {
+    const data& to_dump;
+  };
+
   data() = delete;
   data(uint32_t type = 0);
   data(data const& other);
-  virtual ~data();
+  virtual ~data() = default;
   data& operator=(data const& other);
   constexpr uint32_t type() const noexcept { return _type; }
+
+  virtual void dump(std::ostream& s) const;
+  virtual void dump_more_detail(std::ostream& s) const;
 
   uint32_t source_id;
   uint32_t destination_id;
@@ -50,10 +66,28 @@ class data {
   static uint32_t broker_id;
 };
 
-std::ostream& operator<<(std::ostream& s, const data& d);
+inline std::ostream& operator<<(std::ostream& s, const data& d) {
+  d.dump(s);
+  return s;
+}
+
+inline std::ostream& operator<<(std::ostream& s, const data::dump_detail& d) {
+  d.to_dump.dump_more_detail(s);
+  return s;
+}
 
 }  // namespace io
 
 CCB_END()
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::broker::io::data> : ostream_formatter {};
+
+template <>
+struct formatter<com::centreon::broker::io::data::dump_detail>
+    : ostream_formatter {};
+
+}  // namespace fmt
 
 #endif  // !CCB_IO_DATA_HH

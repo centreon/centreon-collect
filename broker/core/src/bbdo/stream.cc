@@ -18,10 +18,12 @@
 
 #include "com/centreon/broker/bbdo/stream.hh"
 
+#include <absl/strings/str_split.h>
 #include <arpa/inet.h>
 
 #include <cassert>
 
+#include "bbdo/bbdo.pb.h"
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
@@ -47,9 +49,9 @@ static uint32_t set_boolean(io::data& t,
                             void const* data,
                             uint32_t size) {
   if (!size) {
-    log_v2::bbdo()->error(
-        "cannot extract boolean value: 0 bytes left in "
-        "packet");
+    SPDLOG_LOGGER_ERROR(log_v2::bbdo(),
+                        "cannot extract boolean value: 0 bytes left in "
+                        "packet");
     throw msg_fmt(
         "cannot extract boolean value: "
         "0 bytes left in packet");
@@ -68,7 +70,8 @@ static uint32_t set_double(io::data& t,
   char const* str(static_cast<char const*>(data));
   uint32_t len(strlen(str));
   if (len >= size) {
-    log_v2::bbdo()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::bbdo(),
         "cannot extract double value: not terminating '\\0' in remaining "
         "{} bytes of packet",
         size);
@@ -89,8 +92,9 @@ static uint32_t set_integer(io::data& t,
                             void const* data,
                             uint32_t size) {
   if (size < sizeof(uint32_t)) {
-    log_v2::bbdo()->error(
-        "cannot extract integer value: {} bytes left in packet", size);
+    SPDLOG_LOGGER_ERROR(log_v2::bbdo(),
+                        "cannot extract integer value: {} bytes left in packet",
+                        size);
     throw msg_fmt(
         "BBDO: cannot extract integer value: {}"
         " bytes left in packet",
@@ -108,7 +112,8 @@ static uint32_t set_short(io::data& t,
                           void const* data,
                           uint32_t size) {
   if (size < sizeof(uint16_t)) {
-    log_v2::bbdo()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::bbdo(),
         "BBDO: cannot extract short value: {} bytes left in packet", size);
     throw msg_fmt(
         "BBDO: cannot extract short value: {}"
@@ -129,7 +134,8 @@ static uint32_t set_string(io::data& t,
   char const* str(static_cast<char const*>(data));
   uint32_t len(strlen(str));
   if (len >= size) {
-    log_v2::bbdo()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::bbdo(),
         "BBDO: cannot extract string value: no terminating '\\0' in remaining "
         "{} bytes left in packet",
         size);
@@ -151,7 +157,8 @@ static uint32_t set_timestamp(io::data& t,
                               void const* data,
                               uint32_t size) {
   if (size < sizeof(uint64_t)) {
-    log_v2::bbdo()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::bbdo(),
         "BBDO: cannot extract timestamp value: {} bytes left in packet", size);
     throw msg_fmt(
         "BBDO: cannot extract timestamp value: {}"
@@ -175,7 +182,8 @@ static uint32_t set_uint(io::data& t,
                          void const* data,
                          uint32_t size) {
   if (size < sizeof(uint32_t)) {
-    log_v2::bbdo()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::bbdo(),
         "BBDO: cannot extract uint32_t integer value: {} bytes left in packet",
         size);
     throw msg_fmt(
@@ -195,7 +203,8 @@ static uint32_t set_ulong(io::data& t,
                           void const* data,
                           uint32_t size) {
   if (size < sizeof(uint64_t)) {
-    log_v2::bbdo()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::bbdo(),
         "BBDO: cannot extract uint64_t integer value: {} bytes left in packet",
         size);
     throw msg_fmt(
@@ -272,7 +281,8 @@ static io::data* unserialize(uint32_t event_type,
                 break;
 
               default:
-                log_v2::bbdo()->error(
+                SPDLOG_LOGGER_ERROR(
+                    log_v2::bbdo(),
                     "BBDO: invalid mapping for object of type '{0}': {1} is "
                     "not "
                     "a known type ID",
@@ -289,7 +299,8 @@ static io::data* unserialize(uint32_t event_type,
           }
         return t.release();
       } else {
-        log_v2::bbdo()->error(
+        SPDLOG_LOGGER_ERROR(
+            log_v2::bbdo(),
             "BBDO: cannot create object of ID {} whereas it has been "
             "registered",
             event_type);
@@ -305,7 +316,8 @@ static io::data* unserialize(uint32_t event_type,
         t->source_id = source_id;
         t->destination_id = destination_id;
       } else {
-        log_v2::bbdo()->error(
+        SPDLOG_LOGGER_ERROR(
+            log_v2::bbdo(),
             "BBDO: cannot create object of ID {} whereas it has been "
             "registered",
             event_type);
@@ -317,7 +329,8 @@ static io::data* unserialize(uint32_t event_type,
       return t.release();
     }
   } else {
-    log_v2::bbdo()->info(
+    SPDLOG_LOGGER_INFO(
+        log_v2::bbdo(),
         "BBDO: cannot unserialize event of ID {}: event was not registered and "
         "will therefore be ignored",
         event_type);
@@ -476,7 +489,8 @@ static io::raw* serialize(const io::data& e) {
               get_ulong(e, *current_entry, *content);
               break;
             default:
-              log_v2::bbdo()->error(
+              SPDLOG_LOGGER_ERROR(
+                  log_v2::bbdo(),
                   "BBDO: invalid mapping for object of type '{}': {} is not a "
                   "known type ID",
                   info->get_name(), current_entry->get_type());
@@ -525,7 +539,7 @@ static io::raw* serialize(const io::data& e) {
       std::string r{info->get_operations().serialize(e)};
       size_t size = r.size();
       auto it = r.begin();
-      while (size > 0) {
+      do {
         // Serialization buffer.
         queue.emplace_back(std::vector<char>());
         auto* content = &queue.back();
@@ -556,7 +570,7 @@ static io::raw* serialize(const io::data& e) {
           size -= 0xffff;
           it += 0xffff;
         }
-      }
+      } while (size > 0);
     }
 
     // Finalization: concatenation of all the vectors in the queue.
@@ -573,7 +587,8 @@ static io::raw* serialize(const io::data& e) {
 
     return buffer.release();
   } else {
-    log_v2::bbdo()->info(
+    SPDLOG_LOGGER_INFO(
+        log_v2::bbdo(),
         "BBDO: cannot serialize event of ID {}: event was not registered and "
         "will therefore be ignored",
         e.type());
@@ -598,7 +613,7 @@ stream::stream(bool is_input,
       _ack_limit(1000),
       _events_received_since_last_ack(0),
       _extensions{extensions},
-      _bbdo_version{config::applier::state::instance().bbdo_version()} {}
+      _bbdo_version(config::applier::state::instance().get_bbdo_version()) {}
 
 /**
  * @brief All the mecanism behind this stream is stopped once this method is
@@ -633,6 +648,7 @@ int32_t stream::stop() {
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
+  config::applier::state::instance().remove_poller(_poller_id);
   return retval;
 }
 
@@ -655,33 +671,57 @@ int stream::flush() {
  */
 void stream::_send_event_stop_and_wait_for_ack() {
   if (!_coarse) {
-    log_v2::bbdo()->debug("BBDO: sending stop packet to peer");
+    if (_bbdo_version.major_v >= 3) {
+      SPDLOG_LOGGER_DEBUG(log_v2::bbdo(),
+                          "BBDO: sending pb stop packet to peer");
+      std::shared_ptr<bbdo::pb_stop> stop_packet{
+          std::make_shared<bbdo::pb_stop>()};
+      _write(stop_packet);
+    } else {
+      SPDLOG_LOGGER_DEBUG(log_v2::bbdo(), "BBDO: sending stop packet to peer");
+      std::shared_ptr<bbdo::stop> stop_packet{std::make_shared<bbdo::stop>()};
+      _write(stop_packet);
+    }
 
-    std::shared_ptr<bbdo::stop> stop_packet{std::make_shared<bbdo::stop>()};
-    _write(stop_packet);
-
-    log_v2::bbdo()->debug("BBDO: retrieving ack packet from peer");
+    SPDLOG_LOGGER_DEBUG(log_v2::bbdo(),
+                        "BBDO: retrieving ack packet from peer");
     std::shared_ptr<io::data> d;
     time_t deadline = time(nullptr) + 5;
 
     _read_any(d, deadline);
-    if (!d || d->type() != ack::static_type()) {
-      std::string msg;
-      if (d)
-        msg = fmt::format(
+    if (!d) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::bbdo(),
+          "BBDO: no message received from peer. Cannot acknowledge properly "
+          "waiting messages before stopping.");
+      return;
+    }
+    switch (d->type()) {
+      case ack::static_type():
+        SPDLOG_LOGGER_INFO(
+            log_v2::bbdo(),
+            "BBDO: received acknowledgement for {} events before finishing",
+            std::static_pointer_cast<ack const>(d)->acknowledged_events);
+        acknowledge_events(
+            std::static_pointer_cast<ack const>(d)->acknowledged_events);
+        break;
+      case pb_ack::static_type():
+        SPDLOG_LOGGER_INFO(
+            log_v2::bbdo(),
+            "BBDO: received acknowledgement for {} events before finishing",
+            std::static_pointer_cast<const pb_ack>(d)
+                ->obj()
+                .acknowledged_events());
+        acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
+                               ->obj()
+                               .acknowledged_events());
+        break;
+      default:
+        SPDLOG_LOGGER_ERROR(
+            log_v2::bbdo(),
             "BBDO: wrong message received (type {}) - expected ack event",
             d->type());
-      else
-        msg = fmt::format(
-            "BBDO: no message received from peer. Cannot acknowledge properly "
-            "waiting messages before stopping.");
-      log_v2::bbdo()->error(msg);
-    } else {
-      log_v2::bbdo()->info(
-          "BBDO: received acknowledgement for {} events before finishing",
-          std::static_pointer_cast<ack const>(d)->acknowledged_events);
-      acknowledge_events(
-          std::static_pointer_cast<ack const>(d)->acknowledged_events);
+        break;
     }
   }
 }
@@ -713,27 +753,44 @@ std::string stream::_get_extension_names(bool mandatory) const {
  *  @param[in] neg  Negotiation type.
  */
 void stream::negotiate(stream::negotiation_type neg) {
-  log_v2::bbdo()->trace("BBDO: negotiate");
+  SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "BBDO: negotiate");
   std::string extensions;
   if (!_negotiate) {
-    log_v2::bbdo()->info("BBDO: negotiation disabled.");
+    SPDLOG_LOGGER_INFO(log_v2::bbdo(), "BBDO: negotiation disabled.");
     extensions = _get_extension_names(true);
   } else
     extensions = _get_extension_names(false);
 
+  bbdo::bbdo_version v300(3, 0, 0);
+
   // Send our own packet if we should be first.
   if (neg == negotiate_first) {
-    log_v2::bbdo()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::bbdo(),
         "BBDO: sending welcome packet (available extensions: {})", extensions);
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
-    auto welcome_packet{
-        std::make_shared<version_response>(_bbdo_version, extensions)};
-    _write(welcome_packet);
+    if (_bbdo_version.total_version <= v300.total_version) {
+      auto welcome_packet{
+          std::make_shared<version_response>(_bbdo_version, extensions)};
+      _write(welcome_packet);
+    } else {
+      auto welcome{std::make_shared<pb_welcome>()};
+      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
+      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
+      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
+      welcome->mut_obj().set_extensions(extensions);
+      welcome->mut_obj().set_poller_id(
+          config::applier::state::instance().poller_id());
+      welcome->mut_obj().set_poller_name(
+          config::applier::state::instance().poller_name());
+      _write(welcome);
+    }
   }
 
   // Read peer packet.
-  log_v2::bbdo()->debug("BBDO: retrieving welcome packet of peer");
+  SPDLOG_LOGGER_DEBUG(log_v2::bbdo(),
+                      "BBDO: retrieving welcome packet of peer");
   std::shared_ptr<io::data> d;
   time_t deadline;
   if (_timeout == (time_t)-1)
@@ -742,94 +799,160 @@ void stream::negotiate(stream::negotiation_type neg) {
     deadline = time(nullptr) + _timeout;
 
   _read_any(d, deadline);
-  if (!d || d->type() != version_response::static_type()) {
+  if (!d || (d->type() != version_response::static_type() &&
+             d->type() != pb_welcome::static_type())) {
     std::string msg;
     if (d)
       msg = fmt::format(
           "BBDO: invalid protocol header, aborting connection: waiting for "
-          "message of type 'version_response' but received type is {}",
+          "message of type '{}' but received type is {}",
+          _bbdo_version.total_version > v300.total_version ? "pb_welcome"
+                                                           : "version_response",
           d->type());
     else
       msg = fmt::format(
           "BBDO: invalid protocol header, aborting connection: waiting for "
-          "message of type 'version_response' but nothing received");
-    log_v2::bbdo()->error(msg);
+          "message of type '{}' but nothing received",
+          _bbdo_version.total_version > v300.total_version
+              ? "pb_welcome"
+              : "version_response");
+    SPDLOG_LOGGER_ERROR(log_v2::bbdo(), msg);
     throw msg_fmt(msg);
   }
 
-  std::shared_ptr<version_response> v(
-      std::static_pointer_cast<version_response>(d));
-  if (v->bbdo_major != std::get<0>(_bbdo_version)) {
-    log_v2::bbdo()->error(
-        "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
-        "protocol version {}.{}.{}",
-        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
-        std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
-    throw msg_fmt(
-        "BBDO: peer is using protocol version {}.{}.{}"
-        " whereas we're using protocol version {}.{}.{}",
-        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
-        std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
-  }
-  log_v2::bbdo()->info(
-      "BBDO: peer is using protocol version {}.{}.{}, we're using version "
-      "{}.{}.{}",
-      v->bbdo_major, v->bbdo_minor, v->bbdo_patch, std::get<0>(_bbdo_version),
-      std::get<1>(_bbdo_version), std::get<2>(_bbdo_version));
+  std::string peer_extensions;
+  if (d->type() == version_response::static_type()) {
+    std::shared_ptr<version_response> v(
+        std::static_pointer_cast<version_response>(d));
+    if (v->bbdo_major != _bbdo_version.major_v) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::bbdo(),
+          "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
+          "protocol version {}.{}.{}",
+          v->bbdo_major, v->bbdo_minor, v->bbdo_patch, _bbdo_version.major_v,
+          _bbdo_version.minor_v, _bbdo_version.patch);
+      throw msg_fmt(
+          "BBDO: peer is using protocol version {}.{}.{}"
+          " whereas we're using protocol version {}.{}.{}",
+          v->bbdo_major, v->bbdo_minor, v->bbdo_patch, _bbdo_version.major_v,
+          _bbdo_version.minor_v, _bbdo_version.patch);
+    }
+    SPDLOG_LOGGER_INFO(
+        log_v2::bbdo(),
+        "BBDO: peer is using protocol version {}.{}.{}, we're using version "
+        "{}.{}.{}",
+        v->bbdo_major, v->bbdo_minor, v->bbdo_patch, _bbdo_version.major_v,
+        _bbdo_version.minor_v, _bbdo_version.patch);
 
-  // Send our own packet if we should be second.
-  if (neg == negotiate_second) {
-    log_v2::bbdo()->debug(
-        "BBDO: sending welcome packet (available extensions: {})", extensions);
-    /* if _negotiate, we send all the extensions we would like to have,
-     * otherwise we only send the mandatory extensions */
-    auto welcome_packet(
-        std::make_shared<version_response>(_bbdo_version, extensions));
-    _write(welcome_packet);
-    _substream->flush();
+    // Send our own packet if we should be second.
+    if (neg == negotiate_second) {
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::bbdo(),
+          "BBDO: sending welcome packet (available extensions: {})",
+          extensions);
+      /* if _negotiate, we send all the extensions we would like to have,
+       * otherwise we only send the mandatory extensions */
+      auto welcome_packet(
+          std::make_shared<version_response>(_bbdo_version, extensions));
+      _write(welcome_packet);
+      _substream->flush();
+    }
+    peer_extensions = v->extensions;
+  } else {
+    std::shared_ptr<pb_welcome> w(std::static_pointer_cast<pb_welcome>(d));
+    const auto& pb_version = w->obj().version();
+    if (pb_version.major() != _bbdo_version.major_v) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::bbdo(),
+          "BBDO: peer is using protocol version {}.{}.{} whereas we're using "
+          "protocol version {}.{}.{}",
+          pb_version.major(), pb_version.minor(), pb_version.patch(),
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+      throw msg_fmt(
+          "BBDO: peer is using protocol version {}.{}.{}"
+          " whereas we're using protocol version {}.{}.{}",
+          pb_version.major(), pb_version.minor(), pb_version.patch(),
+          _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+    }
+    SPDLOG_LOGGER_INFO(
+        log_v2::bbdo(),
+        "BBDO: peer is using protocol version {}.{}.{}, we're using version "
+        "{}.{}.{}",
+        pb_version.major(), pb_version.minor(), pb_version.patch(),
+        _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+
+    // Send our own packet if we should be second.
+    if (neg == negotiate_second) {
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::bbdo(),
+          "BBDO: sending welcome packet (available extensions: {})",
+          extensions);
+      /* if _negotiate, we send all the extensions we would like to have,
+       * otherwise we only send the mandatory extensions */
+      auto welcome(std::make_shared<pb_welcome>());
+      welcome->mut_obj().mutable_version()->set_major(_bbdo_version.major_v);
+      welcome->mut_obj().mutable_version()->set_minor(_bbdo_version.minor_v);
+      welcome->mut_obj().mutable_version()->set_patch(_bbdo_version.patch);
+      welcome->mut_obj().set_extensions(extensions);
+      welcome->mut_obj().set_poller_id(
+          config::applier::state::instance().poller_id());
+      welcome->mut_obj().set_poller_name(
+          config::applier::state::instance().poller_name());
+
+      _write(welcome);
+      _substream->flush();
+    }
+    peer_extensions = w->obj().extensions();
+    _poller_id = w->obj().poller_id();
+    _poller_name = w->obj().poller_name();
   }
 
   // Negotiation.
   std::list<std::string> running_config = get_running_config();
 
   // Apply negotiated extensions.
-  log_v2::bbdo()->info("BBDO: we have extensions '{}' and peer has '{}'",
-                       extensions, v->extensions);
-  std::list<std::string> peer_ext(misc::string::split(v->extensions, ' '));
+  SPDLOG_LOGGER_INFO(
+      log_v2::bbdo(), "BBDO: we have extensions '{}' and peer has '{}'",
+      extensions,
+      fmt::string_view(peer_extensions.data(), peer_extensions.size()));
+  std::list<absl::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
   for (auto& ext : _extensions) {
     // Find matching extension in peer extension list.
-    std::list<std::string>::const_iterator peer_it{
-        std::find(peer_ext.begin(), peer_ext.end(), ext->name())};
+    auto peer_it{std::find(peer_ext.begin(), peer_ext.end(), ext->name())};
     // Apply extension if found.
     if (peer_it != peer_ext.end()) {
       if (std::find(running_config.begin(), running_config.end(),
                     ext->name()) == running_config.end()) {
-        log_v2::bbdo()->info("BBDO: applying extension '{}'", ext->name());
+        SPDLOG_LOGGER_INFO(log_v2::bbdo(), "BBDO: applying extension '{}'",
+                           ext->name());
         for (std::map<std::string, io::protocols::protocol>::const_iterator
                  proto_it = io::protocols::instance().begin(),
                  proto_end = io::protocols::instance().end();
-             proto_it != proto_end; ++proto_it)
-          if (proto_it->first == ext->name()) {
+             proto_it != proto_end; ++proto_it) {
+          if (boost::iequals(proto_it->first, ext->name())) {
             std::shared_ptr<io::stream> s{
                 proto_it->second.endpntfactry->new_stream(
                     _substream, neg == negotiate_second, ext->options())};
             set_substream(s);
             break;
           }
+        }
       } else
-        log_v2::bbdo()->info("BBDO: extension '{}' already configured",
-                             ext->name());
+        SPDLOG_LOGGER_INFO(log_v2::bbdo(),
+                           "BBDO: extension '{}' already configured",
+                           ext->name());
     } else {
       if (ext->is_mandatory()) {
-        log_v2::bbdo()->error(
+        SPDLOG_LOGGER_ERROR(
+            log_v2::bbdo(),
             "BBDO: extension '{}' is set to 'yes' in the configuration but "
             "cannot be activated because of peer configuration.",
             ext->name());
       }
       if (std::find(running_config.begin(), running_config.end(),
                     ext->name()) != running_config.end()) {
-        log_v2::bbdo()->info("BBDO: extension '{}' no more needed",
-                             ext->name());
+        SPDLOG_LOGGER_INFO(log_v2::bbdo(),
+                           "BBDO: extension '{}' no more needed", ext->name());
         auto substream = get_substream();
         if (substream->get_name() == ext->name()) {
           auto subsubstream = substream->get_substream();
@@ -850,7 +973,8 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Stream has now negotiated.
   _negotiated = true;
-  log_v2::bbdo()->trace("Negotiation done.");
+  config::applier::state::instance().add_poller(_poller_id, _poller_name);
+  SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "Negotiation done.");
 }
 
 std::list<std::string> stream::get_running_config() {
@@ -879,44 +1003,97 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   bool timed_out(!_read_any(d, deadline));
   uint32_t event_id(!d ? 0 : d->type());
+
   while (!timed_out && ((event_id >> 16) == io::bbdo)) {
-    // Version response.
-    if ((event_id & 0xffff) == 1) {
-      auto version(std::static_pointer_cast<version_response>(d));
-      if (version->bbdo_major != std::get<0>(_bbdo_version)) {
-        log_v2::bbdo()->error(
-            "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
-            "using protocol version {}.{}.{}",
+    switch (event_id) {
+      case version_response::static_type(): {
+        auto version(std::static_pointer_cast<version_response>(d));
+        if (version->bbdo_major != _bbdo_version.major_v) {
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bbdo(),
+              "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+              "using protocol version {}.{}.{}",
+              version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
+          throw msg_fmt(
+              "BBDO: peer is using protocol version {}.{}.{} "
+              "whereas we're using protocol version {}.{}.{}",
+              version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
+        }
+        SPDLOG_LOGGER_INFO(
+            log_v2::bbdo(),
+            "BBDO: peer is using protocol version {}.{}.{} , we're using "
+            "version "
+            "{}.{}.{}",
             version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-            std::get<2>(_bbdo_version));
-        throw msg_fmt(
-            "BBDO: peer is using protocol version {}.{}.{} "
-            "whereas we're using protocol version {}.{}.{}",
-            version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-            std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-            std::get<2>(_bbdo_version));
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+
+        break;
       }
-      log_v2::bbdo()->info(
-          "BBDO: peer is using protocol version {}.{}.{} , we're using "
-          "version "
-          "{}.{}.{}",
-          version->bbdo_major, version->bbdo_minor, version->bbdo_patch,
-          std::get<0>(_bbdo_version), std::get<1>(_bbdo_version),
-          std::get<2>(_bbdo_version));
-    } else if ((event_id & 0xffff) == 2) {
-      log_v2::bbdo()->info(
-          "BBDO: received acknowledgement for {} events",
-          std::static_pointer_cast<const ack>(d)->acknowledged_events);
-      acknowledge_events(
-          std::static_pointer_cast<const ack>(d)->acknowledged_events);
-    } else if ((event_id & 0xffff) == 3) {
-      log_v2::bbdo()->info("BBDO: received stop from peer");
-      send_event_acknowledgement();
+      case pb_welcome::static_type(): {
+        auto welcome(std::static_pointer_cast<pb_welcome>(d));
+        const auto& pb_version = welcome->obj().version();
+        if (pb_version.major() != _bbdo_version.major_v) {
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bbdo(),
+              "BBDO: peer is using protocol version {}.{}.{}, whereas we're "
+              "using protocol version {}.{}.{}",
+              pb_version.major(), pb_version.minor(), pb_version.patch(),
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
+          throw msg_fmt(
+              "BBDO: peer is using protocol version {}.{}.{} "
+              "whereas we're using protocol version {}.{}.{}",
+              pb_version.major(), pb_version.minor(), pb_version.patch(),
+              _bbdo_version.major_v, _bbdo_version.minor_v,
+              _bbdo_version.patch);
+        }
+        SPDLOG_LOGGER_INFO(
+            log_v2::bbdo(),
+            "BBDO: peer is using protocol version {}.{}.{} , we're using "
+            "version "
+            "{}.{}.{}",
+            pb_version.major(), pb_version.minor(), pb_version.patch(),
+            _bbdo_version.major_v, _bbdo_version.minor_v, _bbdo_version.patch);
+        break;
+      }
+      case ack::static_type():
+        SPDLOG_LOGGER_INFO(
+            log_v2::bbdo(), "BBDO: received acknowledgement for {} events",
+            std::static_pointer_cast<const ack>(d)->acknowledged_events);
+        acknowledge_events(
+            std::static_pointer_cast<const ack>(d)->acknowledged_events);
+        break;
+      case pb_ack::static_type():
+        SPDLOG_LOGGER_INFO(log_v2::bbdo(),
+                           "BBDO: received pb acknowledgement for {} events",
+                           std::static_pointer_cast<const pb_ack>(d)
+                               ->obj()
+                               .acknowledged_events());
+        acknowledge_events(std::static_pointer_cast<const pb_ack>(d)
+                               ->obj()
+                               .acknowledged_events());
+        break;
+      case stop::static_type(): {
+        SPDLOG_LOGGER_INFO(log_v2::bbdo(), "BBDO: received stop from peer");
+        send_event_acknowledgement();
+        break;
+      }
+      case pb_stop::static_type(): {
+        SPDLOG_LOGGER_INFO(log_v2::bbdo(), "BBDO: received pb stop from peer");
+        send_event_acknowledgement();
+        break;
+      }
+      default:
+        break;
     }
 
     // Control messages.
-    log_v2::bbdo()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::bbdo(),
         "BBDO: event with ID {} was a control message, launching recursive "
         "read",
         event_id);
@@ -968,8 +1145,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       uint32_t dest_id = ntohl(*reinterpret_cast<uint32_t const*>(pack + 12));
       uint16_t expected = misc::crc16_ccitt(pack + 2, BBDO_HEADER_SIZE - 2);
 
-      // FIXME DBR: We must check correctly this error.
-      log_v2::bbdo()->trace(
+      SPDLOG_LOGGER_TRACE(
+          log_v2::bbdo(),
           "Reading: header eventID {} sourceID {} destID {} checksum {:x} and "
           "expected {:x}",
           event_id, source_id, dest_id, chksum, expected);
@@ -978,7 +1155,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         // The packet is corrupted.
         if (_skipped == 0) {
           // First corrupted byte.
-          log_v2::bbdo()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bbdo(),
               "peer {} is sending corrupted data: invalid CRC: {:04x} != "
               "{:04x}",
               peer(), chksum, expected);
@@ -987,7 +1165,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         _packet.erase(_packet.begin());
         continue;
       } else if (_skipped) {
-        log_v2::bbdo()->info(
+        SPDLOG_LOGGER_INFO(
+            log_v2::bbdo(),
             "peer {} sent {} corrupted payload bytes, resuming processing",
             peer(), _skipped);
         _skipped = 0;
@@ -1000,7 +1179,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
       std::vector<char> content;
       if (_packet.size() == BBDO_HEADER_SIZE + packet_size) {
-        log_v2::bbdo()->trace(
+        SPDLOG_LOGGER_TRACE(
+            log_v2::bbdo(),
             "packet matches header + content => extracting content");
         // We remove the header from the packet: FIXME DBR this is not
         // beautiful...
@@ -1019,7 +1199,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
                               _packet.begin() + BBDO_HEADER_SIZE + packet_size);
         _packet.erase(_packet.begin(),
                       _packet.begin() + BBDO_HEADER_SIZE + packet_size);
-        log_v2::bbdo()->trace(
+        SPDLOG_LOGGER_TRACE(
+            log_v2::bbdo(),
             "packet longer than header + content => splitting the whole of "
             "size {} to content of size {} and remaining of size {}",
             previous_packet_size, content.size(), _packet.size());
@@ -1041,14 +1222,16 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         }
         /* There is no reason to have this but no one knows. */
         if (_buffer.size() > 0) {
-          log_v2::bbdo()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bbdo(),
               "There are still {} long BBDO packets that cannot be sent, this "
               "maybe be due to a corrupted retention file.",
               _buffer.size());
           /* In case of too many long events stored in memory, we purge the
            * oldest ones. */
           while (_buffer.size() > 3) {
-            log_v2::bbdo()->info(
+            SPDLOG_LOGGER_INFO(
+                log_v2::bbdo(),
                 "One too old long event part of type {} removed from memory",
                 _buffer.front().get_event_id());
             _buffer.pop_front();
@@ -1061,13 +1244,15 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
         packet_size = content.size();
         d.reset(unserialize(event_id, source_id, dest_id, pack, packet_size));
         if (d) {
-          log_v2::bbdo()->trace("unserialized {} bytes for event of type {}",
-                                BBDO_HEADER_SIZE + packet_size, event_id);
+          SPDLOG_LOGGER_TRACE(log_v2::bbdo(),
+                              "unserialized {} bytes for event of type {}",
+                              BBDO_HEADER_SIZE + packet_size, event_id);
         } else {
-          log_v2::bbdo()->warn("unknown event type {} event cannot be decoded",
-                               event_id);
-          log_v2::bbdo()->trace("discarded {} bytes",
-                                BBDO_HEADER_SIZE + packet_size);
+          SPDLOG_LOGGER_WARN(log_v2::bbdo(),
+                             "unknown event type {} event cannot be decoded",
+                             event_id);
+          SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "discarded {} bytes",
+                              BBDO_HEADER_SIZE + packet_size);
         }
         return true;
       } else {
@@ -1089,14 +1274,16 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
 
         /* There is no reason to have this but no one knows. */
         if (_buffer.size() > 1) {
-          log_v2::bbdo()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::bbdo(),
               "There are {} long BBDO packets waiting for their missing parts "
               "in memory, this may be due to a corrupted retention file.",
               _buffer.size());
           /* In case of too many long events stored in memory, we purge the
            * oldest ones. */
           while (_buffer.size() > 4) {
-            log_v2::bbdo()->info(
+            SPDLOG_LOGGER_INFO(
+                log_v2::bbdo(),
                 "One too old long event part of type {} removed from memory",
                 _buffer.front().get_event_id());
             _buffer.pop_front();
@@ -1138,8 +1325,9 @@ void stream::_read_packet(size_t size, time_t deadline) {
       }
     }
     if (timeout) {
-      log_v2::bbdo()->trace("_read_packet timeout!!, size = {}, deadline = {}",
-                            size, deadline);
+      SPDLOG_LOGGER_TRACE(log_v2::bbdo(),
+                          "_read_packet timeout!!, size = {}, deadline = {}",
+                          size, deadline);
       throw exceptions::timeout();
     }
   }
@@ -1196,14 +1384,15 @@ void stream::statistics(nlohmann::json& tree) const {
     _substream->statistics(tree);
 }
 
-void stream::_write(std::shared_ptr<io::data> const& d) {
+void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
   // Check if data exists.
   std::shared_ptr<io::raw> serialized(serialize(*d));
   if (serialized) {
-    log_v2::bbdo()->trace("BBDO: serialized event of type {} to {} bytes",
-                          d->type(), serialized->size());
+    SPDLOG_LOGGER_TRACE(log_v2::bbdo(),
+                        "BBDO: serialized event of type {} to {} bytes",
+                        d->type(), serialized->size());
     _substream->write(serialized);
   }
 }
@@ -1237,11 +1426,21 @@ void stream::acknowledge_events(uint32_t events) {
  */
 void stream::send_event_acknowledgement() {
   if (!_coarse) {
-    log_v2::core()->debug("send acknowledgement for {} events",
+    if (_bbdo_version.total_version >= 0x0300000001) {
+      SPDLOG_LOGGER_DEBUG(log_v2::core(),
+                          "send pb acknowledgement for {} events",
                           _events_received_since_last_ack);
-    std::shared_ptr<ack> acknowledgement(
-        std::make_shared<ack>(_events_received_since_last_ack));
-    _write(acknowledgement);
+      std::shared_ptr<pb_ack> acknowledgement(std::make_shared<pb_ack>());
+      acknowledgement->mut_obj().set_acknowledged_events(
+          _events_received_since_last_ack);
+      _write(acknowledgement);
+    } else {
+      SPDLOG_LOGGER_DEBUG(log_v2::core(), "send acknowledgement for {} events",
+                          _events_received_since_last_ack);
+      std::shared_ptr<ack> acknowledgement(
+          std::make_shared<ack>(_events_received_since_last_ack));
+      _write(acknowledgement);
+    }
     _events_received_since_last_ack = 0;
   }
 }

@@ -26,12 +26,6 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::compression;
 
-/**************************************
- *                                     *
- *      Public Static Methods          *
- *                                     *
- **************************************/
-
 /**
  * Compression function
  *
@@ -68,10 +62,8 @@ std::vector<char> zlib::compress(std::vector<char> const& data,
         retval[3] = (nbytes & 0xff);
         break;
       case Z_MEM_ERROR:
-        throw msg_fmt(
-            "compression: not enough memory to compress {} "
-            " bytes",
-            nbytes);
+        throw msg_fmt("compression: not enough memory to compress {} bytes",
+                      nbytes);
         break;
       case Z_BUF_ERROR:
         len <<= 1;

@@ -61,7 +61,7 @@ class stream : public io::stream {
   stream(std::string const& lua_script,
          std::map<std::string, misc::variant> const& conf_params,
          std::shared_ptr<persistent_cache> const& cache);
-  ~stream() noexcept = default;
+  ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;

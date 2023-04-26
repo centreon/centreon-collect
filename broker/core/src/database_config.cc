@@ -24,6 +24,23 @@
 
 using namespace com::centreon::broker;
 
+CCB_BEGIN()
+std::ostream& operator<<(std::ostream& s, const database_config cfg) {
+  s << cfg.get_type() << ": " << cfg.get_user() << '@';
+  if (cfg.get_socket().empty()) {
+    s << cfg.get_host() << ':' << cfg.get_port();
+  } else {
+    s << cfg.get_socket();
+  }
+  s << "queries per transaction:" << cfg.get_queries_per_transaction()
+    << " check replication:" << cfg.get_check_replication()
+    << " connnexion count:" << cfg.get_connections_count()
+    << " max comit delay:" << cfg.get_max_commit_delay() << 's';
+  return s;
+}
+
+CCB_END()
+
 /**
  *  Default constructor.
  */
@@ -49,16 +66,17 @@ database_config::database_config()
  *                                      status of the database should be
  *                                      checked.
  */
-database_config::database_config(std::string const& type,
-                                 std::string const& host,
-                                 std::string const& socket,
-                                 unsigned short port,
-                                 std::string const& user,
-                                 std::string const& password,
-                                 std::string const& name,
+database_config::database_config(const std::string& type,
+                                 const std::string& host,
+                                 const std::string& socket,
+                                 uint16_t port,
+                                 const std::string& user,
+                                 const std::string& password,
+                                 const std::string& name,
                                  uint32_t queries_per_transaction,
                                  bool check_replication,
-                                 int connections_count)
+                                 int32_t connections_count,
+                                 unsigned max_commit_delay)
     : _type(type),
       _host(host),
       _socket(socket),
@@ -68,7 +86,8 @@ database_config::database_config(std::string const& type,
       _name(name),
       _queries_per_transaction(queries_per_transaction),
       _check_replication(check_replication),
-      _connections_count(connections_count) {}
+      _connections_count(connections_count),
+      _max_commit_delay(max_commit_delay) {}
 
 /**
  *  Build a database configuration from a configuration set.
@@ -100,15 +119,23 @@ database_config::database_config(config::endpoint const& cfg) {
     if (it != end)
       _socket = it->second;
     else
-      _socket = "/var/lib/mysql/mysql.sock";
+      _socket = MYSQL_SOCKET;
   } else
     _socket = "";
 
   // db_port
   it = cfg.params.find("db_port");
-  if (it != end)
-    _port = std::stol(it->second);
-  else
+  if (it != end) {
+    uint32_t port;
+    if (!absl::SimpleAtoi(it->second, &port)) {
+      log_v2::config()->error(
+          "In the database configuration, 'db_port' should be a number, and "
+          "not '{}'",
+          it->second);
+      _port = 0;
+    } else
+      _port = port;
+  } else
     _port = 0;
 
   // db_user
@@ -132,31 +159,32 @@ database_config::database_config(config::endpoint const& cfg) {
   // queries_per_transaction
   it = cfg.params.find("queries_per_transaction");
   if (it != end) {
-    try {
-      _queries_per_transaction = std::stoul(it->second);
-    } catch (std::exception const& e) {
+    if (!absl::SimpleAtoi(it->second, &_queries_per_transaction)) {
       log_v2::core()->error(
           "queries_per_transaction is a number but must be given as a string. "
-          "Unable to read the value '{}' - value 10000 taken by default.",
+          "Unable to read the value '{}' - value 2000 taken by default.",
           it->second);
-      _queries_per_transaction = 10000;
+      _queries_per_transaction = 2000;
     }
   } else
-    _queries_per_transaction = 10000;
+    _queries_per_transaction = 2000;
 
   // check_replication
   it = cfg.params.find("check_replication");
-  if (it != end)
-    _check_replication = config::parser::parse_boolean(it->second);
-  else
+  if (it != end) {
+    if (!absl::SimpleAtob(it->second, &_check_replication)) {
+      log_v2::core()->error(
+          "check_replication is a string containing a boolean. If not "
+          "specified, it will be considered as \"true\".");
+      _check_replication = true;
+    }
+  } else
     _check_replication = true;
 
   // connections_count
   it = cfg.params.find("connections_count");
   if (it != end) {
-    try {
-      _connections_count = std::stoul(it->second);
-    } catch (std::exception const& e) {
+    if (!absl::SimpleAtoi(it->second, &_connections_count)) {
       log_v2::core()->error(
           "connections_count is a string "
           "containing an integer. If not "
@@ -166,6 +194,18 @@ database_config::database_config(config::endpoint const& cfg) {
     }
   } else
     _connections_count = 1;
+  it = cfg.params.find("max_commit_delay");
+  if (it != end) {
+    if (!absl::SimpleAtoi(it->second, &_max_commit_delay)) {
+      log_v2::core()->error(
+          "max_commit_delay is a string "
+          "containing an integer. If not "
+          "specified, it will be considered as "
+          "\"5\".");
+      _max_commit_delay = 5;
+    }
+  } else
+    _max_commit_delay = 5;
 }
 
 /**
@@ -209,7 +249,8 @@ bool database_config::operator==(database_config const& other) const {
                 _user == other._user && _password == other._password &&
                 _name == other._name &&
                 _queries_per_transaction == other._queries_per_transaction &&
-                _connections_count == other._connections_count};
+                _connections_count == other._connections_count &&
+                _max_commit_delay == other._max_commit_delay};
     if (!retval) {
       if (_type != other._type)
         log_v2::sql()->debug(
@@ -256,6 +297,11 @@ bool database_config::operator==(database_config const& other) const {
             "database configurations do not match because of their connections "
             "counts: {} != {}",
             _connections_count, other._connections_count);
+      else if (_max_commit_delay != other._max_commit_delay)
+        log_v2::sql()->debug(
+            "database configurations do not match because of their commit "
+            "delay: {} != {}",
+            _max_commit_delay, other._max_commit_delay);
       return false;
     }
   }
@@ -364,6 +410,15 @@ int database_config::get_connections_count() const {
 }
 
 /**
+ * @brief get max commit delay
+ *
+ * @return unsigned delay in seconds
+ */
+unsigned database_config::get_max_commit_delay() const {
+  return _max_commit_delay;
+}
+
+/**
  *  Set type.
  *
  *  @param[in] type  The database type.
@@ -469,4 +524,5 @@ void database_config::_internal_copy(database_config const& other) {
   _queries_per_transaction = other._queries_per_transaction;
   _check_replication = other._check_replication;
   _connections_count = other._connections_count;
+  _max_commit_delay = other._max_commit_delay;
 }

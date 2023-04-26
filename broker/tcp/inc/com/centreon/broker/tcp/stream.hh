@@ -20,6 +20,7 @@
 #define CCB_TCP_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/tcp/tcp_config.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
 CCB_BEGIN()
@@ -37,15 +38,13 @@ class acceptor;
 class stream : public io::stream {
   static std::atomic<size_t> _total_tcp_count;
 
-  const std::string _host;
-  const uint16_t _port;
-  const int32_t _read_timeout;
+  tcp_config::pointer _conf;
   tcp_connection::pointer _connection;
   acceptor* _parent;
 
  public:
-  stream(std::string const& host, uint16_t port, int32_t read_timeout);
-  stream(tcp_connection::pointer conn, int32_t read_timeout);
+  stream(const tcp_config::pointer& conf);
+  stream(const tcp_connection::pointer& conn, const tcp_config::pointer& conf);
   ~stream() noexcept;
   stream& operator=(const stream&) = delete;
   stream(const stream&) = delete;
@@ -55,6 +54,7 @@ class stream : public io::stream {
   int32_t flush() override;
   int32_t stop() override;
   int32_t write(std::shared_ptr<io::data> const& d) override;
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 }  // namespace tcp
 

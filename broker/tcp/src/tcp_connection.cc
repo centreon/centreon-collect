@@ -152,6 +152,21 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
 }
 
 /**
+ * @brief wait for all events sent on the wire
+ *
+ * @param ms_timeout
+ * @return true if all events are sent
+ * @return false if timeout expires
+ */
+bool tcp_connection::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v2::tcp()->trace("wait_for_all_events_written _writing={}", _writing);
+  std::mutex dummy;
+  std::unique_lock<std::mutex> l(dummy);
+  return _writing_cv.wait_for(l, std::chrono::milliseconds(ms_timeout),
+                              [this]() { return _writing == false; });
+}
+
+/**
  * @brief Execute the real writing on the socket. Infact, this function:
  *  * checks if the _write_queue is empty, and then exchanges its content with
  *    the _exposed_write_queue. No mutex is needed because if this function is
@@ -168,6 +183,7 @@ void tcp_connection::writing() {
   }
   if (!_write_queue_has_events) {
     _writing = false;
+    _writing_cv.notify_all();
     return;
   }
 
@@ -247,7 +263,11 @@ void tcp_connection::handle_read(const asio::error_code& ec,
 void tcp_connection::close() {
   log_v2::tcp()->trace("closing tcp connection");
   if (!_closed) {
-    while (!_closed && (_writing || _write_queue_has_events)) {
+    std::chrono::system_clock::time_point timeout =
+        std::chrono::system_clock::now() + std::chrono::seconds(10);
+    while (!_closed &&
+           (_writing || _write_queue_has_events &&
+                            std::chrono::system_clock::now() < timeout)) {
       log_v2::tcp()->debug(
           "Finishing to write data before closing the connection");
       if (!_writing) {

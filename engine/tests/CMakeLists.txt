@@ -1,48 +1,51 @@
-##
-## Copyright 2016, 2020-2021 Centreon
-##
-
-## This file is part of Centreon Engine.
-##
-## Centreon Engine is free software : you can redistribute it and / or 
-## modify it under the terms of the GNU General Public License version 2
-## as published by the Free Software Foundation.
-##
-## Centreon Engine is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Centreon Engine. If not, see
-## <http://www.gnu.org/licenses/>.
-##
+#
+# Copyright 2016, 2020-2023 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+#
+# For more information : contact@centreon.com
+#
 
 # Enable unit tests or not .
-if (WITH_TESTING)
-
-# Tests directory.
-  # Add root inclusion direction.
+if(WITH_TESTING)
+  # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
   include_directories(${PROJECT_SOURCE_DIR} ${MODULE_DIR}/inc)
 
-#Set directory.
+  # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
   include_directories(${PROJECT_SOURCE_DIR}/enginerpc)
   add_definitions(-DENGINERPC_TESTS_PATH="${TESTS_DIR}/enginerpc")
 
-  add_executable(rpc_client_engine
-      ${TESTS_DIR}/enginerpc/client.cc)
+  add_executable(rpc_client_engine ${TESTS_DIR}/enginerpc/client.cc)
 
-  target_link_libraries(rpc_client_engine cerpc CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib dl pthread)
+  target_link_libraries(
+    rpc_client_engine
+    cerpc
+    CONAN_PKG::grpc
+    CONAN_PKG::openssl
+    CONAN_PKG::zlib
+    dl
+    pthread)
 
   add_executable(bin_connector_test_run
-      "${TESTS_DIR}/commands/bin_connector_test_run.cc")
+    "${TESTS_DIR}/commands/bin_connector_test_run.cc")
   target_link_libraries(bin_connector_test_run cce_core pthread)
-  target_precompile_headers(bin_connector_test_run PRIVATE ../precomp_inc/precomp.hh)
+  target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 
   set(ut_sources
+
     # Sources.
     "${TESTS_DIR}/parse-check-output.cc"
     "${TESTS_DIR}/checks/service_check.cc"
@@ -50,6 +53,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/checks/anomalydetection.cc"
     "${TESTS_DIR}/commands/simple-command.cc"
     "${TESTS_DIR}/commands/connector.cc"
+    "${TESTS_DIR}/commands/environment.cc"
     "${TESTS_DIR}/configuration/applier/applier-anomalydetection.cc"
     "${TESTS_DIR}/configuration/applier/applier-command.cc"
     "${TESTS_DIR}/configuration/applier/applier-connector.cc"
@@ -64,6 +68,7 @@ if (WITH_TESTING)
     "${TESTS_DIR}/configuration/applier/applier-service.cc"
     "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
     "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
+    "${TESTS_DIR}/configuration/applier/applier-state.cc"
     "${TESTS_DIR}/configuration/contact.cc"
     "${TESTS_DIR}/configuration/host.cc"
     "${TESTS_DIR}/configuration/object.cc"
@@ -114,41 +119,59 @@ if (WITH_TESTING)
     "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
     "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
     "${TESTS_DIR}/timeperiod/utils.cc"
-#    # Headers.
+
+    # # Headers.
     "${TESTS_DIR}/test_engine.hh"
-    "${TESTS_DIR}/timeperiod/utils.hh"
-  )
+    "${TESTS_DIR}/timeperiod/utils.hh")
 
   # Unit test executable.
   include_directories(${TESTS_DIR})
 
+  if(WITH_ASAN)
+    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_CXX_FLAGS_DEBUG
+      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+    set(CMAKE_LINKER_FLAGS_DEBUG
+      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+  endif()
+
   add_executable(ut_engine ${ut_sources})
-  target_precompile_headers(ut_engine PRIVATE ../precomp_inc/precomp.hh)
+  target_precompile_headers(ut_engine REUSE_FROM cce_core)
 
   set_target_properties(
-      ut_engine rpc_client_engine bin_connector_test_run
-      PROPERTIES
-      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-      RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-      RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-      RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
-      RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests
-  )
+    ut_engine rpc_client_engine bin_connector_test_run
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+    RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
-  #file used by timeperiod-test.cc
-  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg DESTINATION ${CMAKE_BINARY_DIR}/tests/ ) 
+  # file used by timeperiod-test.cc
+  file(COPY ${TESTS_DIR}/configuration/timeperiods.cfg
+    DESTINATION ${CMAKE_BINARY_DIR}/tests/)
 
   add_test(NAME tests COMMAND ut_engine)
 
-  if (WITH_COVERAGE)
-    set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*' '/usr/include/* ')
-    SETUP_TARGET_FOR_COVERAGE(
-        NAME engine-test-coverage
-        EXECUTABLE ut_engine
-        DEPENDENCIES ut_engine
-    )
+  if(WITH_COVERAGE)
+    set(COVERAGE_EXCLUDES
+      '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*'
+      '/usr/include/*' '*/.conan/*')
+    setup_target_for_coverage(NAME engine-test-coverage EXECUTABLE ut_engine
+      DEPENDENCIES ut_engine)
     set(GCOV gcov)
-  endif ()
-  target_link_libraries(ut_engine ${ENGINERPC} cce_core pthread ${GCOV} CONAN_PKG::gtest CONAN_PKG::grpc CONAN_PKG::openssl CONAN_PKG::zlib CONAN_PKG::fmt dl)
+  endif()
 
-endif ()
+  target_link_libraries(
+    ut_engine
+    ${ENGINERPC}
+    cce_core
+    enginelog
+    pthread
+    ${GCOV}
+    CONAN_PKG::gtest
+    CONAN_PKG::grpc
+    CONAN_PKG::openssl
+    CONAN_PKG::zlib
+    CONAN_PKG::fmt
+    dl)
+endif()

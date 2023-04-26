@@ -36,7 +36,7 @@ using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::string;
 
 downtime::downtime(downtime::type type,
-                   std::string const& host_name,
+                   const uint64_t host_id,
                    time_t entry_time,
                    std::string const& author,
                    std::string const& comment,
@@ -47,7 +47,7 @@ downtime::downtime(downtime::type type,
                    int32_t duration,
                    uint64_t downtime_id)
     : _type{type},
-      _hostname{host_name},
+      _host_id{host_id},
       _entry_time{entry_time},
       _author{author},
       _comment{comment},
@@ -66,11 +66,6 @@ downtime::downtime(downtime::type type,
                               downtime::any_downtime, triggered_by))
     throw engine_error()
         << "can not add triggered host downtime without a valid parent";
-
-  /* we don't have enough info */
-  if (host_name.empty())
-    throw engine_error()
-        << "can not create a host downtime on host with empty name";
 }
 
 downtime::~downtime() {}
@@ -102,12 +97,22 @@ downtime::type downtime::get_type() const {
 }
 
 /**
- * @brief Get the hostname of the host associated with this downtime.
+ * @brief Get the host id of the host associated with this downtime.
  *
- * @return A string reference to the host name.
+ * @return An unsigned integer.
  */
-std::string const& downtime::get_hostname() const {
-  return _hostname;
+uint64_t downtime::host_id() const {
+  return _host_id;
+}
+
+/**
+ * @brief Get the service description of the service associated with this
+ * downtime. If the downtime set on a host, null is returned.
+ *
+ * @return a const char* pointer.
+ */
+const char* downtime::service_description() const {
+  return nullptr;
 }
 
 /**

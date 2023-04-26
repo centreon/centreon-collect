@@ -1,21 +1,21 @@
-##
-## Copyright 2011-2013 Merethis
-##
-## This file is part of Centreon Engine.
-##
-## Centreon Engine is free software: you can redistribute it and/or
-## modify it under the terms of the GNU General Public License version 2
-## as published by the Free Software Foundation.
-##
-## Centreon Engine is distributed in the hope that it will be useful,
-## but WITHOUT ANY WARRANTY; without even the implied warranty of
-## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-## General Public License for more details.
-##
-## You should have received a copy of the GNU General Public License
-## along with Centreon Engine. If not, see
-## <http://www.gnu.org/licenses/>.
-##
+#
+# Copyright 2011-2013 Merethis
+#
+# This file is part of Centreon Engine.
+#
+# Centreon Engine is free software: you can redistribute it and/or
+# modify it under the terms of the GNU General Public License version 2
+# as published by the Free Software Foundation.
+#
+# Centreon Engine is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Centreon Engine. If not, see
+# <http://www.gnu.org/licenses/>.
+#
 
 # Set directories.
 set(SRC_DIR "${SRC_DIR}/compatibility")
@@ -32,12 +32,10 @@ set(
 
   # Sources.
   "${SRC_DIR}/common.cc"
-  "${SRC_DIR}/embedded_perl.cc"
   "${SRC_DIR}/globals.cc"
   "${SRC_DIR}/logging.cc"
   "${SRC_DIR}/mmap.cc"
   "${SRC_DIR}/sighandlers.cc"
-  "${SRC_DIR}/utils.cc"
 
   # Headers.
   "${INC_DIR}/broker.h"
@@ -45,7 +43,6 @@ set(
   "${INC_DIR}/common.h"
   "${INC_DIR}/config.h"
   "${INC_DIR}/downtime.h"
-  "${INC_DIR}/embedded_perl.h"
   "${INC_DIR}/epn_nagios.h"
   "${INC_DIR}/events.h"
   "${INC_DIR}/locations.h"

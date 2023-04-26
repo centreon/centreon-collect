@@ -548,7 +548,7 @@ std::shared_ptr<contact> add_contact(
   }
 
   // Allocate memory for a new contact.
-  std::shared_ptr<contact> obj(new contact);
+  auto obj = std::make_shared<contact>();
 
   try {
     // Duplicate vars.
@@ -785,8 +785,7 @@ void contact::set_service_notifications_enabled(bool enabled) {
 void contact::update_status_info(bool aggregated_dump) {
   /* send data to event broker (non-aggregated dumps only) */
   if (!aggregated_dump)
-    broker_contact_status(NEBTYPE_CONTACTSTATUS_UPDATE, NEBFLAG_NONE,
-                          NEBATTR_NONE, this, nullptr);
+    broker_contact_status(NEBTYPE_CONTACTSTATUS_UPDATE, this);
 }
 
 std::list<std::shared_ptr<commands::command> > const&

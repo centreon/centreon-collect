@@ -143,12 +143,12 @@ int command_manager::process_passive_service_check(
 
   timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
 
-  check_result* result =
-      new check_result(service_check, found->second.get(),
-                       checkable::check_passive, CHECK_OPTION_NONE, false,
-                       static_cast<double>(tv.tv_sec - check_time) +
-                           static_cast<double>(tv.tv_usec) / 1000000.0,
-                       set_tv, set_tv, false, true, return_code, output);
+  check_result::pointer result = std::make_shared<check_result>(
+      service_check, found->second.get(), checkable::check_passive,
+      CHECK_OPTION_NONE, false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec) / 1000000.0,
+      set_tv, set_tv, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3)
@@ -213,12 +213,12 @@ int command_manager::process_passive_host_check(time_t check_time,
   tv_start.tv_sec = check_time;
   tv_start.tv_usec = 0;
 
-  check_result* result =
-      new check_result(host_check, it->second.get(), checkable::check_passive,
-                       CHECK_OPTION_NONE, false,
-                       static_cast<double>(tv.tv_sec - check_time) +
-                           static_cast<double>(tv.tv_usec) / 1000000.0,
-                       tv_start, tv_start, false, true, return_code, output);
+  check_result::pointer result = std::make_shared<check_result>(
+      host_check, it->second.get(), checkable::check_passive, CHECK_OPTION_NONE,
+      false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec) / 1000000.0,
+      tv_start, tv_start, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3)
@@ -399,7 +399,7 @@ void command_manager::schedule_and_propagate_downtime(
 
     /* schedule downtime for this host */
     downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, it->first, "", entry_time, author,
+        downtime::host_downtime, it->second->host_id(), 0, entry_time, author,
         comment_data, start_time, end_time, fixed, triggered_by, duration,
         nullptr);
   }

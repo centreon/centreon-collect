@@ -43,7 +43,9 @@ class timeperiod_exception : public ::testing::TestWithParam<test_param> {
     parse_timeperiods_cfg_file("tests/timeperiods.cfg");
   }
 
-  static void TearDownTestSuite(){};
+  static void TearDownTestSuite() {
+    com::centreon::engine::timeperiod::timeperiods.clear();
+  }
 
   static void parse_timeperiods_cfg_file(const std::string& file_path);
 };

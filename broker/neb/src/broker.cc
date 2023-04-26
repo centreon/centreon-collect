@@ -37,7 +37,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   if (!--neb_instances) {
     //      // Remove factory.
     //      io::protocols::instance().unreg("node_events");
@@ -45,6 +45,7 @@ void broker_module_deinit() {
     // Remove events.
     io::events::instance().unregister_category(io::neb);
   }
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -77,12 +78,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_downtime), "downtime",
                        &neb::downtime::operations, neb::downtime::entries,
                        "downtimes");
-      e.register_event(make_type(io::neb, neb::de_event_handler),
-                       "event_handler", &neb::event_handler::operations,
-                       neb::event_handler::entries, "eventhandlers");
-      e.register_event(make_type(io::neb, neb::de_flapping_status),
-                       "flapping_status", &neb::flapping_status::operations,
-                       neb::flapping_status::entries, "flappingstatuses");
       e.register_event(make_type(io::neb, neb::de_host_check), "host_check",
                        &neb::host_check::operations, neb::host_check::entries,
                        "hosts");
@@ -113,9 +108,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_log_entry), "log_entry",
                        &neb::log_entry::operations, neb::log_entry::entries,
                        "logs");
-      e.register_event(make_type(io::neb, neb::de_module), "module",
-                       &neb::module::operations, neb::module::entries,
-                       "modules");
       e.register_event(make_type(io::neb, neb::de_service_check),
                        "service_check", &neb::service_check::operations,
                        neb::service_check::entries, "services");
@@ -145,6 +137,8 @@ void broker_module_init(void const* arg) {
                        &neb::responsive_instance::operations,
                        neb::responsive_instance::entries);
 
+      e.register_event(make_type(io::neb, neb::de_pb_downtime), "Downtime",
+                       &neb::pb_downtime::operations, "downtimes");
       e.register_event(make_type(io::neb, neb::de_pb_service), "Service",
                        &neb::pb_service::operations, "services");
       e.register_event(make_type(io::neb, neb::de_pb_adaptive_service),
@@ -168,6 +162,41 @@ void broker_module_init(void const* arg) {
 
       e.register_event(make_type(io::neb, neb::de_pb_tag), "Tag",
                        &neb::pb_tag::operations, "tags");
+
+      e.register_event(make_type(io::neb, neb::de_pb_comment), "Comment",
+                       &neb::pb_comment::operations, "comments");
+
+      e.register_event(make_type(io::neb, neb::de_pb_custom_variable),
+                       "CustomVariables", &neb::pb_custom_variable::operations,
+                       "customvariables");
+
+      e.register_event(make_type(io::neb, neb::de_pb_custom_variable_status),
+                       "CustomVariablesStatus",
+                       &neb::pb_custom_variable_status::operations,
+                       "customvariables");
+
+      e.register_event(make_type(io::neb, neb::de_pb_host_check), "Check",
+                       &neb::pb_host_check::operations, "hosts");
+
+      e.register_event(make_type(io::neb, neb::de_pb_service_check), "Check",
+                       &neb::pb_service_check::operations, "services");
+
+      e.register_event(make_type(io::neb, neb::de_pb_log_entry), "LogEntry",
+                       &neb::pb_log_entry::operations, "logs");
+
+      e.register_event(make_type(io::neb, neb::de_pb_instance_status),
+                       "InstanceStatus", &neb::pb_instance_status::operations,
+                       "instances");
+
+      e.register_event(make_type(io::neb, neb::de_pb_instance), "Instance",
+                       &neb::pb_instance::operations, "instances");
+
+      e.register_event(make_type(io::neb, neb::de_pb_responsive_instance),
+                       "ResponsiveInstance",
+                       &neb::pb_responsive_instance::operations, "instances");
+      e.register_event(make_type(io::neb, neb::de_pb_acknowledgement),
+                       "Acknowledgement", &neb::pb_acknowledgement::operations,
+                       "acknowledgements");
     }
   }
 }

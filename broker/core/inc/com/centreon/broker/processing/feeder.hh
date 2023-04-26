@@ -51,7 +51,9 @@ class feeder : public stat_visitable {
   std::atomic_bool _should_exit;
 
   std::unique_ptr<io::stream> _client;
-  multiplexing::muxer _muxer;
+  // as the muxer may be embeded in a lambda run by asio thread, we use a
+  // shared_ptr
+  std::shared_ptr<multiplexing::muxer> _muxer;
 
   // This mutex is used for the stat thread.
   mutable misc::shared_mutex _client_m;
@@ -74,6 +76,8 @@ class feeder : public stat_visitable {
   feeder& operator=(const feeder&) = delete;
   bool is_finished() const noexcept;
   const char* get_state() const;
+
+  bool wait_for_all_events_written(unsigned ms_timeout);
 };
 }  // namespace processing
 

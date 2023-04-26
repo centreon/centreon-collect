@@ -1,5 +1,5 @@
 /*
-** Copyright 2013 Centreon
+** Copyright 2013, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,18 +16,31 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_STORAGE_INTERNAL_HH
-#define CCB_STORAGE_INTERNAL_HH
+#ifndef CCB_INFLUXDB_INTERNAL_HH
+#define CCB_INFLUXDB_INTERNAL_HH
 
+#include "bbdo/events.hh"
+#include "bbdo/storage.pb.h"
+#include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
 namespace storage {
 // Data elements.
-enum data_element { de_metric = 1, de_rebuild, de_remove_graph, de_status };
+using pb_index_mapping =
+    io::protobuf<IndexMapping,
+                 make_type(io::storage, storage::de_pb_index_mapping)>;
+using pb_metric_mapping =
+    io::protobuf<MetricMapping,
+                 make_type(io::storage, storage::de_pb_metric_mapping)>;
+using pb_metric =
+    io::protobuf<Metric, make_type(io::storage, storage::de_pb_metric)>;
+using pb_status =
+    io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
+
 }  // namespace storage
 
 CCB_END()
 
-#endif  // !CCB_STORAGE_INTERNAL_HH
+#endif  // !CCB_INFLUXDB_INTERNAL_HH

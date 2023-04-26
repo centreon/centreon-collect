@@ -74,7 +74,7 @@ class ServiceDowntimeNotification : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
     _host->set_max_attempts(1);
 
@@ -82,7 +82,7 @@ class ServiceDowntimeNotification : public TestEngine {
     _svc = sm.begin()->second;
     _svc->set_current_state(engine::service::state_ok);
     _svc->set_state_type(checkable::hard);
-    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_acknowledgement(AckType::NONE);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
     _svc->set_max_attempts(1);
   }
@@ -259,8 +259,8 @@ TEST_F(ServiceDowntimeNotification,
 
   // start downtime
   set_time(50100);
-  int res1 = _svc->notify(notifier::reason_downtimestart, "", "",
-                          notifier::notification_option_none);
+  _svc->notify(notifier::reason_downtimestart, "", "",
+               notifier::notification_option_none);
   _svc->inc_scheduled_downtime_depth();
   uint64_t first_notif_id = _svc->get_next_notification_id();
 
@@ -273,15 +273,15 @@ TEST_F(ServiceDowntimeNotification,
       now));
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
-  uint64_t second_notif_id = _svc->get_next_notification_id();
+  _svc->get_next_notification_id();
 
   // end dt
   now = 50300;
   set_time(50300);
   _svc->set_scheduled_downtime_depth(0);
-  int res2 = _svc->notify(notifier::reason_downtimeend, "", "",
-                          notifier::notification_option_none);
-  uint64_t third_notif_id = _svc->get_next_notification_id();
+  _svc->notify(notifier::reason_downtimeend, "", "",
+               notifier::notification_option_none);
+  _svc->get_next_notification_id();
 
   // service up
   set_time(50400);
@@ -290,7 +290,7 @@ TEST_F(ServiceDowntimeNotification,
       "[{}] PROCESS_SERVICE_CHECK_RESULT;test_host;test_svc;0;service ok", now);
   process_external_command(cmd.c_str());
   checks::checker::instance().reap();
-  uint64_t fourth_notif_id = _svc->get_next_notification_id();
+  _svc->get_next_notification_id();
 
   std::string out = testing::internal::GetCapturedStdout();
 

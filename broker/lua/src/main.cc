@@ -16,7 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -47,12 +52,13 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Unregister generic lua module.
     io::protocols::instance().unreg("lua");
   }
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -102,6 +108,30 @@ void broker_module_init(void const* arg) {
           "dimension_truncate_table_signal",
           &bam::dimension_truncate_table_signal::operations,
           bam::dimension_truncate_table_signal::entries);
+
+      /* Let's register the pb_index_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_index_mapping),
+                       "pb_index_mapping",
+                       &storage::pb_index_mapping::operations);
+      /* Let's register the pb_metric_mapping event. */
+      e.register_event(make_type(io::storage, storage::de_pb_metric_mapping),
+                       "pb_metric_mapping",
+                       &storage::pb_metric_mapping::operations);
+      e.register_event(bam::pb_dimension_bv_event::static_type(),
+                       "DimensionBvEvent",
+                       &bam::pb_dimension_bv_event::operations);
+      e.register_event(bam::pb_dimension_ba_bv_relation_event::static_type(),
+                       "DimensionBaBvRelationEvent",
+                       &bam::pb_dimension_ba_bv_relation_event::operations);
+      e.register_event(bam::pb_dimension_timeperiod::static_type(),
+                       "DimensionTimePeriod",
+                       &bam::pb_dimension_timeperiod::operations);
+      e.register_event(bam::pb_dimension_ba_event::static_type(),
+                       "DimensionBaEvent",
+                       &bam::pb_dimension_ba_event::operations);
+      e.register_event(bam::pb_dimension_truncate_table_signal::static_type(),
+                       "DimensionTruncateTableSignal",
+                       &bam::pb_dimension_truncate_table_signal::operations);
     }
 
     // Register lua layer.

@@ -17,10 +17,10 @@
 ### END INIT INFO
 
 prefix=@CMAKE_INSTALL_PREFIX@
-var_dir=@VAR_DIR@
-rw_dir=@RW_DIR@
-binary=@PREFIX_BIN@/centengine
-config_file=@PREFIX_CONF@/centengine.cfg
+var_dir=@ENGINE_VAR_LOG_DIR@
+rw_dir=@ENGINE_VAR_LIB_DIR@/rw
+binary=@CMAKE_INSTALL_FULL_SBINDIR@/centengine
+config_file=@PREFIX_ENGINE_CONF@/centengine.cfg
 status_file=$var_dir/status.dat
 retention_file=$var_dir/retention.dat
 command_file=$rw_dir/centengine.cmd

@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 #include <com/centreon/engine/macros.hh>
+#include "com/centreon/engine/log_v2.hh"
 
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/raw.hh"
@@ -28,11 +29,17 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::commands;
 
+void CreateFile(std::string const& filename, std::string const& content) {
+  std::ofstream oss(filename);
+  oss << content;
+}
+
 class SimpleCommand : public ::testing::Test {
  public:
   void SetUp() override {
     set_time(-1);
     init_config_state();
+    config->interval_length(1);
   }
 
   void TearDown() override { deinit_config_state(); }
@@ -40,7 +47,7 @@ class SimpleCommand : public ::testing::Test {
 
 class my_listener : public commands::command_listener {
  public:
-  result const& get_result() const {
+  result& get_result() {
     std::lock_guard<std::mutex> guard(_mutex);
     return _res;
   }
@@ -107,7 +114,7 @@ TEST_F(SimpleCommand, NewCommandAsync) {
   nagios_macros* mac(get_global_macros());
   std::string cc(cmd->process_cmd(mac));
   ASSERT_EQ(cc, "/bin/echo bonjour");
-  cmd->run(cc, *mac, 2);
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{3000};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -130,7 +137,7 @@ TEST_F(SimpleCommand, LongCommandAsync) {
   // We force the time to be coherent with now because the function gettimeofday
   // that is not simulated.
   set_time(std::time(nullptr));
-  cmd->run(cc, *mac, 2);
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
   int timeout{0};
   int max_timeout{15};
   while (timeout < max_timeout && lstnr->get_result().output == "") {
@@ -139,4 +146,111 @@ TEST_F(SimpleCommand, LongCommandAsync) {
     ++timeout;
   }
   ASSERT_EQ(lstnr->get_result().output, "(Process Timeout)");
+}
+
+TEST_F(SimpleCommand, TooRecentDoubleCommand) {
+  log_v2::commands()->set_level(spdlog::level::trace);
+  CreateFile("/tmp/TooRecentDoubleCommand.sh",
+             "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
+
+  const char* path = "/tmp/TooRecentDoubleCommand";
+  ::unlink(path);
+  std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
+  std::unique_ptr<commands::command> cmd{std::make_unique<commands::raw>(
+      "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
+  cmd->set_listener(lstnr.get());
+  const void* caller[] = {nullptr, path};
+  cmd->add_caller_group(caller, caller + 2);
+  nagios_macros* mac(get_global_macros());
+  std::string cc(cmd->process_cmd(mac));
+  time_t now = 10000;
+  set_time(now);
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[0]);
+  for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
+       ++wait_ind) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  ASSERT_EQ(lstnr->get_result().exit_code, 0);
+  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().output, "tutu");
+  struct stat file_stat;
+  ASSERT_EQ(stat(path, &file_stat), 0);
+  ASSERT_EQ(file_stat.st_size, 4);
+  ++now;
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[1]);
+  for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
+       ++wait_ind) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
+  ASSERT_EQ(lstnr->get_result().exit_code, 0);
+  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().output, "tutu");
+  ASSERT_EQ(stat(path, &file_stat), 0);
+  ASSERT_EQ(file_stat.st_size, 4);
+}
+
+TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
+  log_v2::commands()->set_level(spdlog::level::trace);
+  CreateFile("/tmp/TooRecentDoubleCommand.sh",
+             "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
+
+  const char* path = "/tmp/TooRecentDoubleCommand";
+  ::unlink(path);
+  std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
+  std::unique_ptr<commands::command> cmd{std::make_unique<commands::raw>(
+      "test", "/bin/sh /tmp/TooRecentDoubleCommand.sh")};
+  cmd->set_listener(lstnr.get());
+  const void* caller[] = {nullptr, path};
+  cmd->add_caller_group(caller, caller + 2);
+  nagios_macros* mac(get_global_macros());
+  std::string cc(cmd->process_cmd(mac));
+  time_t now = 10000;
+  set_time(now);
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[0]);
+  for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
+       ++wait_ind) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
+  std::this_thread::sleep_for(std::chrono::seconds(1));
+  ASSERT_EQ(lstnr->get_result().exit_code, 0);
+  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().output, "tutu");
+  struct stat file_stat;
+  ASSERT_EQ(stat(path, &file_stat), 0);
+  ASSERT_EQ(file_stat.st_size, 4);
+  now += 10;
+  set_time(now);
+  lstnr->get_result().output = "";
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>(), caller[1]);
+  for (int wait_ind = 0; wait_ind != 50 && lstnr->get_result().output == "";
+       ++wait_ind) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+  }
+  ASSERT_EQ(lstnr->get_result().exit_code, 0);
+  ASSERT_EQ(lstnr->get_result().exit_status, process::status::normal);
+  ASSERT_EQ(lstnr->get_result().output, "tutu");
+  ASSERT_EQ(stat(path, &file_stat), 0);
+  ASSERT_EQ(file_stat.st_size, 8);
+}
+
+TEST_F(SimpleCommand, WithOneArgument) {
+  auto lstnr = std::make_unique<my_listener>();
+  std::unique_ptr<commands::command> cmd{
+      std::make_unique<commands::raw>("test", "/bin/echo $ARG1$")};
+  cmd->set_listener(lstnr.get());
+  nagios_macros* mac(get_global_macros());
+  mac->argv[0] = "Hello";
+  mac->argv[1] = "";
+  std::string cc(cmd->process_cmd(mac));
+  ASSERT_EQ(cc, "/bin/echo Hello");
+  cmd->run(cc, *mac, 2, std::make_shared<check_result>());
+  int timeout{0};
+  int max_timeout{3000};
+  while (timeout < max_timeout && lstnr->get_result().output == "") {
+    usleep(100000);
+    ++timeout;
+  }
+  ASSERT_TRUE(timeout < max_timeout);
+  ASSERT_EQ(lstnr->get_result().output, "Hello\n");
 }

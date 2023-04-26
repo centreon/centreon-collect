@@ -2,7 +2,7 @@
 ** Copyright 1999-2009 Ethan Galstad
 ** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
 ** Copyright 2011-2013 Merethis
-** Copyright 2013-2021 Centreon
+** Copyright 2013-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -49,14 +49,6 @@ loop& loop::instance() {
 }
 
 void loop::clear() {
-  for (timed_event* ev : _event_list_low) {
-    delete ev;
-    ev = nullptr;
-  }
-  for (timed_event* ev : _event_list_high) {
-    delete ev;
-    ev = nullptr;
-  }
   _event_list_low.clear();
   _event_list_high.clear();
 
@@ -228,9 +220,9 @@ void loop::_dispatching() {
     // Handle high priority events.
     bool run_event(true);
     if (!_event_list_high.empty() &&
-        (current_time >= (*_event_list_high.begin())->run_time)) {
+        current_time >= _event_list_high.front()->run_time) {
       // Remove the first event from the timing loop.
-      timed_event* temp_event(*_event_list_high.begin());
+      auto temp_event = std::move(_event_list_high.front());
 
       _event_list_high.pop_front();
       // We may have just removed the only item from the list.
@@ -240,19 +232,16 @@ void loop::_dispatching() {
 
       // Reschedule the event if necessary.
       if (temp_event->recurring)
-        reschedule_event(temp_event, events::loop::high);
-      // Else free memory associated with the event.
-      else
-        delete temp_event;
+        reschedule_event(std::move(temp_event), events::loop::high);
     }
     // Handle low priority events.
     else if (!_event_list_low.empty() &&
-             (current_time >= (*_event_list_low.begin())->run_time)) {
+             current_time >= _event_list_low.front()->run_time) {
       // Default action is to execute the event.
       run_event = true;
 
       // Run a few checks before executing a service check...
-      if ((*_event_list_low.begin())->event_type ==
+      if (_event_list_low.front()->event_type ==
           timed_event::EVENT_SERVICE_CHECK) {
         int nudge_seconds(0);
         service* temp_service(
@@ -271,14 +260,14 @@ void loop::_dispatching() {
               << currently_running_service_checks << "/"
               << config->max_parallel_service_checks()
               << ") has been reached!  Nudging " << temp_service->get_hostname()
-              << ":" << temp_service->get_description() << " by "
-              << nudge_seconds << " seconds...";
+              << ":" << temp_service->description() << " by " << nudge_seconds
+              << " seconds...";
           log_v2::events()->trace(
               "**WARNING** Max concurrent service checks ({}/{}) has been "
               "reached!  Nudging {}:{} by {} seconds...",
               currently_running_service_checks,
               config->max_parallel_service_checks(),
-              temp_service->get_hostname(), temp_service->get_description(),
+              temp_service->get_hostname(), temp_service->description(),
               nudge_seconds);
 
           engine_logger(log_runtime_warning, basic)
@@ -286,14 +275,14 @@ void loop::_dispatching() {
               << currently_running_service_checks << "/"
               << config->max_parallel_service_checks()
               << ") has been reached.  Nudging " << temp_service->get_hostname()
-              << ":" << temp_service->get_description() << " by "
-              << nudge_seconds << " seconds...";
+              << ":" << temp_service->description() << " by " << nudge_seconds
+              << " seconds...";
           log_v2::runtime()->warn(
               "\tMax concurrent service checks ({}/{}) has been reached.  "
               "Nudging {}:{} by {} seconds...",
               currently_running_service_checks,
               config->max_parallel_service_checks(),
-              temp_service->get_hostname(), temp_service->get_description(),
+              temp_service->get_hostname(), temp_service->description(),
               nudge_seconds);
           run_event = false;
         }
@@ -319,7 +308,7 @@ void loop::_dispatching() {
           // reschedule it for a later time. Since event was not
           // executed, it needs to be remove()'ed to maintain sync with
           // event broker modules.
-          timed_event* temp_event{_event_list_low.front()};
+          auto temp_event = std::move(_event_list_low.front());
           _event_list_low.pop_front();
 
           // We nudge the next check time when it is
@@ -332,9 +321,10 @@ void loop::_dispatching() {
           else {
             if (notifier::soft == temp_service->get_state_type() &&
                 temp_service->get_current_state() != service::state_ok)
-              temp_service->set_next_check((time_t)(
-                  temp_service->get_next_check() +
-                  temp_service->retry_interval() * config->interval_length()));
+              temp_service->set_next_check(
+                  (time_t)(temp_service->get_next_check() +
+                           temp_service->retry_interval() *
+                               config->interval_length()));
             else
               temp_service->set_next_check(
                   (time_t)(temp_service->get_next_check() +
@@ -342,18 +332,18 @@ void loop::_dispatching() {
                             config->interval_length())));
           }
           temp_event->run_time = temp_service->get_next_check();
-          reschedule_event(temp_event, events::loop::low);
+          reschedule_event(std::move(temp_event), events::loop::low);
           temp_service->update_status();
           run_event = false;
         }
       }
       // Run a few checks before executing a host check...
       else if (timed_event::EVENT_HOST_CHECK ==
-               (*_event_list_low.begin())->event_type) {
+               _event_list_low.front()->event_type) {
         // Default action is to execute the event.
         run_event = true;
         host* temp_host(
-            static_cast<host*>((*_event_list_low.begin())->event_data));
+            static_cast<host*>(_event_list_low.front()->event_data));
 
         // Don't run a host check if active checks are disabled.
         if (!config->execute_host_checks()) {
@@ -376,7 +366,7 @@ void loop::_dispatching() {
           // it for a later time. Since event was not executed, it needs
           // to be remove()'ed to maintain sync with event broker
           // modules.
-          timed_event* temp_event(*_event_list_low.begin());
+          auto temp_event = std::move(_event_list_low.front());
           _event_list_low.pop_front();
 
           // Reschedule.
@@ -390,7 +380,7 @@ void loop::_dispatching() {
                                                temp_host->check_interval() *
                                                    config->interval_length()));
           temp_event->run_time = temp_host->get_next_check();
-          reschedule_event(temp_event, events::loop::low);
+          reschedule_event(std::move(temp_event), events::loop::low);
           temp_host->update_status();
           run_event = false;
         }
@@ -399,7 +389,7 @@ void loop::_dispatching() {
       // Run the event.
       if (run_event) {
         // Remove the first event from the timing loop.
-        timed_event* temp_event(*_event_list_low.begin());
+        auto temp_event = std::move(_event_list_low.front());
         _event_list_low.pop_front();
         // We may have just removed the only item from the list.
 
@@ -410,10 +400,7 @@ void loop::_dispatching() {
 
         // Reschedule the event if necessary.
         if (temp_event->recurring)
-          reschedule_event(temp_event, events::loop::low);
-        // Else free memory associated with the event.
-        else
-          delete temp_event;
+          reschedule_event(std::move(temp_event), events::loop::low);
       }
       // Wait a while so we don't hog the CPU...
       else {
@@ -439,8 +426,7 @@ void loop::_dispatching() {
       // often as possible.
       if (config->command_check_interval() == -1) {
         // Send data to event broker.
-        broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, NEBFLAG_NONE,
-                                NEBATTR_NONE, CMD_NONE, time(nullptr), nullptr,
+        broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE,
                                 nullptr, nullptr);
       }
 
@@ -502,7 +488,7 @@ void loop::adjust_check_scheduling() {
   */
 
   // determine our adjustment window.
-  time_t current_time(time(NULL));
+  time_t current_time(time(nullptr));
   time_t first_window_time(current_time);
   time_t last_window_time(first_window_time +
                           config->auto_rescheduling_window());
@@ -818,7 +804,8 @@ void loop::compensate_for_system_time_change(unsigned long last_time,
  *  @param[in] event_list      The head of the event list.
  *  @param[in] event_list_tail The tail of the event list.
  */
-void loop::add_event(timed_event* event, loop::priority priority) {
+void loop::add_event(std::unique_ptr<timed_event>&& event,
+                     loop::priority priority) {
   engine_logger(dbg_functions, basic) << "add_event()";
   log_v2::functions()->trace("add_event()");
 
@@ -833,29 +820,25 @@ void loop::add_event(timed_event* event, loop::priority priority) {
   // add the event to the head of the list if there are
   // no other events.
   if (list->empty())
-    list->push_front(event);
+    list->push_front(std::move(event));
 
   // add event to head of the list if it should be executed first.
   else if (event->run_time < (*list->begin())->run_time)
-    list->push_front(event);
+    list->push_front(std::move(event));
 
   // else place the event according to next execution time.
   else {
     // start from the end of the list, as new events are likely to
     // be executed in the future, rather than now...
-    for (timed_event_list::reverse_iterator it(list->rbegin()),
-         end(list->rend());
+    for (timed_event_list::reverse_iterator it = list->rbegin(),
+                                            end = list->rend();
          it != end; ++it) {
       if (event->run_time >= (*it)->run_time) {
-        list->insert(it.base(), event);
+        list->insert(it.base(), std::move(event));
         break;
       }
     }
   }
-
-  // send event data to broker.
-  broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE, event,
-                     nullptr);
 }
 
 void loop::remove_downtime(uint64_t downtime_id) {
@@ -869,7 +852,7 @@ void loop::remove_downtime(uint64_t downtime_id) {
     if (((uint64_t)(*it)->event_data) == downtime_id) {
       // send event data to broker.
       broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
-                         *it, nullptr);
+                         it->get(), nullptr);
       _event_list_high.erase(it);
       break;
     }
@@ -877,35 +860,42 @@ void loop::remove_downtime(uint64_t downtime_id) {
 }
 
 /**
- *  Remove an event from the queue.
+ *  Remove an event given by its iterator from the queue.
  *
- *  @param[in]     event           The event to remove.
- *  @param[in,out] event_list      The head of the event list.
- *  @param[in,out] event_list_tail The tail of the event list.
+ *  @param[in]     it              The iterator to the event to remove.
+ *  @param[in]     priority        This to now which list to work with.
  */
-void loop::remove_event(timed_event* event, loop::priority priority) {
+void loop::remove_event(timed_event_list::iterator& it,
+                        loop::priority priority) {
   engine_logger(dbg_functions, basic) << "loop::remove_event()";
   log_v2::functions()->trace("loop::remove_event()");
 
-  // send event data to broker.
-  broker_timed_event(NEBTYPE_TIMEDEVENT_REMOVE, NEBFLAG_NONE, NEBATTR_NONE,
-                     event, NULL);
-
-  if (!event)
-    return;
-
-  auto eraser = [](timed_event_list& l, timed_event* event) {
-    for (auto it = l.begin(), end = l.end(); it != end; ++it) {
-      if (*it == event) {
-        l.erase(it);
-        break;
-      }
-    }
-  };
   if (priority == loop::low)
-    eraser(_event_list_low, event);
+    _event_list_low.erase(it);
   else
-    eraser(_event_list_high, event);
+    _event_list_high.erase(it);
+}
+
+/**
+ *  Remove an event given from the queue.
+ *
+ *  @param[in]     evt             Pointer to timed_event.
+ *  @param[in]     priority        This is to know which list to work with.
+ */
+void loop::remove_event(timed_event* evt, loop::priority priority) {
+  engine_logger(dbg_functions, basic) << "loop::remove_event()";
+  log_v2::functions()->trace("loop::remove_event()");
+  timed_event_list* list;
+  if (priority == loop::low)
+    list = &_event_list_low;
+  else
+    list = &_event_list_high;
+
+  list->erase(std::remove_if(list->begin(), list->end(),
+                             [evt](const std::unique_ptr<timed_event>& e) {
+                               return evt == e.get();
+                             }),
+              list->end());
 }
 
 void loop::remove_events(loop::priority priority,
@@ -917,16 +907,17 @@ void loop::remove_events(loop::priority priority,
   else
     list = &_event_list_high;
 
-  for (auto it = list->begin(), end = list->end(); it != end; ++it)
-    if ((*it)->event_type == event_type && (*it)->event_data == data) {
-      delete *it;
-      list->erase(it);
-    }
+  list->erase(std::remove_if(
+                  list->begin(), list->end(),
+                  [event_type, data](const std::unique_ptr<timed_event>& e) {
+                    return e->event_type == event_type && e->event_data == data;
+                  }),
+              list->end());
 }
 
-timed_event* loop::find_event(loop::priority priority,
-                              uint32_t event_type,
-                              void* data) {
+timed_event_list::iterator loop::find_event(loop::priority priority,
+                                            uint32_t event_type,
+                                            void* data) {
   timed_event_list* list;
 
   engine_logger(dbg_functions, basic) << "resort_event_list()";
@@ -940,9 +931,9 @@ timed_event* loop::find_event(loop::priority priority,
 
   for (auto it = list->begin(), end = list->end(); it != end; ++it)
     if ((*it)->event_type == event_type && (*it)->event_data == data)
-      return *it;
+      return it;
 
-  return nullptr;
+  return list->end();
 }
 
 /**
@@ -952,7 +943,8 @@ timed_event* loop::find_event(loop::priority priority,
  *  @param[in,out] event_list      The head of the event list.
  *  @param[in,out] event_list_tail The tail of the event list.
  */
-void loop::reschedule_event(timed_event* event, loop::priority priority) {
+void loop::reschedule_event(std::unique_ptr<timed_event>&& event,
+                            loop::priority priority) {
   engine_logger(dbg_functions, basic) << "reschedule_event()";
   log_v2::functions()->trace("reschedule_event()");
 
@@ -979,7 +971,7 @@ void loop::reschedule_event(timed_event* event, loop::priority priority) {
   }
 
   // add the event to the event list.
-  add_event(event, priority);
+  add_event(std::move(event), priority);
 }
 
 /**
@@ -1002,14 +994,15 @@ void loop::resort_event_list(loop::priority priority) {
     list = &_event_list_high;
 
   std::sort(list->begin(), list->end(),
-            [](timed_event* const& first, timed_event* const& second) {
+            [](const std::unique_ptr<timed_event>& first,
+               const std::unique_ptr<timed_event>& second) {
               return first->run_time < second->run_time;
             });
 
   // send event data to broker.
   for (auto& evt : *list)
-    broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE, evt,
-                       nullptr);
+    broker_timed_event(NEBTYPE_TIMEDEVENT_ADD, NEBFLAG_NONE, NEBATTR_NONE,
+                       evt.get(), nullptr);
 }
 
 /**
@@ -1017,10 +1010,10 @@ void loop::resort_event_list(loop::priority priority) {
  *
  * @param high_priority Priority list.
  */
-void loop::schedule(timed_event* evt, bool high_priority) {
+void loop::schedule(std::unique_ptr<timed_event>&& evt, bool high_priority) {
   // add the event to the event list.
   if (high_priority)
-    add_event(evt, loop::high);
+    add_event(std::move(evt), loop::high);
   else
-    add_event(evt, loop::low);
+    add_event(std::move(evt), loop::low);
 }

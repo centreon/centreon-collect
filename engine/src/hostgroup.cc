@@ -181,9 +181,8 @@ void hostgroup::resolve(int& w, int& e) {
       // Update or add of group for name
       if (it_host->second.get() != it->second) {
         // Notify event broker.
-        timeval tv = get_broker_timestamp(nullptr);
-        broker_group_member(NEBTYPE_HOSTGROUPMEMBER_ADD, NEBFLAG_NONE,
-                            NEBATTR_NONE, it_host->second.get(), this, &tv);
+        broker_group_member(NEBTYPE_HOSTGROUPMEMBER_ADD, it_host->second.get(),
+                            this);
       }
       it_host->second->get_parent_groups().push_back(this);
       // Save host pointer for later.

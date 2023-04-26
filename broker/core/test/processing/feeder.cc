@@ -20,13 +20,17 @@
 #include "com/centreon/broker/processing/feeder.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class TestStream : public io::stream {
  public:
@@ -43,9 +47,11 @@ class TestFeeder : public ::testing::Test {
 
  public:
   void SetUp() override {
-    pool::load(0);
+    g_io_context->restart();
+    pool::load(g_io_context, 0);
     stats::center::load();
     config::applier::state::load();
+    file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
     io::events::load();
@@ -64,6 +70,7 @@ class TestFeeder : public ::testing::Test {
     io::events::unload();
     io::protocols::unload();
     stats::center::unload();
+    file::disk_accessor::unload();
     pool::unload();
   }
 };

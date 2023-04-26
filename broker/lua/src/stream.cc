@@ -41,6 +41,9 @@ stream::stream(const std::string& lua_script,
       _cache{cache},
       _luabinding(lua_script, conf_params, _cache) {}
 
+stream::~stream() noexcept {
+  log_v2::lua()->debug("lua: Stream destruction");
+}
 /**
  *  Read from the connector.
  *
@@ -93,5 +96,6 @@ int32_t stream::flush() {
  * @return The number of acknowledged events.
  */
 int32_t stream::stop() {
-  return flush();
+  log_v2::lua()->debug("lua: stop stream");
+  return _luabinding.stop();
 }

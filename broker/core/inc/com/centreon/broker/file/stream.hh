@@ -34,7 +34,7 @@ namespace file {
  *  Read and write data to a stream.
  */
 class stream : public io::stream {
-  std::unique_ptr<splitter> _file;
+  splitter _splitter;
   QueueFileStats* _stats;
   std::time_t _last_stats;
   std::time_t _last_stats_perc;
@@ -48,7 +48,10 @@ class stream : public io::stream {
   void _update_stats();
 
  public:
-  stream(splitter* file, QueueFileStats* s);
+  stream(const std::string& path,
+         QueueFileStats* s,
+         uint32_t max_file_size = 100000000u,
+         bool auto_delete = false);
   ~stream() noexcept = default;
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;

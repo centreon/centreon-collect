@@ -77,14 +77,14 @@ class ServiceNotification : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
     service_map const& sm{engine::service::services};
     _svc = sm.begin()->second;
     _svc->set_current_state(engine::service::state_ok);
     _svc->set_state_type(checkable::hard);
-    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_acknowledgement(AckType::NONE);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
   }
 
@@ -323,7 +323,7 @@ TEST_F(ServiceNotification,
                                     Uuid())};
   _svc->set_notification_period_ptr(tperiod.get());
 
-  _svc->set_problem_has_been_acknowledged(true);
+  _svc->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(service_escalation);
   ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
                          notifier::notification_option_none),
@@ -346,7 +346,7 @@ TEST_F(ServiceNotification,
                                     Uuid())};
   _svc->set_notification_period_ptr(tperiod.get());
 
-  _svc->set_problem_has_been_acknowledged(true);
+  _svc->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(service_escalation);
   _svc->set_last_notification(19999);
   ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
@@ -370,7 +370,7 @@ TEST_F(ServiceNotification,
                                     Uuid())};
   _svc->set_notification_period_ptr(tperiod.get());
 
-  _svc->set_problem_has_been_acknowledged(true);
+  _svc->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(service_escalation);
   _svc->set_last_notification(19500);
   _svc->set_notification_number(1);
@@ -395,7 +395,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOnStateNotNotified) {
                                     Uuid())};
   _svc->set_notification_period_ptr(tperiod.get());
 
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(service_escalation);
   _svc->remove_notify_on(notifier::critical);
   _svc->set_current_state(engine::service::state_critical);
@@ -420,7 +420,7 @@ TEST_F(ServiceNotification,
                                     Uuid())};
   _svc->set_notification_period_ptr(tperiod.get());
 
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(service_escalation);
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(20000 - 200);
@@ -447,7 +447,7 @@ TEST_F(ServiceNotification,
                                     Uuid())};
   _svc->set_notification_period_ptr(tperiod.get());
 
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(service_escalation);
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(20000 - 400);
@@ -1038,8 +1038,7 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
 
   set_time(43700);
   /* The service is acknowledged */
-  _svc->set_problem_has_been_acknowledged(true);
-  _svc->set_acknowledgement_type(ACKNOWLEDGEMENT_NORMAL);
+  _svc->set_acknowledgement(AckType::NORMAL);
   time_t now = time(nullptr);
   _svc->set_last_acknowledgement(now);
 

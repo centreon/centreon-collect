@@ -179,6 +179,69 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
     return 1;
 
   switch (d->type()) {
+    case storage::pb_metric::static_type():
+      if (_write_metrics) {
+        // Debug message.
+        std::shared_ptr<storage::pb_metric> e(
+            std::static_pointer_cast<storage::pb_metric>(d));
+        auto& m = e->obj();
+        log_v2::rrd()->debug("RRD: new pb data for metric {} (time {})",
+                             m.metric_id(), m.time());
+
+        // Metric path.
+        std::string metric_path(
+            fmt::format("{}{}.rrd", _metrics_path, m.metric_id()));
+
+        // Check that metric is not being rebuilt.
+        rebuild_cache::iterator it = _metrics_rebuild.find(metric_path);
+        if (it == _metrics_rebuild.end()) {
+          // Write metrics RRD.
+          try {
+            _backend.open(metric_path);
+          } catch (exceptions::open const& b) {
+            time_t interval(m.interval() ? m.interval() : 60);
+            assert(m.rrd_len());
+            _backend.open(metric_path, m.rrd_len(), m.time() - 1, interval,
+                          m.value_type());
+          }
+          std::string v;
+          switch (m.value_type()) {
+            case misc::perfdata::gauge:
+              v = fmt::format("{:f}", m.value());
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type GAUGE with {}", m.metric_id(),
+                  v);
+              break;
+            case misc::perfdata::counter:
+              v = fmt::format("{}", static_cast<uint64_t>(m.value()));
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type COUNTER with {}",
+                  m.metric_id(), v);
+              break;
+            case misc::perfdata::derive:
+              v = fmt::format("{}", static_cast<int64_t>(m.value()));
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type DERIVE with {}", m.metric_id(),
+                  v);
+              break;
+            case misc::perfdata::absolute:
+              v = fmt::format("{}", static_cast<uint64_t>(m.value()));
+              log_v2::rrd()->trace(
+                  "RRD: update metric {} of type ABSOLUTE with {}",
+                  m.metric_id(), v);
+              break;
+            default:
+              v = fmt::format("{:f}", m.value());
+              log_v2::rrd()->trace("RRD: update metric {} of type {} with {}",
+                                   m.metric_id(), m.value_type(), v);
+              break;
+          }
+          _backend.update(m.time(), v);
+        } else
+          // Cache value.
+          it->second.push_back(d);
+      }
+      break;
     case storage::metric::static_type():
       if (_write_metrics) {
         // Debug message.
@@ -237,6 +300,45 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
               break;
           }
           _backend.update(e->time, v);
+        } else
+          // Cache value.
+          it->second.push_back(d);
+      }
+      break;
+    case storage::pb_status::static_type():
+      if (_write_status) {
+        // Debug message.
+        std::shared_ptr<storage::pb_status> e(
+            std::static_pointer_cast<storage::pb_status>(d));
+        const auto& s = e->obj();
+        log_v2::rrd()->debug("RRD: new pb status data for index {} (state {})",
+                             s.index_id(), s.state());
+
+        // Status path.
+        std::string status_path(
+            fmt::format("{}{}.rrd", _status_path, s.index_id()));
+
+        // Check that status is not begin rebuild.
+        rebuild_cache::iterator it(_status_rebuild.find(status_path));
+        if (it == _status_rebuild.end()) {
+          // Write status RRD.
+          try {
+            _backend.open(status_path);
+          } catch (exceptions::open const& b) {
+            time_t interval(s.interval() ? s.interval() : 60);
+            assert(s.rrd_len());
+            _backend.open(status_path, s.rrd_len(), s.time() - 1, interval);
+          }
+          std::string value;
+          if (s.state() == 0)
+            value = "100";
+          else if (s.state() == 1)
+            value = "75";
+          else if (s.state() == 2)
+            value = "0";
+          else
+            value = "";
+          _backend.update(s.time(), value);
         } else
           // Cache value.
           it->second.push_back(d);
@@ -452,22 +554,26 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<int64_t>(pt.value())));
         break;
+      default:
+        log_v2::rrd()->debug("data_source_type = {} is not managed",
+                             data_source_type);
     }
     if (!query.empty()) {
+      time_t start_time;
+      if (!p.second.pts().empty())
+        start_time = p.second.pts()[0].ctime() - 1;
+      else
+        start_time = std::time(nullptr);
+      log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
+      uint32_t interval{p.second.check_interval() ? p.second.check_interval()
+                                                  : 60};
       try {
+        /* Here, the file is opened only if it exists. */
         _backend.open(path);
-      } catch (const exceptions::open& ex) {
-        log_v2::rrd()->debug("RRD file '{}' does not exist", path);
-        time_t start_time;
-        if (!p.second.pts().empty())
-          start_time = p.second.pts()[0].ctime() - 1;
-        else
-          start_time = std::time(nullptr);
-        log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
-        uint32_t interval{p.second.check_interval() ? p.second.check_interval()
-                                                    : 60};
+      } catch (const exceptions::open& b) {
+        /* Here, the file is created. */
         _backend.open(path, p.second.rrd_retention(), start_time, interval,
-                      p.second.data_source_type());
+                      p.second.data_source_type(), true);
       }
       log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
       _backend.update(query);

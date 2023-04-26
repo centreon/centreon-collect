@@ -31,7 +31,7 @@ std::list<std::string> dir_content_with_filter(std::string const& path,
 bool file_exists(std::string const& path);
 bool dir_exists(std::string const& path);
 bool mkpath(std::string const& path);
-int64_t file_size(std::string const& path);
+int64_t file_size(const std::string& path) noexcept;
 bool writable(const std::string& name);
 bool readable(const std::string& name);
 }  // namespace filesystem

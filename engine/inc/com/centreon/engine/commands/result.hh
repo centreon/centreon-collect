@@ -27,7 +27,10 @@
 
 CCE_BEGIN()
 
+class check_result;
+
 namespace commands {
+
 /**
  *  @class result result.hh
  *  @brief Result contain the result of execution process.
@@ -39,21 +42,32 @@ class result {
   void _internal_copy(result const& right);
 
  public:
-  result();
-  result(result const& right);
-  ~result() noexcept;
-  result& operator=(result const& right);
-  bool operator==(result const& right) const noexcept;
-  bool operator!=(result const& right) const noexcept;
   uint64_t command_id;
   timestamp end_time;
   int exit_code;
   process::status exit_status;
   timestamp start_time;
   std::string output;
+
+  result();
+  result(result const& right);
+  result(const check_result& check_res);
+  ~result() noexcept;
+  result& operator=(result const& right);
+  bool operator==(result const& right) const noexcept;
+  bool operator!=(result const& right) const noexcept;
 };
+
+std::ostream& operator<<(std::ostream& s, const result& to_dump);
+
 }  // namespace commands
 
 CCE_END()
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::engine::commands::result> : ostream_formatter {
+};
+}  // namespace fmt
 
 #endif  // !CCE_COMMANDS_RESULT_HH

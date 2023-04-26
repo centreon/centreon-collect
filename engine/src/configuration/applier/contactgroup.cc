@@ -84,8 +84,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
   config->contactgroups().insert(obj);
 
   // Create contact group.
-  std::shared_ptr<engine::contactgroup> cg{new engine::contactgroup(obj)};
-
+  auto cg = std::make_shared<engine::contactgroup>(obj);
   for (set_string::const_iterator it(obj.members().begin()),
        end(obj.members().end());
        it != end; ++it) {
@@ -102,9 +101,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
                            << obj.contactgroup_name() << "'";
     } else {
       cg->get_members().insert({ct_it->first, ct_it->second.get()});
-      timeval tv(get_broker_timestamp(nullptr));
-      broker_group(NEBTYPE_CONTACTGROUP_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                   cg.get(), &tv);
+      broker_group(NEBTYPE_CONTACTGROUP_ADD, cg.get());
     }
   }
 
@@ -190,17 +187,13 @@ void applier::contactgroup::modify_object(
       } else {
         it_obj->second->get_members().insert(
             {ct_it->first, ct_it->second.get()});
-        timeval tv(get_broker_timestamp(nullptr));
-        broker_group(NEBTYPE_CONTACTGROUP_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                     it_obj->second.get(), &tv);
+        broker_group(NEBTYPE_CONTACTGROUP_ADD, it_obj->second.get());
       }
     }
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  broker_group(NEBTYPE_CONTACTGROUP_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-               it_obj->second.get(), &tv);
+  broker_group(NEBTYPE_CONTACTGROUP_UPDATE, it_obj->second.get());
 }
 
 /**
@@ -225,9 +218,7 @@ void applier::contactgroup::remove_object(
     // unregister_object<contactgroup>(&contactgroup_list, grp);
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_group(NEBTYPE_CONTACTGROUP_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                 it->second.get(), &tv);
+    broker_group(NEBTYPE_CONTACTGROUP_DELETE, it->second.get());
 
     // Remove contact group (this will effectively delete the object).
     engine::contactgroup::contactgroups.erase(it);

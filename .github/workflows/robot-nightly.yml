@@ -1,0 +1,106 @@
+name: robot-nightly
+run-name: nightly robot ${{ github.head_ref || github.ref_name }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/workflows/robot-nightly.yml'
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  dispatch-to-maintained-branches:
+    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - run: |
+          gh workflow run robot-nightly.yml -r "dev-22.10.x"
+          gh workflow run robot-nightly.yml -r "dev-22.04.x"
+          gh workflow run robot-nightly.yml -r "dev-21.10.x"
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
+  package:
+    needs: [get-version]
+    uses: ./.github/workflows/package-collect.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+      release: ${{ needs.get-version.outputs.release }}
+      commit_hash: ${{ github.sha }}
+    secrets: inherit
+
+  robot-test:
+    needs: [get-version, package]
+    strategy:
+      matrix:
+        include:
+          - image: centreon-collect-alma9
+            distrib: el9
+    name: robot test ${{ matrix.distrib }}
+
+    uses: ./.github/workflows/robot-test.yml
+    with:
+      image_name: ${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      distrib: ${{ matrix.distrib }}
+    secrets:
+      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+  deliver-rpm:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, el9]
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/delivery
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}
+
+  deliver-deb:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [bullseye]
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Publish DEB packages
+        uses: ./.github/actions/delivery
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}

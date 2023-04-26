@@ -39,14 +39,16 @@ brokerrpc::brokerrpc(const std::string& address,
 
   /* Lets' register the rebuild_metrics bbdo event. This is needed to send the
    * rebuild message. */
-  e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
-                   "rebuild_rrd_graphs",
-                   &bbdo::pb_rebuild_rrd_graphs::operations);
+  e.register_event(make_type(io::bbdo, bbdo::de_rebuild_graphs),
+                   "rebuild_graphs", &bbdo::pb_rebuild_graphs::operations);
 
   /* Lets' register the to_remove bbdo event.*/
-  e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs),
-                   "remove_graphs",
+  e.register_event(make_type(io::bbdo, bbdo::de_remove_graphs), "remove_graphs",
                    &bbdo::pb_remove_graphs::operations);
+
+  /* Lets' register the remove_poller event.*/
+  e.register_event(make_type(io::bbdo, bbdo::de_remove_poller), "remove_poller",
+                   &bbdo::pb_remove_poller::operations);
 
   _service.set_broker_name(broker_name);
   std::string server_address{fmt::format("{}:{}", address, port)};
@@ -60,6 +62,6 @@ brokerrpc::brokerrpc(const std::string& address,
  * @brief The shutdown() method, to stop the gRPC server.
  */
 void brokerrpc::shutdown() {
-  _server->Shutdown();
-  _server->Wait();
+  _server->Shutdown(std::chrono::system_clock::now() +
+                    std::chrono::seconds(15));
 }

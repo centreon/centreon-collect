@@ -38,51 +38,49 @@ namespace file {
  *  each time a new file is created.
  *
  *  We don't want to lock accesses to those files each time a reading or a
- *  writing is done. But we must lock access when we read and write on the same
- *  file. To aquieve this, we introduce two mutexes, _mutex1 and _mutex2. At
- *  the beginning, when the splitter is open for an action (read or write),
- *  there are two cases:
- *  * The file we want is not already open, so we open it and we associate one
- *    mutex to it (for reading, mutex1 is chosen and we set its pointer to
- *    _rmutex, whereas for writing, mutex2 is chosen and set to _wmutex).
- *  * The file to access is already open. We get the same file and we get the
- *    same mutex pointer.
+ *  writing is done. But we must lock accesses when:
+ *  * we read and write on the same file.
+ *  * we write and write on the same file.
+ *
+ *  To aquieve this, all write operations are protected by a single mutex
+ *  _write_m. When a new sub-file is created, when we write to a file, this
+ *  mutex is locked.
+ *
+ *  We can have several producers, that's why all write operations are
+ *  protected. But we only have one consumer. Two possibilities, the reader
+ *  reads a file already written and there is no need to have a protection.
+ *  The current read file is also written, and it is mandatory to protect the
+ *  access. So in the read method the _write_m mutex is locked only when we
+ *  read in the same file as we write into.
  *
  *  _rid and _wid are indexes to the current files, _rid for reading and _wid
  *  for writing., _rfile and _wfile are shared pointers to FILE structs.
+ *  _wid is also atomic so that read can read it without any protection.
  *
  *  _base_path is the base name of files, it may be followed by a number that
  *  is _rid or _wid.
  *
  *  _woffset and _roffset are offsets from the files begin to write or read.
- *
- *  A third mutex id_m is set essentially when it is time to open a file. It
- *  is the _wid and _rid lock. _rmutex and _wmutex are set while it is locked.
- *
- *  FIXME: Maybe a better algorithm would allow us to avoid it.
  */
 class splitter : public fs_file {
   bool _auto_delete;
   std::string _base_path;
   const uint32_t _max_file_size;
+
   std::shared_ptr<FILE> _rfile;
-  std::mutex* _rmutex;
   int32_t _rid;
   long _roffset;
+
+  std::mutex _write_m;
   std::shared_ptr<FILE> _wfile;
-  std::mutex* _wmutex;
-  int32_t _wid;
+  std::atomic_int _wid;
   long _woffset;
-  std::mutex _mutex1;
-  std::mutex _mutex2;
-  std::mutex _id_m;
 
   void _open_read_file();
-  void _open_write_file();
+  bool _open_write_file();
 
  public:
-  splitter(std::string const& path,
-           fs_file::open_mode mode,
+  splitter(const std::string& path,
            uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
@@ -98,11 +96,11 @@ class splitter : public fs_file {
   void flush() override;
 
   std::string get_file_path(int id = 0) const;
-  uint32_t max_file_size() const;
   int32_t get_rid() const;
   long get_roffset() const;
   int32_t get_wid() const;
   long get_woffset() const;
+  size_t max_file_size() const;
 };
 }  // namespace file
 

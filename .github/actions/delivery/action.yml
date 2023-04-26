@@ -1,0 +1,116 @@
+name: "delivery"
+description: "RPM and DEB packages delivery Centreon"
+inputs:
+  module_name:
+    description: "The package module name"
+    required: true
+  distrib:
+    description: "The distribution used for packaging"
+    required: true
+  version:
+    description: "Centreon packaged version"
+    required: true
+  cache_key:
+    description: "The cached package key"
+    required: true
+  artifactory_token:
+    description: "The token for artifactory"
+    required: true
+  stability:
+    description: "The package stability (stable, testing, unstable)"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Build name for RPM
+      shell: bash
+      if: ${{ startsWith(inputs.distrib, 'el') }}
+      run: |
+        echo "extfile=rpm" >> $GITHUB_ENV
+
+    - name: Build name for DEB
+      shell: bash
+      if: ${{ inputs.distrib == 'bullseye' }}
+      run: |
+        echo "extfile=deb" >> $GITHUB_ENV
+
+    - name: Use cache files
+      uses: actions/cache@v3
+      with:
+        path: ./*.${{ env.extfile }}
+        key: ${{ inputs.cache_key }}
+
+    - uses: jfrog/setup-jfrog-cli@v3
+      env:
+        JF_URL: https://centreon.jfrog.io
+        JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
+
+    - if: ${{ startsWith(inputs.distrib, 'el') }}
+      name: Publish RPMs
+      run: |
+        FILES="*.${{ env.extfile }}"
+
+        echo "[DEBUG] - Version: ${{ inputs.version }}"
+        echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
+
+        if [ -z "${{ inputs.module_name }}" ]; then
+          echo "module name is required"
+          exit 1
+        fi
+
+        if [ -z "${{ inputs.distrib }}" ]; then
+          echo "distrib is required"
+          exit 1
+        fi
+
+        mkdir noarch x86_64
+
+        for FILE in $FILES; do
+          echo "[DEBUG] - File: $FILE"
+
+          ARCH=$(echo $FILE | grep -oP '(x86_64|noarch)')
+
+          echo "[DEBUG] - Arch: $ARCH"
+
+          mv "$FILE" "$ARCH"
+        done
+
+        for ARCH in "noarch" "x86_64"; do
+          if [ "$(ls -A $ARCH)" ]; then
+            if [ "${{ inputs.stability }}" == "stable" ]; then
+              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/" --flat
+            else
+              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --sync-deletes="rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/${{ inputs.module_name }}/" --flat
+            fi
+          fi
+        done
+      shell: bash
+
+    - if: ${{ inputs.distrib == 'bullseye' }}
+      name: Publish DEBs
+      run: |
+        FILES="*.${{ env.extfile }}"
+
+        if [ -z "${{ inputs.module_name }}" ]; then
+          echo "module name is required"
+          exit 1
+        fi
+
+        if [ -z "${{ inputs.distrib }}" ]; then
+          echo "distrib is required"
+          exit 1
+        fi
+
+        for FILE in $FILES; do
+          echo "[DEBUG] - File: $FILE"
+
+          VERSION=${{ inputs.version }}
+          DISTRIB=$(echo $FILE | cut -d '_' -f2 | cut -d '-' -f2)
+          ARCH=$(echo $FILE | cut -d '_' -f3 | cut -d '.' -f1)
+
+          echo "[DEBUG] - Version: $VERSION"
+
+          jf rt upload "$FILE" "apt-standard-${{ inputs.version }}-${{ inputs.stability }}/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
+        done
+      shell: bash

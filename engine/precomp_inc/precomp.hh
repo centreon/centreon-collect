@@ -57,13 +57,33 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/format.h>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
 
 #include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
+#include <asio.hpp>
+
 #include "com/centreon/engine/namespace.hh"
+
+namespace fmt {
+
+template <>
+struct formatter<absl::string_view> : formatter<fmt::string_view> {
+  template <typename FormatContext>
+  auto format(const absl::string_view& p, FormatContext& ctx) const
+      -> decltype(ctx.out()) {
+    return formatter<fmt::string_view>::format(
+        fmt::string_view(p.data(), p.length()), ctx);
+  }
+};
+
+}  // namespace fmt
 
 #endif  // CCE_PRECOMP_HH

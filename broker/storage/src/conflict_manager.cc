@@ -52,8 +52,8 @@ void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     &conflict_manager::_process_custom_variable,
     &conflict_manager::_process_custom_variable_status,
     &conflict_manager::_process_downtime,
-    &conflict_manager::_process_event_handler,
-    &conflict_manager::_process_flapping_status,
+    nullptr,
+    nullptr,
     &conflict_manager::_process_host_check,
     &conflict_manager::_process_host_dependency,
     &conflict_manager::_process_host_group,
@@ -64,7 +64,7 @@ void (conflict_manager::*const conflict_manager::_neb_processing_table[])(
     &conflict_manager::_process_instance,
     &conflict_manager::_process_instance_status,
     &conflict_manager::_process_log,
-    &conflict_manager::_process_module,
+    nullptr,
     &conflict_manager::_process_service_check,
     &conflict_manager::_process_service_dependency,
     &conflict_manager::_process_service_group,
@@ -99,6 +99,7 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _instance_timeout{instance_timeout},
       _stats{stats::center::instance().register_conflict_manager()},
       _ref_count{0},
+      _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   log_v2::sql()->debug("conflict_manager: class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
@@ -110,6 +111,8 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
 
 conflict_manager::~conflict_manager() {
   log_v2::sql()->debug("conflict_manager: destruction");
+  std::lock_guard<std::mutex> l(_group_clean_timer_m);
+  _group_clean_timer.cancel();
 }
 
 /**
@@ -457,6 +460,9 @@ void conflict_manager::update_metric_info_cache(uint64_t index_id,
  *  The main loop of the conflict_manager
  */
 void conflict_manager::_callback() {
+  constexpr unsigned neb_table_size =
+      sizeof(_neb_processing_table) / sizeof(_neb_processing_table[0]);
+
   try {
     _load_caches();
   } catch (std::exception const& e) {
@@ -607,7 +613,8 @@ void conflict_manager::_callback() {
               void (com::centreon::broker::storage::conflict_manager::*fn)(
                   std::tuple<std::shared_ptr<com::centreon::broker::io::data>,
                              unsigned int, bool*>&) =
-                  _neb_processing_table[elem];
+                  elem >= neb_table_size ? nullptr
+                                         : _neb_processing_table[elem];
               if (fn)
                 (this->*fn)(tpl);
               else {
@@ -619,8 +626,8 @@ void conflict_manager::_callback() {
                        type == neb::service_status::static_type())
               _storage_process_service_status(tpl);
             else if (std::get<1>(tpl) == storage &&
-                     type == make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)) {
-              _rebuilder->rebuild_rrd_graphs(d);
+                     type == make_type(io::bbdo, bbdo::de_rebuild_graphs)) {
+              _rebuilder->rebuild_graphs(d);
               *std::get<2>(tpl) = true;
             } else if (std::get<1>(tpl) == storage &&
                        type == make_type(io::bbdo, bbdo::de_remove_graphs)) {
@@ -954,7 +961,8 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
 
       if (!ids.obj().metric_ids().empty()) {
         std::promise<database::mysql_result> promise_metrics;
-        std::future<database::mysql_result> future_metrics = promise_metrics.get_future();
+        std::future<database::mysql_result> future_metrics =
+            promise_metrics.get_future();
 
         ms.run_query_and_get_result(
             fmt::format("SELECT index_id,metric_id,metric_name FROM metrics "
@@ -981,14 +989,14 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
       log_v2::sql()->info("metrics {} erased from database", mids_str);
       ms.run_query(
           fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
-          database::mysql_error::delete_metric, false);
+          database::mysql_error::delete_metric);
     }
     std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
     if (!indexes_to_delete.empty()) {
       log_v2::sql()->info("indexes {} erased from database", ids_str);
       ms.run_query(
           fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
-          database::mysql_error::delete_index, false);
+          database::mysql_error::delete_index);
     }
 
     if (!metrics_to_delete.empty() || !indexes_to_delete.empty()) {

@@ -18,19 +18,8 @@
 
 #include "com/centreon/broker/io/data.hh"
 #include <cassert>
-
-CCB_BEGIN()
-
-namespace io {
-std::ostream& operator<<(std::ostream& s, const data& d) {
-  s << "type:" << d.type() << " src_id:" << d.source_id
-    << " dst_id:" << d.destination_id << " broker_id:" << d.broker_id;
-  return s;
-}
-
-};  // namespace io
-
-CCB_END()
+#include "bbdo/events.hh"
+#include "com/centreon/broker/io/events.hh"
 
 using namespace com::centreon::broker::io;
 
@@ -55,11 +44,6 @@ data::data(data const& other)
       destination_id(other.destination_id) {}
 
 /**
- *  Destructor.
- */
-data::~data() {}
-
-/**
  *  Assignment operator.
  *
  *  @param[in] other  Object to copy.
@@ -72,4 +56,30 @@ data& data::operator=(data const& other) {
     destination_id = other.destination_id;
   }
   return *this;
+}
+
+/**
+ * @brief dump obj content to std::ostream
+ *
+ * @param s
+ */
+void data::dump(std::ostream& s) const {
+  const auto event_info = io::events::instance().get_event_info(_type);
+  s << category_name(data_category(_type >> 16)) << ':';
+  if (event_info) {
+    s << event_info->get_name();
+  } else {
+    s << (_type & 0x0FFFF);
+  }
+  s << " src_id:" << source_id << " dst_id:" << destination_id
+    << " broker_id:" << broker_id;
+}
+
+/**
+ * @brief dump obj content to std::ostream
+ *
+ * @param s
+ */
+void data::dump_more_detail(std::ostream& s) const {
+  dump(s);
 }

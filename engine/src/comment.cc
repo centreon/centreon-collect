@@ -1,6 +1,6 @@
 /*
 ** Copyright 1999-2010 Ethan Galstad
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -73,121 +73,133 @@ comment::comment(comment::type comment_type,
   /* send data to event broker */
   if (is_added)
     broker_comment_data(is_added ? NEBTYPE_COMMENT_ADD : NEBTYPE_COMMENT_LOAD,
-                        NEBFLAG_NONE, NEBATTR_NONE, _comment_type, _entry_type,
-                        _host_id, _service_id, _entry_time, _author.c_str(),
-                        _comment_data.c_str(), _persistent, _source, _expires,
-                        _expire_time, _comment_id, nullptr);
+                        _comment_type, _entry_type, _host_id, _service_id,
+                        _entry_time, _author.c_str(), _comment_data.c_str(),
+                        _persistent, _source, _expires, _expire_time,
+                        _comment_id);
 }
 
-/* deletes a host or service comment */
+/**
+ * @brief deletes a host or service comment from its id.
+ *
+ * @param comment_id The comment id.
+ *
+ * @return True on success, False otherwise.
+ */
 bool comment::delete_comment(uint64_t comment_id) {
   comment_map::iterator found = comment::comments.find(comment_id);
 
   // check that comment exist
   if (found != comment::comments.end() && found->second) {
     broker_comment_data(
-        NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-        found->second->get_comment_type(), found->second->get_entry_type(),
-        found->second->get_host_id(), found->second->get_service_id(),
-        found->second->get_entry_time(), found->second->get_author().c_str(),
+        NEBTYPE_COMMENT_DELETE, found->second->get_comment_type(),
+        found->second->get_entry_type(), found->second->get_host_id(),
+        found->second->get_service_id(), found->second->get_entry_time(),
+        found->second->get_author().c_str(),
         found->second->get_comment_data().c_str(),
         found->second->get_persistent(), found->second->get_source(),
         found->second->get_expires(), found->second->get_expire_time(),
-        comment_id, nullptr);
+        comment_id);
     comment::comments.erase(comment_id);
     return true;
-  } else {
+  } else
     return false;
-  }
 }
 
 void comment::delete_host_comments(uint64_t host_id) {
-  comment_map::iterator it(comments.begin());
+  comment_map::iterator it = comments.begin();
 
-  while (it != comments.end()) {
+  for (it = comments.begin(); it != comments.end();) {
     if (it->second->get_comment_type() == comment::host &&
         it->second->get_host_id() == host_id) {
       broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-          it->second->get_comment_type(), it->second->get_entry_type(), host_id,
-          0, it->second->get_entry_time(), it->second->get_author().c_str(),
+          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
+          it->second->get_entry_type(), host_id, 0,
+          it->second->get_entry_time(), it->second->get_author().c_str(),
           it->second->get_comment_data().c_str(), it->second->get_persistent(),
           it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first, nullptr);
-      it = comments.erase(it);
+          it->second->get_expire_time(), it->first);
+      comments.erase(it++);
     } else
-      it++;
+      ++it;
   }
 }
 
+/**
+ * @brief Deletes comments of the given service.
+ *
+ * @param host_id Id of the service's host.
+ * @param service_id Id of the service.
+ */
 void comment::delete_service_comments(uint64_t host_id, uint64_t service_id) {
-  comment_map::iterator it(comments.begin());
-
-  while (it != comments.end()) {
+  for (auto it = comments.begin(); it != comments.end();) {
     if (it->second->get_comment_type() == comment::service &&
         it->second->get_host_id() == host_id &&
         it->second->get_service_id() == service_id) {
       broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-          it->second->get_comment_type(), it->second->get_entry_type(), host_id,
-          service_id, it->second->get_entry_time(),
-          it->second->get_author().c_str(),
-          it->second->get_comment_data().c_str(), it->second->get_persistent(),
-          it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first, nullptr);
-      it = comments.erase(it);
-    } else
-      it++;
-  }
-}
-
-/* deletes all non-persistent acknowledgement comments for a particular host */
-void comment::delete_host_acknowledgement_comments(engine::host* hst) {
-  comment_map::iterator it(comments.begin());
-
-  while (it != comments.end()) {
-    if (it->second->get_comment_type() == comment::host &&
-        it->second->get_host_id() == hst->get_host_id() &&
-        it->second->get_entry_type() ==
-            com::centreon::engine::comment::acknowledgment &&
-        !it->second->get_persistent()) {
-      broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-          it->second->get_comment_type(), it->second->get_entry_type(),
-          it->second->get_host_id(), 0, it->second->get_entry_time(),
-          it->second->get_author().c_str(),
-          it->second->get_comment_data().c_str(), it->second->get_persistent(),
-          it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first, nullptr);
-      it = comments.erase(it);
-    } else
-      it++;
-  }
-}
-
-/* deletes all non-persistent acknowledgement comments for a particular service
- */
-void comment::delete_service_acknowledgement_comments(::service* svc) {
-  comment_map::iterator it(comments.begin());
-
-  while (it != comments.end()) {
-    if (it->second->get_comment_type() == comment::service &&
-        it->second->get_host_id() == svc->get_host_id() &&
-        it->second->get_service_id() == svc->get_service_id() &&
-        it->second->get_entry_type() ==
-            com::centreon::engine::comment::acknowledgment &&
-        !it->second->get_persistent()) {
-      broker_comment_data(
-          NEBTYPE_COMMENT_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-          it->second->get_comment_type(), it->second->get_entry_type(),
-          it->second->get_host_id(), it->second->get_service_id(),
+          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
+          it->second->get_entry_type(), host_id, service_id,
           it->second->get_entry_time(), it->second->get_author().c_str(),
           it->second->get_comment_data().c_str(), it->second->get_persistent(),
           it->second->get_source(), it->second->get_expires(),
-          it->second->get_expire_time(), it->first, nullptr);
-      it = comments.erase(it);
+          it->second->get_expire_time(), it->first);
+      comments.erase(it++);
     } else
-      it++;
+      ++it;
+  }
+}
+
+/**
+ * @brief Deletes all non-persistent acknowledgement comments for a particular
+ * host.
+ *
+ * @param hst A pointer to the host.
+ */
+void comment::delete_host_acknowledgement_comments(engine::host* hst) {
+  for (auto it = comments.begin(); it != comments.end();) {
+    if (it->second->get_comment_type() == comment::host &&
+        it->second->get_host_id() == hst->host_id() &&
+        it->second->get_entry_type() ==
+            com::centreon::engine::comment::acknowledgment &&
+        !it->second->get_persistent()) {
+      broker_comment_data(
+          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
+          it->second->get_entry_type(), it->second->get_host_id(), 0,
+          it->second->get_entry_time(), it->second->get_author().c_str(),
+          it->second->get_comment_data().c_str(), it->second->get_persistent(),
+          it->second->get_source(), it->second->get_expires(),
+          it->second->get_expire_time(), it->first);
+      comments.erase(it++);
+    } else
+      ++it;
+  }
+}
+
+/**
+ * @brief Deletes all non-persistent acknowledgement comments for a particular
+ * service.
+ *
+ * @param svc A pointer to the service.
+ */
+void comment::delete_service_acknowledgement_comments(::service* svc) {
+  for (auto it = comments.begin(); it != comments.end();) {
+    if (it->second->get_comment_type() == comment::service &&
+        it->second->get_host_id() == svc->host_id() &&
+        it->second->get_service_id() == svc->service_id() &&
+        it->second->get_entry_type() ==
+            com::centreon::engine::comment::acknowledgment &&
+        !it->second->get_persistent()) {
+      broker_comment_data(
+          NEBTYPE_COMMENT_DELETE, it->second->get_comment_type(),
+          it->second->get_entry_type(), it->second->get_host_id(),
+          it->second->get_service_id(), it->second->get_entry_time(),
+          it->second->get_author().c_str(),
+          it->second->get_comment_data().c_str(), it->second->get_persistent(),
+          it->second->get_source(), it->second->get_expires(),
+          it->second->get_expire_time(), it->first);
+      comments.erase(it++);
+    } else
+      ++it;
   }
 }
 

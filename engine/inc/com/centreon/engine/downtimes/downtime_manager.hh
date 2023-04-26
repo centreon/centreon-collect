@@ -25,6 +25,9 @@
 CCE_BEGIN()
 
 namespace downtimes {
+
+class host_downtime;
+class service_downtime;
 class downtime_manager {
  public:
   static downtime_manager& instance() {
@@ -40,7 +43,7 @@ class downtime_manager {
                                           uint64_t downtime_id);
   int check_pending_flex_host_downtime(host* hst);
   int check_pending_flex_service_downtime(service* svc);
-  void add_downtime(downtime* dt) noexcept;
+  void add_downtime(const std::shared_ptr<downtime>& dt) noexcept;
   void clear_scheduled_downtimes();
   int check_for_expired_downtime();
   int delete_downtime_by_hostname_service_description_start_time_comment(
@@ -52,30 +55,9 @@ class downtime_manager {
   void initialize_downtime_data();
   int xdddefault_validate_downtime_data();
   uint64_t get_next_downtime_id();
-  downtime* add_new_host_downtime(std::string const& host_name,
-                                  time_t entry_time,
-                                  char const* author,
-                                  char const* comment_data,
-                                  time_t start_time,
-                                  time_t end_time,
-                                  bool fixed,
-                                  uint64_t triggered_by,
-                                  unsigned long duration,
-                                  uint64_t* downtime_id);
-  downtime* add_new_service_downtime(std::string const& host_name,
-                                     std::string const& service_description,
-                                     time_t entry_time,
-                                     std::string const& author,
-                                     std::string const& comment_data,
-                                     time_t start_time,
-                                     time_t end_time,
-                                     bool fixed,
-                                     uint64_t triggered_by,
-                                     unsigned long duration,
-                                     uint64_t* downtime_id);
   int schedule_downtime(downtime::type type,
-                        std::string const& host_name,
-                        std::string const& service_description,
+                        const uint64_t host_id,
+                        const uint64_t service_id,
                         time_t entry_time,
                         char const* author,
                         char const* comment_data,
@@ -86,6 +68,28 @@ class downtime_manager {
                         unsigned long duration,
                         uint64_t* new_downtime_id);
   int register_downtime(downtime::type type, uint64_t downtime_id);
+
+ protected:
+  std::shared_ptr<host_downtime> add_new_host_downtime(const uint64_t host_id,
+                                                       time_t entry_time,
+                                                       char const* author,
+                                                       char const* comment_data,
+                                                       time_t start_time,
+                                                       time_t end_time,
+                                                       bool fixed,
+                                                       uint64_t triggered_by,
+                                                       unsigned long duration);
+  std::shared_ptr<service_downtime> add_new_service_downtime(
+      const uint64_t host_id,
+      const uint64_t service_id,
+      time_t entry_time,
+      const std::string& author,
+      const std::string& comment_data,
+      time_t start_time,
+      time_t end_time,
+      bool fixed,
+      uint64_t triggered_by,
+      unsigned long duration);
 
  private:
   downtime_manager() = default;

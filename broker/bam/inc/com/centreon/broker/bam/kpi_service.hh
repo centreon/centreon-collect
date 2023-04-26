@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2021 Centreon
+** Copyright 2014-2015, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@
 #define CCB_BAM_KPI_SERVICE_HH
 
 #include <absl/container/flat_hash_set.h>
-#include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
@@ -80,13 +79,17 @@ class kpi_service : public service_listener, public kpi {
   bool in_downtime() const;
   bool is_acknowledged() const;
   void service_update(std::shared_ptr<neb::service_status> const& status,
-                      io::stream* visitor = nullptr);
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
-                      io::stream* visitor = nullptr);
+                      io::stream* visitor = nullptr) override;
+  void service_update(const std::shared_ptr<neb::pb_acknowledgement>& ack,
+                      io::stream* visitor = nullptr) override;
   void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
-                      io::stream* visitor = nullptr);
+                      io::stream* visitor = nullptr) override;
   void service_update(std::shared_ptr<neb::downtime> const& dt,
-                      io::stream* visitor = nullptr);
+                      io::stream* visitor = nullptr) override;
+  void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
+                      io::stream* visitor = nullptr) override;
   void set_acknowledged(bool acknowledged);
   void set_downtimed(bool downtimed);
   void set_impact_critical(double impact);
@@ -96,7 +99,7 @@ class kpi_service : public service_listener, public kpi {
   void set_state_soft(state state);
   void set_state_type(short type);
   void visit(io::stream* visitor);
-  virtual void set_initial_event(kpi_event const& e);
+  virtual void set_initial_event(const KpiEvent& e) override;
   bool ok_state() const;
 };
 }  // namespace bam

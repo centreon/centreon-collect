@@ -25,8 +25,9 @@
 #include <set>
 
 #include <absl/strings/string_view.h>
-#include <fmt/format.h>
 #include <gtest/gtest.h>
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #include <nlohmann/json.hpp>
 
@@ -34,6 +35,7 @@
 
 #include "../src/grpc_stream.pb.h"
 
+#include <grpc/impl/codegen/compression_types.h>
 #include <grpcpp/create_channel.h>
 
 using system_clock = std::chrono::system_clock;

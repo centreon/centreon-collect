@@ -55,13 +55,13 @@ rebuilder::rebuilder(const database_config& db_cfg,
  *
  * @param d The BBDO message with all the metric ids to rebuild.
  */
-void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
+void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
   asio::post(pool::io_context(), [this, data = d] {
-    const bbdo::pb_rebuild_rrd_graphs& ids =
-        *static_cast<const bbdo::pb_rebuild_rrd_graphs*>(data.get());
+    const bbdo::pb_rebuild_graphs& ids =
+        *static_cast<const bbdo::pb_rebuild_graphs*>(data.get());
 
     std::string ids_str{
-        fmt::format("{}", fmt::join(ids.obj().index_id(), ","))};
+        fmt::format("{}", fmt::join(ids.obj().index_ids(), ","))};
     log_v2::sql()->debug(
         "Metric rebuild: Rebuild metrics event received for metrics ({})",
         ids_str);
@@ -114,14 +114,18 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
 
       std::promise<database::mysql_result> promise_cfg;
       std::future<database::mysql_result> future_cfg = promise_cfg.get_future();
-      ms.run_query_and_get_result("SELECT len_storage_mysql FROM config",
-                                  std::move(promise_cfg), conn);
-      int64_t db_retention_day = 0;
+      ms.run_query_and_get_result(
+          "SELECT len_storage_mysql,len_storage_rrd FROM config",
+          std::move(promise_cfg), conn);
+      int32_t db_retention_day = 0;
 
       res = future_cfg.get();
       if (ms.fetch_row(res)) {
-        db_retention_day = res.value_as_i64(0);
-        log_v2::sql()->debug("Storage retention on Mysql: {} days",
+        db_retention_day = res.value_as_i32(0);
+        int32_t db_retention_day1 = res.value_as_i32(1);
+        if (db_retention_day1 < db_retention_day)
+          db_retention_day = db_retention_day1;
+        log_v2::sql()->debug("Storage retention on RRD: {} days",
                              db_retention_day);
       }
       if (db_retention_day) {
@@ -136,6 +140,8 @@ void rebuilder::rebuild_rrd_graphs(const std::shared_ptr<io::data>& d) {
           tmv.tm_mday -= db_retention_day;
           start = mktime(&tmv);
           while (db_retention_day >= 0) {
+            log_v2::sql()->trace("Metrics rebuild: db_retention_day = {}",
+                                 db_retention_day);
             tmv.tm_mday++;
             end = mktime(&tmv);
             db_retention_day--;

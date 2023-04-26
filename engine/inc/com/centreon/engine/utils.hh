@@ -50,6 +50,7 @@ int get_raw_command_line_r(nagios_macros* mac,
                            std::string const& cmd,
                            std::string& full_command,
                            int macro_options);
+
 // trap signals
 void setup_sighandler();
 // handles signals
@@ -79,5 +80,15 @@ void parse_check_output(std::string const& buffer,
 #ifdef __cplusplus
 }
 #endif  // C++
+
+inline int get_raw_command_line_r(
+    nagios_macros* mac,
+    const std::shared_ptr<com::centreon::engine::commands::command> cmd_ptr,
+    std::string const& cmd,
+    std::string& full_command,
+    int macro_options) {
+  return get_raw_command_line_r(mac, cmd_ptr.get(), cmd, full_command,
+                                macro_options);
+}
 
 #endif  // !CCE_UTILS_HH

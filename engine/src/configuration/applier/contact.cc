@@ -129,9 +129,9 @@ void applier::contact::add_object(configuration::contact const& obj) {
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
-      broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                             NEBATTR_NONE, c.get(), it->first.c_str(),
-                             it->second.get_value().c_str(), &tv);
+      broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c.get(),
+                             it->first.c_str(), it->second.get_value().c_str(),
+                             &tv);
     }
   }
 }
@@ -321,8 +321,8 @@ void applier::contact::modify_object(configuration::contact const& obj) {
     for (auto& cus : c->get_custom_variables()) {
       if (cus.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_DELETE,
-                               NEBFLAG_NONE, NEBATTR_NONE, c, cus.first.c_str(),
+        broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_DELETE, c,
+                               cus.first.c_str(),
                                cus.second.get_value().c_str(), &tv);
       }
     }
@@ -333,8 +333,8 @@ void applier::contact::modify_object(configuration::contact const& obj) {
 
       if (cus.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
-        broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, NEBFLAG_NONE,
-                               NEBATTR_NONE, c, cus.first.c_str(),
+        broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c,
+                               cus.first.c_str(),
                                cus.second.get_value().c_str(), &tv);
       }
     }

@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker RRD metric deletion
 Library	DatabaseLibrary
@@ -26,7 +27,10 @@ BRRDDM1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
+
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
@@ -40,13 +44,47 @@ BRRDDM1
 	${empty}=	Create List
 	Remove Graphs	51001	${empty}	${metrics}
 	${metrics_str}=	Catenate	SEPARATOR=,	@{metrics}
-	${content}=	Create List	metrics ${metrics_str} erased from database
+	${content}=	Create List	metrics .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
-	FOR	${m}	IN	@{metrics}
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd      20s
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=No log message telling about some metrics deletion.
+
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the metrics are in this line
+	  FOR	${m}	IN	@{metrics}
+	    Should Be True	"${m}" in """${l}"""	msg=${m} is not in the line ${l}
+	  END
 	END
+	FOR	${m}	IN	@{metrics}
+		Log to Console	Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd      20s
+	END
+
+BRRDWM1
+	[Documentation]	We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
+	[Tags]	RRD	metric	bbdo3	unified_sql
+	Config Engine	${1}
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module
+	Config BBDO3	${1}
+	Broker Config Log	central	sql	info
+	Broker Config Log	rrd	rrd	debug
+	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
+
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	${result}=	Check Connections
+	Should Be True	${result}	msg=Engine and Broker not connected
+
+	${content}=	Create List	RRD: new pb data for metric
+
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content}	120
+	Should Be True	${result}	msg=No protobuf metric sent to cbd RRD for 60s.
 
 BRRDDID1
 	[Documentation]	RRD metrics deletion from index ids.
@@ -61,6 +99,7 @@ BRRDDID1
 	Create Metrics	3
 
 	${start}=	Get Current Date
+	Sleep	1s
 	Start Broker
 	Start Engine
 	${result}=	Check Connections
@@ -73,15 +112,25 @@ BRRDDID1
 	${empty}=	Create List
 	Remove Graphs	51001	${indexes}	${empty}
 	${indexes_str}=	Catenate	SEPARATOR=,	@{indexes}
-	${content}=	Create List	indexes ${indexes_str} erased from database
+	${content}=	Create List	indexes .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=No log message telling about indexes ${indexes_str} deletion.
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the indexes are in this line
+	  FOR	${ii}	IN	@{indexes}
+	    Should Be True	"${ii}" in """${l}"""	msg=${ii} is not in the line ${l}
+	  END
+	END
+
 	FOR	${i}	IN	@{indexes}
-		Wait Until Removed	/var/lib/centreon/status/${i}.rrd	20s
+		log to console	Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/status/${i}.rrd	20s
 	END
 	FOR	${m}	IN	@{metrics}
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
+		log to console	Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
 
 BRRDDMID1
@@ -94,6 +143,8 @@ BRRDDMID1
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 
 	${start}=	Get Current Date
 	Start Broker
@@ -116,11 +167,13 @@ BRRDDMU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -136,12 +189,20 @@ BRRDDMU1
 	${empty}=	Create List
 	Remove Graphs	51001	${empty}	${metrics}
 	${metrics_str}=	Catenate	SEPARATOR=,	@{metrics}
-	${content}=	Create List	metrics ${metrics_str} erased from database
+	${content}=	Create List	metrics .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	50
-	Should Be True	${result}	msg=No log message telling about metrics ${metrics_str} deletion.
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	50
+	Should Be True	${result[0]}	msg=No log message telling about metrics ${metrics_str} deletion.
+
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the metrics are in this line
+	  FOR	${m}	IN	@{metrics}
+	    Should Be True	"${m}" in """${l}"""	msg=${m} is not in the line ${l}
+	  END
+	END
 	FOR	${m}	IN	@{metrics}
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
 
 BRRDDIDU1
@@ -150,11 +211,13 @@ BRRDDIDU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -170,15 +233,23 @@ BRRDDIDU1
 	${empty}=	Create List
 	Remove Graphs	51001	${indexes}	${empty}
 	${indexes_str}=	Catenate	SEPARATOR=,	@{indexes}
-	${content}=	Create List	indexes ${indexes_str} erased from database
+	${content}=	Create List	indexes .* erased from database
 
-	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=No log message telling about indexes ${indexes_str} deletion.
+	${result}=	Find Regex In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result[0]}	msg=No log message telling about indexes ${indexes_str} deletion.
+	# We should have one line, but stored in an array.
+	FOR	${l}	IN	@{result[1]}
+	  # We check all the indexes are in this line
+	  FOR	${ii}	IN	@{indexes}
+	    Should Be True	"${ii}" in """${l}"""	msg=${ii} is not in the line ${l}
+	  END
+	END
+
 	FOR	${i}	IN	@{indexes}
-		Wait Until Removed	/var/lib/centreon/status/${i}.rrd	20s
+		Wait Until Removed	${VarRoot}/lib/centreon/status/${i}.rrd	20s
 	END
 	FOR	${m}	IN	@{metrics}
-		Wait Until Removed	/var/lib/centreon/metrics/${m}.rrd	20s
+		Wait Until Removed	${VarRoot}/lib/centreon/metrics/${m}.rrd	20s
 	END
 
 BRRDDMIDU1
@@ -187,11 +258,13 @@ BRRDDMIDU1
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	central	sql	info
 	Broker Config Log	rrd	rrd	debug
 	Broker Config Log	rrd	core	error
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 
 	${start}=	Get Current Date
 	Start Broker
@@ -210,7 +283,7 @@ BRRDDMIDU1
 
 
 BRRDRM1
-	[Documentation]	RRD metric rebuild with gRPC API and unified sql
+	[Documentation]	RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
 	[Tags]	RRD	metric	rebuild	grpc
 	Config Engine	${1}
 	Config Broker	rrd
@@ -218,6 +291,8 @@ BRRDRM1
 	Config Broker	module
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
 	${start}=	Get Current Date
@@ -232,7 +307,7 @@ BRRDRM1
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
 	Log To Console	Metrics to rebuild: ${metrics}
-	${content}=	Create List	Metric rebuild: metric	is sent to rebuild	Metric rebuild: Rebuild of metrics from the following indexes
+	${content}=	Create List	Metric rebuild: metric	is sent to rebuild
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Central did not send metrics to rebuild
 
@@ -245,7 +320,7 @@ BRRDRM1
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild DATA
 
 	${content1}=	Create List	RRD: Finishing to rebuild metrics
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	240
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	500
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild END
 	FOR	${m}	IN	@{metrics}
 		${value}=	Evaluate	${m} / 2
@@ -254,18 +329,22 @@ BRRDRM1
 	END
 
 BRRDRMU1
-	[Documentation]	RRD metric rebuild with gRPC API and unified sql
+	[Documentation]	RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
 	[Tags]	RRD	metric	rebuild	unified_sql	grpc
 	Config Engine	${1}
 	Config Broker	rrd
 	Config Broker	central
-	Config Broker Sql Output	central	unified_sql
 	Config Broker	module
+	Config BBDO3	${1}
 	Broker Config Log	rrd	rrd	trace
 	Broker Config Log	central	sql	trace
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
+        Broker Config Flush Log	central	0
+        Broker Config Flush Log	rrd	0
 	Create Metrics	3
 
-	${start}=	Get Current Date
+	${start}=	Get Round Current Date
 	Start Broker
 	Start Engine
 	${result}=	Check Connections
@@ -277,20 +356,20 @@ BRRDRMU1
 	Log To Console	Indexes to rebuild: ${index}
 	${metrics}=	Get Metrics Matching Indexes	${index}
 	Log To Console	Metrics to rebuild: ${metrics}
-	${content}=	Create List	Metric rebuild: metric	is sent to rebuild	Metric rebuild: Rebuild of metrics from the following indexes
+	${content}=	Create List	Metric rebuild: metric	is sent to rebuild
 	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	30
 	Should Be True	${result}	msg=Central did not send metrics to rebuild
 
 	${content1}=	Create List	RRD: Starting to rebuild metrics
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	45
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild START
 
 	${content1}=	Create List	RRD: Rebuilding metric
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	30
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	45
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild DATA
 
 	${content1}=	Create List	RRD: Finishing to rebuild metrics
-	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	240
+	${result}=	Find In Log With Timeout	${rrdLog}	${start}	${content1}	500
 	Should Be True	${result}	msg=RRD cbd did not receive metrics to rebuild END
         FOR	${m}	IN	@{metrics}
 		${value}=	Evaluate	${m} / 2

@@ -20,6 +20,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/retention/applier/anomalydetection.hh"
 #include "com/centreon/engine/retention/applier/comment.hh"
 #include "com/centreon/engine/retention/applier/contact.hh"
 #include "com/centreon/engine/retention/applier/downtime.hh"
@@ -58,8 +59,7 @@ void applier::state::apply(configuration::state& config,
     applier::comment app_comments;
     app_comments.apply(state.comments());
 
-    applier::downtime app_downtimes;
-    app_downtimes.apply(state.downtimes());
+    applier::downtime::apply(state.downtimes());
 
     applier::contact app_contacts;
     app_contacts.apply(config, state.contacts());
@@ -67,8 +67,11 @@ void applier::state::apply(configuration::state& config,
     applier::host app_hosts;
     app_hosts.apply(config, state.hosts(), scheduling_info_is_ok);
 
-    applier::service app_services;
-    app_services.apply(config, state.services(), scheduling_info_is_ok);
+    applier::service::apply(config, state.services(), scheduling_info_is_ok);
+
+    applier::anomalydetection::apply(config, state.anomalydetection(),
+                                     scheduling_info_is_ok);
+
   } catch (...) {
     // send data to event broker.
     broker_retention_data(NEBTYPE_RETENTIONDATA_ENDLOAD, NEBFLAG_NONE,

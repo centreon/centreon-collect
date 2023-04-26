@@ -101,13 +101,14 @@ void lib::open(std::string const& filename,
                uint32_t length,
                time_t from,
                uint32_t step,
-               short value_type) {
+               short value_type,
+               bool without_cache) {
   // Close previous file.
   this->close();
 
   // Remember informations for further operations.
   _filename = filename;
-  _creator.create(filename, length, from, step, value_type);
+  _creator.create(filename, length, from, step, value_type, without_cache);
 }
 
 /**
@@ -167,6 +168,7 @@ void lib::update(const std::deque<std::string>& pts) {
   argv[pts.size()] = nullptr;
   auto it = pts.begin();
   for (uint32_t i = 0; i < pts.size(); i++) {
+    log_v2::rrd()->trace("insertion of {} in rrd file", *it);
     argv[i] = it->data();
     ++it;
   }

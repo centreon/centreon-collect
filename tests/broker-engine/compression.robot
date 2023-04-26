@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine communication with or without compression
 Library	Process
@@ -33,7 +34,7 @@ BECC1
 		Start Engine
 		${result}=	Check Connections
 		Should Be True	${result}	msg=Engine and Broker not connected
-		Stop Broker
+		Kindly Stop Broker
 		Stop Engine
 		${content1}=	Create List	we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
 		${content2}=	Create List	we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'

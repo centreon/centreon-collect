@@ -37,6 +37,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class into_memory : public io::stream {
   std::vector<char> _memory;
 
@@ -70,8 +72,9 @@ class UnifiedSqlEntryTest : public ::testing::Test {
  public:
   void SetUp() override {
     io::data::broker_id = 0;
+    g_io_context->restart();
     try {
-      config::applier::init(0, "test_broker");
+      config::applier::init(0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
@@ -83,7 +86,7 @@ class UnifiedSqlEntryTest : public ::testing::Test {
     // The cache must be destroyed before the applier deinit() call.
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
-    ::remove(log_v2::instance().log_name().c_str());
+    ::remove(log_v2::instance()->log_name().c_str());
   }
 };
 

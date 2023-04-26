@@ -37,7 +37,7 @@ char const* broker_module_version = CENTREON_BROKER_VERSION;
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Unregister TLS layer.
@@ -46,6 +46,7 @@ void broker_module_deinit() {
     // Cleanup.
     tls2::destroy();
   }
+  return true;  // ok to be unloaded
 }
 
 /**

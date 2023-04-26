@@ -39,22 +39,38 @@ class servicegroup;
 class serviceescalation;
 CCE_END()
 
-typedef std::unordered_map<std::pair<std::string, std::string>,
-                           std::shared_ptr<com::centreon::engine::service>,
-                           pair_hash>
-    service_map;
-typedef std::unordered_map<std::pair<std::string, std::string>,
-                           com::centreon::engine::service*,
-                           pair_hash>
-    service_map_unsafe;
-typedef std::unordered_map<std::pair<uint64_t, uint64_t>,
-                           std::shared_ptr<com::centreon::engine::service>,
-                           pair_hash>
-    service_id_map;
+using service_map =
+    absl::flat_hash_map<std::pair<std::string, std::string>,
+                        std::shared_ptr<com::centreon::engine::service>>;
+using service_map_unsafe =
+    absl::flat_hash_map<std::pair<std::string, std::string>,
+                        com::centreon::engine::service*>;
+using service_id_map =
+    absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
+                        std::shared_ptr<com::centreon::engine::service>>;
 
 CCE_BEGIN()
 
+enum service_type {
+  NONE = -1,
+  SERVICE = 0,
+  METASERVICE = 2,
+  BA = 3,
+  ANOMALY_DETECTION = 4,
+};
+
 class service : public notifier {
+ protected:
+  service_type _service_type;
+
+  int run_async_check_local(int check_options,
+                            double latency,
+                            bool scheduled_check,
+                            bool reschedule_check,
+                            bool* time_is_valid,
+                            time_t* preferred_time,
+                            service* svc) noexcept;
+
  public:
   static std::array<std::pair<uint32_t, std::string>, 4> const
       tab_service_states;
@@ -92,16 +108,18 @@ class service : public notifier {
           int freshness_threshold,
           bool obsess_over,
           std::string const& timezone,
-          uint64_t icon_id);
-  ~service() noexcept = default;
+          uint64_t icon_id,
+          service_type st = NONE);
+  ~service() noexcept;
   void set_host_id(uint64_t host_id);
-  uint64_t get_host_id() const;
+  uint64_t host_id() const;
   void set_service_id(uint64_t service_id);
-  uint64_t get_service_id() const;
+  uint64_t service_id() const;
+  service_type get_service_type() const;
   void set_hostname(std::string const& name);
   std::string const& get_hostname() const;
   void set_description(std::string const& desc);
-  std::string const& get_description() const;
+  const std::string& description() const;
   void set_event_handler_args(std::string const& event_hdl_args);
   std::string const& get_event_handler_args() const;
   void set_check_command_args(std::string const& cmd_args);
@@ -130,7 +148,8 @@ class service : public notifier {
   int get_current_state_int() const override;
   std::string const& get_current_state_as_string() const override;
 
-  int handle_async_check_result(check_result* queued_check_result);
+  virtual int handle_async_check_result(
+      const check_result& queued_check_result);
   int log_event();
   void check_for_flapping(bool update, bool allow_flapstart_notification);
   int handle_service_event();
@@ -144,7 +163,7 @@ class service : public notifier {
                               bool* time_is_valid,
                               time_t* preferred_time) noexcept;
   bool schedule_check(time_t check_time,
-                      int options,
+                      uint32_t options,
                       bool no_update_status_now = false) override;
   void set_flap(double percent_change,
                 double high_threshold,
@@ -202,7 +221,6 @@ class service : public notifier {
   uint64_t _host_id;
   uint64_t _service_id;
   std::string _hostname;
-  std::string _description;
   std::string _event_handler_args;
   std::string _check_command_args;
 
@@ -287,6 +305,9 @@ com::centreon::engine::service& find_service(uint64_t host_id,
 bool is_service_exist(std::pair<uint64_t, uint64_t> const& id);
 std::pair<uint64_t, uint64_t> get_host_and_service_id(std::string const& host,
                                                       std::string const& svc);
+std::pair<std::string, std::string> get_host_and_service_names(
+    const uint64_t host_id,
+    const uint64_t service_id);
 uint64_t get_service_id(std::string const& host, std::string const& svc);
 
 CCE_END()

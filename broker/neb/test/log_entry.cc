@@ -25,7 +25,7 @@
 
 using namespace com::centreon::broker;
 
-class LogEntry : public ::testing::Test {
+class LogEntryTest : public ::testing::Test {
   void SetUp() override { randomize_init(); };
 
   void TearDown() override { randomize_cleanup(); };
@@ -34,7 +34,7 @@ class LogEntry : public ::testing::Test {
 /**
  *  Check log_entry's assignment operator.
  */
-TEST_F(LogEntry, Assign) {
+TEST_F(LogEntryTest, Assign) {
   // Object #1.
   neb::log_entry le1;
   std::vector<randval> randvals1;
@@ -59,7 +59,7 @@ TEST_F(LogEntry, Assign) {
 /**
  *  Check log_entry's copy constructor.
  */
-TEST_F(LogEntry, CopyCtor) {
+TEST_F(LogEntryTest, CopyCtor) {
   // Object #1.
   neb::log_entry le1;
   std::vector<randval> randvals1;
@@ -80,7 +80,7 @@ TEST_F(LogEntry, CopyCtor) {
 /**
  *  Check log_entry's default constructor.
  */
-TEST_F(LogEntry, DefaultCtor) {
+TEST_F(LogEntryTest, DefaultCtor) {
   // Object.
   neb::log_entry le;
 

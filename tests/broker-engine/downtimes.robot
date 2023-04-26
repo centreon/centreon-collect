@@ -3,6 +3,7 @@ Resource	../resources/resources.robot
 Suite Setup	Clean Before Suite
 Suite Teardown	Clean After Suite
 Test Setup	Stop Processes
+Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine progressively add services
 Library	Process
@@ -15,7 +16,7 @@ Library	../resources/Common.py
 
 *** Test Cases ***
 BEDTMASS1
-	[Documentation]	New services with several pollers
+	[Documentation]	New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
 	[Tags]	Broker	Engine	services	protobuf
 	Config Engine	${3}	${50}	${20}
 	Engine Config Set Value	${0}	log_level_functions	trace
@@ -42,7 +43,7 @@ BEDTMASS1
 	Start Engine
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# It's time to schedule downtimes
@@ -75,7 +76,7 @@ BEDTMASS1
 	Kindly Stop Broker
 
 BEDTMASS2
-	[Documentation]	New services with several pollers
+	[Documentation]	New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
 	[Tags]	Broker	Engine	services	protobuf
 	Config Engine	${3}	${50}	${20}
 	Engine Config Set Value	${0}	log_level_functions	trace
@@ -96,7 +97,7 @@ BEDTMASS2
 	Start Engine
 	# Let's wait for the initial service states.
         ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${logEngine2}	${start}	${content}	60
+        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
         Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# It's time to schedule downtimes
@@ -121,6 +122,48 @@ BEDTMASS2
 	 Delete host downtimes	${1}	${host1}
 	 Delete host downtimes	${2}	${host2}
 	END
+
+	${result}=	check number of downtimes	${0}	${start}	${60}
+	Should be true	${result}	msg=We should have no downtime enabled.
+
+	Stop Engine
+	Kindly Stop Broker
+
+BEDTSVCREN1
+	[Documentation]	New services with several pollers
+	[Tags]	Broker	Engine	services	protobuf
+	Config Engine	${1}
+	Engine Config Set Value	${0}	log_level_functions	trace
+	Config Broker	rrd
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Log	central	sql	debug
+	Broker Config Log	module0	neb	debug
+
+	Broker Config Log	central	sql	debug
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker
+	Start Engine
+	# Let's wait for the initial service states.
+        ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+        Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
+	# It's time to schedule a downtime
+	Schedule service downtime	host_1	service_1	${3600}
+
+	${result}=	check number of downtimes	${1}	${start}	${60}
+	Should be true	${result}	msg=We should have 1 downtime enabled.
+
+	# Let's rename the service service_1
+	Rename Service	${0}	host_1	service_1	toto_1
+
+	Reload Engine
+	Sleep	5s
+	# Let's wait for the initial service states.
+
+	Delete service downtime full	${0}	host_1	toto_1
 
 	${result}=	check number of downtimes	${0}	${start}	${60}
 	Should be true	${result}	msg=We should have no downtime enabled.

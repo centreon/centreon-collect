@@ -30,7 +30,6 @@
 #include <csignal>
 
 #include "com/centreon/engine/broker.hh"
-#include "com/centreon/engine/broker/compatibility.hh"
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/raw.hh"
@@ -76,7 +75,7 @@ int my_system_r(nagios_macros* mac,
   }
 
   engine_logger(dbg_commands, more) << "Running command '" << cmd << "'...";
-  log_v2::commands()->debug("Running command '{}'...", cmd);
+  SPDLOG_LOGGER_DEBUG(log_v2::commands(), "Running command '{}'...", cmd);
 
   timeval start_time = timeval();
   timeval end_time = timeval();
@@ -109,7 +108,8 @@ int my_system_r(nagios_macros* mac,
       << "Execution time=" << *exectime
       << " sec, early timeout=" << *early_timeout << ", result=" << result
       << ", output=" << output;
-  log_v2::commands()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::commands(),
       "Execution time={:.3f} sec, early timeout={}, result={}, output={}",
       *exectime, *early_timeout, result, output);
 
@@ -156,8 +156,8 @@ int get_raw_command_line_r(nagios_macros* mac,
 
   engine_logger(dbg_commands | dbg_checks | dbg_macros, most)
       << "Raw Command Input: " << cmd_ptr->get_command_line();
-  log_v2::commands()->debug("Raw Command Input: {}",
-                            cmd_ptr->get_command_line());
+  SPDLOG_LOGGER_DEBUG(log_v2::commands(), "Raw Command Input: {}",
+                      cmd_ptr->get_command_line());
 
   /* get the full command line */
   full_command = cmd_ptr->get_command_line();
@@ -209,7 +209,8 @@ int get_raw_command_line_r(nagios_macros* mac,
 
   engine_logger(dbg_commands | dbg_checks | dbg_macros, most)
       << "Expanded Command Output: " << full_command;
-  log_v2::commands()->debug("Expanded Command Output: {}", full_command);
+  SPDLOG_LOGGER_DEBUG(log_v2::commands(), "Expanded Command Output: {}",
+                      full_command);
 
   return OK;
 }

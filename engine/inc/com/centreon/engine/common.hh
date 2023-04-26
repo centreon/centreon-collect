@@ -208,6 +208,7 @@
 #define CMD_DEL_DOWNTIME_BY_HOST_NAME 170
 #define CMD_DEL_DOWNTIME_BY_HOSTGROUP_NAME 171
 #define CMD_DEL_DOWNTIME_BY_START_TIME_COMMENT 172
+#define CMD_CHANGE_ANOMALYDETECTION_SENSITIVITY 173
 #define CMD_DEL_HOST_DOWNTIME_FULL 501
 #define CMD_DEL_SVC_DOWNTIME_FULL 502
 #define CMD_NEW_THRESHOLDS_FILE 503
@@ -217,13 +218,9 @@
 #define HOST_ACKNOWLEDGEMENT 0
 #define SERVICE_ACKNOWLEDGEMENT 1
 
-#define ACKNOWLEDGEMENT_NONE 0
-#define ACKNOWLEDGEMENT_NORMAL 1
-#define ACKNOWLEDGEMENT_STICKY 2
-
 /* Host/service check options. */
 #define CHECK_OPTION_NONE 0 /* No check options. */
-#define CHECK_OPTION_FORCE_EXECUTION 1
+#define CHECK_OPTION_FORCE_EXECUTION 1u
 /* Force execution of a check (ignores disabled services/hosts, invalid \
    timeperiods). */
 #define CHECK_OPTION_FRESHNESS_CHECK 2 /* This is a freshness check. */

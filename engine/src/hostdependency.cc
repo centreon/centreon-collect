@@ -148,11 +148,10 @@ std::ostream& operator<<(std::ostream& os, hostdependency const& obj) {
      << obj.get_contains_circular_path()
      << "\n"
         "  master_host_ptr:        "
-     << (obj.master_host_ptr ? obj.master_host_ptr->get_name() : "\"NULL\"")
+     << (obj.master_host_ptr ? obj.master_host_ptr->name() : "\"NULL\"")
      << "\n"
         "  dependent_host_ptr:     "
-     << (obj.dependent_host_ptr ? obj.dependent_host_ptr->get_name()
-                                : "\"NULL\"")
+     << (obj.dependent_host_ptr ? obj.dependent_host_ptr->name() : "\"NULL\"")
      << "\n"
         "  dependency_period_ptr:  "
      << dependency_period_str

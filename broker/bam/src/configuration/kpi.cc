@@ -19,6 +19,7 @@
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 
 using namespace com::centreon::broker::bam::configuration;
+using namespace com::centreon::broker;
 
 static constexpr double eps = 0.000001;
 
@@ -34,7 +35,6 @@ kpi::kpi(uint32_t id,
          uint32_t meta_id,
          uint32_t boolexp_id,
          short status,
-         short last_level,
          bool downtimed,
          bool acknowledged,
          bool ignore_downtime,
@@ -51,15 +51,17 @@ kpi::kpi(uint32_t id,
       _meta_id(meta_id),
       _boolexp_id(boolexp_id),
       _status(status),
-      _last_level(last_level),
       _downtimed(downtimed),
       _acknowledged(acknowledged),
       _ignore_downtime(ignore_downtime),
       _ignore_acknowledgement(ignore_acknowledgement),
       _impact_warning(warning),
       _impact_critical(critical),
-      _impact_unknown(unknown),
-      _event(_id, _ba_id, ::time(nullptr)) {}
+      _impact_unknown(unknown) {
+  _event.set_kpi_id(_id);
+  _event.set_ba_id(_ba_id);
+  _event.set_start_time(::time(nullptr));
+}
 
 /**
  *  Copy constructor.
@@ -76,7 +78,6 @@ kpi::kpi(kpi const& other)
       _meta_id(other._meta_id),
       _boolexp_id(other._boolexp_id),
       _status(other._status),
-      _last_level(other._last_level),
       _downtimed(other._downtimed),
       _acknowledged(other._acknowledged),
       _ignore_downtime(other._ignore_downtime),
@@ -109,7 +110,6 @@ kpi& kpi::operator=(kpi const& other) {
     _meta_id = other._meta_id;
     _boolexp_id = other._boolexp_id;
     _status = other._status;
-    _last_level = other._last_level;
     _downtimed = other._downtimed;
     _acknowledged = other._acknowledged;
     _ignore_downtime = other._ignore_downtime;
@@ -120,6 +120,25 @@ kpi& kpi::operator=(kpi const& other) {
     _event = other._event;
   }
   return *this;
+}
+
+/**
+ * @brief more efficient than MessageDifferencier
+ *
+ * @param left
+ * @param right
+ * @return true if left and right are equals
+ * @return false
+ */
+static bool is_equal(const KpiEvent& left, const KpiEvent& right) {
+  return left.ba_id() == right.ba_id() &&
+         left.start_time() == right.start_time() &&
+         left.end_time() == right.end_time() &&
+         left.kpi_id() == right.kpi_id() &&
+         left.impact_level() == right.impact_level() &&
+         left.in_downtime() == right.in_downtime() &&
+         left.status() == right.status() &&
+         left.perfdata() == right.perfdata() && left.output() == right.output();
 }
 
 /**
@@ -134,15 +153,14 @@ bool kpi::operator==(kpi const& other) const {
          _host_id == other._host_id && _service_id == other._service_id &&
          _ba_id == other._ba_id && _indicator_ba_id == other._indicator_ba_id &&
          _meta_id == other._meta_id && _boolexp_id == other._boolexp_id &&
-         _status == other._status && _last_level == other._last_level &&
-         _downtimed == other._downtimed &&
+         _status == other._status && _downtimed == other._downtimed &&
          _acknowledged == other._acknowledged &&
          _ignore_downtime == other._ignore_downtime &&
          _ignore_acknowledgement == other._ignore_acknowledgement &&
          std::abs(_impact_warning - other._impact_warning) < eps &&
          std::abs(_impact_critical - other._impact_critical) < eps &&
          std::abs(_impact_unknown - other._impact_unknown) < eps &&
-         _event == other._event;
+         is_equal(_event, other._event);
 }
 
 /**
@@ -283,15 +301,6 @@ short kpi::get_status() const {
 }
 
 /**
- *  Get the last level of this kpi.
- *
- *  @return The last level of this kpi.
- */
-short kpi::get_last_level() const {
-  return _last_level;
-}
-
-/**
  *  Is this kpi set to downtime mode ?
  *
  *  @return Has this business interest been downtimed?
@@ -359,7 +368,7 @@ double kpi::get_impact_unknown() const {
  *
  *  @return  The opened event associated with this kpi.
  */
-com::centreon::broker::bam::kpi_event const& kpi::get_opened_event() const {
+const KpiEvent& kpi::get_opened_event() const {
   return _event;
 }
 
@@ -439,15 +448,6 @@ void kpi::set_status(short s) {
 }
 
 /**
- *  Set last_level.
- *
- *  @param[in] s Set the last level of the kpi.
- */
-void kpi::set_last_level(short s) {
-  _last_level = s;
-}
-
-/**
  *  Set downtimed.
  *
  *  @param[in] b Set whether the kpi is downtimed or not.
@@ -515,6 +515,6 @@ void kpi::set_impact_unknown(double d) {
  *
  *  @param[in] kpi_event  The event.
  */
-void kpi::set_opened_event(bam::kpi_event const& kpi_event) {
+void kpi::set_opened_event(const KpiEvent& kpi_event) {
   _event = kpi_event;
 }

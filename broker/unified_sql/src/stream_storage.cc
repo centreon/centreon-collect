@@ -35,6 +35,7 @@
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -43,7 +44,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
 constexpr int32_t queue_timer_duration = 10;
-constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
  *  Check that the floating point values are the same number or are NaN or are
@@ -115,9 +115,13 @@ void stream::_unified_sql_process_pb_service_status(
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
     if (ss.checked()) {
-      auto status(std::make_shared<storage::status>(ss.last_check(), index_id,
-                                                    interval, false, rrd_len,
-                                                    ss.last_hard_state()));
+      auto status{std::make_shared<storage::pb_status>()};
+      auto& s = status->mut_obj();
+      s.set_index_id(index_id);
+      s.set_interval(interval);
+      s.set_rrd_len(rrd_len);
+      s.set_time(ss.last_check());
+      s.set_state(ss.last_hard_state());
       multiplexing::publisher().write(status);
     }
 
@@ -267,41 +271,55 @@ void stream::_unified_sql_process_pb_service_status(
             {
               std::lock_guard<std::mutex> lck(_queues_m);
               _metrics[it_index_cache->second.metric_id] =
-                  &it_index_cache->second;
+                  it_index_cache->second;
             }
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
           }
         }
-        if (need_metric_mapping)
-          to_publish.emplace_back(
-              std::make_shared<storage::metric_mapping>(index_id, metric_id));
+        if (need_metric_mapping) {
+          auto mm{std::make_shared<storage::pb_metric_mapping>()};
+          auto& mm_obj = mm->mut_obj();
+          mm_obj.set_index_id(index_id);
+          mm_obj.set_metric_id(metric_id);
+          to_publish.emplace_back(std::move(mm));
+        }
 
         if (_store_in_db) {
           // Append perfdata to queue.
-          metric_value val;
-          val.c_time = ss.last_check();
-          val.metric_id = metric_id;
-          val.status = ss.state();
-          val.value = pd.value();
-          {
-            std::lock_guard<std::mutex> lck(_queues_m);
-            _perfdata_queue.push_back(val);
-          }
+          std::string row;
+          if (std::isinf(pd.value()))
+            row =
+                fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
+                            ss.state(), pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
+          else if (std::isnan(pd.value()))
+            row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check(),
+                              ss.state());
+          else
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
+                              ss.state(), pd.value());
+          _perfdata.push_query(row);
         }
 
         // Send perfdata event to processing.
         if (!index_locked) {
-          auto perf{std::make_shared<storage::metric>(
-              ss.host_id(), ss.service_id(), pd.name(), ss.last_check(),
-              interval, false, metric_id, rrd_len, pd.value(),
-              static_cast<misc::perfdata::data_type>(pd.value_type()))};
+          auto perf{std::make_shared<storage::pb_metric>()};
+          auto& m = perf->mut_obj();
+          m.set_time(ss.last_check());
+          m.set_interval(interval);
+          m.set_metric_id(metric_id);
+          m.set_rrd_len(rrd_len);
+          m.set_value(pd.value());
+          m.set_value_type(static_cast<Metric_ValueType>(pd.value_type()));
+          m.set_name(pd.name());
+          m.set_host_id(ss.host_id());
+          m.set_service_id(ss.service_id());
           log_v2::perfdata()->debug(
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
-              perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
-              perf->value_type);
-          to_publish.emplace_back(perf);
+              m.metric_id(), pd.name(), m.time(), m.value(), rrd_len,
+              m.value_type());
+          to_publish.emplace_back(std::move(perf));
         } else {
           log_v2::perfdata()->trace(
               "unified sql: index {} is locked, so metric {} event not sent "
@@ -428,7 +446,7 @@ void stream::_unified_sql_process_service_status(
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
           _mysql.run_statement_and_get_result(_index_data_query,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
 
           database::mysql_result res(future.get());
           if (_mysql.fetch_row(res))
@@ -463,7 +481,7 @@ void stream::_unified_sql_process_service_status(
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future = promise.get_future();
           _mysql.run_statement_and_get_result(_index_data_update,
-                                              std::move(promise), conn);
+                                              std::move(promise), conn, 50);
           future.get();
         }
 
@@ -649,7 +667,7 @@ void stream::_unified_sql_process_service_status(
             {
               std::lock_guard<std::mutex> lck(_queues_m);
               _metrics[it_index_cache->second.metric_id] =
-                  &it_index_cache->second;
+                  it_index_cache->second;
             }
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
@@ -661,15 +679,18 @@ void stream::_unified_sql_process_service_status(
 
         if (_store_in_db) {
           // Append perfdata to queue.
-          metric_value val;
-          val.c_time = ss.last_check;
-          val.metric_id = metric_id;
-          val.status = ss.current_state;
-          val.value = pd.value();
-          {
-            std::lock_guard<std::mutex> lck(_queues_m);
-            _perfdata_queue.push_back(val);
-          }
+          std::string row;
+          if (std::isinf(pd.value()))
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
+                              ss.current_state,
+                              pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
+          else if (std::isnan(pd.value()))
+            row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check,
+                              ss.current_state);
+          else
+            row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
+                              ss.current_state, pd.value());
+          _perfdata.push_query(row);
         }
 
         // Send perfdata event to processing.
@@ -694,7 +715,7 @@ void stream::_unified_sql_process_service_status(
 }
 
 void stream::_update_metrics() {
-  std::unordered_map<int32_t, metric_info*> metrics;
+  std::unordered_map<int32_t, metric_info> metrics;
   {
     std::lock_guard<std::mutex> lck(_queues_m);
     std::swap(_metrics, metrics);
@@ -702,34 +723,34 @@ void stream::_update_metrics() {
 
   std::deque<std::string> m;
   for (auto it = metrics.begin(); it != metrics.end(); ++it) {
-    metric_info* metric = it->second;
+    const metric_info& metric = it->second;
     m.emplace_back(fmt::format(
-        "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric->metric_id,
-        misc::string::escape(metric->unit_name,
+        "({},'{}',{},{},'{}',{},{},'{}',{},{},{})", metric.metric_id,
+        misc::string::escape(metric.unit_name,
                              get_metrics_col_size(metrics_unit_name)),
-        std::isnan(metric->warn) || std::isinf(metric->warn)
+        std::isnan(metric.warn) || std::isinf(metric.warn)
             ? "NULL"
-            : fmt::format("{}", metric->warn),
-        std::isnan(metric->warn_low) || std::isinf(metric->warn_low)
+            : fmt::format("{}", metric.warn),
+        std::isnan(metric.warn_low) || std::isinf(metric.warn_low)
             ? "NULL"
-            : fmt::format("{}", metric->warn_low),
-        metric->warn_mode ? "1" : "0",
-        std::isnan(metric->crit) || std::isinf(metric->crit)
+            : fmt::format("{}", metric.warn_low),
+        metric.warn_mode ? "1" : "0",
+        std::isnan(metric.crit) || std::isinf(metric.crit)
             ? "NULL"
-            : fmt::format("{}", metric->crit),
-        std::isnan(metric->crit_low) || std::isinf(metric->crit_low)
+            : fmt::format("{}", metric.crit),
+        std::isnan(metric.crit_low) || std::isinf(metric.crit_low)
             ? "NULL"
-            : fmt::format("{}", metric->crit_low),
-        metric->crit_mode ? "1" : "0",
-        std::isnan(metric->min) || std::isinf(metric->min)
+            : fmt::format("{}", metric.crit_low),
+        metric.crit_mode ? "1" : "0",
+        std::isnan(metric.min) || std::isinf(metric.min)
             ? "NULL"
-            : fmt::format("{}", metric->min),
-        std::isnan(metric->max) || std::isinf(metric->max)
+            : fmt::format("{}", metric.min),
+        std::isnan(metric.max) || std::isinf(metric.max)
             ? "NULL"
-            : fmt::format("{}", metric->max),
-        std::isnan(metric->value) || std::isinf(metric->value)
+            : fmt::format("{}", metric.max),
+        std::isnan(metric.value) || std::isinf(metric.value)
             ? "NULL"
-            : fmt::format("{}", metric->value)));
+            : fmt::format("{}", metric.value)));
   }
   if (!m.empty()) {
     std::string query(fmt::format(
@@ -746,72 +767,8 @@ void stream::_update_metrics() {
     int32_t conn = _mysql.choose_best_connection(-1);
     _finish_action(-1, actions::metrics);
     log_v2::sql()->trace("Send query: {}", query);
-    _mysql.run_query(query, database::mysql_error::update_metrics, false, conn);
+    _mysql.run_query(query, database::mysql_error::update_metrics, conn);
     _add_action(conn, actions::metrics);
-  }
-}
-
-/**
- *  Insert performance data entries in the data_bin table.
- */
-void stream::_insert_perfdatas() {
-  std::deque<metric_value> pd_queue;
-  {
-    std::lock_guard<std::mutex> lck(_queues_m);
-    std::swap(_perfdata_queue, pd_queue);
-  }
-
-  auto it = pd_queue.begin();
-  if (it != pd_queue.end()) {
-    // Status.
-    //_update_status("status=inserting performance data\n");
-
-    uint32_t count = 0;
-
-    // Insert first entry.
-    std::ostringstream query;
-    {
-      const metric_value& mv = *it;
-      if (std::isinf(mv.value))
-        query << fmt::format(
-            "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES "
-            "({},{},'{}',{})",
-            mv.metric_id, mv.c_time, mv.status,
-            (mv.value < 0.0) ? -FLT_MAX : FLT_MAX);
-      else if (std::isnan(mv.value))
-        query << fmt::format(
-            "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES "
-            "({},{},'{}',NULL)",
-            mv.metric_id, mv.c_time, mv.status);
-      else
-        query << fmt::format(
-            "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES "
-            "({},{},'{}',{})",
-            mv.metric_id, mv.c_time, mv.status, mv.value);
-      ++it;
-      count++;
-    }
-
-    // Insert perfdata in data_bin.
-    for (; it != pd_queue.end(); ++it) {
-      const metric_value& mv = *it;
-      if (std::isinf(mv.value))
-        query << fmt::format(",({},{},'{}',{})", mv.metric_id, mv.c_time,
-                             mv.status, (mv.value < 0.0) ? -FLT_MAX : FLT_MAX);
-      else if (std::isnan(mv.value))
-        query << fmt::format(",({},{},'{}',NULL)", mv.metric_id, mv.c_time,
-                             mv.status);
-      else
-        query << fmt::format(",({},{},'{}',{})", mv.metric_id, mv.c_time,
-                             mv.status, mv.value);
-      count++;
-    }
-
-    // Execute query.
-    _mysql.run_query(query.str(), database::mysql_error::insert_data);
-
-    //_update_status("");
-    log_v2::sql()->info("unified_sql: {} perfdata inserted in data_bin", count);
   }
 }
 
@@ -821,27 +778,98 @@ void stream::_check_queues(asio::error_code ec) {
         "unified_sql: the queues check encountered an error: {}", ec.message());
   else {
     time_t now = time(nullptr);
-    size_t sz_perfdatas;
     size_t sz_metrics;
-    size_t sz_cv, sz_cvs;
-    size_t sz_dt;
-    size_t sz_logs;
     {
       std::lock_guard<std::mutex> lck(_queues_m);
-      sz_perfdatas = _perfdata_queue.size();
       sz_metrics = _metrics.size();
-      sz_cv = _cv_queue.size();
-      sz_cvs = _cvs_queue.size();
-      sz_logs = _log_queue.size();
-      sz_dt = _downtimes_queue.size();
     }
 
     bool perfdata_done = false;
-    if (now >= _next_insert_perfdatas ||
-        sz_perfdatas >= _max_perfdata_queries) {
-      _next_insert_perfdatas = now + queue_timer_duration;
-      _insert_perfdatas();
+    if (_perfdata.ready()) {
+      std::string query = _perfdata.get_query();
+      // Execute query.
+      _mysql.run_query(query, database::mysql_error::insert_data);
+
       perfdata_done = true;
+    }
+
+    bool resources_done = false;
+    if (_bulk_prepared_statement) {
+      _finish_action(-1, actions::host_parents | actions::comments |
+                             actions::downtimes | actions::host_dependencies |
+                             actions::service_dependencies);
+      if (_store_in_hosts_services) {
+        log_v2::sql()->trace(
+            "Check if some statements are ready,  hscr_bind connections count "
+            "= {}",
+            _hscr_bind->connections_count());
+        for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
+             conn++) {
+          if (_hscr_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} hosts rows of host status on connection {}",
+                _hscr_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _hscr_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(
+                *_hscr_update, database::mysql_error::store_host_status, conn);
+            _add_action(conn, actions::hosts);
+          }
+        }
+        log_v2::sql()->trace(
+            "Check if some statements are ready,  sscr_bind connections count "
+            "= {}",
+            _sscr_bind->connections_count());
+        for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
+             conn++) {
+          if (_sscr_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} services rows of service status on connection {}",
+                _sscr_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _sscr_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_sscr_update,
+                                 database::mysql_error::store_service_status,
+                                 conn);
+            _add_action(conn, actions::services);
+          }
+        }
+      }
+      if (_store_in_resources) {
+        for (uint32_t conn = 0;
+             conn < _hscr_resources_bind->connections_count(); conn++) {
+          if (_hscr_resources_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} host rows of resource status on connection {}",
+                _hscr_resources_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _hscr_resources_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_hscr_resources_update,
+                                 database::mysql_error::store_host_status,
+                                 conn);
+            _add_action(conn, actions::resources);
+          }
+        }
+        for (uint32_t conn = 0;
+             conn < _sscr_resources_bind->connections_count(); conn++) {
+          if (_sscr_resources_bind->ready(conn)) {
+            log_v2::sql()->trace(
+                "Sending {} service rows of resource status on connection {}",
+                _sscr_resources_bind->size(conn), conn);
+            // Setting the good bind to the stmt
+            _sscr_resources_bind->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_sscr_resources_update,
+                                 database::mysql_error::store_service_status,
+                                 conn);
+            _add_action(conn, actions::resources);
+          }
+        }
+      }
+      resources_done = true;
     }
 
     bool metrics_done = false;
@@ -852,51 +880,65 @@ void stream::_check_queues(asio::error_code ec) {
     }
 
     bool customvar_done = false;
-    if (now >= _next_update_cv || sz_cv >= _max_cv_queries ||
-        sz_cvs >= _max_cv_queries) {
-      _next_update_cv = now + queue_timer_duration;
-      _update_customvariables();
+    if (_cv.ready()) {
+      log_v2::sql()->debug("{} new custom variables inserted", _cv.size());
+      std::string query = _cv.get_query();
+      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
+      _mysql.run_query(query, database::mysql_error::update_customvariables,
+                       conn);
+      _add_action(conn, actions::custom_variables);
+      customvar_done = true;
+    }
+
+    if (_cvs.ready()) {
+      log_v2::sql()->debug("{} new custom variable status inserted",
+                           _cvs.size());
+      std::string query = _cvs.get_query();
+      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
+      _mysql.run_query(query, database::mysql_error::update_customvariables,
+                       conn);
+      _add_action(conn, actions::custom_variables);
       customvar_done = true;
     }
 
     bool downtimes_done = false;
-    if (now >= _next_update_downtimes || sz_dt >= _max_dt_queries) {
-      _next_update_downtimes = now + dt_queue_timer_duration;
-      _update_downtimes();
+    if (_downtimes.ready()) {
+      log_v2::sql()->debug("{} new downtimes inserted", _downtimes.size());
+      std::string query = _downtimes.get_query();
+      _finish_action(-1, actions::hosts | actions::instances |
+                             actions::downtimes | actions::host_parents |
+                             actions::host_dependencies |
+                             actions::service_dependencies);
+      int32_t conn = special_conn::downtime % _mysql.connections_count();
+      _mysql.run_query(query, database::mysql_error::update_customvariables,
+                       conn);
+      _add_action(conn, actions::downtimes);
       downtimes_done = true;
     }
 
     bool logs_done = false;
-    if (now >= _next_insert_logs || sz_logs >= _max_log_queries) {
-      _next_insert_logs = now + queue_timer_duration;
-      _insert_logs();
+    if (_logs.ready()) {
+      log_v2::sql()->debug("{} new logs inserted", _logs.size());
+      std::string query = _logs.get_query();
+      // Execute query.
+      int32_t conn = special_conn::log % _mysql.connections_count();
+      _mysql.run_query(query, database::mysql_error::update_logs, conn);
       logs_done = true;
     }
 
     // End.
     log_v2::perfdata()->debug(
-        "unified_sql: end check_queue - perfdata: {}, metrics: {}, customvar: "
+        "unified_sql: end check_queue - resources: {}, "
+        "perfdata: {}, metrics: {}, customvar: "
         "{}, logs: {}, downtimes: {}",
-        perfdata_done, metrics_done, customvar_done, logs_done, downtimes_done);
-
-    time_t duration = _next_insert_perfdatas;
-    if (_next_update_metrics < duration)
-      duration = _next_update_metrics;
-    if (_next_update_cv < duration)
-      duration = _next_update_cv;
-    if (_next_insert_logs < duration)
-      duration = _next_insert_logs;
-    if (_next_update_downtimes < duration)
-      duration = _next_update_downtimes;
-
-    duration -= now;
-    if (duration <= 0)
-      duration = 1;
+        resources_done, perfdata_done, metrics_done, customvar_done, logs_done,
+        downtimes_done);
 
     if (!_stop_check_queues) {
-      _timer.expires_after(std::chrono::seconds(duration));
-      _timer.async_wait(
-          std::bind(&stream::_check_queues, this, std::placeholders::_1));
+      std::lock_guard<std::mutex> l(_timer_m);
+      _queues_timer.expires_after(std::chrono::seconds(5));
+      _queues_timer.async_wait(
+          [this](const asio::error_code& err) { _check_queues(err); });
     } else {
       log_v2::sql()->info("SQL: check_queues correctly interrupted.");
       _check_queues_stopped = true;
@@ -904,105 +946,91 @@ void stream::_check_queues(asio::error_code ec) {
     }
   }
 }
+
 /**
  *  Check for deleted index.
  */
-void stream::_check_deleted_index(asio::error_code ec) {
-  if (ec)
-    log_v2::sql()->info(
-        "unified_sql: the check for deleted indices encountered an error: {}",
-        ec.message());
-  else {
-    // Info.
-    log_v2::sql()->info("unified_sql: starting DB cleanup");
-    uint32_t deleted_index(0);
-    uint32_t deleted_metrics(0);
+void stream::_check_deleted_index() {
+  // Info.
+  log_v2::sql()->info("unified_sql: starting DB cleanup");
 
-    // Fetch next index to delete.
-    {
-      std::promise<database::mysql_result> promise;
-      std::future<database::mysql_result> future = promise.get_future();
-      int32_t conn = _mysql.choose_best_connection(-1);
-      std::set<uint64_t> index_to_delete;
-      std::set<uint64_t> metrics_to_delete;
-      try {
-        _mysql.run_query_and_get_result(
-            "SELECT m.index_id,m.metric_id, m.metric_name, i.host_id, "
-            "i.service_id FROM metrics m LEFT JOIN index_data i ON "
-            "i.id=m.index_id WHERE i.to_delete=1",
-            std::move(promise), conn);
-        database::mysql_result res(future.get());
+  std::promise<database::mysql_result> promise;
+  std::future<database::mysql_result> future = promise.get_future();
+  int32_t conn = _mysql.choose_best_connection(-1);
+  std::set<uint64_t> index_to_delete;
+  std::set<uint64_t> metrics_to_delete;
+  try {
+    _mysql.run_query_and_get_result(
+        "SELECT id FROM index_data WHERE to_delete=1", std::move(promise),
+        conn);
+    database::mysql_result res(future.get());
 
-        std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
-        while (_mysql.fetch_row(res)) {
-          index_to_delete.insert(res.value_as_u64(0));
-          metrics_to_delete.insert(res.value_as_u64(1));
-          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
-          _index_cache.erase({res.value_as_u32(3), res.value_as_u32(4)});
-        }
-        std::promise<database::mysql_result> promise_metrics;
-        std::future<database::mysql_result> future_metrics =
-            promise_metrics.get_future();
-        _mysql.run_query_and_get_result(
-            "SELECT metric_id, metric_name FROM metrics WHERE to_delete=1",
-            std::move(promise_metrics), conn);
-        res = future_metrics.get();
-
-        while (_mysql.fetch_row(res)) {
-          metrics_to_delete.insert(res.value_as_u64(0));
-          _metric_cache.erase({res.value_as_u64(0), res.value_as_str(1)});
-        }
-      } catch (const std::exception& e) {
-        log_v2::sql()->error(
-            "could not query index / metrics table(s) to get index to delete: "
-            "{} ",
-            e.what());
-      }
-
-      // Delete metrics.
-
-      std::string query;
-      std::string err_msg;
-      for (int64_t i : metrics_to_delete) {
-        query = fmt::format("DELETE FROM metrics WHERE metric_id={}", i);
-        _mysql.run_query(query, database::mysql_error::delete_metric, false,
-                         conn);
-        _add_action(conn, actions::metrics);
-
-        // Remove associated graph.
-        std::shared_ptr<storage::remove_graph> rg{
-            std::make_shared<storage::remove_graph>(i, false)};
-        multiplexing::publisher().write(rg);
-
-        {
-          std::lock_guard<std::mutex> lck(_queues_m);
-          _metrics.erase(i);
-        }
-        log_v2::perfdata()->debug("metrics erasing metric_id = {}", i);
-        deleted_metrics++;
-      }
-
-      // Delete index from DB.
-      for (int64_t i : index_to_delete) {
-        query = fmt::format("DELETE FROM index_data WHERE id={}", i);
-        _mysql.run_query(query, database::mysql_error::delete_index, false,
-                         conn);
-        _add_action(conn, actions::index_data);
-
-        // Remove associated graph.
-        std::shared_ptr<storage::remove_graph> rg{
-            std::make_shared<storage::remove_graph>(i, true)};
-        multiplexing::publisher().write(rg);
-        deleted_index++;
-      }
+    while (_mysql.fetch_row(res)) {
+      index_to_delete.insert(res.value_as_u64(0));
     }
 
-    // End.
-    log_v2::perfdata()->info(
-        "unified_sql: end of DB cleanup: {} metrics and {} indices removed",
-        deleted_metrics, deleted_index);
-    _timer.expires_after(std::chrono::minutes(5));
-    _timer.async_wait(
-        std::bind(&stream::_check_deleted_index, this, std::placeholders::_1));
+    std::promise<database::mysql_result> promise_metrics;
+    std::future<database::mysql_result> future_metrics =
+        promise_metrics.get_future();
+    _mysql.run_query_and_get_result(
+        "SELECT metric_id FROM metrics WHERE to_delete=1",
+        std::move(promise_metrics), conn);
+    res = future_metrics.get();
+
+    while (_mysql.fetch_row(res)) {
+      metrics_to_delete.insert(res.value_as_u64(0));
+    }
+  } catch (const std::exception& e) {
+    log_v2::sql()->error(
+        "could not query index / metrics table(s) to get index to delete: "
+        "{} ",
+        e.what());
+  }
+
+  log_v2::sql()->info("Something to remove?");
+  if (!metrics_to_delete.empty() || !index_to_delete.empty()) {
+    log_v2::sql()->info("YES!!!");
+    auto rg = std::make_shared<bbdo::pb_remove_graphs>();
+    auto& obj = rg->mut_obj();
+    for (auto& m : metrics_to_delete)
+      obj.add_metric_ids(m);
+    for (auto& i : index_to_delete)
+      obj.add_index_ids(i);
+    remove_graphs(rg);
+  }
+}
+
+/**
+ *  Check for indexes to rebuild.
+ */
+void stream::_check_rebuild_index() {
+  // Fetch next index to delete.
+  std::promise<database::mysql_result> promise;
+  std::future<database::mysql_result> future = promise.get_future();
+  int32_t conn = _mysql.choose_best_connection(-1);
+  std::set<uint64_t> index_to_rebuild;
+  try {
+    _mysql.run_query_and_get_result(
+        "SELECT id FROM index_data WHERE must_be_rebuild='1'",
+        std::move(promise), conn);
+    database::mysql_result res(future.get());
+
+    while (_mysql.fetch_row(res)) {
+      index_to_rebuild.insert(res.value_as_u64(0));
+    }
+
+  } catch (const std::exception& e) {
+    log_v2::sql()->error(
+        "could not query indexes table to get indexes to delete: {}", e.what());
+  }
+
+  log_v2::sql()->info("Something to rebuild?");
+  if (!index_to_rebuild.empty()) {
+    log_v2::sql()->info("YES!!!");
+    auto rg = std::make_shared<bbdo::pb_rebuild_graphs>();
+    auto& obj = rg->mut_obj();
+    for (auto& i : index_to_rebuild)
+      obj.add_index_ids(i);
+    _rebuilder.rebuild_graphs(rg);
   }
 }

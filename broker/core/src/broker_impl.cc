@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -238,7 +238,7 @@ grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
                                            ::google::protobuf::Empty* response
                                            __attribute__((unused))) {
   multiplexing::publisher pblshr;
-  auto e{std::make_shared<bbdo::pb_rebuild_rrd_graphs>(*request)};
+  auto e{std::make_shared<bbdo::pb_rebuild_graphs>(*request)};
   pblshr.write(e);
   return grpc::Status::OK;
 }
@@ -259,5 +259,82 @@ grpc::Status broker_impl::GetProcessingStats(
     const ::google::protobuf::Empty* request __attribute__((unused)),
     ::ProcessingStats* response) {
   stats::center::instance().get_processing_stats(response);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
+                                       __attribute__((unused)),
+                                       const GenericNameOrIndex* request,
+                                       ::google::protobuf::Empty*) {
+  log_v2::core()->info("Remove poller...");
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
+  pblshr.write(e);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const GenericString* request,
+                                     LogInfo* response) {
+  auto& name{request->str_arg()};
+  auto& map = *response->mutable_level();
+  auto lvs = log_v2::instance()->levels();
+  response->set_log_name(log_v2::instance()->log_name());
+  response->set_log_file(log_v2::instance()->file_path());
+  response->set_log_flush_period(
+      log_v2::instance()->get_flush_interval().count());
+  if (!name.empty()) {
+    auto found = std::find_if(lvs.begin(), lvs.end(),
+                              [&name](std::pair<std::string, std::string>& p) {
+                                return p.first == name;
+                              });
+    if (found != lvs.end()) {
+      map[name] = std::move(found->second);
+      return grpc::Status::OK;
+    } else {
+      std::string msg{fmt::format("'{}' is not a logger in broker", name)};
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, msg);
+    }
+  } else {
+    for (auto& p : lvs)
+      map[p.first] = p.second;
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  const std::string& logger_name{request->logger()};
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
+  if (!logger) {
+    std::string err_detail =
+        fmt::format("The '{}' logger does not exist", logger_name);
+    SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  bool done = false;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    if (!done) {
+      std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
+          std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(
+              logger);
+      if (logger_base) {
+        logger_base->get_parent()->set_flush_interval(request->period());
+        done = true;
+      }
+    }
+  });
   return grpc::Status::OK;
 }

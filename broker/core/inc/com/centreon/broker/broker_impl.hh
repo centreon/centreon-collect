@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,13 +28,16 @@
 CCB_BEGIN()
 
 /**
- * Here is a declaration of pb_rebuild_rrd_graphs which is a bbdo event we use
+ * Here is a declaration of pb_rebuild_graphs which is a bbdo event we use
  * to ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */
 namespace bbdo {
-using pb_rebuild_rrd_graphs =
-    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs)>;
+using pb_rebuild_graphs =
+    io::protobuf<IndexIds, make_type(io::bbdo, bbdo::de_rebuild_graphs)>;
 using pb_remove_graphs =
     io::protobuf<ToRemove, make_type(io::bbdo, bbdo::de_remove_graphs)>;
+using pb_remove_poller =
+    io::protobuf<GenericNameOrIndex,
+                 make_type(io::bbdo, bbdo::de_remove_poller)>;
 }  // namespace bbdo
 
 class broker_impl final : public Broker::Service {
@@ -87,6 +90,21 @@ class broker_impl final : public Broker::Service {
                                   const ::google::protobuf::Empty* request
                                   __attribute__((unused)),
                                   ProcessingStats* response) override;
+  grpc::Status RemovePoller(grpc::ServerContext* context
+                            __attribute__((unused)),
+                            const GenericNameOrIndex* request,
+                            ::google::protobuf::Empty* response) override;
+  grpc::Status GetLogInfo(grpc::ServerContext* context [[maybe_unused]],
+                          const GenericString* request,
+                          LogInfo* response) override;
+
+  grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
+                           const LogLevel* request,
+                           ::google::protobuf::Empty*) override;
+
+  grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
+                                 const LogFlushPeriod* request,
+                                 ::google::protobuf::Empty*) override;
 
  public:
   void set_broker_name(const std::string& s);
