@@ -27,11 +27,26 @@ namespace database {
 
 /**
  * @brief this class used as a data provider is the data provider of
- * multi_insert_class it embeds two things: data and code to bind data to the
+ * multi_insert_class.
+ * It embeds two things: data and code to bind data to the
  * statement example of implementation:
  * @code {.c++}
- * TODO
- * code
+ *   struct row {
+ *    using pointer = std::shared_ptr<row>;
+ *    std::string name;
+ *    double value;
+ *  };
+ *
+ *  struct row_filler : public database::row_filler {
+ *    row::pointer data;
+ *    row_filler(const row::pointer& dt) : data(dt) {}
+ *
+ *    inline void fill_value(unsigned stmt_first_column,
+ *                           mysql_stmt& to_bind) const override {
+ *      to_bind.bind_value_as_str(stmt_first_column++, data->name);
+ *      to_bind.bind_value_as_f64(stmt_first_column++, data->value);
+ *    }
+ *  };
  * @endcode
  *
  *
@@ -59,6 +74,9 @@ class mysql_multi_insert {
         _nb_column(nb_column),
         _on_duplicate_key_part(on_duplicate_key_part) {}
 
+  mysql_multi_insert(const mysql_multi_insert&) = delete;
+  mysql_multi_insert& operator=(const mysql_multi_insert&) = delete;
+
   /**
    * @brief push data into the request
    * data will be bound to query during push_request call
@@ -69,9 +87,7 @@ class mysql_multi_insert {
     _rows.emplace_back(std::move(data));
   }
 
-  unsigned push_stmt(mysql& pool,
-                     std::promise<void>&& prom,
-                     int thread_id = -1) const;
+  unsigned push_stmt(mysql& pool, int thread_id = -1) const;
 };
 
 }  // namespace database

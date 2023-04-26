@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
+#include "com/centreon/broker/database/mysql_multi_insert.hh"
 
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
@@ -2045,4 +2046,171 @@ TEST_F(DatabaseStorageTest, BulkStatementsWithBooleanValues) {
     ASSERT_NE(res.value_as_bool(2), res.value_as_bool(3));
   }
   ASSERT_TRUE(inside1);
+}
+
+TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms{std::make_unique<mysql>(db_cfg)};
+  std::string query1{"DROP TABLE IF EXISTS ut_test"};
+  std::string query2{
+      "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
+      "PRIMARY KEY, name VARCHAR(1000), value DOUBLE, t TINYINT, e "
+      "enum('a', "
+      "'b', 'c') DEFAULT 'a', i INT, u INT UNSIGNED)"};
+  ms->run_query(query1);
+  ms->commit();
+  ms->run_query(query2);
+  ms->commit();
+
+  struct row {
+    using pointer = std::shared_ptr<row>;
+    uint64_t id;
+    std::string name;
+    double value;
+    char t;
+    std::string e;
+    int i;
+    unsigned u;
+  };
+
+  struct row_filler : public database::row_filler {
+    row::pointer data;
+
+    row_filler(const row::pointer& dt) : data(dt) {}
+
+    inline void fill_value(unsigned stmt_first_column,
+                           mysql_stmt& to_bind) const override {
+      to_bind.bind_value_as_str(stmt_first_column++, data->name);
+      to_bind.bind_value_as_f64(stmt_first_column++, data->value);
+      to_bind.bind_value_as_tiny(stmt_first_column++, data->t);
+      to_bind.bind_value_as_str(stmt_first_column++, data->e);
+      to_bind.bind_value_as_i32(stmt_first_column++, data->i);
+      to_bind.bind_value_as_u32(stmt_first_column, data->u);
+    }
+  };
+
+  //------------------------ insert test
+
+  database::mysql_multi_insert inserter(
+      "INSERT INTO ut_test (name, value, t, e, i, u) VALUES", 6, "");
+
+  unsigned data_index;
+
+  for (data_index = 0; data_index < 1000000; ++data_index) {
+    row::pointer to_insert = std::make_shared<row>();
+    to_insert->name = fmt::format("name_{}", data_index);
+    to_insert->value = double(data_index) / 10;
+    to_insert->t = data_index;
+    to_insert->e = 'a' + data_index % 3;
+    to_insert->i = data_index;
+    to_insert->u = data_index + 1;
+    inserter.push(std::make_unique<row_filler>(to_insert));
+  }
+
+  std::chrono::system_clock::time_point start_insert =
+      std::chrono::system_clock::now();
+  unsigned nb_request = inserter.push_stmt(*ms, 0);
+  ms->commit();
+  std::chrono::system_clock::time_point end_insert =
+      std::chrono::system_clock::now();
+  SPDLOG_LOGGER_INFO(log_v2::sql(),
+                     " insert {} rows in {} requests duration: {} seconds",
+                     data_index, nb_request,
+                     std::chrono::duration_cast<std::chrono::seconds>(
+                         end_insert - start_insert)
+                         .count());
+
+  std::promise<mysql_result> select_prom;
+  std::future<mysql_result> select_fut = select_prom.get_future();
+  ms->run_query_and_get_result("SELECT id, name, value, t,e,i,u FROM ut_test",
+                               std::move(select_prom));
+  mysql_result select_res = select_fut.get();
+
+  ASSERT_EQ(select_res.get_rows_count(), 1000000);
+  for (data_index = 0; data_index < 1000000; ++data_index) {
+    ms->fetch_row(select_res);
+    uint64_t select_au = select_res.value_as_u64(0);
+    std::string name = select_res.value_as_str(1);
+    ASSERT_EQ(name, fmt::format("name_{}", select_au - 1));
+    double value = select_res.value_as_f64(2);
+    ASSERT_EQ(value, double(select_au - 1) / 10);
+    std::string e = select_res.value_as_str(4);
+    ASSERT_EQ('a' + (select_au - 1) % 3, e[0]);
+    int i = select_res.value_as_i64(5);
+    ASSERT_EQ(select_au, i + 1);
+    unsigned u = select_res.value_as_u64(6);
+    ASSERT_EQ(select_au, u);
+  }
+
+  //-------------- insert or update test
+  struct row_filler2 : public database::row_filler {
+    row::pointer data;
+
+    row_filler2(const row::pointer& dt) : data(dt) {}
+
+    inline void fill_value(unsigned stmt_first_column,
+                           mysql_stmt& to_bind) const override {
+      to_bind.bind_value_as_u64(stmt_first_column++, data->id);
+      to_bind.bind_value_as_str(stmt_first_column++, data->name);
+      to_bind.bind_value_as_f64(stmt_first_column++, data->value);
+      to_bind.bind_value_as_tiny(stmt_first_column++, data->t);
+      to_bind.bind_value_as_str(stmt_first_column++, data->e);
+      to_bind.bind_value_as_i32(stmt_first_column++, data->i);
+      to_bind.bind_value_as_u32(stmt_first_column, data->u);
+    }
+  };
+
+  database::mysql_multi_insert inserter2(
+      "INSERT INTO ut_test (id, name, value, t, e, i, u) VALUES", 7,
+      "ON DUPLICATE KEY UPDATE u = VALUES(u)");
+
+  for (data_index = 0; data_index < 1000000; ++data_index) {
+    row::pointer to_insert = std::make_shared<row>();
+    to_insert->id = data_index + 10;
+    to_insert->name = fmt::format("name_{}", to_insert->id);
+    to_insert->value = double(to_insert->id) / 10;
+    to_insert->t = to_insert->id;
+    to_insert->e = 'a' + to_insert->id % 3;
+    to_insert->i = to_insert->id;
+    to_insert->u = to_insert->id - 10;
+    inserter2.push(std::make_unique<row_filler2>(to_insert));
+  }
+
+  start_insert = std::chrono::system_clock::now();
+  nb_request = inserter2.push_stmt(*ms, 0);
+  ms->commit();
+  end_insert = std::chrono::system_clock::now();
+  SPDLOG_LOGGER_INFO(log_v2::sql(),
+                     " insert {} rows in {} requests duration: {} seconds",
+                     data_index, nb_request,
+                     std::chrono::duration_cast<std::chrono::seconds>(
+                         end_insert - start_insert)
+                         .count());
+
+  std::promise<mysql_result> select_prom2;
+  std::future<mysql_result> select_fut2 = select_prom2.get_future();
+  ms->run_query_and_get_result("SELECT id, name, value, t,e,i,u FROM ut_test",
+                               std::move(select_prom2));
+  select_res = select_fut2.get();
+
+  ASSERT_EQ(select_res.get_rows_count(), 1000009);
+  for (data_index = 0; data_index < 1000000; ++data_index) {
+    ms->fetch_row(select_res);
+    uint64_t select_au = select_res.value_as_u64(0);
+    std::string name = select_res.value_as_str(1);
+    ASSERT_EQ(name, fmt::format("name_{}", select_au - 1));
+    double value = select_res.value_as_f64(2);
+    ASSERT_EQ(value, double(select_au - 1) / 10);
+    std::string e = select_res.value_as_str(4);
+    ASSERT_EQ('a' + (select_au - 1) % 3, e[0]);
+    int i = select_res.value_as_i64(5);
+    ASSERT_EQ(select_au, i + 1);
+    unsigned u = select_res.value_as_u64(6);
+    if (select_au < 10) {
+      ASSERT_EQ(select_au, u);
+    } else {
+      ASSERT_EQ(select_au, u + 10);
+    }
+  }
 }

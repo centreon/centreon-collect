@@ -24,9 +24,7 @@ using namespace com::centreon::broker::database;
 
 constexpr unsigned max_query_total_length = 1024 * 1024;
 
-unsigned mysql_multi_insert::push_stmt(mysql& pool,
-                                       std::promise<void>&& prom,
-                                       int thread_id) const {
+unsigned mysql_multi_insert::push_stmt(mysql& pool, int thread_id) const {
   unsigned row_index;
 
   // compute (?,?,...) per row
@@ -43,9 +41,14 @@ unsigned mysql_multi_insert::push_stmt(mysql& pool,
   row_values.push_back(')');
 
   size_t remain = _rows.size();
-  size_t fixed_part_length = _query.length() + _on_duplicate_key_part.length();
+  size_t fixed_part_length =
+      _query.length() + _on_duplicate_key_part.length() + 2 /*spaces*/;
   size_t max_rows_per_query = (max_query_total_length - fixed_part_length) /
                               (row_values.length() + 2);  // add ,\n
+  // mariadb limit of place holders
+  if (max_rows_per_query * _nb_column > 65535) {
+    max_rows_per_query = 65535 / _nb_column;
+  }
   if (max_rows_per_query > remain) {
     max_rows_per_query = remain;
   }
@@ -69,22 +72,27 @@ unsigned mysql_multi_insert::push_stmt(mysql& pool,
 
   // construction of the first string query
   query = _query;
+  query.push_back(' ');
   query += max_query_values_part;
+  query.push_back(' ');
   query += _on_duplicate_key_part;
 
   std::list<database::mysql_stmt> statements;
   std::list<std::future<unsigned>> to_wait;
-  unsigned bind_first_column_index = 0;
   for (auto row_iter = _rows.begin(); row_iter != _rows.end();) {
     unsigned nb_row_to_bind =
         remain < max_rows_per_query ? remain : max_rows_per_query;
-    if (remain <
+    if (nb_row_to_bind <
         max_rows_per_query) {  // next query shorter than first one => compute
       query = _query;
+      query.push_back(' ');
       compute_value_part(query, remain);
+      query.push_back(' ');
       query += _on_duplicate_key_part;
     }
 
+    remain -= nb_row_to_bind;
+    unsigned bind_first_column_index = 0;
     statements.emplace_back(query);
 
     database::mysql_stmt& last = *statements.rbegin();
