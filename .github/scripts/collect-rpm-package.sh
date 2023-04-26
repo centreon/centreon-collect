@@ -17,6 +17,6 @@ tar czf ~/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
 
 cp packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh ~/rpmbuild/SOURCES/
 
-rpmbuild -ba packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE"
+rpmbuild -ba packaging/rpm/centreon-collect.spec -D "VERSION $VERSION" -D "RELEASE $RELEASE" -D "COMMIT_HASH $COMMIT_HASH"
 
 cp -r ~/rpmbuild/RPMS/x86_64/*.rpm .
