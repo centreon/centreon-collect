@@ -188,28 +188,9 @@ stream::stream(const database_config& dbcfg,
   _state = running;
   _action.resize(_mysql.connections_count());
 
-  const char* version = _mysql.get_server_version();
-  std::vector<absl::string_view> v =
-      absl::StrSplit(version, absl::ByAnyChar(".-"));
-  if (v.size() >= 4) {
-    int32_t major;
-    int32_t minor;
-    int32_t patch;
-    absl::string_view server = v[3];
-    if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
-        absl::SimpleAtoi(v[2], &patch)) {
-      log_v2::sql()->info(
-          "Unified sql stream connected to '{}' Server, version {}.{}.{}",
-          fmt::string_view(server.data(), server.size()), major, minor, patch);
-      if (server == "MariaDB" && (major > 10 || (major == 10 && minor >= 2))) {
-        log_v2::sql()->info(
-            "Unified sql stream supports column-wise binding in prepared "
-            "statements");
-        _bulk_prepared_statement = true;
-      }
-    }
-  } else
-    log_v2::sql()->info("Unified sql stream connected to '{}' Server", version);
+  _bulk_prepared_statement = _mysql.support_bulk_statement();
+  log_v2::sql()->info("Unified sql stream connected to '{}' Server",
+                      _mysql.get_server_version());
 
   try {
     _init_statements();

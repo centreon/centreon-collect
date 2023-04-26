@@ -21,6 +21,10 @@
 
 #include <absl/hash/hash.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
+#include "com/centreon/broker/database/mysql_bulk_bind.hh"
+#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
+#include "com/centreon/broker/database/mysql_multi_insert.hh"
+#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
@@ -70,8 +74,11 @@ class monitoring_stream : public io::stream {
   ba_svc_mapping _ba_mapping;
   mutable std::mutex _statusm;
   mysql _mysql;
-  database::mysql_stmt _ba_update;
-  database::mysql_stmt _kpi_update;
+  unsigned _conf_queries_per_transaction;
+  std::unique_ptr<database::mysql_bulk_stmt> _ba_update;
+  std::unique_ptr<database::mysql_bulk_bind> _ba_bind;
+  std::unique_ptr<database::mysql_bulk_stmt> _kpi_update;
+  std::unique_ptr<database::mysql_bulk_bind> _kpi_bind;
   int32_t _pending_events;
   unsigned _pending_request;
   database_config _storage_db_cfg;
@@ -110,6 +117,22 @@ class monitoring_stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override final;
   int write(std::shared_ptr<io::data> const& d) override;
+
+ private:
+  void _prepare();
+  void _rebuild();
+  void _update_status(std::string const& status);
+  void _write_external_command(std::string& cmd);
+
+  void _read_cache();
+  void _write_cache();
+  void _commit();
+
+  void _bulk_kpi_status(const std::shared_ptr<io::data>& event);
+  void _bulk_ba_status(const std::shared_ptr<io::data>& event);
+
+  void _multi_insert_kpi_status(const std::shared_ptr<io::data>& event);
+  void _multi_insert_ba_status(const std::shared_ptr<io::data>& event);
 };
 }  // namespace bam
 

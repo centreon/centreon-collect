@@ -1365,7 +1365,7 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
   auto ms{std::make_unique<mysql>(db_cfg)};
-  const char* version = ms->get_server_version();
+  std::string version = ms->get_server_version();
   std::vector<absl::string_view> arr =
       absl::StrSplit(version, absl::ByAnyChar(".-"));
   ASSERT_TRUE(arr.size() >= 4u);
@@ -1376,8 +1376,7 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
   EXPECT_TRUE(absl::SimpleAtoi(arr[1], &minor));
   EXPECT_TRUE(absl::SimpleAtoi(arr[2], &patch));
   absl::string_view server_name(arr[3]);
-  ASSERT_EQ(server_name, "MariaDB");
-  if (major >= 10 || (major == 10 && minor >= 2)) {
+  if (ms->support_bulk_statement()) {
     std::string query1{"DROP TABLE IF EXISTS ut_test"};
     std::string query2{
         "CREATE TABLE ut_test (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT "
@@ -1435,19 +1434,7 @@ TEST_F(DatabaseStorageTest, UpdateBulkStatement) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
   auto ms{std::make_unique<mysql>(db_cfg)};
-  const char* version = ms->get_server_version();
-  std::vector<absl::string_view> arr =
-      absl::StrSplit(version, absl::ByAnyChar(".-"));
-  ASSERT_TRUE(arr.size() >= 4u);
-  uint32_t major;
-  uint32_t minor;
-  uint32_t patch;
-  EXPECT_TRUE(absl::SimpleAtoi(arr[0], &major));
-  EXPECT_TRUE(absl::SimpleAtoi(arr[1], &minor));
-  EXPECT_TRUE(absl::SimpleAtoi(arr[2], &patch));
-  absl::string_view server_name(arr[3]);
-  if (server_name == "MariaDB" &&
-      (major >= 10 || (major == 10 && minor >= 2))) {
+  if (ms->support_bulk_statement()) {
     std::string query{
         "UPDATE ut_test SET value=?, warn=?, crit=?, metric=?, hidden=? WHERE "
         "unit_name=?"};
@@ -1552,19 +1539,7 @@ TEST_F(DatabaseStorageTest, BulkStatementWithNullStr) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
                          "centreon", "centreon_storage", 5, true, 5);
   auto ms{std::make_unique<mysql>(db_cfg)};
-  const char* version = ms->get_server_version();
-  std::vector<absl::string_view> arr =
-      absl::StrSplit(version, absl::ByAnyChar(".-"));
-  ASSERT_TRUE(arr.size() >= 4u);
-  uint32_t major;
-  uint32_t minor;
-  uint32_t patch;
-  EXPECT_TRUE(absl::SimpleAtoi(arr[0], &major));
-  EXPECT_TRUE(absl::SimpleAtoi(arr[1], &minor));
-  EXPECT_TRUE(absl::SimpleAtoi(arr[2], &patch));
-  absl::string_view server_name(arr[3]);
-  ASSERT_EQ(server_name, "MariaDB");
-  if (major >= 10 || (major == 10 && minor >= 2)) {
+  if (ms->support_bulk_statement()) {
     std::string query1{"DROP TABLE IF EXISTS ut_test"};
     std::string query2{
         "CREATE TABLE ut_test (id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT "

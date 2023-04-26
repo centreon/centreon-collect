@@ -97,11 +97,14 @@ class mysql {
   int choose_connection_by_instance(int instance_id) const;
   int choose_best_connection(int32_t type);
   const database_config& get_config() const;
-  const char* get_server_version();
+  const std::string& get_server_version() { return _server_version; }
+
+  bool support_bulk_statement() const { return _support_bulk_statement; }
 
  private:
   static void _initialize_mysql();
   void _check_errors();
+  void _get_server_infos();
 
   static std::atomic_int _count_ref;
 
@@ -111,6 +114,8 @@ class mysql {
   std::vector<std::shared_ptr<mysql_connection>> _connection;
   int _current_connection;
   std::unordered_map<std::string, int> _connection_by_name;
+  std::string _server_version;
+  bool _support_bulk_statement;
 };
 
 CCB_END()

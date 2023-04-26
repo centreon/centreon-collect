@@ -48,6 +48,18 @@ using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
 
 /**
+ * @brief as we use bulk queries, we work in autocommit
+ *
+ * @param cfg
+ * @return database_config
+ */
+static database_config auto_commit_conf(const database_config& cfg) {
+  database_config ret(cfg);
+  ret.set_queries_per_transaction(0);
+  return ret;
+}
+
+/**
  *  Constructor.
  *
  *  @param[in] ext_cmd_file    The command file to write into.
@@ -62,7 +74,8 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
                                      std::shared_ptr<persistent_cache> cache)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
-      _mysql(db_cfg),
+      _mysql(auto_commit_conf(db_cfg)),
+      _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
@@ -99,7 +112,7 @@ monitoring_stream::~monitoring_stream() {
  *  @return Number of acknowledged events.
  */
 int32_t monitoring_stream::flush() {
-  _mysql.commit();
+  _commit();
   _pending_request = 0;
   int retval = _pending_events;
   SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream flush: {} events",
@@ -204,7 +217,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     if (_mysql.get_config().get_queries_per_transaction() > 0) {
       if (_pending_request >=
           _mysql.get_config().get_queries_per_transaction()) {
-        _mysql.commit();
+        _commit();
         _pending_request = 0;
       }
     } else {  // auto commit => nothing to do
@@ -309,6 +322,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       ev_cache.commit_to(pblshr);
     } break;
     case bam::ba_status::static_type(): {
+<<<<<<< HEAD
       ba_status* status(static_cast<ba_status*>(data.get()));
       SPDLOG_LOGGER_TRACE(
           log_v2::bam(),
@@ -328,9 +342,18 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _ba_update.bind_value_as_i32(5, status->state);
 
       _mysql.run_statement(_ba_update, database::mysql_error::update_ba);
+=======
+      if (_mysql.support_bulk_statement()) {
+        _bulk_ba_status(data);
+      } else {
+        _multi_insert_ba_status(data);
+      }
+
+>>>>>>> 596e9e4dd... MON-16634 monitoring stream uses bulk update
       ++_pending_request;
       commit_if_needed();
 
+      ba_status* status(static_cast<ba_status*>(data.get()));
       if (status->state_changed) {
         std::pair<std::string, std::string> ba_svc_name(
             _ba_mapping.get_service(status->ba_id));
@@ -392,32 +415,13 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       }
     } break;
     case bam::kpi_status::static_type(): {
-      kpi_status* status(static_cast<kpi_status*>(data.get()));
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::bam(),
-          "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
-          "downtime {})",
-          status->kpi_id, status->level_nominal_hard,
-          status->level_acknowledgement_hard, status->level_downtime_hard);
-
-      _kpi_update.bind_value_as_f64(0, status->level_acknowledgement_hard);
-      _kpi_update.bind_value_as_i32(1, status->state_hard);
-      _kpi_update.bind_value_as_f64(2, status->level_downtime_hard);
-      _kpi_update.bind_value_as_f64(3, status->level_nominal_hard);
-      _kpi_update.bind_value_as_i32(4, 1 + 1);
-      if (status->last_state_change.is_null())
-        _kpi_update.bind_null_u64(5);
-      else
-        _kpi_update.bind_value_as_u64(5,
-                                      status->last_state_change.get_time_t());
-      _kpi_update.bind_value_as_f64(6, status->last_impact);
-      _kpi_update.bind_value_as_bool(7, status->valid);
-      _kpi_update.bind_value_as_bool(8, status->in_downtime);
-      _kpi_update.bind_value_as_u32(9, status->kpi_id);
-
-      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi);
+      if (_mysql.support_bulk_statement()) {
+        _bulk_kpi_status(data);
+      } else {
+        _multi_insert_kpi_status(data);
+      }
       ++_pending_request;
-      commit_if_needed();
+      to do or not
 
     } break;
     case bam::pb_kpi_status::static_type(): {
@@ -430,22 +434,26 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
           status.kpi_id(), status.level_nominal_hard(),
           status.level_acknowledgement_hard(), status.level_downtime_hard());
 
-      _kpi_update.bind_value_as_f64(0, status.level_acknowledgement_hard());
-      _kpi_update.bind_value_as_i32(1, status.state_hard());
-      _kpi_update.bind_value_as_f64(2, status.level_downtime_hard());
-      _kpi_update.bind_value_as_f64(3, status.level_nominal_hard());
-      _kpi_update.bind_value_as_i32(4, 1 + 1);
-      if (status.last_state_change() <= 0)
-        _kpi_update.bind_null_u64(5);
-      else
-        _kpi_update.bind_value_as_u64(5, status.last_state_change());
-      _kpi_update.bind_value_as_f64(6, status.last_impact());
-      _kpi_update.bind_value_as_bool(7, status.valid());
-      _kpi_update.bind_value_as_bool(8, status.in_downtime());
-      _kpi_update.bind_value_as_u32(9, status.kpi_id());
+      TODO
 
-      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi);
-      ++_pending_request;
+          // _kpi_update.bind_value_as_f64(0,
+          // status.level_acknowledgement_hard());
+          // _kpi_update.bind_value_as_i32(1, status.state_hard());
+          // _kpi_update.bind_value_as_f64(2, status.level_downtime_hard());
+          // _kpi_update.bind_value_as_f64(3, status.level_nominal_hard());
+          // _kpi_update.bind_value_as_i32(4, 1 + 1);
+          // if (status.last_state_change() <= 0)
+          //   _kpi_update.bind_null_u64(5);
+          // else
+          //   _kpi_update.bind_value_as_u64(5, status.last_state_change());
+          // _kpi_update.bind_value_as_f64(6, status.last_impact());
+          // _kpi_update.bind_value_as_bool(7, status.valid());
+          // _kpi_update.bind_value_as_bool(8, status.in_downtime());
+          // _kpi_update.bind_value_as_u32(9, status.kpi_id());
+
+          // _mysql.run_statement(_kpi_update,
+          // database::mysql_error::update_kpi);
+          ++ _pending_request;
       commit_if_needed();
 
     } break;
@@ -529,27 +537,39 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
  *  Prepare queries.
  */
 void monitoring_stream::_prepare() {
+<<<<<<< HEAD
   SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring stream _prepare");
   // BA status.
   {
+=======
+  if (_mysql.support_bulk_statement()) {
+    log_v2::bam()->trace("BAM: monitoring stream _prepare");
+    // BA status.
+>>>>>>> 596e9e4dd... MON-16634 monitoring stream uses bulk update
     std::string query(
         "UPDATE mod_bam SET current_level=?,acknowledged=?,downtime=?,"
         "last_state_change=?,in_downtime=?,current_status=? WHERE ba_id=?");
-    _ba_update = _mysql.prepare_query(query);
-  }
-
-  // KPI status.
-  {
-    std::string query(
+    _ba_update = std::make_unique<database::mysql_bulk_stmt>(query);
+    _mysql.prepare_statement(*_ba_update);
+    _ba_bind = _ba_update->create_bind();
+    _ba_bind->reserve(_conf_queries_per_transaction);
+    // KPI status.
+    query =
         "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,"
         "downtime=?, last_level=?,state_type=?,last_state_change=?,"
-        "last_impact=?, valid=?,in_downtime=? WHERE kpi_id=?");
-    _kpi_update = _mysql.prepare_query(query);
+        "last_impact=?, valid=?,in_downtime=? WHERE kpi_id=?";
+    _kpi_update = std::make_unique<database::mysql_bulk_stmt>(query);
+    _mysql.prepare_statement(*_kpi_update);
+    _kpi_bind = _kpi_update->create_bind();
+    _kpi_bind->reserve(_conf_queries_per_transaction);
+  }
+  else {
+    log_v2::bam()->trace("BAM: monitoring stream no bulk support");
   }
 }
 
 /**
- *  Rebuilds BA durations/availibities from BA events.
+ *  Rebuilds BA durations/availabilities from BA events.
  */
 void monitoring_stream::_rebuild() {
   SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring stream _rebuild");
@@ -699,3 +719,71 @@ void monitoring_stream::_write_cache() {
     _applier.save_to_cache(*_cache);
   }
 }
+
+void monitoring_stream::_commit() {
+  if (!_kpi_bind->empty()) {
+    _kpi_update->set_bind(std::move(_kpi_bind));
+    _mysql.run_statement(*_kpi_update);
+    _kpi_bind = _kpi_update->create_bind();
+    _kpi_bind->reserve(_conf_queries_per_transaction);
+  }
+  if (!_ba_bind->empty()) {
+    _ba_update->set_bind(std::move(_ba_bind));
+    _mysql.run_statement(*_ba_update);
+    _ba_bind = _ba_update->create_bind();
+    _ba_bind->reserve(_conf_queries_per_transaction);
+  }
+}
+
+void monitoring_stream::_bulk_kpi_status(
+    const std::shared_ptr<io::data>& event) {
+  const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
+  log_v2::bam()->debug(
+      "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
+      "downtime {})",
+      status.kpi_id, status.level_nominal_hard,
+      status.level_acknowledgement_hard, status.level_downtime_hard);
+
+  _kpi_bind->set_value_as_f64(0, status.level_acknowledgement_hard);
+  _kpi_bind->set_value_as_i32(1, status.state_hard);
+  _kpi_bind->set_value_as_f64(2, status.level_downtime_hard);
+  _kpi_bind->set_value_as_f64(3, status.level_nominal_hard);
+  _kpi_bind->set_value_as_i32(4, 1 + 1);
+  if (status.last_state_change.is_null())
+    _kpi_bind->set_null_u64(5);
+  else
+    _kpi_bind->set_value_as_u64(5, status.last_state_change.get_time_t());
+  _kpi_bind->set_value_as_f64(6, status.last_impact);
+  _kpi_bind->set_value_as_bool(7, status.valid);
+  _kpi_bind->set_value_as_bool(8, status.in_downtime);
+  _kpi_bind->set_value_as_u32(9, status.kpi_id);
+
+  _kpi_bind->next_row();
+}
+
+void monitoring_stream::_bulk_ba_status(
+    const std::shared_ptr<io::data>& event) {
+  const ba_status& status = *std::static_pointer_cast<ba_status>(event);
+  log_v2::bam()->trace(
+      "BAM: processing BA status (id {}, nominal {}, acknowledgement {}, "
+      "downtime {}) - in downtime {}, state {}",
+      status.ba_id, status.level_nominal, status.level_acknowledgement,
+      status.level_downtime, status.in_downtime, status.state);
+  _ba_bind->set_value_as_f64(0, status.level_nominal);
+  _ba_bind->set_value_as_f64(1, status.level_acknowledgement);
+  _ba_bind->set_value_as_f64(2, status.level_downtime);
+  _ba_bind->set_value_as_u32(6, status.ba_id);
+  if (status.last_state_change.is_null())
+    _ba_bind->set_null_u64(3);
+  else
+    _ba_bind->set_value_as_u64(3, status.last_state_change.get_time_t());
+  _ba_bind->set_value_as_bool(4, status.in_downtime);
+  _ba_bind->set_value_as_i32(5, status.state);
+
+  _ba_bind->next_row();
+}
+
+void monitoring_stream::_multi_insert_kpi_status(
+    const std::shared_ptr<io::data>& event) {}
+void monitoring_stream::_multi_insert_ba_status(
+    const std::shared_ptr<io::data>& event) {}
