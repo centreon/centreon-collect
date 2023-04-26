@@ -125,6 +125,10 @@ class mysql_connection {
   void _commit(database::mysql_task* t);
   void _prepare(database::mysql_task* t);
   void _statement(database::mysql_task* t);
+  template <typename T>
+  void _prepare_run_statement(
+      database::mysql_task_statement_prepare_execute<T>& t);
+  void _prepare_run_statement(database::mysql_task* t);
   void _statement_res(database::mysql_task* t);
   template <typename T>
   void _statement_int(database::mysql_task* t);
@@ -163,6 +167,14 @@ class mysql_connection {
   void get_server_version(std::promise<const char*>&& promise);
 
   void run_statement(database::mysql_stmt_base& stmt, my_error::code ec);
+  template <typename T>
+  void prepare_run_statement(database::mysql_stmt_base& stmt,
+                             std::promise<T>&& promise,
+                             database::mysql_task::int_type type) {
+    _push(std::make_unique<database::mysql_task_statement_prepare_execute<T>>(
+        stmt, std::move(promise), type));
+  }
+
   void run_statement_and_get_result(
       database::mysql_stmt& stmt,
       std::promise<database::mysql_result>&& promise,

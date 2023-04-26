@@ -45,6 +45,7 @@ class mysql_task {
     STATEMENT_UINT64,
     FETCH_ROW,
     GET_VERSION,
+    STATEMENT_PREPARE_EXECUTE
   };
 
   enum int_type {
@@ -184,12 +185,13 @@ class mysql_task_statement_int : public mysql_task {
   mysql_task_statement_int(database::mysql_stmt_base& stmt,
                            std::promise<T>&& promise,
                            int_type type)
-      : mysql_task((std::is_same<T, int>::value) ? mysql_task::STATEMENT_INT
-                   : (std::is_same<T, int64_t>::value)
-                       ? mysql_task::STATEMENT_INT64
-                   : (std::is_same<T, uint32_t>::value)
-                       ? mysql_task::STATEMENT_UINT
-                       : mysql_task::STATEMENT_UINT64),
+      : mysql_task((std::is_same<T, int>::value)
+                       ? mysql_task::STATEMENT_INT
+                       : (std::is_same<T, int64_t>::value)
+                             ? mysql_task::STATEMENT_INT64
+                             : (std::is_same<T, uint32_t>::value)
+                                   ? mysql_task::STATEMENT_UINT
+                                   : mysql_task::STATEMENT_UINT64),
         promise(std::move(promise)),
         return_type(type),
         statement_id(stmt.get_id()),
@@ -212,6 +214,39 @@ class mysql_task_statement_int : public mysql_task {
   std::unique_ptr<database::mysql_bind_base> bind;
   bool bulk;
 };
+
+template <typename T>
+class mysql_task_statement_prepare_execute
+    : public mysql_task_statement_int<T> {
+ public:
+  enum class return_int_type { INT, INT64, UINT, UINT64 };
+
+ protected:
+  return_int_type _int_type;
+  database::mysql_stmt_base& _stmt;
+
+ public:
+  mysql_task_statement_prepare_execute(database::mysql_stmt_base& stmt,
+                                       std::promise<T>&& promise,
+                                       mysql_task::int_type i_type)
+      : mysql_task_statement_int<T>(stmt, std::move(promise), i_type),
+        _stmt(stmt) {
+    mysql_task::type = mysql_task::STATEMENT_PREPARE_EXECUTE;
+    _int_type = (std::is_same<T, int>::value)
+                    ? return_int_type::INT
+                    : (std::is_same<T, int64_t>::value)
+                          ? return_int_type::INT64
+                          : (std::is_same<T, uint32_t>::value)
+                                ? return_int_type::UINT
+                                : return_int_type::UINT64;
+  }
+
+  return_int_type get_int_type() const { return _int_type; }
+
+  const database::mysql_stmt_base& stmt() const { return _stmt; }
+  database::mysql_stmt_base& stmt() { return _stmt; }
+};
+
 }  // namespace database
 
 CCB_END()
