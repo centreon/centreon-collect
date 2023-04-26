@@ -79,6 +79,10 @@ class monitoring_stream : public io::stream {
   std::unique_ptr<database::mysql_bulk_bind> _ba_bind;
   std::unique_ptr<database::mysql_bulk_stmt> _kpi_update;
   std::unique_ptr<database::mysql_bulk_bind> _kpi_bind;
+
+  std::unique_ptr<database::mysql_multi_insert> _ba_mult_insert;
+  std::unique_ptr<database::mysql_multi_insert> _kpi_mult_insert;
+
   int32_t _pending_events;
   unsigned _pending_request;
   database_config _storage_db_cfg;
@@ -120,6 +124,7 @@ class monitoring_stream : public io::stream {
 
  private:
   void _prepare();
+  void _create_multi_insert();
   void _rebuild();
   void _update_status(std::string const& status);
   void _write_external_command(std::string& cmd);

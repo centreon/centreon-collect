@@ -41,7 +41,7 @@ namespace database {
  *    row::pointer data;
  *    row_filler(const row::pointer& dt) : data(dt) {}
  *
- *    inline void fill_value(unsigned stmt_first_column,
+ *    inline void fill_row(unsigned stmt_first_column,
  *                           mysql_stmt& to_bind) const override {
  *      to_bind.bind_value_as_str(stmt_first_column++, data->name);
  *      to_bind.bind_value_as_f64(stmt_first_column++, data->value);
@@ -55,8 +55,8 @@ class row_filler {
  public:
   using pointer = std::unique_ptr<row_filler>;
   virtual ~row_filler() {}
-  virtual void fill_value(unsigned stmt_first_column,
-                          mysql_stmt& to_bind) const = 0;
+  virtual void fill_row(unsigned stmt_first_column,
+                        mysql_stmt& to_bind) const = 0;
 };
 
 class mysql_multi_insert {

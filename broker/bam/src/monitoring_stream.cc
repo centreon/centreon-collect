@@ -48,18 +48,6 @@ using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
 
 /**
- * @brief as we use bulk queries, we work in autocommit
- *
- * @param cfg
- * @return database_config
- */
-static database_config auto_commit_conf(const database_config& cfg) {
-  database_config ret(cfg);
-  ret.set_queries_per_transaction(0);
-  return ret;
-}
-
-/**
  *  Constructor.
  *
  *  @param[in] ext_cmd_file    The command file to write into.
@@ -74,7 +62,7 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
                                      std::shared_ptr<persistent_cache> cache)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
-      _mysql(auto_commit_conf(db_cfg)),
+      _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
       _pending_request(0),
@@ -211,12 +199,11 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_events;
 
-  // this lambda ask mysql to do a commit if we have get_queries_per_transaction
-  // waiting requests
+  // this lambda ask mysql to do a commit if we have
+  // _conf_queries_per_transaction waiting requests
   auto commit_if_needed = [this]() {
-    if (_mysql.get_config().get_queries_per_transaction() > 0) {
-      if (_pending_request >=
-          _mysql.get_config().get_queries_per_transaction()) {
+    if (_conf_queries_per_transaction > 0) {
+      if (_pending_request >= _conf_queries_per_transaction) {
         _commit();
         _pending_request = 0;
       }
@@ -513,8 +500,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
 
   // if uncommited request, we can't yet acknowledge
   if (_pending_request) {
-    if (_pending_events >=
-        10 * _mysql.get_config().get_queries_per_transaction()) {
+    if (_pending_events >= 10 * _conf_queries_per_transaction) {
       log_v2::bam()->trace(
           "BAM: monitoring_stream write: too many pending events =>flush and "
           "acknowledge {} events",
@@ -565,7 +551,32 @@ void monitoring_stream::_prepare() {
   }
   else {
     log_v2::bam()->trace("BAM: monitoring stream no bulk support");
+    _create_multi_insert();
   }
+}
+
+void monitoring_stream::_create_multi_insert() {
+  _ba_mult_insert = std::make_unique<database::mysql_multi_insert>(
+      "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
+      "last_state_change, in_downtime, current_status, ba_id) VALUES",
+      7,
+      "ON DUPLICATE KEY UPDATE current_level=VALUES(current_level), "
+      "acknowledged=VALUES(acknowledged), downtime=VALUES(downtime), "
+      "last_state_change=VALUES(last_state_change), "
+      "in_downtime=VALUES(in_downtime), current_status=VALUES(current_status)");
+
+  _kpi_mult_insert = std::make_unique<database::mysql_multi_insert>(
+      "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
+      "downtime, last_level, state_type, last_state_change, last_impact, "
+      "valid, in_downtime, kpi_id) VALUES",
+      10,
+      "ON DUPLICATE KEY UPDATE acknowledged=VALUES(acknowledged), "
+      "current_status=VALUES(current_status), "
+      "downtime=VALUES(downtime), last_level=VALUES(last_level), "
+      "state_type=VALUES(state_type), "
+      "last_state_change=VALUES(last_state_change), "
+      "last_impact=VALUES(last_impact), valid=VALUES(valid), "
+      "in_downtime=VALUES(in_downtime)");
 }
 
 /**
@@ -721,24 +732,30 @@ void monitoring_stream::_write_cache() {
 }
 
 void monitoring_stream::_commit() {
-  if (!_kpi_bind->empty()) {
-    _kpi_update->set_bind(std::move(_kpi_bind));
-    _mysql.run_statement(*_kpi_update);
-    _kpi_bind = _kpi_update->create_bind();
-    _kpi_bind->reserve(_conf_queries_per_transaction);
-  }
-  if (!_ba_bind->empty()) {
-    _ba_update->set_bind(std::move(_ba_bind));
-    _mysql.run_statement(*_ba_update);
-    _ba_bind = _ba_update->create_bind();
-    _ba_bind->reserve(_conf_queries_per_transaction);
+  if (_mysql.support_bulk_statement()) {
+    if (!_kpi_bind->empty()) {
+      _kpi_update->set_bind(std::move(_kpi_bind));
+      _mysql.run_statement(*_kpi_update);
+      _kpi_bind = _kpi_update->create_bind();
+      _kpi_bind->reserve(_conf_queries_per_transaction);
+    }
+    if (!_ba_bind->empty()) {
+      _ba_update->set_bind(std::move(_ba_bind));
+      _mysql.run_statement(*_ba_update);
+      _ba_bind = _ba_update->create_bind();
+      _ba_bind->reserve(_conf_queries_per_transaction);
+    }
+  } else {
+    _ba_mult_insert->push_stmt(_mysql);
+    _kpi_mult_insert->push_stmt(_mysql);
+    _create_multi_insert();
   }
 }
 
 void monitoring_stream::_bulk_kpi_status(
     const std::shared_ptr<io::data>& event) {
   const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
-  log_v2::bam()->debug(
+  log_v2::bam()->trace(
       "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
       "downtime {})",
       status.kpi_id, status.level_nominal_hard,
@@ -784,6 +801,61 @@ void monitoring_stream::_bulk_ba_status(
 }
 
 void monitoring_stream::_multi_insert_kpi_status(
-    const std::shared_ptr<io::data>& event) {}
+    const std::shared_ptr<io::data>& event) {
+  class kpi_row_filler : public database::row_filler {
+    std::shared_ptr<io::data> _event;
+
+   public:
+    kpi_row_filler(const std::shared_ptr<io::data>& event) : _event(event) {}
+
+    void fill_row(unsigned stmt_first_column,
+                  mysql_stmt& to_bind) const override {
+      const kpi_status& status = *std::static_pointer_cast<kpi_status>(_event);
+      to_bind.bind_value_as_f64(1, status.level_acknowledgement_hard);
+      to_bind.bind_value_as_i32(1, status.state_hard);
+      to_bind.bind_value_as_f64(2, status.level_downtime_hard);
+      to_bind.bind_value_as_f64(3, status.level_nominal_hard);
+      to_bind.bind_value_as_i32(4, 1 + 1);
+      if (status.last_state_change.is_null())
+        to_bind.bind_null_u64(5);
+      else
+        to_bind.bind_value_as_u64(5, status.last_state_change.get_time_t());
+      to_bind.bind_value_as_f64(6, status.last_impact);
+      to_bind.bind_value_as_bool(7, status.valid);
+      to_bind.bind_value_as_bool(8, status.in_downtime);
+      to_bind.bind_value_as_u32(9, status.kpi_id);
+    }
+  };
+  _kpi_mult_insert->push(std::make_unique<kpi_row_filler>(event));
+}
+
 void monitoring_stream::_multi_insert_ba_status(
-    const std::shared_ptr<io::data>& event) {}
+    const std::shared_ptr<io::data>& event) {
+  class ba_row_filler : public database::row_filler {
+    std::shared_ptr<io::data> _event;
+
+   public:
+    ba_row_filler(const std::shared_ptr<io::data>& event) : _event(event) {}
+
+    void fill_row(unsigned stmt_first_column,
+                  mysql_stmt& to_bind) const override {
+      const ba_status& status = *std::static_pointer_cast<ba_status>(_event);
+      log_v2::bam()->trace(
+          "BAM: processing BA status (id {}, nominal {}, acknowledgement {}, "
+          "downtime {}) - in downtime {}, state {}",
+          status.ba_id, status.level_nominal, status.level_acknowledgement,
+          status.level_downtime, status.in_downtime, status.state);
+      to_bind.bind_value_as_f64(0, status.level_nominal);
+      to_bind.bind_value_as_f64(1, status.level_acknowledgement);
+      to_bind.bind_value_as_f64(2, status.level_downtime);
+      to_bind.bind_value_as_u32(6, status.ba_id);
+      if (status.last_state_change.is_null())
+        to_bind.bind_null_u64(3);
+      else
+        to_bind.bind_value_as_u64(3, status.last_state_change.get_time_t());
+      to_bind.bind_value_as_bool(4, status.in_downtime);
+      to_bind.bind_value_as_i32(5, status.state);
+    }
+  };
+  _ba_mult_insert->push(std::make_unique<ba_row_filler>(event));
+}

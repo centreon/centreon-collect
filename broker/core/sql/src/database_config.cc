@@ -526,3 +526,16 @@ void database_config::_internal_copy(database_config const& other) {
   _connections_count = other._connections_count;
   _max_commit_delay = other._max_commit_delay;
 }
+
+/**
+ * @brief create a copy of the object excepts that queries_per_transaction is
+ * set to 0
+ *
+ * @param cfg
+ * @return database_config
+ */
+database_config database_config::auto_commit_conf() const {
+  database_config ret(*this);
+  ret.set_queries_per_transaction(0);
+  return ret;
+}
