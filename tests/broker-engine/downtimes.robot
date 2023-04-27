@@ -225,9 +225,9 @@ BEDTHOSTFIXED
 	Start Broker
 	Start Engine
 	# Let's wait for the check of external commands
-  ${content}=	Create List	check_for_external_commands
-  ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-  Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
 	# It's time to schedule downtimes
 	Schedule host fixed downtime	${0}	host_1	${3600}
