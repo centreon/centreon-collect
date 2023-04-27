@@ -74,3 +74,12 @@ void data::dump(std::ostream& s) const {
   s << " src_id:" << source_id << " dst_id:" << destination_id
     << " broker_id:" << broker_id;
 }
+
+/**
+ * @brief dump obj content to std::ostream
+ *
+ * @param s
+ */
+void data::dump_more_detail(std::ostream& s) const {
+  dump(s);
+}

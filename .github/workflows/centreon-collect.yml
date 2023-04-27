@@ -77,7 +77,29 @@ jobs:
       version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
+      commit_hash: ${{ github.sha }}
     secrets: inherit
+
+  deliver-sources:
+    runs-on: [self-hosted, common]
+    needs: [get-version, package]
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+        with:
+          path: centreon-collect
+
+      - name: Deliver sources
+        uses: ./centreon-collect/.github/actions/release-sources
+        with:
+          bucket_directory: centreon-collect
+          module_directory: centreon-collect
+          module_name: centreon-collect
+          major_version: ${{ needs.get-version.outputs.version }}
+          minor_version: ${{ needs.get-version.outputs.patch }}
+          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   deliver-rpm:
     if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}

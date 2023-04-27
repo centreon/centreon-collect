@@ -59,7 +59,9 @@ Here is the list of the currently implemented tests:
 - [x] **BAPBSTATUS**: With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. 
 - [x] **BA_BOOL_KPI**: With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
 - [x] **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
-- [x] **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 serv an 1 ba with one service
+- [x] **BA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+- [x] **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
+- [x] **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
 - [x] **BA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
 - [x] **BEBAMIDT1**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIDT2**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
@@ -274,6 +276,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
 - [x] **BEPBBEE4**: bbdo_version 3 generates new bbdo protobuf host status messages.
 - [x] **BEPBBEE5**: bbdo_version 3 generates new bbdo protobuf service messages.
+- [x] **BEPBCVS**: bbdo_version 3 communication of custom variables.
 - [x] **BEPBRI1**: bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
 - [x] **BERD1**: Starting/stopping Broker does not create duplicated events.
 - [x] **BERD2**: Starting/stopping Engine does not create duplicated events.
@@ -349,6 +352,8 @@ Here is the list of the currently implemented tests:
 - [x] **BRRDRM1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
 - [x] **BRRDRMU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
 - [x] **BRRDWM1**: We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
+- [x] **EBBPS1**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
+- [x] **EBBPS2**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
 - [x] **EBDP1**: Four new pollers are started and then we remove Poller3.
 - [x] **EBDP2**: Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
 - [x] **EBDP3**: Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
@@ -371,8 +376,6 @@ Here is the list of the currently implemented tests:
 - [x] **EBSN3**: New hosts with notes with more than 500 characters
 - [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
 - [x] **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
-- [x] **LOGV2BE2**: log-v2 enabled old log enabled check broker sink is equal
-- [x] **LOGV2BEU2**: Broker sink must have the same behavior with legacy logs enabled.
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
 - [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
 - [x] **LOGV2DF1**: log-v2 disabled old log enabled check logfile sink

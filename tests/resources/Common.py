@@ -1201,8 +1201,8 @@ def get_version():
         m3 = rpatch.match(l)
         if m1:
             maj = m1.group(1)
-        elif m2:
+        if m2:
             mini = m2.group(1)
-        elif m3:
+        if m3:
             patch = m3.group(1)
     return f"{maj}.{mini}.{patch}"

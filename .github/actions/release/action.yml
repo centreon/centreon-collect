@@ -40,15 +40,13 @@ runs:
 
         if [ "$HOTFIX" == "hotfix" ]; then
           TYPE=Hotfix
-        elif [ "$BETA" == "beta" ]; then
-          TYPE=Beta
         else
           TYPE=Release
         fi
 
         VERSION_DATA="{\"archived\":false,\"releaseDate\":\"$(date +%Y-%m-%d)\",\"name\":\"centreon-collect-$NEW_VERSION\",\"description\":\"$TYPE:$RELEASE_ID\",\"projectId\":11789,\"released\":false}"
 
-        curl --request POST \
+        curl --fail --request POST \
           --url 'https://centreon.atlassian.net/rest/api/3/version' \
           --header 'Authorization: Basic ${{ inputs.jira_token }}' \
           --header 'Accept: application/json' \

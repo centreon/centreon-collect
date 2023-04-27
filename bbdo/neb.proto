@@ -614,12 +614,11 @@ message Acknowledgement {
   uint64 host_id = 1;
   uint64 service_id = 2;
   uint64 instance_id = 3;
-  enum AcknowledgementType {
-    NONE = 0;
-    NORMAL = 1;
-    STICKY = 2;
+  enum ResourceType {
+    HOST = 0;
+    SERVICE = 1;
   }
-  AcknowledgementType type = 4;
+  ResourceType type = 4;
   string author = 5;
   string comment_data = 6;
   bool sticky = 7;

@@ -2613,9 +2613,10 @@ void acknowledge_host_problem(host* hst,
   hst->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, HOST_ACKNOWLEDGEMENT,
-                              (void*)hst, ack_author.c_str(), ack_data.c_str(),
-                              type, notify, persistent);
+  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
+                              acknowledgement_resource_type::HOST, (void*)hst,
+                              ack_author.c_str(), ack_data.c_str(), type,
+                              notify, persistent);
 
   /* send out an acknowledgement notification */
   if (notify)
@@ -2653,9 +2654,10 @@ void acknowledge_service_problem(service* svc,
   svc->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(
-      NEBTYPE_ACKNOWLEDGEMENT_ADD, SERVICE_ACKNOWLEDGEMENT, (void*)svc,
-      ack_author.c_str(), ack_data.c_str(), type, notify, persistent);
+  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
+                              acknowledgement_resource_type::SERVICE,
+                              (void*)svc, ack_author.c_str(), ack_data.c_str(),
+                              type, notify, persistent);
 
   /* send out an acknowledgement notification */
   if (notify)

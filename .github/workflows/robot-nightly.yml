@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v3
 
       - run: |
+          gh workflow run robot-nightly.yml -r "dev-23.04.x"
           gh workflow run robot-nightly.yml -r "dev-22.10.x"
           gh workflow run robot-nightly.yml -r "dev-22.04.x"
           gh workflow run robot-nightly.yml -r "dev-21.10.x"
@@ -39,6 +40,7 @@ jobs:
       version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
       img_version: ${{ needs.get-version.outputs.img_version }}
       release: ${{ needs.get-version.outputs.release }}
+      commit_hash: ${{ github.sha }}
     secrets: inherit
 
   robot-test:
