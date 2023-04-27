@@ -28,7 +28,7 @@
 /* Acknowledgement structure. */
 typedef struct nebstruct_acknowledgement_struct {
   int type;
-  int acknowledgement_type;
+  acknowledgement_resource_type acknowledgement_type;
   uint64_t host_id;
   uint64_t service_id;
   int state;

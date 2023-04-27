@@ -214,9 +214,7 @@
 #define CMD_NEW_THRESHOLDS_FILE 503
 #define CMD_CUSTOM_COMMAND 999
 
-/* Acknowledgement types. */
-#define HOST_ACKNOWLEDGEMENT 0
-#define SERVICE_ACKNOWLEDGEMENT 1
+enum class acknowledgement_resource_type : short { HOST = 0, SERVICE = 1 };
 
 /* Host/service check options. */
 #define CHECK_OPTION_NONE 0 /* No check options. */
