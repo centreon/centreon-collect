@@ -213,9 +213,11 @@ Here is the list of the currently implemented tests:
 - [x] **BECT_GRPC4**: Broker/Engine communication with TLS between central and poller with key/cert and hostname forced
 - [x] **BECUSTOMHOSTVAR**: external command CHANGE_CUSTOM_HOST_VAR on SNMPVERSION
 - [x] **BECUSTOMSVCVAR**: external command CHANGE_CUSTOM_SVC_VAR on CRITICAL
+- [x] **BEDTHOSTFIXED**: A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
 - [x] **BEDTMASS1**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
 - [x] **BEDTMASS2**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
-- [x] **BEDTSVCREN1**: New services with several pollers
+- [x] **BEDTSVCFIXED**: A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
+- [x] **BEDTSVCREN1**: A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
 - [x] **BEEXTCMD1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
 - [x] **BEEXTCMD10**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0
 - [x] **BEEXTCMD11**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0
@@ -326,6 +328,8 @@ Here is the list of the currently implemented tests:
 - [x] **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
+- [x] **BRCTSMN**: Broker connected to map with neb filter
+- [x] **BRCTSMNS**: Broker connected to map with neb and storages filters
 - [x] **BRGC1**: Broker good reverse connection
 - [x] **BRRDCDDID1**: RRD metrics deletion from index ids with rrdcached.
 - [x] **BRRDCDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
@@ -372,9 +376,9 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
-- [x] **EBSN3**: New hosts with notes with more than 500 characters
-- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
+- [x] **EBSAU2**: New services with action_url with more than 2000 characters
+- [x] **EBSN3**: New services with notes with more than 500 characters
+- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
 - [x] **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
 - [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
