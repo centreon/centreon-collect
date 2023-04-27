@@ -970,8 +970,7 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
     if (!absl::SimpleAtoi(temp_ptr, &duration)) {
       log_v2::external_command()->error(
           "Error: could not schedule downtime : duration '{}' must be an "
-          "integer "
-          ">= 0",
+          "integer >= 0",
           temp_ptr);
       return ERROR;
     }
@@ -1199,9 +1198,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   if (*temp_ptr)
     criterias.push_back(downtime_finder::criteria("author", temp_ptr));
   // Comment.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
-    return ERROR;
-  if (*temp_ptr)
+  if ((temp_ptr = my_strtok(nullptr, ";")) && *temp_ptr)
     criterias.push_back(downtime_finder::criteria("comment", temp_ptr));
 
   // Find downtimes.
