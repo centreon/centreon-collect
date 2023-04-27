@@ -2,7 +2,9 @@ from os import makedirs
 from os.path import exists, dirname
 import pymysql.cursors
 import time
+import re
 import shutil
+import psutil
 import socket
 import sys
 import time
@@ -1219,6 +1221,90 @@ def run_reverse_bam(duration, interval):
                shell=True, stdout=subp.PIPE, stdin=subp.PIPE)
     time.sleep(duration)
     getoutput("kill -9 $(ps aux | grep map_client.py | awk '{print $2}')")
+
+
+def start_map():
+    global map_process
+    map_process = subp.Popen("broker/map_client_types.py",
+                             shell=True, stdout=subp.DEVNULL, stdin=subp.DEVNULL)
+
+
+def clear_map_logs():
+    with open('/tmp/map-output.log', 'w') as f:
+        f.write("")
+
+
+def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
+    retval = False
+    limit = time.time() + timeout
+    while time.time() < limit:
+        output = ""
+        try:
+            with open('/tmp/map-output.log', 'r') as f:
+                output = f.readlines()
+        except FileNotFoundError:
+            time.sleep(5)
+            continue
+
+        categories = list(map(int, categories_str))
+        r = re.compile(r"^type: ([0-9]*)'?$")
+        cat = {}
+        expected = list(map(int, expected_events))
+        lines = list(filter(r.match, output))
+        retval = True
+        for o in lines:
+            m = r.match(o)
+            elem = int(m.group(1))
+            if elem in expected:
+                expected.remove(elem)
+            c = elem >> 16
+            if c in categories:
+                cat[c] = 1
+            elif c != 2:
+                logger.console(f"Category {c} not expected")
+                retval = False
+                break
+        if retval and len(categories) != len(cat):
+            logger.console(
+                f"There are {len(categories)} categories expected whereas {len(cat)} are sent to map")
+            retval = False
+
+        if retval and len(expected) > 0:
+            logger.console(f"Events of types {str(expected)} not sent")
+            retval = False
+
+        if retval:
+            break
+        time.sleep(5)
+
+    return retval
+
+
+def get_map_output():
+    global map_process
+    return map_process.communicate()[0]
+
+
+def stop_map():
+    for proc in psutil.process_iter():
+        if 'map_client_type' in proc.name():
+            logger.console(
+                f"process '{proc.name()}' containing map_client_type found: stopping it")
+            proc.terminate()
+            try:
+                logger.console("Waiting for 30s map_client_type to stop")
+                proc.wait(30)
+            except:
+                logger.console("map_client_type don't want to stop => kill")
+                proc.kill()
+
+    for proc in psutil.process_iter():
+        if 'map_client_type' in proc.name():
+            logger.console(f"process '{proc.name()}' still alive")
+            logger.console("map_client_type don't want to stop => kill")
+            proc.kill()
+
+    logger.console("map_client_type stopped")
 
 
 ##

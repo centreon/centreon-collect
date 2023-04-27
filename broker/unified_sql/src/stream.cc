@@ -356,6 +356,9 @@ void stream::_load_caches() {
   try {
     database::mysql_result res(future_index_data.get());
 
+    auto bbdo = config::applier::state::instance().get_bbdo_version();
+    multiplexing::publisher pblshr;
+
     // Loop through result set.
     while (_mysql.fetch_row(res)) {
       index_info info{
@@ -389,10 +392,18 @@ void stream::_load_caches() {
         _index_cache[{host_id, service_id}] = std::move(info);
 
         // Create the metric mapping.
-        auto im{std::make_shared<storage::index_mapping>(info.index_id, host_id,
-                                                         service_id)};
-        multiplexing::publisher pblshr;
-        pblshr.write(im);
+        if (bbdo.major_v < 3) {
+          auto im{std::make_shared<storage::index_mapping>(
+              info.index_id, host_id, service_id)};
+          pblshr.write(im);
+        } else {
+          auto im{std::make_shared<storage::pb_index_mapping>()};
+          auto& im_obj = im->mut_obj();
+          im_obj.set_index_id(info.index_id);
+          im_obj.set_host_id(host_id);
+          im_obj.set_service_id(service_id);
+          pblshr.write(im);
+        }
       }
     }
   } catch (std::exception const& e) {
