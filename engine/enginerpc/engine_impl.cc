@@ -855,7 +855,7 @@ grpc::Status engine_impl::AcknowledgementHostProblem(
     temp_host->schedule_acknowledgement_expiration();
     /* send data to event broker */
     broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, HOST_ACKNOWLEDGEMENT,
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::HOST,
         static_cast<void*>(temp_host.get()), request->ack_author().c_str(),
         request->ack_data().c_str(), request->type(), request->notify(),
         request->persistent());
@@ -918,7 +918,7 @@ grpc::Status engine_impl::AcknowledgementServiceProblem(
     temp_service->schedule_acknowledgement_expiration();
     /* send data to event broker */
     broker_acknowledgement_data(
-        NEBTYPE_ACKNOWLEDGEMENT_ADD, SERVICE_ACKNOWLEDGEMENT,
+        NEBTYPE_ACKNOWLEDGEMENT_ADD, acknowledgement_resource_type::SERVICE,
         static_cast<void*>(temp_service.get()), request->ack_author().c_str(),
         request->ack_data().c_str(), request->type(), request->notify(),
         request->persistent());

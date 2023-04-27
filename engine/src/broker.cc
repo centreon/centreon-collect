@@ -36,7 +36,7 @@ extern "C" {
  *  Send acknowledgement data to broker.
  *
  *  @param[in] type                 Type.
- *  @param[in] acknowledgement_type Type (sticky or not).
+ *  @param[in] acknowledgement_type Type (host or service).
  *  @param[in] data                 Data.
  *  @param[in] ack_author           Author.
  *  @param[in] ack_data             Acknowledgement text.
@@ -44,14 +44,15 @@ extern "C" {
  *  @param[in] notify_contacts      Should we notify contacts.
  *  @param[in] persistent_comment   Persistent comment
  */
-void broker_acknowledgement_data(int type,
-                                 int acknowledgement_type,
-                                 void* data,
-                                 const char* ack_author,
-                                 const char* ack_data,
-                                 int subtype,
-                                 int notify_contacts,
-                                 int persistent_comment) {
+void broker_acknowledgement_data(
+    int type,
+    acknowledgement_resource_type acknowledgement_type,
+    void* data,
+    const char* ack_author,
+    const char* ack_data,
+    int subtype,
+    int notify_contacts,
+    int persistent_comment) {
   // Config check.
   if (!(config->event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
     return;
@@ -62,7 +63,7 @@ void broker_acknowledgement_data(int type,
   nebstruct_acknowledgement_data ds;
   ds.type = type;
   ds.acknowledgement_type = acknowledgement_type;
-  if (acknowledgement_type == SERVICE_ACKNOWLEDGEMENT) {
+  if (acknowledgement_type == acknowledgement_resource_type::SERVICE) {
     temp_service = (com::centreon::engine::service*)data;
     ds.host_id = temp_service->host_id();
     ds.service_id = temp_service->service_id();

@@ -168,7 +168,7 @@ int neb::callback_acknowledgement(int callback_type, void* data) {
 
     // Fill output var.
     ack_data = static_cast<nebstruct_acknowledgement_data*>(data);
-    ack->acknowledgement_type = ack_data->acknowledgement_type;
+    ack->acknowledgement_type = short(ack_data->acknowledgement_type);
     if (ack_data->author_name)
       ack->author = misc::string::check_string_utf8(ack_data->author_name);
     if (ack_data->comment_data)
@@ -235,7 +235,7 @@ int neb::callback_pb_acknowledgement(int callback_type [[maybe_unused]],
   // Fill output var.
   const nebstruct_acknowledgement_data* ack_data =
       static_cast<nebstruct_acknowledgement_data*>(data);
-  ack_obj.set_type(static_cast<Acknowledgement_AcknowledgementType>(
+  ack_obj.set_type(static_cast<Acknowledgement_ResourceType>(
       ack_data->acknowledgement_type));
   if (ack_data->author_name)
     ack_obj.set_author(misc::string::check_string_utf8(ack_data->author_name));
