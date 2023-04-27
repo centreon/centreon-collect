@@ -31,11 +31,11 @@ BEDTMASS1
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	module2	neb	debug
 
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	module1	bbdo_version	3.0.0
-        Broker Config Add Item	module2	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	module1	bbdo_version	3.0.0
+	Broker Config Add Item	module2	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	debug
 	Config Broker Sql Output	central	unified_sql
 	Clear Retention
@@ -43,9 +43,9 @@ BEDTMASS1
 	Start Broker
 	Start Engine
 	# Let's wait for the initial service states.
-        ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# It's time to schedule downtimes
 	FOR	${i}	IN RANGE	${17}
@@ -97,9 +97,9 @@ BEDTMASS2
 	Start Broker
 	Start Engine
 	# Let's wait for the initial service states.
-        ${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
-        Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	${result}=	Find In Log with Timeout	${engineLog2}	${start}	${content}	60
+	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# It's time to schedule downtimes
 	FOR	${i}	IN RANGE	${17}
@@ -146,9 +146,9 @@ BEDTSVCREN1
 	Start Broker
 	Start Engine
 	# Let's wait for the check of external commands
-        ${content}=	Create List	check_for_external_commands
-        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-        Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
 	# It's time to schedule a downtime
 	Schedule service downtime	host_1	service_1	${3600}
@@ -161,9 +161,9 @@ BEDTSVCREN1
 
 	Reload Engine
 	# Let's wait for the check of external commands
-        ${content}=	Create List	check_for_external_commands
-        ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-        Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
 	Delete service downtime full	${0}	host_1	toto_1
 
@@ -189,10 +189,10 @@ BEDTSVCFIXED
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
- 	# Let's wait for the check of external commands
-  ${content}=	Create List	check_for_external_commands
-  ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-  Should Be True	${result}	msg=No check for external commands executed for 1mn.
+	# Let's wait for the check of external commands
+	${content}=	Create List	check_for_external_commands
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
 	# It's time to schedule a downtime
 	Schedule service downtime  host_1  service_1  ${3600}
