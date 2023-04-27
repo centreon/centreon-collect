@@ -72,6 +72,18 @@ def get_date(d: str):
     return retval
 
 
+def extract_date_from_log(line: str):
+    p = re.compile(r"\[([^\]]*)\]")
+    m = p.match(line)
+    if m is None:
+        return None
+    try:
+        return get_date(m.group(1))
+    except parser.ParserError:
+        logger.console(f"Unable to parse the date from the line {line}")
+        return None
+
+
 #  When you use Get Current Date with exclude_millis=True
 #  it rounds result to nearest lower or upper second
 def get_round_current_date():
@@ -308,25 +320,22 @@ def find_line_from(lines, date):
     except:
         my_date = datetime.fromtimestamp(date)
 
-    p = re.compile(r"\[([^\]]*)\]")
-
     # Let's find my_date
     start = 0
     end = len(lines) - 1
     idx = start
     while end > start:
         idx = (start + end) // 2
-        m = p.match(lines[idx])
-        while m is None:
+        idx_d = extract_date_from_log(lines[idx])
+        while idx_d is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
-                m = p.match(lines[idx])
+                idx_d = extract_date_from_log(lines[idx])
             else:
                 logger.console("We are at the first line and no date found")
-
-        idx_d = get_date(m.group(1))
+                return 0
         if my_date <= idx_d and end != idx:
             end = idx
         elif my_date > idx_d and start != idx:
@@ -1192,8 +1201,8 @@ def get_version():
         m3 = rpatch.match(l)
         if m1:
             maj = m1.group(1)
-        elif m2:
+        if m2:
             mini = m2.group(1)
-        elif m3:
+        if m3:
             patch = m3.group(1)
     return f"{maj}.{mini}.{patch}"
