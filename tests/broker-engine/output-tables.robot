@@ -23,26 +23,26 @@ BERES1
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
-        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
-        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
+	Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
+	Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
 	Clear Retention
 	${start}=	Get Current Date
-        Sleep	1s
+	Sleep	1s
 	Start Broker
 	Start Engine
-        ${content_not_present}=	Create List	processing host status event (host:	UPDATE hosts SET checked=i	processing service status event (host:	UPDATE services SET checked=
-        ${content_present}=	Create List	UPDATE resources SET status=
-        ${result}=	Find In log With Timeout	${centralLog}	${start}	${content_present}	60
-        Should Be True	${result}	msg=no updates concerning resources available.
-        FOR	${l}	IN	${content_not_present}
-         ${result}=	Find In Log	${centralLog}	${start}	${content_not_present}
-         Should Not Be True	${result[0]}	msg=There are updates of hosts/services table(s).
-        END
+	${content_not_present}=	Create List	processing host status event (host:	UPDATE hosts SET checked=i	processing service status event (host:	UPDATE services SET checked=
+	${content_present}=	Create List	UPDATE resources SET status=
+	${result}=	Find In log With Timeout	${centralLog}	${start}	${content_present}	60
+	Should Be True	${result}	msg=no updates concerning resources available.
+	FOR	${l}	IN	${content_not_present}
+	 ${result}=	Find In Log	${centralLog}	${start}	${content_not_present}
+	 Should Not Be True	${result[0]}	msg=There are updates of hosts/services table(s).
+	END
 	Stop Engine
 	Kindly Stop Broker
 
@@ -53,25 +53,25 @@ BEHS1
 	Config Broker	central
 	Config Broker	module
 	Config Broker	rrd
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
-        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	no
-        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	yes
+	Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	no
+	Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	yes
 	Clear Retention
 	${start}=	Get Current Date
 	Start Broker
 	Start Engine
-        ${content_present}=	Create List	UPDATE hosts SET checked=	UPDATE services SET checked=
-        ${content_not_present}=	Create List	INSERT INTO resources	UPDATE resources SET	UPDATE tags	INSERT INTO tags	UPDATE severities	INSERT INTO severities
-        ${result}=	Find In log With Timeout	${centralLog}	${start}	${content_present}	60
-        Should Be True	${result}	msg=no updates concerning hosts/services available.
-        FOR	${l}	IN	${content_not_present}
-         ${result}=	Find In Log	${centralLog}	${start}	${content_not_present}
-         Should Not Be True	${result[0]}	msg=There are updates of the resources table.
-        END
+	${content_present}=	Create List	UPDATE hosts SET checked=	UPDATE services SET checked=
+	${content_not_present}=	Create List	INSERT INTO resources	UPDATE resources SET	UPDATE tags	INSERT INTO tags	UPDATE severities	INSERT INTO severities
+	${result}=	Find In log With Timeout	${centralLog}	${start}	${content_present}	60
+	Should Be True	${result}	msg=no updates concerning hosts/services available.
+	FOR	${l}	IN	${content_not_present}
+	 ${result}=	Find In Log	${centralLog}	${start}	${content_not_present}
+	 Should Not Be True	${result[0]}	msg=There are updates of the resources table.
+	END
 	Stop Engine
 	Kindly Stop Broker
 
@@ -82,8 +82,8 @@ BE_NOTIF_OVERFLOW
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Broker Config Add Item	module0	bbdo_version	2.0.0
-    Broker Config Add Item	central	bbdo_version	2.0.0
+	Broker Config Add Item	module0	bbdo_version	2.0.0
+	Broker Config Add Item	central	bbdo_version	2.0.0
 	Config Broker Sql Output	central	unified_sql
 	Broker Config Log	central	sql	trace
 	Broker Config Log	central  perfdata  trace
@@ -111,7 +111,7 @@ BE_NOTIF_OVERFLOW
 	Kindly Stop Broker
 
 BE_TIME_NULL_SERVICE_RESOURCE
-	[Documentation]	bbdo 3.0 times must be null and not zero
+	[Documentation]	With BBDO 3, time must be set to NULL on 0 in services, hosts and resources tables.
 	[Tags]	Broker	Engine	protobuf	bbdo
 	Config Engine	${1}
 	Config Broker	central
@@ -130,10 +130,10 @@ BE_TIME_NULL_SERVICE_RESOURCE
 	Start Engine
 
 	FOR	${index}	IN RANGE	300
-		${output}=	Query	SELECT r.last_status_change, s.last_hard_state_change, s.last_notification, s.next_notification , s.last_state_change, s.last_time_critical, s.last_time_ok, s.last_time_unknown, s.last_time_warning, h.last_hard_state_change, h.last_notification, h.next_host_notification, h.last_state_change, h.last_time_down, h.last_time_unreachable, h.last_time_up FROM services s, resources r, hosts h WHERE h.host_id=1 AND s.service_id=1 AND r.id=1 AND r.parent_id=1
-		Log To Console	${output}
-		Sleep	1s
-		EXIT FOR LOOP IF	"${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
+	  ${output}=	Query	SELECT r.last_status_change, s.last_hard_state_change, s.last_notification, s.next_notification , s.last_state_change, s.last_time_critical, s.last_time_ok, s.last_time_unknown, s.last_time_warning, h.last_hard_state_change, h.last_notification, h.next_host_notification, h.last_state_change, h.last_time_down, h.last_time_unreachable, h.last_time_up FROM services s, resources r, hosts h WHERE h.host_id=1 AND s.service_id=1 AND r.id=1 AND r.parent_id=1
+	  Log To Console	${output}
+	  Sleep	1s
+	  EXIT FOR LOOP IF	"${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
 	END
 	Should Be Equal As Strings	${output}	((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
 	Stop Engine

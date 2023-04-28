@@ -45,6 +45,39 @@ void mysql_bulk_bind::_prepare_type(size_t range, enum enum_field_types type) {
   _column[range].set_type(type);
 }
 
+void mysql_bulk_bind::set_value_as_u64(size_t range,
+                                       int64_t value,
+                                       uint32_t invalid_on) {
+  if (value == 0 && (invalid_on & mapping::entry::invalid_on_zero))
+    set_null_u64(range);
+  else
+    set_value_as_u64(range, value);
+}
+
+void mysql_bulk_bind::set_value_as_i64(size_t range,
+                                       int64_t value,
+                                       uint32_t invalid_on) {
+  if (invalid_on & mapping::entry::invalid_on_zero) {
+    if (value == 0) {
+      set_null_i64(range);
+      return;
+    }
+  }
+  if (invalid_on & mapping::entry::invalid_on_minus_one) {
+    if (value == -1) {
+      set_null_i64(range);
+      return;
+    }
+  }
+  if (invalid_on & mapping::entry::invalid_on_negative) {
+    if (value < 0) {
+      set_null_i64(range);
+      return;
+    }
+  }
+  set_value_as_i64(range, value);
+}
+
 #define SET_VALUE(ftype, vtype, sqltype, unsgn)                           \
   void mysql_bulk_bind::set_value_as_##ftype(size_t range, vtype value) { \
     assert(range < _bind.size());                                         \

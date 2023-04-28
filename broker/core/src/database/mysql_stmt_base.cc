@@ -310,3 +310,36 @@ const std::vector<std::tuple<std::string, uint32_t, uint16_t>>&
 mysql_stmt_base::get_pb_mapping() const {
   return _pb_mapping;
 }
+
+void mysql_stmt_base::bind_value_as_i64_ext(size_t range,
+                                            int64_t value,
+                                            uint32_t invalid_on) {
+  if (invalid_on & mapping::entry::invalid_on_zero) {
+    if (value == 0) {
+      bind_null_i64(range);
+      return;
+    }
+  }
+  if (invalid_on & mapping::entry::invalid_on_minus_one) {
+    if (value == -1) {
+      bind_null_i64(range);
+      return;
+    }
+  }
+  if (invalid_on & mapping::entry::invalid_on_negative) {
+    if (value < 0) {
+      bind_null_i64(range);
+      return;
+    }
+  }
+  bind_value_as_i64(range, value);
+}
+
+void mysql_stmt_base::bind_value_as_u64_ext(size_t range,
+                                            uint64_t value,
+                                            uint32_t invalid_on) {
+  if (value == 0 && (invalid_on & mapping::entry::invalid_on_zero))
+    bind_null_u64(range);
+  else
+    bind_value_as_u64(range, value);
+}
