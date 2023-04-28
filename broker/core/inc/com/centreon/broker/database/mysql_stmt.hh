@@ -85,15 +85,6 @@ class mysql_stmt : public mysql_stmt_base {
    * @param value The value to set.
    */
   void bind_value_as_i64(size_t range, int64_t value);
-  template <typename not_null_predicate>
-  void bind_value_as_i64(size_t range,
-                         int64_t value,
-                         const not_null_predicate& pred) {
-    if (pred(value))
-      bind_value_as_i64(range, value);
-    else
-      bind_null_i64(range);
-  }
   /**
    * @brief Set the NULL value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be
@@ -112,15 +103,6 @@ class mysql_stmt : public mysql_stmt_base {
    * @param value The value to set.
    */
   void bind_value_as_u64(size_t range, uint64_t value);
-  template <typename not_null_predicate>
-  void bind_value_as_u64(size_t range,
-                         uint64_t value,
-                         const not_null_predicate& pred) {
-    if (pred(value))
-      bind_value_as_u64(range, value);
-    else
-      bind_null_u64(range);
-  }
   /**
    * @brief Set the NULL value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be
