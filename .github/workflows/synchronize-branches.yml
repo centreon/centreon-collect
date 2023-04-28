@@ -1,12 +1,12 @@
 ---
-name: Sync next major stable and dev version branches
+name: synchronize-branches
 
 on:
   pull_request_target:
     types:
       - closed
     branches:
-      - "master"
+      - "[2-9][0-9].[0-9][0-9].x"
   workflow_dispatch:
 
 jobs:
@@ -25,5 +25,5 @@ jobs:
         id: release
         uses: ./.github/actions/sync-branches
         with:
-          src_branch: master
-          dest_branch: develop
+          src_branch: ${{ github.ref_name }}
+          dest_branch: dev-${{ github.ref_name }}
