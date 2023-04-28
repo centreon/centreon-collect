@@ -115,6 +115,19 @@ void mysql_connection::_update_stats() noexcept {
   if (now > _last_stats + 2) {
     _last_stats = now;
 
+    float loop_duration_avg = 0.0f;
+    float activity = 0.0f;
+    if (!_stat_loop.empty()) {
+      for (auto& s : _stat_loop) {
+        loop_duration_avg += s.duration;
+        activity += s.activity_percent * s.duration;
+      }
+      activity /= loop_duration_avg;
+      loop_duration_avg /= _stat_loop.size();
+    }
+
+    SqlConnectionStats* stats =
+        stats::center::instance().connection(_stats_idx);
     float stmt_avg = 0.0f;
     for (float d : _stmt_duration) {
       stmt_avg += d;
@@ -128,8 +141,6 @@ void mysql_connection::_update_stats() noexcept {
           query_avg /= _query_duration.size();
 
         std::lock_guard<stats::center> lck(stats::center::instance());
-        SqlConnectionStats* stats =
-            stats::center::instance().connection(_stats_idx);
         stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
         if (static_cast<bool>(_connected)) {
           stats->set_up_since(_switch_point);
@@ -172,6 +183,8 @@ void mysql_connection::_update_stats() noexcept {
         }
       }
     }
+    stats->set_activity_percent(activity);
+    stats->set_average_loop_duration(loop_duration_avg);
   }
 }
 
@@ -239,7 +252,6 @@ void mysql_connection::_query(mysql_task* t) {
   mysql_task_run* task(static_cast<mysql_task_run*>(t));
 
   mysql_connection::stats_query_span stats(this, task->query);
-  auto start_time = std::chrono::system_clock::now();
 
   log_v2::sql()->debug("mysql_connection: run query: {}", task->query);
   if (mysql_query(_conn, task->query.c_str())) {
@@ -731,6 +743,13 @@ void mysql_connection::_run() {
 
     std::unique_lock<std::mutex> lock(_tasks_m);
     while (_state == running || !_tasks_list.empty()) {
+      std::stringstream ss;
+      for (auto& s : _stat_loop)
+        ss << "(" << s.activity_percent << "% ; " << s.duration << "s) ;";
+      log_v2::sql()->trace("Mysql_connection: stats: {}", ss.str());
+
+      /* inactive loop concerning queries/statements */
+      mysql_connection::stats_loop_span stats(this);
       std::list<std::unique_ptr<database::mysql_task>> tasks_list;
       if (!_tasks_list.empty()) {
         std::swap(_tasks_list, tasks_list);
@@ -767,6 +786,7 @@ void mysql_connection::_run() {
       }
 
       lock.unlock();
+      stats.start_activity();
 
       for (auto& task : tasks_list) {
         --_tasks_count;
@@ -811,7 +831,8 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()),
       _query_duration(20),
-      _stmt_duration(20) {
+      _stmt_duration(20),
+      _stat_loop(20) {
   std::unique_lock<std::mutex> lck(_start_m);
   log_v2::sql()->info("mysql_connection: starting connection");
   _thread = std::make_unique<std::thread>(&mysql_connection::_run, this);

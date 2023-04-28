@@ -103,6 +103,39 @@ class mysql_connection {
   std::time_t _last_stats;
   uint32_t _qps;
 
+  class stats_loop_span {
+    mysql_connection* const _parent;
+    const std::chrono::system_clock::time_point _start_time;
+    bool _in_activity = false;
+    std::chrono::system_clock::time_point _start_activity_time;
+
+   public:
+    stats_loop_span(mysql_connection* parent)
+        : _parent{parent}, _start_time(std::chrono::system_clock::now()) {}
+    ~stats_loop_span() noexcept {
+      auto end_time = std::chrono::system_clock::now();
+      float total = std::chrono::duration_cast<std::chrono::milliseconds>(
+                        end_time - _start_time)
+                        .count();
+      float activity =
+          _in_activity ? std::chrono::duration_cast<std::chrono::milliseconds>(
+                             end_time - _start_activity_time)
+                             .count()
+                       : 0.0f;
+      if (total > 0) {
+        float percent = activity / total * 100;
+        _parent->_stat_loop.push_back({
+            .duration = total,
+            .activity_percent = percent,
+        });
+      }
+    }
+    void start_activity() {
+      _start_activity_time = std::chrono::system_clock::now();
+      _in_activity = true;
+    }
+  };
+
   class stats_stmt_span {
     mysql_connection* const _parent;
     const std::chrono::system_clock::time_point _start_time;
@@ -212,11 +245,17 @@ class mysql_connection {
     uint32_t rows_count;
   };
 
+  struct stat_loop {
+    float duration;
+    float activity_percent;
+  };
+
   /* Statistics */
   boost::circular_buffer<float> _query_duration;
   std::vector<stat_query> _stat_query;
   boost::circular_buffer<float> _stmt_duration;
   std::vector<stat_statement> _stat_stmt;
+  boost::circular_buffer<stat_loop> _stat_loop;
 
   /* mutex to protect the string access in _error */
   mutable std::mutex _error_m;
