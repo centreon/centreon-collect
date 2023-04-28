@@ -33,10 +33,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
-static inline bool is_not_zero(const int64_t& value) {
-  return value != 0;
-}
-
 static bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
@@ -1623,7 +1619,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _resources_host_insert.bind_value_as_u32(1, h.state());
             _resources_host_insert.bind_value_as_u32(
                 2, hst_ordered_status[h.state()]);
-            _resources_host_insert.bind_value_as_u64(3, h.last_state_change());
+            _resources_host_insert.bind_value_as_u64_ext(
+                3u, h.last_state_change(), mapping::entry::invalid_on_zero);
             _resources_host_insert.bind_value_as_bool(
                 4, h.scheduled_downtime_depth() > 0);
             _resources_host_insert.bind_value_as_bool(
@@ -1712,7 +1709,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
             _resources_host_update.bind_value_as_u32(0, h.state());
             _resources_host_update.bind_value_as_u32(
                 1, hst_ordered_status[h.state()]);
-            _resources_host_update.bind_value_as_u64(2, h.last_state_change());
+            _resources_host_update.bind_value_as_u64_ext(
+                2, h.last_state_change(), mapping::entry::invalid_on_zero);
             _resources_host_update.bind_value_as_bool(
                 3, h.scheduled_downtime_depth() > 0);
             _resources_host_update.bind_value_as_bool(
@@ -2008,12 +2006,17 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(1, hscr.check_type());
         b->set_value_as_i32(2, hscr.state());
         b->set_value_as_i32(3, hscr.state_type());
-        b->set_value_as_i64(4, hscr.last_state_change());
+        b->set_value_as_i64(4, hscr.last_state_change(),
+                            mapping::entry::invalid_on_zero);
         b->set_value_as_i32(5, hscr.last_hard_state());
-        b->set_value_as_i64(6, hscr.last_hard_state_change());
-        b->set_value_as_i64(7, hscr.last_time_up());
-        b->set_value_as_i64(8, hscr.last_time_down());
-        b->set_value_as_i64(9, hscr.last_time_unreachable());
+        b->set_value_as_i64(6, hscr.last_hard_state_change(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(7, hscr.last_time_up(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(8, hscr.last_time_down(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(9, hscr.last_time_unreachable(),
+                            mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
@@ -2035,8 +2038,10 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(19, hscr.check_attempt());
         b->set_value_as_u64(20, hscr.notification_number());
         b->set_value_as_bool(21, hscr.no_more_notifications());
-        b->set_value_as_i64(22, hscr.last_notification());
-        b->set_value_as_i64(23, hscr.next_host_notification());
+        b->set_value_as_i64(22, hscr.last_notification(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(23, hscr.next_host_notification(),
+                            mapping::entry::invalid_on_zero);
         b->set_value_as_bool(24, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(25, hscr.acknowledgement_type());
         b->set_value_as_i32(26, hscr.scheduled_downtime_depth());
@@ -2049,12 +2054,17 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_update->bind_value_as_i32(1, hscr.check_type());
         _hscr_update->bind_value_as_i32(2, hscr.state());
         _hscr_update->bind_value_as_i32(3, hscr.state_type());
-        _hscr_update->bind_value_as_i64(4, hscr.last_state_change());
+        _hscr_update->bind_value_as_i64_ext(4, hscr.last_state_change(),
+                                            mapping::entry::invalid_on_zero);
         _hscr_update->bind_value_as_i32(5, hscr.last_hard_state());
-        _hscr_update->bind_value_as_i64(6, hscr.last_hard_state_change());
-        _hscr_update->bind_value_as_i64(7, hscr.last_time_up());
-        _hscr_update->bind_value_as_i64(8, hscr.last_time_down());
-        _hscr_update->bind_value_as_i64(9, hscr.last_time_unreachable());
+        _hscr_update->bind_value_as_i64_ext(6, hscr.last_hard_state_change(),
+                                            mapping::entry::invalid_on_zero);
+        _hscr_update->bind_value_as_i64_ext(7, hscr.last_time_up(),
+                                            mapping::entry::invalid_on_zero);
+        _hscr_update->bind_value_as_i64_ext(8, hscr.last_time_down(),
+                                            mapping::entry::invalid_on_zero);
+        _hscr_update->bind_value_as_i64_ext(9, hscr.last_time_unreachable(),
+                                            mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", hscr.output(), hscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
@@ -2069,14 +2079,17 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_update->bind_value_as_f64(13, hscr.percent_state_change());
         _hscr_update->bind_value_as_f64(14, hscr.latency());
         _hscr_update->bind_value_as_f64(15, hscr.execution_time());
-        _hscr_update->bind_value_as_i64(16, hscr.last_check(), is_not_zero);
+        _hscr_update->bind_value_as_i64_ext(16, hscr.last_check(),
+                                            mapping::entry::invalid_on_zero);
         _hscr_update->bind_value_as_i64(17, hscr.next_check());
         _hscr_update->bind_value_as_bool(18, hscr.should_be_scheduled());
         _hscr_update->bind_value_as_i32(19, hscr.check_attempt());
         _hscr_update->bind_value_as_i32(20, hscr.notification_number());
         _hscr_update->bind_value_as_bool(21, hscr.no_more_notifications());
-        _hscr_update->bind_value_as_i64(22, hscr.last_notification());
-        _hscr_update->bind_value_as_i64(23, hscr.next_host_notification());
+        _hscr_update->bind_value_as_i64_ext(22, hscr.last_notification(),
+                                            mapping::entry::invalid_on_zero);
+        _hscr_update->bind_value_as_i64_ext(23, hscr.next_host_notification(),
+                                            mapping::entry::invalid_on_zero);
         _hscr_update->bind_value_as_bool(
             24, hscr.acknowledgement_type() != AckType::NONE);
         _hscr_update->bind_value_as_i32(25, hscr.acknowledgement_type());
@@ -2100,7 +2113,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         auto* b = _hscr_resources_bind->bind(conn).get();
         b->set_value_as_i32(0, hscr.state());
         b->set_value_as_i32(1, hst_ordered_status[hscr.state()]);
-        b->set_value_as_u64(2, hscr.last_state_change());
+        b->set_value_as_u64(2, hscr.last_state_change(),
+                            mapping::entry::invalid_on_zero);
         b->set_value_as_bool(3, hscr.scheduled_downtime_depth() > 0);
         b->set_value_as_bool(4, hscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5, hscr.state_type() == HostStatus_StateType_HARD);
@@ -2118,7 +2132,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_resources_update->bind_value_as_i32(0, hscr.state());
         _hscr_resources_update->bind_value_as_i32(
             1, hst_ordered_status[hscr.state()]);
-        _hscr_resources_update->bind_value_as_u64(2, hscr.last_state_change());
+        _hscr_resources_update->bind_value_as_u64_ext(
+            2, hscr.last_state_change(), mapping::entry::invalid_on_zero);
         _hscr_resources_update->bind_value_as_bool(
             3, hscr.scheduled_downtime_depth() > 0);
         _hscr_resources_update->bind_value_as_bool(
@@ -2128,8 +2143,8 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         _hscr_resources_update->bind_value_as_u32(6, hscr.check_attempt());
         _hscr_resources_update->bind_value_as_bool(7, hscr.perfdata() != "");
         _hscr_resources_update->bind_value_as_u32(8, hscr.check_type());
-        _hscr_resources_update->bind_value_as_u64(9, hscr.last_check(),
-                                                  is_not_zero);
+        _hscr_resources_update->bind_value_as_u64_ext(
+            9, hscr.last_check(), mapping::entry::invalid_on_zero);
         _hscr_resources_update->bind_value_as_str(10, hscr.output());
         _hscr_resources_update->bind_value_as_u64(11, hscr.host_id());
 
@@ -3047,7 +3062,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           _resources_service_insert.bind_value_as_u32(4, s.state());
           _resources_service_insert.bind_value_as_u32(
               5, svc_ordered_status[s.state()]);
-          _resources_service_insert.bind_value_as_u64(6, s.last_state_change());
+          _resources_service_insert.bind_value_as_u64_ext(
+              6, s.last_state_change(), mapping::entry::invalid_on_zero);
           _resources_service_insert.bind_value_as_bool(
               7, s.scheduled_downtime_depth() > 0);
           _resources_service_insert.bind_value_as_bool(
@@ -3134,7 +3150,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
           _resources_service_update.bind_value_as_u32(2, s.state());
           _resources_service_update.bind_value_as_u32(
               3, svc_ordered_status[s.state()]);
-          _resources_service_update.bind_value_as_u64(4, s.last_state_change());
+          _resources_service_update.bind_value_as_u64_ext(
+              4, s.last_state_change(), mapping::entry::invalid_on_zero);
           _resources_service_update.bind_value_as_bool(
               5, s.scheduled_downtime_depth() > 0);
           _resources_service_update.bind_value_as_bool(
@@ -3682,13 +3699,19 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(1, sscr.check_type());
         b->set_value_as_i32(2, sscr.state());
         b->set_value_as_i32(3, sscr.state_type());
-        b->set_value_as_i64(4, sscr.last_state_change());
+        b->set_value_as_i64(4, sscr.last_state_change(),
+                            mapping::entry::invalid_on_zero);
         b->set_value_as_i32(5, sscr.last_hard_state());
-        b->set_value_as_i64(6, sscr.last_hard_state_change());
-        b->set_value_as_i64(7, sscr.last_time_ok());
-        b->set_value_as_i64(8, sscr.last_time_warning());
-        b->set_value_as_i64(9, sscr.last_time_critical());
-        b->set_value_as_i64(10, sscr.last_time_unknown());
+        b->set_value_as_i64(6, sscr.last_hard_state_change(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(7, sscr.last_time_ok(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(8, sscr.last_time_warning(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(9, sscr.last_time_critical(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(10, sscr.last_time_unknown(),
+                            mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
@@ -3710,8 +3733,10 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(20, sscr.check_attempt());
         b->set_value_as_i32(21, sscr.notification_number());
         b->set_value_as_bool(22, sscr.no_more_notifications());
-        b->set_value_as_i64(23, sscr.last_notification());
-        b->set_value_as_i64(24, sscr.next_notification());
+        b->set_value_as_i64(23, sscr.last_notification(),
+                            mapping::entry::invalid_on_zero);
+        b->set_value_as_i64(24, sscr.next_notification(),
+                            mapping::entry::invalid_on_zero);
         b->set_value_as_bool(25, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_i32(26, sscr.acknowledgement_type());
         b->set_value_as_i32(27, sscr.scheduled_downtime_depth());
@@ -3726,13 +3751,19 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_update->bind_value_as_i32(1, sscr.check_type());
         _sscr_update->bind_value_as_i32(2, sscr.state());
         _sscr_update->bind_value_as_i32(3, sscr.state_type());
-        _sscr_update->bind_value_as_i64(4, sscr.last_state_change());
+        _sscr_update->bind_value_as_i64_ext(4, sscr.last_state_change(),
+                                            mapping::entry::invalid_on_zero);
         _sscr_update->bind_value_as_i32(5, sscr.last_hard_state());
-        _sscr_update->bind_value_as_i64(6, sscr.last_hard_state_change());
-        _sscr_update->bind_value_as_i64(7, sscr.last_time_ok());
-        _sscr_update->bind_value_as_i64(8, sscr.last_time_warning());
-        _sscr_update->bind_value_as_i64(9, sscr.last_time_critical());
-        _sscr_update->bind_value_as_i64(10, sscr.last_time_unknown());
+        _sscr_update->bind_value_as_i64_ext(6, sscr.last_hard_state_change(),
+                                            mapping::entry::invalid_on_zero);
+        _sscr_update->bind_value_as_i64_ext(7, sscr.last_time_ok(),
+                                            mapping::entry::invalid_on_zero);
+        _sscr_update->bind_value_as_i64_ext(8, sscr.last_time_warning(),
+                                            mapping::entry::invalid_on_zero);
+        _sscr_update->bind_value_as_i64_ext(9, sscr.last_time_critical(),
+                                            mapping::entry::invalid_on_zero);
+        _sscr_update->bind_value_as_i64_ext(10, sscr.last_time_unknown(),
+                                            mapping::entry::invalid_on_zero);
         std::string full_output{
             fmt::format("{}\n{}", sscr.output(), sscr.long_output())};
         size_t size = misc::string::adjust_size_utf8(
@@ -3747,14 +3778,17 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_update->bind_value_as_f64(14, sscr.percent_state_change());
         _sscr_update->bind_value_as_f64(15, sscr.latency());
         _sscr_update->bind_value_as_f64(16, sscr.execution_time());
-        _sscr_update->bind_value_as_i64(17, sscr.last_check(), is_not_zero);
+        _sscr_update->bind_value_as_i64_ext(17, sscr.last_check(),
+                                            mapping::entry::invalid_on_zero);
         _sscr_update->bind_value_as_i64(18, sscr.next_check());
         _sscr_update->bind_value_as_bool(19, sscr.should_be_scheduled());
         _sscr_update->bind_value_as_i32(20, sscr.check_attempt());
         _sscr_update->bind_value_as_u64(21, sscr.notification_number());
         _sscr_update->bind_value_as_bool(22, sscr.no_more_notifications());
-        _sscr_update->bind_value_as_i64(23, sscr.last_notification());
-        _sscr_update->bind_value_as_i64(24, sscr.next_notification());
+        _sscr_update->bind_value_as_i64_ext(23, sscr.last_notification(),
+                                            mapping::entry::invalid_on_zero);
+        _sscr_update->bind_value_as_i64_ext(24, sscr.next_notification(),
+                                            mapping::entry::invalid_on_zero);
         _sscr_update->bind_value_as_bool(
             25, sscr.acknowledgement_type() != AckType::NONE);
         _sscr_update->bind_value_as_i32(26, sscr.acknowledgement_type());
@@ -3781,7 +3815,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         auto* b = _sscr_resources_bind->bind(conn).get();
         b->set_value_as_i32(0, sscr.state());
         b->set_value_as_i32(1, svc_ordered_status[sscr.state()]);
-        b->set_value_as_u64(2, sscr.last_state_change());
+        b->set_value_as_u64(2, sscr.last_state_change(),
+                            mapping::entry::invalid_on_zero);
         b->set_value_as_bool(3, sscr.scheduled_downtime_depth() > 0);
         b->set_value_as_bool(4, sscr.acknowledgement_type() != AckType::NONE);
         b->set_value_as_bool(5,
@@ -3805,7 +3840,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_resources_update->bind_value_as_i32(0, sscr.state());
         _sscr_resources_update->bind_value_as_i32(
             1, svc_ordered_status[sscr.state()]);
-        _sscr_resources_update->bind_value_as_u64(2, sscr.last_state_change());
+        _sscr_resources_update->bind_value_as_u64_ext(
+            2, sscr.last_state_change(), mapping::entry::invalid_on_zero);
         _sscr_resources_update->bind_value_as_bool(
             3, sscr.scheduled_downtime_depth() > 0);
         _sscr_resources_update->bind_value_as_bool(
@@ -3815,8 +3851,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         _sscr_resources_update->bind_value_as_u32(6, sscr.check_attempt());
         _sscr_resources_update->bind_value_as_bool(7, sscr.perfdata() != "");
         _sscr_resources_update->bind_value_as_u32(8, sscr.check_type());
-        _sscr_resources_update->bind_value_as_u64(9, sscr.last_check(),
-                                                  is_not_zero);
+        _sscr_resources_update->bind_value_as_u64_ext(
+            9, sscr.last_check(), mapping::entry::invalid_on_zero);
         _sscr_resources_update->bind_value_as_str(
             10, fmt::string_view(sscr.output().c_str(), output_size));
         _sscr_resources_update->bind_value_as_u64(11, sscr.service_id());
