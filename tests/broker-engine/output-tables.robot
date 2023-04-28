@@ -111,7 +111,7 @@ BE_NOTIF_OVERFLOW
 	Kindly Stop Broker
 
 BE_TIME_NULL_SERVICE_RESOURCE
-	[Documentation]	bbdo 3.0 times must be null and not zero
+	[Documentation]	With BBDO 3, time must be set to NULL on 0 in services, hosts and resources tables.
 	[Tags]	Broker	Engine	protobuf	bbdo
 	Config Engine	${1}
 	Config Broker	central
@@ -130,10 +130,10 @@ BE_TIME_NULL_SERVICE_RESOURCE
 	Start Engine
 
 	FOR	${index}	IN RANGE	300
-		${output}=	Query	SELECT r.last_status_change, s.last_hard_state_change, s.last_notification, s.next_notification , s.last_state_change, s.last_time_critical, s.last_time_ok, s.last_time_unknown, s.last_time_warning, h.last_hard_state_change, h.last_notification, h.next_host_notification, h.last_state_change, h.last_time_down, h.last_time_unreachable, h.last_time_up FROM services s, resources r, hosts h WHERE h.host_id=1 AND s.service_id=1 AND r.id=1 AND r.parent_id=1
-		Log To Console	${output}
-		Sleep	1s
-		EXIT FOR LOOP IF	"${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
+	  ${output}=	Query	SELECT r.last_status_change, s.last_hard_state_change, s.last_notification, s.next_notification , s.last_state_change, s.last_time_critical, s.last_time_ok, s.last_time_unknown, s.last_time_warning, h.last_hard_state_change, h.last_notification, h.next_host_notification, h.last_state_change, h.last_time_down, h.last_time_unreachable, h.last_time_up FROM services s, resources r, hosts h WHERE h.host_id=1 AND s.service_id=1 AND r.id=1 AND r.parent_id=1
+	  Log To Console	${output}
+	  Sleep	1s
+	  EXIT FOR LOOP IF	"${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
 	END
 	Should Be Equal As Strings	${output}	((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)
 	Stop Engine

@@ -144,6 +144,18 @@ class mysql_stmt_base {
    */
   virtual void bind_value_as_i64(size_t range, int64_t value) = 0;
   /**
+   * @brief Set the given value at the column in the prepared statement at index
+   * range in the current row of the column. The type of the column must be
+   * MYSQL_TYPE_LONGLONG. The value must not match the invalid_on bitfield,
+   * otherwise the value is set to NULL.
+   *
+   * @param range Index of the column(from 0).
+   * @param value The value to set.
+   * @param invalid_on A bit field with values mapping::entry::invalid_on_zero,
+   * mapping::entry::invalid_minus_one or mapping::entry::invalid_on_negative.
+   */
+  void bind_value_as_i64_ext(size_t range, int64_t value, uint32_t invalid_on);
+  /**
    * @brief Set the given value at the column named key in the prepared
    * statement at the current row. The type of the column must be
    * MYSQL_TYPE_LONGLONG.
@@ -152,15 +164,6 @@ class mysql_stmt_base {
    * @param value The value to set.
    */
   void bind_value_as_i64_k(const std::string& key, int64_t value);
-  template <typename not_null_predicate>
-  void bind_value_as_i64(size_t range,
-                         int64_t value,
-                         const not_null_predicate& pred) {
-    if (pred(value))
-      bind_value_as_i64(range, value);
-    else
-      bind_null_i64(range);
-  }
   /**
    * @brief Set the NULL value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be
@@ -196,15 +199,6 @@ class mysql_stmt_base {
    * @param value The value to set.
    */
   void bind_value_as_u64_k(const std::string& key, uint64_t value);
-  template <typename not_null_predicate>
-  void bind_value_as_u64(size_t range,
-                         uint64_t value,
-                         const not_null_predicate& pred) {
-    if (pred(value))
-      bind_value_as_u64(range, value);
-    else
-      bind_null_u64(range);
-  }
   /**
    * @brief Set the NULL value at the column in the prepared statement at index
    * range in the current row of the column. The type of the column must be
@@ -213,6 +207,17 @@ class mysql_stmt_base {
    * @param range Index of the column(from 0).
    */
   virtual void bind_null_u64(size_t range) = 0;
+  /**
+   * @brief Set the given value at the column in the prepared statement at index
+   * range in the current row of the column. The type of the column must be
+   * MYSQL_TYPE_LONGLONG.
+   *
+   * @param range Index of the column(from 0).
+   * @param value The value to set.
+   * @param invalid_on A bit field with values mapping::entry::invalid_on_zero,
+   * mapping::entry::invalid_minus_one or mapping::entry::invalid_on_negative.
+   */
+  void bind_value_as_u64_ext(size_t range, uint64_t value, uint32_t invalid_on);
   /**
    * @brief Set the NULL value at the column named key in the prepared
    * statement at the current row. The type of the column must be
