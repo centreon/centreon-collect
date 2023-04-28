@@ -33,10 +33,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
-static inline bool is_not_zero(const int64_t& value) {
-  return value != 0;
-}
-
 static bool time_is_undefined(uint64_t t) {
   return t == 0 || t == static_cast<uint64_t>(-1);
 }
