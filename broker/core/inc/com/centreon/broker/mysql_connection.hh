@@ -125,7 +125,7 @@ class mysql_connection {
       if (total > 0) {
         float percent = activity / total * 100;
         _parent->_stat_loop.push_back({
-            .duration = total,
+            .duration = total / 1000,
             .activity_percent = percent,
         });
       }

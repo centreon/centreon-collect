@@ -7,7 +7,7 @@ import sys
 from google.protobuf import empty_pb2, timestamp_pb2
 
 def run():
-    with grpc.insecure_channel("127.0.0.1:{}".format(sys.argv[1])) as channel:
+    with grpc.insecure_channel(f"127.0.0.1:{sys.argv[1]}") as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         k = 0.0
         for j in range(10000):
@@ -16,7 +16,7 @@ def run():
           seconds = int(now)
           nanos = int((now - seconds) * 10**9)
           timestamp = timestamp_pb2.Timestamp(seconds=seconds, nanos=nanos)
-          for i in range(1, 400):
+          for i in range(1, 50):
               check = stub.ProcessServiceCheckResult(engine_pb2.Check(
                     check_time=timestamp,
                     host_name = 'ceïntràl',
