@@ -163,10 +163,10 @@ AOUTLU1
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	# Let's wait for the check of external commands
+	${content}=	Create List	check_for_external_commands
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
 	Process Service Check result	host_1	anomaly_${serv_id}	2	taratata|metric=80%;50;75
 	Check Service Status With Timeout  host_1  anomaly_${serv_id}  2  30
@@ -196,10 +196,10 @@ ANO_DT1
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	# Let's wait for the check of external commands
+	${content}=	Create List	check_for_external_commands
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
     #create dependent service downtime
     SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
@@ -232,10 +232,10 @@ ANO_DT2
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	# Let's wait for the check of external commands
+	${content}=	Create List	check_for_external_commands
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
     #create dependent service downtime
     SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
@@ -273,10 +273,10 @@ ANO_DT3
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	# Let's wait for the check of external commands
+	${content}=	Create List	check_for_external_commands
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
     #create dependent service downtime
     SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
@@ -316,10 +316,10 @@ ANO_DT4
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
-	# Let's wait for the initial service states.
-	${content}=	Create List	INITIAL SERVICE STATE: host_50;service_1000;
+	# Let's wait for the check of external commands
+	${content}=	Create List	check_for_external_commands
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-	Should Be True	${result}	msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
     #create dependent service downtime
     SCHEDULE SERVICE DOWNTIME	host_1	service_1  3600
