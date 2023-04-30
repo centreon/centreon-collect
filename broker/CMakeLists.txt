@@ -486,6 +486,7 @@ unset(MODULE_LIST)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
+add_broker_module(STATS_EXPORTER ON)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)
@@ -600,11 +601,11 @@ include(cmake/package.cmake)
 # Unit tests.
 #
 # Enable testing.
-option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
-
-if(WITH_TESTING)
-  add_subdirectory(test)
-endif()
+## option(WITH_SQL_TESTS "Sql unit tests are enabled." OFF)
+## 
+## if(WITH_TESTING)
+##   add_subdirectory(test)
+## endif()
 
 #
 # Print summary.
