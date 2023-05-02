@@ -109,7 +109,7 @@ class state {
   int pool_size() const noexcept;
   void poller_name(std::string const& name);
   std::string const& poller_name() const noexcept;
-  log& log_conf();
+  log& mut_log_conf();
   const log& log_conf() const;
 };
 }  // namespace config
