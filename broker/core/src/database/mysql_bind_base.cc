@@ -23,7 +23,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/mysql.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
