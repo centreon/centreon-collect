@@ -31,7 +31,7 @@ jobs:
       - name: Check workflow files
         run: |
           ${{ steps.get_actionlint.outputs.executable }} \
-          -ignore 'label "common" is unknown' \
+          -ignore 'label "(common|collect)" is unknown' \
           -ignore '"github.head_ref" is potentially untrusted' \
           -shellcheck= \
           -pyflakes= \
