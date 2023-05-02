@@ -18,6 +18,7 @@
 #include <errmsg.h>
 
 #include "com/centreon/broker/config/applier/init.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -114,15 +115,175 @@ void mysql_connection::_update_stats() noexcept {
   auto now = std::time(nullptr);
   if (now > _last_stats) {
     _last_stats = now;
-    stats::center::instance().execute(
-        [s = _stats, count = static_cast<int32_t>(_tasks_count),
-         connected = static_cast<bool>(_connected), sp = _switch_point] {
-          s->set_waiting_tasks(count);
-          if (connected)
-            s->set_up_since(sp);
-          else
-            s->set_down_since(sp);
-        });
+
+    bool there_are_stmts;
+    stat_statement slowest_stmt{};
+    stat_statement avg_stmt{};
+    if (!_stat_stmt.empty()) {
+      there_are_stmts = true;
+      for (auto& s : _stat_stmt) {
+        if (s.duration > slowest_stmt.duration)
+          slowest_stmt = s;
+        avg_stmt.duration += s.duration;
+        avg_stmt.rows_count += s.rows_count;
+      }
+      avg_stmt.duration /= _stat_stmt.size();
+      avg_stmt.rows_count /= _stat_stmt.size();
+    } else
+      there_are_stmts = false;
+
+    bool there_are_queries;
+    stat_query slowest_query{};
+    stat_query avg_query{};
+    if (!_stat_query.empty()) {
+      there_are_queries = true;
+      for (auto& s : _stat_query) {
+        if (s.duration > slowest_query.duration)
+          slowest_query = s;
+        avg_query.duration += s.duration;
+        avg_query.length += s.length;
+      }
+      avg_query.duration /= _stat_query.size();
+      avg_query.length /= _stat_query.size();
+    } else
+      there_are_queries = false;
+
+    stats::center::instance().execute([this, s_s = slowest_stmt, a_s = avg_stmt,
+                                       top_q =
+                                           config::applier::state::instance()
+                                               .stats_conf()
+                                               .sql_slowest_queries_count,
+                                       top_s =
+                                           config::applier::state::instance()
+                                               .stats_conf()
+                                               .sql_slowest_statements_count,
+                                       s_q = slowest_query, a_q = avg_query,
+                                       there_are_queries, there_are_stmts] {
+      SqlConnectionStats* stats =
+          stats::center::instance().connection(_stats_idx);
+      std::string dbg;
+      stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
+      if (static_cast<bool>(_connected))
+        stats->set_up_since(_switch_point);
+      else {
+        stats->set_down_since(_switch_point);
+        stats->clear_slowest_statements();
+        stats->clear_slowest_queries();
+        stats->mutable_statements_average()->set_duration(0);
+        stats->mutable_statements_average()->set_rows_count(0);
+
+        stats->mutable_queries_average()->set_duration(0);
+        stats->mutable_queries_average()->set_length(0);
+        return;
+      }
+
+      if (there_are_stmts) {
+        auto fill_stat = [](SqlConnectionStats_StatementStats* ss,
+                            float duration, uint32_t rows_count,
+                            int32_t start_time, uint32_t statement_id,
+                            const std::string& query) {
+          ss->set_duration(duration);
+          ss->set_rows_count(rows_count);
+          ss->set_start_time(start_time);
+          ss->set_statement_id(statement_id);
+          ss->set_statement_query(query);
+        };
+        stats->mutable_statements_average()->set_duration(a_s.duration);
+        stats->mutable_statements_average()->set_rows_count(a_s.rows_count);
+
+        int idx = 0;
+        float duration = 1000.0;
+        if (stats->slowest_statements().size() >= top_s) {
+          for (int i = 0; i < stats->slowest_statements().size(); i++) {
+            if (stats->slowest_statements()[i].duration() < duration) {
+              duration = stats->slowest_statements()[i].duration();
+              idx = i;
+            }
+          }
+          if (s_s.duration > duration) {
+            auto* new_ss = stats->mutable_slowest_statements(idx);
+            fill_stat(new_ss, s_s.duration, s_s.rows_count, s_s.start_time,
+                      s_s.statement_id, s_s.statement_query);
+          }
+          if (stats->slowest_statements().size() > top_s) {
+            duration = 1000.0;
+            for (int i = 0; i < stats->slowest_statements().size(); i++) {
+              if (stats->slowest_statements()[i].duration() < duration) {
+                duration = stats->slowest_statements()[i].duration();
+                idx = i;
+              }
+            }
+            auto it = stats->mutable_slowest_statements()->begin() + idx;
+            stats->mutable_slowest_statements()->erase(it);
+          }
+        } else {
+          bool found = false;
+          for (int i = 0; i < stats->slowest_statements().size(); i++) {
+            if (stats->slowest_statements()[i].duration() == s_s.duration &&
+                stats->slowest_statements()[i].rows_count() == s_s.rows_count &&
+                stats->slowest_statements()[i].start_time() == s_s.start_time) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            auto* new_ss = stats->add_slowest_statements();
+            fill_stat(new_ss, s_s.duration, s_s.rows_count, s_s.start_time,
+                      s_s.statement_id, s_s.statement_query);
+          }
+        }
+      }
+      if (there_are_queries) {
+        stats->mutable_queries_average()->set_duration(a_q.duration);
+        stats->mutable_queries_average()->set_length(a_q.length);
+
+        int idx = 0;
+        float duration = 1000.0;
+        if (stats->slowest_queries().size() >= top_q) {
+          for (int i = 0; i < stats->slowest_queries().size(); i++) {
+            if (stats->slowest_queries()[i].duration() < duration) {
+              duration = stats->slowest_queries()[i].duration();
+              idx = i;
+            }
+          }
+          if (s_q.duration > duration) {
+            auto* new_sq = stats->mutable_slowest_queries(idx);
+            new_sq->set_duration(s_q.duration);
+            new_sq->set_length(s_q.length);
+            new_sq->set_start_time(s_q.start_time);
+            new_sq->set_query(s_q.query);
+          }
+          if (stats->slowest_queries().size() > top_q) {
+            duration = 1000.0;
+            for (int i = 0; i < stats->slowest_queries().size(); i++) {
+              if (stats->slowest_queries()[i].duration() < duration) {
+                duration = stats->slowest_queries()[i].duration();
+                idx = i;
+              }
+            }
+            auto it = stats->mutable_slowest_queries()->begin() + idx;
+            stats->mutable_slowest_queries()->erase(it);
+          }
+        } else {
+          bool found = false;
+          for (int i = 0; i < stats->slowest_queries().size(); i++) {
+            if (stats->slowest_queries()[i].duration() == s_q.duration &&
+                stats->slowest_queries()[i].length() == s_q.length &&
+                stats->slowest_queries()[i].start_time() == s_q.start_time) {
+              found = true;
+              break;
+            }
+          }
+          if (!found) {
+            auto* new_sq = stats->add_slowest_queries();
+            new_sq->set_duration(s_q.duration);
+            new_sq->set_length(s_q.length);
+            new_sq->set_start_time(s_q.start_time);
+            new_sq->set_query(s_q.query);
+          }
+        }
+      }
+    });
   }
 }
 
@@ -215,6 +376,9 @@ bool mysql_connection::_try_to_reconnect() {
 
 void mysql_connection::_query(mysql_task* t) {
   mysql_task_run* task(static_cast<mysql_task_run*>(t));
+
+  mysql_connection::stats_query_span stats(this, task->query);
+
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection {:p}: run query: {}",
                       static_cast<const void*>(this), task->query);
   if (mysql_query(_conn, task->query.c_str())) {
@@ -234,6 +398,9 @@ void mysql_connection::_query(mysql_task* t) {
 
 void mysql_connection::_query_res(mysql_task* t) {
   mysql_task_run_res* task = static_cast<mysql_task_run_res*>(t);
+
+  mysql_connection::stats_query_span stats(this, task->query);
+
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection {:p}: run query: {}",
                       static_cast<const void*>(this), task->query);
   if (mysql_query(_conn, task->query.c_str())) {
@@ -253,12 +420,14 @@ void mysql_connection::_query_res(mysql_task* t) {
     /* All is good here */
     _last_access = time(nullptr);
     set_need_to_commit();
+
     task->promise.set_value(mysql_result(this, mysql_store_result(_conn)));
   }
 }
 
 void mysql_connection::_query_int(mysql_task* t) {
   mysql_task_run_int* task = static_cast<mysql_task_run_int*>(t);
+  mysql_connection::stats_query_span stats(this, task->query);
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "mysql_connection {:p}: run query: {}",
                       static_cast<const void*>(this), task->query);
   if (mysql_query(_conn, task->query.c_str())) {
@@ -287,6 +456,7 @@ void mysql_connection::_query_int(mysql_task* t) {
 
 void mysql_connection::_commit(mysql_task* t) {
   mysql_task_commit* task(static_cast<mysql_task_commit*>(t));
+  mysql_connection::stats_query_span(this, "COMMIT");
   std::string err_msg;
   if (_qps > 1) {
     int32_t attempts = 0;
@@ -375,6 +545,11 @@ void mysql_connection::_prepare(mysql_task* t) {
 
 void mysql_connection::_statement(mysql_task* t) {
   mysql_task_statement* task(static_cast<mysql_task_statement*>(t));
+
+  uint32_t array_size = 1;
+
+  stats_stmt_span stats(this, task->statement_id);
+  std::string& query = _stmt_query[task->statement_id];
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
     SPDLOG_LOGGER_ERROR(log_v2::sql(),
@@ -387,7 +562,8 @@ void mysql_connection::_statement(mysql_task* t) {
     bb = const_cast<MYSQL_BIND*>(task->bind->get_bind());
     if (task->bulk) {
       mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
-      uint32_t array_size = bind->rows_count();
+      array_size = bind->rows_count();
+      stats.set_rows_count(array_size);
       mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
     }
   }
@@ -404,8 +580,7 @@ void mysql_connection::_statement(mysql_task* t) {
       SPDLOG_LOGGER_TRACE(
           log_v2::sql(),
           "mysql_connection {:p}: execute statement {} attempt {}: {}",
-          static_cast<const void*>(this), task->statement_id, attempts,
-          _stmt_query[task->statement_id]);
+          static_cast<const void*>(this), task->statement_id, attempts, query);
       if (mysql_stmt_execute(stmt)) {
         std::string err_msg(
             fmt::format("{} errno={} {}", mysql_error::msg[task->error_code],
@@ -465,6 +640,7 @@ void mysql_connection::_statement(mysql_task* t) {
 
 void mysql_connection::_statement_res(mysql_task* t) {
   mysql_task_statement_res* task(static_cast<mysql_task_statement_res*>(t));
+  mysql_connection::stats_stmt_span stats(this, task->statement_id);
   SPDLOG_LOGGER_DEBUG(log_v2::sql(),
                       "mysql_connection: execute statement {}: {}",
                       task->statement_id, _stmt_query[task->statement_id]);
@@ -482,6 +658,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
     if (task->bulk) {
       mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
       uint32_t array_size = bind->rows_count();
+      stats.set_rows_count(array_size);
       mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
     }
   }
@@ -584,6 +761,7 @@ template <typename T>
 void mysql_connection::_statement_int(mysql_task* t) {
   mysql_task_statement_int<T>* task(
       static_cast<mysql_task_statement_int<T>*>(t));
+  mysql_connection::stats_stmt_span stats(this, task->statement_id);
   SPDLOG_LOGGER_DEBUG(log_v2::sql(),
                       "mysql_connection: execute statement {}: {}",
                       task->statement_id, _stmt_query[task->statement_id]);
@@ -601,6 +779,7 @@ void mysql_connection::_statement_int(mysql_task* t) {
     if (task->bulk) {
       mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task->bind.get());
       uint32_t array_size = bind->rows_count();
+      stats.set_rows_count(array_size);
       mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
     }
   }
@@ -1001,7 +1180,7 @@ void mysql_connection::_process_while_empty_task(
 /******************************************************************************/
 
 mysql_connection::mysql_connection(const database_config& db_cfg,
-                                   SqlConnectionStats* stats)
+                                   size_t stats_idx)
     : _conn(nullptr),
       _finish_asked(false),
       _tasks_count{0},
@@ -1020,9 +1199,11 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _state(not_started),
       _connected{false},
       _switch_point{std::time(nullptr)},
-      _stats{stats},
+      _stats_idx{stats_idx},
       _last_stats{std::time(nullptr)},
-      _qps(db_cfg.get_queries_per_transaction()) {
+      _qps(db_cfg.get_queries_per_transaction()),
+      _stat_query(20),
+      _stat_stmt(20) {
   std::unique_lock<std::mutex> lck(_start_m);
   SPDLOG_LOGGER_INFO(log_v2::sql(),
                      "mysql_connection: starting connection {:p} to {}",
@@ -1039,8 +1220,9 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: connection started");
-  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
-                                   _stats, 0);
+  stats::center::instance().update(
+      &SqlConnectionStats::set_waiting_tasks,
+      stats::center::instance().connection(_stats_idx), 0);
 }
 
 /**
@@ -1051,7 +1233,7 @@ mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection {:p}: finished",
                      static_cast<const void*>(this));
   finish();
-  stats::center::instance().remove_connection(_stats);
+  stats::center::instance().remove_connection(_stats_idx);
   _thread->join();
 }
 

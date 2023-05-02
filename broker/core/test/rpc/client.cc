@@ -44,7 +44,7 @@ class BrokerRPCClient {
   }
 
   bool GetSqlManagerStats(SqlManagerStats* response) {
-    const ::google::protobuf::Empty e;
+    const SqlConnection e;
     grpc::ClientContext context;
     grpc::Status status = _stub->GetSqlManagerStats(&context, e, response);
     if (!status.ok()) {
