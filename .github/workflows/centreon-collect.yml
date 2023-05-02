@@ -216,6 +216,7 @@ jobs:
     needs: [debian-packaging, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
+    environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
     name: Delivery
     strategy:
@@ -240,6 +241,7 @@ jobs:
     needs: [rpm-packaging, create-version]
     env:
       version: ${{ needs.create-version.outputs.version }}
+    environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
     name: Delivery
     strategy:
