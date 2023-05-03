@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015,2017-2022 Centreon
+** Copyright 2011-2013,2015,2017-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -418,6 +418,14 @@ state parser::parse(std::string const& file) {
               conf.loggers.emplace(it.key(), it.value().get<std::string>());
             }
           }
+        } else if (it.key() == "stats_exporter") {
+          if (!it.value().is_object())
+            throw msg_fmt(
+                "config parser: cannot parse key 'stats_exporter': value type "
+                "must be an object");
+          retval.mut_stats_exporter().enabled = true;
+          retval.add_module("15-stats_exporter.so");
+
         } else if (it.key() == "logger") {
           log_v2::config()->warn("logger object is deprecated on 21.10");
         } else {

@@ -196,8 +196,13 @@ grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
                                              SqlManagerStats* response) {
   if (!request->has_id())
     stats::center::instance().get_sql_manager_stats(response);
-  else
-    stats::center::instance().get_sql_manager_stats(response, request->id());
+  else {
+    try {
+      stats::center::instance().get_sql_manager_stats(response, request->id());
+    } catch (const std::exception& e) {
+      return grpc::Status(grpc::StatusCode::NOT_FOUND, e.what());
+    }
+  }
   return grpc::Status::OK;
 }
 

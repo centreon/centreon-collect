@@ -1,15 +1,17 @@
 [requires]
-gtest/cci.20210126
 asio/1.24.0
+boost/1.81.0
 fmt/9.1.0
-spdlog/1.11.0
-nlohmann_json/3.11.2
-openssl/1.1.1s
 grpc/1.50.1
-mariadb-connector-c/3.1.12
-zlib/1.2.13
-boost/1.80.0
+gtest/cci.20210126
+libcurl/7.87.0
 libssh2/1.10.0
+mariadb-connector-c/3.1.12
+nlohmann_json/3.11.2
+openssl/1.1.1t
+opentelemetry-cpp/1.8.1
+spdlog/1.11.0
+zlib/1.2.13
 
 [generators]
 cmake

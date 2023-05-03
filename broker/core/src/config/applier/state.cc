@@ -119,6 +119,9 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
           "'module_directory' directory");
   }
 
+  // Stats exporter
+  auto& stats_exporter = s.get_stats_exporter();
+
   // Event queue max size (used to limit memory consumption).
   com::centreon::broker::multiplexing::muxer::event_queue_max_size(
       s.event_queue_max_size());

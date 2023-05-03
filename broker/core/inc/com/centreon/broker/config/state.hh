@@ -70,6 +70,10 @@ class state {
     }
   } _log_conf;
 
+  struct stats_exporter {
+    bool enabled;
+  } _stats_exporter;
+
  public:
   state();
   state(state const& other);
@@ -113,6 +117,8 @@ class state {
   std::string const& poller_name() const noexcept;
   log& mut_log_conf();
   const log& log_conf() const;
+  stats_exporter& mut_stats_exporter();
+  const stats_exporter& get_stats_exporter() const;
 };
 }  // namespace config
 
