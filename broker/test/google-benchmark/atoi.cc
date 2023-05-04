@@ -1,9 +1,9 @@
 #include <absl/strings/numbers.h>
-#include <stdlib.h>
-#include <string>
-#include <sstream>
 #include <benchmark/benchmark.h>
+#include <stdlib.h>
 #include <boost/lexical_cast.hpp>
+#include <sstream>
+#include <string>
 
 static void BM_atoi(benchmark::State& state) {
   std::string a{"12345678"};

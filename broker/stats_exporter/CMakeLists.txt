@@ -21,7 +21,7 @@ set(STATS_EXPORTER
     PARENT_SCOPE)
 add_library(${STATS_EXPORTER} SHARED src/main.cc)
 set_target_properties(${STATS_EXPORTER} PROPERTIES PREFIX "")
-target_link_libraries(${STATS_EXPORTER} CONAN_PKG::opentelemetry-cpp)
+target_link_libraries(${STATS_EXPORTER} CONAN_PKG::opentelemetry-cpp CONAN_PKG::spdlog)
 target_precompile_headers(${STATS_EXPORTER} PRIVATE precomp_inc/precomp.hpp)
 
 # Install rule.

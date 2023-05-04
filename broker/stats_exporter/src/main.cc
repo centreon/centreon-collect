@@ -17,11 +17,16 @@
  *
  */
 
-//#include "com/centreon/broker/config/state.hh"
-//#include "com/centreon/broker/log_v2.hh"
+#include <opentelemetry/exporters/jaeger/jaeger_exporter_factory.h>
+#include <opentelemetry/sdk/trace/simple_processor_factory.h>
+#include <opentelemetry/sdk/trace/tracer_provider_factory.h>
+#include <opentelemetry/trace/provider.h>
+
+#include "com/centreon/broker/config/state.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
 
-// using namespace com::centreon::broker;
+using namespace com::centreon::broker;
 
 // Load count.
 static uint32_t instances = 0;
@@ -40,9 +45,13 @@ const char* broker_module_version = CENTREON_BROKER_VERSION;
 void broker_module_init(const void* arg) {
   // Increment instance number.
   if (!instances++) {
+    const config::state* s = static_cast<const config::state*>(arg);
+    const std::string& exporter = s->get_stats_exporter().exporter;
     // Stats module.
-    //    log_v2::config()->info("stats: module for Centreon Broker {}",
-    //                        CENTREON_BROKER_VERSION);
+    log_v2::config()->info("stats_exporter: module for Centreon Broker {}",
+                           CENTREON_BROKER_VERSION);
+
+    log_v2::config()->info("stats_exporter: with exporter '{}'", exporter);
   }
 }
 

@@ -20,8 +20,12 @@
 set(INC_DIR "${PROJECT_SOURCE_DIR}/bam/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/bam/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/bam/test")
-include_directories("${INC_DIR}" ${PROJECT_SOURCE_DIR}/core/inc)
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
+include_directories(
+    ${INC_DIR}
+    ${PROJECT_SOURCE_DIR}/core/inc
+    ${PROJECT_SOURCE_DIR}/core/sql/inc
+    ${PROJECT_SOURCE_DIR}/neb/inc
+)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/bam")
 
 # BAM module.

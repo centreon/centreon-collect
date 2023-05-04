@@ -17,9 +17,9 @@
  *
  */
 
+#include "com/centreon/broker/influxdb/influxdb.hh"
 #include <gtest/gtest.h>
 #include "../../core/test/test_server.hh"
-#include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

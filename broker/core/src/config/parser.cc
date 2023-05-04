@@ -423,6 +423,10 @@ state parser::parse(std::string const& file) {
             throw msg_fmt(
                 "config parser: cannot parse key 'stats_exporter': value type "
                 "must be an object");
+          for (auto itt = it.value().begin(); itt != it.value().end(); ++itt) {
+            if (itt.key() == "exporter")
+              retval.mut_stats_exporter().exporter = itt.value();
+          }
           retval.mut_stats_exporter().enabled = true;
           retval.add_module("15-stats_exporter.so");
 

@@ -1,22 +1,23 @@
-#include <absl/strings/numbers.h>
 #include <absl/strings/internal/ostringstream.h>
+#include <absl/strings/numbers.h>
+#include <benchmark/benchmark.h>
+#include <fcntl.h>
+#include <fmt/format.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <string>
-#include <fstream>
-#include <fmt/format.h>
-#include <benchmark/benchmark.h>
-#include <sys/types.h>
-#include <unistd.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 static void BM_ifstream(benchmark::State& state) {
   size_t length;
   for (auto _ : state) {
-  std::ifstream in("/etc/centreon-broker/central-broker.json", std::ifstream::ate | std::ifstream::binary);
-  length = in.tellg();
+    std::ifstream in("/etc/centreon-broker/central-broker.json",
+                     std::ifstream::ate | std::ifstream::binary);
+    length = in.tellg();
   }
   std::cout << "length = " << length << std::endl;
 }
@@ -28,9 +29,9 @@ BENCHMARK(BM_ifstream);
 static void BM_stat(benchmark::State& state) {
   size_t length;
   for (auto _ : state) {
-  struct stat file_stat;
-  stat("/etc/centreon-broker/central-broker.json", &file_stat);
-  length = file_stat.st_size;
+    struct stat file_stat;
+    stat("/etc/centreon-broker/central-broker.json", &file_stat);
+    length = file_stat.st_size;
   }
   std::cout << "retval = " << length << std::endl;
 }
@@ -41,10 +42,10 @@ BENCHMARK(BM_stat);
 static void BM_fseek(benchmark::State& state) {
   size_t length;
   for (auto _ : state) {
-  FILE* fp = fopen("/etc/centreon-broker/central-broker.json", "rb");
-  fseek(fp, 0, SEEK_END);
-  length = ftell(fp);
-  fclose(fp);
+    FILE* fp = fopen("/etc/centreon-broker/central-broker.json", "rb");
+    fseek(fp, 0, SEEK_END);
+    length = ftell(fp);
+    fclose(fp);
   }
   std::cout << "retval1 = " << length << std::endl;
 }

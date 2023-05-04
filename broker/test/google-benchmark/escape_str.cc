@@ -1,15 +1,20 @@
-#include <absl/strings/numbers.h>
 #include <absl/strings/internal/ostringstream.h>
+#include <absl/strings/numbers.h>
+#include <benchmark/benchmark.h>
+#include <fmt/format.h>
 #include <stdlib.h>
 #include <iomanip>
 #include <iostream>
-#include <string>
 #include <sstream>
-#include <fmt/format.h>
-#include <benchmark/benchmark.h>
+#include <string>
 
 static void BM_url_encode_with_stringstream(benchmark::State& state) {
-  const char* str{"\%a-b_c.d~A-B_C.D~a- b_c.d~A-B_C.D~a -b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~"};
+  const char* str{
+      "\%a-b_c.d~A-B_C.D~a- b_c.d~A-B_C.D~a "
+      "-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~"
+      "A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~"
+      "a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~"
+      "A-B_C.D~"};
 
   std::string retval;
   for (auto _ : state) {
@@ -40,7 +45,12 @@ BENCHMARK(BM_url_encode_with_stringstream);
 
 // Define another benchmark
 static void BM_url_encode_with_AbslStringstream(benchmark::State& state) {
-  const char* str{"\%a-b_c.d~A-B_C.D~a- b_c.d~A-B_C.D~a -b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~"};
+  const char* str{
+      "\%a-b_c.d~A-B_C.D~a- b_c.d~A-B_C.D~a "
+      "-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~"
+      "A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~"
+      "a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~"
+      "A-B_C.D~"};
 
   std::string retval;
   for (auto _ : state) {
@@ -62,7 +72,6 @@ static void BM_url_encode_with_AbslStringstream(benchmark::State& state) {
       escaped << '%' << std::setw(2) << int((unsigned char)c);
       escaped << std::nouppercase;
     }
-
   }
   std::cout << "retval = " << retval << std::endl;
 }
@@ -71,7 +80,12 @@ BENCHMARK(BM_url_encode_with_AbslStringstream);
 
 // Define another benchmark
 static void BM_url_encode_without_stringstream(benchmark::State& state) {
-  const char* str{"\%a-b_c.d~A-B_C.D~a- b_c.d~A-B_C.D~a -b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~"};
+  const char* str{
+      "\%a-b_c.d~A-B_C.D~a- b_c.d~A-B_C.D~a "
+      "-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~"
+      "A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~"
+      "a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~A-B_C.D~a-b_c.d~"
+      "A-B_C.D~"};
   size_t len = strlen(str);
 
   std::string retval;

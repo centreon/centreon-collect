@@ -28,13 +28,13 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -303,8 +303,9 @@ void stream::_unified_sql_process_pb_service_status(
               b->set_null_f32(3);
             else
               b->set_value_as_f32(3, pd.value());
-            log_v2::sql()->trace("New value {} inserted on metric {} with state {}",
-                pd.value(), metric_id, ss.state());
+            log_v2::sql()->trace(
+                "New value {} inserted on metric {} with state {}", pd.value(),
+                metric_id, ss.state());
             b->next_row();
           } else {
             std::string row;

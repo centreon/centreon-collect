@@ -17,7 +17,6 @@
 */
 #include "com/centreon/broker/io/limit_endpoint.hh"
 
-
 using namespace com::centreon::broker::io;
 
 /**
@@ -56,4 +55,3 @@ bool limit_endpoint::is_ready() const {
   }
   return false;
 }
-

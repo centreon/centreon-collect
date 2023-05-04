@@ -72,6 +72,7 @@ class state {
 
   struct stats_exporter {
     bool enabled;
+    std::string exporter;
   } _stats_exporter;
 
  public:

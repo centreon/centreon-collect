@@ -24,7 +24,6 @@
 #include <thread>
 #include <vector>
 
-#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
 #include <asio.hpp>
@@ -41,8 +40,8 @@
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
-#include "com/centreon/broker/mysql_manager.hh"
 #include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 
 using namespace com::centreon::broker;

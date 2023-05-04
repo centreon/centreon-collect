@@ -21,7 +21,7 @@
 #include <cassert>
 #include <cmath>
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/io/events.hh"
 
 using namespace com::centreon::broker;

@@ -82,7 +82,10 @@ macro(get_protobuf_files name)
     "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endmacro()
 
-include_directories("${CMAKE_SOURCE_DIR}/broker/core/inc")
+include_directories(
+    "${CMAKE_SOURCE_DIR}/broker/core/inc"
+    "${CMAKE_SOURCE_DIR}/broker/core/sql/inc"
+)
 
 add_library(
   bbdo_bbdo STATIC

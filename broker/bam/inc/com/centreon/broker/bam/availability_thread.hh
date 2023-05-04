@@ -21,10 +21,10 @@
 
 #include "com/centreon/broker/bam/availability_builder.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
-#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/database_config.hh"
+#include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 #include "com/centreon/broker/timestamp.hh"
 

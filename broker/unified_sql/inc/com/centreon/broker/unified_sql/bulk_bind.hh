@@ -18,8 +18,8 @@
 #ifndef CCB_UNIFIED_SQL_BULK_BIND_HH
 #define CCB_UNIFIED_SQL_BULK_BIND_HH
 
-#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 
 CCB_BEGIN()
 namespace unified_sql {

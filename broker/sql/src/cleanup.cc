@@ -20,17 +20,11 @@
 
 #include <unistd.h>
 
-#include "com/centreon/broker/database/mysql_error.hh"
-#include "com/centreon/broker/mysql.hh"
+#include "com/centreon/broker/sql/mysql.hh"
+#include "com/centreon/broker/sql/mysql_error.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::sql;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Constructor.

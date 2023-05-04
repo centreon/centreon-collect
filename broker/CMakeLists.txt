@@ -77,27 +77,12 @@ endif()
 include_directories(
   "${PROJECT_SOURCE_DIR}/core/inc" "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
-  "${PROJECT_SOURCE_DIR}/core/multiplexing/inc")
+  "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
+  "${PROJECT_SOURCE_DIR}/core/sql/inc"
+)
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")
-
-add_custom_command(
-  DEPENDS ${SRC_DIR}/database/table_max_size.py
-          "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
-          "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql"
-  COMMENT "Generating table_max_size.hh"
-  OUTPUT ${INC_DIR}/database/table_max_size.hh
-  COMMAND
-    python3 ARGS ${SRC_DIR}/database/table_max_size.py
-    ${INC_DIR}/database/table_max_size.hh
-    "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
-    "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql")
-
-add_custom_target(table_max_size DEPENDS ${INC_DIR}/database/table_max_size.hh)
-
-set_source_files_properties(${INC_DIR}/database/table_max_size.hh
-                            PROPERTIES GENERATED TRUE)
 
 add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
 add_definitions(${spdlog_DEFINITIONS} ${mariadb-connector-c_DEFINITIONS})
@@ -325,7 +310,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/config/endpoint.cc
     ${SRC_DIR}/config/parser.cc
     ${SRC_DIR}/config/state.cc
-    ${SRC_DIR}/database_config.cc
     ${SRC_DIR}/file/cfile.cc
     ${SRC_DIR}/file/disk_accessor.cc
     ${SRC_DIR}/file/directory_event.cc
@@ -356,20 +340,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/mysql.cc
     ${SRC_DIR}/pool.cc
-    ${SRC_DIR}/database/mysql_bind_base.cc
-    ${SRC_DIR}/database/mysql_bind.cc
-    ${SRC_DIR}/database/mysql_bind_result.cc
-    ${SRC_DIR}/database/mysql_bulk_bind.cc
-    ${SRC_DIR}/database/mysql_column.cc
-    ${SRC_DIR}/mysql_manager.cc
-    ${SRC_DIR}/database/mysql_result.cc
-    ${SRC_DIR}/database/mysql_stmt_base.cc
-    ${SRC_DIR}/database/mysql_stmt.cc
-    ${SRC_DIR}/database/mysql_bulk_stmt.cc
-    ${SRC_DIR}/mysql_connection.cc
-    ${SRC_DIR}/query_preparator.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
     ${SRC_DIR}/processing/acceptor.cc
@@ -402,7 +373,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/config/endpoint.hh
     ${INC_DIR}/config/parser.hh
     ${INC_DIR}/config/state.hh
-    ${INC_DIR}/database_config.hh
     ${INC_DIR}/exceptions/config.hh
     ${INC_DIR}/exceptions/interrupt.hh
     ${INC_DIR}/exceptions/shutdown.hh
@@ -440,20 +410,7 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/misc/trash.hh
     ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
-    ${INC_DIR}/mysql.hh
     ${INC_DIR}/pool.hh
-    ${INC_DIR}/database/mysql_bulk_bind.hh
-    ${INC_DIR}/database/mysql_column.hh
-    ${INC_DIR}/database/mysql_error.hh
-    ${INC_DIR}/mysql_manager.hh
-    ${INC_DIR}/database/mysql_result.hh
-    ${INC_DIR}/database/mysql_stmt_base.hh
-    ${INC_DIR}/database/mysql_stmt.hh
-    ${INC_DIR}/database/mysql_bulk_stmt.hh
-    ${INC_DIR}/database/mysql_task.hh
-    ${INC_DIR}/database/table_max_size.hh
-    ${INC_DIR}/mysql_connection.hh
-    ${INC_DIR}/query_preparator.hh
     ${INC_DIR}/persistent_cache.hh
     ${INC_DIR}/persistent_file.hh
     ${INC_DIR}/processing/acceptor.hh
@@ -487,11 +444,11 @@ target_link_libraries(
   CONAN_PKG::zlib
   CONAN_PKG::spdlog
   CONAN_PKG::openssl
-  CONAN_PKG::mariadb-connector-c
   pthread
   dl
   berpc
   bbdo_bbdo
+  sql
   pb_bbdo_lib)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
@@ -553,6 +510,9 @@ add_broker_module(GRPC ON)
 
 # multiplexing library linked in final executable such as cbd or cbmod
 add_subdirectory(core/multiplexing)
+
+# sql library
+add_subdirectory(core/sql)
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)
