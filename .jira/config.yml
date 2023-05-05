@@ -1,6 +1,8 @@
 deployments:
   environmentMapping:
+    development:
+      - "unstable-*"
     testing:
-      - "*-testing"
+      - "testing-*"
     production:
-      - "*-stable"
+      - "stable-*"
