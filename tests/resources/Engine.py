@@ -1274,7 +1274,7 @@ def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
     cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};0;0;{4};admin;Downtime set by admin\n".format(
         hst, svc, now, now+duration, duration)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
