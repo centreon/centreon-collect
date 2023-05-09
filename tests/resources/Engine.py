@@ -121,6 +121,7 @@ class EngineInstance:
                 "log_external_commands=1\n"
                 "log_v2_enabled=1\n"
                 "log_legacy_enabled=0\n"
+                "log_file_line=1\n"
                 "log_v2_logger=file\n"
                 "log_level_functions=trace\n"
                 "log_level_config=info\n"
