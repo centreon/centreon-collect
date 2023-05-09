@@ -57,7 +57,6 @@ set_target_properties(${GRPC} PROPERTIES PREFIX "")
 target_link_libraries(${GRPC} CONAN_PKG::spdlog)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)
-# include_directories($(Boost_INCLUDE_DIRS))
 
 add_custom_command(
   OUTPUT "${SRC_DIR}/grpc_stream.pb.cc" "${SRC_DIR}/grpc_stream.pb.h"

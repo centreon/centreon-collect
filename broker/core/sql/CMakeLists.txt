@@ -81,7 +81,6 @@ add_library(sql STATIC ${SOURCES})
 set_target_properties(sql PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(sql PRIVATE ../precomp_inc/precomp.hpp)
 target_link_libraries(sql CONAN_PKG::spdlog CONAN_PKG::mariadb-connector-c)
-#add_dependencies(sql table_max_size)
 
 #if(WITH_TESTING)
 #    set(

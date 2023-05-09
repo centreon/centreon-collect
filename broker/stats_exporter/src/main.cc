@@ -17,19 +17,69 @@
  *
  */
 
-#include <opentelemetry/exporters/jaeger/jaeger_exporter_factory.h>
-#include <opentelemetry/sdk/trace/simple_processor_factory.h>
-#include <opentelemetry/sdk/trace/tracer_provider_factory.h>
-#include <opentelemetry/trace/provider.h>
+#include <opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_factory.h>
+#include <opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h>
+#include <opentelemetry/metrics/provider.h>
+#include <opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h>
+#include <opentelemetry/sdk/metrics/meter_provider.h>
 
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/stats_exporter/exporter.hh"
+
+namespace metric_sdk = opentelemetry::sdk::metrics;
+namespace metrics_api = opentelemetry::metrics;
 
 using namespace com::centreon::broker;
 
 // Load count.
 static uint32_t instances = 0;
+
+std::unique_ptr<stats_exporter::exporter> expt;
+
+// static void export_to_http(const std::string& url) {
+//  opentelemetry::exporter::otlp::OtlpHttpMetricExporterOptions otlpOptions;
+//  /* url should be of the form http://XX.XX.XX.XX:4318/v1/metrics */
+//  otlpOptions.url = url;
+//  otlpOptions.aggregation_temporality =
+//  opentelemetry::sdk::metrics::AggregationTemporality::kCumulative; auto
+//  exporter =
+//      opentelemetry::exporter::otlp::OtlpHttpMetricExporterFactory::Create(
+//          otlpOptions);
+//  // Initialize and set the periodic metrics reader
+//  metric_sdk::PeriodicExportingMetricReaderOptions options;
+//  options.export_interval_millis = std::chrono::milliseconds(1000);
+//  options.export_timeout_millis = std::chrono::milliseconds(500);
+//  std::unique_ptr<metric_sdk::MetricReader> reader{
+//        new metric_sdk::PeriodicExportingMetricReader(std::move(exporter),
+//                                                      options)};
+//
+//  // Initialize meter provider
+//  auto provider = std::shared_ptr<metrics_api::MeterProvider>(
+//      new metric_sdk::MeterProvider());
+//  auto p = std::static_pointer_cast<metric_sdk::MeterProvider>(provider);
+//  p->AddMetricReader(std::move(reader));
+//  metrics_api::Provider::SetMeterProvider(provider);
+//
+//  auto meter = provider->GetMeter("broker_stats_threadpool");
+//  s = meter->CreateInt64ObservableGauge("size", "Number of threads in the
+//  thread pool"); s->AddCallback(update_threadpool_size, nullptr);
+
+// auto s = meter->CreateUInt64Counter("size", "Number of threads in the thread
+// pool"); s->Add(tp.size());
+
+//    auto updown_counter = meter->CreateInt64UpDownCounter("toto_le_hero", "a
+//    well known hero"); updown_counter->Add(1); updown_counter->Add(-5);
+//      auto test_gauge = meter->CreateDoubleObservableGauge(
+//          "test_gauge", "a gauge to test", "p");
+//      test_gauge->AddCallback(my_cb, nullptr);
+//      // Create Gauge
+//      for (int i = 0; i < 100; i++) {
+//        log_v2::core()->error("1 second");
+//        sleep(1);
+//      }
+//}
 
 extern "C" {
 /**
@@ -46,12 +96,17 @@ void broker_module_init(const void* arg) {
   // Increment instance number.
   if (!instances++) {
     const config::state* s = static_cast<const config::state*>(arg);
-    const std::string& exporter = s->get_stats_exporter().exporter;
+    const auto& exporters = s->get_stats_exporters();
     // Stats module.
     log_v2::config()->info("stats_exporter: module for Centreon Broker {}",
                            CENTREON_BROKER_VERSION);
 
-    log_v2::config()->info("stats_exporter: with exporter '{}'", exporter);
+    for (const auto& e : exporters) {
+      log_v2::config()->info("stats_exporter: with exporter '{}'", e.protocol);
+      if (e.protocol == "http") {
+        expt = std::make_unique<stats_exporter::exporter>(e.url);
+      }
+    }
   }
 }
 
@@ -61,6 +116,7 @@ void broker_module_init(const void* arg) {
 bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
+    expt.reset();
   }
   return true;  // ok to be unloaded
 }

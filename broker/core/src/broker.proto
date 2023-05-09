@@ -205,7 +205,7 @@ message ModuleStats {
 }
 
 message ThreadPool {
-  string latency = 1;
+  float latency = 1;
   uint32 size = 2;
 }
 

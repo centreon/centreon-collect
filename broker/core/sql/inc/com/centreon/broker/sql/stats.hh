@@ -134,7 +134,7 @@ class stats {
     std::chrono::system_clock::time_point _start_activity_time;
 
    public:
-    loop_span(stats* parent)
+    loop_span(stats* const parent)
         : _parent{parent}, _start_time(std::chrono::system_clock::now()) {}
     ~loop_span() noexcept {
       auto end_time = std::chrono::system_clock::now();

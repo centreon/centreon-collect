@@ -44,7 +44,6 @@ class state {
   modules _modules;
 
   struct stats {
-    bool exporter_enabled = false;
     uint32_t sql_slowest_statements_count = false;
     uint32_t sql_slowest_queries_count = false;
   } _stats_conf;

@@ -34,12 +34,6 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Default constructor.
  */

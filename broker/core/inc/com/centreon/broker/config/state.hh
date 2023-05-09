@@ -71,9 +71,12 @@ class state {
   } _log_conf;
 
   struct stats_exporter {
-    bool enabled;
-    std::string exporter;
-  } _stats_exporter;
+    std::string protocol;
+    std::string url;
+    stats_exporter(std::string&& protocol, std::string&& url)
+        : protocol(protocol), url(url) {}
+  };
+  std::list<stats_exporter> _stats_exporters;
 
  public:
   state();
@@ -118,8 +121,8 @@ class state {
   std::string const& poller_name() const noexcept;
   log& mut_log_conf();
   const log& log_conf() const;
-  stats_exporter& mut_stats_exporter();
-  const stats_exporter& get_stats_exporter() const;
+  std::list<stats_exporter>& mut_stats_exporters();
+  const std::list<stats_exporter>& get_stats_exporters() const;
 };
 }  // namespace config
 

@@ -453,10 +453,10 @@ const state::log& state::log_conf() const {
   return _log_conf;
 }
 
-const state::stats_exporter& state::get_stats_exporter() const {
-  return _stats_exporter;
+const std::list<state::stats_exporter>& state::get_stats_exporters() const {
+  return _stats_exporters;
 }
 
-state::stats_exporter& state::mut_stats_exporter() {
-  return _stats_exporter;
+std::list<state::stats_exporter>& state::mut_stats_exporters() {
+  return _stats_exporters;
 }

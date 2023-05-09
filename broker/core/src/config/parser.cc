@@ -419,15 +419,26 @@ state parser::parse(std::string const& file) {
             }
           }
         } else if (it.key() == "stats_exporter") {
-          if (!it.value().is_object())
+          if (!it.value().is_array())
             throw msg_fmt(
                 "config parser: cannot parse key 'stats_exporter': value type "
-                "must be an object");
-          for (auto itt = it.value().begin(); itt != it.value().end(); ++itt) {
-            if (itt.key() == "exporter")
-              retval.mut_stats_exporter().exporter = itt.value();
+                "must be an array");
+          for (auto& e : it.value()) {
+            if (!e.is_object())
+              throw msg_fmt(
+                  "config parser: cannot parse content of 'stats_exporter': "
+                  "values type must be an object");
+            std::string protocol = e["protocol"];
+            if (!absl::EqualsIgnoreCase(protocol, "http") &&
+                !absl::EqualsIgnoreCase(protocol, "grpc"))
+              throw msg_fmt(
+                  "config parser: protocol values must be among \"http\" and "
+                  "\"grpc\" in objects of stats_exporter");
+
+            std::string url = e["url"];
+            retval.mut_stats_exporters().emplace_back(std::move(protocol),
+                                                      std::move(url));
           }
-          retval.mut_stats_exporter().enabled = true;
           retval.add_module("15-stats_exporter.so");
 
         } else if (it.key() == "logger") {

@@ -383,3 +383,7 @@ void center::lock() {
 void center::unlock() {
   _stats_m.unlock();
 }
+
+const ThreadPool& center::threadpool() const {
+  return _stats.pool_stats();
+}

@@ -52,7 +52,7 @@ namespace stats {
 class center {
   static center* _instance;
   BrokerStats _stats;
-  std::mutex _stats_m;
+  mutable std::mutex _stats_m;
   int _json_stats_file_creation;
 
   center();
@@ -89,6 +89,7 @@ class center {
   int get_json_stats_file_creation(void);
   void get_sql_connection_size(GenericSize* response);
   void get_processing_stats(ProcessingStats* response);
+  const ThreadPool& threadpool() const;
   void lock();
   void unlock();
 
