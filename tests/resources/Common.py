@@ -354,10 +354,10 @@ def check_reschedule(log: str, date, content: str):
 
         retry_check = False
         normal_check = False
+        r = re.compile(".* last check at (.*) and next check at (.*)$")
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
-                r = re.compile(".* last check at (.*) and next check at (.*)$")
                 logger.console(
                     "\"{}\" found at line {} from {}".format(content, i, idx))
                 m = r.match(line)
