@@ -357,19 +357,29 @@ def check_reschedule(log: str, date, content: str):
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
+                r = re.compile(".* last check at (.*) and next check at (.*)$")
                 logger.console(
                     "\"{}\" found at line {} from {}".format(content, i, idx))
-                row = line.split()
-                delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
-                    datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
-                if delta == 60:
-                    retry_check = True
-                elif delta == 300:
-                    normal_check = True
+                m = r.match(line)
+                if m:
+                    delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
+                        datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
+                    if delta == 60:
+                        retry_check = True
+                    elif delta == 300:
+                        normal_check = True
+                    if delta == 60:
+                        retry_check = True
+                    elif delta == 300:
+                        normal_check = True
+                else:
+                    logger.console(f"Unable to find last check and next check in the line '{line}'")
+                    return False, False
+        logger.console(f"loop finished with {retry_check}, {normal_check}")
         return retry_check, normal_check
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
-        return False
+        return False, False
 
 
 def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
@@ -380,7 +390,7 @@ def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
         if v1 and v2:
             return v1, v2
         time.sleep(5)
-    return False
+    return False, False
 
 
 def clear_commands_status():

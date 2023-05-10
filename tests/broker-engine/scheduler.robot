@@ -36,7 +36,7 @@ ENRSCHE1
 	Should Be True	${result}	msg=Engine and Broker not connected
 
 	${pid}=	Get Process Id	e0
-	${content}=	Set Variable	[checks] [debug] [${pid}] Rescheduling next check of host: host_14
+	${content}=	Set Variable	Rescheduling next check of host: host_14
 
 	${result1}	${result2}=	check reschedule with timeout	${engineLog0}	${start}	${content}	240
 	Should Be True	${result1}	msg=the delta of last_check and next_check is not equal to 60.
