@@ -26,6 +26,120 @@ CCB_BEGIN()
 namespace database {
 
 /**
+ * @brief this class only provide a similar interface to bulk_bind
+ * it's used by row_filler class described above
+ *
+ */
+class stmt_binder {
+  unsigned _stmt_first_column;
+  mysql_stmt& _to_bind;
+
+ public:
+  stmt_binder(unsigned stmt_first_column, mysql_stmt& to_bind)
+      : _stmt_first_column(stmt_first_column), _to_bind(to_bind) {}
+
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_DOUBLE.
+   *
+   * @param range A non negative integer.
+   * @param value The double value to set.
+   */
+  void set_value_as_f64(size_t range, double value) {
+    _to_bind.bind_value_as_f64(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   * @param value The integer value to set.
+   */
+  void set_value_as_i32(size_t range, int32_t value) {
+    _to_bind.bind_value_as_i32(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   * @param value The unsigned integer value to set.
+   */
+  void set_value_as_u32(size_t range, uint32_t value) {
+    _to_bind.bind_value_as_u32(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG. The value must not
+   * match the invalid_on bitfield, otherwise the value is set to NULL.
+   *
+   * @param range A non negative integer.
+   * @param value The unsigned long integer value to set.
+   */
+  void set_value_as_u64(size_t range, int64_t value) {
+    _to_bind.bind_value_as_u64(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   * @param value The long integer value to set.
+   */
+  void set_value_as_i64(size_t range, int64_t value) {
+    _to_bind.bind_value_as_i64(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_u64(size_t range) { _to_bind.bind_null_u64(range); }
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_TINY.
+   *
+   * @param range A non negative integer.
+   * @param value The boolean value to set.
+   */
+  void set_value_as_bool(size_t range, bool value) {
+    _to_bind.bind_value_as_bool(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Setter of the value at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_STRING.
+   *
+   * @param range A non negative integer.
+   * @param value The string to set.
+   */
+  void set_value_as_str(size_t range, const fmt::string_view& value) {
+    _to_bind.bind_value_as_str(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Set the given value at the column in the prepared statement at index
+   * range in the current row of the column. The type of the column must be
+   * MYSQL_TYPE_TINY.
+   *
+   * @param range Index of the column(from 0).
+   * @param value The value to set.
+   */
+  void set_value_as_tiny(size_t range, char value) {
+    _to_bind.bind_value_as_tiny(range + _stmt_first_column, value);
+  }
+  /**
+   * @brief Set the NULL value at the column in the prepared statement at index
+   * range in the current row of the column. The type of the column must be
+   * MYSQL_TYPE_TINY.
+   *
+   * @param range Index of the column(from 0).
+   */
+  void set_null_tiny(size_t range) {
+    _to_bind.bind_null_tiny(range + _stmt_first_column);
+  }
+};
+
+/**
  * @brief this class used as a data provider is the data provider of
  * multi_insert_class.
  * It embeds two things: data and code to bind data to the
@@ -41,10 +155,9 @@ namespace database {
  *    row::pointer data;
  *    row_filler(const row::pointer& dt) : data(dt) {}
  *
- *    inline void fill_row(unsigned stmt_first_column,
- *                           mysql_stmt& to_bind) const override {
- *      to_bind.bind_value_as_str(stmt_first_column++, data->name);
- *      to_bind.bind_value_as_f64(stmt_first_column++, data->value);
+ *    inline void fill_row(stmt_binder& to_bind) const override {
+ *      to_bind.set_value_as_str(0, data->name);
+ *      to_bind.set_value_as_f64(1, data->value);
  *    }
  *  };
  * @endcode
@@ -55,10 +168,15 @@ class row_filler {
  public:
   using pointer = std::unique_ptr<row_filler>;
   virtual ~row_filler() {}
-  virtual void fill_row(unsigned stmt_first_column,
-                        mysql_stmt& to_bind) const = 0;
+  virtual void fill_row(stmt_binder&& to_bind) const = 0;
 };
 
+/**
+ * @brief this class emulates a bulk insert by create as many multi insert
+ * statements as necessary (INSERT INTO toto (col1, col2,..) VALUES (col0row0,
+ * col1row0...) (col0row1, col1row1,...) )
+ *
+ */
 class mysql_multi_insert {
   const std::string _query;
   const unsigned _nb_column;
@@ -88,6 +206,8 @@ class mysql_multi_insert {
   }
 
   unsigned push_stmt(mysql& pool, int thread_id = -1) const;
+
+  size_t rows_count() const { return _rows.size(); }
 };
 
 }  // namespace database

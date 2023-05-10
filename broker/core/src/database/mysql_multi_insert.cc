@@ -98,7 +98,7 @@ unsigned mysql_multi_insert::push_stmt(mysql& pool, int thread_id) const {
     database::mysql_stmt& last = *statements.rbegin();
     for (; row_iter != _rows.end() && nb_row_to_bind;
          ++row_iter, --nb_row_to_bind, bind_first_column_index += _nb_column) {
-      (*row_iter)->fill_row(bind_first_column_index, last);
+      (*row_iter)->fill_row(stmt_binder(bind_first_column_index, last));
     }
     std::promise<unsigned> prom;
     to_wait.push_back(prom.get_future());

@@ -97,15 +97,29 @@ class monitoring_stream : public io::stream {
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
 
-  void _prepare();
-  void _rebuild();
-  void _write_external_command(const std::string& cmd);
   void _write_forced_svc_check(const std::string& host,
                                const std::string& description);
   void _explicitly_send_forced_svc_checks(const asio::error_code& ec);
 
+  void _prepare();
+  void _create_multi_insert();
+  void _rebuild();
+  void _update_status(std::string const& status);
+  void _write_external_command(const std::string& cmd);
+
   void _read_cache();
   void _write_cache();
+  void _commit();
+
+  void _bulk_kpi_status(const std::shared_ptr<io::data>& event);
+  void _bulk_ba_status(const std::shared_ptr<io::data>& event);
+  void _bulk_pb_kpi_status(const std::shared_ptr<io::data>& event);
+  void _bulk_pb_ba_status(const std::shared_ptr<io::data>& event);
+
+  void _multi_insert_kpi_status(const std::shared_ptr<io::data>& event);
+  void _multi_insert_ba_status(const std::shared_ptr<io::data>& event);
+  void _multi_insert_pb_kpi_status(const std::shared_ptr<io::data>& event);
+  void _multi_insert_pb_ba_status(const std::shared_ptr<io::data>& event);
 
  public:
   monitoring_stream(std::string const& ext_cmd_file,
@@ -121,23 +135,6 @@ class monitoring_stream : public io::stream {
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void update() override final;
   int write(std::shared_ptr<io::data> const& d) override;
-
- private:
-  void _prepare();
-  void _create_multi_insert();
-  void _rebuild();
-  void _update_status(std::string const& status);
-  void _write_external_command(std::string& cmd);
-
-  void _read_cache();
-  void _write_cache();
-  void _commit();
-
-  void _bulk_kpi_status(const std::shared_ptr<io::data>& event);
-  void _bulk_ba_status(const std::shared_ptr<io::data>& event);
-
-  void _multi_insert_kpi_status(const std::shared_ptr<io::data>& event);
-  void _multi_insert_ba_status(const std::shared_ptr<io::data>& event);
 };
 }  // namespace bam
 

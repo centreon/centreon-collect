@@ -2054,14 +2054,13 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
     row_filler(const row::pointer& dt) : data(dt) {}
 
-    inline void fill_row(unsigned stmt_first_column,
-                         mysql_stmt& to_bind) const override {
-      to_bind.bind_value_as_str(stmt_first_column++, data->name);
-      to_bind.bind_value_as_f64(stmt_first_column++, data->value);
-      to_bind.bind_value_as_tiny(stmt_first_column++, data->t);
-      to_bind.bind_value_as_str(stmt_first_column++, data->e);
-      to_bind.bind_value_as_i32(stmt_first_column++, data->i);
-      to_bind.bind_value_as_u32(stmt_first_column, data->u);
+    inline void fill_row(stmt_binder&& to_bind) const override {
+      to_bind.set_value_as_str(0, data->name);
+      to_bind.set_value_as_f64(1, data->value);
+      to_bind.set_value_as_tiny(2, data->t);
+      to_bind.set_value_as_str(3, data->e);
+      to_bind.set_value_as_i32(4, data->i);
+      to_bind.set_value_as_u32(5, data->u);
     }
   };
 
@@ -2124,15 +2123,14 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
     row_filler2(const row::pointer& dt) : data(dt) {}
 
-    inline void fill_row(unsigned stmt_first_column,
-                         mysql_stmt& to_bind) const override {
-      to_bind.bind_value_as_u64(stmt_first_column++, data->id);
-      to_bind.bind_value_as_str(stmt_first_column++, data->name);
-      to_bind.bind_value_as_f64(stmt_first_column++, data->value);
-      to_bind.bind_value_as_tiny(stmt_first_column++, data->t);
-      to_bind.bind_value_as_str(stmt_first_column++, data->e);
-      to_bind.bind_value_as_i32(stmt_first_column++, data->i);
-      to_bind.bind_value_as_u32(stmt_first_column, data->u);
+    inline void fill_row(stmt_binder&& to_bind) const override {
+      to_bind.set_value_as_u64(0, data->id);
+      to_bind.set_value_as_str(1, data->name);
+      to_bind.set_value_as_f64(2, data->value);
+      to_bind.set_value_as_tiny(3, data->t);
+      to_bind.set_value_as_str(4, data->e);
+      to_bind.set_value_as_i32(5, data->i);
+      to_bind.set_value_as_u32(6, data->u);
     }
   };
 
