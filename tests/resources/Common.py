@@ -368,10 +368,6 @@ def check_reschedule(log: str, date, content: str):
                         retry_check = True
                     elif delta == 300:
                         normal_check = True
-                    if delta == 60:
-                        retry_check = True
-                    elif delta == 300:
-                        normal_check = True
                 else:
                     logger.console(f"Unable to find last check and next check in the line '{line}'")
                     return False, False
