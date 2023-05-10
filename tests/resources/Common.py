@@ -283,7 +283,7 @@ def check_engine_logs_are_duplicated(log: str, date):
         logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
         new_log = re.compile(
-            r"\[[^\]]*\] \[[^\]]*\] \[[^\]]*\] \[[^\]]*\] (.*)")
+            r"\[[^\]]*\] \[[^\]]*\] \[.*\] \[[0-9]+\] (.*)")
         for l in lines[idx:]:
             mo = old_log.match(l)
             mn = new_log.match(l)
