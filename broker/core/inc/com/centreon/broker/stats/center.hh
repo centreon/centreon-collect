@@ -90,6 +90,7 @@ class center {
   void get_sql_connection_size(GenericSize* response);
   void get_processing_stats(ProcessingStats* response);
   const ThreadPool& threadpool() const;
+  const BrokerStats& stats() const;
   void lock();
   void unlock();
 

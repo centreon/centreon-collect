@@ -21,11 +21,12 @@
 
 #include <opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_factory.h>
 #include <opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h>
+#include <opentelemetry/metrics/provider.h>
 #include <opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h>
 #include <opentelemetry/sdk/metrics/meter_provider.h>
-#include <opentelemetry/metrics/provider.h>
 
 #include "broker.pb.h"
+#include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
 
 namespace metrics_api = opentelemetry::metrics;
@@ -40,18 +41,89 @@ namespace stats_exporter {
 class exporter {
   const std::string _url;
 
+  class instrument_f64 {
+    opentelemetry::nostd::shared_ptr<metrics_api::ObservableInstrument> _inst;
+    std::function<double()> _query;
+
+    static void update_double(metrics_api::ObserverResult observer,
+                              void* state) {
+      std::function<double()> query =
+          *reinterpret_cast<std::function<double()>*>(state);
+      std::lock_guard<stats::center> lck(stats::center::instance());
+
+      auto observer_long =
+          opentelemetry::nostd::get<opentelemetry::nostd::shared_ptr<
+              opentelemetry::metrics::ObserverResultT<double>>>(observer);
+      observer_long->Observe(static_cast<double>(query()));
+    }
+
+   public:
+    instrument_f64(std::shared_ptr<metrics_api::MeterProvider>& provider,
+                   const std::string& name,
+                   const std::string& description,
+                   std::function<double()>&& query)
+        : _query(query) {
+      auto meter = provider->GetMeter("broker_stats_threadpool");
+      _inst = meter->CreateDoubleObservableGauge(name, description);
+      _inst->AddCallback(update_double, &_query);
+    }
+  };
+
+  class instrument_i64 {
+    opentelemetry::nostd::shared_ptr<metrics_api::ObservableInstrument> _inst;
+    std::function<int64_t()> _query;
+
+    static void update_int64(metrics_api::ObserverResult observer,
+                             void* state) {
+      std::function<int64_t()> query =
+          *reinterpret_cast<std::function<int64_t()>*>(state);
+      std::lock_guard<stats::center> lck(stats::center::instance());
+
+      auto observer_long =
+          opentelemetry::nostd::get<opentelemetry::nostd::shared_ptr<
+              opentelemetry::metrics::ObserverResultT<int64_t>>>(observer);
+      observer_long->Observe(static_cast<int64_t>(query()));
+    }
+
+   public:
+    instrument_i64(std::shared_ptr<metrics_api::MeterProvider>& provider,
+                   const std::string& name,
+                   const std::string& description,
+                   std::function<int64_t()>&& query)
+        : _query(query) {
+      auto meter = provider->GetMeter("broker_stats_threadpool");
+      _inst = meter->CreateInt64ObservableGauge(name, description);
+      _inst->AddCallback(update_int64, &_query);
+    }
+  };
+
   /* Thread pool */
-  opentelemetry::nostd::shared_ptr<metrics_api::ObservableInstrument> _thread_pool_size;
-  opentelemetry::nostd::shared_ptr<metrics_api::ObservableInstrument> _thread_pool_latency;
+  std::unique_ptr<instrument_i64> _thread_pool_size;
+  std::unique_ptr<instrument_f64> _thread_pool_latency;
+
+  /* Muxers */
+  struct queue_file_instrument {
+    std::unique_ptr<instrument_i64> file_write_path;
+    std::unique_ptr<instrument_i64> file_read_path;
+    std::unique_ptr<instrument_f64> file_percent_processed;
+  };
+
+  struct muxer_instrument {
+    std::unique_ptr<instrument_i64> total_events;
+    std::unique_ptr<instrument_i64> unacknowledged_events;
+    queue_file_instrument queue_file;
+  };
+  std::vector<muxer_instrument> _muxer;
 
  public:
-  exporter(const std::string& url);
+  exporter(const std::string& url,
+           const config::state&
+               s);  // const std::string& url, double interval, double timeout);
   ~exporter() noexcept = default;
 };
 
-}
+}  // namespace stats_exporter
 
 CCB_END()
 
 #endif /* !CCB_STATS_EXPORTER_EXPORTER_HH */
-

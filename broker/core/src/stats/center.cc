@@ -384,6 +384,10 @@ void center::unlock() {
   _stats_m.unlock();
 }
 
+const BrokerStats& center::stats() const {
+  return _stats;
+}
+
 const ThreadPool& center::threadpool() const {
   return _stats.pool_stats();
 }

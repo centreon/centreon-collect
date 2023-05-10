@@ -419,28 +419,64 @@ state parser::parse(std::string const& file) {
             }
           }
         } else if (it.key() == "stats_exporter") {
-          if (!it.value().is_array())
+          if (!it.value().is_object())
             throw msg_fmt(
                 "config parser: cannot parse key 'stats_exporter': value type "
-                "must be an array");
-          for (auto& e : it.value()) {
-            if (!e.is_object())
-              throw msg_fmt(
-                  "config parser: cannot parse content of 'stats_exporter': "
-                  "values type must be an object");
-            std::string protocol = e["protocol"];
-            if (!absl::EqualsIgnoreCase(protocol, "http") &&
-                !absl::EqualsIgnoreCase(protocol, "grpc"))
-              throw msg_fmt(
-                  "config parser: protocol values must be among \"http\" and "
-                  "\"grpc\" in objects of stats_exporter");
+                "must be an object");
+          if (it.value().contains("exporters")) {
+            double export_interval;
+            if (it.value().contains("export_interval")) {
+              if (it.value()["export_interval"].is_number())
+                export_interval = it.value()["export_interval"].get<double>();
+              else
+                throw msg_fmt(
+                    "export_interval must be a number as it represents a "
+                    "duration in seconds.");
+            } else
+              export_interval = 5;
 
-            std::string url = e["url"];
-            retval.mut_stats_exporters().emplace_back(std::move(protocol),
-                                                      std::move(url));
-          }
-          retval.add_module("15-stats_exporter.so");
+            double export_timeout;
+            if (it.value().contains("export_timeout")) {
+              if (it.value()["export_timeout"].is_number())
+                export_timeout = it.value()["export_timeout"].get<double>();
+              else
+                throw msg_fmt(
+                    "export_timeout must be a number as it represents a "
+                    "duration in seconds.");
+            } else
+              export_timeout = 0.5;
 
+            retval.mut_stats_exporter().export_interval = export_interval;
+            retval.mut_stats_exporter().export_timeout = export_timeout;
+            for (auto& e : it.value()["exporters"]) {
+              if (!e.is_object())
+                throw msg_fmt(
+                    "config parser: cannot parse content of 'stats_exporter': "
+                    "values type must be an object");
+              if (!e.contains("protocol"))
+                throw msg_fmt(
+                    "config parser: an exporter must contain a 'protocol' key "
+                    "with 'http' or 'grpc' as value");
+              if (!e.contains("url"))
+                throw msg_fmt(
+                    "config parser: an exporter must contain a 'url' key with "
+                    "the server url as value");
+              std::string protocol = e["protocol"];
+              if (!absl::EqualsIgnoreCase(protocol, "http") &&
+                  !absl::EqualsIgnoreCase(protocol, "grpc"))
+                throw msg_fmt(
+                    "config parser: protocol values must be among \"http\" and "
+                    "\"grpc\" in objects of stats_exporter");
+
+              std::string url = e["url"];
+              retval.mut_stats_exporter().exporters.emplace_back(
+                  std::move(protocol), std::move(url));
+            }
+            retval.add_module("15-stats_exporter.so");
+          } else
+            log_v2::config()->warn(
+                "config parser: no exporters defined in the stats_exporter "
+                "configuration");
         } else if (it.key() == "logger") {
           log_v2::config()->warn("logger object is deprecated on 21.10");
         } else {

@@ -88,6 +88,16 @@ extern "C" {
 const char* broker_module_version = CENTREON_BROKER_VERSION;
 
 /**
+ * @brief Return an array with modules needed for this one to work.
+ *
+ * @return An array of const char*
+ */
+const char* const* broker_module_parents() {
+  constexpr static const char* retval[]{"10-neb.so", nullptr};
+  return retval;
+}
+
+/**
  *  Module initialization routine.
  *
  *  @param[in] arg Configuration argument.
@@ -96,7 +106,8 @@ void broker_module_init(const void* arg) {
   // Increment instance number.
   if (!instances++) {
     const config::state* s = static_cast<const config::state*>(arg);
-    const auto& exporters = s->get_stats_exporters();
+    const auto& conf = s->get_stats_exporter();
+    const auto& exporters = conf.exporters;
     // Stats module.
     log_v2::config()->info("stats_exporter: module for Centreon Broker {}",
                            CENTREON_BROKER_VERSION);
@@ -104,7 +115,8 @@ void broker_module_init(const void* arg) {
     for (const auto& e : exporters) {
       log_v2::config()->info("stats_exporter: with exporter '{}'", e.protocol);
       if (e.protocol == "http") {
-        expt = std::make_unique<stats_exporter::exporter>(e.url);
+        expt = std::make_unique<stats_exporter::exporter>(
+            e.url, *s);  // conf.export_interval, conf.export_timeout*/);
       }
     }
   }
