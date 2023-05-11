@@ -103,16 +103,6 @@ class monitoring_stream : public io::stream {
   void _write_cache();
   void _commit();
 
-  void _bulk_kpi_status(const std::shared_ptr<io::data>& event);
-  void _bulk_ba_status(const std::shared_ptr<io::data>& event);
-  void _bulk_pb_kpi_status(const std::shared_ptr<io::data>& event);
-  void _bulk_pb_ba_status(const std::shared_ptr<io::data>& event);
-
-  void _multi_insert_kpi_status(const std::shared_ptr<io::data>& event);
-  void _multi_insert_ba_status(const std::shared_ptr<io::data>& event);
-  void _multi_insert_pb_kpi_status(const std::shared_ptr<io::data>& event);
-  void _multi_insert_pb_ba_status(const std::shared_ptr<io::data>& event);
-
  public:
   monitoring_stream(std::string const& ext_cmd_file,
                     database_config const& db_cfg,

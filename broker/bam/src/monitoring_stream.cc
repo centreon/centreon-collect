@@ -313,11 +313,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     } break;
     case bam::ba_status::static_type(): {
       ba_status* status(static_cast<ba_status*>(data.get()));
-      if (_mysql.support_bulk_statement()) {
-        _bulk_ba_status(data);
-      } else {
-        _multi_insert_ba_status(data);
-      }
+      _ba->add_event(data);
 
       ++_pending_request;
       commit_if_needed();
@@ -342,11 +338,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     case bam::pb_ba_status::static_type(): {
       const BaStatus& status =
           static_cast<const pb_ba_status*>(data.get())->obj();
-      if (_mysql.support_bulk_statement()) {
-        _bulk_pb_ba_status(data);
-      } else {
-        _multi_insert_pb_ba_status(data);
-      }
+      _ba->add_event(data);
       ++_pending_request;
       commit_if_needed();
 
@@ -367,25 +359,12 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
         }
       }
     } break;
-    case bam::kpi_status::static_type(): {
-      if (_mysql.support_bulk_statement()) {
-        _bulk_kpi_status(data);
-      } else {
-        _multi_insert_kpi_status(data);
-      }
+    case bam::kpi_status::static_type():
+    case bam::pb_kpi_status::static_type():
+      _kpi->add_event(data);
       ++_pending_request;
       commit_if_needed();
-    } break;
-    case bam::pb_kpi_status::static_type(): {
-      if (_mysql.support_bulk_statement()) {
-        _bulk_pb_kpi_status(data);
-      } else {
-        _multi_insert_pb_kpi_status(data);
-      }
-      ++_pending_request;
-      commit_if_needed();
-
-    } break;
+      break;
     case inherited_downtime::static_type(): {
       std::string cmd;
       timestamp now = timestamp::now();
@@ -461,27 +440,95 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
   return retval;
 }
 
+static auto ba_binder = [](const std::shared_ptr<io::data>& event,
+                           database::mysql_bind_base* binder) {
+  if (event->type() == ba_status::static_type()) {
+    const ba_status& status = *std::static_pointer_cast<ba_status>(event);
+    binder->set_value_as_f64(0, status.level_nominal);
+    binder->set_value_as_f64(1, status.level_acknowledgement);
+    binder->set_value_as_f64(2, status.level_downtime);
+    binder->set_value_as_u32(6, status.ba_id);
+    if (status.last_state_change.is_null())
+      binder->set_null_u64(3);
+    else
+      binder->set_value_as_u64(3, status.last_state_change.get_time_t());
+    binder->set_value_as_bool(4, status.in_downtime);
+    binder->set_value_as_i32(5, status.state);
+
+  } else {
+    const BaStatus& status =
+        static_cast<const pb_ba_status*>(event.get())->obj();
+    binder->set_value_as_f64(0, status.level_nominal());
+    binder->set_value_as_f64(1, status.level_acknowledgement());
+    binder->set_value_as_f64(2, status.level_downtime());
+    binder->set_value_as_u32(6, status.ba_id());
+    if (status.last_state_change() <= 0)
+      binder->set_null_u64(3);
+    else
+      binder->set_value_as_u64(3, status.last_state_change());
+    binder->set_value_as_bool(4, status.in_downtime());
+    binder->set_value_as_i32(5, status.state());
+  }
+};
+
+static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
+                            database::mysql_bind_base* binder) {
+  if (event->type() == kpi_status::static_type()) {
+    const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
+    binder->set_value_as_f64(0, status.level_acknowledgement_hard);
+    binder->set_value_as_i32(1, status.state_hard);
+    binder->set_value_as_f64(2, status.level_downtime_hard);
+    binder->set_value_as_f64(3, status.level_nominal_hard);
+    binder->set_value_as_i32(4, 1 + 1);
+    if (status.last_state_change.is_null())
+      binder->set_null_u64(5);
+    else
+      binder->set_value_as_u64(5, status.last_state_change.get_time_t());
+    binder->set_value_as_f64(6, status.last_impact);
+    binder->set_value_as_bool(7, status.valid);
+    binder->set_value_as_bool(8, status.in_downtime);
+    binder->set_value_as_u32(9, status.kpi_id);
+  } else {
+    const KpiStatus& status(
+        std::static_pointer_cast<pb_kpi_status>(event)->obj());
+    binder->set_value_as_f64(0, status.level_acknowledgement_hard());
+    binder->set_value_as_i32(1, status.state_hard());
+    binder->set_value_as_f64(2, status.level_downtime_hard());
+    binder->set_value_as_f64(3, status.level_nominal_hard());
+    binder->set_value_as_i32(4, 1 + 1);
+    if (status.last_state_change() <= 0)
+      binder->set_null_u64(5);
+    else
+      binder->set_value_as_u64(5, status.last_state_change());
+    binder->set_value_as_f64(6, status.last_impact());
+    binder->set_value_as_bool(7, status.valid());
+    binder->set_value_as_bool(8, status.in_downtime());
+    binder->set_value_as_u32(9, status.kpi_id());
+  }
+};
+
 /**
  *  Prepare bulk queries.
  */
 void monitoring_stream::_prepare() {
   if (_mysql.support_bulk_statement()) {
     log_v2::bam()->trace("BAM: monitoring stream _prepare");
-    _ba = std::make_unique<database::bulk_or_multi>(
+    _ba = database::create_bulk_or_multi_bbdo_event(
         _mysql,
         "UPDATE mod_bam SET "
-        "current_level=?,acknowledged=?,downtime=?,last_state_change=?,in_"
+        "current_level=?,acknowledged=?,downtime=?,last_state_"
+        "change=?,in_"
         "downtime=?,current_status=? WHERE ba_id=?",
-        _conf_queries_per_transaction);
-    _kpi = std::make_unique<database::bulk_or_multi>(
+        _conf_queries_per_transaction, ba_binder);
+    _kpi = database::create_bulk_or_multi_bbdo_event(
         _mysql,
         "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,downtime=?, "
         "last_level=?,state_type=?,last_state_change=?,last_impact=?, "
         "valid=?,in_downtime=? WHERE kpi_id=?",
-        _conf_queries_per_transaction);
+        _conf_queries_per_transaction, kpi_binder);
 
   } else {
-    _ba = std::make_unique<database::bulk_or_multi>(
+    _ba = database::create_bulk_or_multi_bbdo_event(
         "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
         "last_state_change, in_downtime, current_status, ba_id) VALUES",
         7,
@@ -489,8 +536,9 @@ void monitoring_stream::_prepare() {
         "acknowledged=VALUES(acknowledged), downtime=VALUES(downtime), "
         "last_state_change=VALUES(last_state_change), "
         "in_downtime=VALUES(in_downtime), "
-        "current_status=VALUES(current_status)");
-    _kpi = std::make_unique<database::bulk_or_multi>(
+        "current_status=VALUES(current_status)",
+        ba_binder);
+    _kpi = database::create_bulk_or_multi_bbdo_event(
         "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
         "downtime, last_level, state_type, last_state_change, last_impact, "
         "valid, in_downtime, kpi_id) VALUES",
@@ -501,7 +549,8 @@ void monitoring_stream::_prepare() {
         "state_type=VALUES(state_type), "
         "last_state_change=VALUES(last_state_change), "
         "last_impact=VALUES(last_impact), valid=VALUES(valid), "
-        "in_downtime=VALUES(in_downtime)");
+        "in_downtime=VALUES(in_downtime)",
+        kpi_binder);
   }
 }
 
@@ -665,320 +714,4 @@ void monitoring_stream::_write_cache() {
 void monitoring_stream::_commit() {
   _ba->execute(_mysql);
   _kpi->execute(_mysql);
-}
-
-/***********************************************************************
- *                            bulk queries
- ***********************************************************************/
-
-/**
- * @brief fill request (multi_insert or bulk) with status fields
- *
- * @tparam data_binder stmt_binder or mysql_bulk_bind
- * @param binder
- * @param status status to record in database
- */
-template <class data_binder>
-void kpi_status_bind(data_binder& binder, const kpi_status& status) {
-  binder.set_value_as_f64(0, status.level_acknowledgement_hard);
-  binder.set_value_as_i32(1, status.state_hard);
-  binder.set_value_as_f64(2, status.level_downtime_hard);
-  binder.set_value_as_f64(3, status.level_nominal_hard);
-  binder.set_value_as_i32(4, 1 + 1);
-  if (status.last_state_change.is_null())
-    binder.set_null_u64(5);
-  else
-    binder.set_value_as_u64(5, status.last_state_change.get_time_t());
-  binder.set_value_as_f64(6, status.last_impact);
-  binder.set_value_as_bool(7, status.valid);
-  binder.set_value_as_bool(8, status.in_downtime);
-  binder.set_value_as_u32(9, status.kpi_id);
-}
-
-/**
- * @brief fill request (multi_insert or bulk) with status fields
- *
- * @tparam data_binder stmt_binder or mysql_bulk_bind
- * @param binder
- * @param status status to record in database
- */
-template <class data_binder>
-void kpi_status_bind(data_binder& binder, const KpiStatus& status) {
-  binder.set_value_as_f64(0, status.level_acknowledgement_hard());
-  binder.set_value_as_i32(1, status.state_hard());
-  binder.set_value_as_f64(2, status.level_downtime_hard());
-  binder.set_value_as_f64(3, status.level_nominal_hard());
-  binder.set_value_as_i32(4, 1 + 1);
-  if (status.last_state_change() <= 0)
-    binder.set_null_u64(5);
-  else
-    binder.set_value_as_u64(5, status.last_state_change());
-  binder.set_value_as_f64(6, status.last_impact());
-  binder.set_value_as_bool(7, status.valid());
-  binder.set_value_as_bool(8, status.in_downtime());
-  binder.set_value_as_u32(9, status.kpi_id());
-}
-
-/**
- * @brief save status event in mysql_bulk_bind
- *
- * @param event std::shared_ptr<kpi_status>
- */
-void monitoring_stream::_bulk_kpi_status(
-    const std::shared_ptr<io::data>& event) {
-  const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
-  SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
-      "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
-      "downtime {})",
-      status.kpi_id, status.level_nominal_hard,
-      status.level_acknowledgement_hard, status.level_downtime_hard);
-
-  kpi_status_bind(*_kpi->bulk_bind, status);
-
-  _kpi->bulk_bind->next_row();
-}
-
-/**
- * @brief save status event in mysql_bulk_bind
- *
- * @param event std::shared_ptr<pb_kpi_status>
- */
-void monitoring_stream::_bulk_pb_kpi_status(
-    const std::shared_ptr<io::data>& event) {
-  const KpiStatus& status(
-      std::static_pointer_cast<pb_kpi_status>(event)->obj());
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
-      "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
-      "downtime {})",
-      status.kpi_id(), status.level_nominal_hard(),
-      status.level_acknowledgement_hard(), status.level_downtime_hard());
-
-  kpi_status_bind(*_kpi->bulk_bind, status);
-
-  _kpi->bulk_bind->next_row();
-}
-
-/**
- * @brief fill request (multi_insert or bulk) with status fields
- *
- * @tparam data_binder stmt_binder or mysql_bulk_bind
- * @param binder
- * @param status status to record in database
- */
-template <class data_binder>
-void ba_status_bind(data_binder& binder, const ba_status& status) {
-  binder.set_value_as_f64(0, status.level_nominal);
-  binder.set_value_as_f64(1, status.level_acknowledgement);
-  binder.set_value_as_f64(2, status.level_downtime);
-  binder.set_value_as_u32(6, status.ba_id);
-  if (status.last_state_change.is_null())
-    binder.set_null_u64(3);
-  else
-    binder.set_value_as_u64(3, status.last_state_change.get_time_t());
-  binder.set_value_as_bool(4, status.in_downtime);
-  binder.set_value_as_i32(5, status.state);
-}
-
-/**
- * @brief fill request (multi_insert or bulk) with status fields
- *
- * @tparam data_binder stmt_binder or mysql_bulk_bind
- * @param binder
- * @param status status to record in database
- */
-template <class data_binder>
-void ba_status_bind(data_binder& binder, const BaStatus& status) {
-  binder.set_value_as_f64(0, status.level_nominal());
-  binder.set_value_as_f64(1, status.level_acknowledgement());
-  binder.set_value_as_f64(2, status.level_downtime());
-  binder.set_value_as_u32(6, status.ba_id());
-  if (status.last_state_change() <= 0)
-    binder.set_null_u64(3);
-  else
-    binder.set_value_as_u64(3, status.last_state_change());
-  binder.set_value_as_bool(4, status.in_downtime());
-  binder.set_value_as_i32(5, status.state());
-}
-
-/**
- * @brief save status event in mysql_bulk_bind
- *
- * @param event std::shared_ptr<ba_status>
- */
-void monitoring_stream::_bulk_ba_status(
-    const std::shared_ptr<io::data>& event) {
-  const ba_status& status = *std::static_pointer_cast<ba_status>(event);
-  SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
-      "BAM: processing BA status (id {}, nominal {}, acknowledgement {}, "
-      "downtime {}) - in downtime {}, state {}",
-      status.ba_id, status.level_nominal, status.level_acknowledgement,
-      status.level_downtime, status.in_downtime, status.state);
-  ba_status_bind(*_ba->bulk_bind, status);
-
-  _ba->bulk_bind->next_row();
-}
-
-/**
- * @brief save status event in mysql_bulk_bind
- *
- * @param event std::shared_ptr<pb_ba_status>
- */
-void monitoring_stream::_bulk_pb_ba_status(
-    const std::shared_ptr<io::data>& event) {
-  const BaStatus& status = static_cast<const pb_ba_status*>(event.get())->obj();
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                      "BAM: processing pb BA status (id {}, nominal {}, "
-                      "acknowledgement {}, "
-                      "downtime {}) - in downtime {}, state {}",
-                      status.ba_id(), status.level_nominal(),
-                      status.level_acknowledgement(), status.level_downtime(),
-                      status.in_downtime(), status.state());
-  ba_status_bind(*_ba->bulk_bind, status);
-
-  _ba->bulk_bind->next_row();
-}
-
-/***********************************************************************
- *                            multi insert queries
- ***********************************************************************/
-
-/**
- * @brief save a kpi_status in a multi insert query
- *
- * @param event
- */
-void monitoring_stream::_multi_insert_kpi_status(
-    const std::shared_ptr<io::data>& event) {
-  /**
-   * @brief this row filler bind _event (kpi_status) in query
-   *
-   */
-  class kpi_row_filler : public database::row_filler {
-    std::shared_ptr<io::data> _event;
-
-   public:
-    kpi_row_filler(const std::shared_ptr<io::data>& event) : _event(event) {}
-
-    void fill_row(stmt_binder&& to_bind) const override {
-      const kpi_status& status = *std::static_pointer_cast<kpi_status>(_event);
-      kpi_status_bind(to_bind, status);
-    }
-  };
-
-  const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
-  SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
-      "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
-      "downtime {})",
-      status.kpi_id, status.level_nominal_hard,
-      status.level_acknowledgement_hard, status.level_downtime_hard);
-  _kpi->mult_insert->push(std::make_unique<kpi_row_filler>(event));
-}
-
-/**
- * @brief save a pb_kpi_status in a multi insert query
- *
- * @param event
- */
-void monitoring_stream::_multi_insert_pb_kpi_status(
-    const std::shared_ptr<io::data>& event) {
-  /**
-   * @brief this row filler bind _event (pb_kpi_status) in query
-   *
-   */
-  class kpi_row_filler : public database::row_filler {
-    std::shared_ptr<io::data> _event;
-
-   public:
-    kpi_row_filler(const std::shared_ptr<io::data>& event) : _event(event) {}
-
-    void fill_row(stmt_binder&& to_bind) const override {
-      const KpiStatus& status(
-          std::static_pointer_cast<pb_kpi_status>(_event)->obj());
-      kpi_status_bind(to_bind, status);
-    }
-  };
-
-  const KpiStatus& status(
-      std::static_pointer_cast<pb_kpi_status>(event)->obj());
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
-      "BAM: processing KPI status (id {}, level {}, acknowledgement {}, "
-      "downtime {})",
-      status.kpi_id(), status.level_nominal_hard(),
-      status.level_acknowledgement_hard(), status.level_downtime_hard());
-  _kpi->mult_insert->push(std::make_unique<kpi_row_filler>(event));
-}
-
-/**
- * @brief save a ba_status in a multi insert query
- *
- * @param event
- */
-void monitoring_stream::_multi_insert_ba_status(
-    const std::shared_ptr<io::data>& event) {
-  /**
-   * @brief this row filler bind _event (ba_status) in query
-   *
-   */
-  class ba_row_filler : public database::row_filler {
-    std::shared_ptr<io::data> _event;
-
-   public:
-    ba_row_filler(const std::shared_ptr<io::data>& event) : _event(event) {}
-
-    void fill_row(stmt_binder&& to_bind) const override {
-      const ba_status& status = *std::static_pointer_cast<ba_status>(_event);
-      ba_status_bind(to_bind, status);
-    }
-  };
-
-  const ba_status& status = *std::static_pointer_cast<ba_status>(event);
-  SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
-      "BAM: processing BA status (id {}, nominal {}, acknowledgement {}, "
-      "downtime {}) - in downtime {}, state {}",
-      status.ba_id, status.level_nominal, status.level_acknowledgement,
-      status.level_downtime, status.in_downtime, status.state);
-
-  _ba->mult_insert->push(std::make_unique<ba_row_filler>(event));
-}
-
-/**
- * @brief save a pb_ba_status in a multi insert query
- *
- * @param event
- */
-void monitoring_stream::_multi_insert_pb_ba_status(
-    const std::shared_ptr<io::data>& event) {
-  /**
-   * @brief this row filler bind _event (pb_ba_status) in query
-   *
-   */
-  class ba_row_filler : public database::row_filler {
-    std::shared_ptr<io::data> _event;
-
-   public:
-    ba_row_filler(const std::shared_ptr<io::data>& event) : _event(event) {}
-
-    void fill_row(stmt_binder&& to_bind) const override {
-      const BaStatus& status =
-          static_cast<const pb_ba_status*>(_event.get())->obj();
-      ba_status_bind(to_bind, status);
-    }
-  };
-
-  const BaStatus& status = static_cast<const pb_ba_status*>(event.get())->obj();
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                      "BAM: processing pb BA status (id {}, nominal {}, "
-                      "acknowledgement {}, "
-                      "downtime {}) - in downtime {}, state {}",
-                      status.ba_id(), status.level_nominal(),
-                      status.level_acknowledgement(), status.level_downtime(),
-                      status.in_downtime(), status.state());
-
-  _ba->mult_insert->push(std::make_unique<ba_row_filler>(event));
 }

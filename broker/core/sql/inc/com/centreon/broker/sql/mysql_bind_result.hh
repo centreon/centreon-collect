@@ -67,7 +67,7 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The integer value to set.
    */
-  // void set_value_as_i32(size_t range, int32_t value);
+  void set_value_as_i32(size_t range, int32_t value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONG.
@@ -92,7 +92,7 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The unsigned integer value to set.
    */
-  // void set_value_as_u32(size_t range, uint32_t value);
+  void set_value_as_u32(size_t range, uint32_t value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONG.
@@ -117,7 +117,7 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The long integer value to set.
    */
-  // void set_value_as_i64(size_t range, int64_t value);
+  void set_value_as_i64(size_t range, int64_t value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONGLONG.
@@ -142,14 +142,14 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The unsigned long integer value to set.
    */
-  // void set_value_as_u64(size_t range, uint64_t value);
+  void set_value_as_u64(size_t range, uint64_t value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONGLONG.
    *
    * @param range A non negative integer.
    */
-  // void set_null_u64(size_t range);
+  void set_null_u64(size_t range) override;
 
   /**
    * @brief getter to the bool value at index range. The type of the column
@@ -168,7 +168,7 @@ class mysql_bind_result : public mysql_bind_base {
   //   * @param range A non negative integer.
   //   * @param value The boolean value to set.
   //   */
-  //  void set_value_as_bool(size_t range, bool value);
+  void set_value_as_bool(size_t range, bool value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_TINY.
@@ -218,7 +218,7 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The double value to set.
    */
-  // void set_value_as_f64(size_t range, double value);
+  void set_value_as_f64(size_t range, double value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_DOUBLE.
@@ -243,7 +243,7 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The string to set.
    */
-  // void set_value_as_str(size_t range, const fmt::string_view& value);
+  void set_value_as_str(size_t range, const fmt::string_view& value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_STRING.
@@ -268,14 +268,14 @@ class mysql_bind_result : public mysql_bind_base {
    * @param range A non negative integer.
    * @param value The char to set.
    */
-  // void set_value_as_tiny(size_t range, char value);
+  void set_value_as_tiny(size_t range, char value) override;
   /**
    * @brief Setter of NULL at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_TINY.
    *
    * @param range A non negative integer.
    */
-  // void set_null_tiny(size_t range);
+  void set_null_tiny(size_t range) override;
 
   bool value_is_null(size_t range) const;
   size_t rows_count() const;

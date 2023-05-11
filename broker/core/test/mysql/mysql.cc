@@ -2054,7 +2054,7 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
     row_filler(const row::pointer& dt) : data(dt) {}
 
-    inline void fill_row(stmt_binder&& to_bind) const override {
+    inline void fill_row(stmt_binder& to_bind) const override {
       to_bind.set_value_as_str(0, data->name);
       to_bind.set_value_as_f64(1, data->value);
       to_bind.set_value_as_tiny(2, data->t);
@@ -2123,7 +2123,7 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
     row_filler2(const row::pointer& dt) : data(dt) {}
 
-    inline void fill_row(stmt_binder&& to_bind) const override {
+    inline void fill_row(stmt_binder& to_bind) const override {
       to_bind.set_value_as_u64(0, data->id);
       to_bind.set_value_as_str(1, data->name);
       to_bind.set_value_as_f64(2, data->value);
