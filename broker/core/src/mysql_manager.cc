@@ -118,12 +118,12 @@ std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
 
     // We are still missing threads in the configuration to return
     while (retval.size() < connection_count) {
-      SqlConnectionStats* s = stats::center::instance().add_connection();
+      size_t stats_idx = stats::center::instance().add_connection();
       std::shared_ptr<mysql_connection> c;
       try {
-        c = std::make_shared<mysql_connection>(db_cfg, s);
+        c = std::make_shared<mysql_connection>(db_cfg, stats_idx);
       } catch (const std::exception& e) {
-        stats::center::instance().remove_connection(s);
+        stats::center::instance().remove_connection(stats_idx);
         throw;
       }
       _connection.push_back(c);
@@ -198,7 +198,7 @@ std::map<std::string, std::string> mysql_manager::get_stats() {
       std::make_pair("delay since last check", std::to_string(delay)));
   std::string key("waiting tasks in connection ");
   int key_len(key.size());
-  for (int i(0); i < stats_connections_count; ++i) {
+  for (int i = 0; i < stats_connections_count; ++i) {
     key.replace(key_len, std::string::npos, std::to_string(i));
     retval.insert(std::make_pair(key, std::to_string(_stats_counts[i])));
   }
