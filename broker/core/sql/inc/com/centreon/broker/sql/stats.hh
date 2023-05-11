@@ -26,6 +26,31 @@ CCB_BEGIN()
 
 namespace sql {
 
+/**
+ * @class stats stats.hh
+ * "com/centreon/broker/database/stats.hh"
+ * @brief Class doing stats on mysql connections.
+ *
+ * Statistics made by this class are relatively easy:
+ * * queries duration average.
+ * * statements duration average.
+ * * duration of connection loop.
+ * * activity in connection loop (working time / total time).
+ *
+ * To aquieve this, we use three subclasses.
+ * * query_span: this class is specialized to make measures on queries. Once
+ *   it is instanciated, it stores a start_time, the realized query and its
+ *   length in characters. At its destruction, it stores an end_time and stacks
+ *   these data into a little struct stat_query.
+ * * stmt_span: this class looks like query_span but stores the statement id,
+ *   the content of the query, the number of lines (important for bulk
+ *   statements). At its destruction, it stacks data into a little struct
+ *   stat_statement.
+ * * loop_span: it looks like the two previous one. When it is intanciated,
+ *   it stores a start time, but the span is considered as inactive. There is
+ *   a method start_activity() to set loop_span in active state. At its
+ *   destruction, it stacks collected data into a little struct loop.
+ */
 class stats {
  public:
   class query_span {
