@@ -75,11 +75,11 @@ else()
 endif()
 
 include_directories(
-  "${PROJECT_SOURCE_DIR}/core/inc" "${PROJECT_SOURCE_DIR}/neb/inc"
+  "${PROJECT_SOURCE_DIR}/core/inc"
+  "${PROJECT_SOURCE_DIR}/neb/inc"
   "${CMAKE_SOURCE_DIR}/engine/inc"
   "${PROJECT_SOURCE_DIR}/core/multiplexing/inc"
-  "${PROJECT_SOURCE_DIR}/core/sql/inc"
-)
+  "${PROJECT_SOURCE_DIR}/core/sql/inc")
 set(INC_DIR "${PROJECT_SOURCE_DIR}/core/inc/com/centreon/broker")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/core/src")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/core/test")

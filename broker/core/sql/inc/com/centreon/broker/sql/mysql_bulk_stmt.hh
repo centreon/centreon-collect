@@ -43,9 +43,8 @@ class mysql_bulk_stmt : public mysql_stmt_base {
       mysql_bind_mapping const& bind_mapping = mysql_bind_mapping());
   mysql_bulk_stmt(mysql_bulk_stmt&& other) = delete;
   mysql_bulk_stmt& operator=(const mysql_bulk_stmt&) = delete;
-  mysql_bulk_stmt& operator=(mysql_bulk_stmt&& other) = delete;
+  mysql_bulk_stmt& operator=(mysql_bulk_stmt&&) = delete;
   std::unique_ptr<database::mysql_bulk_bind> get_bind();
-  // void operator<<(io::data const& d);
 
   /**
    * @brief Set the given value at the column in the prepared statement at index
