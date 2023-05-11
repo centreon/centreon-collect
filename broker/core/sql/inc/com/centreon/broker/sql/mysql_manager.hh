@@ -83,6 +83,7 @@ class mysql_manager {
   std::map<std::string, std::string> get_stats();
   void update_connections();
   void clear();
+  size_t connections_count() const;
 };
 
 CCB_END()

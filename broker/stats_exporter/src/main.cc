@@ -26,7 +26,8 @@
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
-#include "com/centreon/broker/stats_exporter/exporter.hh"
+#include "com/centreon/broker/stats_exporter/exporter_grpc.hh"
+#include "com/centreon/broker/stats_exporter/exporter_http.hh"
 
 namespace metric_sdk = opentelemetry::sdk::metrics;
 namespace metrics_api = opentelemetry::metrics;
@@ -115,8 +116,9 @@ void broker_module_init(const void* arg) {
     for (const auto& e : exporters) {
       log_v2::config()->info("stats_exporter: with exporter '{}'", e.protocol);
       if (e.protocol == "http") {
-        expt = std::make_unique<stats_exporter::exporter>(
-            e.url, *s);  // conf.export_interval, conf.export_timeout*/);
+        expt = std::make_unique<stats_exporter::exporter_http>(e.url, *s);
+      } else if (e.protocol == "grpc") {
+        expt = std::make_unique<stats_exporter::exporter_grpc>(e.url, *s);
       }
     }
   }

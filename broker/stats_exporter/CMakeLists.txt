@@ -21,13 +21,30 @@ set(STATS_EXPORTER
     PARENT_SCOPE)
 include_directories(inc)
 
-add_library(${STATS_EXPORTER} SHARED
-    src/main.cc
-    src/exporter.cc
-)
+add_library(${STATS_EXPORTER} SHARED src/exporter.cc src/exporter_grpc.cc
+                                     src/exporter_http.cc src/main.cc)
 
 set_target_properties(${STATS_EXPORTER} PROPERTIES PREFIX "")
-target_link_libraries(${STATS_EXPORTER} CONAN_PKG::opentelemetry-cpp CONAN_PKG::spdlog)
+target_link_libraries(
+  ${STATS_EXPORTER}
+  CONAN_PKG::libcurl
+  CONAN_PKG::spdlog
+  -L${CONAN_LIB_DIRS_OPENTELEMETRY-CPP}
+  opentelemetry_version
+  opentelemetry_exporter_otlp_grpc
+  opentelemetry_exporter_otlp_grpc_metrics
+  opentelemetry_exporter_otlp_grpc_client
+  opentelemetry_exporter_otlp_http
+  opentelemetry_exporter_otlp_http_metric
+  opentelemetry_otlp_recordable
+  opentelemetry_exporter_otlp_http_client
+  opentelemetry_proto
+  opentelemetry_http_client_curl
+  opentelemetry_resources
+  opentelemetry_common
+  opentelemetry_metrics)
+
+add_definitions("-DHAVE_ABSEIL")
 target_precompile_headers(${STATS_EXPORTER} PRIVATE precomp_inc/precomp.hpp)
 
 # Install rule.

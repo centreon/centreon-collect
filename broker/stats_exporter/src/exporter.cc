@@ -19,60 +19,22 @@
 #include "com/centreon/broker/stats_exporter/exporter.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats_exporter;
 namespace metric_sdk = opentelemetry::sdk::metrics;
 
-static void update_threadpool_size(metrics_api::ObserverResult observer,
-                                   void* /* state */) {
-  std::lock_guard<stats::center> lck(stats::center::instance());
-  const auto& tp = stats::center::instance().threadpool();
+exporter::exporter() : _connections_watcher{pool::io_context()} {}
 
-  auto observer_long =
-      opentelemetry::nostd::get<opentelemetry::nostd::shared_ptr<
-          opentelemetry::metrics::ObserverResultT<int64_t>>>(observer);
-  observer_long->Observe(static_cast<int64_t>(tp.size()));
-}
-
-static void update_threadpool_latency(metrics_api::ObserverResult observer,
-                                      void* /* state */) {
-  std::lock_guard<stats::center> lck(stats::center::instance());
-  const auto& tp = stats::center::instance().threadpool();
-
-  auto observer_long =
-      opentelemetry::nostd::get<opentelemetry::nostd::shared_ptr<
-          opentelemetry::metrics::ObserverResultT<double>>>(observer);
-  observer_long->Observe(static_cast<double>(tp.latency()));
-}
-
-static void update_muxer_unacknowledged_events(
-    metrics_api::ObserverResult observer,
-    void* state) {
-  const char* name = reinterpret_cast<const char*>(state);
-  std::lock_guard<stats::center> lck(stats::center::instance());
-  const auto& s = stats::center::instance().stats();
-  const auto& m = s.processing().muxers().at(name);
-
-  auto observer_long =
-      opentelemetry::nostd::get<opentelemetry::nostd::shared_ptr<
-          opentelemetry::metrics::ObserverResultT<int64_t>>>(observer);
-  observer_long->Observe(static_cast<int64_t>(m.unacknowledged_events()));
-}
-
-exporter::exporter(const std::string& url, const config::state& s) : _url(url) {
+void exporter::init_metrics(
+    std::unique_ptr<metric_sdk::PushMetricExporter>& exporter,
+    const config::state& s) {
   double interval = s.get_stats_exporter().export_interval;
   double timeout = s.get_stats_exporter().export_timeout;
 
-  opentelemetry::exporter::otlp::OtlpHttpMetricExporterOptions otlpOptions;
-  /* url should be of the form http://XX.XX.XX.XX:4318/v1/metrics */
-  otlpOptions.url = url;
-  otlpOptions.aggregation_temporality =
-      opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
-  auto exporter =
-      opentelemetry::exporter::otlp::OtlpHttpMetricExporterFactory::Create(
-          otlpOptions);
   // Initialize and set the periodic metrics reader
   log_v2::config()->info(
       "stats_exporter: export configured with an interval of {}s and a timeout "
@@ -166,5 +128,125 @@ exporter::exporter(const std::string& url, const config::state& s) : _url(url) {
             return q.file_percent_processed();
           });
     }
+  }
+
+  _connections_watcher.expires_after(std::chrono::seconds(10));
+  _connections_watcher.async_wait(
+      [this, provider](const asio::error_code& err) {
+        _check_connections(provider, err);
+      });
+}
+
+exporter::~exporter() noexcept {
+  std::error_code ec;
+  _connections_watcher.cancel(ec);
+}
+
+void exporter::_check_connections(
+    std::shared_ptr<metrics_api::MeterProvider> provider,
+    const asio::error_code& ec) {
+  if (ec)
+    log_v2::sql()->error(
+        "stats_exporter: Sql connections checker has been interrupted: {}",
+        ec.message());
+  else {
+    size_t count = mysql_manager::instance().connections_count();
+    while (_conn.size() < count) {
+      _conn.push_back({});
+      sql_connection& ci = *_conn.rbegin();
+      int32_t id = _conn.size() - 1;
+      ci.waiting_tasks = std::make_unique<instrument_i64>(
+          provider, fmt::format("sql_connection_{}_waiting_tasks", id),
+          fmt::format("Number of waiting tasks on the connection {}", id),
+          [id]() -> int64_t {
+            const auto& s = stats::center::instance().stats();
+            if (id < s.sql_manager().connections().size())
+              return s.sql_manager().connections().at(id).waiting_tasks();
+            else
+              return 0;
+          });
+
+      ci.loop_duration = std::make_unique<instrument_f64>(
+          provider, fmt::format("sql_connection_{}_loop_duration", id),
+          fmt::format(
+              "Average duration in seconds of one loop on the connection {}",
+              id),
+          [id]() -> double {
+            const auto& s = stats::center::instance().stats();
+            if (id < s.sql_manager().connections().size())
+              return s.sql_manager()
+                  .connections()
+                  .at(id)
+                  .average_loop_duration();
+            else
+              return 0;
+          });
+
+      ci.average_tasks_count = std::make_unique<instrument_f64>(
+          provider, fmt::format("sql_connection_{}_average_tasks_count", id),
+          fmt::format("Average number of waiting tasks on the connection {}",
+                      id),
+          [id]() -> double {
+            const auto& s = stats::center::instance().stats();
+            if (id < s.sql_manager().connections().size())
+              return s.sql_manager().connections().at(id).average_tasks_count();
+            else
+              return 0;
+          });
+
+      ci.activity_percent = std::make_unique<instrument_f64>(
+          provider, fmt::format("sql_connection_{}_activity_percent", id),
+          fmt::format("Average activity in percent on the connection {} (work "
+                      "duration / total duration)",
+                      id),
+          [id]() -> double {
+            const auto& s = stats::center::instance().stats();
+            if (id < s.sql_manager().connections().size())
+              return s.sql_manager().connections().at(id).activity_percent();
+            else
+              return 0;
+          });
+
+      ci.average_query_duration = std::make_unique<instrument_f64>(
+          provider, fmt::format("sql_connection_{}_average_query_duration", id),
+          fmt::format("Average activity in percent on the connection {} (work "
+                      "duration / total duration)",
+                      id),
+          [id]() -> double {
+            const auto& s = stats::center::instance().stats();
+            if (id < s.sql_manager().connections().size())
+              return s.sql_manager()
+                  .connections()
+                  .at(id)
+                  .average_query_duration();
+            else
+              return 0;
+          });
+
+      ci.average_statement_duration = std::make_unique<instrument_f64>(
+          provider,
+          fmt::format("sql_connection_{}_average_statement_duration", id),
+          fmt::format("Average activity in percent on the connection {} (work "
+                      "duration / total duration)",
+                      id),
+          [id]() -> double {
+            const auto& s = stats::center::instance().stats();
+            if (id < s.sql_manager().connections().size())
+              return s.sql_manager()
+                  .connections()
+                  .at(id)
+                  .average_statement_duration();
+            else
+              return 0;
+          });
+    }
+    if (_conn.size() > count)
+      _conn.resize(count);
+
+    _connections_watcher.expires_after(std::chrono::seconds(10));
+    _connections_watcher.async_wait(
+        [this, provider](const asio::error_code& err) {
+          _check_connections(provider, err);
+        });
   }
 }

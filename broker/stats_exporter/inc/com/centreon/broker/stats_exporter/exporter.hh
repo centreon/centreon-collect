@@ -29,6 +29,7 @@
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
 
+namespace metric_sdk = opentelemetry::sdk::metrics;
 namespace metrics_api = opentelemetry::metrics;
 
 CCB_BEGIN()
@@ -39,8 +40,6 @@ namespace stats_exporter {
  *
  */
 class exporter {
-  const std::string _url;
-
   class instrument_f64 {
     opentelemetry::nostd::shared_ptr<metrics_api::ObservableInstrument> _inst;
     std::function<double()> _query;
@@ -115,11 +114,27 @@ class exporter {
   };
   std::vector<muxer_instrument> _muxer;
 
+  /* Mysql */
+  struct sql_connection {
+    std::unique_ptr<instrument_i64> waiting_tasks;
+    std::unique_ptr<instrument_f64> loop_duration;
+    std::unique_ptr<instrument_f64> average_tasks_count;
+    std::unique_ptr<instrument_f64> activity_percent;
+    std::unique_ptr<instrument_f64> average_query_duration;
+    std::unique_ptr<instrument_f64> average_statement_duration;
+  };
+  std::vector<sql_connection> _conn;
+  asio::steady_timer _connections_watcher;
+
+  void _check_connections(std::shared_ptr<metrics_api::MeterProvider> provider,
+                          const asio::error_code& ec);
+
  public:
-  exporter(const std::string& url,
-           const config::state&
-               s);  // const std::string& url, double interval, double timeout);
-  ~exporter() noexcept = default;
+  exporter();
+  virtual ~exporter() noexcept;
+
+  void init_metrics(std::unique_ptr<metric_sdk::PushMetricExporter>& exporter,
+                    const config::state& s);
 };
 
 }  // namespace stats_exporter
