@@ -63,6 +63,8 @@ reporting_stream::reporting_stream(database_config const& db_cfg)
   // Load timeperiods.
   _load_timeperiods();
 
+  _load_kpi_ba_events();
+
   // Close inconsistent events.
   _close_inconsistent_events("BA", "mod_bam_reporting_ba_events", "ba_id");
   _close_inconsistent_events("KPI", "mod_bam_reporting_kpi_events", "kpi_id");
@@ -118,7 +120,7 @@ void reporting_stream::statistics(nlohmann::json& tree) const {
  */
 int32_t reporting_stream::flush() {
   SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: reporting stream flush");
-  _mysql.commit();
+  _commit();
   int retval(_ack_events + _pending_events);
   _ack_events = 0;
   _pending_events = 0;
@@ -158,31 +160,45 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
                         data->type());
   }
 
+  auto commit_if_needed = [this]() {
+    if (_pending_events >= _mysql.get_config().get_queries_per_transaction()) {
+      _commit();
+    }
+  };
+
   switch (data->type()) {
     case io::events::data_type<io::bam, bam::de_kpi_event>::value:
       _process_kpi_event(data);
+      commit_if_needed();
       break;
     case bam::pb_kpi_event::static_type():
       _process_pb_kpi_event(data);
+      commit_if_needed();
       break;
     case io::events::data_type<io::bam, bam::de_ba_event>::value:
       _process_ba_event(data);
+      commit_if_needed();
       break;
     case bam::pb_ba_event::static_type():
       _process_pb_ba_event(data);
+      commit_if_needed();
       break;
     case io::events::data_type<io::bam, bam::de_ba_duration_event>::value:
       _process_ba_duration_event(data);
+      commit_if_needed();
       break;
     case bam::pb_ba_duration_event::static_type():
       _process_pb_ba_duration_event(data);
+      commit_if_needed();
       break;
     case io::events::data_type<io::bam,
                                bam::de_dimension_truncate_table_signal>::value:
       _process_dimension_truncate_signal(data);
+      commit_if_needed();
       break;
     case bam::pb_dimension_truncate_table_signal::static_type():
       _process_pb_dimension_truncate_signal(data);
+      commit_if_needed();
       break;
     case io::events::data_type<io::bam, bam::de_dimension_ba_event>::value:
     case io::events::data_type<io::bam, bam::de_dimension_bv_event>::value:
@@ -197,6 +213,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case io::events::data_type<io::bam,
                                bam::de_dimension_ba_timeperiod_relation>::value:
       _process_dimension(data);
+      commit_if_needed();
       break;
     case bam::pb_dimension_bv_event::static_type():
     case pb_dimension_ba_bv_relation_event::static_type():
@@ -205,14 +222,21 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
     case bam::pb_dimension_kpi_event::static_type():
     case bam::pb_dimension_ba_timeperiod_relation::static_type():
       _process_pb_dimension(data);
+      commit_if_needed();
       break;
     case io::events::data_type<io::bam, bam::de_rebuild>::value:
       _process_rebuild(data);
+      commit_if_needed();
       break;
     default:
       SPDLOG_LOGGER_TRACE(log_v2::bam(),
                           "BAM: nothing to do with event of type {:x}",
                           data->type());
+      if (_pending_events ==
+          1) {  // no request in transaction => acknowledge right now
+        ++_ack_events;
+        _pending_events = 0;
+      }
       break;
   }
 
@@ -440,6 +464,54 @@ void reporting_stream::_load_timeperiods() {
       throw msg_fmt("BAM-BI: could not load BA/timeperiods relations: {}",
                     e.what());
     }
+  }
+}
+
+/**
+ * @brief feed caches with mod_bam_reporting_ba_events and
+ * mod_bam_reporting_kpi_events tables
+ *
+ */
+void reporting_stream::_load_kpi_ba_events() {
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting stream _load_kpi_ba_events");
+  _ba_event_cache.clear();
+  _kpi_event_cache.clear();
+
+  // Load ba events.
+  std::string query(
+      "SELECT ba_event_id, ba_id, start_time FROM mod_bam_reporting_ba_events");
+  std::promise<mysql_result> promise;
+  std::future<database::mysql_result> future = promise.get_future();
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+  _mysql.run_query_and_get_result(query, std::move(promise));
+  try {
+    mysql_result res(future.get());
+    while (_mysql.fetch_row(res)) {
+      _ba_event_cache.emplace(
+          std::make_pair(res.value_as_u32(1), res.value_as_u64(2)),
+          res.value_as_u32(0));
+    }
+  } catch (std::exception const& e) {
+    throw msg_fmt("BAM-BI: could not load ba events from DB: {}", e.what());
+  }
+
+  // load kpi events
+  query =
+      "SELECT kpi_event_id, kpi_id, start_time FROM "
+      "mod_bam_reporting_kpi_events";
+  std::promise<mysql_result> kpi_promise;
+  std::future<database::mysql_result> kpi_future = kpi_promise.get_future();
+  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+  _mysql.run_query_and_get_result(query, std::move(kpi_promise));
+  try {
+    mysql_result res(kpi_future.get());
+    while (_mysql.fetch_row(res)) {
+      _kpi_event_cache.emplace(
+          std::make_pair(res.value_as_u32(1), res.value_as_u64(2)),
+          res.value_as_u32(0));
+    }
+  } catch (std::exception const& e) {
+    throw msg_fmt("BAM-BI: could not load kpi events from DB: {}", e.what());
   }
 }
 
@@ -1914,4 +1986,10 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
 void reporting_stream::_update_status(std::string const& status) {
   std::lock_guard<std::mutex> lock(_statusm);
   _status = status;
+}
+
+void reporting_stream::_commit() {
+  _mysql.commit();
+  _ack_events += _pending_events;
+  _pending_events = 0;
 }

@@ -19,7 +19,10 @@
 #ifndef CCB_MYSQL_MULTI_INSERT_HH
 #define CCB_MYSQL_MULTI_INSERT_HH
 
+#include "com/centreon/broker/database/mysql_bulk_bind.hh"
+#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_stmt.hh"
+#include "com/centreon/broker/mysql.hh"
 
 CCB_BEGIN()
 
@@ -192,7 +195,11 @@ class mysql_multi_insert {
         _nb_column(nb_column),
         _on_duplicate_key_part(on_duplicate_key_part) {}
 
-  mysql_multi_insert(const mysql_multi_insert&) = delete;
+  mysql_multi_insert(const mysql_multi_insert& src)
+      : _query(src._query),
+        _nb_column(src._nb_column),
+        _on_duplicate_key_part(src._on_duplicate_key_part) {}
+
   mysql_multi_insert& operator=(const mysql_multi_insert&) = delete;
 
   /**
@@ -210,6 +217,28 @@ class mysql_multi_insert {
   size_t rows_count() const { return _rows.size(); }
 };
 
+/**
+ * @brief the goal of this struct is to simplify request declaration when you
+ * have to deal both with bulk queries and multi insert
+ *
+ */
+struct bulk_or_multi {
+  std::unique_ptr<mysql_bulk_stmt> bulk_stmt;
+  std::unique_ptr<mysql_bulk_bind> bulk_bind;
+  unsigned bulk_row;
+
+  std::unique_ptr<mysql_multi_insert> mult_insert;
+
+  bulk_or_multi(mysql& connexion,
+                const std::string& request,
+                unsigned bulk_row);
+
+  bulk_or_multi(const std::string& query,
+                unsigned nb_column,
+                const std::string& on_duplicate_key_part);
+
+  void execute(mysql& connexion);
+};
 }  // namespace database
 
 CCB_END()

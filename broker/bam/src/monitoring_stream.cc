@@ -467,55 +467,42 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
 void monitoring_stream::_prepare() {
   if (_mysql.support_bulk_statement()) {
     log_v2::bam()->trace("BAM: monitoring stream _prepare");
-    // BA status.
-    std::string query(
-        "UPDATE mod_bam SET current_level=?,acknowledged=?,downtime=?,"
-        "last_state_change=?,in_downtime=?,current_status=? WHERE ba_id=?");
-    _ba_update = std::make_unique<database::mysql_bulk_stmt>(query);
-    _mysql.prepare_statement(*_ba_update);
-    _ba_bind = _ba_update->create_bind();
-    _ba_bind->reserve(_conf_queries_per_transaction);
-    // KPI status.
-    query =
-        "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,"
-        "downtime=?, last_level=?,state_type=?,last_state_change=?,"
-        "last_impact=?, valid=?,in_downtime=? WHERE kpi_id=?";
-    _kpi_update = std::make_unique<database::mysql_bulk_stmt>(query);
-    _mysql.prepare_statement(*_kpi_update);
-    _kpi_bind = _kpi_update->create_bind();
-    _kpi_bind->reserve(_conf_queries_per_transaction);
+    _ba = std::make_unique<database::bulk_or_multi>(
+        _mysql,
+        "UPDATE mod_bam SET "
+        "current_level=?,acknowledged=?,downtime=?,last_state_change=?,in_"
+        "downtime=?,current_status=? WHERE ba_id=?",
+        _conf_queries_per_transaction);
+    _kpi = std::make_unique<database::bulk_or_multi>(
+        _mysql,
+        "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,downtime=?, "
+        "last_level=?,state_type=?,last_state_change=?,last_impact=?, "
+        "valid=?,in_downtime=? WHERE kpi_id=?",
+        _conf_queries_per_transaction);
+
   } else {
-    log_v2::bam()->trace("BAM: monitoring stream no bulk support");
-    _create_multi_insert();
+    _ba = std::make_unique<database::bulk_or_multi>(
+        "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
+        "last_state_change, in_downtime, current_status, ba_id) VALUES",
+        7,
+        "ON DUPLICATE KEY UPDATE current_level=VALUES(current_level), "
+        "acknowledged=VALUES(acknowledged), downtime=VALUES(downtime), "
+        "last_state_change=VALUES(last_state_change), "
+        "in_downtime=VALUES(in_downtime), "
+        "current_status=VALUES(current_status)");
+    _kpi = std::make_unique<database::bulk_or_multi>(
+        "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
+        "downtime, last_level, state_type, last_state_change, last_impact, "
+        "valid, in_downtime, kpi_id) VALUES",
+        10,
+        "ON DUPLICATE KEY UPDATE acknowledged=VALUES(acknowledged), "
+        "current_status=VALUES(current_status), "
+        "downtime=VALUES(downtime), last_level=VALUES(last_level), "
+        "state_type=VALUES(state_type), "
+        "last_state_change=VALUES(last_state_change), "
+        "last_impact=VALUES(last_impact), valid=VALUES(valid), "
+        "in_downtime=VALUES(in_downtime)");
   }
-}
-
-/**
- * @brief create multi insert queries
- *
- */
-void monitoring_stream::_create_multi_insert() {
-  _ba_mult_insert = std::make_unique<database::mysql_multi_insert>(
-      "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
-      "last_state_change, in_downtime, current_status, ba_id) VALUES",
-      7,
-      "ON DUPLICATE KEY UPDATE current_level=VALUES(current_level), "
-      "acknowledged=VALUES(acknowledged), downtime=VALUES(downtime), "
-      "last_state_change=VALUES(last_state_change), "
-      "in_downtime=VALUES(in_downtime), current_status=VALUES(current_status)");
-
-  _kpi_mult_insert = std::make_unique<database::mysql_multi_insert>(
-      "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
-      "downtime, last_level, state_type, last_state_change, last_impact, "
-      "valid, in_downtime, kpi_id) VALUES",
-      10,
-      "ON DUPLICATE KEY UPDATE acknowledged=VALUES(acknowledged), "
-      "current_status=VALUES(current_status), "
-      "downtime=VALUES(downtime), last_level=VALUES(last_level), "
-      "state_type=VALUES(state_type), "
-      "last_state_change=VALUES(last_state_change), "
-      "last_impact=VALUES(last_impact), valid=VALUES(valid), "
-      "in_downtime=VALUES(in_downtime)");
 }
 
 /**
@@ -676,33 +663,8 @@ void monitoring_stream::_write_cache() {
  *
  */
 void monitoring_stream::_commit() {
-  if (_mysql.support_bulk_statement()) {
-    SPDLOG_LOGGER_TRACE(
-        log_v2::bam(),
-        "BAM: monitoring stream _commit: _kpi_bind:{}, _ba_bind:{}",
-        _kpi_bind->rows_count(), _ba_bind->rows_count());
-    if (!_kpi_bind->empty()) {
-      _kpi_update->set_bind(std::move(_kpi_bind));
-      _mysql.run_statement(*_kpi_update);
-      _kpi_bind = _kpi_update->create_bind();
-      _kpi_bind->reserve(_conf_queries_per_transaction);
-    }
-    if (!_ba_bind->empty()) {
-      _ba_update->set_bind(std::move(_ba_bind));
-      _mysql.run_statement(*_ba_update);
-      _ba_bind = _ba_update->create_bind();
-      _ba_bind->reserve(_conf_queries_per_transaction);
-    }
-  } else {
-    SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                        "BAM: monitoring stream _commit: _kpi_mult_insert:{}, "
-                        "_ba_mult_insert:{}",
-                        _kpi_mult_insert->rows_count(),
-                        _ba_mult_insert->rows_count());
-    _ba_mult_insert->push_stmt(_mysql);
-    _kpi_mult_insert->push_stmt(_mysql);
-    _create_multi_insert();
-  }
+  _ba->execute(_mysql);
+  _kpi->execute(_mysql);
 }
 
 /***********************************************************************
@@ -772,9 +734,9 @@ void monitoring_stream::_bulk_kpi_status(
       status.kpi_id, status.level_nominal_hard,
       status.level_acknowledgement_hard, status.level_downtime_hard);
 
-  kpi_status_bind(*_kpi_bind, status);
+  kpi_status_bind(*_kpi->bulk_bind, status);
 
-  _kpi_bind->next_row();
+  _kpi->bulk_bind->next_row();
 }
 
 /**
@@ -793,9 +755,9 @@ void monitoring_stream::_bulk_pb_kpi_status(
       status.kpi_id(), status.level_nominal_hard(),
       status.level_acknowledgement_hard(), status.level_downtime_hard());
 
-  kpi_status_bind(*_kpi_bind, status);
+  kpi_status_bind(*_kpi->bulk_bind, status);
 
-  _kpi_bind->next_row();
+  _kpi->bulk_bind->next_row();
 }
 
 /**
@@ -854,9 +816,9 @@ void monitoring_stream::_bulk_ba_status(
       "downtime {}) - in downtime {}, state {}",
       status.ba_id, status.level_nominal, status.level_acknowledgement,
       status.level_downtime, status.in_downtime, status.state);
-  ba_status_bind(*_ba_bind, status);
+  ba_status_bind(*_ba->bulk_bind, status);
 
-  _ba_bind->next_row();
+  _ba->bulk_bind->next_row();
 }
 
 /**
@@ -874,9 +836,9 @@ void monitoring_stream::_bulk_pb_ba_status(
                       status.ba_id(), status.level_nominal(),
                       status.level_acknowledgement(), status.level_downtime(),
                       status.in_downtime(), status.state());
-  ba_status_bind(*_ba_bind, status);
+  ba_status_bind(*_ba->bulk_bind, status);
 
-  _ba_bind->next_row();
+  _ba->bulk_bind->next_row();
 }
 
 /***********************************************************************
@@ -913,7 +875,7 @@ void monitoring_stream::_multi_insert_kpi_status(
       "downtime {})",
       status.kpi_id, status.level_nominal_hard,
       status.level_acknowledgement_hard, status.level_downtime_hard);
-  _kpi_mult_insert->push(std::make_unique<kpi_row_filler>(event));
+  _kpi->mult_insert->push(std::make_unique<kpi_row_filler>(event));
 }
 
 /**
@@ -948,7 +910,7 @@ void monitoring_stream::_multi_insert_pb_kpi_status(
       "downtime {})",
       status.kpi_id(), status.level_nominal_hard(),
       status.level_acknowledgement_hard(), status.level_downtime_hard());
-  _kpi_mult_insert->push(std::make_unique<kpi_row_filler>(event));
+  _kpi->mult_insert->push(std::make_unique<kpi_row_filler>(event));
 }
 
 /**
@@ -982,7 +944,7 @@ void monitoring_stream::_multi_insert_ba_status(
       status.ba_id, status.level_nominal, status.level_acknowledgement,
       status.level_downtime, status.in_downtime, status.state);
 
-  _ba_mult_insert->push(std::make_unique<ba_row_filler>(event));
+  _ba->mult_insert->push(std::make_unique<ba_row_filler>(event));
 }
 
 /**
@@ -1018,5 +980,5 @@ void monitoring_stream::_multi_insert_pb_ba_status(
                       status.level_acknowledgement(), status.level_downtime(),
                       status.in_downtime(), status.state());
 
-  _ba_mult_insert->push(std::make_unique<ba_row_filler>(event));
+  _ba->mult_insert->push(std::make_unique<ba_row_filler>(event));
 }

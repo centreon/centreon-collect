@@ -112,3 +112,49 @@ unsigned mysql_multi_insert::push_stmt(mysql& pool, int thread_id) const {
   }
   return to_wait.size();
 }
+
+/**
+ * @brief bulk constructor to use when bulk queries are available
+ *
+ * @param connexion
+ * @param request
+ * @param bulk_row
+ */
+bulk_or_multi::bulk_or_multi(mysql& connexion,
+                             const std::string& request,
+                             unsigned bulk_row)
+    : bulk_stmt(std::make_unique<mysql_bulk_stmt>(request)),
+      bulk_bind(bulk_stmt->create_bind()),
+      bulk_row(bulk_row) {
+  connexion.prepare_statement(*bulk_stmt);
+  bulk_bind->reserve(bulk_row);
+}
+
+/**
+ * @brief multi_insert constructor to use when bulk queries aren't available
+ *
+ * @param query
+ * @param nb_column
+ * @param on_duplicate_key_part
+ */
+bulk_or_multi::bulk_or_multi(const std::string& query,
+                             unsigned nb_column,
+                             const std::string& on_duplicate_key_part)
+    : mult_insert(std::make_unique<mysql_multi_insert>(query,
+                                                       nb_column,
+                                                       on_duplicate_key_part)) {
+}
+
+void bulk_or_multi::execute(mysql& connexion) {
+  if (bulk_bind) {
+    if (!bulk_bind->empty()) {
+      bulk_stmt->set_bind(std::move(bulk_bind));
+      connexion.run_statement(*bulk_stmt);
+      bulk_bind = bulk_stmt->create_bind();
+      bulk_bind->reserve(bulk_row);
+    }
+  } else {
+    mult_insert->push_stmt(connexion);
+    mult_insert = std::make_unique<database::mysql_multi_insert>(*mult_insert);
+  }
+}

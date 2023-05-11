@@ -77,6 +77,14 @@ class reporting_stream : public io::stream {
       _last_inserted_kpi;  // ba_id => <time, row>
   bool _processing_dimensions;
 
+  using id_start =
+      std::pair<uint32_t /*ba_id or kpi_id */, uint64_t /*start_time*/>;
+  using id_start_to_event_id =
+      absl::flat_hash_map<id_start, uint32_t /*event_id*/>;
+
+  id_start_to_event_id _ba_event_cache;
+  id_start_to_event_id _kpi_event_cache;
+
  public:
   reporting_stream(database_config const& db_cfg);
   ~reporting_stream();
@@ -95,7 +103,9 @@ class reporting_stream : public io::stream {
                                   char const* id);
   void _close_all_events();
   void _load_timeperiods();
+  void _load_kpi_ba_events();
   void _prepare();
+  void _commit();
   void _process_ba_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
   void _process_ba_duration_event(std::shared_ptr<io::data> const& e);

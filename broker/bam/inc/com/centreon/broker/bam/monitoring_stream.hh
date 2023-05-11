@@ -21,8 +21,6 @@
 
 #include <absl/hash/hash.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
-#include "com/centreon/broker/database/mysql_bulk_bind.hh"
-#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_multi_insert.hh"
 #include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -75,13 +73,8 @@ class monitoring_stream : public io::stream {
   mutable std::mutex _statusm;
   mysql _mysql;
   unsigned _conf_queries_per_transaction;
-  std::unique_ptr<database::mysql_bulk_stmt> _ba_update;
-  std::unique_ptr<database::mysql_bulk_bind> _ba_bind;
-  std::unique_ptr<database::mysql_bulk_stmt> _kpi_update;
-  std::unique_ptr<database::mysql_bulk_bind> _kpi_bind;
-
-  std::unique_ptr<database::mysql_multi_insert> _ba_mult_insert;
-  std::unique_ptr<database::mysql_multi_insert> _kpi_mult_insert;
+  std::unique_ptr<database::bulk_or_multi> _ba;
+  std::unique_ptr<database::bulk_or_multi> _kpi;
 
   int32_t _pending_events;
   unsigned _pending_request;
@@ -102,7 +95,6 @@ class monitoring_stream : public io::stream {
   void _explicitly_send_forced_svc_checks(const asio::error_code& ec);
 
   void _prepare();
-  void _create_multi_insert();
   void _rebuild();
   void _update_status(std::string const& status);
   void _write_external_command(const std::string& cmd);
