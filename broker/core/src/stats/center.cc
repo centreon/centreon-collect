@@ -98,20 +98,26 @@ EngineStats* center::register_engine() {
   return _stats.mutable_processing()->mutable_engine();
 }
 
-SqlConnectionStats* center::add_connection() {
-  std::lock_guard<std::mutex> lck(_stats_m);
-  return _stats.mutable_sql_manager()->add_connections();
+SqlConnectionStats* center::connection(size_t idx) {
+  return &_stats.mutable_sql_manager()->mutable_connections()->at(idx);
 }
 
-void center::remove_connection(SqlConnectionStats* stats) {
+/**
+ * @brief Add a new connection stats entry and returns its index.
+ *
+ * @return A size_t.
+ */
+size_t center::add_connection() {
   std::lock_guard<std::mutex> lck(_stats_m);
-  auto* c = _stats.mutable_sql_manager()->mutable_connections();
-  for (auto it = c->begin(); it != c->end(); ++it) {
-    if (&*it == stats) {
-      c->erase(it);
-      break;
-    }
-  }
+  _stats.mutable_sql_manager()->add_connections();
+  size_t retval = _stats.sql_manager().connections().size() - 1;
+  return retval;
+}
+
+void center::remove_connection(size_t idx) {
+  std::lock_guard<std::mutex> lck(_stats_m);
+  auto it = _stats.mutable_sql_manager()->mutable_connections()->begin() + idx;
+  _stats.mutable_sql_manager()->mutable_connections()->erase(it);
 }
 
 /**
@@ -315,9 +321,15 @@ std::string center::to_string() {
   return retval;
 }
 
-void center::get_sql_manager_stats(SqlManagerStats* response) {
+void center::get_sql_manager_stats(SqlManagerStats* response, int32_t id) {
   std::lock_guard<std::mutex> lck(_stats_m);
-  *response = _stats.sql_manager();
+  if (id == -1)
+    *response = _stats.sql_manager();
+  else {
+    *response = SqlManagerStats();
+    auto c = response->add_connections();
+    c->CopyFrom(_stats.sql_manager().connections(id));
+  }
 }
 
 void center::get_sql_connection_size(GenericSize* response) {
@@ -362,4 +374,16 @@ void center::clear_muxer_queue_file(const std::string& name) {
         ->at(name)
         .mutable_queue_file()
         ->Clear();
+}
+
+void center::lock() {
+  _stats_m.lock();
+}
+
+void center::unlock() {
+  _stats_m.unlock();
+}
+
+const BrokerStats& center::stats() const {
+  return _stats;
 }

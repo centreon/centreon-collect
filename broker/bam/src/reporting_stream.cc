@@ -32,11 +32,11 @@
 #include "bbdo/bam/rebuild.hh"
 #include "bbdo/events.hh"
 #include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

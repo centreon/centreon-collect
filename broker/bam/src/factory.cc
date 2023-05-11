@@ -21,7 +21,7 @@
 #include <absl/strings/match.h>
 #include "com/centreon/broker/bam/connector.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/database_config.hh"
+#include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

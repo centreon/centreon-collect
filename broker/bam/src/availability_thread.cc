@@ -18,9 +18,9 @@
 
 #include "com/centreon/broker/bam/availability_thread.hh"
 
-#include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/time.hh"
+#include "com/centreon/broker/sql/mysql_error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

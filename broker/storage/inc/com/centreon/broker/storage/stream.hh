@@ -20,8 +20,8 @@
 #define CCB_STORAGE_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/mysql.hh"
 
 CCB_BEGIN()
 

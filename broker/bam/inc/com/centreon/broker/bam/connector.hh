@@ -19,9 +19,9 @@
 #ifndef CCB_BAM_CONNECTOR_HH
 #define CCB_BAM_CONNECTOR_HH
 
-#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/database_config.hh"
 
 CCB_BEGIN()
 
