@@ -65,6 +65,15 @@ class stmt_binder : public mysql_bind_base {
     _to_bind.bind_value_as_i32(range + _stmt_first_column, value);
   }
   /**
+   * @brief Setter of NULL at the column at index range and at the current
+   * row. The type of the column must be MYSQL_TYPE_LONG.
+   *
+   * @param range A non negative integer.
+   */
+  void set_null_i32(size_t range) override {
+    _to_bind.bind_null_i32(range + _stmt_first_column);
+  }
+  /**
    * @brief Setter of the value at the column at index range and at the current
    * row. The type of the column must be MYSQL_TYPE_LONG.
    *

@@ -168,6 +168,9 @@ void mysql_bind_result::set_value_as_i32(size_t range, int32_t value) {
 void mysql_bind_result::set_value_as_u32(size_t range, uint32_t value) {
   assert(false);
 }
+void mysql_bind_result::set_null_i32(size_t range) {
+  assert(false);
+}
 void mysql_bind_result::set_value_as_i64(size_t range, int64_t value) {
   assert(false);
 }

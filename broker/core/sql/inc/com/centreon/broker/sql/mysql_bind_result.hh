@@ -74,7 +74,7 @@ class mysql_bind_result : public mysql_bind_base {
    *
    * @param range A non negative integer.
    */
-  // void set_null_i32(size_t range);
+  void set_null_i32(size_t range) override;
 
   /**
    * @brief getter to the uint32 value at index range. The type of the column

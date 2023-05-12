@@ -23,6 +23,7 @@
 #include "com/centreon/broker/bam/availability_thread.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
+#include "com/centreon/broker/database/mysql_multi_insert.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
@@ -65,7 +66,7 @@ class reporting_stream : public io::stream {
   database::mysql_stmt _dimension_ba_bv_relation_insert;
   database::mysql_stmt _dimension_timeperiod_insert;
   database::mysql_stmt _dimension_ba_timeperiod_insert;
-  database::mysql_stmt _dimension_kpi_insert;
+  std::unique_ptr<database::bulk_or_multi> _dimension_kpi_insert;
   std::vector<database::mysql_stmt> _dimension_truncate_tables;
   std::unique_ptr<availability_thread> _availabilities;
 
@@ -126,7 +127,6 @@ class reporting_stream : public io::stream {
       std::shared_ptr<io::data> const& e);
   void _process_dimension_truncate_signal(bool updates_tarted);
   void _process_dimension_kpi(std::shared_ptr<io::data> const& e);
-  void _process_pb_dimension_kpi(std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_dimension_ba_timeperiod_relation(

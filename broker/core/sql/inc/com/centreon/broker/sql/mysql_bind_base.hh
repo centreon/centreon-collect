@@ -56,6 +56,7 @@ class mysql_bind_base {
   virtual void set_value_as_f64(size_t range, double value) = 0;
   virtual void set_value_as_i32(size_t range, int32_t value) = 0;
   virtual void set_value_as_u32(size_t range, uint32_t value) = 0;
+  virtual void set_null_i32(size_t range) = 0;
   virtual void set_value_as_i64(size_t range, int64_t value) = 0;
   virtual void set_value_as_u64(size_t range, uint64_t value) = 0;
   virtual void set_null_u64(size_t range) = 0;
