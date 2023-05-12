@@ -642,6 +642,37 @@ static auto dimension_kpi_binder = [](const std::shared_ptr<io::data>& event,
   }
 };
 
+auto kpi_event_update_binder = [](const std::shared_ptr<io::data>& event,
+                                  database::mysql_bind_base* binder) {
+  if (event->type() == bam::kpi_event::static_type()) {
+    bam::kpi_event const& ke =
+        *std::static_pointer_cast<bam::kpi_event const>(event);
+    if (ke.end_time.is_null())
+      binder->set_null_u64(0);
+    else
+      binder->set_value_as_u64(0,
+                               static_cast<uint64_t>(ke.end_time.get_time_t()));
+    binder->set_value_as_tiny(1, ke.status);
+    binder->set_value_as_i32(2, ke.in_downtime);
+    binder->set_value_as_i32(3, ke.impact_level);
+    binder->set_value_as_i32(4, ke.kpi_id);
+    binder->set_value_as_u64(5,
+                             static_cast<uint64_t>(ke.start_time.get_time_t()));
+  } else {
+    const KpiEvent& ke =
+        std::static_pointer_cast<bam::pb_kpi_event const>(event)->obj();
+    if (ke.end_time() <= 0)
+      binder->set_null_u64(0);
+    else
+      binder->set_value_as_u64(0, ke.end_time());
+    binder->set_value_as_tiny(1, ke.status());
+    binder->set_value_as_i32(2, ke.in_downtime());
+    binder->set_value_as_i32(3, ke.impact_level());
+    binder->set_value_as_i32(4, ke.kpi_id());
+    binder->set_value_as_u64(5, ke.start_time());
+  }
+};
+
 /**
  *  Prepare queries.
  */
@@ -689,12 +720,25 @@ void reporting_stream::_prepare() {
       " impact_level) VALUES (?, ?, ?, ?, ?, ?)";
   _kpi_full_event_insert = _mysql.prepare_query(query);
 
-  query =
-      "UPDATE mod_bam_reporting_kpi_events"
-      " SET end_time=?, status=?,"
-      " in_downtime=?, impact_level=?"
-      " WHERE kpi_id=? AND start_time=?";
-  _kpi_event_update = _mysql.prepare_query(query);
+  if (_mysql.support_bulk_statement()) {
+    _kpi_event_update = database::create_bulk_or_multi_bbdo_event(
+        _mysql,
+        "UPDATE mod_bam_reporting_kpi_events"
+        " SET end_time=?, status=?,"
+        " in_downtime=?, impact_level=?"
+        " WHERE kpi_id=? AND start_time=?",
+        _mysql.get_config().get_queries_per_transaction(),
+        kpi_event_update_binder);
+  } else {
+    _kpi_event_update = database::create_bulk_or_multi_bbdo_event(
+        "INSERT INTO mod_bam_reporting_kpi_events (end_time, status, "
+        "in_downtime, impact_level, kpi_id, start_time) VALUES",
+        6,
+        "ON DUPLICATE KEY UPDATE end_time=VALUES(end_time), "
+        "status=VALUES(status), in_downtime=VALUES(in_downtime), "
+        "impact_level=VALUES(impact_level)",
+        kpi_event_update_binder);
+  }
 
   query =
       "INSERT INTO mod_bam_reporting_relations_ba_kpi_events"
@@ -760,25 +804,32 @@ void reporting_stream::_prepare() {
   _dimension_truncate_tables.emplace_back(_mysql.prepare_query(query));
 
   // Dimension KPI insertion
-  query =
-      "INSERT INTO mod_bam_reporting_kpi (kpi_id, kpi_name,"
-      "            ba_id, ba_name, host_id, host_name,"
-      "            service_id, service_description, kpi_ba_id,"
-      "            kpi_ba_name, meta_service_id, meta_service_name,"
-      "            impact_warning, impact_critical, impact_unknown,"
-      "            boolean_id, boolean_name)"
-      "  VALUES (?, ?, ?, ?, ?,"
-      "          ?, ?, ?,"
-      "          ?, ?, ?,"
-      "          ?, ?, ?,"
-      "          ?, ?, ?)";
   if (_mysql.support_bulk_statement()) {
     _dimension_kpi_insert = database::create_bulk_or_multi_bbdo_event(
-        _mysql, query, _mysql.get_config().get_queries_per_transaction(),
+        _mysql,
+        "INSERT INTO mod_bam_reporting_kpi (kpi_id, kpi_name,"
+        " ba_id, ba_name, host_id, host_name,"
+        " service_id, service_description, kpi_ba_id,"
+        " kpi_ba_name, meta_service_id, meta_service_name,"
+        " impact_warning, impact_critical, impact_unknown,"
+        " boolean_id, boolean_name)"
+        " VALUES (?, ?, ?, ?, ?,"
+        " ?, ?, ?,"
+        " ?, ?, ?,"
+        " ?, ?, ?,"
+        " ?, ?, ?)",
+        _mysql.get_config().get_queries_per_transaction(),
         dimension_kpi_binder);
   } else {
     _dimension_kpi_insert = database::create_bulk_or_multi_bbdo_event(
-        query, 17, "", dimension_kpi_binder);
+        "INSERT INTO mod_bam_reporting_kpi (kpi_id, kpi_name,"
+        " ba_id, ba_name, host_id, host_name,"
+        " service_id, service_description, kpi_ba_id,"
+        " kpi_ba_name, meta_service_id, meta_service_name,"
+        " impact_warning, impact_critical, impact_unknown,"
+        " boolean_id, boolean_name)"
+        " VALUES ",
+        17, "", dimension_kpi_binder);
   }
 }
 
@@ -1097,20 +1148,7 @@ void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
       ke.kpi_id, static_cast<uint64_t>(ke.start_time.get_time_t()));
   // event exists?
   if (_kpi_event_cache.find(kpi_key) != _kpi_event_cache.end()) {
-    if (ke.end_time.is_null())
-      _kpi_event_update.bind_null_u64(0);
-    else
-      _kpi_event_update.bind_value_as_u64(
-          0, static_cast<uint64_t>(ke.end_time.get_time_t()));
-    _kpi_event_update.bind_value_as_tiny(1, ke.status);
-    _kpi_event_update.bind_value_as_i32(2, ke.in_downtime);
-    _kpi_event_update.bind_value_as_i32(3, ke.impact_level);
-    _kpi_event_update.bind_value_as_i32(4, ke.kpi_id);
-    _kpi_event_update.bind_value_as_u64(
-        5, static_cast<uint64_t>(ke.start_time.get_time_t()));
-
-    _mysql.run_statement(_kpi_event_update,
-                         database::mysql_error::insert_kpi_event);
+    _kpi_event_update->add_event(e);
   } else {
     // don't exist.
     try {
@@ -1176,18 +1214,7 @@ void reporting_stream::_process_pb_kpi_event(
   id_start kpi_key = std::make_pair(ke.kpi_id(), ke.start_time());
   // event exists?
   if (_kpi_event_cache.find(kpi_key) != _kpi_event_cache.end()) {
-    if (ke.end_time() <= 0)
-      _kpi_event_update.bind_null_u64(0);
-    else
-      _kpi_event_update.bind_value_as_u64(0, ke.end_time());
-    _kpi_event_update.bind_value_as_tiny(1, ke.status());
-    _kpi_event_update.bind_value_as_i32(2, ke.in_downtime());
-    _kpi_event_update.bind_value_as_i32(3, ke.impact_level());
-    _kpi_event_update.bind_value_as_i32(4, ke.kpi_id());
-    _kpi_event_update.bind_value_as_u64(5, ke.start_time());
-
-    _mysql.run_statement(_kpi_event_update,
-                         database::mysql_error::insert_kpi_event);
+    _kpi_event_update->add_event(e);
   } else {
     // don't exist => insert one.
     try {
@@ -2010,6 +2037,7 @@ void reporting_stream::_update_status(std::string const& status) {
 
 void reporting_stream::_commit() {
   _dimension_kpi_insert->execute(_mysql);
+  _kpi_event_update->execute(_mysql);
   _mysql.commit();
   _ack_events += _pending_events;
   _pending_events = 0;

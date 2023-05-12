@@ -58,7 +58,7 @@ class reporting_stream : public io::stream {
   database::mysql_stmt _ba_duration_event_insert;
   database::mysql_stmt _ba_duration_event_update;
   database::mysql_stmt _kpi_full_event_insert;
-  database::mysql_stmt _kpi_event_update;
+  std::unique_ptr<database::bulk_or_multi> _kpi_event_update;
   database::mysql_stmt _kpi_event_link;
   database::mysql_stmt _kpi_event_link_update;
   database::mysql_stmt _dimension_ba_insert;
