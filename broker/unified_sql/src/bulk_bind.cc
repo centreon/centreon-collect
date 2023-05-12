@@ -81,14 +81,24 @@ bool bulk_bind::ready(int32_t conn) {
 /**
  * @brief Size of the queue
  *
- * @param conn The connection to determine the bind whose size we want.
+ * @param conn The connection to determine the bind whose size we want. If conn
+ * is -1, the function returns the sum of all the queue sizes.
  * @return a size.
  */
 size_t bulk_bind::size(int32_t conn) const {
   std::lock_guard<std::mutex> lck(_queue_m);
-  if (!_bind[conn])
-    return 0;
-  return _bind[conn]->rows_count();
+  if (conn == -1) {
+    size_t retval = 0;
+    for (auto& b : _bind) {
+      if (b)
+        retval += b->rows_count();
+    }
+    return retval;
+  } else {
+    if (!_bind[conn])
+      return 0;
+    return _bind[conn]->rows_count();
+  }
 }
 
 /**
