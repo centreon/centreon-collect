@@ -67,3 +67,52 @@ jobs:
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+
+  create-and-push-mysql-alma9-docker:
+    needs: [get-version]
+    runs-on: [self-hosted, collect]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [alma9]
+        include:
+          - project: collect
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: Login to Proxy Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: Set up Docker context for builds
+        shell: bash
+        id: buildx-context
+        run: |
+          docker context create buildx-context
+
+      - uses: docker/setup-buildx-action@v2
+        with:
+          endpoint: buildx-context
+
+      - uses: docker/build-push-action@v3
+        with:
+          file: .github/docker/Dockerfile.${{ matrix.project }}-mysql-${{ matrix.distrib }}
+          context: .
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-mysql-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+

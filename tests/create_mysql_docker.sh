@@ -29,7 +29,7 @@ then
 
     sleep 1
 
-    docker exec mysql_test /scripts/tests/init-sql-docker.sh
+    docker exec mysql_test /scripts/tests/init-sql-docker.sh mysql
     if [ $? -eq 0 ]
     then
         echo "container mysql_test started, mysql logs in mysql_log directory"

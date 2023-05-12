@@ -232,6 +232,9 @@ class mysql_multi_insert {
 /**
  * @brief the goal of this class is to simplify request declaration when you
  * have to deal both with bulk queries and multi insert
+ * It has two constructor one who will use bulk queries only available on
+ * mariadb and multi insert Then You have to call execute to execute query(ies)
+ * It's the base class of bulk_or_multi_bbdo_event
  *
  */
 class bulk_or_multi {
@@ -260,11 +263,35 @@ class bulk_or_multi {
 
 /**
  * @brief this class can do a multi or bulk insert in a single interface
- * binder_lambda must be a functor with teh signature
+ * binder_lambda must be a functor with the signature
  * void (const std::shared_ptr<io::data>& event, database::mysql_bind_base*
- * binder) To use it, you must use one of the two constructor (bulk or
- * multiinsert) with the functor in the las argument.
+ * binder)
+ * To use it, you must use one of the two constructor (bulk or
+ * multiinsert) with the functor in the last argument.
  * Then for each event to record you need to call add_event method
+ * When you have finished call execute
+ *
+ * @code {.c++}
+ * static auto event_binder = [](const std::shared_ptr<io::data>& event,
+ *                             database::mysql_bind_base* binder) {
+ *   binder->set_value_as_str(0, fmt::format("toto{}", event_binder_index));
+ *   binder->set_value_as_f64(1, 12.34 + event_binder_index);
+ * };
+ *
+ * if (_mysql.support_bulk_statement()) {
+ *    inserter = database::create_bulk_or_multi_bbdo_event(
+ *     *mysql, "INSERT INTO ut_test (name, value) VALUES (?,?)",
+ *     10, event_binder);
+ * }
+ * else {
+ *    inserter = database::create_bulk_or_multi_bbdo_event(
+ *     "INSERT INTO ut_test (name, value) VALUES", 2, "",
+ *     event_binder);
+ * }
+ * inserter->add_event(evt);
+ * inserter->execute(*_mysql);
+ * @endcode
+ *
  *
  * @tparam binder_lambda
  */
@@ -311,6 +338,7 @@ class bulk_or_multi_bbdo_event : public bulk_or_multi {
   void add_event(const std::shared_ptr<io::data>& event) override {
     if (_bulk_bind) {
       _binder(event, _bulk_bind.get());
+      _bulk_bind->next_row();
     } else {
       class final_row_filler : public database::row_filler {
         std::shared_ptr<io::data> _event;

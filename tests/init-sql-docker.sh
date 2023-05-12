@@ -1,5 +1,6 @@
 #!/bin/bash
 
+database_type=$1
 
 DBUserRoot="root"
 DBPassRoot="centreon"
@@ -10,12 +11,20 @@ DBConf=$(awk '($1=="${DBNameConf}") {print $2}' /scripts/tests/resources/db_vari
 cd /scripts
 
 #create users
-echo "try to create users mysql"
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
-if [ $? -eq 0 ]; then 
+if [ $database_type == 'mysql' ]; then 
+    echo "create users mysql"
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
     mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'root_centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
 else 
     #mariadb case 
+    ss -plant | grep -w 3306
+    while [ $? -ne 0 ]
+    do
+        sleep 1
+        ss -plant | grep -w 3306
+    done
+    sleep 1
+
     echo "create users mariadb"
     mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED BY 'centreon'"
     mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'root_centreon'@'%' IDENTIFIED BY 'centreon'"

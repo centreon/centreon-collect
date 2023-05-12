@@ -48,14 +48,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: centreon-collect-alma9
-            distrib: el9
+          - distrib: el9
+            os: alma9
     name: robot test ${{ matrix.distrib }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
-      image_name: ${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      image_version: ${{ needs.get-version.outputs.img_version }}
       distrib: ${{ matrix.distrib }}
+      os: ${{ matrix.os }}
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}

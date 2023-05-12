@@ -2187,3 +2187,104 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
     }
   }
 }
+
+static unsigned event_binder_index = 0;
+
+static auto event_binder = [](const std::shared_ptr<io::data>& event,
+                              database::mysql_bind_base* binder) {
+  binder->set_value_as_str(0, fmt::format("toto{}", event_binder_index));
+  binder->set_value_as_f64(1, 12.34 + event_binder_index);
+  binder->set_value_as_tiny(2, 45 + event_binder_index);
+  binder->set_value_as_str(3, "b");
+  binder->set_value_as_i32(4, 678 + event_binder_index);
+  binder->set_value_as_u32(5, 789 + event_binder_index);
+  ++event_binder_index;
+};
+
+TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms{std::make_unique<mysql>(db_cfg)};
+  std::string query1{"DROP TABLE IF EXISTS ut_test"};
+  std::string query2{
+      "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
+      "PRIMARY KEY, name VARCHAR(1000), value DOUBLE, t TINYINT, e "
+      "enum('a', "
+      "'b', 'c') DEFAULT 'a', i INT, u INT UNSIGNED)"};
+  ms->run_query(query1);
+  ms->commit();
+  ms->run_query(query2);
+  ms->commit();
+
+  auto inserter = database::create_bulk_or_multi_bbdo_event(
+      *ms, "INSERT INTO ut_test (name, value, t, e, i, u) VALUES (?,?,?,?,?,?)",
+      10, event_binder);
+
+  event_binder_index = 0;
+  for (unsigned data_index = 0; data_index < 10; ++data_index) {
+    inserter->add_event(std::shared_ptr<com::centreon::broker::io::data>());
+  }
+
+  inserter->execute(*ms);
+  ms->commit();
+
+  std::promise<mysql_result> select_prom;
+  std::future<mysql_result> select_fut = select_prom.get_future();
+  ms->run_query_and_get_result("SELECT id, name, value, t,e,i,u FROM ut_test",
+                               std::move(select_prom));
+  mysql_result select_res = select_fut.get();
+
+  ASSERT_EQ(select_res.get_rows_count(), 10);
+  for (unsigned data_index = 0; data_index < 10; ++data_index) {
+    ms->fetch_row(select_res);
+    ASSERT_EQ(select_res.value_as_str(1), fmt::format("toto{}", data_index));
+    ASSERT_EQ(select_res.value_as_f64(2), 12.34 + data_index);
+    ASSERT_EQ(select_res.value_as_str(4), "b");
+    ASSERT_EQ(select_res.value_as_i32(5), 678 + data_index);
+    ASSERT_EQ(select_res.value_as_i32(6), 789 + data_index);
+  }
+}
+
+TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_multi) {
+  database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
+                         "centreon", "centreon_storage", 5, true, 5);
+  auto ms{std::make_unique<mysql>(db_cfg)};
+  std::string query1{"DROP TABLE IF EXISTS ut_test"};
+  std::string query2{
+      "CREATE TABLE ut_test (id BIGINT NOT NULL AUTO_INCREMENT "
+      "PRIMARY KEY, name VARCHAR(1000), value DOUBLE, t TINYINT, e "
+      "enum('a', "
+      "'b', 'c') DEFAULT 'a', i INT, u INT UNSIGNED)"};
+  ms->run_query(query1);
+  ms->commit();
+  ms->run_query(query2);
+  ms->commit();
+
+  auto inserter = database::create_bulk_or_multi_bbdo_event(
+      "INSERT INTO ut_test (name, value, t, e, i, u) VALUES", 6, "",
+      event_binder);
+
+  event_binder_index = 0;
+  for (unsigned data_index = 0; data_index < 10; ++data_index) {
+    inserter->add_event(std::shared_ptr<com::centreon::broker::io::data>());
+  }
+
+  inserter->execute(*ms);
+  ms->commit();
+
+  std::promise<mysql_result> select_prom;
+  std::future<mysql_result> select_fut = select_prom.get_future();
+  ms->run_query_and_get_result("SELECT id, name, value, t,e,i,u FROM ut_test",
+                               std::move(select_prom));
+  mysql_result select_res = select_fut.get();
+
+  ASSERT_EQ(select_res.get_rows_count(), 10);
+  for (unsigned data_index = 0; data_index < 10; ++data_index) {
+    ms->fetch_row(select_res);
+    ASSERT_EQ(select_res.value_as_str(1), fmt::format("toto{}", data_index));
+    ASSERT_EQ(select_res.value_as_f64(2), 12.34 + data_index);
+    ASSERT_EQ(select_res.value_as_str(4), "b");
+    ASSERT_EQ(select_res.value_as_i32(5), 678 + data_index);
+    ASSERT_EQ(select_res.value_as_i32(6), 789 + data_index);
+  }
+}

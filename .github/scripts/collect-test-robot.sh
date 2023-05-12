@@ -4,23 +4,52 @@ set -x
 
 export RUN_ENV=docker
 
+test_file=$1
+database_type=$2
+
+if [ o${database_type} == 'o-mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
+    echo > tests/log.html
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > tests/output.xml
+    echo > tests/report.html
+    exit 0
+fi
+
 echo "########################### Configure and start sshd ###########################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
 ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 /usr/sbin/sshd -D  &
 
-echo "########################### Start MariaDB ######################################"
-mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
-mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
-sleep 5
+if [ $database_type == '-mysql' ]; then
+    echo "########################### Start MySQL ######################################"
+    /bin/rm /var/lib/mysql/*
+    #workaround of forbidden execution of mysqld
+    cp /usr/libexec/mysqld /usr/libexec/mysqldtoto
+    /usr/libexec/mysqldtoto --user=root --initialize-insecure 
+    /usr/libexec/mysqldtoto --user=root &
 
-echo "########################### Init centreon database ############################"
+    while [ ! -S /var/lib/mysql/mysql.sock ] && [ ! -S /var/run/mysqld/mysqld.sock ]; do
+        sleep 10
+    done
 
-mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
+    sleep 5
+    echo "########################### Init centreon database ############################"
+
+    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon';"
+    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon';"
+else
+    echo "########################### Start MariaDB ######################################"
+    mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
+    mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
+    sleep 5
+
+    echo "########################### Init centreon database ############################"
+
+    mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
+    mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED BY 'centreon';"
+fi
 
 mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
-mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED BY 'centreon';"
 mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root_centreon'@'localhost'"
 
 cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
@@ -52,5 +81,5 @@ echo "##### Starting tests #####"
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot $1
+robot $test_file
 

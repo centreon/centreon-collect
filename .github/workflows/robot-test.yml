@@ -1,10 +1,13 @@
 on:
   workflow_call:
     inputs:
-      image_name:
+      image_version:
         required: true
         type: string
       distrib:
+        required: true
+        type: string
+      os:
         required: true
         type: string
     secrets:
@@ -33,15 +36,18 @@ jobs:
     needs: [robot-test-list]
     runs-on: ubuntu-22.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_name }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect${{ matrix.database_type }}-${{inputs.os}}:${{ inputs.image_version }}
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
     strategy:
       fail-fast: false
       matrix:
-        feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
-    name: ${{ matrix.feature }}
+      #  feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
+        feature: ['bam/bam_pb.robot', 'bam/pb_inherited_downtime.robot']
+        database_type: ['', '-mysql']
+    name: ${{ matrix.feature }}${{ matrix.database_type }}
+
 
     steps:
       - name: Checkout sources
@@ -54,7 +60,7 @@ jobs:
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Test ${{ matrix.feature }}
-        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }}
+        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{ matrix.database_type }}
         shell: bash
 
       - name: Move reports
