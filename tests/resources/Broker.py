@@ -1450,7 +1450,6 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
             stub = broker_pb2_grpc.BrokerStub(channel)
             con = broker_pb2.SqlConnection()
             try:
-                logger.console("toto")
                 res = stub.GetSqlManagerStats(con)
                 logger.console(res)
                 res = MessageToJson(res)
