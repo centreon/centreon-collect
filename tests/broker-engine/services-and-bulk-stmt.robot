@@ -191,7 +191,7 @@ EBMSSM
 
 	# Let's wait for all force checks to be in the storage database.
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	FOR	${i}	IN RANGE	${300}
+	FOR	${i}	IN RANGE	${500}
 	  ${output}=	Query	SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
 	  Exit For Loop If	${output[0][0]} >= 100000
 	END
