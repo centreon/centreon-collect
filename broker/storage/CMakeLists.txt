@@ -1,20 +1,20 @@
-# #
-# # Copyright 2011-2013, 2020-2021 Centreon
-# #
-# # Licensed under the Apache License, Version 2.0 (the "License");
-# # you may not use this file except in compliance with the License.
-# # You may obtain a copy of the License at
-# #
-# #     http://www.apache.org/licenses/LICENSE-2.0
-# #
-# # Unless required by applicable law or agreed to in writing, software
-# # distributed under the License is distributed on an "AS IS" BASIS,
-# # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# # See the License for the specific language governing permissions and
-# # limitations under the License.
-# #
-# # For more information : contact@centreon.com
-# #
+#
+# Copyright 2011-2013, 2020-2021 Centreon
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
+#
+# For more information : contact@centreon.com
+#
 
 # Global options.
 set(INC_DIR "${PROJECT_SOURCE_DIR}/storage/inc")
@@ -29,29 +29,30 @@ get_protobuf_files(rebuild_message)
 get_protobuf_files(remove_graph_message)
 
 # conflict_manager library.
-add_library(conflictmgr STATIC
-
+add_library(
+  conflictmgr STATIC
   # Sources.
   "${SRC_DIR}/conflict_manager.cc"
   "${SRC_DIR}/conflict_manager_sql.cc"
   "${SRC_DIR}/conflict_manager_storage.cc"
   "${SRC_DIR}/stored_timestamp.cc"
-
   # Headers.
   "${INC_DIR}/conflict_manager.hh"
-  "${INC_DIR}/stored_timestamp.hh"
-)
-set(CONFLICTMGR conflictmgr PARENT_SCOPE)
-set_target_properties(conflictmgr PROPERTIES
-  COMPILE_FLAGS "-fPIC")
+  "${INC_DIR}/stored_timestamp.hh")
+set(CONFLICTMGR
+    conflictmgr
+    PARENT_SCOPE)
+set_target_properties(conflictmgr PROPERTIES COMPILE_FLAGS "-fPIC")
 target_link_libraries(conflictmgr CONAN_PKG::spdlog)
 target_precompile_headers(conflictmgr PRIVATE precomp_inc/precomp.hpp)
 
 # Storage module.
 set(STORAGE "20-storage")
-set(STORAGE "${STORAGE}" PARENT_SCOPE)
-add_library("${STORAGE}" SHARED
-
+set(STORAGE
+    "${STORAGE}"
+    PARENT_SCOPE)
+add_library(
+  "${STORAGE}" SHARED
   # Sources.
   "${SRC_DIR}/connector.cc"
   "${SRC_DIR}/factory.cc"
@@ -60,18 +61,15 @@ add_library("${STORAGE}" SHARED
   "${SRC_DIR}/stream.cc"
   ${proto_rebuild_message}
   ${proto_remove_graph_message}
-
   # Headers.
   "${INC_DIR}/connector.hh"
   "${INC_DIR}/events.hh"
   "${INC_DIR}/factory.hh"
   "${INC_DIR}/rebuilder.hh"
-  "${INC_DIR}/stream.hh"
-)
-set_target_properties("${STORAGE}" PROPERTIES
-  PREFIX ""
-  COMPILE_FLAGS "-fPIC")
-add_dependencies("${STORAGE}" target_rebuild_message target_remove_graph_message target_broker_message)
+  "${INC_DIR}/stream.hh")
+set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
+add_dependencies("${STORAGE}" target_rebuild_message
+                 target_remove_graph_message target_broker_message)
 target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
 target_precompile_headers(${STORAGE} PRIVATE precomp_inc/precomp.hpp)
 
@@ -82,26 +80,19 @@ if(WITH_TESTING)
   endif(WITH_SQL_TESTS)
 
   # Testing.
-  set(
-    TESTS_SOURCES
-    ${TESTS_SOURCES}
-    ${TEST_DIR}/connector.cc
-    ${TEST_DIR}/metric.cc
-    ${TEST_DIR}/rebuild.cc
-    ${TEST_DIR}/remove_graph.cc
-    ${TEST_DIR}/status.cc
-    ${TEST_DIR}/status-entry.cc
-    PARENT_SCOPE
-  )
-  set(
-    TESTS_LIBRARIES
-    ${TESTS_LIBRARIES}
-    ${STORAGE}
-    PARENT_SCOPE
-  )
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES}
+      ${TEST_DIR}/connector.cc
+      ${TEST_DIR}/metric.cc
+      ${TEST_DIR}/rebuild.cc
+      ${TEST_DIR}/remove_graph.cc
+      ${TEST_DIR}/status.cc
+      ${TEST_DIR}/status-entry.cc
+      PARENT_SCOPE)
+  set(TESTS_LIBRARIES
+      ${TESTS_LIBRARIES} ${STORAGE}
+      PARENT_SCOPE)
 endif()
 
 # Install rule.
-install(TARGETS "${STORAGE}"
-  LIBRARY DESTINATION "${PREFIX_MODULES}"
-)
+install(TARGETS "${STORAGE}" LIBRARY DESTINATION "${PREFIX_MODULES}")
