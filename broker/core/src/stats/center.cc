@@ -105,19 +105,22 @@ SqlConnectionStats* center::connection(size_t idx) {
 /**
  * @brief Add a new connection stats entry and returns its index.
  *
- * @return A size_t.
+ * @return A pointer to the connection statistics.
  */
-size_t center::add_connection() {
+SqlConnectionStats* center::add_connection() {
   std::lock_guard<std::mutex> lck(_stats_m);
-  _stats.mutable_sql_manager()->add_connections();
-  size_t retval = _stats.sql_manager().connections().size() - 1;
-  return retval;
+  return _stats.mutable_sql_manager()->add_connections();
 }
 
-void center::remove_connection(size_t idx) {
+void center::remove_connection(SqlConnectionStats* stats) {
   std::lock_guard<std::mutex> lck(_stats_m);
-  auto it = _stats.mutable_sql_manager()->mutable_connections()->begin() + idx;
-  _stats.mutable_sql_manager()->mutable_connections()->erase(it);
+  auto* c = _stats.mutable_sql_manager()->mutable_connections();
+  for (auto it = c->begin(); it != c->end(); ++it) {
+    if (&*it == stats) {
+      c->erase(it);
+      break;
+    }
+  }
 }
 
 /**
