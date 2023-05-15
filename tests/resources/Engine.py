@@ -9,6 +9,7 @@ from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
+import math
 import random
 import shutil
 import sys
