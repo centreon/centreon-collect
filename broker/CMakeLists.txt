@@ -490,6 +490,12 @@ endif()
 # Module list.
 unset(MODULE_LIST)
 
+# multiplexing library linked in final executable such as cbd or cbmod
+add_subdirectory(core/multiplexing)
+
+# sql library
+add_subdirectory(core/sql)
+
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
@@ -506,12 +512,6 @@ add_broker_module(TLS ON)
 add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
-
-# multiplexing library linked in final executable such as cbd or cbmod
-add_subdirectory(core/multiplexing)
-
-# sql library
-add_subdirectory(core/sql)
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)
