@@ -157,6 +157,7 @@ EBBPS2
 EBMSSM
 	[Documentation]	1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
 	[Tags]	Broker	Engine	services	unified_sql	benchmark
+	Clear Metrics
 	Config Engine	${1}	${1}	${1000}
 	# We want all the services to be passive to avoid parasite checks during our test.
 	Set Services passive	${0}	service_.*
@@ -194,6 +195,7 @@ EBMSSM
 	FOR	${i}	IN RANGE	${500}
 	  ${output}=	Query	SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
 	  Exit For Loop If	${output[0][0]} >= 100000
+	  Sleep	1s
 	END
 	Should Be True	${output[0][0]} >= 100000  
 	Stop Engine

@@ -1,8 +1,10 @@
 #!/usr/bin/python3
 import argparse
 import datetime
+import json
 import os
 import re
+import time
 from xml.etree import ElementTree as ET
 
 import matplotlib.pyplot as plt
@@ -31,7 +33,12 @@ fail_dict = {}
 
 top = args.top
 
-benchmark = {}
+if os.path.exists("benchmarks.json"):
+    with open("benchmarks.json", "r") as f:
+        benchmark = json.load(f)
+else:
+    benchmark = {}
+
 for f in content:
     durations = []
     success = 0
@@ -56,7 +63,9 @@ for f in content:
                         if t.text == 'benchmark':
                             if not p.attrib['name'] in benchmark:
                                 benchmark[p.attrib['name']] = []
-                                benchmark[p.attrib['name']].append(float(total_duration))
+                            t = time.mktime(starttime.timetuple())
+                            benchmark[p.attrib['name']].append(
+                                (t, float(total_duration)))
                     durations.append(
                         (duration, p.attrib['name'], s.attrib['status']))
                     if s.attrib['status'] == 'FAIL':
@@ -138,6 +147,13 @@ if args.fail:
     size += 1
 if args.slow:
     size += 1
+if args.benchmark:
+    size += 1
+
+if args.benchmark:
+    with open("benchmark.json", "w") as f:
+        json.dump(benchmark, f, indent=True)
+    print(benchmark)
 
 if size == 0:
     exit(0)
@@ -193,7 +209,29 @@ if args.fail:
     AX.grid(color='gray', linestyle='dashed')
     idx += 1
 
-plt.show()
-
 if args.benchmark:
-    print(benchmark)
+    if size == 1:
+        AX = ax
+    else:
+        AX = ax[idx]
+
+    AX.set_xlabel('date')
+    AX.tick_params(labelrotation=45)
+    values = []
+    dates = []
+    for k, v in benchmark.items():
+        AX.set_ylabel(f'{k} duration(s)')
+        for vv in v:
+            dates.append(vv[0])
+        dates.sort()
+        for d in dates:
+            for vv in v:
+                if vv[0] == d:
+                    values.append(vv[1])
+                    break
+
+    AX.plot(dates, values)
+    AX.grid(color='gray', linestyle='dashed')
+    idx += 1
+
+plt.show()
