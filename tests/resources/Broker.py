@@ -1753,3 +1753,25 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
+
+
+def config_broker_remove_rrd_output(name):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    conf = {}
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+        conf = json.loads(buf)
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if "rrd" in v["name"] and v["type"] == "ipv4":
+                output_dict.pop(i)
+                break
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
