@@ -97,7 +97,7 @@ class mysql_connection {
    */
   bool _connected;
   std::time_t _switch_point;
-  size_t _stats_idx;
+  SqlConnectionStats* _proto_stats;
   std::time_t _last_stats;
   uint32_t _qps;
 
@@ -148,7 +148,7 @@ class mysql_connection {
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(const database_config& db_cfg, size_t stats_idx);
+  mysql_connection(const database_config& db_cfg, SqlConnectionStats* stats);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);

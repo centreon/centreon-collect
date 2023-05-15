@@ -118,12 +118,12 @@ std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
 
     // We are still missing threads in the configuration to return
     while (retval.size() < connection_count) {
-      size_t stats_idx = stats::center::instance().add_connection();
+      SqlConnectionStats* s = stats::center::instance().add_connection();
       std::shared_ptr<mysql_connection> c;
       try {
-        c = std::make_shared<mysql_connection>(db_cfg, stats_idx);
+        c = std::make_shared<mysql_connection>(db_cfg, s);
       } catch (const std::exception& e) {
-        stats::center::instance().remove_connection(stats_idx);
+        stats::center::instance().remove_connection(s);
         throw;
       }
       _connection.push_back(c);
