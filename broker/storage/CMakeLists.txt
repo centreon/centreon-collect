@@ -69,7 +69,9 @@ add_library(
   "${INC_DIR}/stream.hh")
 set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
 add_dependencies("${STORAGE}" target_rebuild_message
-                 target_remove_graph_message)
+                 target_remove_graph_message
+		 sql
+		 )
 target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
 
