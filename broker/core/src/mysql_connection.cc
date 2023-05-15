@@ -117,26 +117,23 @@ void mysql_connection::_update_stats() noexcept {
 
     database::stats::loop avg_loop = _stats.average_loop();
 
-    SqlConnectionStats* stats =
-        stats::center::instance().connection(_stats_idx);
-
     float stmt_avg = _stats.average_stmt_duration();
     float query_avg = _stats.average_query_duration();
 
     {
       std::lock_guard<stats::center> lck(stats::center::instance());
-      stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
+      _proto_stats->set_waiting_tasks(static_cast<int32_t>(_tasks_count));
       if (static_cast<bool>(_connected)) {
-        stats->set_up_since(_switch_point);
+        _proto_stats->set_up_since(_switch_point);
 
-        stats->set_average_statement_duration(stmt_avg);
-        stats->set_average_query_duration(query_avg);
+        _proto_stats->set_average_statement_duration(stmt_avg);
+        _proto_stats->set_average_query_duration(query_avg);
 
-        stats->clear_slowest_statements();
+        _proto_stats->clear_slowest_statements();
         auto& ss = _stats.get_stat_stmt();
-        stats->mutable_slowest_statements()->Reserve(ss.size());
+        _proto_stats->mutable_slowest_statements()->Reserve(ss.size());
         for (auto& l_ss : ss) {
-          auto* ss = stats->add_slowest_statements();
+          auto* ss = _proto_stats->add_slowest_statements();
           ss->set_rows_count(l_ss.rows_count);
           ss->set_duration(l_ss.duration);
           ss->set_start_time(l_ss.start_time);
@@ -144,26 +141,26 @@ void mysql_connection::_update_stats() noexcept {
           ss->set_statement_query(l_ss.statement_query);
         }
 
-        stats->clear_slowest_queries();
+        _proto_stats->clear_slowest_queries();
         auto& sq = _stats.get_stat_query();
-        stats->mutable_slowest_queries()->Reserve(sq.size());
+        _proto_stats->mutable_slowest_queries()->Reserve(sq.size());
         for (auto& l_sq : sq) {
-          auto* sq = stats->add_slowest_queries();
+          auto* sq = _proto_stats->add_slowest_queries();
           sq->set_length(l_sq.length);
           sq->set_duration(l_sq.duration);
           sq->set_start_time(l_sq.start_time);
           sq->set_query(l_sq.query);
         }
       } else {
-        stats->set_down_since(_switch_point);
-        stats->clear_slowest_statements();
-        stats->clear_slowest_queries();
-        stats->set_average_statement_duration(0);
-        stats->set_average_query_duration(0);
+        _proto_stats->set_down_since(_switch_point);
+        _proto_stats->clear_slowest_statements();
+        _proto_stats->clear_slowest_queries();
+        _proto_stats->set_average_statement_duration(0);
+        _proto_stats->set_average_query_duration(0);
       }
     }
-    stats->set_activity_percent(avg_loop.activity_percent);
-    stats->set_average_loop_duration(avg_loop.duration);
+    _proto_stats->set_activity_percent(avg_loop.activity_percent);
+    _proto_stats->set_average_loop_duration(avg_loop.duration);
   }
 }
 
@@ -1065,7 +1062,7 @@ void mysql_connection::_process_while_empty_task(
 /******************************************************************************/
 
 mysql_connection::mysql_connection(const database_config& db_cfg,
-                                   size_t stats_idx)
+                                   SqlConnectionStats* stats)
     : _conn(nullptr),
       _finish_asked(false),
       _tasks_count{0},
@@ -1084,7 +1081,7 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _state(not_started),
       _connected{false},
       _switch_point{std::time(nullptr)},
-      _stats_idx{stats_idx},
+      _proto_stats{stats},
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()) {
   std::unique_lock<std::mutex> lck(_start_m);
@@ -1103,9 +1100,8 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
   }
   pthread_setname_np(_thread->native_handle(), "mysql_connect");
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection: connection started");
-  stats::center::instance().update(
-      &SqlConnectionStats::set_waiting_tasks,
-      stats::center::instance().connection(_stats_idx), 0);
+  stats::center::instance().update(&SqlConnectionStats::set_waiting_tasks,
+                                   _proto_stats, 0);
 }
 
 /**
@@ -1116,7 +1112,7 @@ mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection {:p}: finished",
                      static_cast<const void*>(this));
   finish();
-  stats::center::instance().remove_connection(_stats_idx);
+  stats::center::instance().remove_connection(_proto_stats);
   _thread->join();
 }
 
