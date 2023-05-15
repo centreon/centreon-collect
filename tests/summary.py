@@ -11,6 +11,8 @@ parser = argparse.ArgumentParser(
     prog='summary.py', description='Draw a summary on the tests historical.')
 parser.add_argument('--fail', '-f', action='store_true',
                     help='Add a summary on tests that failed.')
+parser.add_argument('--benchmark', '-b', action='store_true',
+                    help='Display history of benchmark tests.')
 parser.add_argument('--slow', '-s', action='store_true',
                     help='Add a summary on slow tests.')
 parser.add_argument('--count', '-c', action='store_true',
@@ -29,6 +31,7 @@ fail_dict = {}
 
 top = args.top
 
+benchmark = {}
 for f in content:
     durations = []
     success = 0
@@ -49,6 +52,11 @@ for f in content:
                         s.attrib['endtime'], '%Y%m%d %H:%M:%S.%f')
                     duration = endtime - starttime
                     total_duration += duration.total_seconds()
+                    for t in p.findall('./tag'):
+                        if t.text == 'benchmark':
+                            if not p.attrib['name'] in benchmark:
+                                benchmark[p.attrib['name']] = []
+                                benchmark[p.attrib['name']].append(float(total_duration))
                     durations.append(
                         (duration, p.attrib['name'], s.attrib['status']))
                     if s.attrib['status'] == 'FAIL':
@@ -186,3 +194,6 @@ if args.fail:
     idx += 1
 
 plt.show()
+
+if args.benchmark:
+    print(benchmark)

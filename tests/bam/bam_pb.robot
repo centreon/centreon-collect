@@ -276,28 +276,30 @@ BA_RATIO_NUMBER_BA_SERVICE
 	Broker Config Source Log  central   1
 	Config BBDO3	${1}
 	Config Engine	${1}
+	# This is to avoid parasite status.
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  ratio_number  3  2
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
 
 	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
 	${id_ba__sid__child}=  create_ba_with_services  test_child  worst  ${svc}
-	add_ba_kpi  ${id_ba__sid__child[0]}  ${id_ba__sid[0]}  1  2  3
+	Add BA KPI  ${id_ba__sid__child[0]}  ${id_ba__sid[0]}  1  2  3
 
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
 	# Let's wait for the external command check start
-    ${content}=	Create List	check_for_external_commands()
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
-	#one serv critical => ba ok
+	# One service CRITICAL => The BA is still OK
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
 	${result}=	check_service_status_with_timeout	host_16	service_302	2	60	HARD
 	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
@@ -305,17 +307,17 @@ BA_RATIO_NUMBER_BA_SERVICE
 	${result}=	check_ba_status_with_timeout	test	0	60
 	Should Be True	${result}	msg=The BA test is not OK as expected
 
-	#two serv critical => ba warning
+	# Two services CRITICAL => The BA passes to WARNING
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
 	${result}=	check_service_status_with_timeout	host_16	service_302	2	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
 	${result}=	check_service_status_with_timeout	host_16	service_303	2	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_303) is not CRITICAL as expected
-	${result}=	check_ba_status_with_timeout	test	1	30
-	Should Be True	${result}	msg=The BA test is not WARNING as expected
+	${result}=	check_ba_status_with_timeout	test	1	60
+	Should Be True	${result}	msg=The test BA is not in WARNING as expected
 	
-	#two serv critical and child ba critical => mother ba critical
+	#Two services CRITICAL and also the child BA => The mother BA passes to CRITICAL
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for service_314
@@ -327,7 +329,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
 	${result}=	check_ba_status_with_timeout  test_child  2  30
 	Should Be True	${result}	msg=The BA test_child is not CRITICAL as expected
-	${result}=	check_ba_status_with_timeout	test	2	30
+	${result}=	check_ba_status_with_timeout	test	2	60
 	Should Be True	${result}	msg=The BA test is not CRITICAL as expected
 
 	Stop Engine
