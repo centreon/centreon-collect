@@ -140,14 +140,15 @@ BA_IMPACT_2KPI_SERVICES
 	Broker Config Log	central	sql	trace
     Config BBDO3	${1}
 	Config Engine	${1}
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  impact  20  35
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
 
 	Start Broker
 	${start}=	Get Current Date
@@ -208,14 +209,15 @@ BA_RATIO_PERCENT_BA_SERVICE
 	Broker Config Source Log  central   1
     Config BBDO3	${1}
 	Config Engine	${1}
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  ratio_percent  67  49
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
 
 	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
 	${id_ba__sid__child}=  create_ba_with_services  test_child  worst  ${svc}
@@ -807,16 +809,17 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 	Broker Config Source Log  central   1
     Config BBDO3	${1}
 	Config Engine	${1}
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  ratio_number  2  1
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_304  ${id_ba__sid[0]}  40  30  20
 
 	Start Broker
 	${start}=	Get Current Date
@@ -872,16 +875,17 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 	Broker Config Source Log  central   1
     Config BBDO3	${1}
 	Config Engine	${1}
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  ratio_percent  50  25
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_305  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_305  ${id_ba__sid[0]}  40  30  20
 
 	Start Broker
 	${start}=	Get Current Date
