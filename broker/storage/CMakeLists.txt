@@ -70,7 +70,7 @@ add_library(
 set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
 add_dependencies("${STORAGE}" target_rebuild_message
                  target_remove_graph_message
-		 sql
+		 table_max_size
 		 )
 target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
