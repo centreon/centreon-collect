@@ -1462,7 +1462,7 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
                                 return q["duration"]
                     if "slowestStatements" in c:
                         for q in c["slowestStatements"]:
-                            if query in q["query"]:
+                            if query in q["statementQuery"]:
                                 return q["duration"]
             except:
                 logger.console("gRPC server not ready")
