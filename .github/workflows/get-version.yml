@@ -72,6 +72,7 @@ jobs:
               ;;
             *)
               STABILITY="canary"
+              ENV="development"
               ;;
           esac
           echo "stability=$STABILITY" >> $GITHUB_OUTPUT
