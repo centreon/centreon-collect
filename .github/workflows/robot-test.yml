@@ -46,8 +46,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-      #  feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
-        feature: ['bam/bam_pb.robot', 'bam/pb_inherited_downtime.robot']
+        feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
     name: ${{ matrix.feature }}
 
 
