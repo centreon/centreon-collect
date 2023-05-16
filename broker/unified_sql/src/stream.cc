@@ -201,6 +201,7 @@ stream::stream(const database_config& dbcfg,
     log_v2::sql()->error("error while loading caches: {}", e.what());
     throw;
   }
+  std::lock_guard<std::mutex> l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
       std::bind(&stream::_check_queues, this, std::placeholders::_1));

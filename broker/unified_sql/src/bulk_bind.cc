@@ -126,7 +126,7 @@ void bulk_bind::apply_to_stmt(int32_t conn) {
 
 /**
  * @brief Initialize the bind at the given connection from the associated
- * statement.
+ * statement. This function call must be protected.
  *
  * @param conn
  */
@@ -140,6 +140,7 @@ void bulk_bind::init_from_stmt(int32_t conn) {
  * @return A size_t.
  */
 std::size_t bulk_bind::connections_count() const {
+  std::lock_guard<std::mutex> lck(_queue_m);
   return _bind.size();
 }
 
