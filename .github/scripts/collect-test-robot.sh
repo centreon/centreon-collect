@@ -22,7 +22,6 @@ ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 
 if [ $database_type == '-mysql' ]; then
     echo "########################### Start MySQL ######################################"
-    /bin/rm /var/lib/mysql/*
     #workaround of forbidden execution of mysqld
     cp /usr/libexec/mysqld /usr/libexec/mysqldtoto
     /usr/libexec/mysqldtoto --user=root --initialize-insecure 
