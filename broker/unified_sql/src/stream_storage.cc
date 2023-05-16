@@ -280,6 +280,7 @@ void stream::_unified_sql_process_pb_service_status(
         if (_store_in_db) {
           // Append perfdata to queue.
           if (_bulk_prepared_statement) {
+            std::lock_guard<bulk_bind> lck(*_perfdata_b);
             if (!_perfdata_b->bind(conn))
               _perfdata_b->init_from_stmt(conn);
             auto* b = _perfdata_b->bind(conn).get();
@@ -814,7 +815,7 @@ void stream::_check_queues(asio::error_code ec) {
 
     bool resources_done = false;
     if (_bulk_prepared_statement) {
-      for (uint32_t conn = 0; conn < _hscr_bind->connections_count(); conn++) {
+      for (uint32_t conn = 0; conn < _perfdata_b->connections_count(); conn++) {
         if (_perfdata_b->ready(conn)) {
           log_v2::sql()->debug("Sending {} perfdata on connection {}",
                                _perfdata_b->size(conn), conn);
