@@ -70,10 +70,6 @@ jobs:
               STABILITY="stable"
               ENV="production"
               ;;
-            pkgtest-*)
-              STABILITY="pkgtest"
-              ENV="development"
-              ;;
             *)
               STABILITY="canary"
               ENV="development"
