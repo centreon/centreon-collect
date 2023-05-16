@@ -53,8 +53,8 @@ mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root_centreon'@'localhost'"
 
 cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
 
-mysql -u centreon -pcentreon < resources/centreon_storage.sql
-mysql -u centreon -pcentreon < /tmp/centreon.sql
+mysql -u root_centreon -pcentreon < resources/centreon_storage.sql
+mysql -u root_centreon -pcentreon < /tmp/centreon.sql
 
 echo "########################## Install centreon collect ###########################"
 
