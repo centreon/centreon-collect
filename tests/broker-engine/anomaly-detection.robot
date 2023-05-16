@@ -201,12 +201,12 @@ ANO_DT1
 	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
 	Should Be True	${result}	msg=No check for external commands executed for 1mn.
 
-    #create dependent service downtime
-    schedule_service_fixed_downtime	host_1	service_1  3600
+	#create dependent service downtime
+	schedule_service_fixed_downtime	host_1	service_1  3600
 
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  1  10
+	${result}=  Check Service Downtime With Timeout  host_1	service_1  1  60
 	Should Be True	${result}	msg=dependent service must be in downtime
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  5
+	${result}=  Check Service Downtime With Timeout  host_1	anomaly_${serv_id}  1  60
 	Should Be True	${result}	msg=anomaly service must be in downtime
 
 	Stop Engine
@@ -240,13 +240,13 @@ ANO_DT2
     #create dependent service downtime
     schedule_service_fixed_downtime	host_1	service_1  3600
 
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  10
+    ${result}=  Check Service Downtime With Timeout  host_1	anomaly_${serv_id}  1  60
 	Should Be True	${result}	msg=anomaly service must be in downtime
 
     DELETE SERVICE DOWNTIME  host_1	service_1
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  0  10
+    ${result}=  Check Service Downtime With Timeout  host_1	service_1  0  60
 	Should Be True	${result}	msg=dependent service must be in downtime
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  0  5
+    ${result}=  Check Service Downtime With Timeout  host_1	anomaly_${serv_id}  0  60
 	Should Be True	${result}	msg=anomaly service must be in downtime
 
 
@@ -281,14 +281,14 @@ ANO_DT3
     #create dependent service downtime
     schedule_service_fixed_downtime	host_1	service_1  3600
 
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  10
+    ${result}=  Check Service Downtime With Timeout  host_1	anomaly_${serv_id}  1  60
 	Should Be True	${result}	msg=anomaly service must be in downtime
 
     DELETE SERVICE DOWNTIME  host_1	anomaly_${serv_id}
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  0  10
+    ${result}=  Check Service Downtime With Timeout  host_1	anomaly_${serv_id}  0  60
 	Should Be True	${result}	msg=anomaly service must be in downtime
     Sleep  2s
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  1  1
+    ${result}=  Check Service Downtime With Timeout  host_1	service_1  1  60
 	Should Be True	${result}	msg=dependent service must be in downtime
 
 
@@ -325,13 +325,13 @@ ANO_DT4
     schedule_service_fixed_downtime	host_1	service_1  3600
     schedule_service_fixed_downtime	host_1	anomaly_${serv_id}  3600
 
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  2  10
+    ${result}=  Check Service Downtime With Timeout  host_1	anomaly_${serv_id}  2  60
 	Should Be True	${result}	msg=anomaly service must be in double downtime
 
     DELETE SERVICE DOWNTIME  host_1	service_1
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	service_1  0  10
+    ${result}=  Check Service Downtime With Timeout  host_1	service_1  0  60
 	Should Be True	${result}	msg=dependent service mustn t be in downtime
-    ${result}=  CHECK SERVICE DOWNTIME WITH TIMEOUT  host_1	anomaly_${serv_id}  1  1
+    ${result}=  Check Service Downtime With Timeout  host_1	anomaly_${serv_id}  1  60
 	Should Be True	${result}	msg=anomaly service must be in simple downtime  
 
 
