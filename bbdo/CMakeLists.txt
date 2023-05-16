@@ -17,32 +17,32 @@
 #
 
 set(protobuf_files
-  header
-  rebuild_message
-  remove_graph_message
-  severity
-  tag
-  bbdo
-  neb
-  storage
-  bam)
+    header
+    rebuild_message
+    remove_graph_message
+    severity
+    tag
+    bbdo
+    neb
+    storage
+    bam)
 
 foreach(name IN LISTS protobuf_files)
   set(proto_file "${name}.proto")
   set(full_proto_file "${CMAKE_SOURCE_DIR}/bbdo/${name}.proto")
   add_custom_command(
     OUTPUT "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
-    "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
+           "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
     DEPENDS ${full_proto_file}
     COMMENT "Generating interface files of the bbdo file ${proto_file}"
     COMMAND
-    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
-    --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
+      ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${CMAKE_SOURCE_DIR}/bbdo
+      --proto_path=${CMAKE_SOURCE_DIR}/bbdo ${proto_file}
     VERBATIM)
 
   add_custom_target(
     "target_${name}" DEPENDS "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
-    "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
+                             "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endforeach()
 
 add_library(pb_header_lib STATIC header.pb.cc header.pb.h)
@@ -75,14 +75,15 @@ set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
-    PROPERTIES GENERATED TRUE)
+                              PROPERTIES GENERATED TRUE)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h"
-    PROPERTIES GENERATED TRUE)
+                              PROPERTIES GENERATED TRUE)
   set(proto_${name} "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
-    "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
+                    "${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.h")
 endmacro()
 
-include_directories("${CMAKE_SOURCE_DIR}/broker/core/inc")
+include_directories("${CMAKE_SOURCE_DIR}/broker/core/inc"
+                    "${CMAKE_SOURCE_DIR}/broker/core/sql/inc")
 
 add_library(
   bbdo_bbdo STATIC
@@ -141,8 +142,7 @@ add_library(
   "bam/kpi_event.cc"
   "bam/dimension_ba_bv_relation_event.cc"
   "bam/dimension_bv_event.hh"
-  "bam/kpi_event.hh"
-)
+  "bam/kpi_event.hh")
 set_target_properties(bbdo_bam PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bam REUSE_FROM bbdo_bbdo)
 add_dependencies(bbdo_bam table_max_size)

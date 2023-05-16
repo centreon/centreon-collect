@@ -23,7 +23,7 @@
 
 #include <cmath>
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "randomize.hh"
 
 using namespace com::centreon::broker;

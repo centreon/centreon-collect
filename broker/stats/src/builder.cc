@@ -28,17 +28,11 @@
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/mysql_manager.hh"
+#include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/helper.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Default constructor.

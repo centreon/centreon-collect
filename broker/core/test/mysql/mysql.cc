@@ -42,7 +42,7 @@
 #include "com/centreon/broker/neb/service_check.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
-#include "com/centreon/broker/query_preparator.hh"
+#include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;

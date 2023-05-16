@@ -25,12 +25,12 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

@@ -28,13 +28,13 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -799,6 +799,7 @@ void stream::_check_queues(asio::error_code ec) {
                              actions::downtimes | actions::host_dependencies |
                              actions::service_dependencies);
       if (_store_in_hosts_services) {
+        if (_hscr_bind) {
         log_v2::sql()->trace(
             "Check if some statements are ready,  hscr_bind connections count "
             "= {}",
@@ -817,6 +818,8 @@ void stream::_check_queues(asio::error_code ec) {
             _add_action(conn, actions::hosts);
           }
         }
+	}
+	if (_sscr_bind) {
         log_v2::sql()->trace(
             "Check if some statements are ready,  sscr_bind connections count "
             "= {}",
@@ -836,8 +839,10 @@ void stream::_check_queues(asio::error_code ec) {
             _add_action(conn, actions::services);
           }
         }
+	}
       }
       if (_store_in_resources) {
+        if (_hscr_resources_bind) {
         for (uint32_t conn = 0;
              conn < _hscr_resources_bind->connections_count(); conn++) {
           if (_hscr_resources_bind->ready(conn)) {
@@ -853,6 +858,8 @@ void stream::_check_queues(asio::error_code ec) {
             _add_action(conn, actions::resources);
           }
         }
+	}
+	if (_sscr_resources_bind) {
         for (uint32_t conn = 0;
              conn < _sscr_resources_bind->connections_count(); conn++) {
           if (_sscr_resources_bind->ready(conn)) {
@@ -868,6 +875,7 @@ void stream::_check_queues(asio::error_code ec) {
             _add_action(conn, actions::resources);
           }
         }
+	}
       }
       resources_done = true;
     }

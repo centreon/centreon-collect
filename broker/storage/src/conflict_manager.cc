@@ -22,11 +22,11 @@
 #include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
+#include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

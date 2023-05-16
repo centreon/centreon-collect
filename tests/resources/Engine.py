@@ -1,5 +1,6 @@
 import Common
 import grpc
+import math
 import engine_pb2
 import engine_pb2_grpc
 from array import array
@@ -1623,13 +1624,22 @@ def external_command(func):
     return wrapper
 
 
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        v = math.sin((now + m) / 1000) * 5
+        pd.append(f"metric{m}={v}")
+    full_output = " ".join(pd)
+    process_service_check_result(hst, svc, state, full_output, config)
+
+
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
     cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-    f = open(
-        f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+        logger.console(cmd)
+        f.write(cmd)
 
 
 @external_command

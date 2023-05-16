@@ -98,6 +98,15 @@ EngineStats* center::register_engine() {
   return _stats.mutable_processing()->mutable_engine();
 }
 
+SqlConnectionStats* center::connection(size_t idx) {
+  return &_stats.mutable_sql_manager()->mutable_connections()->at(idx);
+}
+
+/**
+ * @brief Add a new connection stats entry and returns its index.
+ *
+ * @return A pointer to the connection statistics.
+ */
 SqlConnectionStats* center::add_connection() {
   std::lock_guard<std::mutex> lck(_stats_m);
   return _stats.mutable_sql_manager()->add_connections();
@@ -315,9 +324,15 @@ std::string center::to_string() {
   return retval;
 }
 
-void center::get_sql_manager_stats(SqlManagerStats* response) {
+void center::get_sql_manager_stats(SqlManagerStats* response, int32_t id) {
   std::lock_guard<std::mutex> lck(_stats_m);
-  *response = _stats.sql_manager();
+  if (id == -1)
+    *response = _stats.sql_manager();
+  else {
+    *response = SqlManagerStats();
+    auto c = response->add_connections();
+    c->CopyFrom(_stats.sql_manager().connections(id));
+  }
 }
 
 void center::get_sql_connection_size(GenericSize* response) {
@@ -362,4 +377,16 @@ void center::clear_muxer_queue_file(const std::string& name) {
         ->at(name)
         .mutable_queue_file()
         ->Clear();
+}
+
+void center::lock() {
+  _stats_m.lock();
+}
+
+void center::unlock() {
+  _stats_m.unlock();
+}
+
+const BrokerStats& center::stats() const {
+  return _stats;
 }

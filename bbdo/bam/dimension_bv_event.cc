@@ -18,7 +18,7 @@
 
 #include "bbdo/bam/dimension_bv_event.hh"
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
