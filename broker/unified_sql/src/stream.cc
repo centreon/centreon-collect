@@ -215,6 +215,7 @@ stream::stream(const database_config& dbcfg,
                         e.what());
     throw;
   }
+  std::lock_guard<std::mutex> l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
       [this](const asio::error_code& err) { _check_queues(err); });
