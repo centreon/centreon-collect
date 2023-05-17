@@ -17,9 +17,8 @@
  *
  */
 
-#include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/database/mysql_multi_insert.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
 
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>

@@ -446,19 +446,20 @@ target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
 add_dependencies(rokerbase berpc target_bbdo)
 target_link_libraries(
   rokerbase
+  sql
+  bbdo_bbdo
+  pb_bbdo_lib
+  berpc
   CONAN_PKG::zlib
   CONAN_PKG::spdlog
   CONAN_PKG::openssl
   pthread
   dl
-  berpc
-  bbdo_bbdo
-  sql
-  pb_bbdo_lib)
+)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc
-  pthread)
+target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
+  pthread dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -470,6 +471,7 @@ target_link_libraries(
   "-rdynamic"
   rokerlog
   "-Wl,--whole-archive"
+  sql
   rokerbase
   roker
   multiplexing

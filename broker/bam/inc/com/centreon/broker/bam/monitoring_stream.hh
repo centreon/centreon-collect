@@ -21,12 +21,11 @@
 
 #include <absl/hash/hash.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
-#include "com/centreon/broker/database/mysql_multi_insert.hh"
-#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/broker/sql/mysql.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/sql/mysql_stmt.hh"
 
 CCB_BEGIN()

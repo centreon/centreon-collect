@@ -19,10 +19,10 @@
 #ifndef CCB_MYSQL_MULTI_INSERT_HH
 #define CCB_MYSQL_MULTI_INSERT_HH
 
-#include "com/centreon/broker/database/mysql_bulk_bind.hh"
-#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
-#include "com/centreon/broker/database/mysql_stmt.hh"
-#include "com/centreon/broker/mysql.hh"
+#include "com/centreon/broker/sql/mysql.hh"
+#include "com/centreon/broker/sql/mysql_bulk_bind.hh"
+#include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
+#include "com/centreon/broker/sql/mysql_stmt.hh"
 
 CCB_BEGIN()
 

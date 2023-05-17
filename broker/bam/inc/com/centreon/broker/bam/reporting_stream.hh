@@ -23,9 +23,9 @@
 #include "com/centreon/broker/bam/availability_thread.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
-#include "com/centreon/broker/database/mysql_multi_insert.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 
 CCB_BEGIN()
