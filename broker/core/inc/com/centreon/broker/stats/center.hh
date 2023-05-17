@@ -83,8 +83,8 @@ class center {
   void get_conflict_manager_stats(ConflictManagerStats* response);
   void get_sql_manager_stats(SqlManagerStats* response, int32_t id = -1);
   SqlConnectionStats* connection(size_t idx);
-  size_t add_connection();
-  void remove_connection(size_t idx);
+  SqlConnectionStats* add_connection();
+  void remove_connection(SqlConnectionStats* stats);
 
   int get_json_stats_file_creation(void);
   void get_sql_connection_size(GenericSize* response);

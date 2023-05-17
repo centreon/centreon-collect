@@ -107,17 +107,20 @@ SqlConnectionStats* center::connection(size_t idx) {
  *
  * @return A size_t.
  */
-size_t center::add_connection() {
+SqlConnectionStats* center::add_connection() {
   std::lock_guard<std::mutex> lck(_stats_m);
-  _stats.mutable_sql_manager()->add_connections();
-  size_t retval = _stats.sql_manager().connections().size() - 1;
-  return retval;
+  return _stats.mutable_sql_manager()->add_connections();
 }
 
-void center::remove_connection(size_t idx) {
+void center::remove_connection(SqlConnectionStats* stats) {
   std::lock_guard<std::mutex> lck(_stats_m);
-  auto it = _stats.mutable_sql_manager()->mutable_connections()->begin() + idx;
-  _stats.mutable_sql_manager()->mutable_connections()->erase(it);
+  auto* c = _stats.mutable_sql_manager()->mutable_connections();
+  for (auto it = c->begin(); it != c->end(); ++it) {
+    if (&*it == stats) {
+      c->erase(it);
+      break;
+    }
+  }
 }
 
 /**
@@ -248,9 +251,11 @@ void center::init_queue_file(std::string muxer,
 //    auto ep = _stats.add_endpoint();
 //    ep->set_name(name);
 //    *ep->mutable_memory_file_path() = fmt::format(
-//        "{}.memory.{}", config::applier::state::instance().cache_dir(), name);
+//        "{}.memory.{}", config::applier::state::instance().cache_dir(),
+//        name);
 //    *ep->mutable_queue_file_path() = fmt::format(
-//        "{}.queue.{}", config::applier::state::instance().cache_dir(), name);
+//        "{}.queue.{}", config::applier::state::instance().cache_dir(),
+//        name);
 //
 //    p.set_value(ep);
 //  });
@@ -274,10 +279,10 @@ void center::init_queue_file(std::string muxer,
 //}
 
 /**
- * @brief To allow the conflict manager to send statistics, it has to call this
- * function to get a pointer to its statistics container.
- * It is prohibited to directly write into the returned pointer. We must use
- * the center member functions for this purpose.
+ * @brief To allow the conflict manager to send statistics, it has to call
+ * this function to get a pointer to its statistics container. It is
+ * prohibited to directly write into the returned pointer. We must use the
+ * center member functions for this purpose.
  *
  * @return A pointer to the conflict_manager statistics.
  */
@@ -287,10 +292,10 @@ ConflictManagerStats* center::register_conflict_manager() {
 }
 
 /**
- * @brief To allow the conflict manager to send statistics, it has to call this
- * function to get a pointer to its statistics container.
- * It is prohibited to directly write into the returned pointer. We must use
- * the center member functions for this purpose.
+ * @brief To allow the conflict manager to send statistics, it has to call
+ * this function to get a pointer to its statistics container. It is
+ * prohibited to directly write into the returned pointer. We must use the
+ * center member functions for this purpose.
  *
  * @return A pointer to the module statistics.
  */

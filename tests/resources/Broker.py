@@ -19,6 +19,7 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
+from google.protobuf.json_format import MessageToJson
 from robot.libraries.BuiltIn import BuiltIn
 
 TIMEOUT = 30
@@ -472,6 +473,7 @@ def change_broker_tcp_output_to_grpc(name: str):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
     _apply_conf(name, output_to_grpc)
+
 
 def add_path_to_rrd_output(name: str, path: str):
     def rrd_output(conf):
@@ -1364,7 +1366,7 @@ def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
                                 return q["duration"]
                     if "slowestStatements" in c:
                         for q in c["slowestStatements"]:
-                            if query in q["query"]:
+                            if query in q["statementQuery"]:
                                 return q["duration"]
             except:
                 logger.console("gRPC server not ready")

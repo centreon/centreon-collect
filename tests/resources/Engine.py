@@ -5,6 +5,7 @@ from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
+import math
 import random
 import shutil
 import sys
@@ -773,6 +774,16 @@ def get_command_id(service: int):
     return dbconf.command[cmd_name]
 
 
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        v = math.sin((now + m) / 1000) * 5
+        pd.append(f"metric{m}={v}")
+    full_output = " ".join(pd)
+    process_service_check_result(hst, svc, state, full_output, config)
+
+
 def process_service_check_result(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
     cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
@@ -1311,6 +1322,7 @@ def set_services_passive(poller: int, srv_regex):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
     ff.close()
+
 
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
