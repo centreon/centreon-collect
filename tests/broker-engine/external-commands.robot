@@ -17,7 +17,8 @@ Library	../resources/Common.py
 
 *** Test Cases ***
 BEEXTCMD1
-	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
+	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0, using bbdo3.0 the script configures the engine and broker, starts them, executes external commands to change the normal service check interval, verifies the interval values in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
+	[Tags]	Broker	Engine	services	extcmd
 	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -53,7 +54,7 @@ BEEXTCMD1
 		Kindly Stop Broker
 	END
 BEEXTCMD2
-	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0
+	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0, using bbdo2.0 the script configures the engine and broker, starts them, executes external commands to change the normal service check interval, verifies the interval values in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -86,7 +87,7 @@ BEEXTCMD2
 	END
 
 BEEXTCMD3
-	[Documentation]	external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0
+	[Documentation]	external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0, using bbdo3.0 the script configures the engine and broker, starts them, executes external commands to change the normal host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -125,7 +126,7 @@ BEEXTCMD3
 	END
 
 BEEXTCMD4
-	[Documentation]	external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0
+	[Documentation]	external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0, using bbdo2.0 the script configures the engine and broker, starts them, executes external commands to change the normal host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -161,7 +162,7 @@ BEEXTCMD4
 
 
 BEEXTCMD5
-	[Documentation]	external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0
+	[Documentation]	external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0, this code configures the engine and broker, starts them, executes external commands to change the retry service check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -198,7 +199,7 @@ BEEXTCMD5
 	END
 
 BEEXTCMD6
-	[Documentation]	external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0
+	[Documentation]	external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0, this code configures the engine and broker, starts them, executes external commands to change the retry service check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -231,7 +232,7 @@ BEEXTCMD6
 	END
 
 BEEXTCMD7
-	[Documentation]	external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0
+	[Documentation]	external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0,  this code configures the engine and broker, starts them, executes external commands to change the retry host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -270,7 +271,7 @@ BEEXTCMD7
 	END
 
 BEEXTCMD8
-	[Documentation]	external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0
+	[Documentation]	external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0, this code configures the engine and broker, starts them, executes external commands to change the retry host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -304,7 +305,7 @@ BEEXTCMD8
 	END
 
 BEEXTCMD9
-	[Documentation]	external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0
+	[Documentation]	external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0, executes external commands to change the maximum service check attempts, verifies the interval value in the database for both services and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -350,7 +351,7 @@ BEEXTCMD9
 	END
 
 BEEXTCMD10
-	[Documentation]	external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0
+	[Documentation]	external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0, executes external commands to change the maximum service check attempts, verifies the interval value in the database for both services and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -383,7 +384,7 @@ BEEXTCMD10
 	END
 
 BEEXTCMD11
-	[Documentation]	external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0
+	[Documentation]	external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0, executing external commands to change the maximum host check attempts, verifies the maximum attempts value in the database for both hosts and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -431,7 +432,7 @@ BEEXTCMD11
 	END
 
 BEEXTCMD12
-	[Documentation]	external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0
+	[Documentation]	external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0,  executing external commands to change the maximum host check attempts, verifies the maximum attempts value in the database for both hosts and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -466,7 +467,7 @@ BEEXTCMD12
 	END
 
 BEEXTCMD13
-	[Documentation]	external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0
+	[Documentation]	external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0, executing an external command to change the host check time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -506,7 +507,7 @@ BEEXTCMD13
 	END
 
 BEEXTCMD14
-	[Documentation]	external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0
+	[Documentation]	external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0, executing an external command to change the host check time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -541,7 +542,7 @@ BEEXTCMD14
 	END
 
 BEEXTCMD15
-	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
+	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0, configures the engine and broker, starts them, executes an external command to change the host notification time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -581,7 +582,7 @@ BEEXTCMD15
 	END
 
 BEEXTCMD16
-	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
+	[Documentation]	external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0, configures the engine and broker, starts them, executes an external command to change the host notification time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -616,7 +617,7 @@ BEEXTCMD16
 	END
 
 BEEXTCMD17
-	[Documentation]	external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0
+	[Documentation]	external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0, configures the service check time period for a specific service on a host using the external command CHANGE_SVC_CHECK_TIMEPERIOD.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -656,7 +657,7 @@ BEEXTCMD17
 	END
 
 BEEXTCMD18
-	[Documentation]	external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0
+	[Documentation]	external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0, configures the service check time period for a specific service on a host using the external command CHANGE_SVC_CHECK_TIMEPERIOD.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -691,7 +692,7 @@ BEEXTCMD18
 	END
 
 BEEXTCMD19
-	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
+	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0, service notification time period is changed using the Change Svc Notification Timeperiod external command for the specified service and host with a specified value after the initial host state is raised, a loop is executed up to 30 times, where it queries and retrieves the notification_period of the specified service and host from the database, and the result should be equal to 24x7.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
@@ -731,7 +732,7 @@ BEEXTCMD19
 	END
 
 BEEXTCMD20
-	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
+	[Documentation]	external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0, service notification time period is changed using the Change Svc Notification Timeperiod external command for the specified service and host with a specified value after the initial host state is raised, a loop is executed up to 30 times, where it queries and retrieves the notification_period of the specified service and host from the database, and the result should be equal to 24x7.
 	[Tags]	Broker	Engine	host	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
