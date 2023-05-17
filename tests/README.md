@@ -61,7 +61,7 @@ Here is the list of the currently implemented tests:
 - [x] **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
 - [x] **BA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
 - [x] **BA_RATIO_NUMBER_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
-- [x] **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+- [x] **BA_RATIO_PERCENT_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 4 serv
 - [x] **BA_RATIO_PERCENT_BA_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
 - [x] **BEBAMIDT1**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. The downtime is removed from the service, the inherited downtime is then deleted.
 - [x] **BEBAMIDT2**: A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
@@ -71,15 +71,15 @@ Here is the list of the currently implemented tests:
 - [x] **BEBAMIGNDT2**: A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
 - [x] **BEBAMIGNDTU1**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
 - [x] **BEBAMIGNDTU2**: With bbdo version 3.0.1, a BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
-- [x] **BEPB_BA_DURATION_EVENT**: use of pb_ba_duration_event message.
-- [x] **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
-- [x] **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 use pb_dimension_ba_event message.
-- [x] **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: use of pb_dimension_ba_timeperiod_relation message.
-- [x] **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 use pb_dimension_bv_event message.
-- [x] **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 use pb_dimension_kpi_event message.
-- [x] **BEPB_DIMENSION_TIMEPERIOD**: use of pb_dimension_timeperiod message.
-- [x] **BEPB_DIMENSION_TRUNCATE_TABLE**: use of pb_dimension_timeperiod message.
-- [x] **BEPB_KPI_STATUS**: bbdo_version 3 use kpi_status message.
+- [x] **BEPB_BA_DURATION_EVENT**: creating a BA with services, connecting to database and insert a record into timeperiod table and deleting records from mod_bam_relations_ba_timeperiods and mod_bam_reporting_ba_events_durations tables in the database, seting a services to critical status and then to OK status and calculing that the duration of the event is equal to the difference between the end time and start time of the event.
+- [x] **BEPB_DIMENSION_BA_BV_RELATION_EVENT**: bbdo_version 3 Creating a BA  with services and adding it to the broker, adding a Lua output configuration to the broker and starting the broker and engine, waiting for a lua file to be created, and searching the file for a specific event.
+- [x] **BEPB_DIMENSION_BA_EVENT**: bbdo_version 3 creating a BA with its service and For up to 10 iterations, search the log file for an event with specific attributes related to the BA created earlier.
+- [x] **BEPB_DIMENSION_BA_TIMEPERIOD_RELATION**: creating a Ba with worst status, inserting inputs  into timeperiod table deleting mod_bam_relations_ba_timeperiods table and insertin inputs in mod_bam_relations_ba_timeperiods anftre connecting to database the table mod_bam_reporting_relations_ba_timeperiods must be updated.
+- [x] **BEPB_DIMENSION_BV_EVENT**: bbdo_version 3 creation of a BA group and checking for a log message that includes the attributes below to initiate the  seccussful creation of the BA group.
+- [x] **BEPB_DIMENSION_KPI_EVENT**: bbdo_version 3 creating a BA with a service and adds a boolean KPI with a value of 100 and checking if the output created in the databese is equal to the expected output.
+- [x] **BEPB_DIMENSION_TIMEPERIOD**: Adding BAM and Lua configurations to the broker,connects to  database and executes an SQL insert statement, checking whether the event message is correctly logged by the system.
+- [x] **BEPB_DIMENSION_TRUNCATE_TABLE**: Removing lua file before starting, creating a BA and adding lua output to broker waiting for the lua file to be created again and searching for a specific event in the log file using the Grep File keyword, the event should have a certain type, category, element, and update_started status.
+- [x] **BEPB_KPI_STATUS**: bbdo_version 3 Create a new BA for a specific service, start the broker and engine,check the status of a service three times until hard and set it to critical,verifing that the status of the service has been updated in the database and the timestamp of the last status change is correct.
 
 ### Broker
 - [x] **BCL1**: Starting broker with option '-s foobar' should return an error
@@ -179,10 +179,10 @@ Here is the list of the currently implemented tests:
 
 ### Broker/engine
 - [x] **ANO_CFG_SENSITIVITY_SAVED**: cfg sensitivity saved in retention
-- [x] **ANO_DT1**: downtime on dependent service is inherited by ano
-- [x] **ANO_DT2**: delete downtime on dependent service delete one on ano serv
-- [x] **ANO_DT3**: delete downtime on anomaly don t delete dependent service one
-- [x] **ANO_DT4**: set dt on anomaly and on dependent service, delete last one don t delete first one
+- [x] **ANO_DT1**: downtime on dependent service is inherited by the anomaly service state.
+- [x] **ANO_DT2**: deleting downtime on dependent service must delete the downtime on anomaly detection service.
+- [x] **ANO_DT3**: deletting a downtime on anomaly detection service don't delete the downtime on the dependent service.
+- [x] **ANO_DT4**: setting downtime on anomaly and on dependent service, delete last the downtime of the dependent service not the one linked to anomaly detection service.
 - [x] **ANO_EXTCMD_SENSITIVITY_SAVED**: extcmd sensitivity saved in retention
 - [x] **ANO_JSON_SENSITIVITY_NOT_SAVED**: json sensitivity not saved in retention
 - [x] **ANO_NOFILE**: an anomaly detection without threshold file must be in unknown state
@@ -218,19 +218,19 @@ Here is the list of the currently implemented tests:
 - [x] **BEDTMASS2**: New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
 - [x] **BEDTSVCFIXED**: A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
 - [x] **BEDTSVCREN1**: A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
-- [x] **BEEXTCMD1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0
-- [x] **BEEXTCMD10**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0
-- [x] **BEEXTCMD11**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0
-- [x] **BEEXTCMD12**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0
-- [x] **BEEXTCMD13**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0
-- [x] **BEEXTCMD14**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0
-- [x] **BEEXTCMD15**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0
-- [x] **BEEXTCMD16**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0
-- [x] **BEEXTCMD17**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0
-- [x] **BEEXTCMD18**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0
-- [x] **BEEXTCMD19**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0
-- [x] **BEEXTCMD2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0
-- [x] **BEEXTCMD20**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0
+- [x] **BEEXTCMD1**: using bbdo3.0 the script configures the engine and broker, starts them, executes external commands to change the normal service check interval, verifies the interval values in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD10**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo2.0 executes external commands to change the maximum service check attempts, verifies the interval value in the database for both services and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD11**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo3.0 executing external commands to change the maximum host check attempts, verifies the maximum attempts value in the database for both hosts and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD12**: external command CHANGE_MAX_HOST_CHECK_ATTEMPTS on bbdo2.0 executing external commands to change the maximum host check attempts, verifies the maximum attempts value in the database for both hosts and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD13**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo3.0 executing an external command to change the host check time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values. 
+- [x] **BEEXTCMD14**: external command CHANGE_HOST_CHECK_TIMEPERIOD on bbdo2.0 executing an external command to change the host check time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD15**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo3.0 configures the engine and broker, starts them, executes an external command to change the host notification time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD16**: external command CHANGE_HOST_NOTIFICATION_TIMEPERIOD on bbdo2.0 configures the engine and broker, starts them, executes an external command to change the host notification time period, verifies the time period value in the database for the host, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD17**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo3.0 configures the service check time period for a specific service on a host using the external command CHANGE_SVC_CHECK_TIMEPERIOD.
+- [x] **BEEXTCMD18**: external command CHANGE_SVC_CHECK_TIMEPERIOD on bbdo2.0 configures the service check time period for a specific service on a host using the external command CHANGE_SVC_CHECK_TIMEPERIOD.
+- [x] **BEEXTCMD19**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo3.0  service notification time period is changed using the Change Svc Notification Timeperiod external command for the specified service and host with a specified value after the initial host state is raised, a loop is executed up to 30 times, where it queries and retrieves the notification_period of the specified service and host from the database, and the result should be equal to 24x7.
+- [x] **BEEXTCMD2**: using bbdo2.0 the script configures the engine and broker, starts them, executes external commands to change the normal service check interval, verifies the interval values in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD20**: external command CHANGE_SVC_NOTIFICATION_TIMEPERIOD on bbdo2.0  service notification time period is changed using the Change Svc Notification Timeperiod external command for the specified service and host with a specified value after the initial host state is raised, a loop is executed up to 30 times, where it queries and retrieves the notification_period of the specified service and host from the database, and the result should be equal to 24x7.
 - [x] **BEEXTCMD21**: external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo3.0
 - [x] **BEEXTCMD22**: external command DISABLE_HOST_AND_CHILD_NOTIFICATIONS and ENABLE_HOST_AND_CHILD_NOTIFICATIONS on bbdo2.0
 - [x] **BEEXTCMD23**: external command DISABLE_HOST_CHECK and ENABLE_HOST_CHECK on bbdo3.0
@@ -240,7 +240,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEEXTCMD27**: external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo3.0
 - [x] **BEEXTCMD28**: external command DISABLE_HOST_FLAP_DETECTION and ENABLE_HOST_FLAP_DETECTION on bbdo2.0
 - [x] **BEEXTCMD29**: external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo3.0
-- [x] **BEEXTCMD3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0
+- [x] **BEEXTCMD3**: external using bbdo3.0 the script configures the engine and broker, starts them, executes external commands to change the normal host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 - [x] **BEEXTCMD30**: external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0
 - [x] **BEEXTCMD31**: external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo3.0
 - [x] **BEEXTCMD32**: external command DISABLE_HOST_SVC_CHECKS and ENABLE_HOST_SVC_CHECKS on bbdo2.0
@@ -251,15 +251,15 @@ Here is the list of the currently implemented tests:
 - [x] **BEEXTCMD37**: external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo3.0
 - [x] **BEEXTCMD38**: external command DISABLE_PASSIVE_SVC_CHECKS and ENABLE_PASSIVE_SVC_CHECKS on bbdo2.0
 - [x] **BEEXTCMD39**: external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo3.0
-- [x] **BEEXTCMD4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0
+- [x] **BEEXTCMD4**: using bbdo2.0 the script configures the engine and broker, starts them, executes external commands to change the normal host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 - [x] **BEEXTCMD40**: external command START_OBSESSING_OVER_HOST and STOP_OBSESSING_OVER_HOST on bbdo2.0
 - [x] **BEEXTCMD41**: external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo3.0
 - [x] **BEEXTCMD42**: external command START_OBSESSING_OVER_SVC and STOP_OBSESSING_OVER_SVC on bbdo2.0
-- [x] **BEEXTCMD5**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0
-- [x] **BEEXTCMD6**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0
-- [x] **BEEXTCMD7**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0
-- [x] **BEEXTCMD8**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0
-- [x] **BEEXTCMD9**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0
+- [x] **BEEXTCMD5**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo3.0 this code configures the engine and broker, starts them, executes external commands to change the retry service check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD6**: external command CHANGE_RETRY_SVC_CHECK_INTERVAL on bbdo2.0 this code configures the engine and broker, starts them, executes external commands to change the retry service check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD7**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0 this code configures the engine and broker, starts them, executes external commands to change the retry host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD8**: external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo2.0 this code configures the engine and broker, starts them, executes external commands to change the retry host check interval, verifies the interval value in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
+- [x] **BEEXTCMD9**: external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0 executes external commands to change the maximum service check attempts, verifies the interval value in the database for both services and resources, and stops the engine and broker. The process is repeated for different use_grpc values.
 - [x] **BEEXTCMD_COMPRESS_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and compressed grpc
 - [x] **BEEXTCMD_GRPC1**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 and grpc
 - [x] **BEEXTCMD_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc
@@ -326,6 +326,7 @@ Here is the list of the currently implemented tests:
 - [x] **BEUTAG8**: Services have tags provided by templates.
 - [x] **BEUTAG9**: hosts have tags provided by templates.
 - [x] **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
+- [x] **BE_TIME_NULL_SERVICE_RESOURCE**: With BBDO 3, time must be set to NULL on 0 in services, hosts and resources tables.
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRCTSMN**: Broker connected to map with neb filter
@@ -413,10 +414,10 @@ Here is the list of the currently implemented tests:
 - [x] **TestBadUser**: test unknown user
 
 ### Engine
-- [x] **EFHC1**: Engine is configured with hosts and we force checks on one 5 times on bbdo2
-- [x] **EFHC2**: Engine is configured with hosts and we force checks on one 5 times on bbdo2
-- [x] **EFHCU1**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
-- [x] **EFHCU2**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
+- [x] **EFHC1**: Engine is configured with hosts and we force checks on one host 5 times on bbdo2
+- [x] **EFHC2**: Engine is configured with hosts and we force checks on one host 5 times on bbdo2
+- [x] **EFHCU1**: Engine is configured with hosts and we force checks on one host 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
+- [x] **EFHCU2**: Engine is configured with hosts and we force checks on one host 5 times on bbdo3. Bbdo3 has no impact on this behavior.
 - [x] **EPC1**: Check with perl connector
 - [x] **ESS1**: Start-Stop (0s between start/stop) 5 times one instance of engine and no coredump
 - [x] **ESS2**: Start-Stop (300ms between start/stop) 5 times one instance of engine and no coredump
@@ -431,7 +432,7 @@ Here is the list of the currently implemented tests:
 - [x] **BESEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
 - [x] **BETUHSEV1**: Hosts have severities provided by templates.
 - [x] **BETUSEV1**: Services have severities provided by templates.
-- [x] **BEUHSEV1**: Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
+- [x] **BEUHSEV1**: Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity 8 for host 3.
 - [x] **BEUHSEV2**: Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
 - [x] **BEUSEV1**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
 - [x] **BEUSEV2**: Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.

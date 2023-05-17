@@ -391,7 +391,7 @@ BA_BOOL_KPI
 
 
 BEPB_DIMENSION_BV_EVENT
-	[Documentation]	bbdo_version 3 use pb_dimension_bv_event message.
+	[Documentation]	bbdo_version 3 creation of a BA group and checking for a log message that includes the attributes below to initiate the  seccussful creation of the BA group.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -429,7 +429,7 @@ BEPB_DIMENSION_BV_EVENT
 	Kindly Stop Broker  True
 
 BEPB_DIMENSION_BA_EVENT
-	[Documentation]	bbdo_version 3 use pb_dimension_ba_event message.
+	[Documentation]	bbdo_version 3 creating a BA with its service and For up to 10 iterations, search the log file for an event with specific attributes related to the BA created earlier.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -472,7 +472,7 @@ BEPB_DIMENSION_BA_EVENT
 
 
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
-	[Documentation]	bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+	[Documentation]	bbdo_version 3 Creating a BA  with services and adding it to the broker, adding a Lua output configuration to the broker and starting the broker and engine, waiting for a lua file to be created, and searching the file for a specific event.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -513,7 +513,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	Kindly Stop Broker  True
 
 BEPB_DIMENSION_TIMEPERIOD
-	[Documentation]	use of pb_dimension_timeperiod message.
+	[Documentation]	Adding BAM and Lua configurations to the broker,connects to  database and executes an SQL insert statement, checking whether the event message is correctly logged by the system.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -553,7 +553,7 @@ BEPB_DIMENSION_TIMEPERIOD
 	Kindly Stop Broker  True
 
 BEPB_DIMENSION_KPI_EVENT
-	[Documentation]	bbdo_version 3 use pb_dimension_kpi_event message.
+	[Documentation]	bbdo_version 3 creating a BA with a service and adds a boolean KPI with a value of 100 and checking if the output created in the databese is equal to the expected output.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -599,7 +599,7 @@ BEPB_DIMENSION_KPI_EVENT
 
 
 BEPB_KPI_STATUS
-	[Documentation]	bbdo_version 3 use kpi_status message.
+	[Documentation]	bbdo_version 3 Create a new BA for a specific service, start the broker and engine,check the status of a service three times until hard and set it to critical,verifing that the status of the service has been updated in the database and the timestamp of the last status change is correct.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -650,7 +650,7 @@ BEPB_KPI_STATUS
 	Kindly Stop Broker  True
 
 BEPB_BA_DURATION_EVENT
-	[Documentation]	use of pb_ba_duration_event message.
+	[Documentation]	creating a BA with services, connecting to database and insert a record into timeperiod table and deleting records from mod_bam_relations_ba_timeperiods and mod_bam_reporting_ba_events_durations tables in the database, seting a services to critical status and then to OK status and calculing that the duration of the event is equal to the difference between the end time and start time of the event.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -712,7 +712,7 @@ BEPB_BA_DURATION_EVENT
 
 
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
-	[Documentation]	use of pb_dimension_ba_timeperiod_relation message.
+	[Documentation]	creating a Ba with worst status, inserting inputs  into timeperiod table deleting mod_bam_relations_ba_timeperiods table and insertin inputs in mod_bam_relations_ba_timeperiods anftre connecting to database the table mod_bam_reporting_relations_ba_timeperiods must be updated.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -753,7 +753,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 	Kindly Stop Broker  True
 
 BEPB_DIMENSION_TRUNCATE_TABLE
-	[Documentation]	use of pb_dimension_timeperiod message.
+	[Documentation]	Removing lua file before starting, creating a BA and adding lua output to broker waiting for the lua file to be created again and searching for a specific event in the log file using the Grep File keyword, the event should have a certain type, category, element, and update_started status.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -858,7 +858,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 
 
 BA_RATIO_PERCENT_BA_4_SERVICE
-	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio percent' with 4 serv
 	[Tags]	Broker	engine	bam
 	Clear Commands Status
 	Clear Retention

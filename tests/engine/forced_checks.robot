@@ -13,7 +13,7 @@ Library	../resources/Engine.py
 
 *** Test Cases ***
 EFHC1
-	[Documentation]	Engine is configured with hosts and we force checks on one 5 times on bbdo2
+	[Documentation]	Engine is configured with hosts and we force checks on one host 5 times on bbdo2
 	[Tags]	Engine	external_cmd	log-v2
 	Config Engine	${1}
         Config Broker	central
@@ -49,7 +49,7 @@ EFHC1
         Kindly Stop Broker
 
 EFHC2
-	[Documentation]	Engine is configured with hosts and we force checks on one 5 times on bbdo2
+	[Documentation]	Engine is configured with hosts and we force checks on one host 5 times on bbdo2
 	[Tags]	Engine	external_cmd	log-v2
 	Config Engine	${1}
         Config Broker	central
@@ -81,7 +81,7 @@ EFHC2
         Kindly Stop Broker
 
 EFHCU1
-	[Documentation]	Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
+	[Documentation]	Engine is configured with hosts and we force checks on one host 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
 	[Tags]	Engine	external_cmd
 	Config Engine	${1}
         Config Broker	central
@@ -122,7 +122,7 @@ EFHCU1
         Kindly Stop Broker
 
 EFHCU2
-	[Documentation]	Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
+	[Documentation]	Engine is configured with hosts and we force checks on one host 5 times on bbdo3. Bbdo3 has no impact on this behavior.
 	[Tags]	Engine	external_cmd
 	Config Engine	${1}
         Config Broker	central

@@ -177,7 +177,7 @@ AOUTLU1
 	Should Be True	${result}	msg=The table 'resources' should contain rows of types SERVICE, HOST and ANOMALY_DETECTION.
 
 ANO_DT1
-	[Documentation]	downtime on dependent service is inherited by ano
+	[Documentation]	downtime on dependent service is inherited by the anomaly service state.
 	[Tags]  Broker	Engine	Anomaly
 	Config Engine	${1}	${50}	${20}
 	Config Broker	central
@@ -213,7 +213,7 @@ ANO_DT1
 	Kindly Stop Broker
 
 ANO_DT2
-	[Documentation]	delete downtime on dependent service delete one on ano serv
+	[Documentation]	deleting downtime on dependent service must delete the downtime on anomaly detection service.
 	[Tags]  Broker	Engine	Anomaly
 	Config Engine	${1}	${50}	${20}
 	Config Broker	central
@@ -254,7 +254,7 @@ ANO_DT2
 	Kindly Stop Broker
 
 ANO_DT3
-	[Documentation]	delete downtime on anomaly don t delete dependent service one
+	[Documentation]	deletting a downtime on anomaly detection service don't delete the downtime on the dependent service.
 	[Tags]  Broker	Engine	Anomaly
 	Config Engine	${1}	${50}	${20}
 	Config Broker	central
@@ -297,7 +297,7 @@ ANO_DT3
 
 
 ANO_DT4
-	[Documentation]	set dt on anomaly and on dependent service, delete last one don t delete first one
+	[Documentation]	setting downtime on anomaly and on dependent service, delete last the downtime of the dependent service not the one linked to anomaly detection service.
 	[Tags]  Broker	Engine	Anomaly
 	Config Engine	${1}	${50}	${20}
 	Config Broker	central

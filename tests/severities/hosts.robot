@@ -15,7 +15,7 @@ Library	../resources/specific-duplication.py
 
 *** Test Cases ***
 BEUHSEV1
-	[Documentation]	Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
+	[Documentation]	Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity 8 for host 3.
 	[Tags]	Broker	Engine	protobuf	bbdo	severities
 	#Clear DB	severities
 	Config Engine	${1}
