@@ -287,8 +287,8 @@ BDBU1
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	Table 'centreon.hosts' doesn't exist
-	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	60
+	 ${content}=	Create List	Table 'centreon\..*' doesn't exist
+	 ${result}=	Find Regex In Log with timeout	${centralLog}	${start}	${content}	60
 	 Should Be True	${result}	msg=A message about that 'centreon.hosts' does not exist should appear
 	 Kindly Stop Broker
 	END
