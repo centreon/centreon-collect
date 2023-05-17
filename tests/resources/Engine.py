@@ -26,6 +26,7 @@ VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 CONF_DIR = ETC_ROOT + "/centreon-engine"
 ENGINE_HOME = VAR_ROOT + "/lib/centreon-engine"
+TIMEOUT = 30
 
 
 class EngineInstance:
@@ -1437,28 +1438,35 @@ def remove_severities_from_hosts(poller: int):
 #
 
 
-def check_search(debug_file_path: str, str_to_search):
-    with open(debug_file_path, 'r') as f:
-        lines = f.readlines()
-        for first_ind in range(len(lines)):
-            find_index = lines[first_ind].find(str_to_search + ' ')
-            if (find_index > 0):
-                for second_ind in range(first_ind, len(lines)):
-                    # search cmd_id
-                    m = re.search(
-                        r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
-                    if m is not None:
-                        cmd_id = m.group(1)
-                        r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
-                            cmd_id + ",\s+(\S[\s\S]+)$"
-                        for third_ind in range(second_ind, len(lines)):
-                            m = re.match(
-                                r_query_execute, lines[third_ind])
-                            if m is not None:
-                                return m.group(1)
-                        return "_recv_query_execute not found" + r_query_execute
-                return "connector::run not found"
-        return "check_search don t find " + str_to_search
+def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        cmd_executed = False
+        with open(debug_file_path, 'r') as f:
+            lines = f.readlines()
+            for first_ind in range(len(lines)):
+                find_index = lines[first_ind].find(str_to_search + ' ')
+                if (find_index > 0):
+                    cmd_executed = True
+                    for second_ind in range(first_ind, len(lines)):
+                        # search cmd_id
+                        m = re.search(
+                            r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
+                        if m is not None:
+                            cmd_id = m.group(1)
+                            r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
+                                cmd_id + ",\s+(\S[\s\S]+)$"
+                            for third_ind in range(second_ind, len(lines)):
+                                m = re.match(
+                                    r_query_execute, lines[third_ind])
+                                if m is not None:
+                                    return m.group(1)
+        time.sleep(1)
+
+    if not cmd_executed:
+        return f"_recv_query_execute not found on '{r_query_execute}'"
+    else:
+        return f"check_search doesn't find '{str_to_search}'"
 
 
 def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
