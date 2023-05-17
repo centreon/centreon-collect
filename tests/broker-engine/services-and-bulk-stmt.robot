@@ -153,3 +153,50 @@ EBBPS2
 	Should Be Equal As Strings	${output}	((0,),)
 	Stop Engine
 	Kindly Stop Broker
+
+EBMSSM
+	[Documentation]	1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
+	[Tags]	Broker	Engine	services	unified_sql	benchmark
+	Clear Metrics
+	Config Engine	${1}	${1}	${1000}
+	# We want all the services to be passive to avoid parasite checks during our test.
+	Set Services passive	${0}	service_.*
+	Config Broker	central
+	Config Broker	module	${1}
+	Broker Config Add Item	module0	bbdo_version	3.0.1
+	Broker Config Add Item	central	bbdo_version	3.0.1
+	Broker Config Log	central	core	error
+	Broker Config Log	central	tcp	error
+	Broker Config Log	central	sql	debug
+	Config Broker Sql Output	central	unified_sql
+	Config Broker Remove Rrd Output	central
+	Clear Retention
+	${start}=	Get Current Date
+	Start Broker	${True}
+	Start Engine
+	Broker Set Sql Manager Stats	51001	5	5
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
+	${start}=	Get Round Current Date
+	# Let's wait for one "INSERT INTO data_bin" to appear in stats.
+	FOR	${i}	IN RANGE	${1000}
+	  Process Service Check result with metrics	host_1	service_${i+1}	1	warning${i}	100
+	END
+
+	${duration}=	Broker Get Sql Manager Stats	51001	INSERT INTO data_bin	300
+	Should Be True	${duration} > 0
+
+	# Let's wait for all force checks to be in the storage database.
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR	${i}	IN RANGE	${500}
+	  ${output}=	Query	SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
+	  Exit For Loop If	${output[0][0]} >= 100000
+	  Sleep	1s
+	END
+	Should Be True	${output[0][0]} >= 100000  
+	Stop Engine
+	Kindly Stop Broker	True

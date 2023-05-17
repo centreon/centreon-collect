@@ -28,7 +28,14 @@ BETAG1
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	Start Broker
+	${start}=	Get Current Date
 	Start Engine
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check tag With Timeout	tag20	3	30
 	Should Be True	${result}	msg=tag20 should be of type 3
 	${result}=	check tag With Timeout	tag1	0	30
@@ -49,8 +56,15 @@ BETAG2
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	Sleep	1s
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check tag With Timeout	tag20	3	30
 	Should Be True	${result}	msg=tag20 should be of type 3
 	${result}=	check tag With Timeout	tag1	0	30
@@ -75,7 +89,14 @@ BEUTAG1
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	Start Broker
+	${start}=	Get Current Date
 	Start Engine
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check tag With Timeout	tag20	3	30
 	Should Be True	${result}	msg=tag20 should be of type 3
 	${result}=	check tag With Timeout	tag1	0	30
@@ -105,16 +126,27 @@ BEUTAG2
 	Broker Config Log	central	sql	error
 	Clear Retention
 	Start Broker
+	${start}=	Get Current Date
 	Start Engine
-        Sleep	1s
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
         ${svc}=	Create Service	${0}	1     1
 	Add Tags To Services	${0}	group_tags	4	[${svc}]
 
 	Stop Engine
+	${start}=	Get Current Date
 	Start Engine
 	Reload Broker
-        Sleep	2s
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check resources tags With Timeout	1	${svc}	servicegroup	[4]	60
 	Should Be True	${result}	msg=New service should have a service group tag of id 4.
 	Stop Engine
@@ -137,8 +169,15 @@ BEUTAG3
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	Sleep	1s
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check tag With Timeout	tag20	3	30
 	Should Be True	${result}	msg=tag20 should be of type 3
 	${result}=	check tag With Timeout	tag1	0	30
@@ -165,9 +204,16 @@ BEUTAG4
 	Broker Config Log	module0	neb	debug
 	Broker Config Log	central	sql	debug
 	Clear Retention
+	${start}=	Get Current Date
 	Start Engine
 	Sleep	1s
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check resources tags With Timeout	1	1	servicegroup	[4, 5]	60
 	Should Be True	${result}	msg=Service (1, 1) should have servicegroup tag ids 4 and 5
 	${result}=	check resources tags With Timeout	1	3	servicegroup	[4, 5]	60
@@ -199,8 +245,15 @@ BEUTAG5
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	Sleep	1s
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,3]	60
 	Should Be True	${result}	msg=Host 1 should have hostgroup tags 2 and 3
 	${result}=	check resources tags With Timeout	0	2	hostgroup	[2,3]	60
@@ -234,8 +287,15 @@ BEUTAG6
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	Sleep	1s
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,4]	60
 	Should Be True	${result}	msg=Host 1 should have hostgroup tag_id 2 and 4
 	${result}=	check resources tags With Timeout	0	1	hostcategory	[1,5]	60
@@ -273,9 +333,15 @@ BEUTAG7
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
-	Sleep	5s
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	# We need to wait a little before reloading Engine
 	${result}=	check resources tags With Timeout	1	1	servicegroup	[2,4]	60
 	Should Be True	${result}	msg=First step: Service (1, 1) should have servicegroup tags 2 and 4
@@ -339,9 +405,15 @@ BEUTAG8
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
-	Sleep	5s
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	# We need to wait a little before reloading Engine
 	${result}=	check resources tags With Timeout	1	2	servicecategory	[3,5]	60
 	Should Be True	${result}	msg=First step: Service (1, 2) should have servicecategory tags 3 and 5.
@@ -392,8 +464,14 @@ BEUTAG9
 	Broker Config Log	central	sql	trace
 	Clear Retention
 	Sleep	1s
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	# We need to wait a little before reloading Engine
 	${result}=	check resources tags With Timeout	0	9	hostgroup	[2]	60
@@ -449,8 +527,15 @@ BEUTAG10
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check resources tags With Timeout	1	4	servicegroup	[2,4]	60
 	Should Be True	${result}	msg=First step: Service (1, 4) should have servicegroup tags 2 and 4
 	${result}=	check resources tags With Timeout	1	3	servicecategory	[3,5]	60
@@ -514,8 +599,15 @@ BEUTAG11
 	Broker Config Log	module1	neb	debug
 	Broker Config Log	central	sql	trace
 	Clear Retention
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check resources tags With Timeout	1	4	servicegroup	[2,4]	60
 	Should Be True	${result}	msg=First step: Service (1, 4) should have servicegroup tags 2 and 4
 	${result}=	check resources tags With Timeout	1	3	servicecategory	[3,5]	60
@@ -573,8 +665,15 @@ BEUTAG12
 	Broker Config Log	central	sql	debug
 	Clear Retention
 	Sleep	1s
+	${start}=	Get Current Date
 	Start Engine
 	Start Broker
+
+	# Let's wait for the external command check start
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+
 	${result}=	check resources tags With Timeout	0	1	hostgroup	[2,3]	60
 	Should Be True	${result}	msg=Host 1 should have hostgroup tags 2 and 3
 	${result}=	check resources tags With Timeout	0	2	hostgroup	[2,3]	60
