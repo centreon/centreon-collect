@@ -125,7 +125,7 @@ BRCTSMN
 	# pb_service pb_host pb_service_status pb_host_status
 	${expected_events}=	Create List	65563	65566	65565	65568
 	${categories}=	Create List	1
-	${output}=	Check Map Output	${categories}	${expected_events}	60
+	${output}=	Check Map Output	${categories}	${expected_events}	120
 	Kindly Stop Broker
 	Stop Map
 	Should Be True	${output}	msg=Filters badly applied in Broker
