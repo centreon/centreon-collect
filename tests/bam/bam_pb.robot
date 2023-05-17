@@ -25,7 +25,7 @@ BAPBSTATUS
 	Config Broker	rrd
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
 
 	Clone Engine Config To DB
@@ -42,9 +42,9 @@ BAPBSTATUS
 	${start}=	Get Current Date
 	Start Engine
 	# Let's wait for the external command check start
-    ${content}=	Create List	check_for_external_commands()
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
@@ -73,7 +73,7 @@ BABEST_SERVICE_CRITICAL
 	Config Broker	rrd
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
 
 	Clone Engine Config To DB
@@ -90,9 +90,9 @@ BABEST_SERVICE_CRITICAL
 	${start}=	Get Current Date
 	Start Engine
 	# Let's wait for the external command check start
-    ${content}=	Create List	check_for_external_commands()
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
@@ -138,24 +138,26 @@ BA_IMPACT_2KPI_SERVICES
 	Config Broker	rrd
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
+	# This is to avoid parasite status.
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  impact  20  35
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
 
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
 	# Let's wait for the external command check start
-    ${content}=	Create List	check_for_external_commands()
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	#service_302 critical service_303 warning => ba warning 30%
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
@@ -206,16 +208,18 @@ BA_RATIO_PERCENT_BA_SERVICE
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Broker Config Source Log  central   1
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
+	# This is to avoid parasite status.
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  ratio_percent  67  49
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
 
 	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
 	${id_ba__sid__child}=  create_ba_with_services  test_child  worst  ${svc}
@@ -346,7 +350,7 @@ BA_BOOL_KPI
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Broker Config Source Log  central   1
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
 
 	Clone Engine Config To DB
@@ -360,9 +364,9 @@ BA_BOOL_KPI
 	${start}=	Get Current Date
 	Start Engine
 	# Let's wait for the external command check start
-    ${content}=	Create List	check_for_external_commands()
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
 	#302 warning and 303 critical  => ba critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	1	output warning for service_302
@@ -398,11 +402,11 @@ BEPB_DIMENSION_BV_EVENT
 	Clear Commands Status
 	Clear Retention
 
-    Remove File     /tmp/all_lua_event.log
+	Remove File     /tmp/all_lua_event.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -418,7 +422,7 @@ BEPB_DIMENSION_BV_EVENT
 	
 	Start Broker  True
 	Start Engine
-    Wait Until Created	/tmp/all_lua_event.log	30s
+	Wait Until Created	/tmp/all_lua_event.log	30s
 	FOR	${index}	IN RANGE	10
 		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393238, "category":6, "element":22, "bv_id":574, "bv_name":"virsgtr", "bv_description":"description_grtmxzo"
 		Sleep	1s
@@ -436,11 +440,11 @@ BEPB_DIMENSION_BA_EVENT
 	Clear Commands Status
 	Clear Retention
 
-    Remove File     /tmp/all_lua_event.log
+	Remove File     /tmp/all_lua_event.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -460,7 +464,7 @@ BEPB_DIMENSION_BA_EVENT
 	
 	Start Broker  True
 	Start Engine
-    Wait Until Created	/tmp/all_lua_event.log	30s
+	Wait Until Created	/tmp/all_lua_event.log	30s
 	FOR	${index}	IN RANGE	10
 		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393241, "category":6, "element":25, "ba_id":1, "ba_name":"test", "ba_description":"fdpgvo75", "sla_month_percent_crit":4.56, "sla_month_percent_warn":1.23, "sla_duration_crit":789, "sla_duration_warn":852
 		Sleep	1s
@@ -479,11 +483,11 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	Clear Commands Status
 	Clear Retention
 
-    Remove File     /tmp/all_lua_event.log
+	Remove File     /tmp/all_lua_event.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -502,7 +506,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	
 	Start Broker  True
 	Start Engine
-    Wait Until Created	/tmp/all_lua_event.log	30s
+	Wait Until Created	/tmp/all_lua_event.log	30s
 	FOR	${index}	IN RANGE	10
 		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393239, "category":6, "element":23, "ba_id":1, "bv_id":456
 		Sleep	1s
@@ -520,11 +524,11 @@ BEPB_DIMENSION_TIMEPERIOD
 	Clear Commands Status
 	Clear Retention
 
-    Remove File     /tmp/all_lua_event.log
+	Remove File     /tmp/all_lua_event.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	lua	trace
 	Broker Config Log	central	core	trace
@@ -542,7 +546,7 @@ BEPB_DIMENSION_TIMEPERIOD
 	
 	Start Broker  True
 	Start Engine
-    Wait Until Created	/tmp/all_lua_event.log	30s
+	Wait Until Created	/tmp/all_lua_event.log	30s
 	FOR	${index}	IN RANGE	10
 		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393240, "category":6, "element":24, "id":732, "name":"ezizae", "monday":"monday_value", "tuesday":"tuesday_value", "wednesday":"wednesday_value", "thursday":"thursday_value", "friday":"friday_value", "saturday":"saturday_value", "sunday":"sunday_value"
 		Sleep	1s
@@ -560,11 +564,11 @@ BEPB_DIMENSION_KPI_EVENT
 	Clear Commands Status
 	Clear Retention
 
-    Remove File     /tmp/all_lua_event.log
+	Remove File     /tmp/all_lua_event.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -606,11 +610,11 @@ BEPB_KPI_STATUS
 	Clear Commands Status
 	Clear Retention
 
-    Remove File     /tmp/all_lua_event.log
+	Remove File     /tmp/all_lua_event.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
@@ -722,7 +726,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	core	trace
 	broker_config_source_log  central  1
@@ -760,11 +764,11 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 	Clear Commands Status
 	Clear Retention
 
-    Remove File     /tmp/all_lua_event.log
+	Remove File     /tmp/all_lua_event.log
 	Config Engine	${1}
 	Config Broker	central
 	Config Broker	module
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	lua	trace
 	Broker Config Log	central	core	trace
@@ -779,7 +783,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 	
 	Start Broker  True
 	Start Engine
-    Wait Until Created	/tmp/all_lua_event.log	30s
+	Wait Until Created	/tmp/all_lua_event.log	30s
 	FOR	${index}	IN RANGE	10
 		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393246, "category":6, "element":30, "update_started":true
 		Sleep	1s
@@ -805,50 +809,52 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Broker Config Source Log  central   1
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
+	# This is to avoid parasite status.
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  ratio_number  2  1
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_304  ${id_ba__sid[0]}  40  30  20
 
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
 	# Let's wait for the external command check start
-    ${content}=	Create List	check_for_external_commands()
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
-    #all serv ok => ba ok
+	#all serv ok => ba ok
    	${result}=	check_ba_status_with_timeout	test	0	60
 	Should Be True	${result}	msg=The BA test is not OK as expected
 
-    #one serv critical => ba warning
+	#one serv critical => ba warning
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
 	${result}=	check_service_status_with_timeout	host_16	service_302	2	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
 	${result}=	check_ba_status_with_timeout	test	1	30
 	Should Be True	${result}	msg=The BA test is not WARNING as expected
 
-    #two services critical => ba ok
+	#two services critical => ba ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
 	${result}=	check_service_status_with_timeout	host_16	service_303	2	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_303) is not CRITICAL as expected
 	${result}=	check_ba_status_with_timeout	test	2	30
 	Should Be True	${result}	msg=The BA test is not CRITICAL as expected
 
-    #all serv ok => ba ok
-    Process Service Check Result	host_16	service_302	0	output ok for service_302
+	#all serv ok => ba ok
+	Process Service Check Result	host_16	service_302	0	output ok for service_302
 	${result}=	check_service_status_with_timeout	host_16	service_302	0	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_302) is not OK as expected
-    Process Service Check Result	host_16	service_303	0	output ok for service_303
+	Process Service Check Result	host_16	service_303	0	output ok for service_303
 	${result}=	check_service_status_with_timeout	host_16	service_303	0	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_303) is not OK as expected
 	${result}=	check_ba_status_with_timeout	test	0	30
@@ -870,50 +876,52 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 	Broker Config Log	central	bam	trace
 	Broker Config Log	central	sql	trace
 	Broker Config Source Log  central   1
-    Config BBDO3	${1}
+	Config BBDO3	${1}
 	Config Engine	${1}
+	# This is to avoid parasite status.
+	Set Services Passive	${0}	service_30.
 
 	Clone Engine Config To DB
 	Add Bam Config To Engine
 	Add Bam Config To Broker	central
 
 	${id_ba__sid}=  create_ba  test  ratio_percent  50  25
-	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
-	add_service_kpi  host_16  service_305  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	Add Service KPI  host_16  service_305  ${id_ba__sid[0]}  40  30  20
 
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
 	# Let's wait for the external command check start
-    ${content}=	Create List	check_for_external_commands()
-    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+	${content}=	Create List	check_for_external_commands()
+	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
-    #all serv ok => ba ok
+	#all serv ok => ba ok
    	${result}=	check_ba_status_with_timeout	test	0	60
 	Should Be True	${result}	msg=The BA test is not OK as expected
 
-    #one serv critical => ba warning
+	#one serv critical => ba warning
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
 	${result}=	check_service_status_with_timeout	host_16	service_302	2	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
 	${result}=	check_ba_status_with_timeout	test	1	30
 	Should Be True	${result}	msg=The BA test is not WARNING as expected
 
-    #two services critical => ba ok
+	#two services critical => ba ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
 	${result}=	check_service_status_with_timeout	host_16	service_303	2	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_303) is not CRITICAL as expected
 	${result}=	check_ba_status_with_timeout	test	2	30
 	Should Be True	${result}	msg=The BA test is not CRITICAL as expected
 
-    #all serv ok => ba ok
-    Process Service Check Result	host_16	service_302	0	output ok for service_302
+	#all serv ok => ba ok
+	Process Service Check Result	host_16	service_302	0	output ok for service_302
 	${result}=	check_service_status_with_timeout	host_16	service_302	0	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_302) is not OK as expected
-    Process Service Check Result	host_16	service_303	0	output ok for service_303
+	Process Service Check Result	host_16	service_303	0	output ok for service_303
 	${result}=	check_service_status_with_timeout	host_16	service_303	0	30	HARD
 	Should Be True	${result}	msg=The service (host_16,service_303) is not OK as expected
 	${result}=	check_ba_status_with_timeout	test	0	30
