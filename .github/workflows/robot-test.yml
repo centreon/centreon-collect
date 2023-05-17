@@ -68,10 +68,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`${{inputs.database_type}}
           mv tests/log.html reports/$FILE_PREFIX-log.html
           mv tests/output.xml reports/$FILE_PREFIX-output.xml
           mv tests/report.html reports/$FILE_PREFIX-report.html
+          if [ -d tests/failed ] ; then
+            mv tests/failed reports/$FILE_PREFIX-failed
+          fi
 
       - name: Upload Test Results
         if: ${{ !cancelled() }}
