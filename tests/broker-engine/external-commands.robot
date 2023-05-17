@@ -19,7 +19,6 @@ Library	../resources/Common.py
 BEEXTCMD1
 	[Documentation]	external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0, using bbdo3.0 the script configures the engine and broker, starts them, executes external commands to change the normal service check interval, verifies the interval values in the database, and stops the engine and broker. The process is repeated for different use_grpc values.
 	[Tags]	Broker	Engine	services	extcmd
-	[Tags]	Broker	Engine	services	extcmd
 	Config Engine	${1}	${50}	${20}
 	Config Broker	rrd
 	Config Broker	central
