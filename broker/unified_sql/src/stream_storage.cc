@@ -703,6 +703,7 @@ void stream::_unified_sql_process_service_status(
         if (_store_in_db) {
           // Append perfdata to queue.
           if (_bulk_prepared_statement) {
+            std::lock_guard<bulk_bind> lck(*_perfdata_b);
             if (!_perfdata_b->bind(conn))
               _perfdata_b->init_from_stmt(conn);
             auto* b = _perfdata_b->bind(conn).get();
