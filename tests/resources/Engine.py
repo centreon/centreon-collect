@@ -784,12 +784,11 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
     process_service_check_result(hst, svc, state, full_output, config)
 
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str):
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
     cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):

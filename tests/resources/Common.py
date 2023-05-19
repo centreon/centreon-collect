@@ -877,3 +877,25 @@ def create_bad_queue(filename: str):
             t = 0
     f.write(buffer)
     f.close()
+
+
+def get_version():
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda l: l.startswith("set(COLLECT_"), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(COLLECT_PATCH\s*([0-9]+)")
+    for l in filtered:
+        m1 = rmaj.match(l)
+        m2 = rmin.match(l)
+        m3 = rpatch.match(l)
+        if m1:
+            maj = m1.group(1)
+        elif m2:
+            mini = m2.group(1)
+        elif m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
