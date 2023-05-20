@@ -23,6 +23,11 @@ BRGC1
 	Config Broker	rrd
 	Config Broker	central_map
 	Config Broker	module
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
 
 	Log To Console	Compression set to
 	Broker Config Log	central	bbdo	info
@@ -52,6 +57,11 @@ BRCTS1
 	Config Broker	rrd
 	Config Broker	central_map
 	Config Broker	module
+	Broker Config Add Item	module0	bbdo_version	3.0.0
+	Broker Config Add Item	central	bbdo_version	3.0.0
+	Broker Config Add Item	rrd	bbdo_version	3.0.0
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
 
 	Broker Config Log	central	bbdo	info
 	Broker Config Log	module0	bbdo	info
@@ -67,8 +77,7 @@ BRCTS1
 	Stop Engine
 
 	${content}=	Create List	New incoming connection 'centreon-broker-master-map-2'	file: end of file '${VarRoot}/lib/centreon-broker//central-broker-master.queue.centreon-broker-master-map-2' reached, erasing it
-	${log}=	Catenate	SEPARATOR=	${BROKER_LOG}	/central-broker-master.log
-	${result}=	Find In Log With Timeout	${log}	${start}	${content}	40
+	${result}=	Find In Log With Timeout	${centralLog}	${start}	${content}	40
 	Should Be True	${result}	msg=Connection to map has failed
 	File Should Not Exist	${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*	msg=There should not exist queue map files.
 
