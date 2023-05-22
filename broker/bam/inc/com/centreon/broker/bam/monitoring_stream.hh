@@ -72,8 +72,8 @@ class monitoring_stream : public io::stream {
   mutable std::mutex _statusm;
   mysql _mysql;
   unsigned _conf_queries_per_transaction;
-  std::unique_ptr<database::bulk_or_multi> _ba;
-  std::unique_ptr<database::bulk_or_multi> _kpi;
+  std::unique_ptr<database::bulk_or_multi> _ba_query;
+  std::unique_ptr<database::bulk_or_multi> _kpi_query;
 
   int32_t _pending_events;
   unsigned _pending_request;
@@ -100,7 +100,7 @@ class monitoring_stream : public io::stream {
 
   void _read_cache();
   void _write_cache();
-  void _commit();
+  void _execute();
 
  public:
   monitoring_stream(std::string const& ext_cmd_file,

@@ -401,7 +401,7 @@ void mysql_connection::_prepare(mysql_task* t) {
                       static_cast<const void*>(this), task->id, task->query);
   MYSQL_STMT* stmt(mysql_stmt_init(_conn));
   if (!stmt)
-    set_error_message("statement initialization failed: insuffisant memory");
+    set_error_message("statement initialization failed: insufficient memory");
   else {
     if (mysql_stmt_prepare(stmt, task->query.c_str(), task->query.size())) {
       std::string err_msg(::mysql_stmt_error(stmt));
@@ -731,10 +731,12 @@ void mysql_connection::_prepare_run_statement(
   log_v2::sql()->debug("mysql_connection: prepare and execute statement: {}",
                        task.stmt().get_query());
 
+  sql::stats::stmt_span stats(&_stats, 0, task->stmt.get_query());
+
   MYSQL_STMT* stmt(mysql_stmt_init(_conn));
   if (!stmt) {
-    set_error_message("statement initialization failed: insuffisant memory");
-    msg_fmt e("statement initialization failed: insuffisant memory");
+    set_error_message("statement initialization failed: insufficient memory");
+    msg_fmt e("statement initialization failed: insufficient memory");
     task.promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
     return;
   }
@@ -754,6 +756,7 @@ void mysql_connection::_prepare_run_statement(
     if (task.bulk) {
       mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task.bind.get());
       uint32_t array_size = bind->rows_count();
+      stats.set_row_count(array_size);
       mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
     }
   }

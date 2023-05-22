@@ -94,7 +94,7 @@ unsigned mysql_multi_insert::push_stmt(mysql& pool, int thread_id) const {
     statements.emplace_back(query);
 
     database::mysql_stmt& last = *statements.rbegin();
-    stmt_binder binder(last);
+    mysql_delayed_bind binder(last);
     for (; row_iter != _rows.end() && nb_row_to_bind;
          ++row_iter, --nb_row_to_bind) {
       (*row_iter)->fill_row(binder);

@@ -17,9 +17,6 @@
  *
  */
 
-#include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/sql/mysql_multi_insert.hh"
-
 #include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 
@@ -27,6 +24,7 @@
 #include <future>
 
 #include "com/centreon/broker/config/applier/init.hh"
+#include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -42,6 +40,7 @@
 #include "com/centreon/broker/neb/service_check.hh"
 #include "com/centreon/broker/neb/service_group.hh"
 #include "com/centreon/broker/neb/service_group_member.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -2053,7 +2052,7 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
     row_filler(const row::pointer& dt) : data(dt) {}
 
-    inline void fill_row(stmt_binder& to_bind) const override {
+    inline void fill_row(mysql_delayed_bind& to_bind) const override {
       to_bind.set_value_as_str(0, data->name);
       to_bind.set_value_as_f64(1, data->value);
       to_bind.set_value_as_tiny(2, data->t);
@@ -2122,7 +2121,7 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
     row_filler2(const row::pointer& dt) : data(dt) {}
 
-    inline void fill_row(stmt_binder& to_bind) const override {
+    inline void fill_row(mysql_delayed_bind& to_bind) const override {
       to_bind.set_value_as_u64(0, data->id);
       to_bind.set_value_as_str(1, data->name);
       to_bind.set_value_as_f64(2, data->value);
@@ -2287,3 +2286,95 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_multi) {
     ASSERT_EQ(select_res.value_as_i32(6), 789 + data_index);
   }
 }
+
+/**the following class is used to compare performance between multi insert stmt
+ * and multi insert query  */
+/*
+namespace test_detail {
+class multi_insert_query {
+  const std::string _query;
+  const unsigned _nb_column;
+  const std::string _on_duplicate_key_part;
+
+  std::list<row_filler::pointer> _rows;
+
+ public:
+  multi_insert_query(const std::string& query,
+                     unsigned nb_column,
+                     const std::string& on_duplicate_key_part)
+      : _query(query),
+        _nb_column(nb_column),
+        _on_duplicate_key_part(on_duplicate_key_part) {}
+
+  /**
+   * @brief push data into the request
+   * data will be bound to query during push_request call
+   *
+   * @param data data that will be bound
+   
+inline void push(row_filler::pointer&& data) {
+  _rows.emplace_back(std::move(data));
+}
+
+unsigned push_stmt(mysql& pool, int thread_id = -1) const;
+}
+;
+
+constexpr unsigned max_query_total_length = 1024 * 1024;
+
+unsigned multi_insert_query::push_stmt(mysql& pool, int thread_id) const {
+  unsigned row_index;
+
+  std::string query;
+  query.reserve(max_query_total_length);
+  broker / core / sql / inc / com / centreon / broker / sql /
+      mysql_multi_insert.hh
+
+          // construction of the first string query
+          query = _query;
+  query.push_back(' ');
+
+  std::list<mysql_query> statements;
+  std::list<std::future<unsigned>> to_wait;
+  for (auto row_iter = _rows.begin(); row_iter != _rows.end();) {
+    if (query.length() + _on_duplicate_key_part.length() >=
+        max_query_total_length) {
+      mysql_query
+    }
+    unsigned nb_row_to_bind =
+        remain < max_rows_per_query ? remain : max_rows_per_query;
+    if (nb_row_to_bind <
+        max_rows_per_query) {  // next query shorter than first one => compute
+      query = _query;
+      query.push_back(' ');
+      compute_value_part(query, remain);
+      query.push_back(' ');
+      query += _on_duplicate_key_part;
+    }
+
+    remain -= nb_row_to_bind;
+    statements.emplace_back(query);
+
+    database::mysql_stmt& last = *statements.rbegin();
+    mysql_delayed_bind binder(last);
+    for (; row_iter != _rows.end() && nb_row_to_bind;
+         ++row_iter, --nb_row_to_bind) {
+      (*row_iter)->fill_row(binder);
+      binder.inc_stmt_first_column(_nb_column);
+    }
+    std::promise<unsigned> prom;
+    to_wait.push_back(prom.get_future());
+    pool.prepare_run_statement<unsigned>(
+        last, std::move(prom), database::mysql_task::int_type::LAST_INSERT_ID,
+        thread_id);
+  }
+
+  for (auto& fut : to_wait) {
+    fut.get();
+  }
+  return to_wait.size();
+}
+
+}  // namespace test_detail
+
+* /

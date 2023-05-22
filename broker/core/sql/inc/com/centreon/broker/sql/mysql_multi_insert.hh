@@ -31,14 +31,30 @@ namespace database {
 /**
  * @brief this class only provide a similar interface to bulk_bind
  * it's used by row_filler class described above
- *
+ * The goal of this class is to provide a similar interface for the function who
+ * fill queries whereas it fills a bulk query or a multi insert
  */
-class stmt_binder : public mysql_bind_base {
+class mysql_delayed_bind : public mysql_bind_base {
+  // clang-format off
+  /**
+   * @brief this attribute is the index of the first placeholder in the current data of the bulk query
+   * @example: mysql_multi_insert build this query:
+   * insert into my_table (col1,col2,col3,col4) values (?,?,?,?), (?,?,?,?), (?,?,?,?)
+   *                                                    |
+   * when we bind first event,                  _stmt_first_column = 0
+   *                                                               |
+   * when we bind second event,                 _stmt_first_column = 4
+   *                                                                          |
+   * when we bind second event,                 _stmt_first_column = 8
+   * 
+   */
+  // clang-format on
   unsigned _stmt_first_column;
   mysql_stmt& _to_bind;
 
  public:
-  stmt_binder(mysql_stmt& to_bind) : _stmt_first_column(0), _to_bind(to_bind) {}
+  mysql_delayed_bind(mysql_stmt& to_bind)
+      : _stmt_first_column(0), _to_bind(to_bind) {}
 
   void inc_stmt_first_column(unsigned nb_columns) {
     _stmt_first_column += nb_columns;
@@ -170,7 +186,7 @@ class stmt_binder : public mysql_bind_base {
  *    row::pointer data;
  *    row_filler(const row::pointer& dt) : data(dt) {}
  *
- *    inline void fill_row(stmt_binder& to_bind) const override {
+ *    inline void fill_row(mysql_delayed_bind& to_bind) const override {
  *      to_bind.set_value_as_str(0, data->name);
  *      to_bind.set_value_as_f64(1, data->value);
  *    }
@@ -183,7 +199,7 @@ class row_filler {
  public:
   using pointer = std::unique_ptr<row_filler>;
   virtual ~row_filler() {}
-  virtual void fill_row(stmt_binder& to_bind) const = 0;
+  virtual void fill_row(mysql_delayed_bind& to_bind) const = 0;
 };
 
 /**
@@ -349,7 +365,7 @@ class bulk_or_multi_bbdo_event : public bulk_or_multi {
                          binder_lambda& binder)
             : _event(event), _binder(binder) {}
 
-        void fill_row(stmt_binder& to_bind) const override {
+        void fill_row(mysql_delayed_bind& to_bind) const override {
           _binder(_event, &to_bind);
         }
       };

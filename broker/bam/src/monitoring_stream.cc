@@ -103,7 +103,7 @@ monitoring_stream::~monitoring_stream() {
  *  @return Number of acknowledged events.
  */
 int32_t monitoring_stream::flush() {
-  _commit();
+  _execute();
   _pending_request = 0;
   int retval = _pending_events;
   SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream flush: {} events",
@@ -207,7 +207,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
   auto commit_if_needed = [this]() {
     if (_conf_queries_per_transaction > 0) {
       if (_pending_request >= _conf_queries_per_transaction) {
-        _commit();
+        _execute();
         _pending_request = 0;
       }
     } else {  // auto commit => nothing to do
@@ -313,7 +313,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     } break;
     case bam::ba_status::static_type(): {
       ba_status* status(static_cast<ba_status*>(data.get()));
-      _ba->add_event(data);
+      _ba_query->add_event(data);
 
       ++_pending_request;
       commit_if_needed();
@@ -338,7 +338,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     case bam::pb_ba_status::static_type(): {
       const BaStatus& status =
           static_cast<const pb_ba_status*>(data.get())->obj();
-      _ba->add_event(data);
+      _ba_query->add_event(data);
       ++_pending_request;
       commit_if_needed();
 
@@ -361,7 +361,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     } break;
     case bam::kpi_status::static_type():
     case bam::pb_kpi_status::static_type():
-      _kpi->add_event(data);
+      _kpi_query->add_event(data);
       ++_pending_request;
       commit_if_needed();
       break;
@@ -513,14 +513,14 @@ static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
 void monitoring_stream::_prepare() {
   if (_mysql.support_bulk_statement()) {
     log_v2::bam()->trace("BAM: monitoring stream _prepare");
-    _ba = database::create_bulk_or_multi_bbdo_event(
+    _ba_query = database::create_bulk_or_multi_bbdo_event(
         _mysql,
         "UPDATE mod_bam SET "
         "current_level=?,acknowledged=?,downtime=?,last_state_"
         "change=?,in_"
         "downtime=?,current_status=? WHERE ba_id=?",
         _conf_queries_per_transaction, ba_binder);
-    _kpi = database::create_bulk_or_multi_bbdo_event(
+    _kpi_query = database::create_bulk_or_multi_bbdo_event(
         _mysql,
         "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,downtime=?, "
         "last_level=?,state_type=?,last_state_change=?,last_impact=?, "
@@ -528,7 +528,7 @@ void monitoring_stream::_prepare() {
         _conf_queries_per_transaction, kpi_binder);
 
   } else {
-    _ba = database::create_bulk_or_multi_bbdo_event(
+    _ba_query = database::create_bulk_or_multi_bbdo_event(
         "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
         "last_state_change, in_downtime, current_status, ba_id) VALUES",
         7,
@@ -538,7 +538,7 @@ void monitoring_stream::_prepare() {
         "in_downtime=VALUES(in_downtime), "
         "current_status=VALUES(current_status)",
         ba_binder);
-    _kpi = database::create_bulk_or_multi_bbdo_event(
+    _kpi_query = database::create_bulk_or_multi_bbdo_event(
         "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
         "downtime, last_level, state_type, last_state_change, last_impact, "
         "valid, in_downtime, kpi_id) VALUES",
@@ -711,7 +711,7 @@ void monitoring_stream::_write_cache() {
  * multi insert)
  *
  */
-void monitoring_stream::_commit() {
-  _ba->execute(_mysql);
-  _kpi->execute(_mysql);
+void monitoring_stream::_execute() {
+  _ba_query->execute(_mysql);
+  _kpi_query->execute(_mysql);
 }

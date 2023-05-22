@@ -46,20 +46,20 @@ option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
 if(WITH_DEBUG_ASIO)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-    "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING"
+      "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING"
   )
 endif()
 
 # With libasan
 option(WITH_ASAN
-  "Add the libasan to check memory leaks and other memory issues." OFF)
+       "Add the libasan to check memory leaks and other memory issues." OFF)
 
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-    "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
   set(CMAKE_LINKER_FLAGS_DEBUG
-    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
 # Default MySQL socket
@@ -95,37 +95,37 @@ add_custom_command(
   COMMENT "Generating interface files of the proto file (grpc)"
   OUTPUT ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.grpc.pb.h
   COMMAND
-  ${Protobuf_PROTOC_EXECUTABLE} ARGS
-  --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
-  --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
+    ${Protobuf_PROTOC_EXECUTABLE} ARGS
+    --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
+    --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
   COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-  --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto)
+          --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto)
 
 add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
-  "${SRC_DIR}/broker.pb.h")
+                                                  "${SRC_DIR}/broker.pb.h")
 
 include_directories(${SRC_DIR})
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
-  ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
+                         ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
 target_link_libraries(berpc CONAN_PKG::protobuf)
 set_target_properties(berpc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 # Version.
 if(CENTREON_BROKER_PRERELEASE)
   set(CENTREON_BROKER_VERSION
-    "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}-${CENTREON_BROKER_PRERELEASE}"
+      "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}-${CENTREON_BROKER_PRERELEASE}"
   )
 else()
   set(CENTREON_BROKER_VERSION
-    "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
+      "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 endif()
 
 add_definitions(-DCENTREON_BROKER_VERSION=\"${CENTREON_BROKER_VERSION}\"
-  -DCENTREON_BROKER_PATCH=${COLLECT_PATCH})
+                -DCENTREON_BROKER_PATCH=${COLLECT_PATCH})
 configure_file(${INC_DIR}/version.hh.in ${INC_DIR}/version.hh @ONLY)
 
 include(cmake/tool.cmake)
@@ -171,7 +171,7 @@ if(WITH_STARTUP_SCRIPT STREQUAL "auto")
   else()
     message(
       STATUS
-      "Centreon Broker does not provide startup script for ${CMAKE_SYSTEM_NAME}."
+        "Centreon Broker does not provide startup script for ${CMAKE_SYSTEM_NAME}."
     )
     set(WITH_STARTUP_SCRIPT "no")
   endif()
@@ -179,7 +179,7 @@ endif()
 
 # Startup dir.
 if(WITH_STARTUP_SCRIPT STREQUAL "sysv" OR WITH_STARTUP_SCRIPT STREQUAL
-  "systemd")
+                                          "systemd")
   # Set destination directory.
   if(WITH_STARTUP_DIR)
     set(STARTUP_DIR "${WITH_STARTUP_DIR}")
@@ -192,30 +192,30 @@ endif()
 if(WITH_DAEMONS)
   if(WITH_STARTUP_SCRIPT STREQUAL "systemd")
     configure_file("${PROJECT_SOURCE_DIR}/script/systemd/cbd.service.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.service" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.service" @ONLY)
     install(FILES "${PROJECT_SOURCE_DIR}/script/cbd.service"
-      DESTINATION "${STARTUP_DIR}")
+            DESTINATION "${STARTUP_DIR}")
   elseif(OS_DISTRIBUTOR STREQUAL "CentOS" OR OS_DISTRIBUTOR STREQUAL "RedHat")
     configure_file("${PROJECT_SOURCE_DIR}/script/redhat/cbd.init.d.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
   elseif(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
     configure_file("${PROJECT_SOURCE_DIR}/script/debian/cbd.init.d.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
     configure_file("${PROJECT_SOURCE_DIR}/script/debian/cbd.default.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.default" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.default" @ONLY)
     install(
       FILES "${PROJECT_SOURCE_DIR}/script/cbd.default"
       DESTINATION "/etc/default"
       RENAME "cbd")
   else()
     configure_file("${PROJECT_SOURCE_DIR}/script/other/cbd.init.d.in"
-      "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
+                   "${PROJECT_SOURCE_DIR}/script/cbd.init" @ONLY)
   endif()
 
   configure_file("${PROJECT_SOURCE_DIR}/script/watchdog.json.in"
-    "${PROJECT_SOURCE_DIR}/script/watchdog.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/script/watchdog.json" @ONLY)
   install(FILES "${PROJECT_SOURCE_DIR}/script/watchdog.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
 
   if(WITH_STARTUP_SCRIPT STREQUAL "sysv")
     install(
@@ -227,18 +227,18 @@ endif()
 
 if(WITH_CONFIG_FILES)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-module.json.in"
-    "${PROJECT_SOURCE_DIR}/config/central-module.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/config/central-module.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-broker.json.in"
-    "${PROJECT_SOURCE_DIR}/config/central-broker.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/config/central-broker.json" @ONLY)
   configure_file("${PROJECT_SOURCE_DIR}/config/central-rrd.json.in"
-    "${PROJECT_SOURCE_DIR}/config/central-rrd.json" @ONLY)
+                 "${PROJECT_SOURCE_DIR}/config/central-rrd.json" @ONLY)
 
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-module.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-rrd.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
   install(FILES "${PROJECT_SOURCE_DIR}/config/central-broker.json"
-    DESTINATION "${PREFIX_BROKER_CONF}")
+          DESTINATION "${PREFIX_BROKER_CONF}")
 endif()
 
 # Monitoring engine (for testing).
@@ -249,13 +249,13 @@ if(WITH_MONITORING_ENGINE)
   if(WITH_MONITORING_ENGINE_MODULES)
     foreach(MODULE IN LISTS WITH_MONITORING_ENGINE_MODULES)
       set(MONITORING_ENGINE_ADDITIONAL
-        "${MONITORING_ENGINE_ADDITIONAL}broker_module=${MODULE}\\n")
+          "${MONITORING_ENGINE_ADDITIONAL}broker_module=${MODULE}\\n")
     endforeach()
   endif()
 
   if(WITH_MONITORING_ENGINE_INTERVAL_LENGTH)
     set(MONITORING_ENGINE_INTERVAL_LENGTH
-      "${WITH_MONITORING_ENGINE_INTERVAL_LENGTH}")
+        "${WITH_MONITORING_ENGINE_INTERVAL_LENGTH}")
   else()
     set(MONITORING_ENGINE_INTERVAL_LENGTH 1)
   endif()
@@ -275,7 +275,7 @@ if(WITH_MODULE_LUA OR WITH_MODULE_SIMU)
 
     if(DEFINED LUA_VERSION_STRING)
       string(REGEX REPLACE "^([0-9]+)\\.([0-9]+)\\.[0-9]+" "\\1\\2" v
-        "${LUA_VERSION_STRING}")
+                           "${LUA_VERSION_STRING}")
       add_definitions(-DLUA${v})
       include_directories("${LUA_INCLUDE_DIR}")
 
@@ -294,145 +294,143 @@ configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 # Core library.
 set(LIBROKER_SOURCES
-
-  # Sources.
-  ${SRC_DIR}/bbdo/acceptor.cc
-  ${SRC_DIR}/bbdo/connector.cc
-  ${SRC_DIR}/bbdo/factory.cc
-  ${SRC_DIR}/bbdo/internal.cc
-  ${SRC_DIR}/bbdo/stream.cc
-  ${SRC_DIR}/broker_impl.cc
-  ${SRC_DIR}/brokerrpc.cc
-  ${SRC_DIR}/compression/factory.cc
-  ${SRC_DIR}/compression/opener.cc
-  ${SRC_DIR}/compression/stack_array.cc
-  ${SRC_DIR}/compression/stream.cc
-  ${SRC_DIR}/compression/zlib.cc
-  ${SRC_DIR}/config/applier/endpoint.cc
-  ${SRC_DIR}/config/applier/modules.cc
-  ${SRC_DIR}/config/applier/state.cc
-  ${SRC_DIR}/config/endpoint.cc
-  ${SRC_DIR}/config/parser.cc
-  ${SRC_DIR}/config/state.cc
-  ${SRC_DIR}/file/cfile.cc
-  ${SRC_DIR}/file/disk_accessor.cc
-  ${SRC_DIR}/file/directory_event.cc
-  ${SRC_DIR}/file/directory_watcher.cc
-  ${SRC_DIR}/file/factory.cc
-  ${SRC_DIR}/file/fifo.cc
-  ${SRC_DIR}/file/opener.cc
-  ${SRC_DIR}/file/splitter.cc
-  ${SRC_DIR}/file/stream.cc
-  ${SRC_DIR}/instance_broadcast.cc
-  ${SRC_DIR}/io/data.cc
-  ${SRC_DIR}/io/endpoint.cc
-  ${SRC_DIR}/io/limit_endpoint.cc
-  ${SRC_DIR}/io/events.cc
-  ${SRC_DIR}/io/factory.cc
-  ${SRC_DIR}/io/protocols.cc
-  ${SRC_DIR}/io/raw.cc
-  ${SRC_DIR}/io/stream.cc
-  ${SRC_DIR}/mapping/entry.cc
-  ${SRC_DIR}/misc/diagnostic.cc
-  ${SRC_DIR}/misc/filesystem.cc
-  ${SRC_DIR}/misc/misc.cc
-  ${SRC_DIR}/misc/parse_perfdata.cc
-  ${SRC_DIR}/misc/perfdata.cc
-  ${SRC_DIR}/misc/processing_speed_computer.cc
-  ${SRC_DIR}/misc/string.cc
-  ${SRC_DIR}/misc/time.cc
-  ${SRC_DIR}/misc/uuid.cc
-  ${SRC_DIR}/misc/variant.cc
-  ${SRC_DIR}/modules/handle.cc
-  ${SRC_DIR}/pool.cc
-  ${SRC_DIR}/persistent_cache.cc
-  ${SRC_DIR}/persistent_file.cc
-  ${SRC_DIR}/processing/acceptor.cc
-  ${SRC_DIR}/processing/failover.cc
-  ${SRC_DIR}/processing/feeder.cc
-  ${SRC_DIR}/processing/stat_visitable.cc
-  ${SRC_DIR}/stats/center.cc
-  ${SRC_DIR}/stats/helper.cc
-  ${SRC_DIR}/time/daterange.cc
-  ${SRC_DIR}/time/timeperiod.cc
-  ${SRC_DIR}/time/timerange.cc
-  ${SRC_DIR}/time/timezone_locker.cc
-  ${SRC_DIR}/time/timezone_manager.cc
-
-  # Headers.
-  ${INC_DIR}/bbdo/acceptor.hh
-  ${INC_DIR}/bbdo/connector.hh
-  ${INC_DIR}/bbdo/factory.hh
-  ${INC_DIR}/bbdo/internal.hh
-  ${INC_DIR}/bbdo/stream.hh
-  ${INC_DIR}/broker_impl.hh
-  ${INC_DIR}/brokerrpc.hh
-  ${INC_DIR}/compression/factory.hh
-  ${INC_DIR}/compression/opener.hh
-  ${INC_DIR}/compression/stack_array.hh
-  ${INC_DIR}/compression/stream.hh
-  ${INC_DIR}/config/applier/endpoint.hh
-  ${INC_DIR}/config/applier/init.hh
-  ${INC_DIR}/config/applier/modules.hh
-  ${INC_DIR}/config/applier/state.hh
-  ${INC_DIR}/config/endpoint.hh
-  ${INC_DIR}/config/parser.hh
-  ${INC_DIR}/config/state.hh
-  ${INC_DIR}/exceptions/config.hh
-  ${INC_DIR}/exceptions/interrupt.hh
-  ${INC_DIR}/exceptions/shutdown.hh
-  ${INC_DIR}/exceptions/timeout.hh
-  ${INC_DIR}/file/cfile.hh
-  ${INC_DIR}/file/directory_event.hh
-  ${INC_DIR}/file/directory_watcher.hh
-  ${INC_DIR}/file/factory.hh
-  ${INC_DIR}/file/fifo.hh
-  ${INC_DIR}/file/fs_file.hh
-  ${INC_DIR}/file/opener.hh
-  ${INC_DIR}/file/splitter.hh
-  ${INC_DIR}/file/stream.hh
-  ${INC_DIR}/instance_broadcast.hh
-  ${INC_DIR}/io/data.hh
-  ${INC_DIR}/io/endpoint.hh
-  ${INC_DIR}/io/limit_endpoint.hh
-  ${INC_DIR}/io/event_info.hh
-  ${INC_DIR}/io/events.hh
-  ${INC_DIR}/io/factory.hh
-  ${INC_DIR}/io/protocols.hh
-  ${INC_DIR}/io/raw.hh
-  ${INC_DIR}/io/stream.hh
-  ${INC_DIR}/mapping/entry.hh
-  ${INC_DIR}/mapping/property.hh
-  ${INC_DIR}/mapping/source.hh
-  ${INC_DIR}/misc/diagnostic.hh
-  ${INC_DIR}/misc/filesystem.hh
-  ${INC_DIR}/misc/misc.hh
-  ${INC_DIR}/misc/perfdata.hh
-  ${INC_DIR}/misc/processing_speed_computer.hh
-  ${INC_DIR}/misc/shared_mutex.hh
-  ${INC_DIR}/misc/string.hh
-  ${INC_DIR}/misc/time.hh
-  ${INC_DIR}/misc/trash.hh
-  ${INC_DIR}/misc/variant.hh
-  ${INC_DIR}/modules/handle.hh
-  ${INC_DIR}/pool.hh
-  ${INC_DIR}/persistent_cache.hh
-  ${INC_DIR}/persistent_file.hh
-  ${INC_DIR}/processing/acceptor.hh
-  ${INC_DIR}/processing/failover.hh
-  ${INC_DIR}/processing/feeder.hh
-  ${INC_DIR}/processing/stat_visitable.hh
-  ${INC_DIR}/stats/helper.hh
-  ${INC_DIR}/time/daterange.hh
-  ${INC_DIR}/time/ptr_typedef.hh
-  ${INC_DIR}/time/time_info.hh
-  ${INC_DIR}/time/timeperiod.hh
-  ${INC_DIR}/time/timerange.hh
-  ${INC_DIR}/time/timezone_locker.hh
-  ${INC_DIR}/time/timezone_manager.hh
-  ${INC_DIR}/timestamp.hh
-  ${INC_DIR}/vars.hh
-  ${INC_DIR}/version.hh)
+    # Sources.
+    ${SRC_DIR}/bbdo/acceptor.cc
+    ${SRC_DIR}/bbdo/connector.cc
+    ${SRC_DIR}/bbdo/factory.cc
+    ${SRC_DIR}/bbdo/internal.cc
+    ${SRC_DIR}/bbdo/stream.cc
+    ${SRC_DIR}/broker_impl.cc
+    ${SRC_DIR}/brokerrpc.cc
+    ${SRC_DIR}/compression/factory.cc
+    ${SRC_DIR}/compression/opener.cc
+    ${SRC_DIR}/compression/stack_array.cc
+    ${SRC_DIR}/compression/stream.cc
+    ${SRC_DIR}/compression/zlib.cc
+    ${SRC_DIR}/config/applier/endpoint.cc
+    ${SRC_DIR}/config/applier/modules.cc
+    ${SRC_DIR}/config/applier/state.cc
+    ${SRC_DIR}/config/endpoint.cc
+    ${SRC_DIR}/config/parser.cc
+    ${SRC_DIR}/config/state.cc
+    ${SRC_DIR}/file/cfile.cc
+    ${SRC_DIR}/file/disk_accessor.cc
+    ${SRC_DIR}/file/directory_event.cc
+    ${SRC_DIR}/file/directory_watcher.cc
+    ${SRC_DIR}/file/factory.cc
+    ${SRC_DIR}/file/fifo.cc
+    ${SRC_DIR}/file/opener.cc
+    ${SRC_DIR}/file/splitter.cc
+    ${SRC_DIR}/file/stream.cc
+    ${SRC_DIR}/instance_broadcast.cc
+    ${SRC_DIR}/io/data.cc
+    ${SRC_DIR}/io/endpoint.cc
+    ${SRC_DIR}/io/limit_endpoint.cc
+    ${SRC_DIR}/io/events.cc
+    ${SRC_DIR}/io/factory.cc
+    ${SRC_DIR}/io/protocols.cc
+    ${SRC_DIR}/io/raw.cc
+    ${SRC_DIR}/io/stream.cc
+    ${SRC_DIR}/mapping/entry.cc
+    ${SRC_DIR}/misc/diagnostic.cc
+    ${SRC_DIR}/misc/filesystem.cc
+    ${SRC_DIR}/misc/misc.cc
+    ${SRC_DIR}/misc/parse_perfdata.cc
+    ${SRC_DIR}/misc/perfdata.cc
+    ${SRC_DIR}/misc/processing_speed_computer.cc
+    ${SRC_DIR}/misc/string.cc
+    ${SRC_DIR}/misc/time.cc
+    ${SRC_DIR}/misc/uuid.cc
+    ${SRC_DIR}/misc/variant.cc
+    ${SRC_DIR}/modules/handle.cc
+    ${SRC_DIR}/pool.cc
+    ${SRC_DIR}/persistent_cache.cc
+    ${SRC_DIR}/persistent_file.cc
+    ${SRC_DIR}/processing/acceptor.cc
+    ${SRC_DIR}/processing/failover.cc
+    ${SRC_DIR}/processing/feeder.cc
+    ${SRC_DIR}/processing/stat_visitable.cc
+    ${SRC_DIR}/stats/center.cc
+    ${SRC_DIR}/stats/helper.cc
+    ${SRC_DIR}/time/daterange.cc
+    ${SRC_DIR}/time/timeperiod.cc
+    ${SRC_DIR}/time/timerange.cc
+    ${SRC_DIR}/time/timezone_locker.cc
+    ${SRC_DIR}/time/timezone_manager.cc
+    # Headers.
+    ${INC_DIR}/bbdo/acceptor.hh
+    ${INC_DIR}/bbdo/connector.hh
+    ${INC_DIR}/bbdo/factory.hh
+    ${INC_DIR}/bbdo/internal.hh
+    ${INC_DIR}/bbdo/stream.hh
+    ${INC_DIR}/broker_impl.hh
+    ${INC_DIR}/brokerrpc.hh
+    ${INC_DIR}/compression/factory.hh
+    ${INC_DIR}/compression/opener.hh
+    ${INC_DIR}/compression/stack_array.hh
+    ${INC_DIR}/compression/stream.hh
+    ${INC_DIR}/config/applier/endpoint.hh
+    ${INC_DIR}/config/applier/init.hh
+    ${INC_DIR}/config/applier/modules.hh
+    ${INC_DIR}/config/applier/state.hh
+    ${INC_DIR}/config/endpoint.hh
+    ${INC_DIR}/config/parser.hh
+    ${INC_DIR}/config/state.hh
+    ${INC_DIR}/exceptions/config.hh
+    ${INC_DIR}/exceptions/interrupt.hh
+    ${INC_DIR}/exceptions/shutdown.hh
+    ${INC_DIR}/exceptions/timeout.hh
+    ${INC_DIR}/file/cfile.hh
+    ${INC_DIR}/file/directory_event.hh
+    ${INC_DIR}/file/directory_watcher.hh
+    ${INC_DIR}/file/factory.hh
+    ${INC_DIR}/file/fifo.hh
+    ${INC_DIR}/file/fs_file.hh
+    ${INC_DIR}/file/opener.hh
+    ${INC_DIR}/file/splitter.hh
+    ${INC_DIR}/file/stream.hh
+    ${INC_DIR}/instance_broadcast.hh
+    ${INC_DIR}/io/data.hh
+    ${INC_DIR}/io/endpoint.hh
+    ${INC_DIR}/io/limit_endpoint.hh
+    ${INC_DIR}/io/event_info.hh
+    ${INC_DIR}/io/events.hh
+    ${INC_DIR}/io/factory.hh
+    ${INC_DIR}/io/protocols.hh
+    ${INC_DIR}/io/raw.hh
+    ${INC_DIR}/io/stream.hh
+    ${INC_DIR}/mapping/entry.hh
+    ${INC_DIR}/mapping/property.hh
+    ${INC_DIR}/mapping/source.hh
+    ${INC_DIR}/misc/diagnostic.hh
+    ${INC_DIR}/misc/filesystem.hh
+    ${INC_DIR}/misc/misc.hh
+    ${INC_DIR}/misc/perfdata.hh
+    ${INC_DIR}/misc/processing_speed_computer.hh
+    ${INC_DIR}/misc/shared_mutex.hh
+    ${INC_DIR}/misc/string.hh
+    ${INC_DIR}/misc/time.hh
+    ${INC_DIR}/misc/trash.hh
+    ${INC_DIR}/misc/variant.hh
+    ${INC_DIR}/modules/handle.hh
+    ${INC_DIR}/pool.hh
+    ${INC_DIR}/persistent_cache.hh
+    ${INC_DIR}/persistent_file.hh
+    ${INC_DIR}/processing/acceptor.hh
+    ${INC_DIR}/processing/failover.hh
+    ${INC_DIR}/processing/feeder.hh
+    ${INC_DIR}/processing/stat_visitable.hh
+    ${INC_DIR}/stats/helper.hh
+    ${INC_DIR}/time/daterange.hh
+    ${INC_DIR}/time/ptr_typedef.hh
+    ${INC_DIR}/time/time_info.hh
+    ${INC_DIR}/time/timeperiod.hh
+    ${INC_DIR}/time/timerange.hh
+    ${INC_DIR}/time/timezone_locker.hh
+    ${INC_DIR}/time/timezone_manager.hh
+    ${INC_DIR}/timestamp.hh
+    ${INC_DIR}/vars.hh
+    ${INC_DIR}/version.hh)
 
 # Static libraries.
 add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
@@ -454,12 +452,11 @@ target_link_libraries(
   CONAN_PKG::spdlog
   CONAN_PKG::openssl
   pthread
-  dl
-)
+  dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
 target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
-  pthread dl)
+                      pthread dl)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
@@ -627,7 +624,7 @@ message(STATUS "")
 message(STATUS "  Build")
 message(
   STATUS
-  "    - Compiler                   ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})"
+    "    - Compiler                   ${CMAKE_CXX_COMPILER} (${CMAKE_CXX_COMPILER_ID})"
 )
 message(STATUS "    - Extra compilation flags    ${CMAKE_CXX_FLAGS}")
 
@@ -665,7 +662,7 @@ message(STATUS "    - Prefix                     ${CMAKE_INSTALL_PREFIX}")
 message(STATUS "    - Modules prefix             ${PREFIX_MODULES}")
 message(
   STATUS
-  "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker"
+    "    - Include prefix             ${CMAKE_INSTALL_INCLUDEDIR}/centreon-broker"
 )
 message(STATUS "    - Configuration prefix       ${PREFIX_BROKER_CONF}")
 
