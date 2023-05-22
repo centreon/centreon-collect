@@ -78,6 +78,18 @@ def get_round_current_date():
     return int(time.time())
 
 
+def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
+    limit = time.time() + timeout
+    c = ""
+    while time.time() < limit:
+        ok, c = find_in_log(log, date, content, True)
+        if ok:
+            return True, c
+        time.sleep(5)
+    logger.console(f"Unable to find regex '{c}' from {date} during {timeout}s")
+    return False, c
+
+
 def find_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
@@ -91,17 +103,21 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
-def find_in_log(log: str, date, content):
+def find_in_log(log: str, date, content, regex=False):
     """Find content in log file from the given date
 
     Args:
         log (str): The log file
         date (_type_): A date as a string
         content (_type_): An array of strings we want to find in the log.
+        regex (boolean): Telling if we search for some regex expressions.
 
     Returns:
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
+
+    res = []
+
     try:
         f = open(log, "r")
         lines = f.readlines()
@@ -112,15 +128,20 @@ def find_in_log(log: str, date, content):
             found = False
             for i in range(idx, len(lines)):
                 line = lines[i]
-                if c in line:
-                    logger.console(
-                        "\"{}\" found at line {} from {}".format(c, i, idx))
+                if regex:
+                    match = re.search(c, line)
+                else:
+                    match = c in line
+                if match:
+                    logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
+                    if regex:
+                        res.append(line)
                     break
             if not found:
                 return False, c
 
-        return True, ""
+        return True, res
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False, content[0]
