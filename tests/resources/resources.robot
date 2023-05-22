@@ -221,6 +221,12 @@ Wait Or Dump And Kill Process
 	END
 	[Return]	${result}
 
+Clear Metrics
+	Connect To Database     pymysql ${DBName}       ${DBUser}       ${DBPass}       ${DBHost}       ${DBPort}
+	Execute SQL String      DELETE FROM metrics
+	Execute SQL String      DELETE FROM index_data
+	Execute SQL String      DELETE FROM data_bin
+
 *** Variables ***
 ${BROKER_LOG}	${VarRoot}/log/centreon-broker
 ${BROKER_LIB}	${VarRoot}/lib/centreon-broker

@@ -198,7 +198,7 @@ std::map<std::string, std::string> mysql_manager::get_stats() {
       std::make_pair("delay since last check", std::to_string(delay)));
   std::string key("waiting tasks in connection ");
   int key_len(key.size());
-  for (int i(0); i < stats_connections_count; ++i) {
+  for (int i = 0; i < stats_connections_count; ++i) {
     key.replace(key_len, std::string::npos, std::to_string(i));
     retval.insert(std::make_pair(key, std::to_string(_stats_counts[i])));
   }

@@ -368,6 +368,7 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/database/mysql_stmt_base.cc
     ${SRC_DIR}/database/mysql_stmt.cc
     ${SRC_DIR}/database/mysql_bulk_stmt.cc
+    ${SRC_DIR}/database/stats.cc
     ${SRC_DIR}/mysql_connection.cc
     ${SRC_DIR}/query_preparator.cc
     ${SRC_DIR}/persistent_cache.cc
@@ -451,6 +452,7 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/database/mysql_stmt.hh
     ${INC_DIR}/database/mysql_bulk_stmt.hh
     ${INC_DIR}/database/mysql_task.hh
+    ${INC_DIR}/database/stats.hh
     ${INC_DIR}/database/table_max_size.hh
     ${INC_DIR}/mysql_connection.hh
     ${INC_DIR}/query_preparator.hh

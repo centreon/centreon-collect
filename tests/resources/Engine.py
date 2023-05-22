@@ -9,6 +9,7 @@ from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
+import math
 import random
 import shutil
 import sys
@@ -1551,6 +1552,16 @@ def external_command(func):
         f.close()
 
     return wrapper
+
+
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        v = math.sin((now + m) / 1000) * 5
+        pd.append(f"metric{m}={v}")
+    full_output = " ".join(pd)
+    process_service_check_result(hst, svc, state, full_output, config)
 
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):

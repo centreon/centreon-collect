@@ -172,9 +172,9 @@ void pool::_check_latency(asio::error_code ec) {
     asio::post(*_io_context, [start, this] {
       auto end = std::chrono::system_clock::now();
       auto duration = std::chrono::duration<double, std::milli>(end - start);
-      stats::center::instance().update(
-          _stats->mutable_latency(), fmt::format("{:.3f}ms", duration.count()));
-      log_v2::core()->trace("Thread pool latency {:.3f}ms", duration.count());
+      float d = duration.count() / 1000.0f;
+      stats::center::instance().update(&ThreadPool::set_latency, _stats, d);
+      log_v2::core()->trace("Thread pool latency {:.5f}s", d);
     });
     if (_stats_running) {
       _timer.expires_after(std::chrono::seconds(10));

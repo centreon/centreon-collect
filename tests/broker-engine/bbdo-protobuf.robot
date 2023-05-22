@@ -136,8 +136,9 @@ BEPBRI1
 	Broker Config Add Item	central	bbdo_version	3.0.0
 	Broker Config Log	central	sql	trace
 	Config Broker Sql Output	central	unified_sql
-	broker_config_output_set  central  central-broker-unified-sql  read_timeout  2
-	broker_config_output_set  central  central-broker-unified-sql  instance_timeout  2
+	Config Broker Remove RRD Output	central
+	Broker Config Output Set  central  central-broker-unified-sql  read_timeout  2
+	Broker Config Output Set  central  central-broker-unified-sql  instance_timeout  2
 	
 	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-responsiveinstance.lua
 	Clear Retention
