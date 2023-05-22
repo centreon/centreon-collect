@@ -160,7 +160,6 @@ class stream : public io::stream {
       const std::shared_ptr<io::data>&);
   instance_state _state;
 
-  mutable std::mutex _fifo_m;
   std::atomic_int _processed;
   std::atomic_int _ack;
 
