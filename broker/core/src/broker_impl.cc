@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -190,11 +190,33 @@ grpc::Status broker_impl::GetGenericStats(
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::GetSqlManagerStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
-    SqlManagerStats* response) {
-  stats::center::instance().get_sql_manager_stats(response);
+grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
+                                             __attribute__((unused)),
+                                             const SqlConnection* request,
+                                             SqlManagerStats* response) {
+  if (!request->has_id())
+    stats::center::instance().get_sql_manager_stats(response);
+  else {
+    try {
+      stats::center::instance().get_sql_manager_stats(response, request->id());
+    } catch (const std::exception& e) {
+      return grpc::Status(grpc::StatusCode::NOT_FOUND, e.what());
+    }
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::SetSqlManagerStats(
+    grpc::ServerContext* context [[maybe_unused]],
+    const SqlManagerStatsOptions* request,
+    ::google::protobuf::Empty*) {
+  auto& conf = config::applier::state::instance().mut_stats_conf();
+
+  if (request->has_slowest_statements_count())
+    conf.sql_slowest_statements_count = request->slowest_statements_count();
+  if (request->has_slowest_queries_count())
+    conf.sql_slowest_queries_count = request->slowest_queries_count();
+
   return grpc::Status::OK;
 }
 

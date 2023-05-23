@@ -259,7 +259,7 @@ BDBM1
 	 Config Broker	rrd
 	 Config Broker	module
 	 Config Engine	${1}
-	 ${start}=	Get Current Date
+	 ${start}=	Get Round Current Date
 	 Stop Mysql
 	 Start Broker
 	 Start Engine
@@ -278,15 +278,17 @@ BDBU1
 	[Tags]	Broker	sql	unified_sql
 	Config Broker	central
 	Config Broker Sql Output	central	unified_sql
+	Broker Config Log	central	sql	trace
+	Broker Config Flush Log	central	0
 	Config Broker	rrd
 	Config Broker	module
 	Broker Config Output set	central	central-broker-unified-sql	db_name	centreon
 	FOR	${i}	IN RANGE	0	5
 	 ${start}=	Get Current Date
 	 Start Broker
-	 ${content}=	Create List	Table 'centreon.instances' doesn't exist
-	 ${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	 Should Be True	${result}
+	 ${content}=	Create List	Table 'centreon\..*' doesn't exist
+	 ${result}=	Find Regex In Log with timeout	${centralLog}	${start}	${content}	30
+	 Should Be True	${result[0]}	msg=No message about some table 'centreon....' missing.
 	 Kindly Stop Broker
 	END
 
@@ -346,6 +348,7 @@ BDBU10
 	Config Broker Sql Output	central	unified_sql
 	Config Broker	rrd
 	Config Broker	module
+	Broker Config Flush Log	central	0
 	Broker Config Log	central	sql	debug
 	Broker Config Log	module0	sql	debug
 	${start}=	Get Current Date

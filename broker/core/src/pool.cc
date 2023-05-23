@@ -1,5 +1,5 @@
 /*
-** Copyright 2020-2021 Centreon
+** Copyright 2020-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 **
 ** For more information : contact@centreon.com
 */
-
 #include "com/centreon/broker/pool.hh"
 
 #include "com/centreon/broker/log_v2.hh"
@@ -105,16 +104,17 @@ pool::pool(const std::shared_ptr<asio::io_context>& io_context, size_t size)
 }
 
 /**
- * @brief Start the stats of the pool. This method is called by the stats engine
- * when it is ready.
+ * @brief Start the stats of the pool. This method is called by the stats
+ * engine when it is ready.
  *
  * @param stats The pointer used by the pool to set its data in the stats
  * engine.
  */
 void pool::start_stats(ThreadPool* stats) {
   _stats = stats;
-  /* The only time, we set a data directly to stats, this is because this method
-   * is called by the stats engine and the _check_latency has not started yet */
+  /* The only time, we set a data directly to stats, this is because this
+   * method is called by the stats engine and the _check_latency has not
+   * started yet */
   _stats->set_size(_pool_size);
   _stats_running = true;
   _timer.expires_after(std::chrono::seconds(10));
@@ -146,7 +146,7 @@ pool::~pool() noexcept {
  * @brief Stop the thread pool.
  */
 void pool::_stop() {
-  log_v2::core()->trace("Stopping the TCP thread pool");
+  log_v2::core()->debug("Stopping the thread pool");
   std::lock_guard<std::mutex> lock(_closed_m);
   if (!_closed) {
     _closed = true;
@@ -155,7 +155,7 @@ void pool::_stop() {
       if (t.joinable())
         t.join();
   }
-  log_v2::core()->trace("No remaining thread in the pool");
+  log_v2::core()->debug("No remaining thread in the pool");
 }
 
 /**
@@ -172,9 +172,9 @@ void pool::_check_latency(asio::error_code ec) {
     asio::post(*_io_context, [start, this] {
       auto end = std::chrono::system_clock::now();
       auto duration = std::chrono::duration<double, std::milli>(end - start);
-      stats::center::instance().update(
-          _stats->mutable_latency(), fmt::format("{:.3f}ms", duration.count()));
-      log_v2::core()->trace("Thread pool latency {:.3f}ms", duration.count());
+      float d = duration.count() / 1000.0f;
+      stats::center::instance().update(&ThreadPool::set_latency, _stats, d);
+      log_v2::core()->trace("Thread pool latency {:.5f}s", d);
     });
     if (_stats_running) {
       _timer.expires_after(std::chrono::seconds(10));

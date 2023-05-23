@@ -19,6 +19,7 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
+from google.protobuf.json_format import MessageToJson
 from robot.libraries.BuiltIn import BuiltIn
 
 TIMEOUT = 30
@@ -472,6 +473,7 @@ def change_broker_tcp_output_to_grpc(name: str):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
     _apply_conf(name, output_to_grpc)
+
 
 def add_path_to_rrd_output(name: str, path: str):
     def rrd_output(conf):
@@ -1328,6 +1330,49 @@ def remove_graphs(port, indexes, metrics, timeout=10):
                 logger.console("gRPC server not ready")
 
 
+def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            opts = broker_pb2.SqlManagerStatsOptions()
+            opts.slowest_statements_count = stmt
+            opts.slowest_queries_count = queries
+            try:
+                stub.SetSqlManagerStats(opts)
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            con = broker_pb2.SqlConnection()
+            try:
+                res = stub.GetSqlManagerStats(con)
+                logger.console(res)
+                res = MessageToJson(res)
+                logger.console(res)
+                res = json.loads(res)
+                for c in res["connections"]:
+                    if "slowestQueries" in c:
+                        for q in c["slowestQueries"]:
+                            if query in q["query"]:
+                                return q["duration"]
+                    if "slowestStatements" in c:
+                        for q in c["slowestStatements"]:
+                            if query in q["statementQuery"]:
+                                return q["duration"]
+            except:
+                logger.console("gRPC server not ready")
+    return -1
+
+
 ##
 # @brief send a query to the db to remove graphs (by indexes or by metrics)
 #
@@ -1584,3 +1629,70 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
                     return True
         time.sleep(5)
     return False
+
+
+def get_broker_log_level(port, name, log, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetLogInfo")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericString()
+            ref.str_arg = log
+            try:
+                res = stub.GetLogInfo(ref)
+                res = res.level[log]
+                return res
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call SetLogLevel")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.LogLevel()
+            ref.logger = log
+            try:
+                ref.level = broker_pb2.LogLevel.LogLevelEnum.Value(
+                    level.upper())
+            except ValueError as value_error:
+                res = str(value_error)
+                break
+
+            try:
+                res = stub.SetLogLevel(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return res
+
+
+def config_broker_remove_rrd_output(name):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    conf = {}
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+        conf = json.loads(buf)
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if "rrd" in v["name"] and v["type"] == "ipv4":
+                output_dict.pop(i)
+                break
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))

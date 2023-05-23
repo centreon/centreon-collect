@@ -36,8 +36,12 @@ BEBAMIDT1
 	Log To Console	service_314 has command id ${cmd_1}
 	Set Command Status	${cmd_1}	2
 	Start Broker
+	${start}=	Get Current Date
 	Start Engine
-	Sleep	5s
+        # Let's wait for the initial service states.                            
+        ${content}=     Create List     INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}=      Find In Log with Timeout        ${logEngine0}   ${start}        ${content}      60
+        Should Be True  ${result}       msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
@@ -83,8 +87,12 @@ BEBAMIDT2
 	Log To Console	service_314 has command id ${cmd_1}
 	Set Command Status	${cmd_1}	2
 	Start Broker
+	${start}=	Get Current Date
 	Start Engine
-	Sleep	3s
+        # Let's wait for the initial service states.                            
+        ${content}=     Create List     INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}=      Find In Log with Timeout        ${logEngine0}   ${start}        ${content}      60
+        Should Be True  ${result}       msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# KPI set to critical
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
@@ -105,8 +113,13 @@ BEBAMIDT2
 	FOR	${i}	IN RANGE	5
 	  # Engine is restarted
 	  Stop Engine
+	  ${start}=	Get Current Date
 	  Start Engine
-	  Sleep	3s
+          # Let's wait for the initial service states.                            
+          ${content}=     Create List     INITIAL SERVICE STATE: host_50;service_1000;
+          ${result}=      Find In Log with Timeout        ${logEngine0}   ${start}        ${content}      60
+          Should Be True  ${result}       msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+
 	  # Broker is restarted
 	  Kindly Stop Broker
 	  Start Broker
@@ -138,6 +151,7 @@ BEBAMIGNDT1
 	Config Broker	module
 	Config Broker	central
 	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
 	Config Broker	rrd
 	Config Engine	${1}
 
@@ -147,16 +161,24 @@ BEBAMIGNDT1
 	@{svc}=	Set Variable	${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
 	Create BA With Services	test	worst	${svc}  ignore
 	Add Bam Config To Broker	central
-	# Command of service_314 is set to critical
+
+	# Command of service_313 is set to critical
 	${cmd_1}=	Get Command Id	313
 	Log To Console	service_314 has command id ${cmd_1}
 	Set Command Status	${cmd_1}	0
+
+	# Command of service_314 is set to critical
 	${cmd_2}=	Get Command Id	314
 	Log To Console	service_314 has command id ${cmd_2}
 	Set Command Status	${cmd_2}	2
+
 	Start Broker
+	${start}=	Get Current Date
 	Start Engine
-	Sleep	5s
+        # Let's wait for the initial service states.                            
+        ${content}=     Create List     INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}=      Find In Log with Timeout        ${logEngine0}   ${start}        ${content}      60
+        Should Be True  ${result}       msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# KPI set to ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_313	0	output critical for 313
@@ -237,8 +259,12 @@ BEBAMIGNDT2
 	Log To Console	service_314 has command id ${cmd_2}
 	Set Command Status	${cmd_2}	2
 	Start Broker
+	${start}=	Get Current Date
 	Start Engine
-	Sleep	5s
+        # Let's wait for the initial service states.                            
+        ${content}=     Create List     INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}=      Find In Log with Timeout        ${logEngine0}   ${start}        ${content}      60
+        Should Be True  ${result}       msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
 	# KPI set to ok
 	Repeat Keyword	3 times	Process Service Check Result	host_16	service_313	0	output critical for 313
@@ -300,6 +326,6 @@ BAM Setup
         Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
         ${date}=	Get Current Date  result_format=epoch
         log to console    date=${date}
-        Query	UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
+        Execute SQL String	UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
 
 

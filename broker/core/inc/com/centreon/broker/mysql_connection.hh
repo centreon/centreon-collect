@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 - 2021 Centreon
+** Copyright 2018 - 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,13 +19,12 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
-#include <future>
-
 #include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/database/mysql_stmt.hh"
 #include "com/centreon/broker/database/mysql_task.hh"
+#include "com/centreon/broker/database/stats.hh"
 #include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/stats/center.hh"
 
@@ -98,9 +97,11 @@ class mysql_connection {
    */
   bool _connected;
   std::time_t _switch_point;
-  SqlConnectionStats* _stats;
+  SqlConnectionStats* _proto_stats;
   std::time_t _last_stats;
   uint32_t _qps;
+
+  database::stats _stats;
 
   /* mutex to protect the string access in _error */
   mutable std::mutex _error_m;
@@ -139,7 +140,7 @@ class mysql_connection {
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(database_config const& db_cfg, SqlConnectionStats* stats);
+  mysql_connection(const database_config& db_cfg, SqlConnectionStats* stats);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);

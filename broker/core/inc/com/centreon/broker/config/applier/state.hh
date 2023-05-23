@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012, 2021 Centreon
+** Copyright 2011-2012, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,6 +18,8 @@
 
 #ifndef CCB_CONFIG_APPLIER_STATE_HH
 #define CCB_CONFIG_APPLIER_STATE_HH
+
+#include <absl/container/flat_hash_map.h>
 
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
@@ -41,6 +43,13 @@ class state {
   size_t _pool_size;
   modules _modules;
 
+  struct stats {
+    uint32_t sql_slowest_statements_count = false;
+    uint32_t sql_slowest_queries_count = false;
+  } _stats_conf;
+
+  absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
+
   state();
   ~state() noexcept = default;
 
@@ -60,6 +69,8 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
   modules& get_modules();
+  stats& mut_stats_conf();
+  const stats& stats_conf() const;
 };
 }  // namespace applier
 }  // namespace config
