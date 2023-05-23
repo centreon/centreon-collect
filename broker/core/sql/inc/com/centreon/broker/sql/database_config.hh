@@ -79,6 +79,8 @@ class database_config {
   void set_queries_per_transaction(int qpt);
   void set_check_replication(bool check_replication);
 
+  database_config auto_commit_conf() const;
+
  private:
   void _internal_copy(database_config const& other);
 

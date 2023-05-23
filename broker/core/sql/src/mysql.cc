@@ -15,6 +15,9 @@
 **
 ** For more information : contact@centreon.com
 */
+
+#include <absl/strings/str_split.h>
+
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -34,6 +37,7 @@ mysql::mysql(database_config const& db_cfg)
   _connection = mgr.get_connections(db_cfg);
   log_v2::sql()->info("mysql connector configured with {} connection(s)",
                       db_cfg.get_connections_count());
+  _get_server_infos();
 }
 
 /**
@@ -373,13 +377,36 @@ const database_config& mysql::get_config() const {
   return _db_cfg;
 }
 
-const char* mysql::get_server_version() {
+void mysql::_get_server_infos() {
+  _support_bulk_statement = false;
   if (_connection.empty())
-    return "";
+    return;
   else {
     std::promise<const char*> p;
     auto future = p.get_future();
     _connection[0]->get_server_version(std::move(p));
-    return future.get();
+    _server_version = future.get();
+  }
+
+  std::vector<absl::string_view> v =
+      absl::StrSplit(_server_version, absl::ByAnyChar(".-"));
+  if (v.size() >= 4) {
+    int32_t major;
+    int32_t minor;
+    int32_t patch;
+    absl::string_view server = v[3];
+    if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
+        absl::SimpleAtoi(v[2], &patch)) {
+      log_v2::sql()->info("connected to '{}' Server, version {}.{}.{}",
+                          fmt::string_view(server.data(), server.size()), major,
+                          minor, patch);
+      if (server == "MariaDB" && (major > 10 || (major == 10 && minor >= 2))) {
+        log_v2::sql()->info(
+            "it supports column-wise binding in prepared statements");
+        _support_bulk_statement = true;
+      }
+    }
+  } else {
+    log_v2::sql()->info("connected to '{}' Server", _server_version);
   }
 }

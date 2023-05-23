@@ -25,6 +25,7 @@
 #include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 
 CCB_BEGIN()
@@ -57,7 +58,7 @@ class reporting_stream : public io::stream {
   database::mysql_stmt _ba_duration_event_insert;
   database::mysql_stmt _ba_duration_event_update;
   database::mysql_stmt _kpi_full_event_insert;
-  database::mysql_stmt _kpi_event_update;
+  std::unique_ptr<database::bulk_or_multi> _kpi_event_update;
   database::mysql_stmt _kpi_event_link;
   database::mysql_stmt _kpi_event_link_update;
   database::mysql_stmt _dimension_ba_insert;
@@ -65,7 +66,7 @@ class reporting_stream : public io::stream {
   database::mysql_stmt _dimension_ba_bv_relation_insert;
   database::mysql_stmt _dimension_timeperiod_insert;
   database::mysql_stmt _dimension_ba_timeperiod_insert;
-  database::mysql_stmt _dimension_kpi_insert;
+  std::unique_ptr<database::bulk_or_multi> _dimension_kpi_insert;
   std::vector<database::mysql_stmt> _dimension_truncate_tables;
   std::unique_ptr<availability_thread> _availabilities;
 
@@ -76,6 +77,14 @@ class reporting_stream : public io::stream {
   std::unordered_map<uint32_t, std::map<std::time_t, uint64_t>>
       _last_inserted_kpi;  // ba_id => <time, row>
   bool _processing_dimensions;
+
+  using id_start =
+      std::pair<uint32_t /*ba_id or kpi_id */, uint64_t /*start_time*/>;
+  using id_start_to_event_id =
+      absl::flat_hash_map<id_start, uint32_t /*event_id*/>;
+
+  id_start_to_event_id _ba_event_cache;
+  id_start_to_event_id _kpi_event_cache;
 
  public:
   reporting_stream(database_config const& db_cfg);
@@ -95,7 +104,9 @@ class reporting_stream : public io::stream {
                                   char const* id);
   void _close_all_events();
   void _load_timeperiods();
+  void _load_kpi_ba_events();
   void _prepare();
+  void _commit();
   void _process_ba_event(std::shared_ptr<io::data> const& e);
   void _process_pb_ba_event(std::shared_ptr<io::data> const& e);
   void _process_ba_duration_event(std::shared_ptr<io::data> const& e);
@@ -116,7 +127,6 @@ class reporting_stream : public io::stream {
       std::shared_ptr<io::data> const& e);
   void _process_dimension_truncate_signal(bool updates_tarted);
   void _process_dimension_kpi(std::shared_ptr<io::data> const& e);
-  void _process_pb_dimension_kpi(std::shared_ptr<io::data> const& e);
   void _process_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_pb_dimension_timeperiod(std::shared_ptr<io::data> const& e);
   void _process_dimension_ba_timeperiod_relation(

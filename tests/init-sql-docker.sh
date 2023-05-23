@@ -1,11 +1,6 @@
 #!/bin/bash
 
-ss -nl | grep "0.0.0.0:3306"
-while [ $? -ne 0 ]
-do
-    sleep 1
-    ss -nl | grep "0.0.0.0:3306"
-done
+database_type=$1
 
 DBUserRoot="root"
 DBPassRoot="centreon"
@@ -16,18 +11,38 @@ DBConf=$(awk '($1=="${DBNameConf}") {print $2}' /scripts/tests/resources/db_vari
 cd /scripts
 
 #create users
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "grant all privileges ON *.* to 'centreon'@'%' identified by 'centreon'"
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "grant all privileges ON *.* to 'root_centreon'@'%' identified by 'centreon'"
+if [ $database_type == 'mysql' ]; then 
+    echo "create users mysql"
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'root_centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
+else 
+    #mariadb case 
+    ss -plant | grep -w 3306
+    while [ $? -ne 0 ]
+    do
+        sleep 1
+        ss -plant | grep -w 3306
+    done
+    sleep 1
+
+    echo "create users mariadb"
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED BY 'centreon'"
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'root_centreon'@'%' IDENTIFIED BY 'centreon'"
+fi
+mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "GRANT ALL PRIVILEGES ON *.* to 'centreon'@'%'"
+mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "GRANT ALL PRIVILEGES ON *.* to 'root_centreon'@'%'"
 mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "flush privileges"
 #clean if use persistant storage
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "drop database if exists " ${DBConf}
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "drop database if exists " ${DBStorage}
+echo "clean databases ${DBConf} ${DBStorage} "
+mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "drop database if exists ${DBConf}"
+mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "drop database if exists ${DBStorage}"
 #create databases
-mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "drop database ${DBConf}"
+echo "create database conf ${DBConf}"
 cat /scripts/resources/centreon.sql | sed "s/DBNameConf/${DBConf}/g" > /tmp/centreon.sql
 
 mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 < /tmp/centreon.sql
 
+echo "create database storage ${DBStorage}"
 if [ $DBStorage != 'centreon_storage' ]
 then
     \rm /tmp/centreon_storage.sql

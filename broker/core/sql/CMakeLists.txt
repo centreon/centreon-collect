@@ -27,14 +27,16 @@ add_custom_command(
           "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
           "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql"
   COMMENT "Generating table_max_size.hh"
-  OUTPUT "${PROJECT_SOURCE_DIR}/core/sql/inc/com/centreon/broker/sql/table_max_size.hh"
+  OUTPUT
+    "${PROJECT_SOURCE_DIR}/core/sql/inc/com/centreon/broker/sql/table_max_size.hh"
   COMMAND
     python3 ARGS "${PROJECT_SOURCE_DIR}/core/sql/src/table_max_size.py"
     "${PROJECT_SOURCE_DIR}/core/sql/inc/com/centreon/broker/sql/table_max_size.hh"
     "${CMAKE_SOURCE_DIR}/resources/centreon.sql"
     "${CMAKE_SOURCE_DIR}/resources/centreon_storage.sql")
 
-add_custom_target(table_max_size DEPENDS inc/com/centreon/broker/sql/table_max_size.hh)
+add_custom_target(table_max_size
+                  DEPENDS inc/com/centreon/broker/sql/table_max_size.hh)
 
 set_source_files_properties(inc/com/centreon/broker/sql/table_max_size.hh
                             PROPERTIES GENERATED TRUE)
@@ -56,8 +58,8 @@ set(SOURCES
     src/mysql_stmt_base.cc
     src/mysql_stmt.cc
     src/mysql_bulk_stmt.cc
+    src/mysql_multi_insert.cc
     src/stats.cc
-
     # Headers
     inc/com/centreon/broker/sql/database_config.hh
     inc/com/centreon/broker/sql/mysql.hh
@@ -73,8 +75,7 @@ set(SOURCES
     inc/com/centreon/broker/sql/mysql_task.hh
     inc/com/centreon/broker/sql/query_preparator.hh
     inc/com/centreon/broker/sql/stats.hh
-    inc/com/centreon/broker/sql/table_max_size.hh
-)
+    inc/com/centreon/broker/sql/table_max_size.hh)
 
 # Static libraries.
 add_library(sql STATIC ${SOURCES})
@@ -82,13 +83,7 @@ set_target_properties(sql PROPERTIES COMPILE_FLAGS "-fPIC")
 target_precompile_headers(sql PRIVATE ../precomp_inc/precomp.hpp)
 target_link_libraries(sql CONAN_PKG::spdlog CONAN_PKG::mariadb-connector-c)
 
-#if(WITH_TESTING)
-#    set(
-#        TESTS_SOURCES
-#        ${TESTS_SOURCES}
-#        ${TESTS_DIR}/engine/start_stop.cc
-#        ${TESTS_DIR}/muxer/read.cc
-#        ${TESTS_DIR}/publisher/read.cc
-#        ${TESTS_DIR}/publisher/write.cc
-#    )
-#endif(WITH_TESTING)
+# if(WITH_TESTING) set( TESTS_SOURCES ${TESTS_SOURCES}
+# ${TESTS_DIR}/engine/start_stop.cc ${TESTS_DIR}/muxer/read.cc
+# ${TESTS_DIR}/publisher/read.cc ${TESTS_DIR}/publisher/write.cc )
+# endif(WITH_TESTING)
