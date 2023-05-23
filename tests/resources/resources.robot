@@ -241,7 +241,7 @@ Wait Or Dump And Kill Process
     RETURN    ${result}
 
 Clear Metrics
-    Connect To Database    pymysql ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin

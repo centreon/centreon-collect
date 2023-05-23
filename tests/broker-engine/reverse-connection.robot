@@ -25,6 +25,10 @@ BRGC1
     Config Broker    rrd
     Config Broker    central_map
     Config Broker    module
+    Config Broker Sql Output    central    unified_sql
+    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    rrd    bbdo_version    3.0.0
 
     Log To Console    Compression set to
     Broker Config Log    central    bbdo    info
@@ -57,6 +61,10 @@ BRCTS1
     Config Broker    rrd
     Config Broker    central_map
     Config Broker    module
+    Config Broker Sql Output    central    unified_sql
+    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    rrd    bbdo_version    3.0.0
 
     Broker Config Log    central    bbdo    info
     Broker Config Log    module0    bbdo    info
