@@ -7,6 +7,8 @@ from robot.libraries.BuiltIn import BuiltIn
 BuiltIn().import_resource('db_variables.robot')
 DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
 DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
+DB_USER_ROOT = BuiltIn().get_variable_value("${DBUserRoot}")
+DB_PASS_ROOT = BuiltIn().get_variable_value("${DBPassRoot}")
 DB_USER = BuiltIn().get_variable_value("${DBUser}")
 DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
@@ -39,8 +41,8 @@ class DbConf:
     def clear_db(self):
         # Connect to the database
         connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
+                                     user=DB_USER_ROOT,
+                                     password=DB_PASS_ROOT,
                                      database=DB_NAME_CONF,
                                      charset='utf8mb4',
                                      cursorclass=pymysql.cursors.DictCursor)
@@ -65,7 +67,14 @@ class DbConf:
                 cursor.execute("DELETE FROM mod_bam")
                 cursor.execute("ALTER TABLE mod_bam AUTO_INCREMENT = 1")
                 cursor.execute("DELETE FROM mod_bam_kpi")
+                cursor.execute("DELETE FROM mod_bam_poller_relations")
                 cursor.execute("ALTER TABLE mod_bam_kpi AUTO_INCREMENT = 1")
+                cursor.execute("DELETE FROM mod_bam_boolean")
+                cursor.execute(
+                    "ALTER TABLE mod_bam_boolean AUTO_INCREMENT = 1")
+                cursor.execute("DELETE FROM timeperiod")
+                cursor.execute("ALTER TABLE timeperiod AUTO_INCREMENT = 1")
+                cursor.execute("SET GLOBAL FOREIGN_KEY_CHECKS=0")
             connection.commit()
 
     def init_bam(self):
