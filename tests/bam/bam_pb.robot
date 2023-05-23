@@ -196,7 +196,7 @@ BA_IMPACT_2KPI_SERVICES
 	Kindly Stop Broker
 
 BA_RATIO_PERCENT_BA_SERVICE
-	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 service and 1 child BA with one service
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 services and 1 child BA with one service
 	[Tags]	Broker	engine	bam
 	Clear Commands Status
 	Clear Retention
@@ -393,7 +393,7 @@ BA_BOOL_KPI
 
 
 BEPB_DIMENSION_BV_EVENT
-	[Documentation]	bbdo_version 3 use pb_dimension_bv_event creation of a BA group and checking for a log message that includes the attributes below to initiate the  seccussful creation of the BA group.
+	[Documentation]	bbdo_version 3 use pb_dimension_bv_event creation of a business view and checking for a log message that includes the attributes below to initiate the  successful creation of the BV.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -474,7 +474,7 @@ BEPB_DIMENSION_BA_EVENT
 
 
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
-	[Documentation]	bbdo_version 3 use pb_dimension_ba_bv_relation_event Creating a BA  with services and adding it to the broker, adding a Lua output configuration to the broker and starting the broker and engine, waiting for a lua file to be created, and searching the file for a specific event.
+	[Documentation]	bbdo_version 3 use pb_dimension_ba_bv_relation_event Creating a BA  with services , adding a Lua output configuration to the broker, checks if this configuration is well received by broker.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -515,7 +515,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 	Kindly Stop Broker  True
 
 BEPB_DIMENSION_TIMEPERIOD
-	[Documentation]	use of pb_dimension_timeperiod Adding BAM and Lua configurations to the broker,connects to  database and executes an SQL insert statement, checking whether the event message is correctly logged by the system.
+	[Documentation]	use of pb_dimension_timeperiod Adding BAM outputs to broker, inserting timeperiod in the configuration database and checking whether the event message is correctly logged by the system.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -601,7 +601,7 @@ BEPB_DIMENSION_KPI_EVENT
 
 
 BEPB_KPI_STATUS
-	[Documentation]	bbdo_version 3 use kpi_status, Create a new BA for a specific service, start the broker and engine,check the status of a service three times until hard and set it to critical,verifing that the status of the service has been updated in the database and the timestamp of the last status change is correct.
+	[Documentation]	bbdo_version 3 use kpi_status, Create a new BA for a specific service, when the service is in a hard state, the kpi is impacted by its status.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -652,7 +652,7 @@ BEPB_KPI_STATUS
 	Kindly Stop Broker  True
 
 BEPB_BA_DURATION_EVENT
-	[Documentation]	use of pb_ba_duration_event, creating a BA with services, connecting to database and insert a record into timeperiod table and deleting records from mod_bam_relations_ba_timeperiods and mod_bam_reporting_ba_events_durations tables in the database, seting a services to critical status and then to OK status and calculing that the duration of the event is equal to the difference between the end time and start time of the event.
+	[Documentation]	use of pb_ba_duration_event, creating a BA with services, connecting to database and insert a record into timeperiod table and deleting records from mod_bam_relations_ba_timeperiods and mod_bam_reporting_ba_events_durations tables in the database, setting a services to critical then to an OK status and calculating that the duration of the event is equal to the difference between the end and the start time of the event.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -714,7 +714,7 @@ BEPB_BA_DURATION_EVENT
 
 
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
-	[Documentation]	use of pb_dimension_ba_timeperiod_relation creating a Ba with worst status, inserting inputs  into timeperiod table deleting mod_bam_relations_ba_timeperiods table and insertin inputs in mod_bam_relations_ba_timeperiods anftre connecting to database the table mod_bam_reporting_relations_ba_timeperiods must be updated.
+	[Documentation]	use of pb_dimension_ba_timeperiod_relation creating a Ba with worst status, insert inputs  into timeperiod table delete mod_bam_relations_ba_timeperiods table and insert inputs in mod_bam_relations_ba_timeperiods after connecting to database the table mod_bam_reporting_relations_ba_timeperiods must be updated.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -755,7 +755,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 	Kindly Stop Broker  True
 
 BEPB_DIMENSION_TRUNCATE_TABLE
-	[Documentation]	use of pb_dimension_timeperiod Removing lua file before starting, creating a BA and adding lua output to broker waiting for the lua file to be created again and searching for a specific event in the log file using the Grep File keyword, the event should have a certain type, category, element, and update_started status.
+	[Documentation]	use of pb_dimension_timeperiod creating a BA and adding lua output to broker, searching for a specific event in the log file using the Grep File keyword, the event should have a certain type, category, element, and update_started status.
 	[Tags]	Broker	Engine	protobuf	bam	bbdo
 	Clear Commands Status
 	Clear Retention
@@ -795,7 +795,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 	Kindly Stop Broker  True
 
 BA_RATIO_NUMBER_BA_4_SERVICE
-	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 4 services, the BA should change it's status based on the number definded for the warning and critical state of its service.
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 4 services, the BA should change it's status based on the number of its critical kpis.
 	[Tags]	Broker	engine	bam
 	Clear Commands Status
 	Clear Retention
@@ -860,7 +860,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 
 
 BA_RATIO_PERCENT_BA_4_SERVICE
-	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio percent' with 4 serv and from the persent of the services linked to the BA, it should change it status based on the percent of the each state o the linked services.
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio percent' with 4 services and from the defined persent of the kpis linked to the BA, it should change it status.
 	[Tags]	Broker	engine	bam
 	Clear Commands Status
 	Clear Retention
