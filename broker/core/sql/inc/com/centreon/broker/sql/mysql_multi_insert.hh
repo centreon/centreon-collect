@@ -29,148 +29,6 @@ CCB_BEGIN()
 namespace database {
 
 /**
- * @brief this class only provide a similar interface to bulk_bind
- * it's used by row_filler class described above
- * The goal of this class is to provide a similar interface for the function who
- * fill queries whereas it fills a bulk query or a multi insert
- */
-class mysql_delayed_bind : public mysql_bind_base {
-  // clang-format off
-  /**
-   * @brief this attribute is the index of the first placeholder in the current data of the bulk query
-   * @example: mysql_multi_insert build this query:
-   * insert into my_table (col1,col2,col3,col4) values (?,?,?,?), (?,?,?,?), (?,?,?,?)
-   *                                                    |
-   * when we bind first event,                  _stmt_first_column = 0
-   *                                                               |
-   * when we bind second event,                 _stmt_first_column = 4
-   *                                                                          |
-   * when we bind second event,                 _stmt_first_column = 8
-   * 
-   */
-  // clang-format on
-  unsigned _stmt_first_column;
-  mysql_stmt& _to_bind;
-
- public:
-  mysql_delayed_bind(mysql_stmt& to_bind)
-      : _stmt_first_column(0), _to_bind(to_bind) {}
-
-  void inc_stmt_first_column(unsigned nb_columns) {
-    _stmt_first_column += nb_columns;
-  }
-
-  /**
-   * @brief Setter of the value at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_DOUBLE.
-   *
-   * @param range A non negative integer.
-   * @param value The double value to set.
-   */
-  void set_value_as_f64(size_t range, double value) override {
-    _to_bind.bind_value_as_f64(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Setter of the value at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_LONG.
-   *
-   * @param range A non negative integer.
-   * @param value The integer value to set.
-   */
-  void set_value_as_i32(size_t range, int32_t value) override {
-    _to_bind.bind_value_as_i32(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Setter of NULL at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_LONG.
-   *
-   * @param range A non negative integer.
-   */
-  void set_null_i32(size_t range) override {
-    _to_bind.bind_null_i32(range + _stmt_first_column);
-  }
-  /**
-   * @brief Setter of the value at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_LONG.
-   *
-   * @param range A non negative integer.
-   * @param value The unsigned integer value to set.
-   */
-  void set_value_as_u32(size_t range, uint32_t value) override {
-    _to_bind.bind_value_as_u32(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Setter of the value at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_LONGLONG. The value must not
-   * match the invalid_on bitfield, otherwise the value is set to NULL.
-   *
-   * @param range A non negative integer.
-   * @param value The unsigned long integer value to set.
-   */
-  void set_value_as_u64(size_t range, uint64_t value) override {
-    _to_bind.bind_value_as_u64(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Setter of the value at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
-   *
-   * @param range A non negative integer.
-   * @param value The long integer value to set.
-   */
-  void set_value_as_i64(size_t range, int64_t value) override {
-    _to_bind.bind_value_as_i64(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Setter of NULL at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_LONGLONG.
-   *
-   * @param range A non negative integer.
-   */
-  void set_null_u64(size_t range) override { _to_bind.bind_null_u64(range); }
-  /**
-   * @brief Setter of the value at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_TINY.
-   *
-   * @param range A non negative integer.
-   * @param value The boolean value to set.
-   */
-  void set_value_as_bool(size_t range, bool value) override {
-    _to_bind.bind_value_as_bool(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Setter of the value at the column at index range and at the current
-   * row. The type of the column must be MYSQL_TYPE_STRING.
-   *
-   * @param range A non negative integer.
-   * @param value The string to set.
-   */
-  void set_value_as_str(size_t range, const fmt::string_view& value) override {
-    _to_bind.bind_value_as_str(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Set the given value at the column in the prepared statement at index
-   * range in the current row of the column. The type of the column must be
-   * MYSQL_TYPE_TINY.
-   *
-   * @param range Index of the column(from 0).
-   * @param value The value to set.
-   */
-  void set_value_as_tiny(size_t range, char value) override {
-    _to_bind.bind_value_as_tiny(range + _stmt_first_column, value);
-  }
-  /**
-   * @brief Set the NULL value at the column in the prepared statement at index
-   * range in the current row of the column. The type of the column must be
-   * MYSQL_TYPE_TINY.
-   *
-   * @param range Index of the column(from 0).
-   */
-  void set_null_tiny(size_t range) override {
-    _to_bind.bind_null_tiny(range + _stmt_first_column);
-  }
-};
-
-/**
  * @brief this class used as a data provider is the data provider of
  * multi_insert_class.
  * It embeds two things: data and code to bind data to the
@@ -186,9 +44,8 @@ class mysql_delayed_bind : public mysql_bind_base {
  *    row::pointer data;
  *    row_filler(const row::pointer& dt) : data(dt) {}
  *
- *    inline void fill_row(mysql_delayed_bind& to_bind) const override {
- *      to_bind.set_value_as_str(0, data->name);
- *      to_bind.set_value_as_f64(1, data->value);
+ *    inline void fill_row(std::string & query) const override {
+ *      query.append(fmt::format("'{}',{}", data->name, data->value))
  *    }
  *  };
  * @endcode
@@ -199,34 +56,27 @@ class row_filler {
  public:
   using pointer = std::unique_ptr<row_filler>;
   virtual ~row_filler() {}
-  virtual void fill_row(mysql_delayed_bind& to_bind) const = 0;
+  virtual void fill_row(std::string& query) const = 0;
 };
 
 /**
  * @brief this class emulates a bulk insert by create as many multi insert
- * statements as necessary (INSERT INTO toto (col1, col2,..) VALUES (col0row0,
+ * queries as necessary (INSERT INTO toto (col1, col2,..) VALUES (col0row0,
  * col1row0...) (col0row1, col1row1,...) )
  *
  */
 class mysql_multi_insert {
   const std::string _query;
-  const unsigned _nb_column;
   const std::string _on_duplicate_key_part;
 
   std::list<row_filler::pointer> _rows;
 
  public:
   mysql_multi_insert(const std::string& query,
-                     unsigned nb_column,
                      const std::string& on_duplicate_key_part)
-      : _query(query),
-        _nb_column(nb_column),
-        _on_duplicate_key_part(on_duplicate_key_part) {}
+      : _query(query), _on_duplicate_key_part(on_duplicate_key_part) {}
 
-  mysql_multi_insert(const mysql_multi_insert& src)
-      : _query(src._query),
-        _nb_column(src._nb_column),
-        _on_duplicate_key_part(src._on_duplicate_key_part) {}
+  mysql_multi_insert(const mysql_multi_insert& src) = delete;
 
   mysql_multi_insert& operator=(const mysql_multi_insert&) = delete;
 
@@ -239,6 +89,13 @@ class mysql_multi_insert {
   inline void push(row_filler::pointer&& data) {
     _rows.emplace_back(std::move(data));
   }
+
+  /**
+   * @brief clear _rows
+   * needed for reuse this class after push_stmt
+   *
+   */
+  void clear_rows() { _rows.clear(); }
 
   unsigned push_stmt(mysql& pool, int thread_id = -1) const;
 
@@ -255,10 +112,12 @@ class mysql_multi_insert {
  */
 class bulk_or_multi {
  protected:
+  // mariadb attributes
   std::unique_ptr<mysql_bulk_stmt> _bulk_stmt;
   std::unique_ptr<mysql_bulk_bind> _bulk_bind;
   unsigned _bulk_row;
 
+  // multi insert attribute used when bulk queries aren't available
   std::unique_ptr<mysql_multi_insert> _mult_insert;
 
  public:
@@ -267,7 +126,6 @@ class bulk_or_multi {
                 unsigned bulk_row);
 
   bulk_or_multi(const std::string& query,
-                unsigned nb_column,
                 const std::string& on_duplicate_key_part);
 
   virtual ~bulk_or_multi() = default;
@@ -281,18 +139,25 @@ class bulk_or_multi {
  * @brief this class can do a multi or bulk insert in a single interface
  * binder_lambda must be a functor with the signature
  * void (const std::shared_ptr<io::data>& event, database::mysql_bind_base*
- * binder)
- * To use it, you must use one of the two constructor (bulk or
- * multiinsert) with the functor in the last argument.
- * Then for each event to record you need to call add_event method
- * When you have finished call execute
+ * binder) in case of bulk usage
+ * void (const std::shared_ptr<io::data>& event, std::string &query) in case of
+ * multi insert usage
+ *  To use it, you must use one of the two constructor (bulk
+ * or multiinsert) with the functor in the last argument. Then for each event to
+ * record you need to call add_event method When you have finished call execute
  *
  * @code {.c++}
  * static auto event_binder = [](const std::shared_ptr<io::data>& event,
- *                             database::mysql_bind_base* binder) {
+ *                             database::mysql_bulk_bind* binder) {
  *   binder->set_value_as_str(0, fmt::format("toto{}", event_binder_index));
  *   binder->set_value_as_f64(1, 12.34 + event_binder_index);
  * };
+ * static auto mysql_event_binder = [](const std::shared_ptr<io::data>& event,
+ *                             std::string & query) {
+ *   query.append(fmt::format("'toto{}',{}",
+ * event_binder_index, 12.34+event_binder_index));
+ * };
+ *
  *
  * if (_mysql.support_bulk_statement()) {
  *    inserter = database::create_bulk_or_multi_bbdo_event(
@@ -301,18 +166,23 @@ class bulk_or_multi {
  * }
  * else {
  *    inserter = database::create_bulk_or_multi_bbdo_event(
- *     "INSERT INTO ut_test (name, value) VALUES", 2, "",
- *     event_binder);
+ *     "INSERT INTO ut_test (name, value) VALUES", "",
+ *     mysql_event_binder);
  * }
  * inserter->add_event(evt);
  * inserter->execute(*_mysql);
  * @endcode
  *
  *
- * @tparam binder_lambda
+ * @tparam binder_lambda bulk mariadb binder
+ * @tparam bulk  boolean true if use of bulk statement
  */
+template <typename binder_lambda, bool bulk>
+class bulk_or_multi_bbdo_event;
+
+// bulk specialisation
 template <typename binder_lambda>
-class bulk_or_multi_bbdo_event : public bulk_or_multi {
+class bulk_or_multi_bbdo_event<binder_lambda, true> : public bulk_or_multi {
  protected:
   binder_lambda& _binder;
 
@@ -321,28 +191,16 @@ class bulk_or_multi_bbdo_event : public bulk_or_multi {
    * @brief bulk constructor to use when bulk queries are available
    *
    * @param connexion
-   * @param request
-   * @param bulk_row
+   * @param request query
+   * @param bulk_row number of row in one bulk request
+   * @param binder this void(const std::shared_ptr<io::data>& event,
+   * database::mysql_bulk_bind* binder) find bulk_bind with the event
    */
   bulk_or_multi_bbdo_event(mysql& connexion,
                            const std::string& request,
                            unsigned bulk_row,
                            binder_lambda& binder)
       : bulk_or_multi(connexion, request, bulk_row), _binder(binder) {}
-
-  /**
-   * @brief multi_insert constructor to use when bulk queries aren't available
-   *
-   * @param query
-   * @param nb_column
-   * @param on_duplicate_key_part
-   */
-  bulk_or_multi_bbdo_event(const std::string& query,
-                           unsigned nb_column,
-                           const std::string& on_duplicate_key_part,
-                           binder_lambda& binder)
-      : bulk_or_multi(query, nb_column, on_duplicate_key_part),
-        _binder(binder) {}
 
   /**
    * @brief in case of bulk, this method binds event to stmt bind by using
@@ -352,26 +210,56 @@ class bulk_or_multi_bbdo_event : public bulk_or_multi {
    * @param event
    */
   void add_event(const std::shared_ptr<io::data>& event) override {
-    if (_bulk_bind) {
-      _binder(event, _bulk_bind.get());
-      _bulk_bind->next_row();
-    } else {
-      class final_row_filler : public database::row_filler {
-        std::shared_ptr<io::data> _event;
-        binder_lambda& _binder;
+    _binder(event, _bulk_bind.get());
+    _bulk_bind->next_row();
+  }
+};
 
-       public:
-        final_row_filler(const std::shared_ptr<io::data>& event,
-                         binder_lambda& binder)
-            : _event(event), _binder(binder) {}
+// non bulk specialization
+template <typename binder_lambda>
+class bulk_or_multi_bbdo_event<binder_lambda, false> : public bulk_or_multi {
+ protected:
+  binder_lambda& _binder;
 
-        void fill_row(mysql_delayed_bind& to_bind) const override {
-          _binder(_event, &to_bind);
-        }
-      };
+ public:
+  /**
+   * @brief multi_insert constructor to use when bulk queries aren't available
+   *
+   * @param query
+   * @param on_duplicate_key_part end of the request as ON DUPLICATE KEY UPDATE
+   * current_level=VALUES(current_level)
+   * @param binder this void(const std::shared_ptr<io::data>& event, std::string
+   * & query) append data to the query, don't provide ( and )
+   */
+  bulk_or_multi_bbdo_event(const std::string& query,
+                           const std::string& on_duplicate_key_part,
+                           binder_lambda& binder)
+      : bulk_or_multi(query, on_duplicate_key_part), _binder(binder) {}
 
-      _mult_insert->push(std::make_unique<final_row_filler>(event, _binder));
-    }
+  /**
+   * @brief in case of bulk, this method binds event to stmt bind by using
+   * binder functor in cas of multi insert, it saves event in a queue, the event
+   * will be bound to stmt when requests will be executed
+   *
+   * @param event
+   */
+  void add_event(const std::shared_ptr<io::data>& event) override {
+    // this local class is used at the query creation
+    class final_row_filler : public database::row_filler {
+      std::shared_ptr<io::data> _event;
+      binder_lambda& _binder;
+
+     public:
+      final_row_filler(const std::shared_ptr<io::data>& event,
+                       binder_lambda& binder)
+          : _event(event), _binder(binder) {}
+
+      void fill_row(std::string& query) const override {
+        _binder(_event, query);
+      }
+    };
+
+    _mult_insert->push(std::make_unique<final_row_filler>(event, _binder));
   }
 };
 
@@ -379,11 +267,13 @@ class bulk_or_multi_bbdo_event : public bulk_or_multi {
  * @brief Create a bulk_or_multi_bbdo_event object with lambda type deduction
  * (bulk case)
  *
- * @tparam binder_lambda
+ * @tparam binder_lambda void(const std::shared_ptr<io::data>& event,
+ * database::mysql_bulk_bind* binder) (deduced)
  * @param connexion
- * @param request
- * @param bulk_row
- * @param binder
+ * @param request query
+ * @param bulk_row number of row in one bulk request
+ * @param binder this void(const std::shared_ptr<io::data>& event,
+ * database::mysql_bulk_bind* binder) find bulk_bind with the event
  * @return std::unique_ptr<bulk_or_multi>
  */
 template <typename binder_lambda>
@@ -393,30 +283,31 @@ std::unique_ptr<bulk_or_multi> create_bulk_or_multi_bbdo_event(
     unsigned bulk_row,
     binder_lambda& binder) {
   return std::unique_ptr<bulk_or_multi>(
-      new bulk_or_multi_bbdo_event<binder_lambda>(connexion, request, bulk_row,
-                                                  binder));
+      new bulk_or_multi_bbdo_event<binder_lambda, true>(connexion, request,
+                                                        bulk_row, binder));
 }
 
 /**
  * @brief Create a bulk_or_multi_bbdo_event object with lambda type deduction
  * (multi insert case)
  *
- * @tparam binder_lambda
+ * @tparam binder_lambda void(const std::shared_ptr<io::data>& event,
+ * std::string & query) (deduced)
  * @param query
- * @param nb_column
- * @param on_duplicate_key_part
- * @param binder
+ * @param on_duplicate_key_part end of the request as ON DUPLICATE KEY UPDATE
+ * current_level=VALUES(current_level)
+ * @param binder this void(const std::shared_ptr<io::data>& event, std::string
+ * & query) append data to the query, don't provide ( and )
  * @return std::unique_ptr<bulk_or_multi>
  */
 template <typename binder_lambda>
 std::unique_ptr<bulk_or_multi> create_bulk_or_multi_bbdo_event(
     const std::string& query,
-    unsigned nb_column,
     const std::string& on_duplicate_key_part,
     binder_lambda& binder) {
   return std::unique_ptr<bulk_or_multi>(
-      new bulk_or_multi_bbdo_event<binder_lambda>(
-          query, nb_column, on_duplicate_key_part, binder));
+      new bulk_or_multi_bbdo_event<binder_lambda, false>(
+          query, on_duplicate_key_part, binder));
 }
 
 }  // namespace database

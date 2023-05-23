@@ -203,7 +203,7 @@ def start_mysql():
             logger.console("Starting mysqld directly")
             Popen(["/usr/libexec/mysqldtoto",
                    "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
-            logger.console("Mariadb directly started")
+            logger.console("mysqld directly started")
         else:
             logger.console("Starting Mariadb directly")
             Popen(["mariadbd", "--socket=/var/lib/mysql/mysql.sock",

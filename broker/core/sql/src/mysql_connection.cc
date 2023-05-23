@@ -31,20 +31,21 @@ constexpr const char* mysql_error::msg[];
 const int MAX_ATTEMPTS = 2;
 
 void (mysql_connection::*const mysql_connection::_task_processing_table[])(
-    mysql_task* task) = {&mysql_connection::_query,
-                         &mysql_connection::_query_res,
-                         &mysql_connection::_query_int,
-                         &mysql_connection::_commit,
-                         &mysql_connection::_prepare,
-                         &mysql_connection::_statement,
-                         &mysql_connection::_statement_res,
-                         &mysql_connection::_statement_int<int>,
-                         &mysql_connection::_statement_int<int64_t>,
-                         &mysql_connection::_statement_int<uint32_t>,
-                         &mysql_connection::_statement_int<uint64_t>,
-                         &mysql_connection::_fetch_row_sync,
-                         &mysql_connection::_get_version,
-                         &mysql_connection::_prepare_run_statement};
+    mysql_task* task) = {
+    &mysql_connection::_query,
+    &mysql_connection::_query_res,
+    &mysql_connection::_query_int,
+    &mysql_connection::_commit,
+    &mysql_connection::_prepare,
+    &mysql_connection::_statement,
+    &mysql_connection::_statement_res,
+    &mysql_connection::_statement_int<int>,
+    &mysql_connection::_statement_int<int64_t>,
+    &mysql_connection::_statement_int<uint32_t>,
+    &mysql_connection::_statement_int<uint64_t>,
+    &mysql_connection::_fetch_row_sync,
+    &mysql_connection::_get_version,
+};
 
 /******************************************************************************/
 /*                      Methods executed by this thread                       */
@@ -401,7 +402,7 @@ void mysql_connection::_prepare(mysql_task* t) {
                       static_cast<const void*>(this), task->id, task->query);
   MYSQL_STMT* stmt(mysql_stmt_init(_conn));
   if (!stmt)
-    set_error_message("statement initialization failed: insufficient memory");
+    set_error_message("statement initialization failed: insuffisant memory");
   else {
     if (mysql_stmt_prepare(stmt, task->query.c_str(), task->query.size())) {
       std::string err_msg(::mysql_stmt_error(stmt));
@@ -725,112 +726,6 @@ void mysql_connection::_statement_int(mysql_task* t) {
   }
 }
 
-template <typename T>
-void mysql_connection::_prepare_run_statement(
-    database::mysql_task_statement_prepare_execute<T>& task) {
-  log_v2::sql()->debug("mysql_connection: prepare and execute statement: {}",
-                       task.stmt().get_query());
-
-  sql::stats::stmt_span stats(&_stats, 0, task->stmt.get_query());
-
-  MYSQL_STMT* stmt(mysql_stmt_init(_conn));
-  if (!stmt) {
-    set_error_message("statement initialization failed: insufficient memory");
-    msg_fmt e("statement initialization failed: insufficient memory");
-    task.promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-    return;
-  }
-
-  if (mysql_stmt_prepare(stmt, task.stmt().get_query().c_str(),
-                         task.stmt().get_query().size())) {
-    std::string err_msg(::mysql_stmt_error(stmt));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
-    msg_fmt e("fail prepare {}: {}", task.stmt().get_query(), err_msg);
-    task.promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-    return;
-  }
-
-  MYSQL_BIND* bb(nullptr);
-  if (task.bind) {
-    bb = const_cast<MYSQL_BIND*>(task.bind->get_bind());
-    if (task.bulk) {
-      mysql_bulk_bind* bind = static_cast<mysql_bulk_bind*>(task.bind.get());
-      uint32_t array_size = bind->rows_count();
-      stats.set_row_count(array_size);
-      mysql_stmt_attr_set(stmt, STMT_ATTR_ARRAY_SIZE, &array_size);
-    }
-  }
-  if (bb && mysql_stmt_bind_param(stmt, bb)) {
-    std::string err_msg(::mysql_stmt_error(stmt));
-    log_v2::sql()->error("mysql_connection: {}", err_msg);
-    msg_fmt e(err_msg);
-    task.promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-    mysql_stmt_close(stmt);
-    return;
-  }
-  int32_t attempts = 0;
-  for (;;) {
-    if (mysql_stmt_execute(stmt)) {
-      std::string err_msg(::mysql_stmt_error(stmt));
-      if (_server_error(mysql_stmt_errno(stmt))) {
-        set_error_message(err_msg);
-        msg_fmt e(err_msg);
-        task.promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-        break;
-      }
-      if (mysql_stmt_errno(stmt) != 1213 &&
-          mysql_stmt_errno(stmt) != 1205)  // Dead Lock error
-        attempts = MAX_ATTEMPTS;
-
-      mysql_commit(_conn);
-
-      if (++attempts >= MAX_ATTEMPTS) {
-        msg_fmt e("run statement and get result failed: {}", err_msg);
-        task.promise.set_exception(std::make_exception_ptr<msg_fmt>(e));
-        break;
-      }
-    } else {
-      _need_commit = true;
-      if (task.return_type == mysql_task::AFFECTED_ROWS)
-        task.promise.set_value(mysql_stmt_affected_rows(stmt));
-      else /* LAST_INSERT_ID */
-        task.promise.set_value(mysql_stmt_insert_id(stmt));
-      break;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
-  }
-  mysql_stmt_close(stmt);
-}
-
-void mysql_connection::_prepare_run_statement(database::mysql_task* t) {
-  database::mysql_task_statement_prepare_execute<int>* request =
-      static_cast<database::mysql_task_statement_prepare_execute<int>*>(t);
-  switch (request->get_int_type()) {
-    case database::mysql_task_statement_prepare_execute<
-        int>::return_int_type::INT:
-      _prepare_run_statement(*request);
-      break;
-    case database::mysql_task_statement_prepare_execute<
-        int>::return_int_type::UINT:
-      _prepare_run_statement(
-          *static_cast<database::mysql_task_statement_prepare_execute<uint>*>(
-              t));
-      break;
-    case database::mysql_task_statement_prepare_execute<
-        int>::return_int_type::INT64:
-      _prepare_run_statement(
-          *static_cast<
-              database::mysql_task_statement_prepare_execute<int64_t>*>(t));
-      break;
-    case database::mysql_task_statement_prepare_execute<
-        int>::return_int_type::UINT64:
-      _prepare_run_statement(
-          *static_cast<
-              database::mysql_task_statement_prepare_execute<uint64_t>*>(t));
-      break;
-  }
-}
-
 void mysql_connection::_fetch_row_sync(mysql_task* t) {
   mysql_task_fetch* task(static_cast<mysql_task_fetch*>(t));
   int stmt_id(task->result->get_statement_id());
@@ -923,9 +818,6 @@ std::string mysql_connection::_get_stack(
         break;
       case mysql_task::GET_VERSION:
         retval += "GET_VERSION ; ";
-        break;
-      case mysql_task::STATEMENT_PREPARE_EXECUTE:
-        retval += "STATEMENT_PREPARE_EXECUTE ; ";
         break;
     }
   }

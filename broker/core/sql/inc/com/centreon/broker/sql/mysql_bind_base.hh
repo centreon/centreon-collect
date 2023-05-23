@@ -52,19 +52,7 @@ class mysql_bind_base {
   MYSQL_BIND* get_bind();
   bool empty() const;
   void set_empty();
-
-  virtual void set_value_as_f64(size_t range, double value) = 0;
-  virtual void set_value_as_i32(size_t range, int32_t value) = 0;
-  virtual void set_value_as_u32(size_t range, uint32_t value) = 0;
-  virtual void set_null_i32(size_t range) = 0;
-  virtual void set_value_as_i64(size_t range, int64_t value) = 0;
-  virtual void set_value_as_u64(size_t range, uint64_t value) = 0;
-  virtual void set_null_u64(size_t range) = 0;
-  virtual void set_value_as_bool(size_t range, bool value) = 0;
-  virtual void set_value_as_str(size_t range,
-                                const fmt::string_view& value) = 0;
-  virtual void set_value_as_tiny(size_t range, char value) = 0;
-  virtual void set_null_tiny(size_t range) = 0;
+  void set_typed(uint32_t range);
 };
 
 }  // namespace database

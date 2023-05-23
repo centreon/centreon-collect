@@ -402,7 +402,7 @@ void mysql::_get_server_infos() {
                           minor, patch);
       if (server == "MariaDB" && (major > 10 || (major == 10 && minor >= 2))) {
         log_v2::sql()->info(
-            "it supports column-wise binding in prepared  statements");
+            "it supports column-wise binding in prepared statements");
         _support_bulk_statement = true;
       }
     }

@@ -515,8 +515,9 @@ void reporting_stream::_load_kpi_ba_events() {
   }
 }
 
-static auto dimension_kpi_binder = [](const std::shared_ptr<io::data>& event,
-                                      database::mysql_bind_base* binder) {
+static auto bulk_dimension_kpi_binder = [](const std::shared_ptr<io::data>&
+                                               event,
+                                           database::mysql_bulk_bind* binder) {
   if (event->type() == bam::dimension_kpi_event::static_type()) {
     bam::dimension_kpi_event const& dk{
         *std::static_pointer_cast<bam::dimension_kpi_event const>(event)};
@@ -642,8 +643,108 @@ static auto dimension_kpi_binder = [](const std::shared_ptr<io::data>& event,
   }
 };
 
-auto kpi_event_update_binder = [](const std::shared_ptr<io::data>& event,
-                                  database::mysql_bind_base* binder) {
+static auto dimension_kpi_binder = [](const std::shared_ptr<io::data>& event,
+                                      std::string& query) {
+  if (event->type() == bam::dimension_kpi_event::static_type()) {
+    bam::dimension_kpi_event const& dk{
+        *std::static_pointer_cast<bam::dimension_kpi_event const>(event)};
+    std::string kpi_name;
+    if (!dk.service_description.empty())
+      kpi_name.append(dk.host_name).append(" ").append(dk.service_description);
+    else if (!dk.kpi_ba_name.empty())
+      kpi_name = dk.kpi_ba_name;
+    else if (!dk.boolean_name.empty())
+      kpi_name = dk.boolean_name;
+    else if (!dk.meta_service_name.empty())
+      kpi_name = dk.meta_service_name;
+    std::string sz_kpi_ba_id =
+        dk.kpi_ba_id ? std::to_string(dk.kpi_ba_id) : "NULL";
+    SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                        "BAM-BI: processing declaration of KPI {} ('{}')",
+                        dk.kpi_id, kpi_name);
+    query.append(fmt::format(
+        "{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}'",
+        dk.kpi_id,
+        misc::string::truncate(kpi_name, get_mod_bam_reporting_kpi_col_size(
+                                             mod_bam_reporting_kpi_kpi_name)),
+        dk.ba_id,
+        misc::string::truncate(dk.ba_name, get_mod_bam_reporting_kpi_col_size(
+                                               mod_bam_reporting_kpi_ba_name)),
+        dk.host_id,
+        misc::string::truncate(dk.host_name,
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_host_name)),
+        dk.service_id,
+        misc::string::truncate(dk.service_description,
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_service_description)),
+        sz_kpi_ba_id,
+        misc::string::truncate(dk.kpi_ba_name,
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_kpi_ba_name)),
+        dk.meta_service_id,
+        misc::string::truncate(dk.meta_service_name,
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_meta_service_name)),
+        dk.impact_warning, dk.impact_critical, dk.impact_unknown, dk.boolean_id,
+        misc::string::truncate(dk.boolean_name,
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_boolean_name))));
+  } else {
+    const DimensionKpiEvent& dk =
+        std::static_pointer_cast<bam::pb_dimension_kpi_event const>(event)
+            ->obj();
+    std::string kpi_name;
+    if (!dk.service_description().empty())
+      kpi_name.append(dk.host_name())
+          .append(" ")
+          .append(dk.service_description());
+    else if (!dk.kpi_ba_name().empty())
+      kpi_name = dk.kpi_ba_name();
+    else if (!dk.boolean_name().empty())
+      kpi_name = dk.boolean_name();
+    else if (!dk.meta_service_name().empty())
+      kpi_name = dk.meta_service_name();
+    std::string sz_kpi_ba_id =
+        dk.kpi_ba_id() ? std::to_string(dk.kpi_ba_id()) : "NULL";
+    SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                        "BAM-BI: processing declaration of KPI {} ('{}')",
+                        dk.kpi_id(), kpi_name);
+    query.append(fmt::format(
+        "{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}'",
+        dk.kpi_id(),
+        misc::string::truncate(kpi_name, get_mod_bam_reporting_kpi_col_size(
+                                             mod_bam_reporting_kpi_kpi_name)),
+        dk.ba_id(),
+        misc::string::truncate(
+            dk.ba_name(),
+            get_mod_bam_reporting_kpi_col_size(mod_bam_reporting_kpi_ba_name)),
+        dk.host_id(),
+        misc::string::truncate(dk.host_name(),
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_host_name)),
+        dk.service_id(),
+        misc::string::truncate(dk.service_description(),
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_service_description)),
+        sz_kpi_ba_id,
+        misc::string::truncate(dk.kpi_ba_name(),
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_kpi_ba_name)),
+        dk.meta_service_id(),
+        misc::string::truncate(dk.meta_service_name(),
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_meta_service_name)),
+        dk.impact_warning(), dk.impact_critical(), dk.impact_unknown(),
+        dk.boolean_id(),
+        misc::string::truncate(dk.boolean_name(),
+                               get_mod_bam_reporting_kpi_col_size(
+                                   mod_bam_reporting_kpi_boolean_name))));
+  }
+};
+
+auto bulk_kpi_event_update_binder = [](const std::shared_ptr<io::data>& event,
+                                       database::mysql_bulk_bind* binder) {
   if (event->type() == bam::kpi_event::static_type()) {
     bam::kpi_event const& ke =
         *std::static_pointer_cast<bam::kpi_event const>(event);
@@ -670,6 +771,28 @@ auto kpi_event_update_binder = [](const std::shared_ptr<io::data>& event,
     binder->set_value_as_i32(3, ke.impact_level());
     binder->set_value_as_i32(4, ke.kpi_id());
     binder->set_value_as_u64(5, ke.start_time());
+  }
+};
+
+auto kpi_event_update_binder = [](const std::shared_ptr<io::data>& event,
+                                  std::string& query) {
+  if (event->type() == bam::kpi_event::static_type()) {
+    bam::kpi_event const& ke =
+        *std::static_pointer_cast<bam::kpi_event const>(event);
+    std::string sz_ke_time = ke.end_time.is_null()
+                                 ? "NULL"
+                                 : std::to_string(ke.end_time.get_time_t());
+    query.append(fmt::format("{},{},{},{},{},{}", sz_ke_time, ke.status,
+                             int(ke.in_downtime), ke.impact_level, ke.kpi_id,
+                             ke.start_time.get_time_t()));
+  } else {
+    const KpiEvent& ke =
+        std::static_pointer_cast<bam::pb_kpi_event const>(event)->obj();
+    std::string sz_ke_time =
+        ke.end_time() <= 0 ? "NULL" : std::to_string(ke.end_time());
+    query.append(fmt::format("{},{},{},{},{},{}", sz_ke_time, int(ke.status()),
+                             int(ke.in_downtime()), ke.impact_level(),
+                             ke.kpi_id(), ke.start_time()));
   }
 };
 
@@ -728,12 +851,11 @@ void reporting_stream::_prepare() {
         " in_downtime=?, impact_level=?"
         " WHERE kpi_id=? AND start_time=?",
         _mysql.get_config().get_queries_per_transaction(),
-        kpi_event_update_binder);
+        bulk_kpi_event_update_binder);
   } else {
     _kpi_event_update = database::create_bulk_or_multi_bbdo_event(
         "INSERT INTO mod_bam_reporting_kpi_events (end_time, status, "
         "in_downtime, impact_level, kpi_id, start_time) VALUES",
-        6,
         "ON DUPLICATE KEY UPDATE end_time=VALUES(end_time), "
         "status=VALUES(status), in_downtime=VALUES(in_downtime), "
         "impact_level=VALUES(impact_level)",
@@ -819,7 +941,7 @@ void reporting_stream::_prepare() {
         " ?, ?, ?,"
         " ?, ?, ?)",
         _mysql.get_config().get_queries_per_transaction(),
-        dimension_kpi_binder);
+        bulk_dimension_kpi_binder);
   } else {
     _dimension_kpi_insert = database::create_bulk_or_multi_bbdo_event(
         "INSERT INTO mod_bam_reporting_kpi (kpi_id, kpi_name,"
@@ -829,7 +951,7 @@ void reporting_stream::_prepare() {
         " impact_warning, impact_critical, impact_unknown,"
         " boolean_id, boolean_name)"
         " VALUES ",
-        17, "", dimension_kpi_binder);
+        "", dimension_kpi_binder);
   }
 }
 

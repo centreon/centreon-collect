@@ -21,96 +21,45 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-constexpr unsigned max_query_total_length = 1024 * 1024;
+constexpr unsigned max_query_total_length = 8 * 1024 * 1024;
 
 unsigned mysql_multi_insert::push_stmt(mysql& pool, int thread_id) const {
-  unsigned row_index;
-
-  // compute (?,?,...) per row
-  std::string row_values;
-  row_values.reserve(_nb_column * 2 + 2);
-  row_values.push_back('(');
-  if (_nb_column) {
-    row_values.push_back('?');
-  }
-  for (unsigned col_index = 1; col_index < _nb_column; ++col_index) {
-    row_values.push_back(',');
-    row_values.push_back('?');
-  }
-  row_values.push_back(')');
-
-  size_t remain = _rows.size();
-  size_t fixed_part_length =
-      _query.length() + _on_duplicate_key_part.length() + 2 /*spaces*/;
-  size_t max_rows_per_query = (max_query_total_length - fixed_part_length) /
-                              (row_values.length() + 2);  // add ,\n
-  // mariadb limit of place holders
-  if (max_rows_per_query * _nb_column > 65535) {
-    max_rows_per_query = 65535 / _nb_column;
-  }
-  if (max_rows_per_query > remain) {
-    max_rows_per_query = remain;
-  }
-
-  auto compute_value_part = [&](std::string& to_append, unsigned nb_row) {
-    to_append += row_values;
-    for (row_index = 1; row_index < nb_row; ++row_index) {
-      to_append.push_back(',');
-      to_append.push_back('\n');
-      to_append += row_values;
-    }
-  };
-
-  // compute max (?,?,?,..),\n(?,?,?,..),,\n... to reuse it
-  std::string max_query_values_part;
-  max_query_values_part.reserve(max_rows_per_query * (row_values.length() * 2));
-  compute_value_part(max_query_values_part, max_rows_per_query);
-
   std::string query;
-  query.reserve(fixed_part_length + max_query_values_part.length());
+  query.reserve(max_query_total_length);
 
-  // construction of the first string query
   query = _query;
   query.push_back(' ');
-  query += max_query_values_part;
-  query.push_back(' ');
-  query += _on_duplicate_key_part;
 
-  std::list<database::mysql_stmt> statements;
-  std::list<std::future<unsigned>> to_wait;
-  for (auto row_iter = _rows.begin(); row_iter != _rows.end();) {
-    unsigned nb_row_to_bind =
-        remain < max_rows_per_query ? remain : max_rows_per_query;
-    if (nb_row_to_bind <
-        max_rows_per_query) {  // next query shorter than first one => compute
+  char sep = ' ';
+  unsigned nb_row_in_query = 0;
+
+  unsigned nb_query = 0;
+  for (auto row_iter = _rows.begin(); row_iter != _rows.end(); ++row_iter) {
+    if (query.length() >= max_query_total_length) {
+      query += ' ' + _on_duplicate_key_part;
+      pool.run_query(query, my_error::empty, thread_id);
       query = _query;
-      query.push_back(' ');
-      compute_value_part(query, remain);
-      query.push_back(' ');
-      query += _on_duplicate_key_part;
+      sep = ' ';
+      nb_row_in_query = 0;
+      ++nb_query;
     }
 
-    remain -= nb_row_to_bind;
-    statements.emplace_back(query);
-
-    database::mysql_stmt& last = *statements.rbegin();
-    mysql_delayed_bind binder(last);
-    for (; row_iter != _rows.end() && nb_row_to_bind;
-         ++row_iter, --nb_row_to_bind) {
-      (*row_iter)->fill_row(binder);
-      binder.inc_stmt_first_column(_nb_column);
-    }
-    std::promise<unsigned> prom;
-    to_wait.push_back(prom.get_future());
-    pool.prepare_run_statement<unsigned>(
-        last, std::move(prom), database::mysql_task::int_type::LAST_INSERT_ID,
-        thread_id);
+    query += sep;
+    query += '(';
+    (*row_iter)->fill_row(query);
+    query += ')';
+    sep = ',';
+    ++nb_row_in_query;
   }
 
-  for (auto& fut : to_wait) {
-    fut.get();
+  // some remained data to push?
+  if (query.length() > _query.length() + 1) {
+    query += ' ' + _on_duplicate_key_part;
+    pool.run_query(query, my_error::empty, thread_id);
+    ++nb_query;
   }
-  return to_wait.size();
+
+  return nb_query;
 }
 
 /**
@@ -138,12 +87,9 @@ bulk_or_multi::bulk_or_multi(mysql& connexion,
  * @param on_duplicate_key_part
  */
 bulk_or_multi::bulk_or_multi(const std::string& query,
-                             unsigned nb_column,
                              const std::string& on_duplicate_key_part)
     : _mult_insert(
-          std::make_unique<mysql_multi_insert>(query,
-                                               nb_column,
-                                               on_duplicate_key_part)) {}
+          std::make_unique<mysql_multi_insert>(query, on_duplicate_key_part)) {}
 
 /**
  * @brief execute _bulk or multi insert query
@@ -160,8 +106,7 @@ void bulk_or_multi::execute(mysql& connexion) {
     }
   } else {
     _mult_insert->push_stmt(connexion);
-    _mult_insert =
-        std::make_unique<database::mysql_multi_insert>(*_mult_insert);
+    _mult_insert->clear_rows();
   }
 }
 

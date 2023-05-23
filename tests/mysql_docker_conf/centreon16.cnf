@@ -1,6 +1,7 @@
 [mysqld]
 #mariadb conf optimized for a 16Gb ram machine
 port            = 3306
+default-authentication-plugin=mysql_native_password
 
 max_heap_table_size=1G
 open_files_limit = 32000

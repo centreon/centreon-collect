@@ -440,8 +440,9 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
   return retval;
 }
 
-static auto ba_binder = [](const std::shared_ptr<io::data>& event,
-                           database::mysql_bind_base* binder) {
+// when bulk stmt are available
+static auto bulk_ba_binder = [](const std::shared_ptr<io::data>& event,
+                                database::mysql_bulk_bind* binder) {
   if (event->type() == ba_status::static_type()) {
     const ba_status& status = *std::static_pointer_cast<ba_status>(event);
     binder->set_value_as_f64(0, status.level_nominal);
@@ -471,8 +472,40 @@ static auto ba_binder = [](const std::shared_ptr<io::data>& event,
   }
 };
 
-static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
-                            database::mysql_bind_base* binder) {
+auto ba_binder = [](const std::shared_ptr<io::data>& event,
+                    std::string& query) {
+  if (event->type() == ba_status::static_type()) {
+    const ba_status& status = *std::static_pointer_cast<ba_status>(event);
+    if (status.last_state_change.is_null())
+      query.append(fmt::format("{},{},{},NULL,{},{},{}", status.level_nominal,
+                               status.level_acknowledgement,
+                               status.level_downtime, int(status.in_downtime),
+                               status.state, status.ba_id));
+    else
+      query.append(
+          fmt::format("{},{},{},{},{},{},{}", status.level_nominal,
+                      status.level_acknowledgement, status.level_downtime,
+                      status.last_state_change.get_time_t(),
+                      int(status.in_downtime), status.state, status.ba_id));
+  } else {
+    const BaStatus& status =
+        static_cast<const pb_ba_status*>(event.get())->obj();
+    if (status.last_state_change() <= 0)
+      query.append(fmt::format(
+          "{},{},{},NULL,{},{},{}", status.level_nominal(),
+          status.level_acknowledgement(), status.level_downtime(),
+          int(status.in_downtime()), int(status.state()), status.ba_id()));
+    else
+      query.append(
+          fmt::format("{},{},{},{},{},{},{}", status.level_nominal(),
+                      status.level_acknowledgement(), status.level_downtime(),
+                      status.last_state_change(), int(status.in_downtime()),
+                      int(status.state()), status.ba_id()));
+  }
+};
+
+static auto bulk_kpi_binder = [](const std::shared_ptr<io::data>& event,
+                                 database::mysql_bulk_bind* binder) {
   if (event->type() == kpi_status::static_type()) {
     const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
     binder->set_value_as_f64(0, status.level_acknowledgement_hard);
@@ -507,6 +540,45 @@ static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
   }
 };
 
+static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
+                            std::string& query) {
+  if (event->type() == kpi_status::static_type()) {
+    const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
+    if (status.last_state_change.is_null()) {
+      query.append(fmt::format(
+          "{},{},{},{},1+1,NULL,{},{},{},{}", status.level_acknowledgement_hard,
+          status.state_hard, status.level_downtime_hard,
+          status.level_nominal_hard, status.last_impact, int(status.valid),
+          int(status.in_downtime), status.kpi_id));
+    } else {
+      query.append(fmt::format(
+          "{},{},{},{},1+1,{},{},{},{},{}", status.level_acknowledgement_hard,
+          status.state_hard, status.level_downtime_hard,
+          status.level_nominal_hard, status.last_state_change.get_time_t(),
+          status.last_impact, int(status.valid), int(status.in_downtime),
+          status.kpi_id));
+    }
+  } else {
+    const KpiStatus& status(
+        std::static_pointer_cast<pb_kpi_status>(event)->obj());
+    if (status.last_state_change() <= 0) {
+      query.append(
+          fmt::format("{},{},{},{},1+1,NULL,{},{},{},{}",
+                      status.level_acknowledgement_hard(), status.state_hard(),
+                      status.level_downtime_hard(), status.level_nominal_hard(),
+                      status.last_impact(), int(status.valid()),
+                      int(status.in_downtime()), status.kpi_id()));
+    } else {
+      query.append(fmt::format(
+          "{},{},{},{},1+1,{},{},{},{},{}", status.level_acknowledgement_hard(),
+          status.state_hard(), status.level_downtime_hard(),
+          status.level_nominal_hard(), status.last_state_change(),
+          status.last_impact(), int(status.valid()), int(status.in_downtime()),
+          status.kpi_id()));
+    }
+  }
+};
+
 /**
  *  Prepare bulk queries.
  */
@@ -519,19 +591,18 @@ void monitoring_stream::_prepare() {
         "current_level=?,acknowledged=?,downtime=?,last_state_"
         "change=?,in_"
         "downtime=?,current_status=? WHERE ba_id=?",
-        _conf_queries_per_transaction, ba_binder);
+        _conf_queries_per_transaction, bulk_ba_binder);
     _kpi_query = database::create_bulk_or_multi_bbdo_event(
         _mysql,
         "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,downtime=?, "
         "last_level=?,state_type=?,last_state_change=?,last_impact=?, "
         "valid=?,in_downtime=? WHERE kpi_id=?",
-        _conf_queries_per_transaction, kpi_binder);
+        _conf_queries_per_transaction, bulk_kpi_binder);
 
   } else {
     _ba_query = database::create_bulk_or_multi_bbdo_event(
         "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
         "last_state_change, in_downtime, current_status, ba_id) VALUES",
-        7,
         "ON DUPLICATE KEY UPDATE current_level=VALUES(current_level), "
         "acknowledged=VALUES(acknowledged), downtime=VALUES(downtime), "
         "last_state_change=VALUES(last_state_change), "
@@ -542,7 +613,6 @@ void monitoring_stream::_prepare() {
         "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
         "downtime, last_level, state_type, last_state_change, last_impact, "
         "valid, in_downtime, kpi_id) VALUES",
-        10,
         "ON DUPLICATE KEY UPDATE acknowledged=VALUES(acknowledged), "
         "current_status=VALUES(current_status), "
         "downtime=VALUES(downtime), last_level=VALUES(last_level), "
