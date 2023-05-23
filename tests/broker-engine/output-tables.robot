@@ -148,9 +148,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
         ...    SELECT r.last_status_change, s.last_hard_state_change, s.last_notification, s.next_notification , s.last_state_change, s.last_time_critical, s.last_time_ok, s.last_time_unknown, s.last_time_warning, h.last_hard_state_change, h.last_notification, h.next_host_notification, h.last_state_change, h.last_time_down, h.last_time_unreachable, h.last_time_up FROM services s, resources r, hosts h WHERE h.host_id=1 AND s.service_id=1 AND r.id=1 AND r.parent_id=1
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
-            BREAK...    "${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
-        END
+        EXIT FOR LOOP IF    "${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
     END
     Should Be Equal As Strings
     ...    ${output}
