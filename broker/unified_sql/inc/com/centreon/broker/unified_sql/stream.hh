@@ -217,6 +217,7 @@ class stream : public io::stream {
 
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
 
+  mutable std::mutex _timer_m;
   std::mutex _group_clean_timer_m;
   asio::system_timer _group_clean_timer;
 
