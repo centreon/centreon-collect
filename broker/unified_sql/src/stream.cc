@@ -139,10 +139,6 @@ stream::stream(const database_config& dbcfg,
            " ON DUPLICATE KEY UPDATE "
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
            "VALUES(value)"),
-      _perfdata(
-          queue_timer_duration,
-          _max_perfdata_queries,
-          "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES {}"),
       _logs(queue_timer_duration,
             _max_pending_queries,
             "INSERT INTO logs "
@@ -205,6 +201,7 @@ stream::stream(const database_config& dbcfg,
     log_v2::sql()->error("error while loading caches: {}", e.what());
     throw;
   }
+  std::lock_guard<std::mutex> l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
       std::bind(&stream::_check_queues, this, std::placeholders::_1));
@@ -613,7 +610,8 @@ void stream::_add_action(int32_t conn, actions action) {
  * @return A nlohmann::json with the statistics.
  */
 void stream::statistics(nlohmann::json& tree) const {
-  size_t perfdata = _perfdata.size();
+  size_t perfdata =
+      _bulk_prepared_statement ? _perfdata_b->size() : _perfdata_q->size();
   size_t sz_metrics;
   size_t sz_logs = _logs.size();
   size_t sz_cv = _cv.size();
@@ -861,6 +859,19 @@ void stream::update() {
  * bind or directly. It is the case for _hscr_update.
  */
 void stream::_init_statements() {
+  if (_bulk_prepared_statement) {
+    _perfdata_stmt = std::make_unique<database::mysql_bulk_stmt>(
+        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES (?,?,?,?)");
+    _mysql.prepare_statement(*_perfdata_stmt);
+    _perfdata_b = std::make_unique<bulk_bind>(
+        _dbcfg.get_connections_count(), queue_timer_duration,
+        _max_perfdata_queries, *_perfdata_stmt);
+  } else {
+    _perfdata_q = std::make_unique<bulk_queries>(
+        queue_timer_duration, _max_perfdata_queries,
+        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES {}");
+  }
+
   const std::string hscr_query(
       "UPDATE hosts SET "
       "checked=?,"                   // 0: has_been_checked
