@@ -663,7 +663,7 @@ static auto dimension_kpi_binder = [](const std::shared_ptr<io::data>& event,
                         "BAM-BI: processing declaration of KPI {} ('{}')",
                         dk.kpi_id, kpi_name);
     query.append(fmt::format(
-        "{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}'",
+        "({},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}')",
         dk.kpi_id,
         misc::string::truncate(kpi_name, get_mod_bam_reporting_kpi_col_size(
                                              mod_bam_reporting_kpi_kpi_name)),
@@ -711,7 +711,7 @@ static auto dimension_kpi_binder = [](const std::shared_ptr<io::data>& event,
                         "BAM-BI: processing declaration of KPI {} ('{}')",
                         dk.kpi_id(), kpi_name);
     query.append(fmt::format(
-        "{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}'",
+        "({},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},'{}',{},{},{},{},'{}')",
         dk.kpi_id(),
         misc::string::truncate(kpi_name, get_mod_bam_reporting_kpi_col_size(
                                              mod_bam_reporting_kpi_kpi_name)),
@@ -782,7 +782,7 @@ auto kpi_event_update_binder = [](const std::shared_ptr<io::data>& event,
     std::string sz_ke_time = ke.end_time.is_null()
                                  ? "NULL"
                                  : std::to_string(ke.end_time.get_time_t());
-    query.append(fmt::format("{},{},{},{},{},{}", sz_ke_time, ke.status,
+    query.append(fmt::format("({},{},{},{},{},{})", sz_ke_time, ke.status,
                              int(ke.in_downtime), ke.impact_level, ke.kpi_id,
                              ke.start_time.get_time_t()));
   } else {
@@ -790,9 +790,9 @@ auto kpi_event_update_binder = [](const std::shared_ptr<io::data>& event,
         std::static_pointer_cast<bam::pb_kpi_event const>(event)->obj();
     std::string sz_ke_time =
         ke.end_time() <= 0 ? "NULL" : std::to_string(ke.end_time());
-    query.append(fmt::format("{},{},{},{},{},{}", sz_ke_time, int(ke.status()),
-                             int(ke.in_downtime()), ke.impact_level(),
-                             ke.kpi_id(), ke.start_time()));
+    query.append(fmt::format("({},{},{},{},{},{})", sz_ke_time,
+                             int(ke.status()), int(ke.in_downtime()),
+                             ke.impact_level(), ke.kpi_id(), ke.start_time()));
   }
 };
 

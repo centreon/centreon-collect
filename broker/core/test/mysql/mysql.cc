@@ -2034,13 +2034,13 @@ struct row {
 };
 
 static std::string row_filler(const row& data) {
-  return fmt::format("'{}',{},{},'{}',{},{}", data.name, data.value,
+  return fmt::format("('{}',{},{},'{}',{},{})", data.name, data.value,
                      int(data.t), data.e, data.i, data.u);
 }
 
 static std::string row_filler2(const row& data) {
-  return fmt::format("{},'{}',{},{},'{}',{},{}", data.id, data.name, data.value,
-                     int(data.t), data.e, data.i, data.u);
+  return fmt::format("({},'{}',{},{},'{}',{},{})", data.id, data.name,
+                     data.value, int(data.t), data.e, data.i, data.u);
 }
 
 TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
@@ -2180,7 +2180,7 @@ static auto bulk_event_binder = [](const std::shared_ptr<io::data>& event,
 
 static auto multi_event_binder = [](const std::shared_ptr<io::data>& event,
                                     std::string& query) {
-  query.append(fmt::format("'toto{}',{},{},'b',{},{}", event_binder_index,
+  query.append(fmt::format("('toto{}',{},{},'b',{},{})", event_binder_index,
                            12.34 + event_binder_index,
                            (45 + event_binder_index) % 100,
                            678 + event_binder_index, 789 + event_binder_index));

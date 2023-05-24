@@ -800,27 +800,75 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
 
   // Check if poller is valid.
   if (_is_valid_poller(dd.poller_id)) {
-    _downtimes.push_query(fmt::format(
-        "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-        dd.actual_end_time.is_null() ? "NULL"
-                                     : fmt::format("{}", dd.actual_end_time),
-        dd.actual_start_time.is_null()
-            ? "NULL"
-            : fmt::format("{}", dd.actual_start_time),
-        misc::string::escape(dd.author,
-                             get_downtimes_col_size(downtimes_author)),
-        dd.downtime_type,
-        dd.deletion_time.is_null() ? "NULL"
-                                   : fmt::format("{}", dd.deletion_time),
-        dd.duration,
-        dd.end_time.is_null() ? "NULL" : fmt::format("{}", dd.end_time),
-        dd.entry_time.is_null() ? "NULL" : fmt::format("{}", dd.entry_time),
-        dd.fixed, dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
-        dd.start_time.is_null() ? "NULL" : fmt::format("{}", dd.start_time),
-        dd.triggered_by == 0 ? "NULL" : fmt::format("{}", dd.triggered_by),
-        dd.was_cancelled, dd.was_started,
-        misc::string::escape(dd.comment,
-                             get_downtimes_col_size(downtimes_comment_data))));
+    std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
+    if (_downtimes->is_bulk()) {
+      database::mysql_bulk_bind& b = _downtimes->bulk_bind();
+      if (dd.actual_end_time.is_null())
+        b.set_null_i64(0);
+      else
+        b.set_value_as_i64(0, dd.actual_end_time.get_time_t());
+      if (dd.actual_start_time.is_null())
+        b.set_null_i64(1);
+      else
+        b.set_value_as_i64(1, dd.actual_start_time.get_time_t());
+      b.set_value_as_str(
+          2, misc::string::escape(dd.author,
+                                  get_downtimes_col_size(downtimes_author)));
+      b.set_value_as_i32(3, dd.downtime_type);
+      if (dd.deletion_time.is_null())
+        b.set_null_i64(4);
+      else
+        b.set_value_as_i64(4, dd.deletion_time.get_time_t());
+      b.set_value_as_i64(5, dd.duration);
+      if (dd.end_time.is_null())
+        b.set_null_i64(6);
+      else
+        b.set_value_as_i64(6, dd.end_time.get_time_t());
+      if (dd.entry_time.is_null())
+        b.set_null_i64(7);
+      else
+        b.set_value_as_i64(7, dd.entry_time.get_time_t());
+      b.set_value_as_tiny(8, int(dd.fixed));
+      b.set_value_as_i64(9, dd.host_id);
+      b.set_value_as_i64(10, dd.poller_id);
+      b.set_value_as_i64(11, dd.internal_id);
+      b.set_value_as_i64(12, dd.service_id);
+      if (dd.start_time.is_null())
+        b.set_null_i64(13);
+      else
+        b.set_value_as_i64(13, dd.start_time.get_time_t());
+      if (dd.triggered_by == 0)
+        b.set_null_i32(14);
+      else
+        b.set_value_as_i32(14, dd.triggered_by);
+      b.set_value_as_tiny(15, int(dd.was_cancelled));
+      b.set_value_as_tiny(16, int(dd.was_started));
+      b.set_value_as_str(
+          17, misc::string::escape(
+                  dd.comment, get_downtimes_col_size(downtimes_comment_data)));
+    } else {
+      _downtimes->multi_insert().push(fmt::format(
+          "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
+          dd.actual_end_time.is_null() ? "NULL"
+                                       : fmt::format("{}", dd.actual_end_time),
+          dd.actual_start_time.is_null()
+              ? "NULL"
+              : fmt::format("{}", dd.actual_start_time),
+          misc::string::escape(dd.author,
+                               get_downtimes_col_size(downtimes_author)),
+          dd.downtime_type,
+          dd.deletion_time.is_null() ? "NULL"
+                                     : fmt::format("{}", dd.deletion_time),
+          dd.duration,
+          dd.end_time.is_null() ? "NULL" : fmt::format("{}", dd.end_time),
+          dd.entry_time.is_null() ? "NULL" : fmt::format("{}", dd.entry_time),
+          dd.fixed, dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
+          dd.start_time.is_null() ? "NULL" : fmt::format("{}", dd.start_time),
+          dd.triggered_by == 0 ? "NULL" : fmt::format("{}", dd.triggered_by),
+          dd.was_cancelled, dd.was_started,
+          misc::string::escape(
+              dd.comment, get_downtimes_col_size(downtimes_comment_data))));
+    }
   }
 }
 
@@ -851,38 +899,87 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 
   // Check if poller is valid.
   if (_is_valid_poller(dt_obj.instance_id())) {
-    _downtimes.push_query(fmt::format(
-        "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-        time_is_undefined(dt_obj.actual_end_time())
-            ? "NULL"
-            : fmt::format("{}", dt_obj.actual_end_time()),
-        time_is_undefined(dt_obj.actual_start_time())
-            ? "NULL"
-            : fmt::format("{}", dt_obj.actual_start_time()),
-        misc::string::escape(dt_obj.author(),
-                             get_downtimes_col_size(downtimes_author)),
-        dt_obj.type(),
-        time_is_undefined(dt_obj.deletion_time())
-            ? "NULL"
-            : fmt::format("{}", dt_obj.deletion_time()),
-        dt_obj.duration(),
-        time_is_undefined(dt_obj.end_time())
-            ? "NULL"
-            : fmt::format("{}", dt_obj.end_time()),
-        time_is_undefined(dt_obj.entry_time())
-            ? "NULL"
-            : fmt::format("{}", dt_obj.entry_time()),
-        dt_obj.fixed(), dt_obj.host_id(), dt_obj.instance_id(), dt_obj.id(),
-        dt_obj.service_id(),
-        time_is_undefined(dt_obj.start_time())
-            ? "NULL"
-            : fmt::format("{}", dt_obj.start_time()),
-        time_is_undefined(dt_obj.triggered_by())
-            ? "NULL"
-            : fmt::format("{}", dt_obj.triggered_by()),
-        dt_obj.cancelled(), dt_obj.started(),
-        misc::string::escape(dt_obj.comment_data(),
-                             get_downtimes_col_size(downtimes_comment_data))));
+    std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
+    if (_downtimes->is_bulk()) {
+      database::mysql_bulk_bind& b = _downtimes->bulk_bind();
+      if (time_is_undefined(dt_obj.actual_end_time()))
+        b.set_null_i64(0);
+      else
+        b.set_value_as_i64(0, dt_obj.actual_end_time());
+      if (time_is_undefined(dt_obj.actual_start_time()))
+        b.set_null_i64(1);
+      else
+        b.set_value_as_i64(1, dt_obj.actual_start_time());
+      b.set_value_as_str(
+          2, misc::string::escape(dt_obj.author(),
+                                  get_downtimes_col_size(downtimes_author)));
+      b.set_value_as_i32(3, int(dt_obj.type()));
+      if (time_is_undefined(dt_obj.deletion_time()))
+        b.set_null_i64(4);
+      else
+        b.set_value_as_i64(4, dt_obj.deletion_time());
+      b.set_value_as_i64(5, dt_obj.duration());
+      if (time_is_undefined(dt_obj.end_time()))
+        b.set_null_i64(6);
+      else
+        b.set_value_as_i64(6, dt_obj.end_time());
+      if (time_is_undefined(dt_obj.entry_time()))
+        b.set_null_i64(7);
+      else
+        b.set_value_as_i64(7, dt_obj.entry_time());
+      b.set_value_as_tiny(8, int(dt_obj.fixed()));
+      b.set_value_as_i64(9, dt_obj.host_id());
+      b.set_value_as_i64(10, dt_obj.instance_id());
+      b.set_value_as_i64(11, dt_obj.id());
+      b.set_value_as_i64(12, dt_obj.service_id());
+      if (time_is_undefined(dt_obj.start_time()))
+        b.set_null_i64(13);
+      else
+        b.set_value_as_i64(13, dt_obj.start_time());
+      if (dt_obj.triggered_by() == 0)
+        b.set_null_i32(14);
+      else
+        b.set_value_as_i32(14, dt_obj.triggered_by());
+      b.set_value_as_tiny(15, int(dt_obj.cancelled()));
+      b.set_value_as_tiny(16, int(dt_obj.started()));
+      b.set_value_as_str(
+          17,
+          misc::string::escape(dt_obj.comment_data(),
+                               get_downtimes_col_size(downtimes_comment_data)));
+    } else {
+      _downtimes->multi_insert().push(fmt::format(
+          "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
+          time_is_undefined(dt_obj.actual_end_time())
+              ? "NULL"
+              : fmt::format("{}", dt_obj.actual_end_time()),
+          time_is_undefined(dt_obj.actual_start_time())
+              ? "NULL"
+              : fmt::format("{}", dt_obj.actual_start_time()),
+          misc::string::escape(dt_obj.author(),
+                               get_downtimes_col_size(downtimes_author)),
+          dt_obj.type(),
+          time_is_undefined(dt_obj.deletion_time())
+              ? "NULL"
+              : fmt::format("{}", dt_obj.deletion_time()),
+          dt_obj.duration(),
+          time_is_undefined(dt_obj.end_time())
+              ? "NULL"
+              : fmt::format("{}", dt_obj.end_time()),
+          time_is_undefined(dt_obj.entry_time())
+              ? "NULL"
+              : fmt::format("{}", dt_obj.entry_time()),
+          dt_obj.fixed(), dt_obj.host_id(), dt_obj.instance_id(), dt_obj.id(),
+          dt_obj.service_id(),
+          time_is_undefined(dt_obj.start_time())
+              ? "NULL"
+              : fmt::format("{}", dt_obj.start_time()),
+          dt_obj.triggered_by() == 0 ? "NULL"
+                                     : fmt::format("{}", dt_obj.triggered_by()),
+          dt_obj.cancelled(), dt_obj.started(),
+          misc::string::escape(
+              dt_obj.comment_data(),
+              get_downtimes_col_size(downtimes_comment_data))));
+    }
   }
 }
 
@@ -2387,25 +2484,54 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
       "SQL: processing log of poller '{}' generated at {} (type {})",
       le.poller_name, le.c_time, le.msg_type);
 
-  std::lock_guard<std::mutex> lck(_queues_m);
-
   // Push query.
-  _logs.push_query(fmt::format(
-      "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
-      le.host_id, le.service_id,
-      misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
-      misc::string::escape(le.poller_name,
-                           get_logs_col_size(logs_instance_name)),
-      le.log_type, le.msg_type,
-      misc::string::escape(le.notification_cmd,
-                           get_logs_col_size(logs_notification_cmd)),
-      misc::string::escape(le.notification_contact,
-                           get_logs_col_size(logs_notification_contact)),
-      le.retry,
-      misc::string::escape(le.service_description,
-                           get_logs_col_size(logs_service_description)),
-      le.status,
-      misc::string::escape(le.output, get_logs_col_size(logs_output))));
+  if (_bulk_prepared_statement) {
+    std::lock_guard<database::bulk_or_multi> lck(*_logs);
+    database::mysql_bulk_bind& b = _logs->bulk_bind();
+    b.set_value_as_i64(0, le.c_time.get_time_t());
+    b.set_value_as_i64(1, le.host_id);
+    b.set_value_as_i64(2, le.service_id);
+    b.set_value_as_str(3, misc::string::escape(
+                              le.host_name, get_logs_col_size(logs_host_name)));
+    b.set_value_as_str(
+        4, misc::string::escape(le.poller_name,
+                                get_logs_col_size(logs_instance_name)));
+    b.set_value_as_i32(5, le.log_type);
+    b.set_value_as_i32(6, le.msg_type);
+    b.set_value_as_str(
+        7, misc::string::escape(le.notification_cmd,
+                                get_logs_col_size(logs_notification_cmd)));
+    b.set_value_as_str(
+        8, misc::string::escape(le.notification_contact,
+                                get_logs_col_size(logs_notification_contact)));
+    b.set_value_as_i32(9, le.retry);
+    b.set_value_as_str(
+        10, misc::string::escape(le.service_description,
+                                 get_logs_col_size(logs_service_description)));
+    b.set_value_as_tiny(11, le.status);
+    b.set_value_as_str(
+        12, misc::string::escape(le.output, get_logs_col_size(logs_output)));
+    b.next_row();
+  } else {
+    std::lock_guard<database::bulk_or_multi> lck(*_logs);
+    database::mysql_multi_insert& mult = _logs->multi_insert();
+    mult.push(fmt::format(
+        "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
+        le.host_id, le.service_id,
+        misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
+        misc::string::escape(le.poller_name,
+                             get_logs_col_size(logs_instance_name)),
+        le.log_type, le.msg_type,
+        misc::string::escape(le.notification_cmd,
+                             get_logs_col_size(logs_notification_cmd)),
+        misc::string::escape(le.notification_contact,
+                             get_logs_col_size(logs_notification_contact)),
+        le.retry,
+        misc::string::escape(le.service_description,
+                             get_logs_col_size(logs_service_description)),
+        le.status,
+        misc::string::escape(le.output, get_logs_col_size(logs_output))));
+  }
 }
 
 /**
@@ -2426,25 +2552,56 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
       "SQL: processing pb log of poller '{}' generated at {} (type {})",
       le_obj.instance_name(), le_obj.ctime(), le_obj.msg_type());
 
-  std::lock_guard<std::mutex> lck(_queues_m);
-  // Push query.
-  _logs.push_query(fmt::format(
-      "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le_obj.ctime(),
-      le_obj.host_id(), le_obj.service_id(),
-      misc::string::escape(le_obj.host_name(),
-                           get_logs_col_size(logs_host_name)),
-      misc::string::escape(le_obj.instance_name(),
-                           get_logs_col_size(logs_instance_name)),
-      le_obj.type(), le_obj.msg_type(),
-      misc::string::escape(le_obj.notification_cmd(),
-                           get_logs_col_size(logs_notification_cmd)),
-      misc::string::escape(le_obj.notification_contact(),
-                           get_logs_col_size(logs_notification_contact)),
-      le_obj.retry(),
-      misc::string::escape(le_obj.service_description(),
-                           get_logs_col_size(logs_service_description)),
-      le_obj.status(),
-      misc::string::escape(le_obj.output(), get_logs_col_size(logs_output))));
+  if (_bulk_prepared_statement) {
+    std::lock_guard<database::bulk_or_multi> lck(*_logs);
+    database::mysql_bulk_bind& b = _logs->bulk_bind();
+    b.set_value_as_i64(0, le_obj.ctime());
+    b.set_value_as_i64(1, le_obj.host_id());
+    b.set_value_as_i64(2, le_obj.service_id());
+    b.set_value_as_str(3,
+                       misc::string::escape(le_obj.host_name(),
+                                            get_logs_col_size(logs_host_name)));
+    b.set_value_as_str(
+        4, misc::string::escape(le_obj.instance_name(),
+                                get_logs_col_size(logs_instance_name)));
+    b.set_value_as_i32(5, le_obj.type());
+    b.set_value_as_i32(6, le_obj.msg_type());
+    b.set_value_as_str(
+        7, misc::string::escape(le_obj.notification_cmd(),
+                                get_logs_col_size(logs_notification_cmd)));
+    b.set_value_as_str(
+        8, misc::string::escape(le_obj.notification_contact(),
+                                get_logs_col_size(logs_notification_contact)));
+    b.set_value_as_i32(9, le_obj.retry());
+    b.set_value_as_str(
+        10, misc::string::escape(le_obj.service_description(),
+                                 get_logs_col_size(logs_service_description)));
+    b.set_value_as_tiny(11, le_obj.status());
+    b.set_value_as_str(
+        12,
+        misc::string::escape(le_obj.output(), get_logs_col_size(logs_output)));
+    b.next_row();
+  } else {
+    std::lock_guard<database::bulk_or_multi> lck(*_logs);
+    database::mysql_multi_insert& mult = _logs->multi_insert();
+    mult.push(fmt::format(
+        "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le_obj.ctime(),
+        le_obj.host_id(), le_obj.service_id(),
+        misc::string::escape(le_obj.host_name(),
+                             get_logs_col_size(logs_host_name)),
+        misc::string::escape(le_obj.instance_name(),
+                             get_logs_col_size(logs_instance_name)),
+        le_obj.type(), le_obj.msg_type(),
+        misc::string::escape(le_obj.notification_cmd(),
+                             get_logs_col_size(logs_notification_cmd)),
+        misc::string::escape(le_obj.notification_contact(),
+                             get_logs_col_size(logs_notification_contact)),
+        le_obj.retry(),
+        misc::string::escape(le_obj.service_description(),
+                             get_logs_col_size(logs_service_description)),
+        le_obj.status(),
+        misc::string::escape(le_obj.output(), get_logs_col_size(logs_output))));
+  }
 }
 
 /**

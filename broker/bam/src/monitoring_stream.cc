@@ -477,13 +477,13 @@ auto ba_binder = [](const std::shared_ptr<io::data>& event,
   if (event->type() == ba_status::static_type()) {
     const ba_status& status = *std::static_pointer_cast<ba_status>(event);
     if (status.last_state_change.is_null())
-      query.append(fmt::format("{},{},{},NULL,{},{},{}", status.level_nominal,
+      query.append(fmt::format("({},{},{},NULL,{},{},{})", status.level_nominal,
                                status.level_acknowledgement,
                                status.level_downtime, int(status.in_downtime),
                                status.state, status.ba_id));
     else
       query.append(
-          fmt::format("{},{},{},{},{},{},{}", status.level_nominal,
+          fmt::format("({},{},{},{},{},{},{})", status.level_nominal,
                       status.level_acknowledgement, status.level_downtime,
                       status.last_state_change.get_time_t(),
                       int(status.in_downtime), status.state, status.ba_id));
@@ -492,12 +492,12 @@ auto ba_binder = [](const std::shared_ptr<io::data>& event,
         static_cast<const pb_ba_status*>(event.get())->obj();
     if (status.last_state_change() <= 0)
       query.append(fmt::format(
-          "{},{},{},NULL,{},{},{}", status.level_nominal(),
+          "({},{},{},NULL,{},{},{})", status.level_nominal(),
           status.level_acknowledgement(), status.level_downtime(),
           int(status.in_downtime()), int(status.state()), status.ba_id()));
     else
       query.append(
-          fmt::format("{},{},{},{},{},{},{}", status.level_nominal(),
+          fmt::format("({},{},{},{},{},{},{})", status.level_nominal(),
                       status.level_acknowledgement(), status.level_downtime(),
                       status.last_state_change(), int(status.in_downtime()),
                       int(status.state()), status.ba_id()));
@@ -545,14 +545,15 @@ static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
   if (event->type() == kpi_status::static_type()) {
     const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
     if (status.last_state_change.is_null()) {
-      query.append(fmt::format(
-          "{},{},{},{},1+1,NULL,{},{},{},{}", status.level_acknowledgement_hard,
-          status.state_hard, status.level_downtime_hard,
-          status.level_nominal_hard, status.last_impact, int(status.valid),
-          int(status.in_downtime), status.kpi_id));
+      query.append(fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
+                               status.level_acknowledgement_hard,
+                               status.state_hard, status.level_downtime_hard,
+                               status.level_nominal_hard, status.last_impact,
+                               int(status.valid), int(status.in_downtime),
+                               status.kpi_id));
     } else {
       query.append(fmt::format(
-          "{},{},{},{},1+1,{},{},{},{},{}", status.level_acknowledgement_hard,
+          "({},{},{},{},1+1,{},{},{},{},{})", status.level_acknowledgement_hard,
           status.state_hard, status.level_downtime_hard,
           status.level_nominal_hard, status.last_state_change.get_time_t(),
           status.last_impact, int(status.valid), int(status.in_downtime),
@@ -563,18 +564,18 @@ static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
         std::static_pointer_cast<pb_kpi_status>(event)->obj());
     if (status.last_state_change() <= 0) {
       query.append(
-          fmt::format("{},{},{},{},1+1,NULL,{},{},{},{}",
+          fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
                       status.level_acknowledgement_hard(), status.state_hard(),
                       status.level_downtime_hard(), status.level_nominal_hard(),
                       status.last_impact(), int(status.valid()),
                       int(status.in_downtime()), status.kpi_id()));
     } else {
       query.append(fmt::format(
-          "{},{},{},{},1+1,{},{},{},{},{}", status.level_acknowledgement_hard(),
-          status.state_hard(), status.level_downtime_hard(),
-          status.level_nominal_hard(), status.last_state_change(),
-          status.last_impact(), int(status.valid()), int(status.in_downtime()),
-          status.kpi_id()));
+          "({},{},{},{},1+1,{},{},{},{},{})",
+          status.level_acknowledgement_hard(), status.state_hard(),
+          status.level_downtime_hard(), status.level_nominal_hard(),
+          status.last_state_change(), status.last_impact(), int(status.valid()),
+          int(status.in_downtime()), status.kpi_id()));
     }
   }
 };

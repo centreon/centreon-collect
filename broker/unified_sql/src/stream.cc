@@ -152,27 +152,6 @@ stream::stream(const database_config& dbcfg,
            " ON DUPLICATE KEY UPDATE "
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
            "VALUES(value)"),
-      _logs(queue_timer_duration,
-            _max_pending_queries,
-            "INSERT INTO logs "
-            "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
-            "notification_cmd,notification_contact,retry,service_description,"
-            "status,output) VALUES {}"),
-      _downtimes(
-          dt_queue_timer_duration,
-          _max_pending_queries,
-          "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
-          "type,deletion_time,duration,end_time,entry_time,"
-          "fixed,host_id,instance_id,internal_id,service_id,"
-          "start_time,triggered_by,cancelled,started,comment_data) VALUES {}"
-          " ON DUPLICATE KEY UPDATE "
-          "actual_end_time=GREATEST(COALESCE(actual_end_time,-1),VALUES("
-          "actual_end_time)),actual_start_time=COALESCE(actual_start_time,"
-          "VALUES(actual_start_time)),author=VALUES(author),cancelled=VALUES("
-          "cancelled),comment_data=VALUES(comment_data),deletion_time=VALUES("
-          "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
-          "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
-          "started),triggered_by=VALUES(triggered_by), type=VALUES(type)"),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
   stats::center::instance().execute([stats = _stats,
@@ -623,7 +602,7 @@ void stream::_add_action(int32_t conn, actions action) {
 void stream::statistics(nlohmann::json& tree) const {
   size_t perfdata = _perfdata_query->row_count();
   size_t sz_metrics;
-  size_t sz_logs = _logs.size();
+  size_t sz_logs = _logs->row_count();
   size_t sz_cv = _cv.size();
   size_t sz_cvs = _cvs.size();
   size_t count;
@@ -1068,10 +1047,55 @@ void stream::_init_statements() {
         "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES (?,?,?,?)",
         _max_perfdata_queries, std::chrono::seconds(queue_timer_duration),
         _max_perfdata_queries);
+    _logs = std::make_unique<database::bulk_or_multi>(
+        _mysql,
+        "INSERT INTO logs "
+        "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
+        "notification_cmd,notification_contact,retry,service_description,"
+        "status,output) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        _max_pending_queries, std::chrono::seconds(queue_timer_duration),
+        _max_pending_queries);
+    _downtimes = std::make_unique<database::bulk_or_multi>(
+        _mysql,
+        "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
+        "type,deletion_time,duration,end_time,entry_time,"
+        "fixed,host_id,instance_id,internal_id,service_id,"
+        "start_time,triggered_by,cancelled,started,comment_data) VALUES "
+        "(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)"
+        " ON DUPLICATE KEY UPDATE "
+        "actual_end_time=GREATEST(COALESCE(actual_end_time,-1),VALUES("
+        "actual_end_time)),actual_start_time=COALESCE(actual_start_time,"
+        "VALUES(actual_start_time)),author=VALUES(author),cancelled=VALUES("
+        "cancelled),comment_data=VALUES(comment_data),deletion_time=VALUES("
+        "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
+        "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
+        "started),triggered_by=VALUES(triggered_by), type=VALUES(type)",
+        _max_pending_queries, std::chrono::seconds(queue_timer_duration),
+        _max_pending_queries);
   } else {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
         "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES", "",
         std::chrono::seconds(queue_timer_duration), _max_perfdata_queries);
+    _logs = std::make_unique<database::bulk_or_multi>(
+        "INSERT INTO logs "
+        "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
+        "notification_cmd,notification_contact,retry,service_description,"
+        "status,output) VALUES ",
+        "", std::chrono::seconds(queue_timer_duration), _max_pending_queries);
+    _downtimes = std::make_unique<database::bulk_or_multi>(
+        "INSERT INTO downtimes (actual_end_time,actual_start_time,author,"
+        "type,deletion_time,duration,end_time,entry_time,"
+        "fixed,host_id,instance_id,internal_id,service_id,"
+        "start_time,triggered_by,cancelled,started,comment_data) VALUES ",
+        " ON DUPLICATE KEY UPDATE "
+        "actual_end_time=GREATEST(COALESCE(actual_end_time,-1),VALUES("
+        "actual_end_time)),actual_start_time=COALESCE(actual_start_time,"
+        "VALUES(actual_start_time)),author=VALUES(author),cancelled=VALUES("
+        "cancelled),comment_data=VALUES(comment_data),deletion_time=VALUES("
+        "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
+        "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
+        "started),triggered_by=VALUES(triggered_by), type=VALUES(type)",
+        std::chrono::seconds(queue_timer_duration), _max_pending_queries);
   }
 
   const std::string hscr_query(

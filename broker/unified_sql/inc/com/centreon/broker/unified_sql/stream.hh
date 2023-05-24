@@ -245,8 +245,8 @@ class stream : public io::stream {
 
   std::unique_ptr<database::bulk_or_multi> _perfdata_query;
 
-  bulk_queries _logs;
-  bulk_queries _downtimes;
+  std::unique_ptr<database::bulk_or_multi> _logs;
+  std::unique_ptr<database::bulk_or_multi> _downtimes;
 
   timestamp _oldest_timestamp;
   std::mutex _stored_timestamps_m;

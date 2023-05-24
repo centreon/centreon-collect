@@ -33,23 +33,17 @@ constexpr unsigned max_query_total_length = 8 * 1024 * 1024;
  */
 mysql_multi_insert::mysql_multi_insert(const std::string& query,
                                        const std::string& on_duplicate_key_part)
-    : _query(query),
-      _on_duplicate_key_part(on_duplicate_key_part),
+    : _query(query + ' '),
+      _on_duplicate_key_part(' ' + on_duplicate_key_part),
       _max_data_length(max_query_total_length - query.length() -
                        on_duplicate_key_part.length() - 4096) {}
 
 unsigned mysql_multi_insert::execute_queries(mysql& pool,
                                              my_error::code ec,
-                                             int thread_id) const {
-  std::string query;
-  query.reserve(max_query_total_length);
-  for (const std::string query_data : _queries_data) {
-    query = _query;
-    query.push_back(' ');
-    query.append(query_data);
-    query.push_back(' ');
-    query.append(_on_duplicate_key_part);
-    thread_id = pool.run_query(query, ec, thread_id);
+                                             int thread_id) {
+  for (std::string& query_data : _queries_data) {
+    query_data.append(_on_duplicate_key_part);
+    thread_id = pool.run_query(query_data, ec, thread_id);
   }
   return _queries_data.size();
 }
@@ -58,8 +52,8 @@ unsigned mysql_multi_insert::execute_queries(mysql& pool,
  * @brief push data into the request
  * data will be bound to query during push_request call
  *
- * @param data data that will be bound it must be like that "data1,
- * 'data_string2', data3,..." without ()
+ * @param data data that will be bound it must be like that
+ * "(data1,'data_string2', data3,...)"
  */
 void mysql_multi_insert::push(const std::string& data) {
   std::string* to_add;
@@ -67,13 +61,13 @@ void mysql_multi_insert::push(const std::string& data) {
       _queries_data.rbegin()->length() >= _max_data_length) {
     _queries_data.emplace_back();
     to_add = &*_queries_data.rbegin();
+    to_add->reserve(_max_data_length);
+    *to_add = _query;
   } else {
     to_add = &*_queries_data.rbegin();
     to_add->push_back(',');
   }
-  to_add->push_back('(');
   to_add->append(data);
-  to_add->push_back(')');
 }
 
 /**
@@ -129,16 +123,18 @@ bulk_or_multi::bulk_or_multi(
  *
  * @param connexion
  */
-void bulk_or_multi::execute(mysql& connexion) {
+void bulk_or_multi::execute(mysql& connexion,
+                            my_error::code ec,
+                            int thread_id) {
   if (_bulk_bind) {
     if (!_bulk_bind->empty()) {
       _bulk_stmt->set_bind(std::move(_bulk_bind));
-      connexion.run_statement(*_bulk_stmt);
+      connexion.run_statement(*_bulk_stmt, ec, thread_id);
       _bulk_bind = _bulk_stmt->create_bind();
       _bulk_bind->reserve(_bulk_row);
     }
   } else {
-    _mult_insert->execute_queries(connexion);
+    _mult_insert->execute_queries(connexion, ec, thread_id);
     _mult_insert->clear_queries();
   }
   _row_count = 0;

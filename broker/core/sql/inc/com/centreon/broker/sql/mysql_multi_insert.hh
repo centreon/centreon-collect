@@ -67,7 +67,7 @@ class mysql_multi_insert {
 
   unsigned execute_queries(mysql& pool,
                            my_error::code ec = my_error::empty,
-                           int thread_id = -1) const;
+                           int thread_id = -1);
 };
 
 /**
@@ -114,7 +114,9 @@ class bulk_or_multi {
 
   virtual ~bulk_or_multi() = default;
 
-  void execute(mysql& connexion);
+  void execute(mysql& connexion,
+               my_error::code ec = my_error::empty,
+               int thread_id = -1);
 
   void on_add_event();
 
@@ -188,12 +190,10 @@ class bulk_or_multi {
  * @tparam binder_lambda bulk mariadb binder
  * @tparam bulk  boolean true if use of bulk statement
  */
-template <typename binder_lambda, bool bulk>
-class bulk_or_multi_bbdo_event;
 
-// bulk specialisation
+// bulk version
 template <typename binder_lambda>
-class bulk_or_multi_bbdo_event<binder_lambda, true> : public bulk_or_multi {
+class bulk_statement_bbdo_event : public bulk_or_multi {
  protected:
   binder_lambda& _binder;
 
@@ -211,7 +211,7 @@ class bulk_or_multi_bbdo_event<binder_lambda, true> : public bulk_or_multi {
    * @param row_count_ready when row_count_ready have been added to the query,
    * ready() return true
    */
-  bulk_or_multi_bbdo_event(
+  bulk_statement_bbdo_event(
       mysql& connexion,
       const std::string& request,
       unsigned bulk_row,
@@ -241,7 +241,7 @@ class bulk_or_multi_bbdo_event<binder_lambda, true> : public bulk_or_multi {
 
 // non bulk specialization
 template <typename binder_lambda>
-class bulk_or_multi_bbdo_event<binder_lambda, false> : public bulk_or_multi {
+class multi_query_bbdo_event : public bulk_or_multi {
  protected:
   binder_lambda& _binder;
 
@@ -259,7 +259,7 @@ class bulk_or_multi_bbdo_event<binder_lambda, false> : public bulk_or_multi {
    * @param row_count_ready when row_count_ready have been added to the query,
    * ready() return true
    */
-  bulk_or_multi_bbdo_event(
+  multi_query_bbdo_event(
       const std::string& query,
       const std::string& on_duplicate_key_part,
       binder_lambda& binder,
@@ -314,9 +314,9 @@ std::unique_ptr<bulk_or_multi> create_bulk_or_multi_bbdo_event(
         std::chrono::seconds(10),
     unsigned row_count_ready = 100000) {
   return std::unique_ptr<bulk_or_multi>(
-      new bulk_or_multi_bbdo_event<binder_lambda, true>(
-          connexion, request, bulk_row, binder, execute_delay_ready,
-          row_count_ready));
+      new bulk_statement_bbdo_event<binder_lambda>(connexion, request, bulk_row,
+                                                   binder, execute_delay_ready,
+                                                   row_count_ready));
 }
 
 /**
@@ -345,9 +345,9 @@ std::unique_ptr<bulk_or_multi> create_bulk_or_multi_bbdo_event(
         std::chrono::seconds(10),
     unsigned row_count_ready = 100000) {
   return std::unique_ptr<bulk_or_multi>(
-      new bulk_or_multi_bbdo_event<binder_lambda, false>(
-          query, on_duplicate_key_part, binder, execute_delay_ready,
-          row_count_ready));
+      new multi_query_bbdo_event<binder_lambda>(query, on_duplicate_key_part,
+                                                binder, execute_delay_ready,
+                                                row_count_ready));
 }
 
 }  // namespace database

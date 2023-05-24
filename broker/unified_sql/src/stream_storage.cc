@@ -307,16 +307,17 @@ void stream::_unified_sql_process_pb_service_status(
                 metric_id, ss.state());
             b.next_row();
           } else {
+            std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
             std::string row;
             if (std::isinf(pd.value()))
-              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check(),
+              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
                                 ss.state(),
                                 pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
-              row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check(),
+              row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check(),
                                 ss.state());
             else
-              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check(),
+              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
                                 ss.state(), pd.value());
             _perfdata_query->multi_insert().push(row);
           }
@@ -717,16 +718,17 @@ void stream::_unified_sql_process_service_status(
               b.set_value_as_f32(3, pd.value());
             b.next_row();
           } else {
+            std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
             std::string row;
             if (std::isinf(pd.value()))
-              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                                 ss.current_state,
                                 pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
-              row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check,
+              row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check,
                                 ss.current_state);
             else
-              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
+              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                                 ss.current_state, pd.value());
             _perfdata_query->multi_insert().push(row);
           }
@@ -823,14 +825,7 @@ void stream::_check_queues(asio::error_code ec) {
       sz_metrics = _metrics.size();
     }
 
-    bool perfdata_done = false;
-
     bool resources_done = false;
-
-    if (_perfdata_query->ready()) {
-      _perfdata_query->execute(_mysql);
-      perfdata_done = true;
-    }
 
     if (_bulk_prepared_statement) {
       _finish_action(-1, actions::host_parents | actions::comments |
@@ -921,6 +916,17 @@ void stream::_check_queues(asio::error_code ec) {
       resources_done = true;
     }
 
+    bool perfdata_done = false;
+    {
+      std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
+      if (_perfdata_query->ready()) {
+        log_v2::sql()->debug("{} new perfdata inserted",
+                             _perfdata_query->row_count());
+        _perfdata_query->execute(_mysql);
+        perfdata_done = true;
+      }
+    }
+
     bool metrics_done = false;
     if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
       _next_update_metrics = now + queue_timer_duration;
@@ -951,28 +957,29 @@ void stream::_check_queues(asio::error_code ec) {
     }
 
     bool downtimes_done = false;
-    if (_downtimes.ready()) {
-      log_v2::sql()->debug("{} new downtimes inserted", _downtimes.size());
-      std::string query = _downtimes.get_query();
+    if (_downtimes->ready()) {
+      std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
+      log_v2::sql()->debug("{} new downtimes inserted",
+                           _downtimes->row_count());
       _finish_action(-1, actions::hosts | actions::instances |
                              actions::downtimes | actions::host_parents |
                              actions::host_dependencies |
                              actions::service_dependencies);
       int32_t conn = special_conn::downtime % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       conn);
+      _downtimes->execute(_mysql, database::mysql_error::store_downtime, conn);
       _add_action(conn, actions::downtimes);
       downtimes_done = true;
     }
 
     bool logs_done = false;
-    if (_logs.ready()) {
-      log_v2::sql()->debug("{} new logs inserted", _logs.size());
-      std::string query = _logs.get_query();
-      // Execute query.
-      int32_t conn = special_conn::log % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_logs, conn);
-      logs_done = true;
+    {
+      std::lock_guard<database::bulk_or_multi> lck(*_logs);
+      if (_logs->ready()) {
+        int32_t conn = special_conn::log % _mysql.connections_count();
+        log_v2::sql()->debug("{} new logs inserted", _logs->row_count());
+        _logs->execute(_mysql, database::mysql_error::update_logs, conn);
+        logs_done = true;
+      }
     }
 
     // End.
