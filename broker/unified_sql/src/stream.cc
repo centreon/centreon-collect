@@ -621,8 +621,7 @@ void stream::_add_action(int32_t conn, actions action) {
  * @return A nlohmann::json with the statistics.
  */
 void stream::statistics(nlohmann::json& tree) const {
-  size_t perfdata =
-      _bulk_prepared_statement ? _perfdata_b->size() : _perfdata_q->size();
+  size_t perfdata = _perfdata_query->row_count();
   size_t sz_metrics;
   size_t sz_logs = _logs.size();
   size_t sz_cv = _cv.size();
@@ -1064,16 +1063,15 @@ void stream::_start_loop_timer() {
  */
 void stream::_init_statements() {
   if (_bulk_prepared_statement) {
-    _perfdata_stmt = std::make_unique<database::mysql_bulk_stmt>(
-        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES (?,?,?,?)");
-    _mysql.prepare_statement(*_perfdata_stmt);
-    _perfdata_b = std::make_unique<bulk_bind>(
-        _dbcfg.get_connections_count(), queue_timer_duration,
-        _max_perfdata_queries, *_perfdata_stmt);
+    _perfdata_query = std::make_unique<database::bulk_or_multi>(
+        _mysql,
+        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES (?,?,?,?)",
+        _max_perfdata_queries, std::chrono::seconds(queue_timer_duration),
+        _max_perfdata_queries);
   } else {
-    _perfdata_q = std::make_unique<bulk_queries>(
-        queue_timer_duration, _max_perfdata_queries,
-        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES {}");
+    _perfdata_query = std::make_unique<database::bulk_or_multi>(
+        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES", "",
+        std::chrono::seconds(queue_timer_duration), _max_perfdata_queries);
   }
 
   const std::string hscr_query(

@@ -2033,19 +2033,15 @@ struct row {
   unsigned u;
 };
 
-class row_filler : public database::row_filler {
-  row::pointer data;
+static std::string row_filler(const row& data) {
+  return fmt::format("'{}',{},{},'{}',{},{}", data.name, data.value,
+                     int(data.t), data.e, data.i, data.u);
+}
 
- public:
-  using pointer = std::unique_ptr<::row_filler>;
-
-  row_filler(const row::pointer& dt) : data(dt) {}
-
-  void fill_row(std::string& query) const override {
-    query.append(fmt::format("'{}',{},{},'{}',{},{}", data->name, data->value,
-                             int(data->t), data->e, data->i, data->u));
-  }
-};
+static std::string row_filler2(const row& data) {
+  return fmt::format("{},'{}',{},{},'{}',{},{}", data.id, data.name, data.value,
+                     int(data.t), data.e, data.i, data.u);
+}
 
 TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
@@ -2070,19 +2066,18 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   unsigned data_index;
 
   for (data_index = 0; data_index < 1000000; ++data_index) {
-    row::pointer to_insert = std::make_shared<row>();
-    to_insert->name = fmt::format("name_{}", data_index);
-    to_insert->value = double(data_index) / 10;
-    to_insert->t = data_index;
-    to_insert->e = 'a' + data_index % 3;
-    to_insert->i = data_index;
-    to_insert->u = data_index + 1;
-    inserter.push(std::make_unique<::row_filler>(to_insert));
+    row to_insert = {.name = fmt::format("name_{}", data_index),
+                     .value = double(data_index) / 10,
+                     .t = char(data_index),
+                     .e = std::string(1, 'a' + data_index % 3),
+                     .i = int(data_index),
+                     .u = data_index + 1};
+    inserter.push(row_filler(to_insert));
   }
 
   std::chrono::system_clock::time_point start_insert =
       std::chrono::system_clock::now();
-  unsigned nb_request = inserter.push_stmt(*ms, 0);
+  unsigned nb_request = inserter.execute_queries(*ms);
   ms->commit();
   std::chrono::system_clock::time_point end_insert =
       std::chrono::system_clock::now();
@@ -2095,8 +2090,9 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
   std::promise<mysql_result> select_prom;
   std::future<mysql_result> select_fut = select_prom.get_future();
-  ms->run_query_and_get_result("SELECT id, name, value, t,e,i,u FROM ut_test",
-                               std::move(select_prom));
+  ms->run_query_and_get_result(
+      "SELECT id, name, value, t,e,i,u FROM ut_test ORDER BY u",
+      std::move(select_prom));
   mysql_result select_res = select_fut.get();
 
   ASSERT_EQ(select_res.get_rows_count(), 1000000);
@@ -2116,36 +2112,23 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   }
 
   //-------------- insert or update test
-  struct row_filler2 : public database::row_filler {
-    row::pointer data;
-
-    row_filler2(const row::pointer& dt) : data(dt) {}
-
-    void fill_row(std::string& query) const override {
-      query.append(fmt::format("{},'{}',{},{},'{}',{},{}", data->id, data->name,
-                               data->value, int(data->t), data->e, data->i,
-                               data->u));
-    }
-  };
-
   database::mysql_multi_insert inserter2(
       "INSERT INTO ut_test (id, name, value, t, e, i, u) VALUES",
       "ON DUPLICATE KEY UPDATE u = VALUES(u)");
 
   for (data_index = 0; data_index < 1000000; ++data_index) {
-    row::pointer to_insert = std::make_shared<row>();
-    to_insert->id = data_index + 10;
-    to_insert->name = fmt::format("name_{}", to_insert->id);
-    to_insert->value = double(to_insert->id) / 10;
-    to_insert->t = to_insert->id;
-    to_insert->e = 'a' + to_insert->id % 3;
-    to_insert->i = to_insert->id;
-    to_insert->u = to_insert->id - 10;
-    inserter2.push(std::make_unique<row_filler2>(to_insert));
+    row to_insert = {.id = data_index + 10,
+                     .name = fmt::format("name_{}", data_index + 10),
+                     .value = double(data_index + 10) / 10,
+                     .t = char(data_index + 10),
+                     .e = std::string(1, 'a' + (data_index + 10) % 3),
+                     .i = int(data_index + 10),
+                     .u = data_index + 10 - 10};
+    inserter2.push(row_filler2(to_insert));
   }
 
   start_insert = std::chrono::system_clock::now();
-  nb_request = inserter2.push_stmt(*ms, 0);
+  nb_request = inserter2.execute_queries(*ms);
   ms->commit();
   end_insert = std::chrono::system_clock::now();
   SPDLOG_LOGGER_INFO(log_v2::sql(),

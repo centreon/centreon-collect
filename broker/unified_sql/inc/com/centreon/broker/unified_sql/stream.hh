@@ -32,6 +32,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
@@ -242,10 +243,7 @@ class stream : public io::stream {
   bulk_queries _cv;
   bulk_queries _cvs;
 
-  std::unique_ptr<bulk_queries> _perfdata_q;
-
-  std::unique_ptr<database::mysql_bulk_stmt> _perfdata_stmt;
-  std::unique_ptr<bulk_bind> _perfdata_b;
+  std::unique_ptr<database::bulk_or_multi> _perfdata_query;
 
   bulk_queries _logs;
   bulk_queries _downtimes;

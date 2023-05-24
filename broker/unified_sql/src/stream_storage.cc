@@ -288,39 +288,37 @@ void stream::_unified_sql_process_pb_service_status(
         if (_store_in_db) {
           // Append perfdata to queue.
           if (_bulk_prepared_statement) {
-            std::lock_guard<bulk_bind> lck(*_perfdata_b);
-            if (!_perfdata_b->bind(conn))
-              _perfdata_b->init_from_stmt(conn);
-            auto* b = _perfdata_b->bind(conn).get();
-            b->set_value_as_i32(0, metric_id);
-            b->set_value_as_i32(1, ss.last_check());
+            std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
+            database::mysql_bulk_bind& b = _perfdata_query->bulk_bind();
+            b.set_value_as_i32(0, metric_id);
+            b.set_value_as_i32(1, ss.last_check());
             char state[2];
             state[0] = '0' + ss.state();
             state[1] = 0;
-            b->set_value_as_str(2, state);
+            b.set_value_as_str(2, state);
             if (std::isinf(pd.value()))
-              b->set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
+              b.set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
-              b->set_null_f32(3);
+              b.set_null_f32(3);
             else
-              b->set_value_as_f32(3, pd.value());
+              b.set_value_as_f32(3, pd.value());
             log_v2::sql()->trace(
                 "New value {} inserted on metric {} with state {}", pd.value(),
                 metric_id, ss.state());
-            b->next_row();
+            b.next_row();
           } else {
             std::string row;
             if (std::isinf(pd.value()))
-              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
+              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check(),
                                 ss.state(),
                                 pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
-              row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check(),
+              row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check(),
                                 ss.state());
             else
-              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
+              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check(),
                                 ss.state(), pd.value());
-            _perfdata_q->push_query(row);
+            _perfdata_query->multi_insert().push(row);
           }
         }
 
@@ -703,36 +701,34 @@ void stream::_unified_sql_process_service_status(
         if (_store_in_db) {
           // Append perfdata to queue.
           if (_bulk_prepared_statement) {
-            std::lock_guard<bulk_bind> lck(*_perfdata_b);
-            if (!_perfdata_b->bind(conn))
-              _perfdata_b->init_from_stmt(conn);
-            auto* b = _perfdata_b->bind(conn).get();
-            b->set_value_as_i32(0, metric_id);
-            b->set_value_as_i32(1, ss.last_check);
+            std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
+            database::mysql_bulk_bind& b = _perfdata_query->bulk_bind();
+            b.set_value_as_i32(0, metric_id);
+            b.set_value_as_i32(1, ss.last_check);
             char state[2];
             state[0] = '0' + ss.current_state;
             state[1] = 0;
-            b->set_value_as_str(2, state);
+            b.set_value_as_str(2, state);
             if (std::isinf(pd.value()))
-              b->set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
+              b.set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
-              b->set_null_f32(3);
+              b.set_null_f32(3);
             else
-              b->set_value_as_f32(3, pd.value());
-            b->next_row();
+              b.set_value_as_f32(3, pd.value());
+            b.next_row();
           } else {
             std::string row;
             if (std::isinf(pd.value()))
-              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
+              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
                                 ss.current_state,
                                 pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
             else if (std::isnan(pd.value()))
-              row = fmt::format("({},{},'{}',NULL)", metric_id, ss.last_check,
+              row = fmt::format("{},{},'{}',NULL", metric_id, ss.last_check,
                                 ss.current_state);
             else
-              row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
+              row = fmt::format("{},{},'{}',{}", metric_id, ss.last_check,
                                 ss.current_state, pd.value());
-            _perfdata_q->push_query(row);
+            _perfdata_query->multi_insert().push(row);
           }
         }
 
@@ -830,19 +826,13 @@ void stream::_check_queues(asio::error_code ec) {
     bool perfdata_done = false;
 
     bool resources_done = false;
+
+    if (_perfdata_query->ready()) {
+      _perfdata_query->execute(_mysql);
+      perfdata_done = true;
+    }
+
     if (_bulk_prepared_statement) {
-      for (uint32_t conn = 0; conn < _perfdata_b->connections_count(); conn++) {
-        if (_perfdata_b->ready(conn)) {
-          log_v2::sql()->debug("Sending {} perfdata on connection {}",
-                               _perfdata_b->size(conn), conn);
-          // Setting the good bind to the stmt
-          _perfdata_b->apply_to_stmt(conn);
-          // Executing the stmt
-          _mysql.run_statement(*_perfdata_stmt,
-                               database::mysql_error::insert_data);
-          perfdata_done = true;
-        }
-      }
       _finish_action(-1, actions::host_parents | actions::comments |
                              actions::downtimes | actions::host_dependencies |
                              actions::service_dependencies);
@@ -929,12 +919,6 @@ void stream::_check_queues(asio::error_code ec) {
         }
       }
       resources_done = true;
-    } else if (_perfdata_q->ready()) {
-      std::string query = _perfdata_q->get_query();
-      // Execute query.
-      _mysql.run_query(query, database::mysql_error::insert_data);
-
-      perfdata_done = true;
     }
 
     bool metrics_done = false;
