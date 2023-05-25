@@ -3402,9 +3402,9 @@ int host::process_check_result_3x(enum host::host_state new_state,
               "Propagating predictive dependency checks to hosts this "
               "one depends on...");
 
-          for (hostdependency_mmap::const_iterator
-                   it{hostdependency::hostdependencies.find(name())},
-               end{hostdependency::hostdependencies.end()};
+          for (auto
+                   it = hostdependency::hostdependencies.find(name()),
+               end = hostdependency::hostdependencies.end();
                it != end && it->first == name(); ++it) {
             hostdependency* temp_dependency(it->second.get());
             if (temp_dependency->dependent_host_ptr == this &&

@@ -36,8 +36,7 @@ class host_helper : public message_helper {
   ~host_helper() noexcept = default;
   void check_validity() const override;
 
-  bool hook(const absl::string_view& key,
-            const absl::string_view& value) override;
+  bool hook(absl::string_view key, const absl::string_view& value) override;
 
   bool insert_customvariable(absl::string_view key,
                              absl::string_view value) override;

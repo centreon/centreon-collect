@@ -34,6 +34,9 @@ namespace configuration {
 using Message = ::google::protobuf::Message;
 
 bool fill_pair_string_group(PairStringSet* grp, const absl::string_view& value);
+bool fill_pair_string_group(PairStringSet* grp,
+                            const absl::string_view& key,
+                            const absl::string_view& value);
 void fill_string_group(StringList* grp, const absl::string_view& value);
 void fill_string_group(StringSet* grp, const absl::string_view& value);
 bool fill_host_notification_options(uint32_t* options,
@@ -98,7 +101,7 @@ class message_helper {
   bool resolved() const { return _resolved; }
   void resolve() { _resolved = true; }
 
-  virtual bool hook(const absl::string_view& key [[maybe_unused]],
+  virtual bool hook(absl::string_view key [[maybe_unused]],
                     const absl::string_view& value [[maybe_unused]]) {
     return false;
   }

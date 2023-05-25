@@ -59,9 +59,9 @@ host_helper::host_helper(Host* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool host_helper::hook(const absl::string_view& key,
-                       const absl::string_view& value) {
+bool host_helper::hook(absl::string_view key, const absl::string_view& value) {
   Host* obj = static_cast<Host*>(mut_obj());
+  key = validate_key(key);
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;

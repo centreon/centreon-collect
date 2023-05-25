@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019,2022 Centreon
+** Copyright 2011-2019,2022-2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -17,6 +17,7 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <absl/container/flat_hash_set.h>
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
@@ -27,59 +28,12 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/severity.hh"
+#include "configuration/message_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::configuration;
-
-/**
- *  Check if the service group name matches the configuration object.
- */
-class servicegroup_name_comparator {
- public:
-  servicegroup_name_comparator(std::string const& servicegroup_name) {
-    _servicegroup_name = servicegroup_name;
-  }
-
-  bool operator()(std::shared_ptr<configuration::servicegroup> sg) {
-    return _servicegroup_name == sg->servicegroup_name();
-  }
-
- private:
-  std::string _servicegroup_name;
-};
-
-/**
- *  Default constructor.
- */
-applier::service::service() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::service::service(applier::service const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::service::~service() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-applier::service& applier::service::operator=(applier::service const& right) {
-  (void)right;
-  return *this;
-}
 
 /**
  * @brief Add a new service.
@@ -89,7 +43,7 @@ applier::service& applier::service::operator=(applier::service const& right) {
  */
 void applier::service::add_object(const configuration::Service& obj) {
   // Check service.
-  if (obj.hosts().data().size() < 1)
+  if (obj.hosts().data().empty())
     throw engine_error() << fmt::format(
         "Could not create service '{}' with no host defined",
         obj.service_description());
@@ -236,7 +190,7 @@ void applier::service::add_object(const configuration::Service& obj) {
  */
 void applier::service::add_object(configuration::service const& obj) {
   // Check service.
-  if (obj.hosts().size() < 1)
+  if (obj.hosts().empty())
     throw engine_error() << "Could not create service '"
                          << obj.service_description()
                          << "' with no host defined";
@@ -377,6 +331,72 @@ void applier::service::add_object(configuration::service const& obj) {
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_ADD, NEBFLAG_NONE, NEBATTR_NONE,
                                svc, MODATTR_ALL);
+}
+
+/**
+ *  Expand a service object.
+ *
+ *  @param[in,out] s  State being applied.
+ */
+void applier::service::expand_objects(configuration::State& s) {
+  std::list<std::unique_ptr<Service>> expanded;
+  // Let's consider all the macros defined in s.
+  absl::flat_hash_set<absl::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  absl::flat_hash_map<absl::string_view, configuration::Hostgroup*> hgs;
+  for (auto& hg : *s.mutable_hostgroups())
+    hgs.emplace(hg.hostgroup_name(), &hg);
+
+
+  // Browse all services.
+  for (auto& service_cfg : *s.mutable_services()) {
+    absl::flat_hash_set<absl::string_view> target_hosts;
+    target_hosts.insert(service_cfg.hosts().data().begin(), service_cfg.hosts().data().end());
+
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *service_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
+    }
+
+    for (auto& grp_name : service_cfg.hostgroups().data()) {
+      // Find host group.
+      auto it = hgs.find(grp_name);
+      if (it != hgs.end()) {
+        if (it->second->members().data().empty() && !s.allow_empty_hostgroup_assignment())
+          throw engine_error() << fmt::format("Could not expand host group '{}' specified in service '{}'", grp_name, service_cfg.service_description());
+        target_hosts.insert(it->second->members().data().begin(), it->second->members().data().end());
+      } else
+        throw engine_error() << fmt::format("Could not find host group '{}' on which to apply service '{}'", grp_name, service_cfg.service_description());
+    }
+
+    // Browse all target hosts.
+    for (auto& h : target_hosts) {
+      auto svc = std::make_unique<configuration::Service>();
+      svc->CopyFrom(service_cfg);
+      svc->clear_hostgroups();
+      svc->clear_hosts();
+      svc->mutable_hosts()->add_data(h.data(), h.size());
+
+      // Expand membershipts.
+      _expand_service_memberships(*svc, s);
+
+      // Inherits special vars.
+      _inherits_special_vars(*svc, s);
+
+      // Insert object.
+      expanded.push_back(std::move(svc));
+    }
+
+  }
+
+  // Set expanded services in configuration state.
+  s.clear_services();
+  for (auto& sv : expanded) {
+    s.mutable_services()->AddAllocated(sv.release());
+  }
 }
 
 /**
@@ -742,6 +762,100 @@ void applier::service::remove_object(configuration::service const& obj) {
 }
 
 /**
+ *  Remove old service.
+ *
+ *  @param[in] obj  The new service to remove from the monitoring
+ *                  engine.
+ */
+void applier::service::remove_object(ssize_t idx) {
+  Service& obj = pb_config.mutable_services()->at(idx);
+  const std::string& host_name = obj.hosts().data()[0];
+  const std::string& service_description = obj.service_description();
+
+  // Logging.
+  log_v2::config()->debug("Removing service '{}' of host '{}'.",
+                          service_description, host_name);
+
+  // Find anomaly detections depending on this service
+  for (auto cad : pb_config.anomalydetections()) {
+    if (cad.host_id() == obj.host_id() &&
+        cad.dependent_service_id() == obj.service_id()) {
+      auto ad = engine::service::services_by_id.find(
+          {cad.host_id(), cad.service_id()});
+      if (ad != engine::service::services_by_id.end())
+        std::static_pointer_cast<engine::anomalydetection>(ad->second)
+            ->set_dependent_service(nullptr);
+    }
+  }
+  // Find service.
+  auto it = engine::service::services_by_id.find({obj.host_id(), obj.service_id()});
+  if (it != engine::service::services_by_id.end()) {
+    auto svc = it->second;
+
+    // Remove service comments.
+    comment::delete_service_comments(obj.host_id(), obj.service_id());
+
+    // Remove service downtimes.
+    downtime_manager::instance()
+        .delete_downtime_by_hostname_service_description_start_time_comment(
+            host_name, service_description, {false, (time_t)0}, "");
+
+    // Remove events related to this service.
+    applier::scheduler::instance().remove_service(obj.host_id(),
+                                                  obj.service_id());
+
+    // remove service from servicegroup->members
+    for (auto& it_s : svc->get_parent_groups())
+      it_s->members.erase({host_name, service_description});
+
+    // Notify event broker.
+    broker_adaptive_service_data(NEBTYPE_SERVICE_DELETE, NEBFLAG_NONE,
+                                 NEBATTR_NONE, svc.get(), MODATTR_ALL);
+
+    // Unregister service.
+    engine::service::services.erase({host_name, service_description});
+    engine::service::services_by_id.erase(it);
+  }
+
+  // Remove service from the global configuration set.
+  pb_config.mutable_services()->DeleteSubrange(idx, 1);
+}
+
+/**
+ *  Resolve a service.
+ *
+ *  @param[in] obj  Service object.
+ */
+void applier::service::resolve_object(const configuration::Service& obj) {
+  // Logging.
+  log_v2::config()->debug("Resolving service '{}' of host '{}'.",
+                          obj.service_description(), obj.hosts().data()[0]);
+
+  // Find service.
+  service_id_map::iterator it =
+      engine::service::services_by_id.find({obj.host_id(), obj.service_id()});
+  if (engine::service::services_by_id.end() == it)
+    throw engine_error() << "Cannot resolve non-existing service '"
+                         << obj.service_description() << "' of host '"
+                         << obj.hosts().data()[0] << "'";
+
+  // Remove service group links.
+  it->second->get_parent_groups().clear();
+
+  // Find host and adjust its counters.
+  host_id_map::iterator hst(engine::host::hosts_by_id.find(it->first.first));
+  if (hst != engine::host::hosts_by_id.end()) {
+    hst->second->set_total_services(hst->second->get_total_services() + 1);
+    hst->second->set_total_service_check_interval(
+        hst->second->get_total_service_check_interval() +
+        static_cast<uint64_t>(it->second->check_interval()));
+  }
+
+  // Resolve service.
+  it->second->resolve(config_warnings, config_errors);
+}
+
+/**
  *  Resolve a service.
  *
  *  @param[in] obj  Service object.
@@ -775,6 +889,34 @@ void applier::service::resolve_object(configuration::service const& obj) {
 
   // Resolve service.
   it->second->resolve(config_warnings, config_errors);
+}
+
+/**
+ *  Expand service instance memberships.
+ *
+ *  @param[in]  obj Target service.
+ *  @param[out] s   Configuration state.
+ */
+void applier::service::_expand_service_memberships(configuration::Service& obj,
+                                                   configuration::State& s) {
+  absl::flat_hash_map<absl::string_view, Servicegroup*> sgs;
+  for (auto& sg : *s.mutable_servicegroups())
+    sgs[sg.servicegroup_name()] = &sg;
+
+  // Browse service groups.
+  for (auto& sg_name : obj.servicegroups().data()) {
+    // Find service group.
+    auto found = sgs.find(sg_name);
+    if (found == sgs.end())
+      throw engine_error() << fmt::format(
+          "Could not add service '{}' of host '{}' to non-existing service "
+          "group '{}'",
+          obj.service_description(), obj.hosts().data()[0], sg_name);
+
+    // Add service to service members
+    fill_pair_string_group(found->second->mutable_members(), obj.hosts().data()[0],
+                           obj.service_description());
+  }
 }
 
 /**
@@ -850,5 +992,48 @@ void applier::service::_inherits_special_vars(configuration::service& obj,
       obj.notification_period(it->notification_period());
     if (!obj.timezone_defined())
       obj.timezone(it->timezone());
+  }
+}
+
+/**
+ *  @brief Inherits special variables from host.
+ *
+ *  These special variables, if not defined are inherited from host.
+ *  They are contact_groups, notification_interval and
+ *  notification_period.
+ *
+ *  @param[in,out] obj Target service.
+ *  @param[in]     s   Configuration state.
+ */
+void applier::service::_inherits_special_vars(configuration::Service& obj,
+                                              const configuration::State& s) {
+  // Detect if any special variable has not been defined.
+  if (!obj.host_id() || obj.contacts().data().empty() ||
+      obj.contactgroups().data().empty() || obj.notification_interval() == 0 ||
+      obj.notification_period().empty() || obj.timezone().empty()) {
+    // Find host.
+    auto it = std::find_if(s.hosts().begin(), s.hosts().end(),
+                           [name = obj.hosts().data()[0]](const Host& h) {
+                             return h.host_name() == name;
+                           });
+    if (it == s.hosts().end())
+      throw engine_error() << fmt::format(
+          "Could not inherit special variables for service '{}': host '{}' "
+          "does not exist",
+          obj.service_description(), obj.hosts().data()[0]);
+
+    // Inherits variables.
+    if (!obj.host_id())
+      obj.set_host_id(it->host_id());
+    if (obj.contacts().data().empty() && obj.contactgroups().data().empty()) {
+      obj.mutable_contacts()->CopyFrom(it->contacts());
+      obj.mutable_contactgroups()->CopyFrom(it->contactgroups());
+    }
+    if (obj.notification_interval() == 0)
+      obj.set_notification_interval(it->notification_interval());
+    if (obj.notification_period().empty())
+      obj.set_notification_period(it->notification_period());
+    if (obj.timezone().empty())
+      obj.set_timezone(it->timezone());
   }
 }

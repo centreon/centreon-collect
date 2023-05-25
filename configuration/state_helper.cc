@@ -41,7 +41,7 @@ state_helper::state_helper(State* obj)
               {"xcddefault_comment_file", "comment_file"},
               {"xdddefault_downtime_file", "downtime_file"},
           },
-          149) {
+          2) {
   _init();
 }
 
@@ -51,9 +51,9 @@ state_helper::state_helper(State* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool state_helper::hook(const absl::string_view& key,
-                        const absl::string_view& value) {
+bool state_helper::hook(absl::string_view key, const absl::string_view& value) {
   State* obj = static_cast<State*>(mut_obj());
+  key = validate_key(key);
 
   if (key == "date_format") {
     if (value == "euro")

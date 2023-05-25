@@ -43,9 +43,10 @@ contactgroup_helper::contactgroup_helper(Contactgroup* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool contactgroup_helper::hook(const absl::string_view& key,
+bool contactgroup_helper::hook(absl::string_view key,
                                const absl::string_view& value) {
   Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
+  key = validate_key(key);
   if (key == "contactgroup_members") {
     fill_string_group(obj->mutable_contactgroup_members(), value);
     return true;
