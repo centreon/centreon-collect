@@ -2,9 +2,9 @@
 
 soft="all"
 if [[ $# -ge 1 ]] ; then
-  if [[ "$1" == "engine" || "$1" == "broker" ]] ; then
+  if [[ $1 == engine* || $1 == broker* ]] ; then
     echo testing $soft
-    soft=$1
+    soft=${1/\//}
   else
     echo Cannot test $1
     exit 1
