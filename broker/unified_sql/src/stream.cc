@@ -1072,6 +1072,21 @@ void stream::_init_statements() {
         "started),triggered_by=VALUES(triggered_by), type=VALUES(type)",
         _max_pending_queries, std::chrono::seconds(queue_timer_duration),
         _max_pending_queries);
+    _comments = std::make_unique<database::bulk_or_multi>(
+        _mysql,
+        "INSERT INTO comments "
+        "(author, type, data, deletion_time, entry_time, entry_type, "
+        "expire_time, expires, host_id, internal_id, persistent, instance_id, "
+        "service_id, source)"
+        " VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) "
+        " ON DUPLICATE KEY UPDATE "
+        "author=VALUES(author), type=VALUES(type), data=VALUES(data),"
+        "deletion_time=VALUES(deletion_time), "
+        "entry_type=VALUES(entry_type), expire_time=VALUES(expire_time),"
+        "expires=VALUES(expires), persistent=VALUES(persistent),"
+        "source=VALUES(source)",
+        _max_pending_queries, std::chrono::seconds(queue_timer_duration),
+        _max_pending_queries);
   } else {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
         "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES", "",
@@ -1095,6 +1110,19 @@ void stream::_init_statements() {
         "deletion_time),duration=VALUES(duration),end_time=VALUES(end_time),"
         "fixed=VALUES(fixed),start_time=VALUES(start_time),started=VALUES("
         "started),triggered_by=VALUES(triggered_by), type=VALUES(type)",
+        std::chrono::seconds(queue_timer_duration), _max_pending_queries);
+    _comments = std::make_unique<database::bulk_or_multi>(
+        "INSERT INTO comments "
+        "(author, type, data, deletion_time, entry_time, entry_type, "
+        "expire_time, expires, host_id, internal_id, persistent, instance_id, "
+        "service_id, source)"
+        " VALUES",
+        " ON DUPLICATE KEY UPDATE "
+        "author=VALUES(author), type=VALUES(type), data=VALUES(data),"
+        "deletion_time=VALUES(deletion_time), "
+        "entry_type=VALUES(entry_type), expire_time=VALUES(expire_time),"
+        "expires=VALUES(expires), persistent=VALUES(persistent),"
+        "source=VALUES(source)",
         std::chrono::seconds(queue_timer_duration), _max_pending_queries);
   }
 

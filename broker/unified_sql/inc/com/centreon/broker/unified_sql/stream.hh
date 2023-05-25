@@ -39,6 +39,85 @@
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 
 CCB_BEGIN()
+namespace unified_sql {
+struct int64_not_minus_one {
+  int64_t value;
+};
+
+struct uint64_not_null_not_neg_1 {
+  uint64_t value;
+};
+
+struct uint64_not_null {
+  uint64_t value;
+};
+
+}  // namespace unified_sql
+CCB_END()
+namespace fmt {
+template <>
+struct formatter<com::centreon::broker::timestamp> {
+  constexpr auto parse(format_parse_context& ctx)
+      -> format_parse_context::iterator {
+    return ctx.begin();
+  }
+
+  auto format(const com::centreon::broker::timestamp& t,
+              format_context& ctx) const -> format_context::iterator {
+    // ctx.out() is an output iterator to write to.
+    return t.is_null() ? fmt::format_to(ctx.out(), "NULL")
+                       : fmt::format_to(ctx.out(), "{}", t.get_time_t());
+  }
+};
+
+template <>
+struct formatter<com::centreon::broker::unified_sql::int64_not_minus_one> {
+  constexpr auto parse(format_parse_context& ctx)
+      -> format_parse_context::iterator {
+    return ctx.begin();
+  }
+  auto format(const com::centreon::broker::unified_sql::int64_not_minus_one& v,
+              format_context& ctx) const -> format_context::iterator {
+    // ctx.out() is an output iterator to write to.
+    return v.value > 0 ? fmt::format_to(ctx.out(), "{}", v.value)
+                       : fmt::format_to(ctx.out(), "NULL");
+  }
+};
+
+template <>
+struct formatter<
+    com::centreon::broker::unified_sql::uint64_not_null_not_neg_1> {
+  constexpr auto parse(format_parse_context& ctx)
+      -> format_parse_context::iterator {
+    return ctx.begin();
+  }
+  auto format(
+      const com::centreon::broker::unified_sql::uint64_not_null_not_neg_1& v,
+      format_context& ctx) const -> format_context::iterator {
+    // ctx.out() is an output iterator to write to.
+    return v.value > 0 && v.value != static_cast<uint64_t>(-1)
+               ? fmt::format_to(ctx.out(), "{}", v.value)
+               : fmt::format_to(ctx.out(), "NULL");
+  }
+};
+
+template <>
+struct formatter<com::centreon::broker::unified_sql::uint64_not_null> {
+  constexpr auto parse(format_parse_context& ctx)
+      -> format_parse_context::iterator {
+    return ctx.begin();
+  }
+  auto format(const com::centreon::broker::unified_sql::uint64_not_null& v,
+              format_context& ctx) const -> format_context::iterator {
+    // ctx.out() is an output iterator to write to.
+    return v.value > 0 ? fmt::format_to(ctx.out(), "{}", v.value)
+                       : fmt::format_to(ctx.out(), "NULL");
+  }
+};
+
+}  // namespace fmt
+
+CCB_BEGIN()
 /* Forward declarations */
 namespace neb {
 class service_status;
@@ -101,6 +180,7 @@ class stream : public io::stream {
     service_group,
     severity,
     tag,
+    comment
   };
 
   enum actions {
@@ -247,6 +327,7 @@ class stream : public io::stream {
 
   std::unique_ptr<database::bulk_or_multi> _logs;
   std::unique_ptr<database::bulk_or_multi> _downtimes;
+  std::unique_ptr<database::bulk_or_multi> _comments;
 
   timestamp _oldest_timestamp;
   std::mutex _stored_timestamps_m;
@@ -254,8 +335,6 @@ class stream : public io::stream {
 
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _pb_acknowledgement_insupdate;
-  database::mysql_stmt _comment_insupdate;
-  database::mysql_stmt _pb_comment_insupdate;
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _event_handler_insupdate;
   database::mysql_stmt _flapping_status_insupdate;

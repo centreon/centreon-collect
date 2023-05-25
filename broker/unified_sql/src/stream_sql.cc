@@ -529,30 +529,55 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
   // Cast object.
   neb::comment const& cmmnt{*static_cast<neb::comment const*>(d.get())};
 
-  int32_t conn = _mysql.choose_connection_by_instance(cmmnt.poller_id);
-
   // Log message.
   SPDLOG_LOGGER_INFO(log_v2::sql(),
                      "SQL: processing comment of poller {} on ({}, {})",
                      cmmnt.poller_id, cmmnt.host_id, cmmnt.service_id);
 
-  // Prepare queries.
-  if (!_comment_insupdate.prepared()) {
-    query_preparator::event_unique unique;
-    unique.insert("host_id");
-    unique.insert("service_id");
-    unique.insert("entry_time");
-    unique.insert("instance_id");
-    unique.insert("internal_id");
-    query_preparator qp(neb::comment::static_type(), unique);
-    _comment_insupdate = qp.prepare_insert_or_update(_mysql);
+  std::lock_guard<database::bulk_or_multi> lck(*_comments);
+  if (_comments->is_bulk()) {
+    database::mysql_bulk_bind& b = _comments->bulk_bind();
+    b.set_value_as_str(
+        0, misc::string::escape(cmmnt.author,
+                                get_comments_col_size(comments_author)));
+    b.set_value_as_i32(1, cmmnt.comment_type);
+    b.set_value_as_str(
+        2,
+        misc::string::escape(cmmnt.data, get_comments_col_size(comments_data)));
+    if (cmmnt.deletion_time.is_null())
+      b.set_null_i64(3);
+    else
+      b.set_value_as_i64(3, cmmnt.deletion_time.get_time_t());
+    if (cmmnt.entry_time.is_null())
+      b.set_null_i64(4);
+    else
+      b.set_value_as_i64(4, cmmnt.entry_time.get_time_t());
+    b.set_value_as_i32(5, cmmnt.entry_type);
+    if (cmmnt.expire_time.is_null())
+      b.set_null_i64(6);
+    else
+      b.set_value_as_i64(6, cmmnt.expire_time.get_time_t());
+    b.set_value_as_tiny(7, cmmnt.expires);
+    b.set_value_as_i64(8, cmmnt.host_id, mapping::entry::invalid_on_zero);
+    b.set_value_as_i64(9, cmmnt.internal_id);
+    b.set_value_as_tiny(10, cmmnt.persistent);
+    b.set_value_as_i64(11, cmmnt.poller_id, mapping::entry::invalid_on_zero);
+    b.set_value_as_i64(12, cmmnt.service_id);
+    b.set_value_as_i32(13, cmmnt.source);
+    b.next_row();
+  } else {
+    _comments->multi_insert().push(fmt::format(
+        "('{}',{},'{}',{},{},{},{},{},{},{},{},{},{},{})",
+        misc::string::escape(cmmnt.author,
+                             get_comments_col_size(comments_author)),
+        cmmnt.comment_type,
+        misc::string::escape(cmmnt.data, get_comments_col_size(comments_data)),
+        cmmnt.deletion_time, cmmnt.entry_time, cmmnt.entry_type,
+        cmmnt.expire_time, cmmnt.expires, int64_not_minus_one{cmmnt.host_id},
+        cmmnt.internal_id, int(cmmnt.persistent),
+        int64_not_minus_one{cmmnt.poller_id}, cmmnt.service_id, cmmnt.source));
   }
-
-  // Processing.
-  _comment_insupdate << cmmnt;
-  _mysql.run_statement(_comment_insupdate, database::mysql_error::store_comment,
-                       conn);
-  _add_action(conn, actions::comments);
+  _comments->on_add_event();
 }
 
 /**
@@ -619,50 +644,56 @@ void stream::_process_pb_custom_variable(const std::shared_ptr<io::data>& d) {
  */
 void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
   auto comm_obj{static_cast<const neb::pb_comment*>(d.get())};
-  const neb::pb_comment::pb_type& comm = comm_obj->obj();
+  const neb::pb_comment::pb_type& cmmnt = comm_obj->obj();
 
   // Log message.
   SPDLOG_LOGGER_INFO(
       log_v2::sql(),
       "SQL: processing pb comment (poller: {}, host: {}, serv: {})",
-      comm.instance_id(), comm.host_id(), comm.service_id());
+      cmmnt.instance_id(), cmmnt.host_id(), cmmnt.service_id());
 
-  // Processing
-  if (_is_valid_poller(comm.instance_id())) {
-    int32_t conn = _mysql.choose_connection_by_instance(comm.instance_id());
-
-    // Prepare queries.
-    if (!_pb_comment_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {10, "host_id", io::protobuf_base::invalid_on_zero, 0},
-          {14, "service_id", io::protobuf_base::invalid_on_zero, 0},
-          {6, "entry_time", io::protobuf_base::invalid_on_zero, 0},
-          {13, "instance_id", io::protobuf_base::invalid_on_zero, 0},
-          {11, "internal_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_comment::static_type(), unique);
-      _pb_comment_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "comments ",
-          {{2, "author", 0, get_comments_col_size(comments_author)},
-           {3, "type", 0, 0},
-           {4, "data", 0, get_comments_col_size(comments_data)},
-           {5, "deletion_time", io::protobuf_base::invalid_on_zero, 0},
-           {6, "entry_time", 0, 0},
-           {7, "entry_type", 0, 0},
-           {8, "expire_time", io::protobuf_base::invalid_on_zero, 0},
-           {9, "expires", 0, 0},
-           {10, "host_id", io::protobuf_base::invalid_on_zero, 0},
-           {11, "internal_id", io::protobuf_base::invalid_on_zero, 0},
-           {12, "persistent", 0, 0},
-           {13, "instance_id", io::protobuf_base::invalid_on_zero, 0},
-           {14, "service_id", 0, 0},
-           {15, "source", 0, 0}});
-    }
-    // Process object.
-    _pb_comment_insupdate << *comm_obj;
-    _mysql.run_statement(_pb_comment_insupdate,
-                         database::mysql_error::store_comment, conn);
-    _add_action(conn, actions::comments);
+  std::lock_guard<database::bulk_or_multi> lck(*_comments);
+  if (_comments->is_bulk()) {
+    database::mysql_bulk_bind& b = _comments->bulk_bind();
+    b.set_value_as_str(
+        0, misc::string::escape(cmmnt.author(),
+                                get_comments_col_size(comments_author)));
+    b.set_value_as_i32(1, int(cmmnt.type()));
+    b.set_value_as_str(
+        2, misc::string::escape(cmmnt.data(),
+                                get_comments_col_size(comments_data)));
+    b.set_value_as_i64(3, cmmnt.deletion_time(),
+                       mapping::entry::invalid_on_minus_one);
+    b.set_value_as_i64(4, cmmnt.entry_time(),
+                       mapping::entry::invalid_on_minus_one);
+    b.set_value_as_i32(5, int(cmmnt.entry_type()));
+    b.set_value_as_i64(6, cmmnt.expire_time(),
+                       mapping::entry::invalid_on_minus_one);
+    b.set_value_as_tiny(7, cmmnt.expires());
+    b.set_value_as_i64(8, cmmnt.host_id(), mapping::entry::invalid_on_zero);
+    b.set_value_as_i64(9, cmmnt.internal_id());
+    b.set_value_as_tiny(10, cmmnt.persistent());
+    b.set_value_as_i64(11, cmmnt.instance_id(),
+                       mapping::entry::invalid_on_zero);
+    b.set_value_as_i64(12, cmmnt.service_id());
+    b.set_value_as_i32(13, cmmnt.source());
+    b.next_row();
+  } else {
+    _comments->multi_insert().push(fmt::format(
+        "('{}',{},'{}',{},{},{},{},{},{},{},{},{},{},{})",
+        misc::string::escape(cmmnt.author(),
+                             get_comments_col_size(comments_author)),
+        cmmnt.type(),
+        misc::string::escape(cmmnt.data(),
+                             get_comments_col_size(comments_data)),
+        uint64_not_null_not_neg_1{cmmnt.deletion_time()},
+        uint64_not_null_not_neg_1{cmmnt.entry_time()}, cmmnt.entry_type(),
+        uint64_not_null_not_neg_1{cmmnt.expire_time()}, cmmnt.expires(),
+        uint64_not_null{cmmnt.host_id()}, cmmnt.internal_id(),
+        int(cmmnt.persistent()), uint64_not_null{cmmnt.instance_id()},
+        cmmnt.service_id(), cmmnt.source()));
   }
+  _comments->on_add_event();
 }
 
 /**
@@ -846,29 +877,21 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
       b.set_value_as_str(
           17, misc::string::escape(
                   dd.comment, get_downtimes_col_size(downtimes_comment_data)));
+      b.next_row();
     } else {
       _downtimes->multi_insert().push(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-          dd.actual_end_time.is_null() ? "NULL"
-                                       : fmt::format("{}", dd.actual_end_time),
-          dd.actual_start_time.is_null()
-              ? "NULL"
-              : fmt::format("{}", dd.actual_start_time),
+          dd.actual_end_time, dd.actual_start_time,
           misc::string::escape(dd.author,
                                get_downtimes_col_size(downtimes_author)),
-          dd.downtime_type,
-          dd.deletion_time.is_null() ? "NULL"
-                                     : fmt::format("{}", dd.deletion_time),
-          dd.duration,
-          dd.end_time.is_null() ? "NULL" : fmt::format("{}", dd.end_time),
-          dd.entry_time.is_null() ? "NULL" : fmt::format("{}", dd.entry_time),
-          dd.fixed, dd.host_id, dd.poller_id, dd.internal_id, dd.service_id,
-          dd.start_time.is_null() ? "NULL" : fmt::format("{}", dd.start_time),
-          dd.triggered_by == 0 ? "NULL" : fmt::format("{}", dd.triggered_by),
+          dd.downtime_type, dd.deletion_time, dd.duration, dd.end_time,
+          dd.entry_time, dd.fixed, dd.host_id, dd.poller_id, dd.internal_id,
+          dd.service_id, dd.start_time, int64_not_minus_one{dd.triggered_by},
           dd.was_cancelled, dd.was_started,
           misc::string::escape(
               dd.comment, get_downtimes_col_size(downtimes_comment_data))));
     }
+    _downtimes->on_add_event();
   }
 }
 
@@ -885,57 +908,46 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
   auto& dt_obj = dd.obj();
 
   // Log message.
-  log_v2::sql()->info(
-      "SQL: processing pb downtime event (poller: {}"
-      ", host: {}, service: {}, start time: {}, end_time: {}"
-      ", actual start time: {}"
-      ", actual end time: {}"
-      ", duration: {}, entry time: {}"
-      ", deletion time: {})",
-      dt_obj.instance_id(), dt_obj.host_id(), dt_obj.service_id(),
-      dt_obj.start_time(), dt_obj.end_time(), dt_obj.actual_start_time(),
-      dt_obj.actual_end_time(), dt_obj.duration(), dt_obj.entry_time(),
-      dt_obj.deletion_time());
+  SPDLOG_LOGGER_INFO(log_v2::sql(),
+                     "SQL: processing pb downtime event (poller: {}"
+                     ", host: {}, service: {}, start time: {}, end_time: {}"
+                     ", actual start time: {}"
+                     ", actual end time: {}"
+                     ", duration: {}, entry time: {}"
+                     ", deletion time: {})",
+                     dt_obj.instance_id(), dt_obj.host_id(),
+                     dt_obj.service_id(), dt_obj.start_time(),
+                     dt_obj.end_time(), dt_obj.actual_start_time(),
+                     dt_obj.actual_end_time(), dt_obj.duration(),
+                     dt_obj.entry_time(), dt_obj.deletion_time());
 
   // Check if poller is valid.
   if (_is_valid_poller(dt_obj.instance_id())) {
     std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
     if (_downtimes->is_bulk()) {
       database::mysql_bulk_bind& b = _downtimes->bulk_bind();
-      if (time_is_undefined(dt_obj.actual_end_time()))
-        b.set_null_i64(0);
-      else
-        b.set_value_as_i64(0, dt_obj.actual_end_time());
-      if (time_is_undefined(dt_obj.actual_start_time()))
-        b.set_null_i64(1);
-      else
-        b.set_value_as_i64(1, dt_obj.actual_start_time());
+      b.set_value_as_i64(0, dt_obj.actual_end_time(),
+                         mapping::entry::invalid_on_minus_one);
+      b.set_value_as_i64(1, dt_obj.actual_start_time(),
+                         mapping::entry::invalid_on_minus_one);
       b.set_value_as_str(
           2, misc::string::escape(dt_obj.author(),
                                   get_downtimes_col_size(downtimes_author)));
       b.set_value_as_i32(3, int(dt_obj.type()));
-      if (time_is_undefined(dt_obj.deletion_time()))
-        b.set_null_i64(4);
-      else
-        b.set_value_as_i64(4, dt_obj.deletion_time());
+      b.set_value_as_i64(4, dt_obj.deletion_time(),
+                         mapping::entry::invalid_on_minus_one);
       b.set_value_as_i64(5, dt_obj.duration());
-      if (time_is_undefined(dt_obj.end_time()))
-        b.set_null_i64(6);
-      else
-        b.set_value_as_i64(6, dt_obj.end_time());
-      if (time_is_undefined(dt_obj.entry_time()))
-        b.set_null_i64(7);
-      else
-        b.set_value_as_i64(7, dt_obj.entry_time());
+      b.set_value_as_i64(6, dt_obj.end_time(),
+                         mapping::entry::invalid_on_minus_one);
+      b.set_value_as_i64(7, dt_obj.entry_time(),
+                         mapping::entry::invalid_on_minus_one);
       b.set_value_as_tiny(8, int(dt_obj.fixed()));
       b.set_value_as_i64(9, dt_obj.host_id());
       b.set_value_as_i64(10, dt_obj.instance_id());
       b.set_value_as_i64(11, dt_obj.id());
       b.set_value_as_i64(12, dt_obj.service_id());
-      if (time_is_undefined(dt_obj.start_time()))
-        b.set_null_i64(13);
-      else
-        b.set_value_as_i64(13, dt_obj.start_time());
+      b.set_value_as_i64(13, dt_obj.start_time(),
+                         mapping::entry::invalid_on_minus_one);
       if (dt_obj.triggered_by() == 0)
         b.set_null_i32(14);
       else
@@ -946,40 +958,26 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
           17,
           misc::string::escape(dt_obj.comment_data(),
                                get_downtimes_col_size(downtimes_comment_data)));
+      b.next_row();
     } else {
       _downtimes->multi_insert().push(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
-          time_is_undefined(dt_obj.actual_end_time())
-              ? "NULL"
-              : fmt::format("{}", dt_obj.actual_end_time()),
-          time_is_undefined(dt_obj.actual_start_time())
-              ? "NULL"
-              : fmt::format("{}", dt_obj.actual_start_time()),
+          uint64_not_null_not_neg_1{dt_obj.actual_end_time()},
+          uint64_not_null_not_neg_1{dt_obj.actual_start_time()},
           misc::string::escape(dt_obj.author(),
                                get_downtimes_col_size(downtimes_author)),
-          dt_obj.type(),
-          time_is_undefined(dt_obj.deletion_time())
-              ? "NULL"
-              : fmt::format("{}", dt_obj.deletion_time()),
-          dt_obj.duration(),
-          time_is_undefined(dt_obj.end_time())
-              ? "NULL"
-              : fmt::format("{}", dt_obj.end_time()),
-          time_is_undefined(dt_obj.entry_time())
-              ? "NULL"
-              : fmt::format("{}", dt_obj.entry_time()),
-          dt_obj.fixed(), dt_obj.host_id(), dt_obj.instance_id(), dt_obj.id(),
-          dt_obj.service_id(),
-          time_is_undefined(dt_obj.start_time())
-              ? "NULL"
-              : fmt::format("{}", dt_obj.start_time()),
-          dt_obj.triggered_by() == 0 ? "NULL"
-                                     : fmt::format("{}", dt_obj.triggered_by()),
-          dt_obj.cancelled(), dt_obj.started(),
+          dt_obj.type(), uint64_not_null_not_neg_1{dt_obj.deletion_time()},
+          dt_obj.duration(), uint64_not_null_not_neg_1{dt_obj.end_time()},
+          int64_not_minus_one{dt_obj.entry_time()}, dt_obj.fixed(),
+          dt_obj.host_id(), dt_obj.instance_id(), dt_obj.id(),
+          dt_obj.service_id(), uint64_not_null_not_neg_1{dt_obj.start_time()},
+          uint64_not_null{dt_obj.triggered_by()}, dt_obj.cancelled(),
+          dt_obj.started(),
           misc::string::escape(
               dt_obj.comment_data(),
               get_downtimes_col_size(downtimes_comment_data))));
     }
+    _downtimes->on_add_event();
   }
 }
 
@@ -2144,8 +2142,9 @@ void stream::_process_pb_host_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(26, hscr.scheduled_downtime_depth());
         b->set_value_as_i32(27, hscr.host_id());
         b->next_row();
-        log_v2::sql()->trace("{} waiting updates for host status in hosts",
-                             b->current_row());
+        SPDLOG_LOGGER_TRACE(log_v2::sql(),
+                            "{} waiting updates for host status in hosts",
+                            b->current_row());
       } else {
         _hscr_update->bind_value_as_bool(0, hscr.checked());
         _hscr_update->bind_value_as_i32(1, hscr.check_type());
@@ -2532,6 +2531,7 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
         le.status,
         misc::string::escape(le.output, get_logs_col_size(logs_output))));
   }
+  _logs->on_add_event();
 }
 
 /**
@@ -2602,6 +2602,7 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
         le_obj.status(),
         misc::string::escape(le_obj.output(), get_logs_col_size(logs_output))));
   }
+  _logs->on_add_event();
 }
 
 /**
@@ -3900,9 +3901,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_i32(28, sscr.host_id());
         b->set_value_as_i32(29, sscr.service_id());
         b->next_row();
-        log_v2::sql()->trace(
-            "{} waiting updates for service status in services",
-            b->current_row());
+        SPDLOG_LOGGER_TRACE(log_v2::sql(),
+                            "{} waiting updates for service status in services",
+                            b->current_row());
       } else {
         _sscr_update->bind_value_as_bool(0, sscr.checked());
         _sscr_update->bind_value_as_i32(1, sscr.check_type());
@@ -3990,8 +3991,8 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
         b->set_value_as_u64(11, sscr.service_id());
         b->set_value_as_u64(12, sscr.host_id());
         b->next_row();
-        log_v2::sql()->trace(
-            "{} waiting updates for service status in resources",
+        SPDLOG_LOGGER_TRACE(
+            log_v2::sql(), "{} waiting updates for service status in resources",
             b->current_row());
       } else {
         _sscr_resources_update->bind_value_as_i32(0, sscr.state());
