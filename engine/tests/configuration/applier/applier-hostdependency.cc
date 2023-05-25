@@ -40,8 +40,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "helper.hh"
 #include "configuration/hostdependency_helper.hh"
+#include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -161,4 +161,51 @@ TEST_F(HostDependency, PbCircularDependency3) {
 
   int w{0}, e{0};
   ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
+}
+
+TEST_F(HostDependency, RemoveHostdependency) {
+  configuration::applier::hostdependency hd_aply;
+  configuration::hostdependency hd1{
+      new_configuration_hostdependency("host1", "host2")};
+  hd_aply.expand_objects(*config);
+  hd_aply.add_object(hd1);
+  hd_aply.resolve_object(hd1);
+
+  ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 1);
+  hd_aply.remove_object(hd1);
+  ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 0);
+}
+
+TEST_F(HostDependency, PbRemoveHostdependency) {
+  configuration::applier::hostdependency hd_aply;
+  configuration::Hostdependency hd1{
+      new_pb_configuration_hostdependency("host1", "host2")};
+  hd_aply.expand_objects(pb_config);
+  hd_aply.add_object(hd1);
+  hd_aply.resolve_object(hd1);
+
+  ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 1);
+  hd_aply.remove_object(0);
+  ASSERT_EQ(engine::hostdependency::hostdependencies.size(), 0);
+}
+
+TEST_F(HostDependency, ExpandHostdependency) {
+  configuration::state s;
+  configuration::hostdependency hd{
+      new_configuration_hostdependency("host1,host3,host5", "host2,host6")};
+  s.hostdependencies().insert(hd);
+  configuration::applier::hostdependency hd_aply;
+  hd_aply.expand_objects(s);
+  ASSERT_EQ(s.hostdependencies().size(), 12);
+}
+
+TEST_F(HostDependency, PbExpandHostdependency) {
+  configuration::State s;
+  configuration::Hostdependency hd{
+      new_pb_configuration_hostdependency("host1,host3,host5", "host2,host6")};
+  auto* new_hd = s.add_hostdependencies();
+  new_hd->CopyFrom(std::move(hd));
+  configuration::applier::hostdependency hd_aply;
+  hd_aply.expand_objects(s);
+  ASSERT_EQ(s.hostdependencies().size(), 12);
 }
