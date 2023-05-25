@@ -1,6 +1,6 @@
 /**
 * Copyright 1999-2008 Ethan Galstad
-* Copyright 2011-2019 Centreon
+* Copyright 2011-2023 Centreon
 *
 * This file is part of Centreon Engine.
 *
@@ -206,14 +206,12 @@ int pre_flight_circular_check(int* w, int* e) {
     it->second->set_circular_path_checked(false);
 
   /* check execution dependencies between all hosts */
-  for (hostdependency_mmap::iterator
-           it(hostdependency::hostdependencies.begin()),
-       end(hostdependency::hostdependencies.end());
+  for (auto it = hostdependency::hostdependencies.begin(),
+            end = hostdependency::hostdependencies.end();
        it != end; ++it) {
     /* clear checked flag for all dependencies */
-    for (hostdependency_mmap::iterator
-             it2(hostdependency::hostdependencies.begin()),
-         end2(hostdependency::hostdependencies.end());
+    for (auto it2 = hostdependency::hostdependencies.begin(),
+              end2 = hostdependency::hostdependencies.end();
          it2 != end2; ++it2)
       it2->second->set_circular_path_checked(false);
 
@@ -233,14 +231,12 @@ int pre_flight_circular_check(int* w, int* e) {
   }
 
   /* check notification dependencies between all hosts */
-  for (hostdependency_mmap::iterator
-           it(hostdependency::hostdependencies.begin()),
-       end(hostdependency::hostdependencies.end());
+  for (auto it = hostdependency::hostdependencies.begin(),
+            end = hostdependency::hostdependencies.end();
        it != end; ++it) {
     /* clear checked flag for all dependencies */
-    for (hostdependency_mmap::iterator
-             it2(hostdependency::hostdependencies.begin()),
-         end2(hostdependency::hostdependencies.end());
+    for (auto it2 = hostdependency::hostdependencies.begin(),
+              end2 = hostdependency::hostdependencies.end();
          it2 != end2; ++it2)
       it2->second->set_circular_path_checked(false);
 
@@ -260,9 +256,8 @@ int pre_flight_circular_check(int* w, int* e) {
   }
 
   /* clear checked flag for all dependencies */
-  for (hostdependency_mmap::iterator
-           it(hostdependency::hostdependencies.begin()),
-       end(hostdependency::hostdependencies.end());
+  for (auto it = hostdependency::hostdependencies.begin(),
+            end = hostdependency::hostdependencies.end();
        it != end; ++it)
     it->second->set_circular_path_checked(false);
 

@@ -20,6 +20,8 @@
 #ifndef CCE_ESCALATION_HH
 #define CCE_ESCALATION_HH
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/shared.hh"
@@ -29,13 +31,21 @@ namespace com::centreon::engine {
 class timeperiod;
 
 class escalation {
+  uint32_t _first_notification;
+  uint32_t _last_notification;
+  double _notification_interval;
+  std::string _escalation_period;
+  uint32_t _escalate_on;
+  contactgroup_map_unsafe _contact_groups;
+  boost::uuids::uuid _uuid;
+
  public:
   escalation(uint32_t first_notification,
              uint32_t last_notification,
              double notification_interval,
              std::string const& escalation_period,
              uint32_t escalate_on,
-             Uuid const& uuid);
+             const boost::uuids::uuid& uuid);
 
   std::string const& get_escalation_period() const;
   uint32_t get_first_notification() const;
@@ -48,7 +58,7 @@ class escalation {
   bool get_escalate_on(notifier::notification_flag type) const;
   void set_escalate_on(uint32_t escalate_on);
   virtual bool is_viable(int state, uint32_t notification_number) const;
-  Uuid const& get_uuid() const;
+  const boost::uuids::uuid& uuid() const;
 
   contactgroup_map_unsafe const& get_contactgroups() const;
   contactgroup_map_unsafe& get_contactgroups();
@@ -56,15 +66,6 @@ class escalation {
 
   notifier* notifier_ptr;
   timeperiod* escalation_period_ptr;
-
- private:
-  uint32_t _first_notification;
-  uint32_t _last_notification;
-  double _notification_interval;
-  std::string _escalation_period;
-  uint32_t _escalate_on;
-  contactgroup_map_unsafe _contact_groups;
-  Uuid _uuid;
 };
 }
 

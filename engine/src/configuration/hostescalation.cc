@@ -501,6 +501,6 @@ bool hostescalation::_set_notification_interval(unsigned int value) {
  *
  *  @return uuid.
  */
-Uuid const& hostescalation::uuid(void) const {
+const boost::uuids::uuid& hostescalation::uuid() const {
   return _uuid;
 }

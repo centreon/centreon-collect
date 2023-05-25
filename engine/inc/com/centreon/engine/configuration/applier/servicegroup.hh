@@ -20,7 +20,10 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH
 
+#include <absl/container/flat_hash_set.h>
 #include "com/centreon/engine/configuration/servicegroup.hh"
+#include "configuration/servicegroup_helper.hh"
+#include "configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -31,15 +34,21 @@ class state;
 namespace applier {
 class servicegroup {
  public:
-  servicegroup();
-  servicegroup(servicegroup const& right);
-  ~servicegroup() throw();
-  servicegroup& operator=(servicegroup const& right);
+  servicegroup() = default;
+  servicegroup(const servicegroup&) = delete;
+  ~servicegroup() noexcept = default;
+  servicegroup& operator=(const servicegroup&) = delete;
+  void add_object(const configuration::Servicegroup& obj);
   void add_object(configuration::servicegroup const& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Servicegroup* to_modify,
+                     const configuration::Servicegroup& new_object);
   void modify_object(configuration::servicegroup const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::servicegroup const& obj);
   void resolve_object(configuration::servicegroup const& obj);
+  void resolve_object(const configuration::Servicegroup& obj);
 
  private:
   typedef std::map<configuration::servicegroup::key_type,
@@ -48,6 +57,13 @@ class servicegroup {
 
   void _resolve_members(configuration::servicegroup const& obj,
                         configuration::state const& s);
+  void _resolve_members(
+      configuration::State& s,
+      configuration::Servicegroup* sg_conf,
+      absl::flat_hash_set<absl::string_view>& resolved,
+      const absl::flat_hash_map<absl::string_view,
+                                configuration::Servicegroup*>&
+          sg_by_name);
 
   resolved_set _resolved;
 };

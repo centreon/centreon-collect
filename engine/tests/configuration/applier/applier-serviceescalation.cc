@@ -25,6 +25,11 @@
 #include <com/centreon/engine/host.hh>
 #include <com/centreon/engine/service.hh>
 #include <com/centreon/engine/serviceescalation.hh>
+#include "configuration/command_helper.hh"
+#include "configuration/host_helper.hh"
+#include "configuration/service_helper.hh"
+#include "configuration/serviceescalation_helper.hh"
+#include "configuration/command_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -74,6 +79,47 @@ TEST_F(ApplierServiceEscalation, AddEscalation) {
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
 }
 
+TEST_F(ApplierServiceEscalation, PbAddEscalation) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_aply.add_object(hst);
+  ASSERT_EQ(host::hosts.size(), 1u);
+
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd_aply.add_object(cmd);
+
+  configuration::applier::service svc_aply;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc_hlp.hook("hosts", "test_host");
+  svc.set_service_description("test_svc");
+  svc.set_service_id(12);
+  svc.set_check_command("cmd");
+  svc.set_host_id(12);
+  svc_aply.add_object(svc);
+  ASSERT_EQ(service::services.size(), 1u);
+
+  configuration::applier::serviceescalation se_apply;
+  configuration::Serviceescalation se;
+  configuration::serviceescalation_helper se_hlp(&se);
+  se_hlp.hook("hosts", "test_host");
+  se_hlp.hook("service_description", "test_svc");
+  se.set_first_notification(4);
+  se_apply.add_object(se);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
+  se.set_first_notification(8);
+  se_apply.add_object(se);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
+}
+
 TEST_F(ApplierServiceEscalation, RemoveEscalation) {
   configuration::applier::host hst_aply;
   configuration::host hst;
@@ -115,6 +161,53 @@ TEST_F(ApplierServiceEscalation, RemoveEscalation) {
   se_apply.remove_object(se1);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
   se_apply.remove_object(se2);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
+}
+
+TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_aply.add_object(hst);
+  ASSERT_EQ(host::hosts.size(), 1u);
+
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd_aply.add_object(cmd);
+
+  configuration::applier::service svc_aply;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc_hlp.hook("hosts", "test_host");
+  svc.set_service_description("test_svc");
+  svc.set_service_id(12);
+  svc.set_check_command("cmd");
+  svc.set_host_id(12);
+  svc_aply.add_object(svc);
+  ASSERT_EQ(service::services.size(), 1u);
+
+  configuration::applier::serviceescalation se_apply;
+  configuration::Serviceescalation se1, se2;
+  configuration::serviceescalation_helper se1_hlp(&se1), se2_hlp(&se2);
+  se1_hlp.hook("hosts", "test_host");
+  se1_hlp.hook("service_description", "test_svc");
+  se1.set_first_notification(4);
+  se_apply.add_object(se1);
+  se2_hlp.hook("hosts", "test_host");
+  se2_hlp.hook("service_description", "test_svc");
+  se2.set_first_notification(8);
+  se_apply.add_object(se2);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
+
+  se_apply.remove_object(0);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
+  se_apply.remove_object(0);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }
 
@@ -163,5 +256,57 @@ TEST_F(ApplierServiceEscalation, RemoveEscalationFromRemovedService) {
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
   ASSERT_TRUE(se.parse("first_notification", "4"));
   se_apply.remove_object(se);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
+}
+
+TEST_F(ApplierServiceEscalation, PbRemoveEscalationFromRemovedService) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_aply.add_object(hst);
+  ASSERT_EQ(host::hosts.size(), 1u);
+
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd_aply.add_object(cmd);
+
+  configuration::applier::service svc_aply;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc_hlp.hook("hosts", "test_host");
+  svc.set_service_description("test_svc");
+  svc.set_service_id(12);
+  svc.set_check_command("cmd");
+  svc.set_host_id(12);
+  svc_aply.add_object(svc);
+  ASSERT_EQ(service::services.size(), 1u);
+
+  configuration::applier::serviceescalation se_apply;
+  configuration::Serviceescalation se1, se2;
+  configuration::serviceescalation_helper se1_hlp(&se1), se2_hlp(&se2);
+  se1_hlp.hook("hosts", "test_host");
+  se1_hlp.hook("service_description", "test_svc");
+  se1.set_first_notification(4);
+  se_apply.add_object(se1);
+  se2_hlp.hook("hosts", "test_host");
+  se2_hlp.hook("service_description", "test_svc");
+  se2.set_first_notification(8);
+  se_apply.add_object(se2);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 2u);
+
+  hst_aply.remove_object(0);
+  ASSERT_EQ(host::hosts.size(), 0u);
+  svc_aply.remove_object(0);
+  ASSERT_EQ(service::services.size(), 0u);
+
+  se_apply.remove_object(0);
+  ASSERT_EQ(serviceescalation::serviceescalations.size(), 1u);
+  se_apply.remove_object(0);
   ASSERT_EQ(serviceescalation::serviceescalations.size(), 0u);
 }

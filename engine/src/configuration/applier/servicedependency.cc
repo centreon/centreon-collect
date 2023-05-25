@@ -1,5 +1,5 @@
 /**
-* Copyright 2011-2013,2017-2019 Centreon
+* Copyright 2011-2013,2017-2019,2023 Centreon
 *
 * This file is part of Centreon Engine.
 *
@@ -31,15 +31,97 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
+ *  Add new service dependency.
+ *
+ *  @param[in] obj  The new servicedependency to add into the monitoring
+ *                  engine.
  */
-applier::servicedependency::servicedependency() {}
+void applier::servicedependency::add_object(
+    const configuration::Servicedependency& obj) {
+  // Check service dependency.
+  if (obj.hosts().data().size() != 1 || !obj.hostgroups().data().empty() ||
+      obj.service_description().data().size() != 1 ||
+      !obj.servicegroups().data().empty() ||
+      obj.dependent_hosts().data().size() != 1 ||
+      !obj.dependent_hostgroups().data().empty() ||
+      obj.dependent_service_description().data().size() != 1 ||
+      !obj.dependent_servicegroups().data().empty())
+    throw engine_error()
+        << "Could not create service "
+        << "dependency with multiple (dependent) hosts / host groups "
+        << "/ services / service groups";
 
-/**
- *  Destructor.
- */
-applier::servicedependency::~servicedependency() throw() {}
+  if (obj.dependency_type() !=
+          configuration::servicedependency::execution_dependency &&
+      obj.dependency_type() !=
+          configuration::servicedependency::notification_dependency)
+    throw engine_error()
+        << "Could not create unexpanded dependency of service '"
+        << obj.dependent_service_description().data()[0] << "' of host '"
+        << obj.dependent_hosts().data()[0] << "' on service '"
+        << obj.service_description().data()[0] << "' of host '"
+        << obj.hosts().data()[0] << "'";
 
+  // Logging.
+  log_v2::config()->debug(
+      "Creating new service dependency of service '{}' of host '{}' on service "
+      "'{}' of host '{}'.",
+      obj.dependent_service_description().data()[0],
+      obj.dependent_hosts().data()[0], obj.service_description().data()[0],
+      obj.hosts().data()[0]);
+
+  // Add dependency to the global configuration set.
+  auto* new_obj = pb_config.add_servicedependencies();
+  new_obj->CopyFrom(obj);
+
+  std::shared_ptr<engine::servicedependency> sd;
+
+  if (obj.dependency_type() ==
+      configuration::servicedependency::execution_dependency)
+    // Create execution dependency.
+    sd = std::make_shared<engine::servicedependency>(
+        obj.dependent_hosts().data()[0],
+        obj.dependent_service_description().data()[0], obj.hosts().data()[0],
+        obj.service_description().data()[0], dependency::execution,
+        obj.inherits_parent(),
+        static_cast<bool>(obj.execution_failure_options() &
+                          configuration::servicedependency::ok),
+        static_cast<bool>(obj.execution_failure_options() &
+                          configuration::servicedependency::warning),
+        static_cast<bool>(obj.execution_failure_options() &
+                          configuration::servicedependency::unknown),
+        static_cast<bool>(obj.execution_failure_options() &
+                          configuration::servicedependency::critical),
+        static_cast<bool>(obj.execution_failure_options() &
+                          configuration::servicedependency::pending),
+        obj.dependency_period());
+  else
+    // Create notification dependency.
+    sd = std::make_shared<engine::servicedependency>(
+        obj.dependent_hosts().data()[0],
+        obj.dependent_service_description().data()[0], obj.hosts().data()[0],
+        obj.service_description().data()[0], dependency::notification,
+        obj.inherits_parent(),
+        static_cast<bool>(obj.notification_failure_options() &
+                          configuration::servicedependency::ok),
+        static_cast<bool>(obj.notification_failure_options() &
+                          configuration::servicedependency::warning),
+        static_cast<bool>(obj.notification_failure_options() &
+                          configuration::servicedependency::unknown),
+        static_cast<bool>(obj.notification_failure_options() &
+                          configuration::servicedependency::critical),
+        static_cast<bool>(obj.notification_failure_options() &
+                          configuration::servicedependency::pending),
+        obj.dependency_period());
+
+  // Add new items to the global list.
+  engine::servicedependency::servicedependencies.insert(
+      {{sd->get_dependent_hostname(), sd->get_dependent_service_description()},
+       sd});
+
+  // Notify event broker.
+  broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_ADD, sd.get());
+}
 /**
  *  Add new service dependency.
  *
@@ -135,6 +217,79 @@ void applier::servicedependency::add_object(
 
   // Notify event broker.
   broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_ADD, sd.get());
+}
+
+/**
+ *  Expand service dependencies.
+ *
+ *  @param[in,out] s  Configuration being applied.
+ */
+void applier::servicedependency::expand_objects(configuration::State& s) {
+  // Browse all dependencies.
+  std::vector<std::unique_ptr<Servicedependency>> expanded;
+  for (auto& dep : s.servicedependencies()) {
+    // Expand service dependency instances.
+    if (dep.hosts().data().size() != 1 || !dep.hostgroups().data().empty() ||
+        dep.service_description().data().size() != 1 ||
+        !dep.servicegroups().data().empty() ||
+        dep.dependent_hosts().data().size() != 1 ||
+        !dep.dependent_hostgroups().data().empty() ||
+        dep.dependent_service_description().data().size() != 1 ||
+        !dep.dependent_servicegroups().data().empty() ||
+        dep.dependency_type() ==
+            configuration::servicedependency::unknown_type) {
+      // Expand depended services.
+      absl::flat_hash_set<std::pair<std::string, std::string>>
+          depended_services;
+      _expand_services(dep.hosts().data(), dep.hostgroups().data(),
+                       dep.service_description().data(),
+                       dep.servicegroups().data(), s, depended_services);
+
+      // Expand dependent services.
+      absl::flat_hash_set<std::pair<std::string, std::string>>
+          dependent_services;
+      _expand_services(
+          dep.dependent_hosts().data(), dep.dependent_hostgroups().data(),
+          dep.dependent_service_description().data(),
+          dep.dependent_servicegroups().data(), s, dependent_services);
+
+      // Browse all depended and dependent services.
+      for (auto& p1 : depended_services)
+        for (auto& p2 : dependent_services) {
+          // Create service dependency instance.
+          auto exec_sdep = std::make_unique<Servicedependency>();
+          exec_sdep->CopyFrom(dep);
+          exec_sdep->clear_hostgroups();
+          exec_sdep->clear_hosts();
+          exec_sdep->mutable_hosts()->add_data(p1.first);
+          exec_sdep->clear_servicegroups();
+          exec_sdep->clear_service_description();
+          exec_sdep->mutable_service_description()->add_data(p1.second);
+          exec_sdep->clear_dependent_hostgroups();
+          exec_sdep->clear_dependent_hosts();
+          exec_sdep->mutable_dependent_hosts()->add_data(p2.first);
+          exec_sdep->clear_dependent_servicegroups();
+          exec_sdep->clear_dependent_service_description();
+          exec_sdep->mutable_dependent_service_description()->add_data(
+              p2.second);
+          exec_sdep->set_notification_failure_options(0);
+          auto notif_sdep = std::make_unique<Servicedependency>();
+          notif_sdep->CopyFrom(*exec_sdep);
+          exec_sdep->set_dependency_type(execution_dependency);
+          notif_sdep->set_dependency_type(notification_dependency);
+
+          // Insert new service dependency. We do not need to expand it
+          // because no expansion is made on 1->1 dependency.
+          expanded.emplace_back(std::move(exec_sdep));
+          expanded.emplace_back(std::move(notif_sdep));
+        }
+    }
+  }
+
+  // Set expanded service dependencies in configuration state.
+  s.clear_servicedependencies();
+  for (auto& e : expanded)
+    s.mutable_servicedependencies()->AddAllocated(e.release());
 }
 
 /**
@@ -288,6 +443,63 @@ void applier::servicedependency::resolve_object(
 
   // Resolve service dependency.
   it->second->resolve(config_warnings, config_errors);
+}
+
+/**
+ *  Expand services.
+ *
+ *  @param[in]     hst      Hosts.
+ *  @param[in]     hg       Host groups.
+ *  @param[in]     svc      Service descriptions.
+ *  @param[in]     sg       Service groups.
+ *  @param[in,out] s        Configuration state.
+ *  @param[out]    expanded Expanded services.
+ */
+void applier::servicedependency::_expand_services(
+    const ::google::protobuf::RepeatedPtrField<std::string>& hst,
+    const ::google::protobuf::RepeatedPtrField<std::string>& hg,
+    const ::google::protobuf::RepeatedPtrField<std::string>& svc,
+    const ::google::protobuf::RepeatedPtrField<std::string>& sg,
+    configuration::State& s,
+    absl::flat_hash_set<std::pair<std::string, std::string>>& expanded) {
+  // Expanded hosts.
+  absl::flat_hash_set<std::string> all_hosts;
+
+  // Base hosts.
+  all_hosts.insert(hst.begin(), hst.end());
+
+  // Host groups.
+  for (auto& hgn : hg) {
+    // Find host group
+    auto found = std::find_if(
+        s.hostgroups().begin(), s.hostgroups().end(),
+        [&hgn](const Hostgroup& hgg) { return hgg.hostgroup_name() == hgn; });
+    if (found == s.hostgroups().end())
+      throw engine_error() << fmt::format("Could not resolve host group '{}'",
+                                          hgn);
+    // Add host group members.
+    all_hosts.insert(found->members().data().begin(),
+                     found->members().data().end());
+  }
+
+  // Hosts * services.
+  for (auto& h : all_hosts)
+    for (auto& s : svc)
+      expanded.insert({h, s});
+
+  // Service groups.
+  for (auto& sgn : sg) {
+    // Find service group.
+    auto found = std::find_if(
+        s.servicegroups().begin(), s.servicegroups().end(),
+        [&sgn](const Servicegroup& sgg) { return sgg.servicegroup_name() == sgn; });
+    if (found == s.servicegroups().end())
+      throw engine_error() << fmt::format("Coulx not resolve service group '{}'", sgn);
+
+    // Add service group members.
+    for (auto& m : found->members().data())
+      expanded.insert({m.first(), m.second()});
+  }
 }
 
 /**

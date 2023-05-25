@@ -38,7 +38,7 @@ serviceescalation::serviceescalation(std::string const& hostname,
                                      double notification_interval,
                                      std::string const& escalation_period,
                                      uint32_t escalate_on,
-                                     Uuid const& uuid)
+                                     const boost::uuids::uuid& uuid)
     : escalation{first_notification, last_notification, notification_interval,
                  escalation_period,  escalate_on,       uuid},
       _hostname{hostname},

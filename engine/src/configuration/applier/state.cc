@@ -1114,12 +1114,12 @@ void applier::state::_check_contactgroups() const {
           found->second.get() != pp.second) {
         engine_logger(log_config_error, basic)
             << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in serviceescalation " << p.second->get_uuid().to_string()
+            << " used in serviceescalation " << p.second->uuid().to_string()
             << " is not or badly defined";
         log_v2::config()->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "serviceescalation {} is not or badly defined",
-            pp.first, p.second->get_uuid().to_string());
+            pp.first, p.second->uuid().to_string());
         throw engine_error() << "This is a bug";
       }
     }
@@ -1133,12 +1133,12 @@ void applier::state::_check_contactgroups() const {
           found->second.get() != pp.second) {
         engine_logger(log_config_error, basic)
             << "Error on contactgroup !!! The contactgroup " << pp.first
-            << " used in hostescalation " << p.second->get_uuid().to_string()
+            << " used in hostescalation " << p.second->uuid().to_string()
             << " is not or badly defined";
         log_v2::config()->error(
             "Error on contactgroup !!! The contactgroup {} used in "
             "hostescalation {} is not or badly defined",
-            pp.first, p.second->get_uuid().to_string());
+            pp.first, p.second->uuid().to_string());
         throw engine_error() << "This is a bug";
       }
     }
@@ -1406,33 +1406,33 @@ void applier::state::_processing(configuration::State& new_cfg,
   _expand<configuration::Command, applier::command>(new_cfg);
 
   // Expand contacts.
-  _expand<configuration::contact, applier::contact>(new_cfg);
+  _expand<configuration::Contact, applier::contact>(new_cfg);
 
   // Expand contactgroups.
-  _expand<configuration::contactgroup, applier::contactgroup>(new_cfg);
+  _expand<configuration::Contactgroup, applier::contactgroup>(new_cfg);
 
-  //  // Expand hosts.
-  //  _expand<configuration::host, applier::host>(new_cfg);
-  //
-  //  // Expand hostgroups.
-  //  _expand<configuration::hostgroup, applier::hostgroup>(new_cfg);
-  //
-  //  // Expand services.
-  //  _expand<configuration::service, applier::service>(new_cfg);
-  //
-  //  // Expand anomalydetections.
-  //  _expand<configuration::anomalydetection,
-  //  applier::anomalydetection>(new_cfg);
-  //
+  // Expand hosts.
+  _expand<configuration::Host, applier::host>(new_cfg);
+
+  // Expand hostgroups.
+  _expand<configuration::Hostgroup, applier::hostgroup>(new_cfg);
+
+  // Expand services.
+  _expand<configuration::Service, applier::service>(new_cfg);
+
+  // Expand anomalydetections.
+  _expand<configuration::Anomalydetection, applier::anomalydetection>(new_cfg);
+
   //  // Expand servicegroups.
   //  _expand<configuration::servicegroup, applier::servicegroup>(new_cfg);
   //
   //  // Expand hostdependencies.
-  //  _expand<configuration::hostdependency, applier::hostdependency>(new_cfg);
+  //  _expand<configuration::hostdependency,
+  //  applier::hostdependency>(new_cfg);
   //
-  //  // Expand servicedependencies.
-  //  _expand<configuration::servicedependency, applier::servicedependency>(
-  //      new_cfg);
+  // Expand servicedependencies.
+  _expand<configuration::Servicedependency, applier::servicedependency>(
+      new_cfg);
   //
   //  // Expand hostescalations.
   //  _expand<configuration::hostescalation, applier::hostescalation>(new_cfg);
@@ -1489,19 +1489,26 @@ void applier::state::_processing(configuration::State& new_cfg,
                       new_cfg.contacts().begin(), new_cfg.contacts().end(),
                       &configuration::Contact::contact_name);
 
-  //  // Build difference for contactgroups.
-  //  difference<set_contactgroup> diff_contactgroups;
-  //  diff_contactgroups.parse(config->contactgroups(),
-  //  new_cfg.contactgroups());
-  //
-  //  // Build difference for hosts.
-  //  difference<set_host> diff_hosts;
-  //  diff_hosts.parse(config->hosts(), new_cfg.hosts());
-  //
-  //  // Build difference for hostgroups.
-  //  difference<set_hostgroup> diff_hostgroups;
-  //  diff_hostgroups.parse(config->hostgroups(), new_cfg.hostgroups());
-  //
+  // Build difference for contactgroups.
+  pb_difference<configuration::Contactgroup> diff_contactgroups;
+  diff_contactgroups.parse(
+      pb_config.contactgroups().begin(), pb_config.contactgroups().end(),
+      new_cfg.contactgroups().begin(), new_cfg.contactgroups().end(),
+      &configuration::Contactgroup::contactgroup_name);
+
+  // Build difference for hosts.
+  pb_difference<configuration::Host> diff_hosts;
+  diff_hosts.parse(pb_config.hosts().begin(), pb_config.hosts().end(),
+                   new_cfg.hosts().begin(), new_cfg.hosts().end(),
+                   &configuration::Host::host_name);
+
+  // Build difference for hostgroups.
+  pb_difference<configuration::Hostgroup> diff_hostgroups;
+  diff_hostgroups.parse(
+      pb_config.hostgroups().begin(), pb_config.hostgroups().end(),
+      new_cfg.hostgroups().begin(), new_cfg.hostgroups().end(),
+      &configuration::Hostgroup::hostgroup_name);
+
   //  // Build difference for services.
   //  difference<set_service> diff_services;
   //  diff_services.parse(config->services(), new_cfg.services());
@@ -1587,28 +1594,27 @@ void applier::state::_processing(configuration::State& new_cfg,
     _pb_apply<configuration::Command, applier::command>(diff_commands);
     _pb_resolve<configuration::Command, applier::command>(pb_config.commands());
 
-//    // Apply contacts and contactgroups.
-//    _apply<configuration::contact, applier::contact>(diff_contacts);
-//    _apply<configuration::contactgroup, applier::contactgroup>(
-//        diff_contactgroups);
-//    _resolve<configuration::contactgroup, applier::contactgroup>(
-//        config->contactgroups());
-//    _resolve<configuration::contact,
-//    applier::contact>(config->contacts());
-//
-//    // Apply severities.
-//    _apply<configuration::severity, applier::severity>(diff_severities);
-//
-//    // Apply tags.
-//    _apply<configuration::tag, applier::tag>(diff_tags);
-//
-//    // Apply hosts and hostgroups.
-//    _apply<configuration::host, applier::host>(diff_hosts);
-//    _apply<configuration::hostgroup, applier::hostgroup>(diff_hostgroups);
-//
+    // Apply contacts and contactgroups.
+    _pb_apply<configuration::Contact, applier::contact>(diff_contacts);
+    _pb_apply<configuration::Contactgroup, applier::contactgroup>(
+        diff_contactgroups);
+    _pb_resolve<configuration::Contactgroup, applier::contactgroup>(
+        pb_config.contactgroups());
+    _pb_resolve<configuration::Contact, applier::contact>(pb_config.contacts());
+
+    // Apply severities.
+    _pb_apply<configuration::Severity, applier::severity>(diff_severities);
+
+    // Apply tags.
+    _pb_apply<configuration::Tag, applier::tag>(diff_tags);
+
+    // Apply hosts and hostgroups.
+    _pb_apply<configuration::Host, applier::host>(diff_hosts);
+    _pb_apply<configuration::Hostgroup, applier::hostgroup>(diff_hostgroups);
+
 //    // Apply services.
-//    _apply<configuration::service, applier::service>(diff_services);
-//
+//    _pb_apply<configuration::Service, applier::service>(diff_services);
+
 //    // Apply anomalydetections.
 //    _apply<configuration::anomalydetection, applier::anomalydetection>(
 //        diff_anomalydetections);

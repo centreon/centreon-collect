@@ -1,5 +1,5 @@
 /**
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019,2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,6 +41,7 @@
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "helper.hh"
+#include "configuration/hostdependency_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -96,6 +97,24 @@ TEST_F(HostDependency, CircularDependency2) {
   ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
 }
 
+TEST_F(HostDependency, PbCircularDependency2) {
+  configuration::applier::hostdependency hd_aply;
+  configuration::Hostdependency hd1{
+      new_pb_configuration_hostdependency("host1", "host2")};
+  hd_aply.expand_objects(pb_config);
+  hd_aply.add_object(hd1);
+  hd_aply.resolve_object(hd1);
+
+  configuration::Hostdependency hd2{
+      new_pb_configuration_hostdependency("host2", "host1")};
+  hd_aply.expand_objects(pb_config);
+  hd_aply.add_object(hd2);
+  hd_aply.resolve_object(hd2);
+
+  int w = 0, e = 0;
+  ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
+}
+
 TEST_F(HostDependency, CircularDependency3) {
   configuration::applier::hostdependency hd_aply;
   configuration::hostdependency hd1{
@@ -113,6 +132,30 @@ TEST_F(HostDependency, CircularDependency3) {
   configuration::hostdependency hd3{
       new_configuration_hostdependency("host3", "host1")};
   hd_aply.expand_objects(*config);
+  hd_aply.add_object(hd3);
+  hd_aply.resolve_object(hd3);
+
+  int w{0}, e{0};
+  ASSERT_EQ(pre_flight_circular_check(&w, &e), ERROR);
+}
+
+TEST_F(HostDependency, PbCircularDependency3) {
+  configuration::applier::hostdependency hd_aply;
+  configuration::Hostdependency hd1{
+      new_pb_configuration_hostdependency("host1", "host2")};
+  hd_aply.expand_objects(pb_config);
+  hd_aply.add_object(hd1);
+  hd_aply.resolve_object(hd1);
+
+  configuration::Hostdependency hd2{
+      new_pb_configuration_hostdependency("host2", "host3")};
+  hd_aply.expand_objects(pb_config);
+  hd_aply.add_object(hd2);
+  hd_aply.resolve_object(hd2);
+
+  configuration::Hostdependency hd3{
+      new_pb_configuration_hostdependency("host3", "host1")};
+  hd_aply.expand_objects(pb_config);
   hd_aply.add_object(hd3);
   hd_aply.resolve_object(hd3);
 

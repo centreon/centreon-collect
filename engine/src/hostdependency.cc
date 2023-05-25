@@ -36,8 +36,10 @@ using namespace com::centreon::engine::string;
 hostdependency_mmap hostdependency::hostdependencies;
 
 /**
- *  Create a host dependency definition.
+ *  Create a host dependency definition. The key is given by the
+ *  applier::configuration::hostdependency object from its attributes.
  *
+ *  @param[in] key                 key representing this hostdependency.
  *  @param[in] dependent_hostname  Dependant host name.
  *  @param[in] hostname            Host name.
  *  @param[in] dependency_type     Dependency type.
@@ -50,7 +52,8 @@ hostdependency_mmap hostdependency::hostdependencies;
  *
  *  @return New host dependency.
  */
-hostdependency::hostdependency(std::string const& dependent_hostname,
+hostdependency::hostdependency(size_t key,
+                               std::string const& dependent_hostname,
                                std::string const& hostname,
                                dependency::types dependency_type,
                                bool inherits_parent,
@@ -65,6 +68,7 @@ hostdependency::hostdependency(std::string const& dependent_hostname,
                  inherits_parent,
                  fail_on_pending,
                  dependency_period),
+      _internal_key{key},
       master_host_ptr{nullptr},
       dependent_host_ptr{nullptr},
       _fail_on_up{fail_on_up},
@@ -310,45 +314,39 @@ void hostdependency::resolve(int& w, int& e) {
  */
 hostdependency_mmap::iterator hostdependency::hostdependencies_find(
     const com::centreon::engine::configuration::hostdependency& k) {
-  typedef hostdependency_mmap collection;
-  std::pair<collection::iterator, collection::iterator> p;
+  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
+
+  size_t key =
+   absl::HashOf(k.dependency_period(), k.dependency_type(),
+                      *k.dependent_hosts().begin(), *k.hosts().begin(),
+                      k.inherits_parent(), k.notification_failure_options());
 
   p = hostdependencies.equal_range(*k.dependent_hosts().begin());
   while (p.first != p.second) {
-    configuration::hostdependency current;
-    current.configuration::object::operator=(k);
-    current.dependent_hosts().insert(p.first->second->get_dependent_hostname());
-    current.hosts().insert(p.first->second->get_hostname());
-    current.dependency_period(
-        (!p.first->second->get_dependency_period().empty()
-             ? p.first->second->get_dependency_period().c_str()
-             : ""));
-    current.inherits_parent(p.first->second->get_inherits_parent());
-    unsigned int options((p.first->second->get_fail_on_up()
-                              ? configuration::hostdependency::up
-                              : 0) |
-                         (p.first->second->get_fail_on_down()
-                              ? configuration::hostdependency::down
-                              : 0) |
-                         (p.first->second->get_fail_on_unreachable()
-                              ? configuration::hostdependency::unreachable
-                              : 0) |
-                         (p.first->second->get_fail_on_pending()
-                              ? configuration::hostdependency::pending
-                              : 0));
-    if (p.first->second->get_dependency_type() ==
-        engine::hostdependency::notification) {
-      current.dependency_type(
-          configuration::hostdependency::notification_dependency);
-      current.notification_failure_options(options);
-    } else {
-      current.dependency_type(
-          configuration::hostdependency::execution_dependency);
-      current.execution_failure_options(options);
-    }
-    if (current == k)
+    if (p.first->second->_internal_key == key)
       break;
     ++p.first;
   }
-  return (p.first == p.second) ? hostdependencies.end() : p.first;
+  return p.first == p.second ? hostdependencies.end() : p.first;
+}
+
+/**
+ *  Find a service dependency from its key.
+ *
+ *  @param[in] k The service dependency configuration.
+ *
+ *  @return Iterator to the element if found,
+ *          servicedependencies().end() otherwise.
+ */
+hostdependency_mmap::iterator hostdependency::hostdependencies_find(
+    const std::pair<absl::string_view, size_t> key) {
+  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
+
+  p = hostdependencies.equal_range(key.first);
+  while (p.first != p.second) {
+    if (p.first->second->_internal_key == key.second)
+      break;
+    ++p.first;
+  }
+  return p.first == p.second ? hostdependencies.end() : p.first;
 }

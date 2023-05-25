@@ -128,9 +128,11 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlapping) {
   for (size_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
+  boost::uuids::uuid u = boost::uuids::random_generator()();
+
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, u)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -181,9 +183,11 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStartTwoTimes) {
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
+  boost::uuids::uuid u = boost::uuids::random_generator()();
+
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, u)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -221,9 +225,11 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
+  boost::uuids::uuid u = boost::uuids::random_generator()();
+
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, u)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};

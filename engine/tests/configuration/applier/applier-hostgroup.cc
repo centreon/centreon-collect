@@ -25,6 +25,8 @@
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "helper.hh"
+#include "configuration/hostgroup_helper.hh"
+#include "configuration/host_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -71,6 +73,53 @@ TEST_F(ApplierHostGroup, NewHostGroup) {
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hst_aply.expand_objects(*config));
   ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_b));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+
+  ASSERT_EQ(engine::hostgroup::hostgroups.size(), 1u);
+  ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->members.size(), 3u);
+}
+
+// Given host configuration without host_id
+// Then the applier add_object throws an exception.
+TEST_F(ApplierHostGroup, PbNewHostGroup) {
+  configuration::applier::hostgroup hg_aply;
+  configuration::applier::host hst_aply;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hst_a_hlp(&hst_a);
+  configuration::Host hst_b;
+  configuration::host_helper hst_b_hlp(&hst_b);
+  configuration::Host hst_c;
+  configuration::host_helper hst_c_hlp(&hst_c);
+
+  hst_a.set_host_name("a");
+  hst_a.set_host_id(1);
+  hst_a.set_address("127.0.0.1");
+
+  hst_b.set_host_name("b");
+  hst_b.set_host_id(2);
+  hst_b.set_address("127.0.0.1");
+
+  hst_c.set_host_name("c");
+  hst_c.set_host_id(3);
+  hst_c.set_address("127.0.0.1");
+  hst_aply.add_object(hst_a);
+  hst_aply.add_object(hst_b);
+  hst_aply.add_object(hst_c);
+
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,b,c");
+  ASSERT_NO_THROW(hg_aply.add_object(hg));
+
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_b));
@@ -129,6 +178,57 @@ TEST_F(ApplierHostGroup, HostRenamed) {
             "temp_hg");
 }
 
+// Given a host configuration
+// When we change the host name in the configuration
+// Then the applier modify_object changes the host name without changing
+// the host id.
+TEST_F(ApplierHostGroup, PbHostRenamed) {
+  configuration::applier::hostgroup hg_aply;
+  configuration::applier::host hst_aply;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hst_a_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hst_c_hlp(&hst_c);
+
+  hst_a.set_host_name("a");
+  hst_a.set_host_id(1);
+  hst_a.set_address("127.0.0.1");
+
+  hst_c.set_host_name("c");
+  hst_c.set_host_id(2);
+  hst_c.set_address("127.0.0.1");
+
+  hst_aply.add_object(hst_a);
+  hst_aply.add_object(hst_c);
+
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
+  ASSERT_NO_THROW(hg_aply.add_object(hg));
+
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+
+  hg.mutable_members()->clear_data();
+  hg_hlp.hook("members", "c");
+  hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg);
+
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+
+  ASSERT_EQ(engine::hostgroup::hostgroups.size(), 1u);
+  ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->members.size(), 1u);
+  ASSERT_EQ(engine::hostgroup::hostgroups.begin()->second->get_group_name(),
+            "temphg");
+}
+
 TEST_F(ApplierHostGroup, HostRemoved) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
@@ -166,4 +266,51 @@ TEST_F(ApplierHostGroup, HostRemoved) {
 
   ASSERT_TRUE(hg.parse("members", "c"));
   ASSERT_NO_THROW(hg_aply.modify_object(hg));
+}
+
+TEST_F(ApplierHostGroup, PbHostRemoved) {
+  configuration::applier::hostgroup hg_aply;
+  configuration::applier::host hst_aply;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hst_a_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hst_c_hlp(&hst_c);
+
+  hst_a.set_host_name("a");
+  hst_a.set_host_id(1);
+  hst_a.set_address("127.0.0.1");
+
+  hst_c.set_host_name("c");
+  hst_c.set_host_id(2);
+  hst_c.set_address("127.0.0.1");
+
+  hst_aply.add_object(hst_a);
+  hst_aply.add_object(hst_c);
+
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
+  ASSERT_NO_THROW(hg_aply.add_object(hg));
+
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
+
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
+  ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
+  ASSERT_NO_THROW(hg_aply.resolve_object(hg));
+
+  engine::hostgroup* hg_obj{engine::hostgroup::hostgroups["temphg"].get()};
+  ASSERT_EQ(hg_obj->members.size(), 2u);
+  ASSERT_NO_THROW(hst_aply.remove_object(0));
+  ASSERT_EQ(hg_obj->members.size(), 1u);
+
+  hg.mutable_members()->clear_data();
+  hg_hlp.hook("members", "c");
+  ASSERT_NO_THROW(hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg));
+
+  hg_aply.remove_object(0);
+  ASSERT_TRUE(pb_config.hostgroups().empty());
+  ASSERT_TRUE(engine::hostgroup::hostgroups.empty());
 }

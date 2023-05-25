@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTDEPENDENCY_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTDEPENDENCY_HH
 
+#include "configuration/state-generated.pb.h"
+
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -30,14 +32,20 @@ class state;
 namespace applier {
 class hostdependency {
  public:
-  hostdependency();
-  hostdependency(hostdependency const& right) = delete;
-  ~hostdependency() throw();
-  hostdependency& operator=(hostdependency const& right) = delete;
+  hostdependency() = default;
+  hostdependency(const hostdependency&) = delete;
+  ~hostdependency() noexcept = default;
+  hostdependency& operator=(const hostdependency&) = delete;
   void add_object(configuration::hostdependency const& obj);
+  void add_object(const configuration::Hostdependency& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::hostdependency* to_modify,
+                     const configuration::Hostdependency& new_obj);
   void modify_object(configuration::hostdependency const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::hostdependency const& obj);
+  void resolve_object(const configuration::Hostdependency& obj);
   void resolve_object(configuration::hostdependency const& obj);
 
  private:

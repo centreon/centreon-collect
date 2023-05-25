@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_HOSTESCALATION_HH
 #define CCE_CONFIGURATION_HOSTESCALATION_HH
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
@@ -69,7 +71,7 @@ class hostescalation : public object {
   void notification_interval(unsigned int interval);
   unsigned int notification_interval() const throw();
   bool notification_interval_defined() const throw();
-  Uuid const& uuid() const;
+  const boost::uuids::uuid& uuid() const;
 
  private:
   typedef bool (*setter_func)(hostescalation&, char const*);
@@ -92,7 +94,7 @@ class hostescalation : public object {
   opt<unsigned int> _last_notification;
   opt<unsigned int> _notification_interval;
   static std::unordered_map<std::string, setter_func> const _setters;
-  Uuid _uuid;
+  boost::uuids::uuid _uuid;
 };
 
 typedef std::shared_ptr<hostescalation> hostescalation_ptr;

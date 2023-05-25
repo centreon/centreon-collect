@@ -45,7 +45,7 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
                          {"hostgroup_name", "hostgroups"},
                          {"contact_groups", "contactgroups"},
                      },
-                     12) {
+                     13) {
   _init();
 }
 
@@ -55,9 +55,10 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool serviceescalation_helper::hook(const absl::string_view& key,
+bool serviceescalation_helper::hook(absl::string_view key,
                                     const absl::string_view& value) {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
+  key = validate_key(key);
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
@@ -108,6 +109,12 @@ void serviceescalation_helper::_init() {
   obj->set_first_notification(-2);
   obj->set_last_notification(-2);
   obj->set_notification_interval(0);
+  boost::uuids::uuid u = boost::uuids::random_generator()();
+
+  auto* bytes = obj->mutable_uuid()->mutable_value();
+  for (const auto& b : u)
+    bytes->push_back(b);
+  // bytes->push_back(static_cast<char>(b));
 }
 }  // namespace configuration
 }  // namespace engine
