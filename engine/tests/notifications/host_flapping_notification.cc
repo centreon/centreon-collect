@@ -108,8 +108,10 @@ TEST_F(HostFlappingNotification, SimpleHostFlapping) {
   for (size_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+  boost::uuids::uuid u = boost::uuids::random_generator()();
+
+  std::unique_ptr<engine::hostescalation> host_escalation = std::make_unique<
+      engine::hostescalation>("host_name", 0, 1, 1.0, "tperiod", 7, u);
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -158,8 +160,10 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
+    boost::uuids::uuid u = boost::uuids::random_generator()();
+
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, u)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -197,8 +201,10 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
+  boost::uuids::uuid u = boost::uuids::random_generator()();
+
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, u)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};

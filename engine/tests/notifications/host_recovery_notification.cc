@@ -59,9 +59,11 @@ class HostRecovery : public ::testing::Test {
     for (size_t i = 0; i < _tperiod->days.size(); ++i)
       _tperiod->days[i].emplace_back(0, 86400);
 
+    boost::uuids::uuid u = boost::uuids::random_generator()();
+
     std::unique_ptr<engine::hostescalation> host_escalation{
         new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7,
-                                   Uuid())};
+                                   u)};
 
     _host->get_next_notification_id();
     _host->set_notification_period_ptr(_tperiod.get());

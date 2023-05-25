@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017, 2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -19,7 +19,7 @@
 
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICE_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICE_HH
-#include "configuration/state-generated.pb.h"
+#include "configuration/state.pb.h"
 
 CCE_BEGIN()
 
@@ -31,20 +31,27 @@ class state;
 namespace applier {
 class service {
  public:
-  service();
-  service(service const& right);
-  ~service();
-  service& operator=(service const& right);
+  service() = default;
+  service(const service&) = delete;
+  ~service() noexcept = default;
+  service& operator=(const service&) = delete;
   void add_object(const configuration::Service& obj);
   void add_object(configuration::service const& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::service const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::service const& obj);
+  void resolve_object(const configuration::Service& obj);
   void resolve_object(configuration::service const& obj);
 
  private:
   void _expand_service_memberships(configuration::service& obj,
                                    configuration::state& s);
+  void _expand_service_memberships(configuration::Service& obj,
+                                   configuration::State& s);
+  void _inherits_special_vars(configuration::Service& obj,
+                              const configuration::State& s);
   void _inherits_special_vars(configuration::service& obj,
                               configuration::state const& s);
 };

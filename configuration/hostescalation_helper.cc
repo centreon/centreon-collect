@@ -42,7 +42,7 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
                          {"host_name", "hosts"},
                          {"contact_groups", "contactgroups"},
                      },
-                     10) {
+                     11) {
   _init();
 }
 
@@ -52,9 +52,10 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool hostescalation_helper::hook(const absl::string_view& key,
+bool hostescalation_helper::hook(absl::string_view key,
                                  const absl::string_view& value) {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
+  key = validate_key(key);
   if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;

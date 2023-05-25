@@ -695,7 +695,7 @@ void applier::contact::remove_object(configuration::contact const& obj) {
  *
  *  @param[in,out] obj  Object to resolve.
  */
-void applier::contact::resolve_object(configuration::contact const& obj) {
+void applier::contact::resolve_object(const configuration::contact& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
       << "Resolving contact '" << obj.contact_name() << "'.";

@@ -20,10 +20,11 @@
 #ifndef CCE_CONFIGURATION_SERVICEESCALATION_HH
 #define CCE_CONFIGURATION_SERVICEESCALATION_HH
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
-#include "com/centreon/engine/shared.hh"
 
 CCE_BEGIN()
 
@@ -75,7 +76,7 @@ class serviceescalation : public object {
   list_string const& servicegroups() const throw();
   list_string& service_description() throw();
   list_string const& service_description() const throw();
-  Uuid const& uuid() const;
+  const boost::uuids::uuid& uuid() const;
 
  private:
   typedef bool (*setter_func)(serviceescalation&, char const*);
@@ -102,7 +103,7 @@ class serviceescalation : public object {
   group<list_string> _servicegroups;
   group<list_string> _service_description;
   static std::unordered_map<std::string, setter_func> const _setters;
-  Uuid _uuid;
+  boost::uuids::uuid _uuid;
 };
 
 typedef std::shared_ptr<serviceescalation> serviceescalation_ptr;

@@ -60,10 +60,36 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool hostdependency_helper::hook(const absl::string_view& key,
+bool hostdependency_helper::hook(absl::string_view key,
                                  const absl::string_view& value) {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
-  if (key == "dependent_hostgroups") {
+  key = validate_key(key);
+
+  if (key == "notification_failure_options") {
+    auto opts = absl::StrSplit(value, ',');
+    uint16_t options = action_hd_none;
+
+    for (auto& o : opts) {
+      absl::string_view ov = absl::StripAsciiWhitespace(o);
+      if (ov == "o" || ov == "up")
+        options |= action_hd_up;
+      else if (ov == "d" || ov == "down")
+        options |= action_hd_down;
+      else if (ov == "u" || ov == "unreachable")
+        options |= action_hd_unreachable;
+      else if (ov == "p" || ov == "pending")
+        options |= action_hd_pending;
+      else if (ov == "n" || ov == "none")
+        options |= action_hd_none;
+      else if (ov == "a" || ov == "all")
+        options = action_hd_up | action_hd_down | action_hd_unreachable |
+                  action_hd_pending;
+      else
+        return false;
+    }
+    obj->set_notification_failure_options(options);
+    return true;
+  } else if (key == "dependent_hostgroups") {
     fill_string_group(obj->mutable_dependent_hostgroups(), value);
     return true;
   } else if (key == "dependent_hosts") {

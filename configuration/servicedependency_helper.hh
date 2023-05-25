@@ -36,8 +36,7 @@ class servicedependency_helper : public message_helper {
   ~servicedependency_helper() noexcept = default;
   void check_validity() const override;
 
-  bool hook(const absl::string_view& key,
-            const absl::string_view& value) override;
+  bool hook(absl::string_view key, const absl::string_view& value) override;
 };
 }  // namespace configuration
 }  // namespace engine
