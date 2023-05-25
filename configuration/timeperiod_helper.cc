@@ -43,9 +43,10 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool timeperiod_helper::hook(const absl::string_view& key,
+bool timeperiod_helper::hook(absl::string_view key,
                              const absl::string_view& value) {
   Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
+  key = validate_key(key);
   auto get_timerange = [](const absl::string_view& value, auto* day) -> bool {
     auto arr = absl::StrSplit(value, ',');
     for (auto& d : arr) {

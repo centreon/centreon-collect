@@ -103,3 +103,4 @@ jobs:
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports
+          show_passed_tests: false

@@ -706,7 +706,6 @@ void parser::_parse_object_definitions(const std::string& path,
         /* ------------------------------------ */
         size_t pos = l.find_first_of(" \t");
         absl::string_view key = l.substr(0, pos);
-        key = msg_helper->validate_key(key);
         l.remove_prefix(pos);
         l = absl::StripLeadingAsciiWhitespace(l);
         bool retval = false;

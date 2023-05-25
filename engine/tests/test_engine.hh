@@ -32,18 +32,37 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
+#include "configuration/contact_helper.hh"
+#include "configuration/contactgroup_helper.hh"
+#include "configuration/host_helper.hh"
+#include "configuration/service_helper.hh"
+#include "configuration/hostdependency_helper.hh"
 
 using namespace com::centreon::engine;
 
 class TestEngine : public ::testing::Test {
  public:
+  void fill_pb_configuration_contact(
+      configuration::contact_helper* ctct_hlp,
+      std::string const& name,
+      bool full,
+      const std::string& notif = "a") const;
   configuration::contact new_configuration_contact(
       std::string const& name,
       bool full,
       const std::string& notif = "a") const;
+  void fill_pb_configuration_host(configuration::host_helper* hst_hlp,
+                                  std::string const& hostname,
+                                  std::string const& contacts,
+                                  uint64_t hst_id = 12);
   configuration::host new_configuration_host(std::string const& hostname,
                                              std::string const& contacts,
                                              uint64_t hst_id = 12);
+  void fill_pb_configuration_service(configuration::service_helper* svc_hlp,
+                                     std::string const& hostname,
+                                     std::string const& description,
+                                     std::string const& contacts,
+                                     uint64_t svc_id = 13);
   configuration::service new_configuration_service(
       std::string const& hostname,
       std::string const& description,
@@ -65,6 +84,9 @@ class TestEngine : public ::testing::Test {
   configuration::hostdependency new_configuration_hostdependency(
       std::string const& hostname,
       std::string const& dep_hostname);
+  configuration::Hostdependency new_pb_configuration_hostdependency(
+      const std::string& hostname,
+      const std::string& dep_hostname);
   configuration::servicedependency new_configuration_servicedependency(
       std::string const& hostname,
       std::string const& description,
@@ -74,6 +96,10 @@ class TestEngine : public ::testing::Test {
       std::string const& hostname,
       std::string const& svc_desc,
       std::string const& contactgroup);
+  void fill_pb_configuration_contactgroup(
+      configuration::contactgroup_helper* ctct_hlp,
+      const std::string& name,
+      const std::string& contactname);
   configuration::contactgroup new_configuration_contactgroup(
       std::string const& name,
       std::string const& contactname);

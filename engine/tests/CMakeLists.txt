@@ -65,6 +65,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/configuration/applier/applier-hostdependency.cc"
       "${TESTS_DIR}/configuration/applier/applier-hostgroup.cc"
       "${TESTS_DIR}/configuration/applier/applier-service.cc"
+      "${TESTS_DIR}/configuration/applier/applier-servicedependency.cc"
       "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
       "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
       "${TESTS_DIR}/configuration/applier/applier-severity.cc"

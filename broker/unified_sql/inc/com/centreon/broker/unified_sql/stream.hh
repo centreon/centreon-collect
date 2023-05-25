@@ -255,7 +255,7 @@ class stream : public io::stream {
   database::mysql_stmt _pb_comment_insupdate;
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _event_handler_insupdate;
-  database::mysql_stmt _flapping_status_insupdate;
+  //database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_dependency_insupdate;

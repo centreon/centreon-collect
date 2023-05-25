@@ -76,10 +76,10 @@ done
 my_id=$(id -u)
 
 if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
-  if [ -r /etc/centos-release ] ; then
-    maj="centos$(cat /etc/centos-release | awk '{print $4}' | cut -f1 -d'.')"
-  else
+  if [ -r /etc/almalinux-release ] ; then
     maj="centos$(cat /etc/almalinux-release | awk '{print $3}' | cut -f1 -d'.')"
+  else
+    maj="centos$(cat /etc/centos-release | awk '{print $4}' | cut -f1 -d'.')"
   fi
   v=$(cmake --version)
   if [[ "$v" =~ "version 3" ]] ; then
@@ -139,12 +139,17 @@ if [ -r /etc/centos-release -o -r /etc/almalinux-release ] ; then
     perl-srpm-macros
     libgcrypt-devel
   )
+  if [[ "$maj" == 'centos8' ]] ; then
+    dnf config-manager --set-enabled powertools
+    dnf update
+  fi
+
   for i in "${pkgs[@]}"; do
     if ! rpm -q $i ; then
       if [[ "$maj" == 'centos7' ]] ; then
         yum install -y $i
       elif [[ "$maj" == 'centos8' ]] ; then
-        dnf -y --enablerepo=PowerTools install $i
+        yum install -y $i
       else
         dnf -y install $i
       fi
@@ -278,15 +283,15 @@ cd build
 if [[ "$maj" == "centos7" ]] ; then
   rm -rf ~/.conan/profiles/default
   if [[ "$CONAN_REBUILD" == "1" ]] ; then
-    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
-    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
+    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build="*"
   else
-    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
-    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
+    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.cppstd=$STD -s compiler.libcxx=$LIBCXX $EE --build=missing
   fi
 else
-    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
-    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
+    echo $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
+    $conan install .. -pr:b=default -s compiler=$COMPILER -s compiler.version=$VERSION -s compiler.libcxx=$LIBCXX -s compiler.cppstd=$STD $EE --build=missing
 fi
 
 if [[ $STD -eq 17 ]] ; then
@@ -296,9 +301,9 @@ else
 fi
 
 if [[ "$maj" == "Raspbian" ]] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
+  CC=gcc CXX=g++ CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
 elif [[ "$maj" == "Debian" ]] ; then
-  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
+  CC=gcc CXX=g++ CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_PREFIX_LIB_CLIB=/usr/lib64/ -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..
 else
-  CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $NG $* ..
+  CC=gcc CXX=g++ CXXFLAGS="-Wall -Wextra" $cmake -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_USER_BROKER=centreon-broker -DWITH_USER_ENGINE=centreon-engine -DWITH_GROUP_BROKER=centreon-broker -DWITH_GROUP_ENGINE=centreon-engine -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF -DWITH_CONF=OFF $NG $* ..
 fi

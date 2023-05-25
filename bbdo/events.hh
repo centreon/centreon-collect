@@ -100,10 +100,10 @@ enum data_element {
   de_custom_variable,
   de_custom_variable_status,
   de_downtime,
-  de_event_handler,
-  de_flapping_status,
-  de_host_check,
-  de_host_dependency,
+  de_event_handler = 6,
+  de_flapping_status = 7,   // unused
+  de_host_check = 8,
+  de_host_dependency = 9,
   de_host_group,
   de_host_group_member,
   de_host,
@@ -137,7 +137,7 @@ enum data_element {
   de_pb_service_check = 40,
   de_pb_log_entry = 41,
   de_pb_instance_status = 42,
-  de_pb_module = 43,
+  //de_pb_module = 43,    Not used
   de_pb_instance = 44,
   de_pb_acknowledgement = 45,
   de_pb_responsive_instance = 46,

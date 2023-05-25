@@ -68,9 +68,10 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool servicedependency_helper::hook(const absl::string_view& key,
+bool servicedependency_helper::hook(absl::string_view key,
                                     const absl::string_view& value) {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
+  key = validate_key(key);
   if (key == "dependent_hostgroups") {
     fill_string_group(obj->mutable_dependent_hostgroups(), value);
     return true;
