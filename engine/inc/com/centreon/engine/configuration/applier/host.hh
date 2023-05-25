@@ -48,7 +48,10 @@ class host {
   void add_object(configuration::host const& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Host* old_obj,
+                     const configuration::Host& new_obj);
   void modify_object(configuration::host const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::host const& obj);
   void resolve_object(const configuration::Host& obj);
   void resolve_object(configuration::host const& obj);

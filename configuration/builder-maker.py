@@ -67,7 +67,7 @@ class_files_cc = [
 def sync_files():
     print("### SYNC FILES")
     files = os.listdir(".")
-    r = re.compile(".*_helper.(cc|hh)$")
+    r = re.compile(r"((.*_helper\.(cc|hh))|(.*\.proto))$")
     h = {}
     for f in files:
         if r.match(f):
@@ -113,8 +113,9 @@ def complete_filehelper_cc(fhcc, cname, name, number: int, correspondence, hook,
   * @param key The key to parse.
   * @param value The value corresponding to the key
   */
-bool {cname}::hook(const absl::string_view& key, const absl::string_view& value) {{
+bool {cname}::hook(absl::string_view key, const absl::string_view& value) {{
   {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
+  key = validate_key(key);
 """)
     for h in hook:
         fhcc.write(h)
@@ -145,7 +146,16 @@ void {cname}::_init() {{
   {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
 """]
                 header = True
-            if m['proto_type'] == 'KeyType':
+            if m['proto_type'] == 'UUID':
+                cc_lines.append(
+                    f"""  boost::uuids::uuid u = boost::uuids::random_generator()();
+
+  auto* bytes = obj->mutable_uuid()->mutable_value();
+  for (const auto& b : u)
+    bytes->push_back(b);
+    //bytes->push_back(static_cast<char>(b));
+""")
+            elif m['proto_type'] == 'KeyType':
                 values = m['default'].split(',')
                 cc_lines.append(
                     f"  obj->mutable_{m['proto_name']}()->set_id({values[0].strip()});\n")
@@ -258,9 +268,13 @@ def prepare_filehelper_hh(cap_name: str, name: str):
     cname = name.replace(".hh", "")
     objname = cname.capitalize()
     if cap_name == "State":
-        fh_header = "state.pb.h"
+        fh_header = "#include \"configuration/state.pb.h\""
+    elif cap_name == "Serviceescalation":
+        fh_header = """#include "configuration/state-generated.pb.h"
+#include <boost/uuid/uuid.hpp>                                                  
+#include <boost/uuid/uuid_generators.hpp>"""
     else:
-        fh_header = "state-generated.pb.h"
+        fh_header = "#include \"configuration/state-generated.pb.h\""
     fhhh.write(f"""/*
  * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
@@ -283,7 +297,7 @@ def prepare_filehelper_hh(cap_name: str, name: str):
 #ifndef CCE_CONFIGURATION_{macro}
 #define CCE_CONFIGURATION_{macro}
 
-#include "configuration/{fh_header}"
+{fh_header}
 #include "configuration/message_helper.hh"
 
 namespace com {{
@@ -299,7 +313,7 @@ class {cname}_helper : public message_helper {{
   ~{cname}_helper() noexcept = default;
   void check_validity() const override;
 
-  bool hook(const absl::string_view& key, const absl::string_view& value) override;
+  bool hook(absl::string_view key, const absl::string_view& value) override;
 """)
     if cap_name in ["Contact",  "Host", "Service", "Anomalydetection"]:
         fhhh.write(f"""
@@ -340,6 +354,7 @@ def proto_type(t: str):
         "exception_array": "ExceptionArray",
         "group<set_pair_string>": "PairStringSet",
         "std::set<std::pair<uint64_t, uint16_t>>": "repeated PairUint64_32",
+        "boost::uuids::uuid": "UUID",
     }
     if t in typ:
         return typ[t]
@@ -348,22 +363,30 @@ def proto_type(t: str):
         return t
 
 
-def get_messages_of_conf(header, msg: [str]):
+def get_messages_of_conf(cap_name: str, header, msg: [str]):
     r = re.compile(r"^\s*([a-z0-9][a-z0-9\s_:<,>]*[a-z0-9>])\s+(_[a-z0-9_]*);")
     ropt = re.compile(r"opt<(.*)>")
     for l in header:
         m = r.match(l)
         if m and m.group(2) != '_setters':
-            msg = {
-                'line': l,
-                "typ": m.group(1),
-                "name": m.group(2),
-                "optional": False,
-            }
-            mopt = ropt.match(m.group(1))
-            if mopt:
-                msg['optional'] = True
-                msg['typ'] = mopt.group(1)
+            if cap_name == "Host" and m.group(2) == "hosts":
+                msg = {
+                    "line": l,
+                    "typ": "std::string",
+                    "name": "host_name",
+                    "optional": False,
+                }
+            else:
+                msg = {
+                    'line': l,
+                    "typ": m.group(1),
+                    "name": m.group(2),
+                    "optional": False,
+                }
+                mopt = ropt.match(m.group(1))
+                if mopt:
+                    msg['optional'] = True
+                    msg['typ'] = mopt.group(1)
             msg['proto_type'] = proto_type(msg['typ'])
             msg['proto_name'] = proto_name(msg['name'])
             msg_list.append(msg)
@@ -440,6 +463,11 @@ def get_default_values(cap_name, cpp, msg: [str]):
         for i in msg:
             if i['proto_name'] == "key":
                 i['default'] = "0, -1"
+                break
+    elif cap_name == "Serviceescalation":
+        for i in msg:
+            if i['proto_name'] == "uuid":
+                i['default'] = "1"
                 break
 
 
@@ -576,6 +604,33 @@ def build_hook_content(cname: str, msg):
     }
     else
       return false;
+  }
+""")
+    elif cname == 'Hostdependency':
+        retval.append("""
+  if (key == "notification_failure_options") {
+    auto opts = absl::StrSplit(value, ',');
+    uint16_t options = action_hd_none;
+    
+    for (auto& o : opts) {
+        absl::string_view ov = absl::StripAsciiWhitespace(o);
+        if (ov == "o" || ov == "up")
+            options |= action_hd_up;
+        else if (ov == "d" || ov == "down")
+            options |= action_hd_down;
+        else if (ov == "u" || ov == "unreachable")
+            options |= action_hd_unreachable;
+        else if (ov == "p" || ov == "pending")
+            options |= action_hd_pending;
+        else if (ov == "n" || ov == "none")
+            options |= action_hd_none;
+        else if (ov == "a" || ov == "all")
+            options = action_hd_up | action_hd_down | action_hd_unreachable | action_hd_pending;
+        else
+            return false;
+    }
+    obj->set_notification_failure_options(options);
+    return true;
   }
 """)
 
@@ -946,6 +1001,10 @@ message Point2d {
   int32 y = 2;
 }
 
+message UUID {
+  bytes value = 1;
+}
+
 message Point3d {
   double x = 1;
   double y = 2;
@@ -1125,7 +1184,7 @@ for i in range(len(class_files_hh)):
     msg_list = []
 
     # From the header file, we get fields with their type.
-    get_messages_of_conf(header, msg_list)
+    get_messages_of_conf(cap_name, header, msg_list)
 
     # From the cpp sources, we get default values for fields.
     get_default_values(cap_name, cpp, msg_list)
@@ -1141,37 +1200,38 @@ for i in range(len(class_files_hh)):
 
     # Construction of three files, state-generated.proto, state-generated.cc and state-generated.hh
     number = 2
-    proto.append(f"""
-message {cap_name} {{
-  Object obj = 1;
-""")
-    for l in msg_list:
-        cmt = ""
-        if l['optional']:
-            cmt += "Optional"
-            optional = "optional "
-        else:
-            cmt += ""
-            optional = ""
-        if 'default' in l:
-            cmt += f" - Default value: {l['default']}"
-        if cmt != "":
-            cmt = "  // " + cmt
-        proto.append(
-            f"  {optional}{l['proto_type']} {l['proto_name']} = {number};{cmt}\n")
-        number += 1
-    proto.append("}\n")
+    if cap_name != 'State':
+        proto.append(f"""
+    message {cap_name} {{
+      Object obj = 1;
+    """)
+        for l in msg_list:
+            cmt = ""
+            if l['optional']:
+                cmt += "Optional"
+                optional = "optional "
+            else:
+                cmt += ""
+                optional = ""
+            if 'default' in l:
+                cmt += f" - Default value: {l['default']}"
+            if cmt != "":
+                cmt = "  // " + cmt
+            proto.append(
+                f"  {optional}{l['proto_type']} {l['proto_name']} = {number};{cmt}\n")
+            number += 1
+        proto.append("}\n")
 
     complete_filehelper_cc(fhcc, cap_name, name, number,
                            correspondence, hook, check_validity, msg_list)
 
-    # Generation of proto file
-    f = open("/tmp/configuration/state-generated.proto", "w")
-    f.writelines(proto)
-    f.close()
-
     fhcc.close()
     fhhh.close()
+
+# Generation of proto file
+f = open("/tmp/configuration/state-generated.proto", "w")
+f.writelines(proto)
+f.close()
 
 
 indent_files()

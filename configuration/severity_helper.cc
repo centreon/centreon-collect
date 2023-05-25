@@ -51,9 +51,10 @@ severity_helper::severity_helper(Severity* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool severity_helper::hook(const absl::string_view& key,
+bool severity_helper::hook(absl::string_view key,
                            const absl::string_view& value) {
   Severity* obj = static_cast<Severity*>(mut_obj());
+  key = validate_key(key);
 
   if (key == "id" || key == "severity_id") {
     uint64_t id;

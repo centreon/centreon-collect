@@ -242,7 +242,7 @@ class conflict_manager {
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _custom_variable_status_insupdate;
   database::mysql_stmt _event_handler_insupdate;
-  database::mysql_stmt _flapping_status_insupdate;
+  //database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _host_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;

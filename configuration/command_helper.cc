@@ -43,9 +43,10 @@ command_helper::command_helper(Command* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool command_helper::hook(const absl::string_view& key,
+bool command_helper::hook(absl::string_view key,
                           const absl::string_view& value) {
   Command* obj = static_cast<Command*>(mut_obj());
+  key = validate_key(key);
   return false;
 }
 

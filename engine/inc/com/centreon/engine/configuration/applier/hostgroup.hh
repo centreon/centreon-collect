@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 
+#include "configuration/state.pb.h"
 #include "com/centreon/engine/configuration/hostgroup.hh"
 
 CCE_BEGIN()
@@ -31,14 +32,20 @@ class state;
 namespace applier {
 class hostgroup {
  public:
-  hostgroup();
-  hostgroup(hostgroup const& right);
-  ~hostgroup() throw();
-  hostgroup& operator=(hostgroup const& right) = delete;
+  hostgroup() = default;
+  ~hostgroup() noexcept = default;
+  hostgroup(const hostgroup&) = delete;
+  hostgroup& operator=(const hostgroup&) = delete;
+  void add_object(const configuration::Hostgroup& obj);
   void add_object(configuration::hostgroup const& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Hostgroup* old_obj,
+                     const configuration::Hostgroup& new_obj);
   void modify_object(configuration::hostgroup const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::hostgroup const& obj);
+  void resolve_object(const configuration::Hostgroup& obj);
   void resolve_object(configuration::hostgroup const& obj);
 
  private:
