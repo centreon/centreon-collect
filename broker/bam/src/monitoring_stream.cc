@@ -190,6 +190,154 @@ void monitoring_stream::update() {
   }
 }
 
+// when bulk stmt are available
+struct bulk_ba_binder {
+  const std::shared_ptr<io::data>& event;
+  void operator()(database::mysql_bulk_bind& binder) const {
+    if (event->type() == ba_status::static_type()) {
+      const ba_status& status = *std::static_pointer_cast<ba_status>(event);
+      binder.set_value_as_f64(0, status.level_nominal);
+      binder.set_value_as_f64(1, status.level_acknowledgement);
+      binder.set_value_as_f64(2, status.level_downtime);
+      binder.set_value_as_u32(6, status.ba_id);
+      if (status.last_state_change.is_null())
+        binder.set_null_u64(3);
+      else
+        binder.set_value_as_u64(3, status.last_state_change.get_time_t());
+      binder.set_value_as_bool(4, status.in_downtime);
+      binder.set_value_as_i32(5, status.state);
+
+    } else {
+      const BaStatus& status =
+          static_cast<const pb_ba_status*>(event.get())->obj();
+      binder.set_value_as_f64(0, status.level_nominal());
+      binder.set_value_as_f64(1, status.level_acknowledgement());
+      binder.set_value_as_f64(2, status.level_downtime());
+      binder.set_value_as_u32(6, status.ba_id());
+      if (status.last_state_change() <= 0)
+        binder.set_null_u64(3);
+      else
+        binder.set_value_as_u64(3, status.last_state_change());
+      binder.set_value_as_bool(4, status.in_downtime());
+      binder.set_value_as_i32(5, status.state());
+    }
+    binder.next_row();
+  }
+};
+
+struct ba_binder {
+  const std::shared_ptr<io::data>& event;
+  std::string operator()() const {
+    if (event->type() == ba_status::static_type()) {
+      const ba_status& status = *std::static_pointer_cast<ba_status>(event);
+      if (status.last_state_change.is_null())
+        return fmt::format("({},{},{},NULL,{},{},{})", status.level_nominal,
+                           status.level_acknowledgement, status.level_downtime,
+                           int(status.in_downtime), status.state, status.ba_id);
+      else
+        return fmt::format("({},{},{},{},{},{},{})", status.level_nominal,
+                           status.level_acknowledgement, status.level_downtime,
+                           status.last_state_change.get_time_t(),
+                           int(status.in_downtime), status.state, status.ba_id);
+    } else {
+      const BaStatus& status =
+          static_cast<const pb_ba_status*>(event.get())->obj();
+      if (status.last_state_change() <= 0)
+        return fmt::format("({},{},{},NULL,{},{},{})", status.level_nominal(),
+                           status.level_acknowledgement(),
+                           status.level_downtime(), int(status.in_downtime()),
+                           int(status.state()), status.ba_id());
+      else
+        return fmt::format("({},{},{},{},{},{},{})", status.level_nominal(),
+                           status.level_acknowledgement(),
+                           status.level_downtime(), status.last_state_change(),
+                           int(status.in_downtime()), int(status.state()),
+                           status.ba_id());
+    }
+  }
+};
+
+struct bulk_kpi_binder {
+  const std::shared_ptr<io::data>& event;
+  void operator()(database::mysql_bulk_bind& binder) const {
+    if (event->type() == kpi_status::static_type()) {
+      const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
+      binder.set_value_as_f64(0, status.level_acknowledgement_hard);
+      binder.set_value_as_i32(1, status.state_hard);
+      binder.set_value_as_f64(2, status.level_downtime_hard);
+      binder.set_value_as_f64(3, status.level_nominal_hard);
+      binder.set_value_as_i32(4, 1 + 1);
+      if (status.last_state_change.is_null())
+        binder.set_null_u64(5);
+      else
+        binder.set_value_as_u64(5, status.last_state_change.get_time_t());
+      binder.set_value_as_f64(6, status.last_impact);
+      binder.set_value_as_bool(7, status.valid);
+      binder.set_value_as_bool(8, status.in_downtime);
+      binder.set_value_as_u32(9, status.kpi_id);
+    } else {
+      const KpiStatus& status(
+          std::static_pointer_cast<pb_kpi_status>(event)->obj());
+      binder.set_value_as_f64(0, status.level_acknowledgement_hard());
+      binder.set_value_as_i32(1, status.state_hard());
+      binder.set_value_as_f64(2, status.level_downtime_hard());
+      binder.set_value_as_f64(3, status.level_nominal_hard());
+      binder.set_value_as_i32(4, 1 + 1);
+      if (status.last_state_change() <= 0)
+        binder.set_null_u64(5);
+      else
+        binder.set_value_as_u64(5, status.last_state_change());
+      binder.set_value_as_f64(6, status.last_impact());
+      binder.set_value_as_bool(7, status.valid());
+      binder.set_value_as_bool(8, status.in_downtime());
+      binder.set_value_as_u32(9, status.kpi_id());
+    }
+    binder.next_row();
+  }
+};
+
+struct kpi_binder {
+  const std::shared_ptr<io::data>& event;
+  std::string operator()() const {
+    if (event->type() == kpi_status::static_type()) {
+      const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
+      if (status.last_state_change.is_null()) {
+        return fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
+                           status.level_acknowledgement_hard, status.state_hard,
+                           status.level_downtime_hard,
+                           status.level_nominal_hard, status.last_impact,
+                           int(status.valid), int(status.in_downtime),
+                           status.kpi_id);
+      } else {
+        return fmt::format(
+            "({},{},{},{},1+1,{},{},{},{},{})",
+            status.level_acknowledgement_hard, status.state_hard,
+            status.level_downtime_hard, status.level_nominal_hard,
+            status.last_state_change.get_time_t(), status.last_impact,
+            int(status.valid), int(status.in_downtime), status.kpi_id);
+      }
+    } else {
+      const KpiStatus& status(
+          std::static_pointer_cast<pb_kpi_status>(event)->obj());
+      if (status.last_state_change() <= 0) {
+        return fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
+                           status.level_acknowledgement_hard(),
+                           status.state_hard(), status.level_downtime_hard(),
+                           status.level_nominal_hard(), status.last_impact(),
+                           int(status.valid()), int(status.in_downtime()),
+                           status.kpi_id());
+      } else {
+        return fmt::format(
+            "({},{},{},{},1+1,{},{},{},{},{})",
+            status.level_acknowledgement_hard(), status.state_hard(),
+            status.level_downtime_hard(), status.level_nominal_hard(),
+            status.last_state_change(), status.last_impact(),
+            int(status.valid()), int(status.in_downtime()), status.kpi_id());
+      }
+    }
+  }
+};
+
 /**
  *  Write an event.
  *
@@ -300,12 +448,13 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       std::shared_ptr<neb::pb_downtime> dt(
           std::static_pointer_cast<neb::pb_downtime>(data));
       auto& downtime = dt->obj();
-      SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
-          "BAM: processing downtime (pb) ({}) on service ({}, {}) started: {}, "
-          "stopped: {}",
-          downtime.id(), downtime.host_id(), downtime.service_id(),
-          downtime.started(), downtime.cancelled());
+      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                          "BAM: processing downtime (pb) ({}) on service "
+                          "({}, {}) started: {}, "
+                          "stopped: {}",
+                          downtime.id(), downtime.host_id(),
+                          downtime.service_id(), downtime.started(),
+                          downtime.cancelled());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
       _applier.book_service().update(dt, &ev_cache);
@@ -313,7 +462,10 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     } break;
     case bam::ba_status::static_type(): {
       ba_status* status(static_cast<ba_status*>(data.get()));
-      _ba_query->add_event(data);
+      if (_ba_query->is_bulk())
+        _ba_query->add_bulk_row(bulk_ba_binder{data});
+      else
+        _ba_query->add_multi_row(ba_binder{data});
 
       ++_pending_request;
       commit_if_needed();
@@ -338,7 +490,10 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     case bam::pb_ba_status::static_type(): {
       const BaStatus& status =
           static_cast<const pb_ba_status*>(data.get())->obj();
-      _ba_query->add_event(data);
+      if (_ba_query->is_bulk())
+        _ba_query->add_bulk_row(bulk_ba_binder{data});
+      else
+        _ba_query->add_multi_row(ba_binder{data});
       ++_pending_request;
       commit_if_needed();
 
@@ -361,7 +516,10 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     } break;
     case bam::kpi_status::static_type():
     case bam::pb_kpi_status::static_type():
-      _kpi_query->add_event(data);
+      if (_kpi_query->is_bulk())
+        _kpi_query->add_bulk_row(bulk_kpi_binder{data});
+      else
+        _kpi_query->add_multi_row(kpi_binder{data});
       ++_pending_request;
       commit_if_needed();
       break;
@@ -440,177 +598,36 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
   return retval;
 }
 
-// when bulk stmt are available
-static auto bulk_ba_binder = [](const std::shared_ptr<io::data>& event,
-                                database::mysql_bulk_bind* binder) {
-  if (event->type() == ba_status::static_type()) {
-    const ba_status& status = *std::static_pointer_cast<ba_status>(event);
-    binder->set_value_as_f64(0, status.level_nominal);
-    binder->set_value_as_f64(1, status.level_acknowledgement);
-    binder->set_value_as_f64(2, status.level_downtime);
-    binder->set_value_as_u32(6, status.ba_id);
-    if (status.last_state_change.is_null())
-      binder->set_null_u64(3);
-    else
-      binder->set_value_as_u64(3, status.last_state_change.get_time_t());
-    binder->set_value_as_bool(4, status.in_downtime);
-    binder->set_value_as_i32(5, status.state);
-
-  } else {
-    const BaStatus& status =
-        static_cast<const pb_ba_status*>(event.get())->obj();
-    binder->set_value_as_f64(0, status.level_nominal());
-    binder->set_value_as_f64(1, status.level_acknowledgement());
-    binder->set_value_as_f64(2, status.level_downtime());
-    binder->set_value_as_u32(6, status.ba_id());
-    if (status.last_state_change() <= 0)
-      binder->set_null_u64(3);
-    else
-      binder->set_value_as_u64(3, status.last_state_change());
-    binder->set_value_as_bool(4, status.in_downtime());
-    binder->set_value_as_i32(5, status.state());
-  }
-};
-
-auto ba_binder = [](const std::shared_ptr<io::data>& event,
-                    std::string& query) {
-  if (event->type() == ba_status::static_type()) {
-    const ba_status& status = *std::static_pointer_cast<ba_status>(event);
-    if (status.last_state_change.is_null())
-      query.append(fmt::format("({},{},{},NULL,{},{},{})", status.level_nominal,
-                               status.level_acknowledgement,
-                               status.level_downtime, int(status.in_downtime),
-                               status.state, status.ba_id));
-    else
-      query.append(
-          fmt::format("({},{},{},{},{},{},{})", status.level_nominal,
-                      status.level_acknowledgement, status.level_downtime,
-                      status.last_state_change.get_time_t(),
-                      int(status.in_downtime), status.state, status.ba_id));
-  } else {
-    const BaStatus& status =
-        static_cast<const pb_ba_status*>(event.get())->obj();
-    if (status.last_state_change() <= 0)
-      query.append(fmt::format(
-          "({},{},{},NULL,{},{},{})", status.level_nominal(),
-          status.level_acknowledgement(), status.level_downtime(),
-          int(status.in_downtime()), int(status.state()), status.ba_id()));
-    else
-      query.append(
-          fmt::format("({},{},{},{},{},{},{})", status.level_nominal(),
-                      status.level_acknowledgement(), status.level_downtime(),
-                      status.last_state_change(), int(status.in_downtime()),
-                      int(status.state()), status.ba_id()));
-  }
-};
-
-static auto bulk_kpi_binder = [](const std::shared_ptr<io::data>& event,
-                                 database::mysql_bulk_bind* binder) {
-  if (event->type() == kpi_status::static_type()) {
-    const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
-    binder->set_value_as_f64(0, status.level_acknowledgement_hard);
-    binder->set_value_as_i32(1, status.state_hard);
-    binder->set_value_as_f64(2, status.level_downtime_hard);
-    binder->set_value_as_f64(3, status.level_nominal_hard);
-    binder->set_value_as_i32(4, 1 + 1);
-    if (status.last_state_change.is_null())
-      binder->set_null_u64(5);
-    else
-      binder->set_value_as_u64(5, status.last_state_change.get_time_t());
-    binder->set_value_as_f64(6, status.last_impact);
-    binder->set_value_as_bool(7, status.valid);
-    binder->set_value_as_bool(8, status.in_downtime);
-    binder->set_value_as_u32(9, status.kpi_id);
-  } else {
-    const KpiStatus& status(
-        std::static_pointer_cast<pb_kpi_status>(event)->obj());
-    binder->set_value_as_f64(0, status.level_acknowledgement_hard());
-    binder->set_value_as_i32(1, status.state_hard());
-    binder->set_value_as_f64(2, status.level_downtime_hard());
-    binder->set_value_as_f64(3, status.level_nominal_hard());
-    binder->set_value_as_i32(4, 1 + 1);
-    if (status.last_state_change() <= 0)
-      binder->set_null_u64(5);
-    else
-      binder->set_value_as_u64(5, status.last_state_change());
-    binder->set_value_as_f64(6, status.last_impact());
-    binder->set_value_as_bool(7, status.valid());
-    binder->set_value_as_bool(8, status.in_downtime());
-    binder->set_value_as_u32(9, status.kpi_id());
-  }
-};
-
-static auto kpi_binder = [](const std::shared_ptr<io::data>& event,
-                            std::string& query) {
-  if (event->type() == kpi_status::static_type()) {
-    const kpi_status& status = *std::static_pointer_cast<kpi_status>(event);
-    if (status.last_state_change.is_null()) {
-      query.append(fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
-                               status.level_acknowledgement_hard,
-                               status.state_hard, status.level_downtime_hard,
-                               status.level_nominal_hard, status.last_impact,
-                               int(status.valid), int(status.in_downtime),
-                               status.kpi_id));
-    } else {
-      query.append(fmt::format(
-          "({},{},{},{},1+1,{},{},{},{},{})", status.level_acknowledgement_hard,
-          status.state_hard, status.level_downtime_hard,
-          status.level_nominal_hard, status.last_state_change.get_time_t(),
-          status.last_impact, int(status.valid), int(status.in_downtime),
-          status.kpi_id));
-    }
-  } else {
-    const KpiStatus& status(
-        std::static_pointer_cast<pb_kpi_status>(event)->obj());
-    if (status.last_state_change() <= 0) {
-      query.append(
-          fmt::format("({},{},{},{},1+1,NULL,{},{},{},{})",
-                      status.level_acknowledgement_hard(), status.state_hard(),
-                      status.level_downtime_hard(), status.level_nominal_hard(),
-                      status.last_impact(), int(status.valid()),
-                      int(status.in_downtime()), status.kpi_id()));
-    } else {
-      query.append(fmt::format(
-          "({},{},{},{},1+1,{},{},{},{},{})",
-          status.level_acknowledgement_hard(), status.state_hard(),
-          status.level_downtime_hard(), status.level_nominal_hard(),
-          status.last_state_change(), status.last_impact(), int(status.valid()),
-          int(status.in_downtime()), status.kpi_id()));
-    }
-  }
-};
-
 /**
  *  Prepare bulk queries.
  */
 void monitoring_stream::_prepare() {
   if (_mysql.support_bulk_statement()) {
     log_v2::bam()->trace("BAM: monitoring stream _prepare");
-    _ba_query = database::create_bulk_or_multi_bbdo_event(
+    _ba_query = std::make_unique<database::bulk_or_multi>(
         _mysql,
         "UPDATE mod_bam SET "
         "current_level=?,acknowledged=?,downtime=?,last_state_"
         "change=?,in_"
         "downtime=?,current_status=? WHERE ba_id=?",
-        _conf_queries_per_transaction, bulk_ba_binder);
-    _kpi_query = database::create_bulk_or_multi_bbdo_event(
+        _conf_queries_per_transaction);
+    _kpi_query = std::make_unique<database::bulk_or_multi>(
         _mysql,
         "UPDATE mod_bam_kpi SET acknowledged=?,current_status=?,downtime=?, "
         "last_level=?,state_type=?,last_state_change=?,last_impact=?, "
         "valid=?,in_downtime=? WHERE kpi_id=?",
-        _conf_queries_per_transaction, bulk_kpi_binder);
+        _conf_queries_per_transaction);
 
   } else {
-    _ba_query = database::create_bulk_or_multi_bbdo_event(
+    _ba_query = std::make_unique<database::bulk_or_multi>(
         "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
         "last_state_change, in_downtime, current_status, ba_id) VALUES",
         "ON DUPLICATE KEY UPDATE current_level=VALUES(current_level), "
         "acknowledged=VALUES(acknowledged), downtime=VALUES(downtime), "
         "last_state_change=VALUES(last_state_change), "
         "in_downtime=VALUES(in_downtime), "
-        "current_status=VALUES(current_status)",
-        ba_binder);
-    _kpi_query = database::create_bulk_or_multi_bbdo_event(
+        "current_status=VALUES(current_status)");
+    _kpi_query = std::make_unique<database::bulk_or_multi>(
         "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
         "downtime, last_level, state_type, last_state_change, last_impact, "
         "valid, in_downtime, kpi_id) VALUES",
@@ -620,8 +637,7 @@ void monitoring_stream::_prepare() {
         "state_type=VALUES(state_type), "
         "last_state_change=VALUES(last_state_change), "
         "last_impact=VALUES(last_impact), valid=VALUES(valid), "
-        "in_downtime=VALUES(in_downtime)",
-        kpi_binder);
+        "in_downtime=VALUES(in_downtime)");
   }
 }
 
@@ -699,7 +715,8 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
         log_v2::bam()->info("writing in {}", _ext_cmd_file);
         if (fc.write(cmd) < 0) {
           log_v2::bam()->error(
-              "BAM: could not write forced service check to command file '{}'",
+              "BAM: could not write forced service check to command file "
+              "'{}'",
               _ext_cmd_file);
           _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
           _forced_svc_checks_timer.async_wait(

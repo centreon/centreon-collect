@@ -144,9 +144,8 @@ void bulk_or_multi::execute(mysql& connexion,
 /**
  * @brief refresh _row_counter and _first_row_add_time
  *
- * @param event
  */
-void bulk_or_multi::on_add_event() {
+void bulk_or_multi::on_add_row() {
   if (!_row_count) {
     _first_row_add_time = std::chrono::system_clock::now();
   }

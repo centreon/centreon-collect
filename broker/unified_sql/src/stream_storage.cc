@@ -287,26 +287,27 @@ void stream::_unified_sql_process_pb_service_status(
 
         if (_store_in_db) {
           // Append perfdata to queue.
-          std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
-          if (_bulk_prepared_statement) {
-            database::mysql_bulk_bind& b = _perfdata_query->bulk_bind();
-            b.set_value_as_i32(0, metric_id);
-            b.set_value_as_i32(1, ss.last_check());
-            char state[2];
-            state[0] = '0' + ss.state();
-            state[1] = 0;
-            b.set_value_as_str(2, state);
-            if (std::isinf(pd.value()))
-              b.set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
-            else if (std::isnan(pd.value()))
-              b.set_null_f32(3);
-            else
-              b.set_value_as_f32(3, pd.value());
-            SPDLOG_LOGGER_TRACE(
-                log_v2::sql(),
-                "New value {} inserted on metric {} with state {}", pd.value(),
-                metric_id, ss.state());
-            b.next_row();
+          if (_perfdata_query->is_bulk()) {
+            auto binder = [&](database::mysql_bulk_bind& b) {
+              b.set_value_as_i32(0, metric_id);
+              b.set_value_as_i32(1, ss.last_check());
+              char state[2];
+              state[0] = '0' + ss.state();
+              state[1] = 0;
+              b.set_value_as_str(2, state);
+              if (std::isinf(pd.value()))
+                b.set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
+              else if (std::isnan(pd.value()))
+                b.set_null_f32(3);
+              else
+                b.set_value_as_f32(3, pd.value());
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::sql(),
+                  "New value {} inserted on metric {} with state {}",
+                  pd.value(), metric_id, ss.state());
+              b.next_row();
+            };
+            _perfdata_query->add_bulk_row(binder);
           } else {
             std::string row;
             if (std::isinf(pd.value()))
@@ -319,9 +320,8 @@ void stream::_unified_sql_process_pb_service_status(
             else
               row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check(),
                                 ss.state(), pd.value());
-            _perfdata_query->multi_insert().push(row);
+            _perfdata_query->add_multi_row(row);
           }
-          _perfdata_query->on_add_event();
         }
 
         // Send perfdata event to processing.
@@ -705,22 +705,23 @@ void stream::_unified_sql_process_service_status(
 
         if (_store_in_db) {
           // Append perfdata to queue.
-          std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
           if (_bulk_prepared_statement) {
-            database::mysql_bulk_bind& b = _perfdata_query->bulk_bind();
-            b.set_value_as_i32(0, metric_id);
-            b.set_value_as_i32(1, ss.last_check);
-            char state[2];
-            state[0] = '0' + ss.current_state;
-            state[1] = 0;
-            b.set_value_as_str(2, state);
-            if (std::isinf(pd.value()))
-              b.set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
-            else if (std::isnan(pd.value()))
-              b.set_null_f32(3);
-            else
-              b.set_value_as_f32(3, pd.value());
-            b.next_row();
+            auto binder = [&](database::mysql_bulk_bind& b) {
+              b.set_value_as_i32(0, metric_id);
+              b.set_value_as_i32(1, ss.last_check);
+              char state[2];
+              state[0] = '0' + ss.current_state;
+              state[1] = 0;
+              b.set_value_as_str(2, state);
+              if (std::isinf(pd.value()))
+                b.set_value_as_f32(3, pd.value() < 0.0 ? -FLT_MAX : FLT_MAX);
+              else if (std::isnan(pd.value()))
+                b.set_null_f32(3);
+              else
+                b.set_value_as_f32(3, pd.value());
+              b.next_row();
+            };
+            _perfdata_query->add_bulk_row(binder);
           } else {
             std::string row;
             if (std::isinf(pd.value()))
@@ -733,9 +734,8 @@ void stream::_unified_sql_process_service_status(
             else
               row = fmt::format("({},{},'{}',{})", metric_id, ss.last_check,
                                 ss.current_state, pd.value());
-            _perfdata_query->multi_insert().push(row);
+            _perfdata_query->add_multi_row(row);
           }
-          _perfdata_query->on_add_event();
         }
 
         // Send perfdata event to processing.

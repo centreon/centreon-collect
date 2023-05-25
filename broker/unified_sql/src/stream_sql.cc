@@ -534,39 +534,40 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
                      "SQL: processing comment of poller {} on ({}, {})",
                      cmmnt.poller_id, cmmnt.host_id, cmmnt.service_id);
 
-  std::lock_guard<database::bulk_or_multi> lck(*_comments);
   if (_comments->is_bulk()) {
-    database::mysql_bulk_bind& b = _comments->bulk_bind();
-    b.set_value_as_str(
-        0, misc::string::escape(cmmnt.author,
-                                get_comments_col_size(comments_author)));
-    b.set_value_as_i32(1, cmmnt.comment_type);
-    b.set_value_as_str(
-        2,
-        misc::string::escape(cmmnt.data, get_comments_col_size(comments_data)));
-    if (cmmnt.deletion_time.is_null())
-      b.set_null_i64(3);
-    else
-      b.set_value_as_i64(3, cmmnt.deletion_time.get_time_t());
-    if (cmmnt.entry_time.is_null())
-      b.set_null_i64(4);
-    else
-      b.set_value_as_i64(4, cmmnt.entry_time.get_time_t());
-    b.set_value_as_i32(5, cmmnt.entry_type);
-    if (cmmnt.expire_time.is_null())
-      b.set_null_i64(6);
-    else
-      b.set_value_as_i64(6, cmmnt.expire_time.get_time_t());
-    b.set_value_as_tiny(7, cmmnt.expires);
-    b.set_value_as_i64(8, cmmnt.host_id, mapping::entry::invalid_on_zero);
-    b.set_value_as_i64(9, cmmnt.internal_id);
-    b.set_value_as_tiny(10, cmmnt.persistent);
-    b.set_value_as_i64(11, cmmnt.poller_id, mapping::entry::invalid_on_zero);
-    b.set_value_as_i64(12, cmmnt.service_id);
-    b.set_value_as_i32(13, cmmnt.source);
-    b.next_row();
+    auto binder = [&](database::mysql_bulk_bind& b) {
+      b.set_value_as_str(
+          0, misc::string::escape(cmmnt.author,
+                                  get_comments_col_size(comments_author)));
+      b.set_value_as_i32(1, cmmnt.comment_type);
+      b.set_value_as_str(
+          2, misc::string::escape(cmmnt.data,
+                                  get_comments_col_size(comments_data)));
+      if (cmmnt.deletion_time.is_null())
+        b.set_null_i64(3);
+      else
+        b.set_value_as_i64(3, cmmnt.deletion_time.get_time_t());
+      if (cmmnt.entry_time.is_null())
+        b.set_null_i64(4);
+      else
+        b.set_value_as_i64(4, cmmnt.entry_time.get_time_t());
+      b.set_value_as_i32(5, cmmnt.entry_type);
+      if (cmmnt.expire_time.is_null())
+        b.set_null_i64(6);
+      else
+        b.set_value_as_i64(6, cmmnt.expire_time.get_time_t());
+      b.set_value_as_tiny(7, cmmnt.expires);
+      b.set_value_as_i64(8, cmmnt.host_id, mapping::entry::invalid_on_zero);
+      b.set_value_as_i64(9, cmmnt.internal_id);
+      b.set_value_as_tiny(10, cmmnt.persistent);
+      b.set_value_as_i64(11, cmmnt.poller_id, mapping::entry::invalid_on_zero);
+      b.set_value_as_i64(12, cmmnt.service_id);
+      b.set_value_as_i32(13, cmmnt.source);
+      b.next_row();
+    };
+    _comments->add_bulk_row(binder);
   } else {
-    _comments->multi_insert().push(fmt::format(
+    _comments->add_multi_row(fmt::format(
         "('{}',{},'{}',{},{},{},{},{},{},{},{},{},{},{})",
         misc::string::escape(cmmnt.author,
                              get_comments_col_size(comments_author)),
@@ -577,7 +578,6 @@ void stream::_process_comment(const std::shared_ptr<io::data>& d) {
         cmmnt.internal_id, int(cmmnt.persistent),
         int64_not_minus_one{cmmnt.poller_id}, cmmnt.service_id, cmmnt.source));
   }
-  _comments->on_add_event();
 }
 
 /**
@@ -652,34 +652,35 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
       "SQL: processing pb comment (poller: {}, host: {}, serv: {})",
       cmmnt.instance_id(), cmmnt.host_id(), cmmnt.service_id());
 
-  std::lock_guard<database::bulk_or_multi> lck(*_comments);
   if (_comments->is_bulk()) {
-    database::mysql_bulk_bind& b = _comments->bulk_bind();
-    b.set_value_as_str(
-        0, misc::string::escape(cmmnt.author(),
-                                get_comments_col_size(comments_author)));
-    b.set_value_as_i32(1, int(cmmnt.type()));
-    b.set_value_as_str(
-        2, misc::string::escape(cmmnt.data(),
-                                get_comments_col_size(comments_data)));
-    b.set_value_as_i64(3, cmmnt.deletion_time(),
-                       mapping::entry::invalid_on_minus_one);
-    b.set_value_as_i64(4, cmmnt.entry_time(),
-                       mapping::entry::invalid_on_minus_one);
-    b.set_value_as_i32(5, int(cmmnt.entry_type()));
-    b.set_value_as_i64(6, cmmnt.expire_time(),
-                       mapping::entry::invalid_on_minus_one);
-    b.set_value_as_tiny(7, cmmnt.expires());
-    b.set_value_as_i64(8, cmmnt.host_id(), mapping::entry::invalid_on_zero);
-    b.set_value_as_i64(9, cmmnt.internal_id());
-    b.set_value_as_tiny(10, cmmnt.persistent());
-    b.set_value_as_i64(11, cmmnt.instance_id(),
-                       mapping::entry::invalid_on_zero);
-    b.set_value_as_i64(12, cmmnt.service_id());
-    b.set_value_as_i32(13, cmmnt.source());
-    b.next_row();
+    auto binder = [&](database::mysql_bulk_bind& b) {
+      b.set_value_as_str(
+          0, misc::string::escape(cmmnt.author(),
+                                  get_comments_col_size(comments_author)));
+      b.set_value_as_i32(1, int(cmmnt.type()));
+      b.set_value_as_str(
+          2, misc::string::escape(cmmnt.data(),
+                                  get_comments_col_size(comments_data)));
+      b.set_value_as_i64(3, cmmnt.deletion_time(),
+                         mapping::entry::invalid_on_minus_one);
+      b.set_value_as_i64(4, cmmnt.entry_time(),
+                         mapping::entry::invalid_on_minus_one);
+      b.set_value_as_i32(5, int(cmmnt.entry_type()));
+      b.set_value_as_i64(6, cmmnt.expire_time(),
+                         mapping::entry::invalid_on_minus_one);
+      b.set_value_as_tiny(7, cmmnt.expires());
+      b.set_value_as_i64(8, cmmnt.host_id(), mapping::entry::invalid_on_zero);
+      b.set_value_as_i64(9, cmmnt.internal_id());
+      b.set_value_as_tiny(10, cmmnt.persistent());
+      b.set_value_as_i64(11, cmmnt.instance_id(),
+                         mapping::entry::invalid_on_zero);
+      b.set_value_as_i64(12, cmmnt.service_id());
+      b.set_value_as_i32(13, cmmnt.source());
+      b.next_row();
+    };
+    _comments->add_bulk_row(binder);
   } else {
-    _comments->multi_insert().push(fmt::format(
+    _comments->add_multi_row(fmt::format(
         "('{}',{},'{}',{},{},{},{},{},{},{},{},{},{},{})",
         misc::string::escape(cmmnt.author(),
                              get_comments_col_size(comments_author)),
@@ -693,7 +694,6 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
         int(cmmnt.persistent()), uint64_not_null{cmmnt.instance_id()},
         cmmnt.service_id(), cmmnt.source()));
   }
-  _comments->on_add_event();
 }
 
 /**
@@ -831,55 +831,56 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
 
   // Check if poller is valid.
   if (_is_valid_poller(dd.poller_id)) {
-    std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
     if (_downtimes->is_bulk()) {
-      database::mysql_bulk_bind& b = _downtimes->bulk_bind();
-      if (dd.actual_end_time.is_null())
-        b.set_null_i64(0);
-      else
-        b.set_value_as_i64(0, dd.actual_end_time.get_time_t());
-      if (dd.actual_start_time.is_null())
-        b.set_null_i64(1);
-      else
-        b.set_value_as_i64(1, dd.actual_start_time.get_time_t());
-      b.set_value_as_str(
-          2, misc::string::escape(dd.author,
-                                  get_downtimes_col_size(downtimes_author)));
-      b.set_value_as_i32(3, dd.downtime_type);
-      if (dd.deletion_time.is_null())
-        b.set_null_i64(4);
-      else
-        b.set_value_as_i64(4, dd.deletion_time.get_time_t());
-      b.set_value_as_i64(5, dd.duration);
-      if (dd.end_time.is_null())
-        b.set_null_i64(6);
-      else
-        b.set_value_as_i64(6, dd.end_time.get_time_t());
-      if (dd.entry_time.is_null())
-        b.set_null_i64(7);
-      else
-        b.set_value_as_i64(7, dd.entry_time.get_time_t());
-      b.set_value_as_tiny(8, int(dd.fixed));
-      b.set_value_as_i64(9, dd.host_id);
-      b.set_value_as_i64(10, dd.poller_id);
-      b.set_value_as_i64(11, dd.internal_id);
-      b.set_value_as_i64(12, dd.service_id);
-      if (dd.start_time.is_null())
-        b.set_null_i64(13);
-      else
-        b.set_value_as_i64(13, dd.start_time.get_time_t());
-      if (dd.triggered_by == 0)
-        b.set_null_i32(14);
-      else
-        b.set_value_as_i32(14, dd.triggered_by);
-      b.set_value_as_tiny(15, int(dd.was_cancelled));
-      b.set_value_as_tiny(16, int(dd.was_started));
-      b.set_value_as_str(
-          17, misc::string::escape(
-                  dd.comment, get_downtimes_col_size(downtimes_comment_data)));
-      b.next_row();
+      auto binder = [&](database::mysql_bulk_bind& b) {
+        if (dd.actual_end_time.is_null())
+          b.set_null_i64(0);
+        else
+          b.set_value_as_i64(0, dd.actual_end_time.get_time_t());
+        if (dd.actual_start_time.is_null())
+          b.set_null_i64(1);
+        else
+          b.set_value_as_i64(1, dd.actual_start_time.get_time_t());
+        b.set_value_as_str(
+            2, misc::string::escape(dd.author,
+                                    get_downtimes_col_size(downtimes_author)));
+        b.set_value_as_i32(3, dd.downtime_type);
+        if (dd.deletion_time.is_null())
+          b.set_null_i64(4);
+        else
+          b.set_value_as_i64(4, dd.deletion_time.get_time_t());
+        b.set_value_as_i64(5, dd.duration);
+        if (dd.end_time.is_null())
+          b.set_null_i64(6);
+        else
+          b.set_value_as_i64(6, dd.end_time.get_time_t());
+        if (dd.entry_time.is_null())
+          b.set_null_i64(7);
+        else
+          b.set_value_as_i64(7, dd.entry_time.get_time_t());
+        b.set_value_as_tiny(8, int(dd.fixed));
+        b.set_value_as_i64(9, dd.host_id);
+        b.set_value_as_i64(10, dd.poller_id);
+        b.set_value_as_i64(11, dd.internal_id);
+        b.set_value_as_i64(12, dd.service_id);
+        if (dd.start_time.is_null())
+          b.set_null_i64(13);
+        else
+          b.set_value_as_i64(13, dd.start_time.get_time_t());
+        if (dd.triggered_by == 0)
+          b.set_null_i32(14);
+        else
+          b.set_value_as_i32(14, dd.triggered_by);
+        b.set_value_as_tiny(15, int(dd.was_cancelled));
+        b.set_value_as_tiny(16, int(dd.was_started));
+        b.set_value_as_str(
+            17, misc::string::escape(dd.comment, get_downtimes_col_size(
+                                                     downtimes_comment_data)));
+        b.next_row();
+      };
+      _downtimes->add_bulk_row(binder);
     } else {
-      _downtimes->multi_insert().push(fmt::format(
+      _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           dd.actual_end_time, dd.actual_start_time,
           misc::string::escape(dd.author,
@@ -891,7 +892,6 @@ void stream::_process_downtime(const std::shared_ptr<io::data>& d) {
           misc::string::escape(
               dd.comment, get_downtimes_col_size(downtimes_comment_data))));
     }
-    _downtimes->on_add_event();
   }
 }
 
@@ -923,44 +923,45 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
 
   // Check if poller is valid.
   if (_is_valid_poller(dt_obj.instance_id())) {
-    std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
     if (_downtimes->is_bulk()) {
-      database::mysql_bulk_bind& b = _downtimes->bulk_bind();
-      b.set_value_as_i64(0, dt_obj.actual_end_time(),
-                         mapping::entry::invalid_on_minus_one);
-      b.set_value_as_i64(1, dt_obj.actual_start_time(),
-                         mapping::entry::invalid_on_minus_one);
-      b.set_value_as_str(
-          2, misc::string::escape(dt_obj.author(),
-                                  get_downtimes_col_size(downtimes_author)));
-      b.set_value_as_i32(3, int(dt_obj.type()));
-      b.set_value_as_i64(4, dt_obj.deletion_time(),
-                         mapping::entry::invalid_on_minus_one);
-      b.set_value_as_i64(5, dt_obj.duration());
-      b.set_value_as_i64(6, dt_obj.end_time(),
-                         mapping::entry::invalid_on_minus_one);
-      b.set_value_as_i64(7, dt_obj.entry_time(),
-                         mapping::entry::invalid_on_minus_one);
-      b.set_value_as_tiny(8, int(dt_obj.fixed()));
-      b.set_value_as_i64(9, dt_obj.host_id());
-      b.set_value_as_i64(10, dt_obj.instance_id());
-      b.set_value_as_i64(11, dt_obj.id());
-      b.set_value_as_i64(12, dt_obj.service_id());
-      b.set_value_as_i64(13, dt_obj.start_time(),
-                         mapping::entry::invalid_on_minus_one);
-      if (dt_obj.triggered_by() == 0)
-        b.set_null_i32(14);
-      else
-        b.set_value_as_i32(14, dt_obj.triggered_by());
-      b.set_value_as_tiny(15, int(dt_obj.cancelled()));
-      b.set_value_as_tiny(16, int(dt_obj.started()));
-      b.set_value_as_str(
-          17,
-          misc::string::escape(dt_obj.comment_data(),
+      auto binder = [&](database::mysql_bulk_bind& b) {
+        b.set_value_as_i64(0, dt_obj.actual_end_time(),
+                           mapping::entry::invalid_on_minus_one);
+        b.set_value_as_i64(1, dt_obj.actual_start_time(),
+                           mapping::entry::invalid_on_minus_one);
+        b.set_value_as_str(
+            2, misc::string::escape(dt_obj.author(),
+                                    get_downtimes_col_size(downtimes_author)));
+        b.set_value_as_i32(3, int(dt_obj.type()));
+        b.set_value_as_i64(4, dt_obj.deletion_time(),
+                           mapping::entry::invalid_on_minus_one);
+        b.set_value_as_i64(5, dt_obj.duration());
+        b.set_value_as_i64(6, dt_obj.end_time(),
+                           mapping::entry::invalid_on_minus_one);
+        b.set_value_as_i64(7, dt_obj.entry_time(),
+                           mapping::entry::invalid_on_minus_one);
+        b.set_value_as_tiny(8, int(dt_obj.fixed()));
+        b.set_value_as_i64(9, dt_obj.host_id());
+        b.set_value_as_i64(10, dt_obj.instance_id());
+        b.set_value_as_i64(11, dt_obj.id());
+        b.set_value_as_i64(12, dt_obj.service_id());
+        b.set_value_as_i64(13, dt_obj.start_time(),
+                           mapping::entry::invalid_on_minus_one);
+        if (dt_obj.triggered_by() == 0)
+          b.set_null_i32(14);
+        else
+          b.set_value_as_i32(14, dt_obj.triggered_by());
+        b.set_value_as_tiny(15, int(dt_obj.cancelled()));
+        b.set_value_as_tiny(16, int(dt_obj.started()));
+        b.set_value_as_str(17,
+                           misc::string::escape(
+                               dt_obj.comment_data(),
                                get_downtimes_col_size(downtimes_comment_data)));
-      b.next_row();
+        b.next_row();
+      };
+      _downtimes->add_bulk_row(binder);
     } else {
-      _downtimes->multi_insert().push(fmt::format(
+      _downtimes->add_multi_row(fmt::format(
           "({},{},'{}',{},{},{},{},{},{},{},{},{},{},{},{},{},{},'{}')",
           uint64_not_null_not_neg_1{dt_obj.actual_end_time()},
           uint64_not_null_not_neg_1{dt_obj.actual_start_time()},
@@ -977,7 +978,6 @@ void stream::_process_pb_downtime(const std::shared_ptr<io::data>& d) {
               dt_obj.comment_data(),
               get_downtimes_col_size(downtimes_comment_data))));
     }
-    _downtimes->on_add_event();
   }
 }
 
@@ -2484,37 +2484,37 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
       le.poller_name, le.c_time, le.msg_type);
 
   // Push query.
-  if (_bulk_prepared_statement) {
-    std::lock_guard<database::bulk_or_multi> lck(*_logs);
-    database::mysql_bulk_bind& b = _logs->bulk_bind();
-    b.set_value_as_i64(0, le.c_time.get_time_t());
-    b.set_value_as_i64(1, le.host_id);
-    b.set_value_as_i64(2, le.service_id);
-    b.set_value_as_str(3, misc::string::escape(
-                              le.host_name, get_logs_col_size(logs_host_name)));
-    b.set_value_as_str(
-        4, misc::string::escape(le.poller_name,
-                                get_logs_col_size(logs_instance_name)));
-    b.set_value_as_i32(5, le.log_type);
-    b.set_value_as_i32(6, le.msg_type);
-    b.set_value_as_str(
-        7, misc::string::escape(le.notification_cmd,
-                                get_logs_col_size(logs_notification_cmd)));
-    b.set_value_as_str(
-        8, misc::string::escape(le.notification_contact,
+  if (_logs->is_bulk()) {
+    auto binder = [&](database::mysql_bulk_bind& b) {
+      b.set_value_as_i64(0, le.c_time.get_time_t());
+      b.set_value_as_i64(1, le.host_id);
+      b.set_value_as_i64(2, le.service_id);
+      b.set_value_as_str(
+          3, misc::string::escape(le.host_name,
+                                  get_logs_col_size(logs_host_name)));
+      b.set_value_as_str(
+          4, misc::string::escape(le.poller_name,
+                                  get_logs_col_size(logs_instance_name)));
+      b.set_value_as_i32(5, le.log_type);
+      b.set_value_as_i32(6, le.msg_type);
+      b.set_value_as_str(
+          7, misc::string::escape(le.notification_cmd,
+                                  get_logs_col_size(logs_notification_cmd)));
+      b.set_value_as_str(8, misc::string::escape(
+                                le.notification_contact,
                                 get_logs_col_size(logs_notification_contact)));
-    b.set_value_as_i32(9, le.retry);
-    b.set_value_as_str(
-        10, misc::string::escape(le.service_description,
+      b.set_value_as_i32(9, le.retry);
+      b.set_value_as_str(10, misc::string::escape(
+                                 le.service_description,
                                  get_logs_col_size(logs_service_description)));
-    b.set_value_as_tiny(11, le.status);
-    b.set_value_as_str(
-        12, misc::string::escape(le.output, get_logs_col_size(logs_output)));
-    b.next_row();
+      b.set_value_as_tiny(11, le.status);
+      b.set_value_as_str(
+          12, misc::string::escape(le.output, get_logs_col_size(logs_output)));
+      b.next_row();
+    };
+    _logs->add_bulk_row(binder);
   } else {
-    std::lock_guard<database::bulk_or_multi> lck(*_logs);
-    database::mysql_multi_insert& mult = _logs->multi_insert();
-    mult.push(fmt::format(
+    _logs->add_multi_row(fmt::format(
         "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le.c_time,
         le.host_id, le.service_id,
         misc::string::escape(le.host_name, get_logs_col_size(logs_host_name)),
@@ -2531,7 +2531,6 @@ void stream::_process_log(const std::shared_ptr<io::data>& d) {
         le.status,
         misc::string::escape(le.output, get_logs_col_size(logs_output))));
   }
-  _logs->on_add_event();
 }
 
 /**
@@ -2552,39 +2551,38 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
       "SQL: processing pb log of poller '{}' generated at {} (type {})",
       le_obj.instance_name(), le_obj.ctime(), le_obj.msg_type());
 
-  if (_bulk_prepared_statement) {
-    std::lock_guard<database::bulk_or_multi> lck(*_logs);
-    database::mysql_bulk_bind& b = _logs->bulk_bind();
-    b.set_value_as_i64(0, le_obj.ctime());
-    b.set_value_as_i64(1, le_obj.host_id());
-    b.set_value_as_i64(2, le_obj.service_id());
-    b.set_value_as_str(3,
-                       misc::string::escape(le_obj.host_name(),
-                                            get_logs_col_size(logs_host_name)));
-    b.set_value_as_str(
-        4, misc::string::escape(le_obj.instance_name(),
-                                get_logs_col_size(logs_instance_name)));
-    b.set_value_as_i32(5, le_obj.type());
-    b.set_value_as_i32(6, le_obj.msg_type());
-    b.set_value_as_str(
-        7, misc::string::escape(le_obj.notification_cmd(),
-                                get_logs_col_size(logs_notification_cmd)));
-    b.set_value_as_str(
-        8, misc::string::escape(le_obj.notification_contact(),
+  if (_logs->is_bulk()) {
+    auto binder = [&](database::mysql_bulk_bind& b) {
+      b.set_value_as_i64(0, le_obj.ctime());
+      b.set_value_as_i64(1, le_obj.host_id());
+      b.set_value_as_i64(2, le_obj.service_id());
+      b.set_value_as_str(
+          3, misc::string::escape(le_obj.host_name(),
+                                  get_logs_col_size(logs_host_name)));
+      b.set_value_as_str(
+          4, misc::string::escape(le_obj.instance_name(),
+                                  get_logs_col_size(logs_instance_name)));
+      b.set_value_as_i32(5, le_obj.type());
+      b.set_value_as_i32(6, le_obj.msg_type());
+      b.set_value_as_str(
+          7, misc::string::escape(le_obj.notification_cmd(),
+                                  get_logs_col_size(logs_notification_cmd)));
+      b.set_value_as_str(8, misc::string::escape(
+                                le_obj.notification_contact(),
                                 get_logs_col_size(logs_notification_contact)));
-    b.set_value_as_i32(9, le_obj.retry());
-    b.set_value_as_str(
-        10, misc::string::escape(le_obj.service_description(),
+      b.set_value_as_i32(9, le_obj.retry());
+      b.set_value_as_str(10, misc::string::escape(
+                                 le_obj.service_description(),
                                  get_logs_col_size(logs_service_description)));
-    b.set_value_as_tiny(11, le_obj.status());
-    b.set_value_as_str(
-        12,
-        misc::string::escape(le_obj.output(), get_logs_col_size(logs_output)));
-    b.next_row();
+      b.set_value_as_tiny(11, le_obj.status());
+      b.set_value_as_str(12,
+                         misc::string::escape(le_obj.output(),
+                                              get_logs_col_size(logs_output)));
+      b.next_row();
+    };
+    _logs->add_bulk_row(binder);
   } else {
-    std::lock_guard<database::bulk_or_multi> lck(*_logs);
-    database::mysql_multi_insert& mult = _logs->multi_insert();
-    mult.push(fmt::format(
+    _logs->add_multi_row(fmt::format(
         "({},{},{},'{}','{}',{},{},'{}','{}',{},'{}',{},'{}')", le_obj.ctime(),
         le_obj.host_id(), le_obj.service_id(),
         misc::string::escape(le_obj.host_name(),
@@ -2602,7 +2600,6 @@ void stream::_process_pb_log(const std::shared_ptr<io::data>& d) {
         le_obj.status(),
         misc::string::escape(le_obj.output(), get_logs_col_size(logs_output))));
   }
-  _logs->on_add_event();
 }
 
 /**

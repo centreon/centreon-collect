@@ -2167,24 +2167,27 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
 static unsigned event_binder_index = 0;
 
-static auto bulk_event_binder = [](const std::shared_ptr<io::data>& event,
-                                   database::mysql_bulk_bind* binder) {
-  binder->set_value_as_str(0, fmt::format("toto{}", event_binder_index));
-  binder->set_value_as_f64(1, 12.34 + event_binder_index);
-  binder->set_value_as_tiny(2, (45 + event_binder_index) % 100);
-  binder->set_value_as_str(3, "b");
-  binder->set_value_as_i32(4, 678 + event_binder_index);
-  binder->set_value_as_u32(5, 789 + event_binder_index);
-  ++event_binder_index;
+struct bulk_event_binder {
+  void operator()(database::mysql_bulk_bind& binder) const {
+    binder.set_value_as_str(0, fmt::format("toto{}", event_binder_index));
+    binder.set_value_as_f64(1, 12.34 + event_binder_index);
+    binder.set_value_as_tiny(2, (45 + event_binder_index) % 100);
+    binder.set_value_as_str(3, "b");
+    binder.set_value_as_i32(4, 678 + event_binder_index);
+    binder.set_value_as_u32(5, 789 + event_binder_index);
+    ++event_binder_index;
+  }
 };
 
-static auto multi_event_binder = [](const std::shared_ptr<io::data>& event,
-                                    std::string& query) {
-  query.append(fmt::format("('toto{}',{},{},'b',{},{})", event_binder_index,
-                           12.34 + event_binder_index,
-                           (45 + event_binder_index) % 100,
-                           678 + event_binder_index, 789 + event_binder_index));
-  ++event_binder_index;
+struct multi_event_binder {
+  std::string operator()() const {
+    std::string ret =
+        fmt::format("('toto{}',{},{},'b',{},{})", event_binder_index,
+                    12.34 + event_binder_index, (45 + event_binder_index) % 100,
+                    678 + event_binder_index, 789 + event_binder_index);
+    ++event_binder_index;
+    return ret;
+  }
 };
 
 TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
@@ -2202,14 +2205,16 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
   ms->run_query(query2);
   ms->commit();
 
-  auto inserter = database::create_bulk_or_multi_bbdo_event(
+  auto inserter = std::make_unique<database::bulk_or_multi>(
       *ms, "INSERT INTO ut_test (name, value, t, e, i, u) VALUES (?,?,?,?,?,?)",
-      100000, bulk_event_binder);
+      100000);
 
   auto begin = std::chrono::system_clock::now();
   event_binder_index = 0;
+
+  bulk_event_binder binder;
   for (unsigned data_index = 0; data_index < 100000; ++data_index) {
-    inserter->add_event(std::shared_ptr<com::centreon::broker::io::data>());
+    inserter->add_bulk_row(binder);
   }
 
   inserter->execute(*ms);
@@ -2253,14 +2258,14 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_multi) {
   ms->run_query(query2);
   ms->commit();
 
-  auto inserter = database::create_bulk_or_multi_bbdo_event(
-      "INSERT INTO ut_test (name, value, t, e, i, u) VALUES", "",
-      multi_event_binder);
+  auto inserter = std::make_unique<database::bulk_or_multi>(
+      "INSERT INTO ut_test (name, value, t, e, i, u) VALUES", "");
 
   auto begin = std::chrono::system_clock::now();
   event_binder_index = 0;
+  multi_event_binder filler;
   for (unsigned data_index = 0; data_index < 100000; ++data_index) {
-    inserter->add_event(std::shared_ptr<com::centreon::broker::io::data>());
+    inserter->add_multi_row(filler);
   }
 
   inserter->execute(*ms);
