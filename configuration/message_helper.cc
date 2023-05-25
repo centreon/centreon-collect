@@ -68,6 +68,26 @@ bool fill_pair_string_group(PairStringSet* grp,
   return true;
 }
 
+bool fill_pair_string_group(PairStringSet* grp,
+                            const absl::string_view& key,
+                            const absl::string_view& value) {
+  absl::string_view v1 = absl::StripAsciiWhitespace(key);
+  absl::string_view v2 = absl::StripAsciiWhitespace(value);
+  bool found = false;
+  for (auto& m : grp->data()) {
+    if (v1 == m.first() && v2 == m.second()) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    auto* p = grp->mutable_data()->Add();
+    p->set_first(v1.data(), v1.size());
+    p->set_second(v2.data(), v2.size());
+  }
+  return true;
+}
+
 void fill_string_group(StringSet* grp, const absl::string_view& value) {
   auto arr = absl::StrSplit(value, ',');
   bool first = true;

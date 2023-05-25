@@ -38,6 +38,10 @@ message Point2d {
   int32 y = 2;
 }
 
+message UUID {
+  bytes value = 1;
+}
+
 message Point3d {
   double x = 1;
   double y = 2;
@@ -391,6 +395,7 @@ message Hostescalation {
   StringSet hosts = 7;
   optional uint32 last_notification = 8;      // Optional - Default value: -2
   optional uint32 notification_interval = 9;  // Optional - Default value: 0
+  UUID uuid = 10;
 }
 
 message Hostgroup {
@@ -498,6 +503,7 @@ message Serviceescalation {
   optional uint32 notification_interval = 9;  // Optional - Default value: 0
   StringList servicegroups = 10;
   StringList service_description = 11;
+  UUID uuid = 12;  //  - Default value: 1
 }
 
 message Servicegroup {
@@ -514,7 +520,7 @@ message Servicegroup {
 
 message Severity {
   Object obj = 1;
-  KeyType key = 2;
+  KeyType key = 2;  //  - Default value: 0, -1
   uint32 level = 3;
   uint64 icon_id = 4;
   string severity_name = 5;
@@ -522,7 +528,7 @@ message Severity {
 
 message Tag {
   Object obj = 1;
-  KeyType key = 2;
+  KeyType key = 2;  //  - Default value: 0, -1
   string tag_name = 3;
 }
 

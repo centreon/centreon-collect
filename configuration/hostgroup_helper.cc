@@ -43,9 +43,10 @@ hostgroup_helper::hostgroup_helper(Hostgroup* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool hostgroup_helper::hook(const absl::string_view& key,
+bool hostgroup_helper::hook(absl::string_view key,
                             const absl::string_view& value) {
   Hostgroup* obj = static_cast<Hostgroup*>(mut_obj());
+  key = validate_key(key);
   if (key == "members") {
     fill_string_group(obj->mutable_members(), value);
     return true;

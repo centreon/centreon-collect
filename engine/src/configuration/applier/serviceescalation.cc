@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2019,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -28,14 +28,78 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
+ *  Add new service escalation.
+ *
+ *  @param[in] obj  The new service escalation to add into the
+ *                  monitoring engine.
  */
-applier::serviceescalation::serviceescalation() {}
+void applier::serviceescalation::add_object(
+    const configuration::Serviceescalation& obj) {
+  // Check service escalation.
+  if (obj.hosts().data().size() != 1 || !obj.hostgroups().data().empty() ||
+      obj.service_description().data().size() != 1 ||
+      !obj.servicegroups().data().empty())
+    throw engine_error() << "Could not create service escalation with multiple "
+                            "hosts / host groups / services / service groups";
 
-/**
- *  Destructor.
- */
-applier::serviceescalation::~serviceescalation() throw() {}
+  // Logging.
+  log_v2::config()->debug(
+      "Creating new escalation for service '{}' of host '{}'",
+      obj.service_description().data()[0], obj.hosts().data()[0]);
+
+  // Add escalation to the global configuration set.
+  auto* se_cfg = pb_config.add_serviceescalations();
+  se_cfg->CopyFrom(obj);
+
+  if (obj.uuid().value().size() != 16)
+    throw engine_error() << "The service escalation uuid field must contain an array of bytes of size 16";
+
+  const auto& bytes = obj.uuid().value();
+
+  boost::uuids::uuid u{static_cast<uint8_t>(bytes[0]), static_cast<uint8_t>(bytes[1]),
+       static_cast<uint8_t>(bytes[2]), static_cast<uint8_t>(bytes[3]),
+       static_cast<uint8_t>(bytes[4]), static_cast<uint8_t>(bytes[5]),
+       static_cast<uint8_t>(bytes[6]), static_cast<uint8_t>(bytes[7]),
+       static_cast<uint8_t>(bytes[8]), static_cast<uint8_t>(bytes[9]),
+       static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
+       static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
+       static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
+  // Create service escalation.
+  auto se = std::make_shared<engine::serviceescalation>(
+      obj.hosts().data()[0], obj.service_description().data()[0],
+      obj.first_notification(), obj.last_notification(),
+      obj.notification_interval(), obj.escalation_period(),
+      ((obj.escalation_options() & configuration::serviceescalation::warning)
+           ? notifier::warning
+           : notifier::none) |
+          ((obj.escalation_options() &
+            configuration::serviceescalation::unknown)
+               ? notifier::unknown
+               : notifier::none) |
+          ((obj.escalation_options() &
+            configuration::serviceescalation::critical)
+               ? notifier::critical
+               : notifier::none) |
+          ((obj.escalation_options() &
+            configuration::serviceescalation::recovery)
+               ? notifier::ok
+               : notifier::none),
+      std::move(u));
+
+  // Add new items to the global list.
+  engine::serviceescalation::serviceescalations.insert(
+      {{se->get_hostname(), se->get_description()}, se});
+
+  // Notify event broker.
+  timeval tv{get_broker_timestamp(nullptr)};
+  broker_adaptive_escalation_data(NEBTYPE_SERVICEESCALATION_ADD, NEBFLAG_NONE,
+                                  NEBATTR_NONE, se.get(), &tv);
+
+  // Add contact groups to service escalation.
+  for (auto& cg : obj.contactgroups().data()) {
+    se->get_contactgroups().insert({cg, nullptr});
+  }
+}
 
 /**
  *  Add new service escalation.
@@ -171,6 +235,78 @@ void applier::serviceescalation::modify_object(
  *                  engine.
  */
 void applier::serviceescalation::remove_object(
+    ssize_t idx) {
+  // Logging.
+  log_v2::config()->debug("Removing a service escalation.");
+
+  configuration::Serviceescalation& obj = pb_config.mutable_serviceescalations()->at(idx);
+  // Find service escalation.
+  const std::string& host_name{obj.hosts().data()[0]};
+  const std::string& description{obj.service_description().data()[0]};
+  /* Let's get a range of escalations for the concerned service */
+  auto range{engine::serviceescalation::serviceescalations.equal_range(
+      {host_name, description})};
+  bool service_exists;
+
+  /* Let's get the service... */
+  service_map::iterator sit{
+      engine::service::services.find({host_name, description})};
+  /* ... and its escalations */
+  if (sit == engine::service::services.end()) {
+    log_v2::config()->debug("Cannot find service '{}/{}' - already removed.",
+                            host_name, description);
+    service_exists = false;
+  } else
+    service_exists = true;
+
+  const auto& bytes = obj.uuid().value();
+  boost::uuids::uuid u{static_cast<uint8_t>(bytes[0]), static_cast<uint8_t>(bytes[1]),
+       static_cast<uint8_t>(bytes[2]), static_cast<uint8_t>(bytes[3]),
+       static_cast<uint8_t>(bytes[4]), static_cast<uint8_t>(bytes[5]),
+       static_cast<uint8_t>(bytes[6]), static_cast<uint8_t>(bytes[7]),
+       static_cast<uint8_t>(bytes[8]), static_cast<uint8_t>(bytes[9]),
+       static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
+       static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
+       static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
+  for (serviceescalation_mmap::iterator it = range.first, end = range.second;
+       it != end; ++it) {
+    if (it->second->uuid() == u) {
+      // We have the serviceescalation to remove.
+
+      // Notify event broker.
+      timeval tv(get_broker_timestamp(nullptr));
+      broker_adaptive_escalation_data(NEBTYPE_SERVICEESCALATION_DELETE,
+                                      NEBFLAG_NONE, NEBATTR_NONE,
+                                      it->second.get(), &tv);
+
+      if (service_exists) {
+        log_v2::config()->debug(
+            "Service '{}/{}' found - removing escalation from it.", host_name,
+            description);
+        std::list<escalation*>& srv_escalations =
+            sit->second->get_escalations();
+        /* We need also to remove the escalation from the service */
+        srv_escalations.remove_if([my_escal=it->second.get()](const escalation* e) {
+          return e == my_escal; });
+      }
+
+      // Remove escalation from the global configuration set.
+      engine::serviceescalation::serviceescalations.erase(it);
+      break;
+    }
+  }
+
+  /* And we clear the configuration */
+  pb_config.mutable_serviceescalations()->DeleteSubrange(idx, 1);
+}
+
+/**
+ *  Remove old service escalation.
+ *
+ *  @param[in] obj  The service escalation to remove from the monitoring
+ *                  engine.
+ */
+void applier::serviceescalation::remove_object(
     configuration::serviceescalation const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
@@ -202,7 +338,7 @@ void applier::serviceescalation::remove_object(
 
   for (serviceescalation_mmap::iterator it{range.first}, end{range.second};
        it != end; ++it) {
-    if (it->second->get_uuid() == obj.uuid()) {
+    if (it->second->uuid() == obj.uuid()) {
       // We have the serviceescalation to remove.
 
       // Notify event broker.
@@ -264,7 +400,7 @@ void applier::serviceescalation::resolve_object(
                          << "concerning host '" << hostname << "' and service '"
                          << desc << "'";
   for (serviceescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
-    if (it->second->get_uuid() == obj.uuid()) {
+    if (it->second->uuid() == obj.uuid()) {
       found = true;
       // Resolve service escalation.
       it->second->resolve(config_warnings, config_errors);
