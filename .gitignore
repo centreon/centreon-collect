@@ -41,6 +41,7 @@ tests/failed/*
 ### ide ###
 **/.vscode/
 **/.idea
+**/.cache
 .scannerwork
 **/.cache
 

@@ -20,6 +20,8 @@
 #ifndef CCE_OBJECTS_HOSTDEPENDENCY_HH
 #define CCE_OBJECTS_HOSTDEPENDENCY_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/dependency.hh"
 
@@ -30,16 +32,21 @@ class hostdependency;
 class timeperiod;
 CCE_END()
 
-typedef std::unordered_multimap<
+typedef absl::btree_multimap<
     std::string,
     std::shared_ptr<com::centreon::engine::hostdependency>>
     hostdependency_mmap;
 
 CCE_BEGIN()
 class hostdependency : public dependency {
+  /* This key is a hash of the configuration attributes of this hostdependency,
+   * essentially used when a new configuration is applied to engine. */
+  const size_t _internal_key;
+
  public:
-  hostdependency(std::string const& dependent_hostname,
-                 std::string const& hostname,
+  hostdependency(size_t key,
+                 const std::string& dependent_hostname,
+                 const std::string& hostname,
                  dependency::types dependency_type,
                  bool inherits_parent,
                  bool fail_on_up,
@@ -66,6 +73,8 @@ class hostdependency : public dependency {
   static hostdependency_mmap hostdependencies;
   static hostdependency_mmap::iterator hostdependencies_find(
       configuration::hostdependency const& k);
+  static hostdependency_mmap::iterator hostdependencies_find(
+      const std::pair<absl::string_view, size_t> key);
 
   host* master_host_ptr;
   host* dependent_host_ptr;

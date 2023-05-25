@@ -17,6 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <absl/container/flat_hash_set.h>
+
 #include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
@@ -31,56 +33,6 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::configuration;
-
-/**
- *  Check if the anomalydetection group name matches the configuration object.
- */
-class servicegroup_name_comparator {
- public:
-  servicegroup_name_comparator(std::string const& servicegroup_name) {
-    _servicegroup_name = servicegroup_name;
-  }
-
-  bool operator()(std::shared_ptr<configuration::servicegroup> sg) {
-    return _servicegroup_name == sg->servicegroup_name();
-  }
-
- private:
-  std::string _servicegroup_name;
-};
-
-/**
- *  Default constructor.
- */
-applier::anomalydetection::anomalydetection() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-applier::anomalydetection::anomalydetection(
-    applier::anomalydetection const& right) {
-  (void)right;
-}
-
-/**
- *  Destructor.
- */
-applier::anomalydetection::~anomalydetection() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-applier::anomalydetection& applier::anomalydetection::operator=(
-    applier::anomalydetection const& right) {
-  (void)right;
-  return *this;
-}
 
 /**
  * @brief Add new anomalydetection.
@@ -330,6 +282,28 @@ void applier::anomalydetection::expand_objects(configuration::state& s) {
           s.macros_filter().find(it->first) != s.macros_filter().end()) {
         it->second.set_sent(true);
       }
+    }
+  }
+}
+
+/**
+ *  Expand a anomalydetection object.
+ *
+ *  @param[in,out] s  State being applied.
+ */
+void applier::anomalydetection::expand_objects(configuration::State& s) {
+  std::list<std::unique_ptr<Service>> expanded;
+  // Let's consider all the macros defined in s.
+  absl::flat_hash_set<absl::string_view> cvs;
+  for (auto& cv : s.macros_filter().data())
+    cvs.emplace(cv);
+
+  // Browse all anomalydetections.
+  for (auto& ad_cfg : *s.mutable_anomalydetections()) {
+    // Should custom variables be sent to broker ?
+    for (auto& cv : *ad_cfg.mutable_customvariables()) {
+      if (!s.enable_macros_filter() || cvs.contains(cv.name()))
+        cv.set_is_sent(true);
     }
   }
 }
