@@ -503,6 +503,7 @@ add_subdirectory(core/sql)
 # Generator module.
 add_broker_module(GENERATOR OFF)
 add_broker_module(STATS ON)
+add_broker_module(STATS_EXPORTER ON)
 add_broker_module(NEB ON)
 add_broker_module(RRD ON)
 add_broker_module(UNIFIED_SQL ON)

@@ -452,3 +452,11 @@ state::log& state::mut_log_conf() {
 const state::log& state::log_conf() const {
   return _log_conf;
 }
+
+const state::stats_exporter_conf& state::get_stats_exporter() const {
+  return _stats_exporter_conf;
+}
+
+state::stats_exporter_conf& state::mut_stats_exporter() {
+  return _stats_exporter_conf;
+}
