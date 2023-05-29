@@ -36,14 +36,45 @@ CCB_BEGIN()
 
 namespace stats_exporter {
 /**
- * @brief Export stats to an opentelemetry collector.
+ * @brief Export stats to an opentelemetry collector. This class is not
+ * instanciated directly but through exporter_grpc or exporter_http.
  *
+ * The opentelemetry library makes things almost alone, we don't need to add
+ * many thing to make it to work. So what does this exporter do?
+ *
+ * In fact, to export data, we use ObservableGauges, these objects live
+ * their own life and we don't need to interract with them except they need
+ * a callback to be updated. And then, we need somewhere to store the callback.
+ * That's almost this class role. We have two kinds of Gauges, those that
+ * store integers and those that store doubles. For each one, we created a
+ * little class to store the object, its properties and its callback. And all
+ * the class is just a collection of unique_ptr to instrument_f64s and
+ * instrument_i64s.
  */
 class exporter {
+  /**
+   * @brief Class to work on ObservableGauge with double values.
+   */
   class instrument_f64 {
+    /**
+     * @brief The gauge to feed with double values. It lives its own life, and
+     * calls the callback when needed.
+     */
     opentelemetry::nostd::shared_ptr<metrics_api::ObservableInstrument> _inst;
+    /**
+     * @brief The function we write to get the value for the gauge. This
+     * function takes no parameter and returns a double.
+     */
     std::function<double()> _query;
 
+    /**
+     * @brief The callback of the Gauge. The global code is always the same,
+     * but the specificity to get the interesting value is done by the
+     * _query() function.
+     *
+     * @param observer The result to set from the update_double() function.
+     * @param state Some user data. We use it to get the _query function.
+     */
     static void update_double(metrics_api::ObserverResult observer,
                               void* state) {
       std::function<double()> query =
@@ -68,6 +99,9 @@ class exporter {
     }
   };
 
+  /**
+   * @brief This class is the same as instrument_f64 but for integer values.
+   */
   class instrument_i64 {
     opentelemetry::nostd::shared_ptr<metrics_api::ObservableInstrument> _inst;
     std::function<int64_t()> _query;
@@ -124,6 +158,11 @@ class exporter {
     std::unique_ptr<instrument_f64> average_statement_duration;
   };
   std::vector<sql_connection> _conn;
+
+  /**
+   * @brief This is useful when mysql connections change, we can update
+   * observers.
+   */
   asio::steady_timer _connections_watcher;
 
   void _check_connections(std::shared_ptr<metrics_api::MeterProvider> provider,

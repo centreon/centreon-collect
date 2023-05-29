@@ -115,10 +115,13 @@ void broker_module_init(const void* arg) {
 
     for (const auto& e : exporters) {
       log_v2::config()->info("stats_exporter: with exporter '{}'", e.protocol);
-      if (e.protocol == "http") {
-        expt = std::make_unique<stats_exporter::exporter_http>(e.url, *s);
-      } else if (e.protocol == "grpc") {
-        expt = std::make_unique<stats_exporter::exporter_grpc>(e.url, *s);
+      switch (e.protocol) {
+        case config::state::stats_exporter::HTTP:
+          expt = std::make_unique<stats_exporter::exporter_http>(e.url, *s);
+          break;
+        case config::state::stats_exporter::GRPC:
+          expt = std::make_unique<stats_exporter::exporter_grpc>(e.url, *s);
+          break;
       }
     }
   }

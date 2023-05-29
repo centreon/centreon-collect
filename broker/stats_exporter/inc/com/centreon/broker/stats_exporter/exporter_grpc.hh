@@ -25,7 +25,9 @@ CCB_BEGIN()
 
 namespace stats_exporter {
 /**
- * @brief Export stats to an opentelemetry collector.
+ * @brief Export stats to an opentelemetry collector with grpc protocol.
+ * The work is essentially done by the exporter class, but the url is defined
+ * here and is usually of the form: http://XX.XX.XX.XX:4317
  *
  */
 class exporter_grpc : public exporter {

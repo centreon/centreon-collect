@@ -25,6 +25,10 @@ add_library(${STATS_EXPORTER} SHARED src/exporter.cc src/exporter_grpc.cc
                                      src/exporter_http.cc src/main.cc)
 
 set_target_properties(${STATS_EXPORTER} PROPERTIES PREFIX "")
+
+# Be careful: we can't use directly the CONAN_PKG for opentelemetry because of
+# the grpc dependency. We know that if we link twice with that library, we get
+# deadlocks with it. So here we only get from opentelemetry new stuffs.
 target_link_libraries(
   ${STATS_EXPORTER}
   CONAN_PKG::libcurl

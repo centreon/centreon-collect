@@ -27,8 +27,17 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats_exporter;
 namespace metric_sdk = opentelemetry::sdk::metrics;
 
+/**
+ * @brief Default constructor.
+ */
 exporter::exporter() : _connections_watcher{pool::io_context()} {}
 
+/**
+ * @brief Initialize the metrics to export.
+ *
+ * @param exporter The exporter coming from exporter_http or exporter_grpc.
+ * @param s The exporter configuration.
+ */
 void exporter::init_metrics(
     std::unique_ptr<metric_sdk::PushMetricExporter>& exporter,
     const config::state& s) {
@@ -57,6 +66,13 @@ void exporter::init_metrics(
   metrics_api::Provider::SetMeterProvider(provider);
 
   auto meter = provider->GetMeter("broker_stats_threadpool");
+
+  /* each instrument is defined that way:
+   * provider is given by the opentelemetry library (see above)
+   * the name of the instrument
+   * a description of the instrument
+   * a lambda that just gets the interesting value.
+   */
   _thread_pool_size = std::make_unique<instrument_i64>(
       provider, "thread_pool_size", "Number of threads in the thread pool",
       []() -> int64_t {
@@ -137,6 +153,9 @@ void exporter::init_metrics(
       });
 }
 
+/**
+ * @brief Destructor.
+ */
 exporter::~exporter() noexcept {
   std::error_code ec;
   _connections_watcher.cancel(ec);

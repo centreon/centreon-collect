@@ -461,16 +461,20 @@ state parser::parse(std::string const& file) {
                 throw msg_fmt(
                     "config parser: an exporter must contain a 'url' key with "
                     "the server url as value");
-              std::string protocol = e["protocol"];
-              if (!absl::EqualsIgnoreCase(protocol, "http") &&
-                  !absl::EqualsIgnoreCase(protocol, "grpc"))
+              std::string proto_str = e["protocol"];
+              state::stats_exporter::exporter_protocol protocol;
+              if (absl::EqualsIgnoreCase(proto_str, "http"))
+                protocol = state::stats_exporter::HTTP;
+              else if (absl::EqualsIgnoreCase(proto_str, "grpc"))
+                protocol = state::stats_exporter::GRPC;
+              else
                 throw msg_fmt(
                     "config parser: protocol values must be among \"http\" and "
                     "\"grpc\" in objects of stats_exporter");
 
               std::string url = e["url"];
               retval.mut_stats_exporter().exporters.emplace_back(
-                  std::move(protocol), std::move(url));
+                  protocol, std::move(url));
             }
             retval.add_module("15-stats_exporter.so");
           } else

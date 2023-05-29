@@ -24,7 +24,7 @@ using namespace com::centreon::broker::stats_exporter;
 exporter_grpc::exporter_grpc(const std::string& url, const config::state& s)
     : exporter(), _url{url} {
   opentelemetry::exporter::otlp::OtlpGrpcMetricExporterOptions otlpOptions;
-  /* url should be of the form http://XX.XX.XX.XX:4318/v1/metrics */
+  /* url should be of the form http://XX.XX.XX.XX:4317 */
   otlpOptions.endpoint = url;
   otlpOptions.aggregation_temporality =
       opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
