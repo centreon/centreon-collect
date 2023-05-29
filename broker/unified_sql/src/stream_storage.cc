@@ -1012,7 +1012,7 @@ void stream::_check_queues(asio::error_code ec) {
 
     // End.
     SPDLOG_LOGGER_DEBUG(log_v2::sql(),
-                        "unified_sql:   - resources: {}, "
+                        "unified_sql:_check_queues   - resources: {}, "
                         "perfdata: {}, metrics: {}, customvar: "
                         "{}, logs: {}, downtimes: {} comments: {}",
                         resources_done, perfdata_done, metrics_done,

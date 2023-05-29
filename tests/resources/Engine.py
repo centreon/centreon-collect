@@ -133,7 +133,7 @@ class EngineInstance:
                 "log_level_eventbroker=info\n"
                 "log_level_external_command=trace\n"
                 "log_level_commands=info\n"
-                "log_level_downtimes=info\n"
+                "log_level_downtimes=trace\n"
                 "log_level_comments=info\n"
                 "log_level_macros=info\n"
                 "log_level_process=info\n"
