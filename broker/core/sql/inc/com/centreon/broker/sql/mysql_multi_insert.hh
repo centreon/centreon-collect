@@ -37,9 +37,9 @@ namespace database {
 class mysql_multi_insert {
   const std::string _query;
   const std::string _on_duplicate_key_part;
-  unsigned _max_data_length;
+  unsigned _max_query_begin_length;
 
-  std::list<std::string> _queries_data;
+  std::list<std::string> _queries;
 
  public:
   mysql_multi_insert(const std::string& query,
@@ -63,7 +63,7 @@ class mysql_multi_insert {
    * needed for reuse this class after push_queries
    *
    */
-  void clear_queries() { _queries_data.clear(); }
+  void clear_queries() { _queries.clear(); }
 
   unsigned execute_queries(mysql& pool,
                            my_error::code ec = my_error::empty,

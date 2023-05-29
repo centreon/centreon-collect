@@ -35,17 +35,17 @@ mysql_multi_insert::mysql_multi_insert(const std::string& query,
                                        const std::string& on_duplicate_key_part)
     : _query(query + ' '),
       _on_duplicate_key_part(' ' + on_duplicate_key_part),
-      _max_data_length(max_query_total_length - query.length() -
-                       on_duplicate_key_part.length() - 4096) {}
+      _max_query_begin_length(max_query_total_length -
+                              on_duplicate_key_part.length()) {}
 
 unsigned mysql_multi_insert::execute_queries(mysql& pool,
                                              my_error::code ec,
                                              int thread_id) {
-  for (std::string& query_data : _queries_data) {
+  for (std::string& query_data : _queries) {
     query_data.append(_on_duplicate_key_part);
     thread_id = pool.run_query(query_data, ec, thread_id);
   }
-  return _queries_data.size();
+  return _queries.size();
 }
 
 /**
@@ -57,14 +57,14 @@ unsigned mysql_multi_insert::execute_queries(mysql& pool,
  */
 void mysql_multi_insert::push(const std::string& data) {
   std::string* to_add;
-  if (_queries_data.empty() ||
-      _queries_data.rbegin()->length() >= _max_data_length) {
-    _queries_data.emplace_back();
-    to_add = &*_queries_data.rbegin();
-    to_add->reserve(_max_data_length);
+  if (_queries.empty() ||
+      _queries.rbegin()->length() >= _max_query_begin_length) {
+    _queries.emplace_back();
+    to_add = &*_queries.rbegin();
+    to_add->reserve(_max_query_begin_length);
     *to_add = _query;
   } else {
-    to_add = &*_queries_data.rbegin();
+    to_add = &*_queries.rbegin();
     to_add->push_back(',');
   }
   to_add->append(data);
