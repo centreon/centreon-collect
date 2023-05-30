@@ -90,12 +90,12 @@ class state {
 
  private:
   /**
-   * @brief The configuration of the stats_exporter which is an exporter to
-   * opentelemetry. We allow several exporters, that's why the exporter_protocol
-   * is stored in a list. All these exporters are cadenced by the same
-   * attributes: export_interval that tells the duration between two exports and
-   * export_timeout that tells specifies the timeout in case of lock. These
-   * durations are in seconds.
+   * @brief The configuration of the stats_exporter module which is an exporter
+   * to opentelemetry. We allow several exporters, that's why the
+   * stats_exporters are stored in a list. All these exporters are cadenced by
+   * the same attributes: export_interval that tells the duration between two
+   * exports and export_timeout that tells specifies the timeout in case of
+   * lock. These durations are in seconds.
    */
   struct stats_exporter_conf {
     double export_interval;
