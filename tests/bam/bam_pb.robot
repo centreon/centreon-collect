@@ -183,7 +183,6 @@ BA_IMPACT_2KPI_SERVICES
     ${result}=    check_ba_status_with_timeout    test    1    60
     Should Be True    ${result}    msg=The BA ba_1 is not WARNING as expected
 
-#vérifier mod_bam_reporting_kpi_events et mod_bam_reporting_kpi
     #service_302 critical service_303 critical => ba critical 80%
     Repeat Keyword
     ...    3 times
@@ -272,7 +271,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    #one serv critical => ba ok
+    # one serv critical => ba ok
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -763,12 +762,48 @@ BEPB_KPI_STATUS
     ${result}=    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
 
-    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    FOR    ${index}    IN RANGE    10
-        ${output}=    Query    SELECT current_status, state_type FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
-        Sleep    1s
-        IF    ${output} == ((2, '1'),)            BREAK
-    END
+==== BASE ====
+BEPB_DIMENSION_BA_BV_RELATION_EVENT
+	[Documentation]	bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
+
+    Remove File     /tmp/all_lua_event.log
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Config BBDO3	${1}
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Engine
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	Create BA With Services	test	worst	${svc}
+
+	Add Bam Config To Broker	central
+
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO mod_bam_bagroup_ba_relation (id_ba, id_ba_group) VALUES (1, 456)
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393239, "category":6, "element":23, "ba_id":1, "bv_id":456
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
+
+	Should Not Be Empty  ${grep_res}  msg=event not found
+
+	Stop Engine
+	Kindly Stop Broker  True
+==== BASE ====
 
     Should Be Equal As Strings    ${output}    ((2, '1'),)    msg=mod_bam_kpi not filled
 
@@ -782,307 +817,287 @@ BEPB_KPI_STATUS
     Kindly Stop Broker    True
 
 BEPB_BA_DURATION_EVENT
-    [Documentation]    use of pb_ba_duration_event message.
-    [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+==== BASE ====
+	[Documentation]	use of pb_ba_duration_event message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
 
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    core    trace
-    broker_config_source_log    central    1
-    Config Broker Sql Output    central    unified_sql
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+	Config BBDO3	${1}
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
 
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
-    Add Bam Config To Engine
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	create_ba_with_services	test	worst	${svc}
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (1, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
+	Execute SQL String	DELETE FROM mod_bam_relations_ba_timeperiods
 
-    @{svc}=    Set Variable    ${{ [("host_16", "service_314")] }}
-    create_ba_with_services    test    worst    ${svc}
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	DELETE FROM mod_bam_reporting_ba_events_durations
 
-    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String
-    ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (1, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
-    Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
+	Start Broker  True
+	Start Engine
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    DELETE FROM mod_bam_reporting_ba_events_durations
+	# KPI set to critical
+	#as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
+	${start_event}=  get_round_current_date
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_314	2	output critical for 314
+	${result}=	Check Service Status With Timeout	host_16	service_314	2	60	HARD
+	Should Be True	${result}	msg=The service (host_16,service_314) is not CRITICAL as expected
+	Sleep  2s
+	Process Service Check Result	host_16	service_314	0	output ok for 314
+	${result}=	Check Service Status With Timeout	host_16	service_314	0	60	HARD
+	Should Be True	${result}	msg=The service (host_16,service_314) is not OK as expected
+	${end_event}=  Get Current Date  result_format=epoch
 
-    Start Broker    True
-    Start Engine
 
-    # KPI set to critical
-    #as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
-    ${start_event}=    get_round_current_date
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
-    ${result}=    Check Service Status With Timeout    host_16    service_314    2    60    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
-    Sleep    2s
-    Process Service Check Result    host_16    service_314    0    output ok for 314
-    ${result}=    Check Service Status With Timeout    host_16    service_314    0    60    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_314) is not OK as expected
-    ${end_event}=    Get Current Date    result_format=epoch
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
+		Sleep	1s
+		EXIT FOR LOOP IF	${output} and len(${output[0]}) >= 5
+	END
 
-    FOR    ${index}    IN RANGE    10
-        ${output}=    Query
-        ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
-        Sleep    1s
-        IF    ${output} and len(${output[0]}) >= 5            BREAK
-    END
+	Should Be True  ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
+	Should Be True  ${output[0][3]} == ${output[0][1]} - ${output[0][0]}
+	Should Be True  ${output[0][4]} == 1
+	Should Be True  ${output[0][1]} > ${output[0][0]}
+	Should Be True  ${output[0][0]} >= ${start_event}
+	Should Be True  ${output[0][1]} <= ${end_event}
 
-    Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
-    Should Be True    ${output[0][3]} == ${output[0][1]} - ${output[0][0]}
-    Should Be True    ${output[0][4]} == 1
-    Should Be True    ${output[0][1]} > ${output[0][0]}
-    Should Be True    ${output[0][0]} >= ${start_event}
-    Should Be True    ${output[0][1]} <= ${end_event}
+	Stop Engine
+	Kindly Stop Broker  True
 
-    Stop Engine
-    Kindly Stop Broker    True
+==== BASE ====
 
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
-    [Documentation]    use of pb_dimension_ba_timeperiod_relation message.
-    [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+==== BASE ====
+	[Documentation]	use of pb_dimension_ba_timeperiod_relation message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
 
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    core    trace
-    broker_config_source_log    central    1
-    Config Broker Sql Output    central    unified_sql
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Config BBDO3	${1}
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
+	Add Bam Config To Engine
 
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
-    Add Bam Config To Engine
+	@{svc}=	Set Variable	${{ [("host_16", "service_314")] }}
+	create_ba_with_services	test	worst	${svc}
+	
+	Connect To Database	pymysql	${DBNameConf}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
+	Execute SQL String	DELETE FROM mod_bam_relations_ba_timeperiods
+	Execute SQL String	INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
 
-    @{svc}=    Set Variable    ${{ [("host_16", "service_314")] }}
-    create_ba_with_services    test    worst    ${svc}
+	Start Broker  True
+	Start Engine
 
-    Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String
-    ...    INSERT INTO timeperiod (tp_id, tp_name, tp_sunday, tp_monday, tp_tuesday, tp_wednesday, tp_thursday, tp_friday, tp_saturday) VALUES (732, "ezizae", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59", "00:00-23:59")
-    Execute SQL String    DELETE FROM mod_bam_relations_ba_timeperiods
-    Execute SQL String    INSERT INTO mod_bam_relations_ba_timeperiods (ba_id, tp_id) VALUES (1,732)
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	FOR	${index}	IN RANGE	10
+		${output}=	Query	SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${output}""") > 5
+	END
 
-    Start Broker    True
-    Start Engine
-
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    FOR    ${index}    IN RANGE    10
-        ${output}=    Query
-        ...    SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
-        Sleep    1s
-        IF    len("""${output}""") > 5            BREAK
-    END
-
-    Should Be True
-    ...    len("""${output}""") > 5
-    ...    msg="centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
-    Stop Engine
-    Kindly Stop Broker    True
+	Should Be True  len("""${output}""") > 5  msg="centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
+	Stop Engine
+	Kindly Stop Broker  True
+==== BASE ====
 
 BEPB_DIMENSION_TRUNCATE_TABLE
-    [Documentation]    use of pb_dimension_timeperiod message.
-    [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+==== BASE ====
+	[Documentation]	use of pb_dimension_timeperiod message.
+	[Tags]	Broker	Engine	protobuf	bam	bbdo
+	Clear Commands Status
+	Clear Retention
 
-    Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    lua    trace
-    Broker Config Log    central    core    trace
-    broker_config_source_log    central    1
-    Config Broker Sql Output    central    unified_sql
+    Remove File     /tmp/all_lua_event.log
+	Config Engine	${1}
+	Config Broker	central
+	Config Broker	module
+    Config BBDO3	${1}
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	lua	trace
+	Broker Config Log	central	core	trace
+	broker_config_source_log  central  1
+	Config Broker Sql Output	central	unified_sql
+	
+	Clone Engine Config To DB
+	Add Bam Config To Broker	central
 
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
+	Broker Config Add Lua Output	central	test-protobuf	${SCRIPTS}test-log-all-event.lua
+	
+	
+	Start Broker  True
+	Start Engine
+    Wait Until Created	/tmp/all_lua_event.log	30s
+	FOR	${index}	IN RANGE	10
+		${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393246, "category":6, "element":30, "update_started":true
+		Sleep	1s
+		EXIT FOR LOOP IF	len("""${grep_res}""") > 0
+	END
 
-    Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
+	Should Not Be Empty  ${grep_res}  msg=event not found
+	${grep_res}=  Grep File  /tmp/all_lua_event.log  "_type":393246, "category":6, "element":30, "update_started":false
+	Should Not Be Empty  ${grep_res}  msg=event not found
 
-    Start Broker    True
-    Start Engine
-    Wait Until Created    /tmp/all_lua_event.log    30s
-    FOR    ${index}    IN RANGE    10
-        ${grep_res}=    Grep File
-        ...    /tmp/all_lua_event.log
-        ...    "_type":393246, "category":6, "element":30, "update_started":true
-        Sleep    1s
-        IF    len("""${grep_res}""") > 0            BREAK
-    END
 
-    Should Not Be Empty    ${grep_res}    msg=event not found
-    ${grep_res}=    Grep File
-    ...    /tmp/all_lua_event.log
-    ...    "_type":393246, "category":6, "element":30, "update_started":false
-    Should Not Be Empty    ${grep_res}    msg=event not found
-
-    Stop Engine
-    Kindly Stop Broker    True
+	Stop Engine
+	Kindly Stop Broker  True
+==== BASE ====
 
 BA_RATIO_NUMBER_BA_4_SERVICE
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-    [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    1
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-    # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
+==== BASE ====
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+	[Tags]	Broker	engine	bam
+	Clear Commands Status
+	Clear Retention
+	Config Broker	module
+	Config Broker	central
+	Config Broker	rrd
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Broker Config Source Log  central   1
+    Config BBDO3	${1}
+	Config Engine	${1}
 
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+	Clone Engine Config To DB
+	Add Bam Config To Engine
+	Add Bam Config To Broker	central
 
-    ${id_ba__sid}=    create_ba    test    ratio_number    2    1
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
+	${id_ba__sid}=  create_ba  test  ratio_number  2  1
+	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
 
-    Start Broker
-    ${start}=    Get Current Date
-    Start Engine
-    # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
+    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
     #all serv ok => ba ok
-    ${result}=    check_ba_status_with_timeout    test    0    60
-    Should Be True    ${result}    msg=The BA test is not OK as expected
+   	${result}=	check_ba_status_with_timeout	test	0	60
+	Should Be True	${result}	msg=The BA test is not OK as expected
 
     #one serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_302
-    ...    2
-    ...    output critical for service_302
-    ${result}=    check_service_status_with_timeout    host_16    service_302    2    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_302) is not CRITICAL as expected
-    ${result}=    check_ba_status_with_timeout    test    1    30
-    Should Be True    ${result}    msg=The BA test is not WARNING as expected
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	1	30
+	Should Be True	${result}	msg=The BA test is not WARNING as expected
 
     #two services critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_303
-    ...    2
-    ...    output critical for service_303
-    ${result}=    check_service_status_with_timeout    host_16    service_303    2    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_303) is not CRITICAL as expected
-    ${result}=    check_ba_status_with_timeout    test    2    30
-    Should Be True    ${result}    msg=The BA test is not CRITICAL as expected
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	2	30
+	Should Be True	${result}	msg=The BA test is not CRITICAL as expected
 
     #all serv ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
-    ${result}=    check_service_status_with_timeout    host_16    service_302    0    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_302) is not OK as expected
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
-    ${result}=    check_service_status_with_timeout    host_16    service_303    0    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_303) is not OK as expected
-    ${result}=    check_ba_status_with_timeout    test    0    30
-    Should Be True    ${result}    msg=The BA test is not OK as expected
+    Process Service Check Result	host_16	service_302	0	output ok for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not OK as expected
+    Process Service Check Result	host_16	service_303	0	output ok for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not OK as expected
+	${result}=	check_ba_status_with_timeout	test	0	30
+	Should Be True	${result}	msg=The BA test is not OK as expected
+	
 
-    Stop Engine
-    Kindly Stop Broker
+	Stop Engine
+	Kindly Stop Broker
+
+==== BASE ====
 
 BA_RATIO_PERCENT_BA_4_SERVICE
-    [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
-    [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    1
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-    # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
+==== BASE ====
+	[Documentation]	With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
+	[Tags]	Broker	engine	bam
+	Clear Commands Status
+	Clear Retention
+	Config Broker	module
+	Config Broker	central
+	Config Broker	rrd
+	Broker Config Log	central	bam	trace
+	Broker Config Log	central	sql	trace
+	Broker Config Source Log  central   1
+    Config BBDO3	${1}
+	Config Engine	${1}
 
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+	Clone Engine Config To DB
+	Add Bam Config To Engine
+	Add Bam Config To Broker	central
 
-    ${id_ba__sid}=    create_ba    test    ratio_percent    50    25
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_304    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_305    ${id_ba__sid[0]}    40    30    20
+	${id_ba__sid}=  create_ba  test  ratio_percent  50  25
+	add_service_kpi  host_16  service_302  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_303  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_304  ${id_ba__sid[0]}  40  30  20
+	add_service_kpi  host_16  service_305  ${id_ba__sid[0]}  40  30  20
 
-    Start Broker
-    ${start}=    Get Current Date
-    Start Engine
-    # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+	Start Broker
+	${start}=	Get Current Date
+	Start Engine
+	# Let's wait for the external command check start
+    ${content}=	Create List	check_for_external_commands()
+    ${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
+    Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
 
     #all serv ok => ba ok
-    ${result}=    check_ba_status_with_timeout    test    0    60
-    Should Be True    ${result}    msg=The BA test is not OK as expected
+   	${result}=	check_ba_status_with_timeout	test	0	60
+	Should Be True	${result}	msg=The BA test is not OK as expected
 
     #one serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_302
-    ...    2
-    ...    output critical for service_302
-    ${result}=    check_service_status_with_timeout    host_16    service_302    2    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_302) is not CRITICAL as expected
-    ${result}=    check_ba_status_with_timeout    test    1    30
-    Should Be True    ${result}    msg=The BA test is not WARNING as expected
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_302	2	output critical for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	1	30
+	Should Be True	${result}	msg=The BA test is not WARNING as expected
 
     #two services critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_303
-    ...    2
-    ...    output critical for service_303
-    ${result}=    check_service_status_with_timeout    host_16    service_303    2    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_303) is not CRITICAL as expected
-    ${result}=    check_ba_status_with_timeout    test    2    30
-    Should Be True    ${result}    msg=The BA test is not CRITICAL as expected
+	Repeat Keyword	3 times	Process Service Check Result	host_16	service_303	2	output critical for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	2	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not CRITICAL as expected
+	${result}=	check_ba_status_with_timeout	test	2	30
+	Should Be True	${result}	msg=The BA test is not CRITICAL as expected
 
     #all serv ok => ba ok
-    Process Service Check Result    host_16    service_302    0    output ok for service_302
-    ${result}=    check_service_status_with_timeout    host_16    service_302    0    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_302) is not OK as expected
-    Process Service Check Result    host_16    service_303    0    output ok for service_303
-    ${result}=    check_service_status_with_timeout    host_16    service_303    0    30    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_303) is not OK as expected
-    ${result}=    check_ba_status_with_timeout    test    0    30
-    Should Be True    ${result}    msg=The BA test is not OK as expected
+    Process Service Check Result	host_16	service_302	0	output ok for service_302
+	${result}=	check_service_status_with_timeout	host_16	service_302	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_302) is not OK as expected
+    Process Service Check Result	host_16	service_303	0	output ok for service_303
+	${result}=	check_service_status_with_timeout	host_16	service_303	0	30	HARD
+	Should Be True	${result}	msg=The service (host_16,service_303) is not OK as expected
+	${result}=	check_ba_status_with_timeout	test	0	30
+	Should Be True	${result}	msg=The BA test is not OK as expected
+	
 
-    Stop Engine
-    Kindly Stop Broker
+	Stop Engine
+	Kindly Stop Broker
+
+==== BASE ====
 
 
 *** Keywords ***
