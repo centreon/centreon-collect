@@ -1,5 +1,5 @@
 /*
-** Copyright 2018-2023 Centreon
+** Copyright 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -71,15 +71,16 @@ void mysql_multi_insert::push(const std::string& data) {
 }
 
 /**
- * @brief bulk constructor to use when bulk queries are available
+ * @brief bulk_or_multi constructor to use when bulk prepared statements are
+ * available.
  *
- * @param connexion
- * @param request query placeholders included
- * @param bulk_row  row reserved in mysql_bulk_bind
- * @param execute_delay_ready when first event add is older than
- * execute_delay_ready, ready() return true
- * @param row_count_ready when row_count_ready have been added to the query,
- * ready() return true
+ * @param connexion Mysql object to interract with the database.
+ * @param request SQL Query with placeholders included.
+ * @param bulk_row  Reserved rows in the mysql_bulk_bind.
+ * @param execute_delay_ready Max duration in seconds after what the
+ * bulk_or_multi is ready.
+ * @param row_count_ready Max row count after what the bulk_or_multi is
+ * considered as ready.
  */
 bulk_or_multi::bulk_or_multi(
     mysql& connexion,
@@ -97,14 +98,16 @@ bulk_or_multi::bulk_or_multi(
 }
 
 /**
- * @brief multi_insert constructor to use when bulk queries aren't available
+ * @brief bulk_or_multi constructor to use when bulk prepared statement aren't
+ * available.
  *
- * @param query query with VALUES at the end
- * @param on_duplicate_key_part on duplicate key query part
- * @param execute_delay_ready when first event add is older than
- * execute_delay_ready, ready() return true
- * @param row_count_ready when row_count_ready have been added to the query,
- * ready() return true
+ * @param query SQL query with VALUES at the end.
+ * @param on_duplicate_key_part Second part of the query, something beginning
+ * with ON DUPLICATE KEY. This string can also be empty.
+ * @param execute_delay_ready Max duration in seconds after what the
+ * bulk_or_multi is ready.
+ * @param row_count_ready Max row count after what the bulk_or_multi is
+ * considered as ready.
  */
 bulk_or_multi::bulk_or_multi(
     const std::string& query,
@@ -121,7 +124,9 @@ bulk_or_multi::bulk_or_multi(
 /**
  * @brief execute _bulk or multi insert query
  *
- * @param connexion
+ * @param connexion Object to interract with the database.
+ * @param ec The error code to use in case of error.
+ * @param thread_id Index of the connection to use.
  */
 void bulk_or_multi::execute(mysql& connexion,
                             my_error::code ec,

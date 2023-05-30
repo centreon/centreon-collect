@@ -1,20 +1,20 @@
 /*
-** Copyright 2018-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_MYSQL_MULTI_INSERT_HH
 #define CCB_MYSQL_MULTI_INSERT_HH
@@ -35,10 +35,16 @@ namespace database {
  *
  */
 class mysql_multi_insert {
+  // The base query, something like "INSERT INTO toto (col1, col2, ...) VALUES"
   const std::string _query;
-  const std::string _on_duplicate_key_part;
-  unsigned _max_query_begin_length;
 
+  // The second part of the query, like "ON DUPLICATE KEY UPDATE...". This part
+  // may be empty.
+  const std::string _on_duplicate_key_part;
+  const unsigned _max_query_begin_length;
+
+  // The list of queries. The first one is filled and once its length arrives
+  // to _max_query_begin_length, a new one is appended.
   std::list<std::string> _queries;
 
  public:
@@ -148,8 +154,21 @@ class bulk_or_multi {
   unsigned row_count() const { return _row_count; }
   std::chrono::seconds get_oldest_waiting_event_delay() const;
 
+  /**
+   * @brief Tell if this bulk_or_multi is based on a bulk prepared statement or
+   * not.
+   *
+   * @return a boolean.
+   */
   bool is_bulk() const { return _bulk_bind.get(); }
 
+  /**
+   * @brief Add new data to the query. This method *must* be used only when
+   * this bulk_or_multi class is based on a bulk prepared statement.
+   *
+   * @tparam binder_functor This is a void function that takes an argument database::mysql_bulk_bind&. It is used to fill the bind given in parameter.
+   * @param filler A function of type binder_functor.
+   */
   template <typename binder_functor>
   void add_bulk_row(const binder_functor& filler) {
     std::lock_guard<std::mutex> l(_protect);
@@ -157,6 +176,15 @@ class bulk_or_multi {
     on_add_row();
   }
 
+  /**
+   * @brief Add new data to the query. This method *must* be used only when
+   * bulk_or_multi does not support bulk prepared statement.
+   *
+   * @tparam query_filler_functor This is a function with no argument returning
+   * a string of the form "(XX,'YY',ZZ,...)" so that the result can be added
+   * to the query.
+   * @param filler A function of type query_fill_functor.
+   */
   template <typename query_filler_functor>
   void add_multi_row(const query_filler_functor& filler) {
     std::lock_guard<std::mutex> l(_protect);
@@ -164,6 +192,13 @@ class bulk_or_multi {
     on_add_row();
   }
 
+  /**
+   * @brief Add new data to the query. This method *must* be used only when
+   * bulk_or_multi does not support bulk prepared statement.
+   *
+   * @param query_data A string to concatenate to the query. The string should
+   * be of the form "(XX,'YY',ZZ,...)"
+   */
   void add_multi_row(const std::string& query_data) {
     std::lock_guard<std::mutex> l(_protect);
     _mult_insert->push(query_data);

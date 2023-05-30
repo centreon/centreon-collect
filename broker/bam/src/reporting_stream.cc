@@ -515,6 +515,7 @@ void reporting_stream::_load_kpi_ba_events() {
   }
 }
 
+// When bulk statements are available.
 struct bulk_dimension_kpi_binder {
   const std::shared_ptr<io::data>& event;
   void operator()(database::mysql_bulk_bind& binder) const {
@@ -646,6 +647,7 @@ struct bulk_dimension_kpi_binder {
   }
 };
 
+// When bulk statements are not available.
 struct dimension_kpi_binder {
   const std::shared_ptr<io::data>& event;
   std::string operator()() const {
@@ -754,6 +756,7 @@ struct dimension_kpi_binder {
   }
 };
 
+// When bulk statements are available.
 struct bulk_kpi_event_update_binder {
   const std::shared_ptr<io::data>& event;
   void operator()(database::mysql_bulk_bind& binder) const {
@@ -788,6 +791,7 @@ struct bulk_kpi_event_update_binder {
   }
 };
 
+// When bulk statements are not available.
 struct kpi_event_update_binder {
   const std::shared_ptr<io::data>& event;
   std::string operator()() const {

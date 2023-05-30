@@ -190,7 +190,7 @@ void monitoring_stream::update() {
   }
 }
 
-// when bulk stmt are available
+// When bulk statements are available.
 struct bulk_ba_binder {
   const std::shared_ptr<io::data>& event;
   void operator()(database::mysql_bulk_bind& binder) const {
@@ -225,6 +225,7 @@ struct bulk_ba_binder {
   }
 };
 
+// When bulk statements are not available.
 struct ba_binder {
   const std::shared_ptr<io::data>& event;
   std::string operator()() const {
@@ -257,6 +258,7 @@ struct ba_binder {
   }
 };
 
+// When bulk statements are available.
 struct bulk_kpi_binder {
   const std::shared_ptr<io::data>& event;
   void operator()(database::mysql_bulk_bind& binder) const {
@@ -296,6 +298,7 @@ struct bulk_kpi_binder {
   }
 };
 
+// When bulk statements are not available.
 struct kpi_binder {
   const std::shared_ptr<io::data>& event;
   std::string operator()() const {
