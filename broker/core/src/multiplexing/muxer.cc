@@ -51,10 +51,10 @@ muxer::muxer(std::string name,
     : io::stream("muxer"),
       _name(std::move(name)),
       _queue_file_name{queue_file(_name)},
-      _read_filters{std::move(r_filters)},
-      _write_filters{std::move(w_filters)},
-      _read_filters_str{misc::dump_filters(_read_filters)},
-      _write_filters_str{misc::dump_filters(_write_filters)},
+      _read_filters(r_filters.begin(), r_filters.end()),
+      _write_filters(w_filters.begin(), w_filters.end()),
+      _read_filters_str{misc::dump_filters(r_filters)},
+      _write_filters_str{misc::dump_filters(w_filters)},
       _persistent(persistent),
       _events_size{0u},
       _last_stats{std::time(nullptr)} {
@@ -255,7 +255,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                               _name, **evt);
           continue;
         }
-        if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+        if (_write_filters.allowed((*evt)->type())) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
               "muxer {} event of type {:x} rejected by write filter", _name,
@@ -285,7 +285,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                             _name, **evt);
         continue;
       }
-      if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+      if (!_write_filters.allowed((*evt)->type())) {
         SPDLOG_LOGGER_TRACE(
             log_v2::core(),
             "muxer {} event of type {:x} rejected by write filter", _name,
@@ -359,24 +359,6 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer {} event of type {:x} read",
                         _name, event->type());
   return !timed_out;
-}
-
-/**
- *  Get the read filters.
- *
- *  @return  The read filters.
- */
-const muxer::filters& muxer::read_filters() const {
-  return _read_filters;
-}
-
-/**
- *  Get the write filters.
- *
- *  @return  The write filters.
- */
-const muxer::filters& muxer::write_filters() const {
-  return _write_filters;
 }
 
 /**
@@ -459,7 +441,7 @@ void muxer::wake() {
  *  @param[in] d  Event to multiplex.
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
-  if (d && _read_filters.find(d->type()) != _read_filters.end())
+  if (d && _read_filters.allowed(d->type()))
     engine::instance_ptr()->publish(d);
   else
     SPDLOG_LOGGER_TRACE(log_v2::core(),
@@ -611,17 +593,14 @@ const std::string& muxer::name() const {
  */
 void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
   std::lock_guard<std::mutex> lck(_mutex);
-  _read_filters = std::move(r_filters);
-  _write_filters = std::move(w_filters);
-  _read_filters_str = misc::dump_filters(_read_filters);
-  _write_filters_str = misc::dump_filters(_write_filters);
+  _read_filters =
+      multiplexing::muxer_filter(r_filters.begin(), r_filters.end());
+  _write_filters =
+      multiplexing::muxer_filter(w_filters.begin(), w_filters.end());
+  _read_filters_str = misc::dump_filters(r_filters);
+  _write_filters_str = misc::dump_filters(w_filters);
 }
 
-/**
- * @brief set the stream filter of the muxer object
- *
- * @param filter
- */
 void muxer::set_stream_filter(const muxer_filter& filter) {
   _stream_filter = filter;
 }

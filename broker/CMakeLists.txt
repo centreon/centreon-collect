@@ -343,6 +343,9 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
+    ${SRC_DIR}/multiplexing/muxer.cc
+    ${SRC_DIR}/multiplexing/engine.cc
+    ${SRC_DIR}/multiplexing/publisher.cc
     ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
@@ -460,7 +463,6 @@ target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
@@ -471,7 +473,6 @@ target_link_libraries(
   sql
   rokerbase
   roker
-  multiplexing
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
@@ -493,9 +494,6 @@ endif()
 
 # Module list.
 unset(MODULE_LIST)
-
-# multiplexing library linked in final executable such as cbd or cbmod
-add_subdirectory(core/multiplexing)
 
 # sql library
 add_subdirectory(core/sql)

@@ -30,9 +30,10 @@ constexpr unsigned max_filter_category =
     io::data_category::max_data_category + 1;
 
 /**
- * @brief
+ * @brief this class filters events according to their type
+ * it uses a bit mask by event category, so it only supports a max of 63 events
+ * by category it's constexpr constructible
  *
- * included internal
  */
 class muxer_filter {
  protected:
@@ -91,7 +92,32 @@ class muxer_filter {
     }
   }
 
-  muxer_filter& operator|=(const muxer_filter& other) {
+  template <typename const_uint32_iterator>
+  constexpr muxer_filter(const_uint32_iterator begin, const_uint32_iterator end)
+      : _mask{0} {
+    for (unsigned ind = 0; ind < max_filter_category; ++ind) {
+      _mask[ind] = 0;
+    }
+    for (; begin != end; ++begin) {
+      uint16_t cat = category_of_type(*begin);
+      uint16_t elem = element_of_type(*begin);
+
+      if (cat == io::data_category::internal) {
+        _mask[max_filter_category - 1] |= 1ULL << elem;
+      } else {
+        assert(cat + 1 < max_filter_category);
+        _mask[cat] |= 1ULL << elem;
+      }
+    }
+  }
+
+  /**
+   * @brief permits to add filters by doing an or with the argument
+   *
+   * @param other
+   * @return constexpr muxer_filter&
+   */
+  constexpr muxer_filter& operator|=(const muxer_filter& other) {
     const uint64_t* to_or = other._mask;
     for (uint64_t* to_fill = _mask; to_fill < _mask + max_filter_category;
          ++to_fill, ++to_or) {
