@@ -21,11 +21,12 @@
 
 #include <absl/hash/hash.h>
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
-#include "com/centreon/broker/database/mysql_stmt.hh"
-#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/database_config.hh"
+#include "com/centreon/broker/sql/mysql.hh"
+#include "com/centreon/broker/sql/mysql_multi_insert.hh"
+#include "com/centreon/broker/sql/mysql_stmt.hh"
 
 CCB_BEGIN()
 
@@ -70,8 +71,10 @@ class monitoring_stream : public io::stream {
   ba_svc_mapping _ba_mapping;
   mutable std::mutex _statusm;
   mysql _mysql;
-  database::mysql_stmt _ba_update;
-  database::mysql_stmt _kpi_update;
+  unsigned _conf_queries_per_transaction;
+  std::unique_ptr<database::bulk_or_multi> _ba_query;
+  std::unique_ptr<database::bulk_or_multi> _kpi_query;
+
   int32_t _pending_events;
   unsigned _pending_request;
   database_config _storage_db_cfg;
@@ -86,15 +89,18 @@ class monitoring_stream : public io::stream {
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
 
-  void _prepare();
-  void _rebuild();
-  void _write_external_command(const std::string& cmd);
   void _write_forced_svc_check(const std::string& host,
                                const std::string& description);
   void _explicitly_send_forced_svc_checks(const asio::error_code& ec);
 
+  void _prepare();
+  void _rebuild();
+  void _update_status(std::string const& status);
+  void _write_external_command(const std::string& cmd);
+
   void _read_cache();
   void _write_cache();
+  void _execute();
 
  public:
   monitoring_stream(std::string const& ext_cmd_file,

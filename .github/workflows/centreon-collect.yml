@@ -104,6 +104,7 @@ jobs:
   deliver-rpm:
     if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
+    environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -127,6 +128,7 @@ jobs:
   deliver-deb:
     if: ${{ contains(fromJson('["testing", "stable"]'), needs.get-version.outputs.stability) }}
     needs: [get-version, package]
+    environment: ${{ needs.get-version.outputs.environment }}
     runs-on: [self-hosted, common]
     strategy:
       matrix:

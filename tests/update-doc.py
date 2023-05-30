@@ -48,7 +48,8 @@ out.write("""# Centreon Tests
 
 This sub-project contains functional tests for Centreon Broker, Engine and Connectors.
 It is based on the [Robot Framework](https://robotframework.org/) with Python functions
-we can find in the resources directory. The Python code is formatted using autopep8.
+we can find in the resources directory. The Python code is formatted using autopep8 and
+robot files are formatted using `robottidy --overwrite tests`.
 
 ## Getting Started
 

@@ -1855,50 +1855,6 @@ CREATE TABLE `mod_bam_user_preferences` (
   CONSTRAINT `mod_bam_user_pref_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `contact` (`contact_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-
-DROP TABLE IF EXISTS `mod_bam_view_kpi`;
-/*!50001 DROP VIEW IF EXISTS `mod_bam_view_kpi`*/;
-SET @saved_cs_client     = @@character_set_client;
-SET character_set_client = utf8;
-/*!50001 CREATE TABLE `mod_bam_view_kpi` (
-  `kpi_id` tinyint NOT NULL,
-  `ba_id` tinyint NOT NULL,
-  `kpi_activate` tinyint NOT NULL,
-  `ba_activate` tinyint NOT NULL,
-  `ba_name` tinyint NOT NULL,
-  `host_id` tinyint NOT NULL,
-  `kpi_host` tinyint NOT NULL,
-  `service_id` tinyint NOT NULL,
-  `kpi_service` tinyint NOT NULL,
-  `id_indicator_ba` tinyint NOT NULL,
-  `kpi_ba` tinyint NOT NULL,
-  `meta_id` tinyint NOT NULL,
-  `kpi_meta` tinyint NOT NULL,
-  `boolean_id` tinyint NOT NULL,
-  `kpi_boolean` tinyint NOT NULL,
-  `icon_id` tinyint NOT NULL,
-  `kpi_type` tinyint NOT NULL,
-  `config_type` tinyint NOT NULL,
-  `last_impact` tinyint NOT NULL,
-  `last_level` tinyint NOT NULL,
-  `last_state_change` tinyint NOT NULL,
-  `current_status` tinyint NOT NULL,
-  `in_downtime` tinyint NOT NULL,
-  `acknowledged` tinyint NOT NULL,
-  `drop_warning` tinyint NOT NULL,
-  `drop_critical` tinyint NOT NULL,
-  `drop_unknown` tinyint NOT NULL,
-  `drop_warning_impact_id` tinyint NOT NULL,
-  `drop_critical_impact_id` tinyint NOT NULL,
-  `drop_unknown_impact_id` tinyint NOT NULL,
-  `ba_current_level` tinyint NOT NULL,
-  `ba_current_status` tinyint NOT NULL,
-  `ba_in_downtime` tinyint NOT NULL,
-  `level_w` tinyint NOT NULL,
-  `level_c` tinyint NOT NULL
-) ENGINE=MyISAM */;
-SET character_set_client = @saved_cs_client;
-
 DROP TABLE IF EXISTS `mod_ppm_categories`;
 CREATE TABLE `mod_ppm_categories` (
   `id` int(11) NOT NULL AUTO_INCREMENT,

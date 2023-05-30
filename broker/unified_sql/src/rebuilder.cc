@@ -25,11 +25,11 @@
 #include <cstring>
 #include <ctime>
 
-#include "com/centreon/broker/database/mysql_error.hh"
-#include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/time.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "com/centreon/broker/sql/mysql_error.hh"
+#include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

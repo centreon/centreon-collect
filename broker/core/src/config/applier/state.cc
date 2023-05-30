@@ -226,6 +226,14 @@ config::applier::modules& state::get_modules() {
   return _modules;
 }
 
+config::applier::state::stats& state::mut_stats_conf() {
+  return _stats_conf;
+}
+
+const config::applier::state::stats& state::stats_conf() const {
+  return _stats_conf;
+}
+
 /**
  * @brief Add a poller to the list of connected pollers.
  *

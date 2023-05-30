@@ -199,10 +199,16 @@ def start_mysql():
         getoutput("systemctl start mysql")
         logger.console("Mariadb started with systemd")
     else:
-        logger.console("Starting Mariadb directly")
-        Popen(["mariadbd", "--socket=/var/lib/mysql/mysql.sock",
-              "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
-        logger.console("Mariadb directly started")
+        if os.path.exists("/usr/libexec/mysqldtoto"):
+            logger.console("Starting mysqld directly")
+            Popen(["/usr/libexec/mysqldtoto",
+                   "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
+            logger.console("mysqld directly started")
+        else:
+            logger.console("Starting Mariadb directly")
+            Popen(["mariadbd", "--socket=/var/lib/mysql/mysql.sock",
+                   "--user=root"], stdout=DEVNULL, stderr=DEVNULL)
+            logger.console("Mariadb directly started")
 
 
 def stop_mysql():
@@ -211,26 +217,48 @@ def stop_mysql():
         getoutput("systemctl stop mysql")
         logger.console("Mariadb stopped with systemd")
     else:
-        logger.console("Stopping directly MariaDB")
-        for proc in psutil.process_iter():
-            if ('mariadbd' in proc.name()):
-                logger.console(
-                    f"process '{proc.name()}' containing mariadbd found: stopping it")
-                proc.terminate()
-                try:
-                    logger.console("Waiting for 30s mariadbd to stop")
-                    proc.wait(30)
-                except:
+        if os.path.exists("/usr/libexec/mysqldtoto"):
+            logger.console("Stopping directly mysqld")
+            for proc in psutil.process_iter():
+                if ('mysqldtoto' in proc.name()):
+                    logger.console(
+                        f"process '{proc.name()}' containing mysqld found: stopping it")
+                    proc.terminate()
+                    try:
+                        logger.console("Waiting for 30s mysqld to stop")
+                        proc.wait(30)
+                    except:
+                        logger.console("mysqld don't want to stop => kill")
+                        proc.kill()
+
+            for proc in psutil.process_iter():
+                if ('mysqldtoto' in proc.name()):
+                    logger.console(f"process '{proc.name()}' still alive")
+                    logger.console("mysqld don't want to stop => kill")
+                    proc.kill()
+
+            logger.console("mysqld directly stopped")
+        else:
+            logger.console("Stopping directly MariaDB")
+            for proc in psutil.process_iter():
+                if ('mariadbd' in proc.name()):
+                    logger.console(
+                        f"process '{proc.name()}' containing mariadbd found: stopping it")
+                    proc.terminate()
+                    try:
+                        logger.console("Waiting for 30s mariadbd to stop")
+                        proc.wait(30)
+                    except:
+                        logger.console("mariadb don't want to stop => kill")
+                        proc.kill()
+
+            for proc in psutil.process_iter():
+                if ('mariadbd' in proc.name()):
+                    logger.console(f"process '{proc.name()}' still alive")
                     logger.console("mariadb don't want to stop => kill")
                     proc.kill()
 
-        for proc in psutil.process_iter():
-            if ('mariadbd' in proc.name()):
-                logger.console(f"process '{proc.name()}' still alive")
-                logger.console("mariadb don't want to stop => kill")
-                proc.kill()
-
-        logger.console("Mariadb directly stopped")
+            logger.console("Mariadb directly stopped")
 
 
 def stop_rrdcached():
@@ -369,7 +397,8 @@ def check_reschedule(log: str, date, content: str):
                     elif delta == 300:
                         normal_check = True
                 else:
-                    logger.console(f"Unable to find last check and next check in the line '{line}'")
+                    logger.console(
+                        f"Unable to find last check and next check in the line '{line}'")
                     return False, False
         logger.console(f"loop finished with {retry_check}, {normal_check}")
         return retry_check, normal_check

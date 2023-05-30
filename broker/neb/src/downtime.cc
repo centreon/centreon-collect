@@ -18,17 +18,11 @@
 
 #include "com/centreon/broker/neb/downtime.hh"
 
-#include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  @brief Default constructor.

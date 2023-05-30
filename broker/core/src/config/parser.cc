@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015,2017-2022 Centreon
+** Copyright 2011-2013,2015,2017-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -352,7 +352,7 @@ state parser::parse(std::string const& file) {
           if (!conf_js.is_object())
             throw msg_fmt("the log configuration should be a json object");
 
-          auto& conf = retval.log_conf();
+          auto& conf = retval.mut_log_conf();
           if (conf_js.contains("directory") && conf_js["directory"].is_string())
             conf.directory = conf_js["directory"].get<std::string>();
           else if (conf_js.contains("directory") &&
@@ -434,7 +434,7 @@ state parser::parse(std::string const& file) {
   }
 
   /* Post configuration */
-  auto& conf = retval.log_conf();
+  auto& conf = retval.mut_log_conf();
   if (conf.filename.empty())
     conf.filename = fmt::format("{}.log", retval.broker_name());
   return retval;

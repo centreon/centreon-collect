@@ -1,10 +1,16 @@
 on:
   workflow_call:
     inputs:
-      image_name:
+      image_version:
         required: true
         type: string
       distrib:
+        required: true
+        type: string
+      os:
+        required: true
+        type: string
+      database_type:
         required: true
         type: string
     secrets:
@@ -29,11 +35,11 @@ jobs:
           cd tests
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
-  robot-test-run:
+  robot-test:
     needs: [robot-test-list]
     runs-on: ubuntu-22.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_name }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect${{inputs.database_type}}-${{inputs.os}}:${{ inputs.image_version }}
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
@@ -42,6 +48,7 @@ jobs:
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
     name: ${{ matrix.feature }}
+
 
     steps:
       - name: Checkout sources
@@ -54,17 +61,20 @@ jobs:
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Test ${{ matrix.feature }}
-        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }}
+        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}
         shell: bash
 
       - name: Move reports
         if: ${{ !cancelled() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`${{inputs.database_type}}
           mv tests/log.html reports/$FILE_PREFIX-log.html
           mv tests/output.xml reports/$FILE_PREFIX-output.xml
           mv tests/report.html reports/$FILE_PREFIX-report.html
+          if [ -d tests/failed ] ; then
+            mv tests/failed reports/$FILE_PREFIX-failed
+          fi
 
       - name: Upload Test Results
         if: ${{ !cancelled() }}
@@ -75,7 +85,7 @@ jobs:
           retention-days: 1
 
   robot-test-report:
-    needs: [robot-test-run]
+    needs: [robot-test]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-22.04
 
@@ -103,3 +113,4 @@ jobs:
         with:
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
           report_path: reports
+          show_passed_tests: false
