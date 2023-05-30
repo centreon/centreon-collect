@@ -473,6 +473,10 @@ fi
 %defattr(-,root,root,-)
 %{_datadir}/centreon/lib/centreon-broker/70-influxdb.so
 
+%files -n centreon-broker-stats-exporter
+%defattr(-,root,root,-)
+%{_datadir}/centreon/lib/centreon-broker/15-stats_exporter.so
+
 %files -n centreon-broker-cbd
 %defattr(-,centreon-broker,centreon-broker,-)
 %attr(0664,centreon-broker,centreon-broker) %config(noreplace) %{_sysconfdir}/centreon-broker/central-broker.json
