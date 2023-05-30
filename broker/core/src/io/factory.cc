@@ -67,6 +67,9 @@ bool factory::check_write_filters(const std::set<std::string>& conf_filters,
   if (conf_filters.size() == 1 && *conf_filters.begin() == "all") {
     return true;
   }
+  if (conf_filters.empty()) {  // input case
+    return true;
+  }
   for (const std::string& mandatory : _mandatory_category) {
     if (conf_filters.find(mandatory) == conf_filters.end()) {
       SPDLOG_LOGGER_ERROR(log_v2::config(), "{} needs all these categories: {}",

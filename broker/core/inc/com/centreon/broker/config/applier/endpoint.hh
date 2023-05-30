@@ -66,8 +66,6 @@ class endpoint {
       std::list<config::endpoint> const& new_endpoints,
       std::list<config::endpoint>& to_create,
       std::list<config::endpoint>& to_delete);
-  absl::flat_hash_set<uint32_t> _filters(
-      std::set<std::string> const& str_filters);
 
  public:
   typedef std::map<config::endpoint, processing::endpoint*>::iterator iterator;
@@ -82,6 +80,9 @@ class endpoint {
   static void load();
   static void unload();
   static bool loaded();
+
+  static absl::flat_hash_set<uint32_t> parse_filter(
+      std::set<std::string> const& str_filters);
 };
 }  // namespace applier
 }  // namespace config

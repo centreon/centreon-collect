@@ -110,6 +110,7 @@ add_executable(
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/modules/module.cc
   ${TESTS_DIR}/multiplexing/engine/start_stop.cc
+  ${TESTS_DIR}/multiplexing/muxer/muxer_filter_test.cc
   ${TESTS_DIR}/multiplexing/muxer/read.cc
   ${TESTS_DIR}/multiplexing/publisher/read.cc
   ${TESTS_DIR}/multiplexing/publisher/write.cc
