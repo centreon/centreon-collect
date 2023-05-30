@@ -616,6 +616,25 @@ static int32_t l_broker_cache_get_severity(lua_State* L) {
   return 1;
 }
 
+static int32_t l_broker_cache_get_check_command(lua_State* L) {
+  macro_cache const* cache(
+      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
+  int host_id = luaL_checkinteger(L, 2);
+  int service_id = 0;
+  if (lua_gettop(L) >= 3)
+    service_id = luaL_checkinteger(L, 3);
+
+  try {
+    absl::string_view check_command =
+        cache->get_check_command(host_id, service_id);
+    lua_pushlstring(L, check_command.data(), check_command.size());
+  } catch (std::exception const& e) {
+    (void)e;
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
 /**
  *  Load the Lua interpreter with the standard libraries
  *  and the broker lua sdk.
@@ -652,6 +671,7 @@ void broker_cache::broker_cache_reg(lua_State* L,
       {"get_notes", l_broker_cache_get_notes},
       {"get_action_url", l_broker_cache_get_action_url},
       {"get_severity", l_broker_cache_get_severity},
+      {"get_check_command", l_broker_cache_get_check_command},
       {nullptr, nullptr}};
 
   if (api_version == 2) {
