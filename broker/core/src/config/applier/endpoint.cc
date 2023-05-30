@@ -175,13 +175,14 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       if (is_acceptor) {
         std::unique_ptr<processing::acceptor> acceptr(
             std::make_unique<processing::acceptor>(e, ep.name));
-        acceptr->set_read_filters(_filters(ep.read_filters));
-        acceptr->set_write_filters(_filters(ep.write_filters));
+        acceptr->set_read_filters(parse_filter(ep.read_filters));
+        acceptr->set_write_filters(parse_filter(ep.write_filters));
         endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
-        auto mux{multiplexing::muxer::create(ep.name, _filters(ep.read_filters),
-                                             _filters(ep.write_filters), true)};
+        auto mux{
+            multiplexing::muxer::create(ep.name, parse_filter(ep.read_filters),
+                                        parse_filter(ep.write_filters), true)};
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
       }
       {
@@ -533,7 +534,7 @@ void endpoint::_diff_endpoints(
  *
  *  @return Filters.
  */
-absl::flat_hash_set<uint32_t> endpoint::_filters(
+absl::flat_hash_set<uint32_t> endpoint::parse_filter(
     const std::set<std::string>& str_filters) {
   absl::flat_hash_set<uint32_t> elements;
   std::forward_list<fmt::string_view> applied_filters;

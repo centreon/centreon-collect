@@ -255,7 +255,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                               _name, **evt);
           continue;
         }
-        if (_write_filters.allowed((*evt)->type())) {
+        if (!_write_filters.allowed((*evt)->type())) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
               "muxer {} event of type {:x} rejected by write filter", _name,
