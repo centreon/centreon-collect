@@ -1,20 +1,20 @@
 /*
-** Copyright 2018-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_MYSQL_MULTI_INSERT_HH
 #define CCB_MYSQL_MULTI_INSERT_HH
@@ -29,52 +29,27 @@ CCB_BEGIN()
 namespace database {
 
 /**
- * @brief this class used as a data provider is the data provider of
- * multi_insert_class.
- * It embeds two things: data and code to bind data to the
- * statement example of implementation:
- * @code {.c++}
- *   struct row {
- *    using pointer = std::shared_ptr<row>;
- *    std::string name;
- *    double value;
- *  };
- *
- *  struct row_filler : public database::row_filler {
- *    row::pointer data;
- *    row_filler(const row::pointer& dt) : data(dt) {}
- *
- *    inline void fill_row(std::string & query) const override {
- *      query.append(fmt::format("'{}',{}", data->name, data->value))
- *    }
- *  };
- * @endcode
- *
- *
- */
-class row_filler {
- public:
-  using pointer = std::unique_ptr<row_filler>;
-  virtual ~row_filler() {}
-  virtual void fill_row(std::string& query) const = 0;
-};
-
-/**
  * @brief this class emulates a bulk insert by create as many multi insert
  * queries as necessary (INSERT INTO toto (col1, col2,..) VALUES (col0row0,
  * col1row0...) (col0row1, col1row1,...) )
  *
  */
 class mysql_multi_insert {
+  // The base query, something like "INSERT INTO toto (col1, col2, ...) VALUES"
   const std::string _query;
-  const std::string _on_duplicate_key_part;
 
-  std::list<row_filler::pointer> _rows;
+  // The second part of the query, like "ON DUPLICATE KEY UPDATE...". This part
+  // may be empty.
+  const std::string _on_duplicate_key_part;
+  const unsigned _max_query_begin_length;
+
+  // The list of queries. The first one is filled and once its length arrives
+  // to _max_query_begin_length, a new one is appended.
+  std::list<std::string> _queries;
 
  public:
   mysql_multi_insert(const std::string& query,
-                     const std::string& on_duplicate_key_part)
-      : _query(query), _on_duplicate_key_part(on_duplicate_key_part) {}
+                     const std::string& on_duplicate_key_part);
 
   mysql_multi_insert(const mysql_multi_insert& src) = delete;
 
@@ -84,22 +59,21 @@ class mysql_multi_insert {
    * @brief push data into the request
    * data will be bound to query during push_request call
    *
-   * @param data data that will be bound
+   * @param data data that will be bound it must be like that "data1,
+   * 'data_string2', data3,..." without ()
    */
-  inline void push(row_filler::pointer&& data) {
-    _rows.emplace_back(std::move(data));
-  }
+  void push(const std::string& data);
 
   /**
    * @brief clear _rows
-   * needed for reuse this class after push_stmt
+   * needed for reuse this class after push_queries
    *
    */
-  void clear_rows() { _rows.clear(); }
+  void clear_queries() { _queries.clear(); }
 
-  unsigned push_stmt(mysql& pool, int thread_id = -1) const;
-
-  size_t rows_count() const { return _rows.size(); }
+  unsigned execute_queries(mysql& pool,
+                           my_error::code ec = my_error::empty,
+                           int thread_id = -1);
 };
 
 /**
@@ -109,6 +83,34 @@ class mysql_multi_insert {
  * mariadb and multi insert Then You have to call execute to execute query(ies)
  * It's the base class of bulk_or_multi_bbdo_event
  *
+ * to fill rows:
+ * - bulk_case: you have to call add_bulk_row with a functor as
+ *    void(mysql_bulk_bind&)
+ *    this functor must call bulk_event_binder::next_row() at the end
+ * - multi insert: you have either to pass string data as (5,'erzerez',...)
+ *   to add_multi_row
+ *   or pass a std::string() functor to add_multi_row
+ *
+ * bulk example:
+ * @code {.c++}
+ *    bulk_or_multi toto;
+ *    auto bulk_binder = [](database::mysql_bulk_bind & b) {
+ *      b.set_value_as_str(0,'rterteztfd');
+ *    };
+ *    toto.add_bulk_row(bulk_binder);
+ * @endcode
+ *
+ * multi example:
+ * @code {.c++}
+ *    bulk_or_multi toto;
+ *    auto multi_binder = []() {
+ *       return "('dfsvertvrt',5,4)";
+ *    };
+ *    toto.add_multi_row(multi_binder);
+ *    // OR
+ *    toto.add_multi_row("('dfsvertvrt',5,4)");
+ * @endcode
+ *
  */
 class bulk_or_multi {
  protected:
@@ -116,199 +118,96 @@ class bulk_or_multi {
   std::unique_ptr<mysql_bulk_stmt> _bulk_stmt;
   std::unique_ptr<mysql_bulk_bind> _bulk_bind;
   unsigned _bulk_row;
+  unsigned _row_count;
+  std::chrono::system_clock::time_point _first_row_add_time;
+
+  std::chrono::system_clock::duration _execute_delay_ready;
+  unsigned _row_count_ready;
 
   // multi insert attribute used when bulk queries aren't available
   std::unique_ptr<mysql_multi_insert> _mult_insert;
 
+  mutable std::mutex _protect;
+
  public:
   bulk_or_multi(mysql& connexion,
                 const std::string& request,
-                unsigned bulk_row);
+                unsigned bulk_row,
+                const std::chrono::system_clock::duration execute_delay_ready =
+                    std::chrono::seconds(10),
+                unsigned row_count_ready = 100000);
 
   bulk_or_multi(const std::string& query,
-                const std::string& on_duplicate_key_part);
+                const std::string& on_duplicate_key_part,
+                const std::chrono::system_clock::duration execute_delay_ready =
+                    std::chrono::seconds(10),
+                unsigned row_count_ready = 100000);
 
-  virtual ~bulk_or_multi() = default;
+  void execute(mysql& connexion,
+               my_error::code ec = my_error::empty,
+               int thread_id = -1);
 
-  void execute(mysql& connexion);
+  void on_add_row();
 
-  virtual void add_event(const std::shared_ptr<io::data>& event);
-};
+  bool ready();
 
-/**
- * @brief this class can do a multi or bulk insert in a single interface
- * binder_lambda must be a functor with the signature
- * void (const std::shared_ptr<io::data>& event, database::mysql_bind_base*
- * binder) in case of bulk usage
- * void (const std::shared_ptr<io::data>& event, std::string &query) in case of
- * multi insert usage
- *  To use it, you must use one of the two constructor (bulk
- * or multiinsert) with the functor in the last argument. Then for each event to
- * record you need to call add_event method When you have finished call execute
- *
- * @code {.c++}
- * static auto event_binder = [](const std::shared_ptr<io::data>& event,
- *                             database::mysql_bulk_bind* binder) {
- *   binder->set_value_as_str(0, fmt::format("toto{}", event_binder_index));
- *   binder->set_value_as_f64(1, 12.34 + event_binder_index);
- * };
- * static auto mysql_event_binder = [](const std::shared_ptr<io::data>& event,
- *                             std::string & query) {
- *   query.append(fmt::format("'toto{}',{}",
- * event_binder_index, 12.34+event_binder_index));
- * };
- *
- *
- * if (_mysql.support_bulk_statement()) {
- *    inserter = database::create_bulk_or_multi_bbdo_event(
- *     *mysql, "INSERT INTO ut_test (name, value) VALUES (?,?)",
- *     10, event_binder);
- * }
- * else {
- *    inserter = database::create_bulk_or_multi_bbdo_event(
- *     "INSERT INTO ut_test (name, value) VALUES", "",
- *     mysql_event_binder);
- * }
- * inserter->add_event(evt);
- * inserter->execute(*_mysql);
- * @endcode
- *
- *
- * @tparam binder_lambda bulk mariadb binder
- * @tparam bulk  boolean true if use of bulk statement
- */
-template <typename binder_lambda, bool bulk>
-class bulk_or_multi_bbdo_event;
-
-// bulk specialisation
-template <typename binder_lambda>
-class bulk_or_multi_bbdo_event<binder_lambda, true> : public bulk_or_multi {
- protected:
-  binder_lambda& _binder;
-
- public:
-  /**
-   * @brief bulk constructor to use when bulk queries are available
-   *
-   * @param connexion
-   * @param request query
-   * @param bulk_row number of row in one bulk request
-   * @param binder this void(const std::shared_ptr<io::data>& event,
-   * database::mysql_bulk_bind* binder) find bulk_bind with the event
-   */
-  bulk_or_multi_bbdo_event(mysql& connexion,
-                           const std::string& request,
-                           unsigned bulk_row,
-                           binder_lambda& binder)
-      : bulk_or_multi(connexion, request, bulk_row), _binder(binder) {}
+  unsigned row_count() const { return _row_count; }
+  std::chrono::seconds get_oldest_waiting_event_delay() const;
 
   /**
-   * @brief in case of bulk, this method binds event to stmt bind by using
-   * binder functor in cas of multi insert, it saves event in a queue, the event
-   * will be bound to stmt when requests will be executed
+   * @brief Tell if this bulk_or_multi is based on a bulk prepared statement or
+   * not.
    *
-   * @param event
+   * @return a boolean.
    */
-  void add_event(const std::shared_ptr<io::data>& event) override {
-    _binder(event, _bulk_bind.get());
-    _bulk_bind->next_row();
+  bool is_bulk() const { return _bulk_bind.get(); }
+
+  /**
+   * @brief Add new data to the query. This method *must* be used only when
+   * this bulk_or_multi class is based on a bulk prepared statement.
+   *
+   * @tparam binder_functor This is a void function that takes an argument database::mysql_bulk_bind&. It is used to fill the bind given in parameter.
+   * @param filler A function of type binder_functor.
+   */
+  template <typename binder_functor>
+  void add_bulk_row(const binder_functor& filler) {
+    std::lock_guard<std::mutex> l(_protect);
+    filler(*_bulk_bind);
+    on_add_row();
   }
-};
-
-// non bulk specialization
-template <typename binder_lambda>
-class bulk_or_multi_bbdo_event<binder_lambda, false> : public bulk_or_multi {
- protected:
-  binder_lambda& _binder;
-
- public:
-  /**
-   * @brief multi_insert constructor to use when bulk queries aren't available
-   *
-   * @param query
-   * @param on_duplicate_key_part end of the request as ON DUPLICATE KEY UPDATE
-   * current_level=VALUES(current_level)
-   * @param binder this void(const std::shared_ptr<io::data>& event, std::string
-   * & query) append data to the query, don't provide ( and )
-   */
-  bulk_or_multi_bbdo_event(const std::string& query,
-                           const std::string& on_duplicate_key_part,
-                           binder_lambda& binder)
-      : bulk_or_multi(query, on_duplicate_key_part), _binder(binder) {}
 
   /**
-   * @brief in case of bulk, this method binds event to stmt bind by using
-   * binder functor in cas of multi insert, it saves event in a queue, the event
-   * will be bound to stmt when requests will be executed
+   * @brief Add new data to the query. This method *must* be used only when
+   * bulk_or_multi does not support bulk prepared statement.
    *
-   * @param event
+   * @tparam query_filler_functor This is a function with no argument returning
+   * a string of the form "(XX,'YY',ZZ,...)" so that the result can be added
+   * to the query.
+   * @param filler A function of type query_fill_functor.
    */
-  void add_event(const std::shared_ptr<io::data>& event) override {
-    // this local class is used at the query creation
-    class final_row_filler : public database::row_filler {
-      std::shared_ptr<io::data> _event;
-      binder_lambda& _binder;
-
-     public:
-      final_row_filler(const std::shared_ptr<io::data>& event,
-                       binder_lambda& binder)
-          : _event(event), _binder(binder) {}
-
-      void fill_row(std::string& query) const override {
-        _binder(_event, query);
-      }
-    };
-
-    _mult_insert->push(std::make_unique<final_row_filler>(event, _binder));
+  template <typename query_filler_functor>
+  void add_multi_row(const query_filler_functor& filler) {
+    std::lock_guard<std::mutex> l(_protect);
+    _mult_insert->push(filler());
+    on_add_row();
   }
+
+  /**
+   * @brief Add new data to the query. This method *must* be used only when
+   * bulk_or_multi does not support bulk prepared statement.
+   *
+   * @param query_data A string to concatenate to the query. The string should
+   * be of the form "(XX,'YY',ZZ,...)"
+   */
+  void add_multi_row(const std::string& query_data) {
+    std::lock_guard<std::mutex> l(_protect);
+    _mult_insert->push(query_data);
+    on_add_row();
+  }
+
+  void lock() { _protect.lock(); }
+  void unlock() { _protect.unlock(); };
 };
-
-/**
- * @brief Create a bulk_or_multi_bbdo_event object with lambda type deduction
- * (bulk case)
- *
- * @tparam binder_lambda void(const std::shared_ptr<io::data>& event,
- * database::mysql_bulk_bind* binder) (deduced)
- * @param connexion
- * @param request query
- * @param bulk_row number of row in one bulk request
- * @param binder this void(const std::shared_ptr<io::data>& event,
- * database::mysql_bulk_bind* binder) find bulk_bind with the event
- * @return std::unique_ptr<bulk_or_multi>
- */
-template <typename binder_lambda>
-std::unique_ptr<bulk_or_multi> create_bulk_or_multi_bbdo_event(
-    mysql& connexion,
-    const std::string& request,
-    unsigned bulk_row,
-    binder_lambda& binder) {
-  return std::unique_ptr<bulk_or_multi>(
-      new bulk_or_multi_bbdo_event<binder_lambda, true>(connexion, request,
-                                                        bulk_row, binder));
-}
-
-/**
- * @brief Create a bulk_or_multi_bbdo_event object with lambda type deduction
- * (multi insert case)
- *
- * @tparam binder_lambda void(const std::shared_ptr<io::data>& event,
- * std::string & query) (deduced)
- * @param query
- * @param on_duplicate_key_part end of the request as ON DUPLICATE KEY UPDATE
- * current_level=VALUES(current_level)
- * @param binder this void(const std::shared_ptr<io::data>& event, std::string
- * & query) append data to the query, don't provide ( and )
- * @return std::unique_ptr<bulk_or_multi>
- */
-template <typename binder_lambda>
-std::unique_ptr<bulk_or_multi> create_bulk_or_multi_bbdo_event(
-    const std::string& query,
-    const std::string& on_duplicate_key_part,
-    binder_lambda& binder) {
-  return std::unique_ptr<bulk_or_multi>(
-      new bulk_or_multi_bbdo_event<binder_lambda, false>(
-          query, on_duplicate_key_part, binder));
-}
 
 }  // namespace database
 

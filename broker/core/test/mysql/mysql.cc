@@ -2033,19 +2033,15 @@ struct row {
   unsigned u;
 };
 
-class row_filler : public database::row_filler {
-  row::pointer data;
+static std::string row_filler(const row& data) {
+  return fmt::format("('{}',{},{},'{}',{},{})", data.name, data.value,
+                     int(data.t), data.e, data.i, data.u);
+}
 
- public:
-  using pointer = std::unique_ptr<::row_filler>;
-
-  row_filler(const row::pointer& dt) : data(dt) {}
-
-  void fill_row(std::string& query) const override {
-    query.append(fmt::format("'{}',{},{},'{}',{},{}", data->name, data->value,
-                             int(data->t), data->e, data->i, data->u));
-  }
-};
+static std::string row_filler2(const row& data) {
+  return fmt::format("({},'{}',{},{},'{}',{},{})", data.id, data.name,
+                     data.value, int(data.t), data.e, data.i, data.u);
+}
 
 TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   database_config db_cfg("MySQL", "127.0.0.1", MYSQL_SOCKET, 3306, "root",
@@ -2070,19 +2066,18 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   unsigned data_index;
 
   for (data_index = 0; data_index < 1000000; ++data_index) {
-    row::pointer to_insert = std::make_shared<row>();
-    to_insert->name = fmt::format("name_{}", data_index);
-    to_insert->value = double(data_index) / 10;
-    to_insert->t = data_index;
-    to_insert->e = 'a' + data_index % 3;
-    to_insert->i = data_index;
-    to_insert->u = data_index + 1;
-    inserter.push(std::make_unique<::row_filler>(to_insert));
+    row to_insert = {.name = fmt::format("name_{}", data_index),
+                     .value = double(data_index) / 10,
+                     .t = char(data_index),
+                     .e = std::string(1, 'a' + data_index % 3),
+                     .i = int(data_index),
+                     .u = data_index + 1};
+    inserter.push(row_filler(to_insert));
   }
 
   std::chrono::system_clock::time_point start_insert =
       std::chrono::system_clock::now();
-  unsigned nb_request = inserter.push_stmt(*ms, 0);
+  unsigned nb_request = inserter.execute_queries(*ms);
   ms->commit();
   std::chrono::system_clock::time_point end_insert =
       std::chrono::system_clock::now();
@@ -2095,8 +2090,9 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
   std::promise<mysql_result> select_prom;
   std::future<mysql_result> select_fut = select_prom.get_future();
-  ms->run_query_and_get_result("SELECT id, name, value, t,e,i,u FROM ut_test",
-                               std::move(select_prom));
+  ms->run_query_and_get_result(
+      "SELECT id, name, value, t,e,i,u FROM ut_test ORDER BY u",
+      std::move(select_prom));
   mysql_result select_res = select_fut.get();
 
   ASSERT_EQ(select_res.get_rows_count(), 1000000);
@@ -2116,36 +2112,23 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   }
 
   //-------------- insert or update test
-  struct row_filler2 : public database::row_filler {
-    row::pointer data;
-
-    row_filler2(const row::pointer& dt) : data(dt) {}
-
-    void fill_row(std::string& query) const override {
-      query.append(fmt::format("{},'{}',{},{},'{}',{},{}", data->id, data->name,
-                               data->value, int(data->t), data->e, data->i,
-                               data->u));
-    }
-  };
-
   database::mysql_multi_insert inserter2(
       "INSERT INTO ut_test (id, name, value, t, e, i, u) VALUES",
       "ON DUPLICATE KEY UPDATE u = VALUES(u)");
 
   for (data_index = 0; data_index < 1000000; ++data_index) {
-    row::pointer to_insert = std::make_shared<row>();
-    to_insert->id = data_index + 10;
-    to_insert->name = fmt::format("name_{}", to_insert->id);
-    to_insert->value = double(to_insert->id) / 10;
-    to_insert->t = to_insert->id;
-    to_insert->e = 'a' + to_insert->id % 3;
-    to_insert->i = to_insert->id;
-    to_insert->u = to_insert->id - 10;
-    inserter2.push(std::make_unique<row_filler2>(to_insert));
+    row to_insert = {.id = data_index + 10,
+                     .name = fmt::format("name_{}", data_index + 10),
+                     .value = double(data_index + 10) / 10,
+                     .t = char(data_index + 10),
+                     .e = std::string(1, 'a' + (data_index + 10) % 3),
+                     .i = int(data_index + 10),
+                     .u = data_index + 10 - 10};
+    inserter2.push(row_filler2(to_insert));
   }
 
   start_insert = std::chrono::system_clock::now();
-  nb_request = inserter2.push_stmt(*ms, 0);
+  nb_request = inserter2.execute_queries(*ms);
   ms->commit();
   end_insert = std::chrono::system_clock::now();
   SPDLOG_LOGGER_INFO(log_v2::sql(),
@@ -2184,24 +2167,27 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
 
 static unsigned event_binder_index = 0;
 
-static auto bulk_event_binder = [](const std::shared_ptr<io::data>& event,
-                                   database::mysql_bulk_bind* binder) {
-  binder->set_value_as_str(0, fmt::format("toto{}", event_binder_index));
-  binder->set_value_as_f64(1, 12.34 + event_binder_index);
-  binder->set_value_as_tiny(2, (45 + event_binder_index) % 100);
-  binder->set_value_as_str(3, "b");
-  binder->set_value_as_i32(4, 678 + event_binder_index);
-  binder->set_value_as_u32(5, 789 + event_binder_index);
-  ++event_binder_index;
+struct bulk_event_binder {
+  void operator()(database::mysql_bulk_bind& binder) const {
+    binder.set_value_as_str(0, fmt::format("toto{}", event_binder_index));
+    binder.set_value_as_f64(1, 12.34 + event_binder_index);
+    binder.set_value_as_tiny(2, (45 + event_binder_index) % 100);
+    binder.set_value_as_str(3, "b");
+    binder.set_value_as_i32(4, 678 + event_binder_index);
+    binder.set_value_as_u32(5, 789 + event_binder_index);
+    ++event_binder_index;
+  }
 };
 
-static auto multi_event_binder = [](const std::shared_ptr<io::data>& event,
-                                    std::string& query) {
-  query.append(fmt::format("'toto{}',{},{},'b',{},{}", event_binder_index,
-                           12.34 + event_binder_index,
-                           (45 + event_binder_index) % 100,
-                           678 + event_binder_index, 789 + event_binder_index));
-  ++event_binder_index;
+struct multi_event_binder {
+  std::string operator()() const {
+    std::string ret =
+        fmt::format("('toto{}',{},{},'b',{},{})", event_binder_index,
+                    12.34 + event_binder_index, (45 + event_binder_index) % 100,
+                    678 + event_binder_index, 789 + event_binder_index);
+    ++event_binder_index;
+    return ret;
+  }
 };
 
 TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
@@ -2219,14 +2205,16 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
   ms->run_query(query2);
   ms->commit();
 
-  auto inserter = database::create_bulk_or_multi_bbdo_event(
+  auto inserter = std::make_unique<database::bulk_or_multi>(
       *ms, "INSERT INTO ut_test (name, value, t, e, i, u) VALUES (?,?,?,?,?,?)",
-      100000, bulk_event_binder);
+      100000);
 
   auto begin = std::chrono::system_clock::now();
   event_binder_index = 0;
+
+  bulk_event_binder binder;
   for (unsigned data_index = 0; data_index < 100000; ++data_index) {
-    inserter->add_event(std::shared_ptr<com::centreon::broker::io::data>());
+    inserter->add_bulk_row(binder);
   }
 
   inserter->execute(*ms);
@@ -2270,14 +2258,14 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_multi) {
   ms->run_query(query2);
   ms->commit();
 
-  auto inserter = database::create_bulk_or_multi_bbdo_event(
-      "INSERT INTO ut_test (name, value, t, e, i, u) VALUES", "",
-      multi_event_binder);
+  auto inserter = std::make_unique<database::bulk_or_multi>(
+      "INSERT INTO ut_test (name, value, t, e, i, u) VALUES", "");
 
   auto begin = std::chrono::system_clock::now();
   event_binder_index = 0;
+  multi_event_binder filler;
   for (unsigned data_index = 0; data_index < 100000; ++data_index) {
-    inserter->add_event(std::shared_ptr<com::centreon::broker::io::data>());
+    inserter->add_multi_row(filler);
   }
 
   inserter->execute(*ms);

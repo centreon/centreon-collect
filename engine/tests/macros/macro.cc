@@ -317,6 +317,35 @@ TEST_F(Macro, ContactPager) {
   ASSERT_EQ(out, "0473729383");
 }
 
+TEST_F(Macro, FullCmd) {
+  configuration::parser parser;
+  configuration::state st;
+
+  std::remove("/tmp/test-config.cfg");
+
+  std::ofstream ofs("/tmp/test-config.cfg");
+  ofs << "admin_email=contactadmin@centreon.com" << std::endl;
+  ofs << "log_file=\"my-log-file\"" << std::endl;
+  ofs << "admin_pager=\"pager\"" << std::endl;
+  ofs.close();
+
+  parser.parse("/tmp/test-config.cfg", st);
+  configuration::applier::state::instance().apply(st);
+
+  init_macros();
+
+  std::string out;
+  nagios_macros* mac(get_global_macros());
+  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  process_macros_r(mac,
+                   "/bin/sh -c '/bin/echo \"LogFile: $LOGFILE$ - AdminEmail: "
+                   "$ADMINEMAIL$ - AdminPager: $ADMINPAGER$\"",
+                   out, 1);
+  ASSERT_EQ(out,
+            "/bin/sh -c '/bin/echo \"LogFile: my-log-file - AdminEmail: "
+            "contactadmin@centreon.com - AdminPager: pager\"");
+}
+
 TEST_F(Macro, AdminEmail) {
   configuration::parser parser;
   configuration::state st;
@@ -335,7 +364,8 @@ TEST_F(Macro, AdminEmail) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  process_macros_r(mac, "$ADMINEMAIL$", out, 1);
   ASSERT_EQ(out, "contactadmin@centreon.com");
 }
 

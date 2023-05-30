@@ -719,11 +719,24 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("SELECT s.scheduled_downtime_depth from services s LEFT JOIN hosts h ON s.host_id=h.host_id wHERE s.description='{}' AND h.name='{}'".format(
-                    service_desc, hostname))
-                result = cursor.fetchall()
-                if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
-                    return True
+                if enabled != '0':
+                    cursor.execute("SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{}' AND h.name='{}'".format(
+                        service_desc, hostname))
+                    result = cursor.fetchall()
+                    if len(result) == int(enabled) and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                        return True
+                    if (len(result) > 0):
+                        logger.console("{} downtimes for serv {} scheduled_downtime_depth={}".format(
+                            len(result), service_desc, result[0]['scheduled_downtime_depth']))
+                    else:
+                        logger.console("{} downtimes for serv {} scheduled_downtime_depth=None".format(
+                            len(result), service_desc))
+                else:
+                    cursor.execute("SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{}' AND h.name='{}'".format(
+                        service_desc, hostname))
+                    result = cursor.fetchall()
+                    if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or not result[0]['deletion_time'] is None):
+                        return True
         time.sleep(2)
     return False
 
@@ -816,6 +829,7 @@ def delete_service_downtime(hst: str, svc: str):
                     break
         time.sleep(1)
 
+    logger.console(f"delete downtime internal_id={did}")
     cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
@@ -835,7 +849,7 @@ def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) from services WHERE enabled='1' AND scheduled_downtime_depth='1'")
+                    "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth='1'")
                 result = cursor.fetchall()
                 logger.console(f"count(*) = {result[0]['count(*)']}")
                 if int(result[0]['count(*)']) == int(nb):
