@@ -136,54 +136,26 @@ void mysql_stmt::operator<<(io::data const& d) {
               bind_value_as_f64_k(field, current_entry->get_double(d));
               break;
             case mapping::source::INT: {
-              int v(current_entry->get_int(d));
-              switch (current_entry->get_attribute()) {
-                case mapping::entry::invalid_on_zero:
-                  if (v == 0)
-                    bind_null_i32_k(field);
-                  else
-                    bind_value_as_i32_k(field, v);
-                  break;
-                case mapping::entry::invalid_on_minus_one:
-                  if (v == -1)
-                    bind_null_i32_k(field);
-                  else
-                    bind_value_as_i32_k(field, v);
-                  break;
-                case mapping::entry::invalid_on_negative:
-                  if (v < 0)
-                    bind_null_i32_k(field);
-                  else
-                    bind_value_as_i32_k(field, v);
-                  break;
-                default:
-                  bind_value_as_i32_k(field, v);
-              }
+              int32_t v = current_entry->get_int(d);
+              uint32_t attr = current_entry->get_attribute();
+
+              if (((attr & mapping::entry::invalid_on_zero) && v == 0) ||
+                  ((attr & mapping::entry::invalid_on_negative) && v < 0) ||
+                  ((attr & mapping::entry::invalid_on_minus_one) && v == -1))
+                bind_null_i32_k(field);
+              else
+                bind_value_as_i32_k(field, v);
             } break;
             case mapping::source::SHORT: {
-              int v = current_entry->get_short(d);
-              switch (current_entry->get_attribute()) {
-                case mapping::entry::invalid_on_zero:
-                  if (v == 0)
-                    bind_null_i32_k(field);
-                  else
-                    bind_value_as_i32_k(field, v);
-                  break;
-                case mapping::entry::invalid_on_minus_one:
-                  if (v == -1)
-                    bind_null_i32_k(field);
-                  else
-                    bind_value_as_i32_k(field, v);
-                  break;
-                case mapping::entry::invalid_on_negative:
-                  if (v < 0)
-                    bind_null_i32_k(field);
-                  else
-                    bind_value_as_i32_k(field, v);
-                  break;
-                default:
-                  bind_value_as_i32_k(field, v);
-              }
+              int32_t v = current_entry->get_short(d);
+              uint32_t attr = current_entry->get_attribute();
+
+              if (((attr & mapping::entry::invalid_on_zero) && v == 0) ||
+                  ((attr & mapping::entry::invalid_on_negative) && v < 0) ||
+                  ((attr & mapping::entry::invalid_on_minus_one) && v == -1))
+                bind_null_i32_k(field);
+              else
+                bind_value_as_i32_k(field, v);
             } break;
             case mapping::source::STRING: {
               size_t max_len = 0;
@@ -198,55 +170,34 @@ void mysql_stmt::operator<<(io::data const& d) {
                 sv = fmt::string_view(v.data(), max_len);
               } else
                 sv = fmt::string_view(v);
-              if (current_entry->get_attribute() ==
-                  mapping::entry::invalid_on_zero) {
-                if (sv.size() == 0)
-                  bind_null_str_k(field);
-                else
-                  bind_value_as_str_k(field, sv);
-              } else
+              uint32_t attr = current_entry->get_attribute();
+
+              if (attr & mapping::entry::invalid_on_zero && sv.size() == 0)
+                bind_null_str_k(field);
+              else
                 bind_value_as_str_k(field, sv);
             } break;
             case mapping::source::TIME: {
-              time_t v(current_entry->get_time(d));
-              switch (current_entry->get_attribute()) {
-                case mapping::entry::invalid_on_zero:
-                  if (v == 0)
-                    bind_null_u32_k(field);
-                  else
-                    bind_value_as_u32_k(field, v);
-                  break;
-                case mapping::entry::invalid_on_minus_one:
-                  if (v == -1)
-                    bind_null_u32_k(field);
-                  else
-                    bind_value_as_u32_k(field, v);
-                  break;
-                case mapping::entry::invalid_on_negative:
-                  if (v < 0)
-                    bind_null_u32_k(field);
-                  else
-                    bind_value_as_i32_k(field, v);
-                  break;
-                default:
-                  bind_value_as_u32_k(field, v);
-              }
+              time_t v = current_entry->get_time(d);
+              uint32_t attr = current_entry->get_attribute();
+
+              if (((attr & mapping::entry::invalid_on_zero) && v == 0) ||
+                  ((attr & mapping::entry::invalid_on_negative) && v < 0) ||
+                  ((attr & mapping::entry::invalid_on_minus_one) && v == -1))
+                bind_null_u32_k(field);
+              else
+                bind_value_as_u32_k(field, v);
             } break;
             case mapping::source::UINT: {
-              uint32_t v(current_entry->get_uint(d));
-              switch (current_entry->get_attribute()) {
-                case mapping::entry::invalid_on_zero:
-                  bind_value_as_u32_k(field, v);
-                  break;
-                case mapping::entry::invalid_on_minus_one:
-                  if (v == (uint32_t)-1)
-                    bind_null_u32_k(field);
-                  else
-                    bind_value_as_u32_k(field, v);
-                  break;
-                default:
-                  bind_value_as_u32_k(field, v);
-              }
+              uint32_t v = current_entry->get_uint(d);
+              uint32_t attr = current_entry->get_attribute();
+
+              if (((attr & mapping::entry::invalid_on_zero) && v == 0) ||
+                  ((attr & mapping::entry::invalid_on_minus_one) &&
+                   v == static_cast<uint32_t>(-1)))
+                bind_null_u32_k(field);
+              else
+                bind_value_as_u32_k(field, v);
             } break;
             default:  // Error in one of the mappings.
               throw msg_fmt(
@@ -277,80 +228,48 @@ void mysql_stmt::operator<<(io::data const& d) {
             bind_value_as_f64_k(field, refl->GetDouble(*p, f));
             break;
           case google::protobuf::FieldDescriptor::TYPE_INT32: {
-            int32_t v{refl->GetInt32(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
-                  bind_null_i32_k(field);
-                else
-                  bind_value_as_i32_k(field, v);
-                break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == -1)
-                  bind_null_i32_k(field);
-                else
-                  bind_value_as_i32_k(field, v);
-                break;
-              default:
-                bind_value_as_i32_k(field, v);
-            }
+            int32_t v = refl->GetInt32(*p, f);
+            uint32_t attr = std::get<2>(pr);
+
+            if (((attr & io::protobuf_base::invalid_on_zero) && v == 0) ||
+                ((attr & mapping::entry::invalid_on_negative) && v < 0) ||
+                ((attr & mapping::entry::invalid_on_minus_one) && v == -1))
+              bind_null_i32_k(field);
+            else
+              bind_value_as_i32_k(field, v);
           } break;
           case google::protobuf::FieldDescriptor::TYPE_UINT32: {
-            uint32_t v{refl->GetUInt32(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
-                  bind_null_u32_k(field);
-                else
-                  bind_value_as_u32_k(field, v);
-                break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == (uint32_t)-1)
-                  bind_null_u32_k(field);
-                else
-                  bind_value_as_u32_k(field, v);
-                break;
-              default:
-                bind_value_as_u32_k(field, v);
-            }
+            uint32_t v = refl->GetUInt32(*p, f);
+            uint32_t attr = std::get<2>(pr);
+
+            if (((attr & io::protobuf_base::invalid_on_zero) && v == 0) ||
+                ((attr & mapping::entry::invalid_on_minus_one) &&
+                 v == static_cast<uint32_t>(-1)))
+              bind_null_u32_k(field);
+            else
+              bind_value_as_u32_k(field, v);
           } break;
           case google::protobuf::FieldDescriptor::TYPE_INT64: {
-            int64_t v{refl->GetInt64(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
-                  bind_null_i64_k(field);
-                else
-                  bind_value_as_i64_k(field, v);
-                break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == -1)
-                  bind_null_i64_k(field);
-                else
-                  bind_value_as_i64_k(field, v);
-                break;
-              default:
-                bind_value_as_i64_k(field, v);
-            }
+            int64_t v = refl->GetInt64(*p, f);
+            uint32_t attr = std::get<2>(pr);
+
+            if (((attr & io::protobuf_base::invalid_on_zero) && v == 0) ||
+                ((attr & mapping::entry::invalid_on_negative) && v < 0) ||
+                ((attr & mapping::entry::invalid_on_minus_one) && v == -1))
+              bind_null_i64_k(field);
+            else
+              bind_value_as_i64_k(field, v);
           } break;
           case google::protobuf::FieldDescriptor::TYPE_UINT64: {
-            uint64_t v{refl->GetUInt64(*p, f)};
-            switch (std::get<2>(pr)) {
-              case io::protobuf_base::invalid_on_zero:
-                if (v == 0)
-                  bind_null_u64_k(field);
-                else
-                  bind_value_as_u64_k(field, v);
-                break;
-              case io::protobuf_base::invalid_on_minus_one:
-                if (v == (uint64_t)-1)
-                  bind_null_u64_k(field);
-                else
-                  bind_value_as_u64_k(field, v);
-                break;
-              default:
-                bind_value_as_u64_k(field, v);
-            }
+            uint64_t v = refl->GetUInt64(*p, f);
+            uint32_t attr = std::get<2>(pr);
+
+            if (((attr & io::protobuf_base::invalid_on_zero) && v == 0) ||
+                ((attr & mapping::entry::invalid_on_minus_one) &&
+                 v == static_cast<uint64_t>(-1)))
+              bind_null_u64_k(field);
+            else
+              bind_value_as_u64_k(field, v);
           } break;
           case google::protobuf::FieldDescriptor::TYPE_ENUM:
             bind_value_as_i32_k(field, refl->GetEnumValue(*p, f));
@@ -368,18 +287,16 @@ void mysql_stmt::operator<<(io::data const& d) {
               sv = fmt::string_view(v.data(), max_len);
             } else
               sv = fmt::string_view(v);
-            if (std::get<2>(pr) == io::protobuf_base::invalid_on_zero) {
-              if (sv.size() == 0)
-                bind_null_str_k(field);
-              else
-                bind_value_as_str_k(field, sv);
-            } else
+            uint32_t attr = std::get<2>(pr);
+            if (attr & io::protobuf_base::invalid_on_zero && sv.size() == 0)
+              bind_null_str_k(field);
+            else
               bind_value_as_str_k(field, sv);
           } break;
           default:
             throw msg_fmt(
-                "invalid mapping for object "
-                "of type '{}': {} is not a know type ID",
+                "invalid mapping for object of type '{}': {} is not a know "
+                "type ID",
                 info->get_name(), f->type());
         }
       }
