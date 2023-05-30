@@ -58,8 +58,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
 
   const std::string _name;
   const std::string _queue_file_name;
-  filters _read_filters;
-  filters _write_filters;
+  multiplexing::muxer_filter _read_filters;
+  multiplexing::muxer_filter _write_filters;
   multiplexing::muxer_filter _stream_filter;
   std::string _read_filters_str;
   std::string _write_filters_str;
@@ -103,8 +103,6 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void ack_events(int count);
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
-  const filters& read_filters() const;
-  const filters& write_filters() const;
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
   uint32_t get_event_queue_size() const;
