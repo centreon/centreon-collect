@@ -32,9 +32,10 @@ BRGC1
     ${start}=    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${50}    ${0.2}
 
     Kindly Stop Broker
@@ -63,9 +64,10 @@ BRCTS1
     ${start}=    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${150}    ${10}
 
     Kindly Stop Broker
@@ -94,9 +96,10 @@ BRCS1
     ${start}=    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
     Kindly Stop Broker
     Stop Engine
 
@@ -130,9 +133,10 @@ BRCTSMN
     Sleep    5s
 
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
     # pb_service pb_host pb_service_status pb_host_status
     ${expected_events}=    Create List    65563    65566    65565    65568
     ${categories}=    Create List    1
