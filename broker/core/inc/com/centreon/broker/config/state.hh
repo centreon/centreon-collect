@@ -71,6 +71,39 @@ class state {
   } _log_conf;
 
  public:
+  /**
+   * @brief Structure used by stats_exporter_conf. It is just a pair:
+   * * protocol: a value among GRPC or HTTP.
+   * * url: a URL to the opentelemetry server.
+   *
+   */
+  struct stats_exporter {
+    enum exporter_protocol {
+      GRPC,
+      HTTP,
+    };
+    exporter_protocol protocol;
+    std::string url;
+    stats_exporter(exporter_protocol protocol, std::string&& url)
+        : protocol(protocol), url(url) {}
+  };
+
+ private:
+  /**
+   * @brief The configuration of the stats_exporter module which is an exporter
+   * to opentelemetry. We allow several exporters, that's why the
+   * stats_exporters are stored in a list. All these exporters are cadenced by
+   * the same attributes: export_interval that tells the duration between two
+   * exports and export_timeout that tells specifies the timeout in case of
+   * lock. These durations are in seconds.
+   */
+  struct stats_exporter_conf {
+    double export_interval;
+    double export_timeout;
+    std::list<stats_exporter> exporters;
+  } _stats_exporter_conf;
+
+ public:
   state();
   state(state const& other);
   ~state();
@@ -113,6 +146,8 @@ class state {
   std::string const& poller_name() const noexcept;
   log& mut_log_conf();
   const log& log_conf() const;
+  stats_exporter_conf& mut_stats_exporter();
+  const stats_exporter_conf& get_stats_exporter() const;
 };
 }  // namespace config
 

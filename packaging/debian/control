@@ -196,3 +196,13 @@ Depends:
     ${misc:Depends},
     ${shlibs:Depends}
 Description: gRPC client to connect to Centreon Broker or Centreon Engine.
+
+Package: centreon-broker-stats-exporter
+Architecture: any
+Depends:
+    centreon-broker-core (>= ${centreon:version}~),
+    centreon-broker-core (<< ${centreon:versionThreshold}~),
+    ${misc:Depends},
+    ${shlibs:Depends}
+Description: This module of Centreon Broker allows you to send statistics to
+an Opentelemetry exporter.
