@@ -150,6 +150,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
     rokerlog
     "-Wl,--whole-archive"
     rokerbase
+    multiplexing
     "-Wl,--no-whole-archive"
     CONAN_PKG::nlohmann_json
     CONAN_PKG::spdlog

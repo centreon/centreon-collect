@@ -292,6 +292,13 @@ endif()
 # Broker vars
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
+add_library(
+  multiplexing STATIC
+  ${SRC_DIR}/multiplexing/muxer.cc ${SRC_DIR}/multiplexing/engine.cc
+  ${SRC_DIR}/multiplexing/publisher.cc)
+set_target_properties(multiplexing PROPERTIES COMPILE_FLAGS "-fPIC")
+target_precompile_headers(multiplexing PRIVATE core/precomp_inc/precomp.hpp)
+
 # Core library.
 set(LIBROKER_SOURCES
     # Sources.
@@ -343,9 +350,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/misc/uuid.cc
     ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
-    ${SRC_DIR}/multiplexing/muxer.cc
-    ${SRC_DIR}/multiplexing/engine.cc
-    ${SRC_DIR}/multiplexing/publisher.cc
     ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
     ${SRC_DIR}/persistent_file.cc
@@ -438,12 +442,12 @@ set(LIBROKER_SOURCES
 # Static libraries.
 add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
 set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerlog PRIVATE core/precomp_inc/precomp.hpp)
+target_precompile_headers(rokerlog REUSE_FROM multiplexing)
 target_link_libraries(rokerlog CONAN_PKG::spdlog)
 
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
+target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase berpc target_bbdo)
 target_link_libraries(
   rokerbase
@@ -463,6 +467,7 @@ target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
+add_dependencies(cbd multiplexing)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
@@ -473,6 +478,7 @@ target_link_libraries(
   sql
   rokerbase
   roker
+  multiplexing
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt
