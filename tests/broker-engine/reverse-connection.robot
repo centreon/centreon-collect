@@ -141,20 +141,20 @@ BRCTSMN
     Stop Map
     Should Be True    ${output}    msg=Filters badly applied in Broker
 
-	# We should have exactly 1000 pb_service
-	${ret}=	Grep File	/tmp/map-output.log	65563
-	${ret}=	Get Line Count	${ret}
-	Should Be True	${ret} >= 1000
+    # We should have exactly 1000 pb_service
+    ${ret}=    Grep File    /tmp/map-output.log    65563
+    ${ret}=    Get Line Count    ${ret}
+    Should Be True    ${ret} >= 1000
 
-	# We should have exactly 50 pb_host
-	${ret}=	Grep File	/tmp/map-output.log	65566
-	${ret}=	Get Line Count	${ret}
-	Should Be True	${ret} >= 50
+    # We should have exactly 50 pb_host
+    ${ret}=    Grep File    /tmp/map-output.log    65566
+    ${ret}=    Get Line Count    ${ret}
+    Should Be True    ${ret} >= 50
 
     Stop Engine
 
 BRCTSMNS
-    [Documentation]    Broker connected to map with neb and storages filters
+    [Documentation]    Broker connected to map with neb and storage filters
     [Tags]    broker    map    reverse connection
     Config Engine    ${1}
     Config Broker    rrd
@@ -177,9 +177,10 @@ BRCTSMNS
     Sleep    5s
 
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
     # pb_service pb_host pb_service_status pb_host_status pb_metric pb_status pb_index_mapping
     ${expected_events}=    Create List    65563    65566    65565    65568    196617    196618    196619
     ${categories}=    Create List    1    3
