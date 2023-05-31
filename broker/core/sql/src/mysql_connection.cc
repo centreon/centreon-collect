@@ -986,7 +986,10 @@ void mysql_connection::_process_tasks(
                           static_cast<const void*>(this));
     }
 
-    /* We must pop the task from the list once it has been handled in all cases: success or failure. Otherwise at the call of _send_exceptions_to_task_futures() the future could be set a second time on case of error. */
+    /* We must pop the task from the list once it has been handled in all cases:
+     * success or failure. Otherwise at the call of
+     * _send_exceptions_to_task_futures() the future could be set a second time
+     * on case of error. */
     tasks_list.pop_front();
     if (_error.is_active())
       return;
