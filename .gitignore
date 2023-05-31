@@ -37,10 +37,11 @@ apps/
 build/*
 tests/failed/*
 
-### vscode ###
+### ide ###
 **/.vscode/
 **/.idea
 .scannerwork
+**/.cache
 
 ### temp build files ###
 logs/*
