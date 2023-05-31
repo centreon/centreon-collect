@@ -33,7 +33,7 @@ namespace bam {
  */
 class factory : public io::factory {
  public:
-  factory();
+  factory() = default;
   ~factory() = default;
   factory(factory const& other) = delete;
   factory& operator=(factory const& other) = delete;

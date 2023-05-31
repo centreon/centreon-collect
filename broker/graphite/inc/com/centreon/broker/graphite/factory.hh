@@ -33,7 +33,7 @@ namespace graphite {
  */
 class factory : public io::factory {
  public:
-  factory();
+  factory() = default;
   ~factory() = default;
   factory(factory const&) = delete;
   factory& operator=(factory const&) = delete;

@@ -31,14 +31,6 @@ using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
 
 /**
- * @brief constructor
- *
- */
-factory::factory() {
-  _mandatory_category.insert(category_name(io::data_category::bbdo));
-}
-
-/**
  *  Check if a configuration supports this protocol.
  *  Possible endpoints are:
  *   * grpc

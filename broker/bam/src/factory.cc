@@ -29,15 +29,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 
 /**
- * @brief constructor
- *
- */
-factory::factory() {
-  _mandatory_category.insert(category_name(io::data_category::bam));
-  _mandatory_category.insert(category_name(io::data_category::neb));
-}
-
-/**
  *  Check if a configuration match the BAM layer.
  *
  *  @param[in] cfg  Endpoint configuration.

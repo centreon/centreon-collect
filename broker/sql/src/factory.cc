@@ -28,14 +28,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::sql;
 
 /**
- * @brief constructor
- *
- */
-factory::factory() {
-  _mandatory_category.insert(category_name(io::data_category::neb));
-}
-
-/**
  *  Check if an endpoint match a configuration.
  *
  *  @param[in] cfg  Endpoint configuration.

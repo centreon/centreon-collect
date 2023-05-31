@@ -58,9 +58,10 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
 
   const std::string _name;
   const std::string _queue_file_name;
-  multiplexing::muxer_filter _read_filters;
+  multiplexing::muxer_filter _user_read_filters;
+  multiplexing::muxer_filter _user_write_filters;
   multiplexing::muxer_filter _write_filters;
-  multiplexing::muxer_filter _stream_filter;
+  multiplexing::muxer_filter _stream_filters;
   std::string _read_filters_str;
   std::string _write_filters_str;
   const bool _persistent;

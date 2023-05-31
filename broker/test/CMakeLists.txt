@@ -109,11 +109,6 @@ add_executable(
   ${TESTS_DIR}/misc/perfdata.cc
   ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/modules/module.cc
-  ${TESTS_DIR}/multiplexing/engine/start_stop.cc
-  ${TESTS_DIR}/multiplexing/muxer/muxer_filter_test.cc
-  ${TESTS_DIR}/multiplexing/muxer/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/read.cc
-  ${TESTS_DIR}/multiplexing/publisher/write.cc
   ${TESTS_DIR}/processing/acceptor.cc
   ${TESTS_DIR}/processing/feeder.cc
   ${TESTS_DIR}/time/timerange.cc
@@ -143,14 +138,14 @@ target_link_libraries(
   CONAN_PKG::openssl
   CONAN_PKG::grpc)
 
-add_dependencies(ut_broker
+add_dependencies(
+  ut_broker
   test_util
   roker
   rokerbase
   rokerlog
   multiplexing
-  conflictmgr
-)
+  conflictmgr)
 
 set_target_properties(ut_broker PROPERTIES COMPILE_FLAGS "-fPIC")
 

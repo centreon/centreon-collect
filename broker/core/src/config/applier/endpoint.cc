@@ -414,7 +414,6 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
        it != end; ++it) {
     if (it->second.osi_from == 1 &&
         it->second.endpntfactry->has_endpoint(cfg, nullptr)) {
-      it->second.endpntfactry->check_write_filters(cfg.write_filters, cfg.name);
       std::shared_ptr<persistent_cache> cache;
       if (cfg.cache_enabled)
         cache = std::make_shared<persistent_cache>(fmt::format(

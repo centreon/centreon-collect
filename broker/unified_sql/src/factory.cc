@@ -51,15 +51,6 @@ static std::string const& find_param(config::endpoint const& cfg,
 }
 
 /**
- * @brief constructor
- *
- */
-factory::factory() {
-  _mandatory_category.insert(category_name(io::data_category::bbdo));
-  _mandatory_category.insert(category_name(io::data_category::neb));
-}
-
-/**
  *  Check if a configuration match the unified_sql layer.
  *
  *  @param[in] cfg  Endpoint configuration.

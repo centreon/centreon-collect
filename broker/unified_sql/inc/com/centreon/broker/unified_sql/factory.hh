@@ -33,7 +33,7 @@ namespace unified_sql {
  */
 class factory : public io::factory {
  public:
-  factory();
+  factory() = default;
   factory(factory const&) = delete;
   ~factory() = default;
   factory& operator=(factory const&) = delete;

@@ -33,7 +33,7 @@ namespace sql {
  */
 class factory : public io::factory {
  public:
-  factory();
+  factory() = default;
   factory(factory const& other) = delete;
   ~factory() = default;
   factory& operator=(factory const& other) = delete;

@@ -37,7 +37,7 @@ class factory : public io::factory {
       bool& is_acceptor) const;
 
  public:
-  factory();
+  factory() = default;
   factory(factory const& other) = delete;
   ~factory() = default;
   factory& operator=(factory const& other) = delete;

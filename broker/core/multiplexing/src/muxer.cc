@@ -51,8 +51,9 @@ muxer::muxer(std::string name,
     : io::stream("muxer"),
       _name(std::move(name)),
       _queue_file_name{queue_file(_name)},
-      _read_filters(r_filters.begin(), r_filters.end()),
-      _write_filters(w_filters.begin(), w_filters.end()),
+      _user_read_filters(r_filters.begin(), r_filters.end()),
+      _user_write_filters(w_filters.begin(), w_filters.end()),
+      _write_filters(_user_write_filters),
       _read_filters_str{misc::dump_filters(r_filters)},
       _write_filters_str{misc::dump_filters(w_filters)},
       _persistent(persistent),
@@ -250,11 +251,6 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       std::lock_guard<std::mutex> lock(_mutex);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
-        if (!_stream_filter.allowed((*evt)->type())) {
-          SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer::publish {} reject {}",
-                              _name, **evt);
-          continue;
-        }
         if (!_write_filters.allowed((*evt)->type())) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
@@ -280,11 +276,6 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     // nothing pushed => to file
     std::lock_guard<std::mutex> lock(_mutex);
     for (; evt != event_queue.end(); ++evt) {
-      if (!_stream_filter.allowed((*evt)->type())) {
-        SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer::publish {} reject {}",
-                            _name, **evt);
-        continue;
-      }
       if (!_write_filters.allowed((*evt)->type())) {
         SPDLOG_LOGGER_TRACE(
             log_v2::core(),
@@ -441,7 +432,7 @@ void muxer::wake() {
  *  @param[in] d  Event to multiplex.
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
-  if (d && _read_filters.allowed(d->type()))
+  if (d && _user_read_filters.allowed(d->type()))
     engine::instance_ptr()->publish(d);
   else
     SPDLOG_LOGGER_TRACE(log_v2::core(),
@@ -593,14 +584,27 @@ const std::string& muxer::name() const {
  */
 void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
   std::lock_guard<std::mutex> lck(_mutex);
-  _read_filters =
+  _user_read_filters =
       multiplexing::muxer_filter(r_filters.begin(), r_filters.end());
-  _write_filters =
+  _user_write_filters =
       multiplexing::muxer_filter(w_filters.begin(), w_filters.end());
   _read_filters_str = misc::dump_filters(r_filters);
   _write_filters_str = misc::dump_filters(w_filters);
+  set_stream_filter(_stream_filters);
 }
 
 void muxer::set_stream_filter(const muxer_filter& filter) {
-  _stream_filter = filter;
+  _stream_filters = filter;
+  if (_stream_filters.allow_all()) {
+    _write_filters = _user_write_filters;
+    return;
+  }
+  _write_filters = _stream_filters;
+  if (!_stream_filters.is_in(_user_write_filters)) {
+    SPDLOG_LOGGER_ERROR(log_v2::core(),
+                        "The configured write filter for {} is too restrictive "
+                        "and will be ignored."
+                        "{} categories are mandatory.",
+                        _name, _stream_filters.get_allowed_categories());
+  }
 }

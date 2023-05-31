@@ -292,12 +292,7 @@ endif()
 # Broker vars
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
-add_library(
-  multiplexing STATIC
-  ${SRC_DIR}/multiplexing/muxer.cc ${SRC_DIR}/multiplexing/engine.cc
-  ${SRC_DIR}/multiplexing/publisher.cc)
-set_target_properties(multiplexing PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(multiplexing PRIVATE core/precomp_inc/precomp.hpp)
+add_subdirectory(core/multiplexing)
 
 # Core library.
 set(LIBROKER_SOURCES

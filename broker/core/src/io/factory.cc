@@ -49,33 +49,3 @@ std::shared_ptr<stream> factory::new_stream(
       "negotiation");
   return nullptr;
 }
-
-/**
- * @brief some endpoints need category of events
- * this function checks if conf doesn't filter needed catagories
- *
- * @param conf_filters
- * @return true all filters allow output needed categories
- * @return false at least one category needed by the endpoint is rejected by
- * filters
- */
-bool factory::check_write_filters(const std::set<std::string>& conf_filters,
-                                  const std::string& output_name) const {
-  if (_mandatory_category.empty()) {
-    return true;
-  }
-  if (conf_filters.size() == 1 && *conf_filters.begin() == "all") {
-    return true;
-  }
-  if (conf_filters.empty()) {  // input case
-    return true;
-  }
-  for (const std::string& mandatory : _mandatory_category) {
-    if (conf_filters.find(mandatory) == conf_filters.end()) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{} needs all these categories: {}",
-                          output_name, absl::StrJoin(_mandatory_category, " "));
-      return false;
-    }
-  }
-  return true;
-}
