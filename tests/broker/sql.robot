@@ -290,15 +290,16 @@ BDBU1
     Config Broker Sql Output    central    unified_sql
     Config Broker    rrd
     Config Broker    module
+    # We replace the usual centreon_storage database by centreon to make the wanted error
     Broker Config Output set    central    central-broker-unified-sql    db_name    centreon
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     FOR    ${i}    IN RANGE    0    5
         ${start}=    Get Current Date
         Start Broker
-        ${content}=    Create List    Table 'centreon.hosts' doesn't exist
-        ${result}=    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
-        Should Be True    ${result}
+        ${content}=    Create List    Table 'centreon\..*' doesn't exist
+        ${result}=    Find Regex In Log with timeout    ${centralLog}    ${start}    ${content}    60
+        Should Be True    ${result}    msg=A message about some missing tables in 'centreon' database should appear
         Kindly Stop Broker
     END
 
