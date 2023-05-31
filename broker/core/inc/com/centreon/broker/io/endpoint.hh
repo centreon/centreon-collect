@@ -43,7 +43,6 @@ class endpoint {
  protected:
   std::shared_ptr<endpoint> _from;
   bool _is_acceptor;
-  std::set<uint32_t> _filter;
 
   multiplexing::muxer_filter _muxer_filter;
 
@@ -58,7 +57,6 @@ class endpoint {
   virtual std::unique_ptr<stream> open() = 0;
   virtual bool is_ready() const;
   virtual void stats(nlohmann::json& tree);
-  void set_filter(std::set<uint32_t> const& filter);
 
   const multiplexing::muxer_filter& get_muxer_filter() const {
     return _muxer_filter;

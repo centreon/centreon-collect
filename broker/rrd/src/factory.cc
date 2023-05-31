@@ -53,14 +53,6 @@ static std::string find_param(config::endpoint const& cfg,
 }
 
 /**
- * @brief constructor
- *
- */
-factory::factory() {
-  _mandatory_category.insert(category_name(io::data_category::storage));
-}
-
-/**
  *  Check if a configuration match the RRD layer.
  *
  *  @param[in] cfg  Endpoint configuration.

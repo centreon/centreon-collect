@@ -34,9 +34,6 @@ namespace io {
  *  Build endpoint according to some configuration.
  */
 class factory {
- protected:
-  std::set<std::string> _mandatory_category;
-
  public:
   factory() = default;
   virtual ~factory() = default;
@@ -66,9 +63,6 @@ class factory {
       std::shared_ptr<stream> substream,
       bool is_acceptor,
       const std::unordered_map<std::string, std::string>& options);
-
-  bool check_write_filters(const std::set<std::string>& conf_filters,
-                           const std::string& output_name) const;
 };
 }  // namespace io
 

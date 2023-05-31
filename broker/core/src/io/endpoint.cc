@@ -48,8 +48,6 @@ endpoint::~endpoint() noexcept {}
  */
 void endpoint::from(std::shared_ptr<endpoint> endp) {
   _from = endp;
-  if (_from)
-    _from->set_filter(_filter);
 }
 
 /**
@@ -78,21 +76,6 @@ bool endpoint::is_connector() const noexcept {
 void endpoint::stats(nlohmann::json& tree) {
   if (_from)
     _from->stats(tree);
-}
-
-/**
- *  Set the filter used by this endpoint.
- *
- *  For connector endpoints, the filters are already set by the failover.
- *  Acceptor manage subscribers manually and needs to apply
- *  the filters themselves.
- *
- *  @param[in] filter  The filter.
- */
-void endpoint::set_filter(std::set<uint32_t> const& filter) {
-  _filter = filter;
-  if (_from)
-    _from->set_filter(filter);
 }
 
 /**

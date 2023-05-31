@@ -27,15 +27,6 @@ using namespace com::centreon::broker::graphite;
 using namespace com::centreon::exceptions;
 
 /**
- * @brief constructor
- *
- */
-factory::factory() {
-  _mandatory_category.insert(category_name(io::data_category::storage));
-  _mandatory_category.insert(category_name(io::data_category::neb));
-}
-
-/**
  *  Find a parameter in configuration.
  *
  *  @param[in] cfg Configuration object.

@@ -26,6 +26,10 @@ CCB_BEGIN()
 
 namespace multiplexing {
 
+namespace detail {
+constexpr uint64_t all_events = 0xFFFFFFFFFFFFFFFF;
+};
+
 constexpr unsigned max_filter_category =
     io::data_category::max_data_category + 1;
 
@@ -49,9 +53,9 @@ class muxer_filter {
    * @brief default constructor
    * accept all events by default
    */
-  constexpr muxer_filter() : _mask{0xFFFFFFFFFFFFFFFF} {
+  constexpr muxer_filter() : _mask{detail::all_events} {
     for (unsigned ind = 0; ind < max_filter_category; ++ind) {
-      _mask[ind] = 0xFFFFFFFFFFFFFFFF;
+      _mask[ind] = detail::all_events;
     }
   }
 
@@ -124,6 +128,75 @@ class muxer_filter {
       *to_fill |= *to_or;
     }
     return *this;
+  }
+
+  /**
+   * @brief do a and with the filter passed as an argument
+   *
+   * @param other
+   * @return const muxer_filter&
+   */
+  constexpr muxer_filter& operator&=(const muxer_filter& other) {
+    const uint64_t* to_and = other._mask;
+    for (uint64_t* to_fill = _mask; to_fill < _mask + max_filter_category;
+         ++to_fill, ++to_and) {
+      *to_fill &= *to_and;
+    }
+    return *this;
+  }
+
+  /**
+   * @brief test if all events allowed in *this are also allowed in other
+   *
+   * @param other
+   * @return true  all events allowed in *this are also allowed in other
+   * @return false
+   */
+  constexpr bool is_in(const muxer_filter& other) const {
+    const uint64_t* to_test = other._mask;
+    for (const uint64_t* cat = _mask; cat < _mask + max_filter_category;
+         ++cat, ++to_test) {
+      if ((*cat & *to_test) != *cat) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @brief return true if filter allows all events
+   *
+   * @return true
+   * @return false
+   */
+  constexpr bool allow_all() const {
+    for (const uint64_t* cat = _mask; cat < _mask + max_filter_category;
+         ++cat) {
+      if (*cat != detail::all_events) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * @brief list all categories for witch at least one event is allowed
+   *
+   * @return std::string
+   */
+  std::string get_allowed_categories() const {
+    std::string ret;
+    unsigned cat_ind = 0;
+    char sep = ' ';
+    for (const uint64_t* cat = _mask; cat < _mask + max_filter_category;
+         ++cat, ++cat_ind) {
+      if (*cat) {
+        ret.push_back(sep);
+        ret += io::category_name(io::data_category(cat_ind));
+        sep = ',';
+      }
+    }
+    return ret;
   }
 
   /**

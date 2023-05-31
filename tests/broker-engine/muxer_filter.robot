@@ -32,7 +32,8 @@ STUPID_FILTER
     Start Broker    True
     Start Engine
 
-    ${content}=    Create List    central-broker-unified-sql needs all these categories: bbdo neb
+    ${content}=    Create List
+    ...    The configured write filter for central-broker-unified-sql is too restrictive and will be ignored. neb,bbdo categories are mandatory.
     ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling bad filter should be available.
 
@@ -169,9 +170,13 @@ BAM_STREAM_FILTER
         ${grep_res4}=    Grep File    ${centralLog}    centreon-bam-monitoring event of type 6001b written
 
         #reject KpiEvent
-        ${grep_res5}=    Grep File    ${centralLog}    centreon-bam-monitoring reject bam:KpiEvent
+        ${grep_res5}=    Grep File
+        ...    ${centralLog}
+        ...    muxer centreon-bam-monitoring event of type 60015 rejected by write filter
         #reject storage
-        ${grep_res6}=    Grep File    ${centralLog}    centreon-bam-monitoring reject storage
+        ${grep_res6}=    Grep File
+        ...    ${centralLog}
+        ...    muxer centreon-bam-monitoring event of type 3[0-9a-f]{4} rejected by write filter    regexp=True
 
         IF    len("""${grep_res1}""") > 0 and len("""${grep_res2}""") > 0 and len("""${grep_res3}""") > 0 and len("""${grep_res4}""") > 0 and len("""${grep_res5}""") > 0 and len("""${grep_res6}""") > 0
             BREAK
@@ -193,10 +198,14 @@ BAM_STREAM_FILTER
     ${grep_res}=    Grep File    ${centralLog}    centreon-bam-reporting event of type 60015 written
     Should Not Be Empty    ${grep_res}    msg=no pb_kpi_event
     #reject storage
-    ${grep_res}=    Grep File    ${centralLog}    centreon-bam-reporting reject storage
+    ${grep_res}=    Grep File
+    ...    ${centralLog}
+    ...    centreon-bam-reporting event of type 3[0-9a-f]{4} rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    msg=no rejected storage event
     #reject neb
-    ${grep_res}=    Grep File    ${centralLog}    centreon-bam-reporting reject neb
+    ${grep_res}=    Grep File
+    ...    ${centralLog}
+    ...    centreon-bam-reporting event of type 1[0-9a-f]{4} rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    msg=no rejected neb event
 
     Stop Engine
