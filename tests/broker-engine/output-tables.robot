@@ -249,8 +249,7 @@ BE_TIME_NULL_SERVICE_RESOURCE
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
-            BREAK...
-            ...    "${output}" == "((None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None),)"
+            BREAK
         END
     END
     Should Be Equal As Strings

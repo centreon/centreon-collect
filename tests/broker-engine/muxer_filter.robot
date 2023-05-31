@@ -22,6 +22,7 @@ STUPID_FILTER
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
+    Config Broker    rrd
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Config BBDO3    1
@@ -46,6 +47,7 @@ FILTER_ON_LUA_CAT
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
+    Config Broker    rrd
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Config BBDO3    1
@@ -79,6 +81,7 @@ FILTER_ON_LUA_EVENT
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
+    Config Broker    rrd
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Config BBDO3    1
@@ -119,8 +122,9 @@ BAM_STREAM_FILTER
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
     [Tags]    broker    engine    bam
     Clear Commands Status
-    Config Broker    module
+    Config Broker    module    ${1}
     Config Broker    central
+    Config Broker    rrd
     Broker Config Log    central    core    trace
     Config BBDO3    ${1}
     Config Engine    ${1}
@@ -202,8 +206,9 @@ UNIFIED_SQL_FILTER
     [Documentation]    With bbdo version 3.0.1, we watch events written or rejected in unified_sql
     [Tags]    broker    engine    bam
     Clear Retention
-    Config Broker    module
+    Config Broker    module    ${1}
     Config Broker    central
+    Config Broker    rrd
     Broker Config Log    central    core    trace
     Config BBDO3    ${1}
     Config Engine    ${1}
