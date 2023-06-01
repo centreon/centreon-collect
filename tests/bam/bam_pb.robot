@@ -161,7 +161,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    #service_302 critical service_303 warning => ba warning 30%
+    # service_302 critical service_303 warning => ba warning 30%
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -183,8 +183,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}=    check_ba_status_with_timeout    test    1    60
     Should Be True    ${result}    msg=The BA ba_1 is not WARNING as expected
 
-#vérifier mod_bam_reporting_kpi_events et mod_bam_reporting_kpi
-    #service_302 critical service_303 critical => ba critical 80%
+    # service_302 critical service_303 critical => ba critical 80%
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -204,14 +203,14 @@ BA_IMPACT_2KPI_SERVICES
     ${result}=    check_ba_status_with_timeout    test    2    60
     Should Be True    ${result}    msg=The BA ba_1 is not CRITICAL as expected
 
-    #service_302 ok => ba ok
+    # service_302 ok => ba ok
     Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}=    check_service_status_with_timeout    host_16    service_302    0    60    HARD
     Should Be True    ${result}    msg=The service (host_16,service_302) is not OK as expected
     ${result}=    check_ba_status_with_timeout    test    0    60
     Should Be True    ${result}    msg=The BA ba_1 is not OK as expected
 
-    #both warning => ba ok
+    # both warning => ba ok
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -272,7 +271,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    #one serv critical => ba ok
+    # one serv critical => ba ok
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -286,7 +285,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}=    check_ba_status_with_timeout    test    0    60
     Should Be True    ${result}    msg=The BA test is not OK as expected
 
-    #two serv critical => ba warning
+    # two serv critical => ba warning
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -308,7 +307,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}=    check_ba_status_with_timeout    test    1    30
     Should Be True    ${result}    msg=The BA test is not WARNING as expected
 
-    #two serv critical and child ba critical => mother ba critical
+    # two serv critical and child ba critical => mother ba critical
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -412,7 +411,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${result}=    check_ba_status_with_timeout    test    1    60
     Should Be True    ${result}    msg=The test BA is not in WARNING as expected
 
-    #Two services CRITICAL and also the child BA => The mother BA passes to CRITICAL
+    # Two services CRITICAL and also the child BA => The mother BA passes to CRITICAL
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -480,7 +479,7 @@ BA_BOOL_KPI
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    #302 warning and 303 critical    => ba critical
+    # 302 warning and 303 critical    => ba critical
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -543,7 +542,7 @@ BEPB_DIMENSION_BV_EVENT
         ...    /tmp/all_lua_event.log
         ...    "_type":393238, "category":6, "element":22, "bv_id":574, "bv_name":"virsgtr", "bv_description":"description_grtmxzo"
         Sleep    1s
-        IF    len("""${grep_res}""") > 0            BREAK
+        IF    len("""${grep_res}""") > 0    BREAK
     END
 
     Should Not Be Empty    ${grep_res}    msg=event not found
@@ -588,7 +587,7 @@ BEPB_DIMENSION_BA_EVENT
         ...    /tmp/all_lua_event.log
         ...    "_type":393241, "category":6, "element":25, "ba_id":1, "ba_name":"test", "ba_description":"fdpgvo75", "sla_month_percent_crit":4.56, "sla_month_percent_warn":1.23, "sla_duration_crit":789, "sla_duration_warn":852
         Sleep    1s
-        IF    len("""${grep_res}""") > 0            BREAK
+        IF    len("""${grep_res}""") > 0    BREAK
     END
 
     Should Not Be Empty    ${grep_res}    msg=event not found
@@ -631,7 +630,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
         ...    /tmp/all_lua_event.log
         ...    "_type":393239, "category":6, "element":23, "ba_id":1, "bv_id":456
         Sleep    1s
-        IF    len("""${grep_res}""") > 0            BREAK
+        IF    len("""${grep_res}""") > 0    BREAK
     END
 
     Should Not Be Empty    ${grep_res}    msg=event not found
@@ -657,7 +656,7 @@ BEPB_DIMENSION_TIMEPERIOD
     Config Broker Sql Output    central    unified_sql
 
     Clone Engine Config To DB
-    #Add Bam Config To Engine
+    # Add Bam Config To Engine
     Add Bam Config To Broker    central
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
@@ -674,7 +673,7 @@ BEPB_DIMENSION_TIMEPERIOD
         ...    /tmp/all_lua_event.log
         ...    "_type":393240, "category":6, "element":24, "id":732, "name":"ezizae", "monday":"monday_value", "tuesday":"tuesday_value", "wednesday":"wednesday_value", "thursday":"thursday_value", "friday":"friday_value", "saturday":"saturday_value", "sunday":"sunday_value"
         Sleep    1s
-        IF    len("""${grep_res}""") > 0            BREAK
+        IF    len("""${grep_res}""") > 0    BREAK
     END
 
     Should Not Be Empty    ${grep_res}    msg=event not found
@@ -722,7 +721,7 @@ BEPB_DIMENSION_KPI_EVENT
         ${output}=    Query
         ...    SELECT kpi_name, ba_id, ba_name, host_id, host_name, service_id, service_description, boolean_id, boolean_name FROM mod_bam_reporting_kpi order by kpi_name
         Sleep    1s
-        IF    ${output} == ${expected}            BREAK
+        IF    ${output} == ${expected}    BREAK
     END
 
     Should Be Equal As Strings    ${output}    ${expected}    msg=mod_bam_reporting_kpi not filled
@@ -767,7 +766,7 @@ BEPB_KPI_STATUS
     FOR    ${index}    IN RANGE    10
         ${output}=    Query    SELECT current_status, state_type FROM mod_bam_kpi WHERE host_id=16 and service_id= 314
         Sleep    1s
-        IF    ${output} == ((2, '1'),)            BREAK
+        IF    ${output} == ((2, '1'),)    BREAK
     END
 
     Should Be Equal As Strings    ${output}    ((2, '1'),)    msg=mod_bam_kpi not filled
@@ -815,7 +814,7 @@ BEPB_BA_DURATION_EVENT
     Start Engine
 
     # KPI set to critical
-    #as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
+    # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start_event}=    get_round_current_date
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
     ${result}=    Check Service Status With Timeout    host_16    service_314    2    60    HARD
@@ -830,7 +829,7 @@ BEPB_BA_DURATION_EVENT
         ${output}=    Query
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
         Sleep    1s
-        IF    ${output} and len(${output[0]}) >= 5            BREAK
+        IF    ${output} and len(${output[0]}) >= 5    BREAK
     END
 
     Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
@@ -879,7 +878,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
         ${output}=    Query
         ...    SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
         Sleep    1s
-        IF    len("""${output}""") > 5            BREAK
+        IF    len("""${output}""") > 5    BREAK
     END
 
     Should Be True
@@ -918,7 +917,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
         ...    /tmp/all_lua_event.log
         ...    "_type":393246, "category":6, "element":30, "update_started":true
         Sleep    1s
-        IF    len("""${grep_res}""") > 0            BREAK
+        IF    len("""${grep_res}""") > 0    BREAK
     END
 
     Should Not Be Empty    ${grep_res}    msg=event not found
@@ -964,11 +963,11 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    #all serv ok => ba ok
+    # all serv ok => ba ok
     ${result}=    check_ba_status_with_timeout    test    0    60
     Should Be True    ${result}    msg=The BA test is not OK as expected
 
-    #one serv critical => ba warning
+    # one serv critical => ba warning
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -981,7 +980,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}=    check_ba_status_with_timeout    test    1    30
     Should Be True    ${result}    msg=The BA test is not WARNING as expected
 
-    #two services critical => ba ok
+    # two services critical => ba ok
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -994,7 +993,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}=    check_ba_status_with_timeout    test    2    30
     Should Be True    ${result}    msg=The BA test is not CRITICAL as expected
 
-    #all serv ok => ba ok
+    # all serv ok => ba ok
     Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}=    check_service_status_with_timeout    host_16    service_302    0    30    HARD
     Should Be True    ${result}    msg=The service (host_16,service_302) is not OK as expected
@@ -1041,11 +1040,11 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    #all serv ok => ba ok
+    # all serv ok => ba ok
     ${result}=    check_ba_status_with_timeout    test    0    60
     Should Be True    ${result}    msg=The BA test is not OK as expected
 
-    #one serv critical => ba warning
+    # one serv critical => ba warning
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -1058,7 +1057,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}=    check_ba_status_with_timeout    test    1    30
     Should Be True    ${result}    msg=The BA test is not WARNING as expected
 
-    #two services critical => ba ok
+    # two services critical => ba ok
     Repeat Keyword
     ...    3 times
     ...    Process Service Check Result
@@ -1071,7 +1070,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}=    check_ba_status_with_timeout    test    2    30
     Should Be True    ${result}    msg=The BA test is not CRITICAL as expected
 
-    #all serv ok => ba ok
+    # all serv ok => ba ok
     Process Service Check Result    host_16    service_302    0    output ok for service_302
     ${result}=    check_service_status_with_timeout    host_16    service_302    0    30    HARD
     Should Be True    ${result}    msg=The service (host_16,service_302) is not OK as expected
