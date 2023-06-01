@@ -167,6 +167,8 @@ BEACK4
 	# Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
 	${result}=	check acknowledgement is deleted with timeout	${ack_id}	30	BOTH
 	Should Be True	${result}	msg=Acknowledgement ${ack_id} should be deleted.
+	${result}=  check acknowledgement is deleted with deletion time     ${deletion_time}    BOTH
+	Should Be True	${result}   msg=Acknowledgement ${deletion_time} should be null.
 
 BEACK5
 	[Documentation]	Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
