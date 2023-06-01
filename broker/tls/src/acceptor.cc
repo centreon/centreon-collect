@@ -47,7 +47,7 @@ acceptor::acceptor(std::string const& cert,
                    std::string const& key,
                    std::string const& ca,
                    std::string const& tls_hostname)
-    : io::endpoint(true),
+    : io::endpoint(true, {}),
       _ca(ca),
       _cert(cert),
       _key(key),

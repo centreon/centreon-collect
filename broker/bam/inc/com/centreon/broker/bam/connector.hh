@@ -33,9 +33,29 @@ namespace bam {
  *  Send perfdata in a Centreon bam database.
  */
 class connector : public io::endpoint {
+  enum stream_type { bam_monitoring_type = 1, bam_reporting_type };
+
+  const stream_type _type;
+  const database_config _db_cfg;
+  std::string _ext_cmd_file;
+  std::string _storage_db_name;
+  std::shared_ptr<persistent_cache> _cache;
+
+  connector(stream_type type,
+            const database_config& db_cfg,
+            const multiplexing::muxer_filter& filter);
+
  public:
-  connector();
+  static std::unique_ptr<connector> create_monitoring_connector(
+      const std::string& ext_cmd_file,
+      const database_config& db_cfg,
+      const std::string& storage_db_name,
+      std::shared_ptr<persistent_cache> cache);
+
+  static std::unique_ptr<connector> create_reporting_connector(
+      const database_config& db_cfg);
   ~connector() noexcept = default;
+  connector() = delete;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   void connect_monitoring(std::string const& ext_cmd_file,
@@ -44,15 +64,6 @@ class connector : public io::endpoint {
                           std::shared_ptr<persistent_cache> cache);
   void connect_reporting(database_config const& db_cfg);
   std::unique_ptr<io::stream> open() override;
-
- private:
-  enum stream_type { bam_monitoring_type = 1, bam_reporting_type };
-
-  database_config _db_cfg;
-  std::string _ext_cmd_file;
-  std::string _storage_db_name;
-  stream_type _type;
-  std::shared_ptr<persistent_cache> _cache;
 };
 }  // namespace bam
 

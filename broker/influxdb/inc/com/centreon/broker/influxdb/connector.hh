@@ -34,7 +34,7 @@ namespace influxdb {
 class connector : public io::endpoint {
  public:
   connector();
-  ~connector();
+  ~connector() noexcept = default;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   void connect_to(std::string const& user,

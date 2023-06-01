@@ -88,11 +88,12 @@ io::endpoint* factory::new_endpoint(
   }
 
   // Connector.
-  std::unique_ptr<bam::connector> c(new bam::connector);
+  std::unique_ptr<bam::connector> c;
   if (is_bam_bi)
-    c->connect_reporting(db_cfg);
+    c = connector::create_monitoring_connector(ext_cmd_file, db_cfg,
+                                               storage_db_name, cache);
   else
-    c->connect_monitoring(ext_cmd_file, db_cfg, storage_db_name, cache);
+    c = connector::create_reporting_connector(db_cfg);
   is_acceptor = false;
   return c.release();
 }

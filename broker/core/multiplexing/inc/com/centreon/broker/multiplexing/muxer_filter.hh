@@ -90,9 +90,26 @@ class muxer_filter {
       if (cat == io::data_category::internal) {
         _mask[max_filter_category - 1] |= 1ULL << elem;
       } else {
-        assert(cat + 1 < max_filter_category);
+        assert(cat + 1U < max_filter_category);
         _mask[cat] |= 1ULL << elem;
       }
+    }
+  }
+
+  /**
+   * @brief Add a new element type to the filter
+   *
+   * @element An element type
+   */
+  constexpr void insert(uint32_t element) {
+    uint16_t cat = category_of_type(element);
+    uint16_t elem = element_of_type(element);
+
+    if (cat == io::data_category::internal) {
+      _mask[max_filter_category - 1] |= 1ULL << elem;
+    } else {
+      assert(cat + 1U < max_filter_category);
+      _mask[cat] |= 1ULL << elem;
     }
   }
 
@@ -103,15 +120,7 @@ class muxer_filter {
       _mask[ind] = 0;
     }
     for (; begin != end; ++begin) {
-      uint16_t cat = category_of_type(*begin);
-      uint16_t elem = element_of_type(*begin);
-
-      if (cat == io::data_category::internal) {
-        _mask[max_filter_category - 1] |= 1ULL << elem;
-      } else {
-        assert(cat + 1 < max_filter_category);
-        _mask[cat] |= 1ULL << elem;
-      }
+      insert(*begin);
     }
   }
 
@@ -209,11 +218,12 @@ class muxer_filter {
   constexpr bool allowed(uint32_t mess_type) const {
     uint16_t cat = category_of_type(mess_type);
     uint16_t elem = element_of_type(mess_type);
-    assert(cat == io::data_category::internal || cat + 1 < max_filter_category);
+    assert(cat == io::data_category::internal ||
+           cat + 1U < max_filter_category);
     if (cat == io::data_category::internal) {
       return _mask[max_filter_category - 1] & (1ULL << elem);
     } else {
-      assert(cat + 1 < max_filter_category);
+      assert(cat + 1U < max_filter_category);
       return _mask[cat] & (1ULL << elem);
     }
   }

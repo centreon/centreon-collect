@@ -43,19 +43,12 @@ static constexpr multiplexing::muxer_filter _rrd_stream_filter = {
  *  Default constructor.
  */
 connector::connector()
-    : io::endpoint(false),
+    : io::endpoint(false, _rrd_stream_filter),
       _cache_size(16),
       _cached_port(0),
       _ignore_update_errors(true),
       _write_metrics(true),
-      _write_status(true) {
-  _muxer_filter = _rrd_stream_filter;
-}
-
-/**
- *  Destructor.
- */
-connector::~connector() {}
+      _write_status(true) {}
 
 /**
  *  Connect.

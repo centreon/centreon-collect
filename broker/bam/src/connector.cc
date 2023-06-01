@@ -71,45 +71,48 @@ static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
     bam::dimension_ba_timeperiod_relation::static_type(),
     bam::pb_dimension_ba_timeperiod_relation::static_type(),
     bam::rebuild::static_type()};
-/**
- *  Default constructor.
- */
-connector::connector() : io::endpoint(false), _type(bam_monitoring_type) {}
+
+connector::connector(stream_type type,
+                     const database_config& db_cfg,
+                     const multiplexing::muxer_filter& filter)
+    : io::endpoint(false, filter), _type{type}, _db_cfg{db_cfg} {}
 
 /**
- *  Set connection parameters.
+ * @brief Static function to create a connector for a bam monitoring stream.
  *
- *  @param[in] ext_cmd_file     The external command file to connect to Centreon
- * Engine.
- *  @param[in] db_cfg           Database configuration.
- *  @param[in] storage_db_name  Storage database name.
- *  @param[in] cache            The persistent cache.
+ * @param ext_cmd_file The external command file to connect to Centreon Engine.
+ * @param db_cfg The database configuration.
+ * @param storage_db_name The storage database name.
+ * @param cache The persistent cache.
+ *
+ * @return An unique ptr to the newly bam connector created.
  */
-void connector::connect_monitoring(std::string const& ext_cmd_file,
-                                   database_config const& db_cfg,
-                                   std::string const& storage_db_name,
-                                   std::shared_ptr<persistent_cache> cache) {
-  _type = bam_monitoring_type;
-  _ext_cmd_file = ext_cmd_file;
-  _db_cfg = db_cfg;
-  _cache = std::move(cache);
+std::unique_ptr<bam::connector> connector::create_monitoring_connector(
+    const std::string& ext_cmd_file,
+    const database_config& db_cfg,
+    const std::string& storage_db_name,
+    std::shared_ptr<persistent_cache> cache) {
+  auto retval = std::unique_ptr<bam::connector>(new bam::connector(
+      bam_monitoring_type, db_cfg, _monitoring_stream_filter));
+  retval->_ext_cmd_file = ext_cmd_file;
+  retval->_cache = std::move(cache);
   if (storage_db_name.empty())
-    _storage_db_name = db_cfg.get_name();
+    retval->_storage_db_name = db_cfg.get_name();
   else
-    _storage_db_name = storage_db_name;
-  _muxer_filter = _monitoring_stream_filter;
+    retval->_storage_db_name = storage_db_name;
+  return retval;
 }
 
 /**
- *  Set reporting connection parameters.
+ *  Static function to create a connector for a bam reporting stream.
  *
  *  @param[in] db_cfg  Database configuration.
  */
-void connector::connect_reporting(database_config const& db_cfg) {
-  _type = bam_reporting_type;
-  _db_cfg = db_cfg;
-  _storage_db_name.clear();
-  _muxer_filter = _reporting_stream_filter;
+std::unique_ptr<bam::connector> connector::create_reporting_connector(
+    const database_config& db_cfg) {
+  auto retval = std::unique_ptr<bam::connector>(
+      new bam::connector(bam_reporting_type, db_cfg, _reporting_stream_filter));
+  return retval;
 }
 
 /**

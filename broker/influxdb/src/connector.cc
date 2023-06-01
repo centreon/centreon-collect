@@ -47,14 +47,7 @@ static constexpr multiplexing::muxer_filter _influxdb_stream_filter = {
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {
-  _muxer_filter = _influxdb_stream_filter;
-}
-
-/**
- *  Destructor.
- */
-connector::~connector() {}
+connector::connector() : io::endpoint(false, _influxdb_stream_filter) {}
 
 /**
  *  Set connection parameters.

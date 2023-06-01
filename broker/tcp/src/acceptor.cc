@@ -36,7 +36,7 @@ using namespace com::centreon::broker::tcp;
  * @param read_timeout A duration in seconds.
  */
 acceptor::acceptor(const tcp_config::pointer& conf)
-    : io::endpoint(true), _conf(conf) {}
+    : io::endpoint(true, {}), _conf(conf) {}
 
 /**
  *  Destructor.

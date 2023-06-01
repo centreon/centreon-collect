@@ -41,8 +41,8 @@ using namespace com::centreon::broker::processing;
  */
 feeder::feeder(const std::string& name,
                std::unique_ptr<io::stream>& client,
-               multiplexing::muxer::filters read_filters,
-               multiplexing::muxer::filters write_filters)
+               multiplexing::muxer_filter read_filters,
+               multiplexing::muxer_filter write_filters)
     : stat_visitable(name),
       _state{feeder::stopped},
       _should_exit{false},

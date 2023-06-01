@@ -26,7 +26,7 @@ using namespace com::centreon::broker::storage;
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {}
+connector::connector() : io::endpoint(false, {}) {}
 
 /**
  *  Set connection parameters.

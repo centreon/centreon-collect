@@ -45,14 +45,14 @@ absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
  *                         unprocessed events in a persistent storage.
  */
 muxer::muxer(std::string name,
-             muxer::filters r_filters,
-             muxer::filters w_filters,
+             muxer_filter r_filters,
+             muxer_filter w_filters,
              bool persistent)
     : io::stream("muxer"),
       _name(std::move(name)),
       _queue_file_name{queue_file(_name)},
-      _user_read_filters(r_filters.begin(), r_filters.end()),
-      _user_write_filters(w_filters.begin(), w_filters.end()),
+      _user_read_filters(r_filters),
+      _user_write_filters(w_filters),
       _write_filters(_user_write_filters),
       _read_filters_str{misc::dump_filters(r_filters)},
       _write_filters_str{misc::dump_filters(w_filters)},
@@ -121,8 +121,8 @@ muxer::muxer(std::string name,
  * @return std::shared_ptr<muxer>
  */
 std::shared_ptr<muxer> muxer::create(std::string name,
-                                     muxer::filters r_filters,
-                                     muxer::filters w_filters,
+                                     muxer_filter r_filters,
+                                     muxer_filter w_filters,
                                      bool persistent) {
   std::shared_ptr<muxer> retval;
   {
@@ -582,12 +582,10 @@ const std::string& muxer::name() const {
  * @param r_filters The read filters.
  * @param w_filters The write filters.
  */
-void muxer::set_filters(muxer::filters r_filters, muxer::filters w_filters) {
+void muxer::set_filters(muxer_filter r_filters, muxer_filter w_filters) {
   std::lock_guard<std::mutex> lck(_mutex);
-  _user_read_filters =
-      multiplexing::muxer_filter(r_filters.begin(), r_filters.end());
-  _user_write_filters =
-      multiplexing::muxer_filter(w_filters.begin(), w_filters.end());
+  _user_read_filters = r_filters;
+  _user_write_filters = w_filters;
   _read_filters_str = misc::dump_filters(r_filters);
   _write_filters_str = misc::dump_filters(w_filters);
   set_stream_filter(_stream_filters);

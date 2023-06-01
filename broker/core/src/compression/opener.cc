@@ -30,7 +30,7 @@ using namespace com::centreon::broker::compression;
  * the default compression.
  */
 opener::opener(int32_t level, size_t size)
-    : io::endpoint(false), _level(level), _size(size) {}
+    : io::endpoint(false, {}), _level(level), _size(size) {}
 
 /**
  *  Open a compression stream.

@@ -69,8 +69,8 @@ class feeder : public stat_visitable {
  public:
   feeder(const std::string& name,
          std::unique_ptr<io::stream>& client,
-         multiplexing::muxer::filters read_filters,
-         multiplexing::muxer::filters write_filters);
+         multiplexing::muxer_filter read_filters,
+         multiplexing::muxer_filter write_filters);
   ~feeder();
   feeder(const feeder&) = delete;
   feeder& operator=(const feeder&) = delete;

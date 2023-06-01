@@ -26,7 +26,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 
 acceptor::acceptor(const grpc_config::pointer& conf)
-    : io::endpoint(true), _grpc_instance(server::create(conf)) {}
+    : io::endpoint(true, {}), _grpc_instance(server::create(conf)) {}
 
 acceptor::~acceptor() {
   _grpc_instance->shutdown();

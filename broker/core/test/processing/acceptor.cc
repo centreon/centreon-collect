@@ -21,6 +21,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "temporary_endpoint.hh"
 
 using namespace com::centreon::broker;
@@ -74,7 +75,7 @@ TEST_F(ProcessingTest, StartStop3) {
 }
 
 TEST_F(ProcessingTest, StartWithFilterStop) {
-  absl::flat_hash_set<uint32_t> filters;
+  multiplexing::muxer_filter filters({});
   filters.insert(io::raw::static_type());
   _acceptor->set_read_filters(filters);
   time_t now{time(nullptr)};

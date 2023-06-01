@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_APPLIER_ENDPOINT_HH
 #define CCB_CONFIG_APPLIER_ENDPOINT_HH
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -81,7 +82,7 @@ class endpoint {
   static void unload();
   static bool loaded();
 
-  static absl::flat_hash_set<uint32_t> parse_filter(
+  static multiplexing::muxer_filter parse_filter(
       std::set<std::string> const& str_filters);
 };
 }  // namespace applier

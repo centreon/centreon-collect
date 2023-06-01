@@ -26,7 +26,8 @@ using namespace com::centreon::broker::io;
  *
  *  @param[in] is_accptr  True if endpoint is an acceptor.
  */
-endpoint::endpoint(bool is_accptr) : _is_acceptor(is_accptr) {}
+endpoint::endpoint(bool is_accptr, const multiplexing::muxer_filter& filter)
+    : _is_acceptor(is_accptr), _stream_mandatory_filter{filter} {}
 
 /**
  *  Copy constructor.
@@ -34,12 +35,9 @@ endpoint::endpoint(bool is_accptr) : _is_acceptor(is_accptr) {}
  *  @param[in] other  Object to copy.
  */
 endpoint::endpoint(endpoint const& other)
-    : _from(other._from), _is_acceptor(other._is_acceptor) {}
-
-/**
- *  Destructor.
- */
-endpoint::~endpoint() noexcept {}
+    : _is_acceptor(other._is_acceptor),
+      _stream_mandatory_filter{other._stream_mandatory_filter},
+      _from(other._from) {}
 
 /**
  *  Set the lower layer endpoint object of this endpoint.

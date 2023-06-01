@@ -84,8 +84,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void _update_stats(void) noexcept;
 
   muxer(std::string name,
-        muxer::filters r_filters,
-        muxer::filters w_filters,
+        muxer_filter r_filters,
+        muxer_filter w_filters,
         bool persistent = false);
 
  public:
@@ -95,8 +95,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   static uint32_t event_queue_max_size() noexcept;
 
   static std::shared_ptr<muxer> create(std::string name,
-                                       muxer::filters r_filters,
-                                       muxer::filters w_filters,
+                                       muxer_filter r_filters,
+                                       muxer_filter w_filters,
                                        bool persistent = false);
   muxer(const muxer&) = delete;
   muxer& operator=(const muxer&) = delete;
@@ -114,7 +114,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   const std::string& name() const;
-  void set_filters(muxer::filters r_filters, muxer::filters w_filters);
+  void set_filters(muxer_filter r_filters, muxer_filter w_filters);
   void set_stream_filter(const muxer_filter& filter);
 };
 }  // namespace multiplexing

@@ -180,9 +180,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
-        auto mux{
+        auto mux =
             multiplexing::muxer::create(ep.name, parse_filter(ep.read_filters),
-                                        parse_filter(ep.write_filters), true)};
+                                        parse_filter(ep.write_filters), true);
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
       }
       {
@@ -527,15 +527,15 @@ void endpoint::_diff_endpoints(
 }
 
 /**
- *  Create filters from a set of category.
+ *  Create filters from a set of categories.
  *
  *  @param[in] cfg  Endpoint configuration.
  *
  *  @return Filters.
  */
-absl::flat_hash_set<uint32_t> endpoint::parse_filter(
+multiplexing::muxer_filter endpoint::parse_filter(
     const std::set<std::string>& str_filters) {
-  absl::flat_hash_set<uint32_t> elements;
+  multiplexing::muxer_filter elements({});
   std::forward_list<fmt::string_view> applied_filters;
   auto fill_elements = [&elements](const std::string& str) -> bool {
     bool retval = false;

@@ -19,6 +19,7 @@
 #ifndef CCB_PROCESSING_ACCEPTOR_HH
 #define CCB_PROCESSING_ACCEPTOR_HH
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
 
@@ -51,10 +52,10 @@ class acceptor : public endpoint {
 
   std::shared_ptr<io::endpoint> _endp;
   std::list<processing::feeder*> _feeders;
-  absl::flat_hash_set<uint32_t> _read_filters;
+  multiplexing::muxer_filter _read_filters;
   std::string _read_filters_str;
   time_t _retry_interval = 15;
-  absl::flat_hash_set<uint32_t> _write_filters;
+  multiplexing::muxer_filter _write_filters;
   std::string _write_filters_str;
   std::atomic_bool _listening;
 
@@ -77,9 +78,9 @@ class acceptor : public endpoint {
   void accept();
   void start() override;
   void exit() override final;
-  void set_read_filters(const absl::flat_hash_set<uint32_t>& filters);
+  void set_read_filters(const multiplexing::muxer_filter& filters);
+  void set_write_filters(const multiplexing::muxer_filter& filters);
   void set_retry_interval(time_t retry_interval);
-  void set_write_filters(const absl::flat_hash_set<uint32_t>& filters);
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;
 };

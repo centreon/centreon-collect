@@ -41,9 +41,7 @@ static constexpr multiplexing::muxer_filter _graphite_stream_filter = {
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {
-  _muxer_filter = _graphite_stream_filter;
-}
+connector::connector() : io::endpoint(false, _graphite_stream_filter) {}
 
 /**
  *  Set connection parameters.

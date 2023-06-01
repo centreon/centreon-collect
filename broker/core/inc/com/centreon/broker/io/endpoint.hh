@@ -40,17 +40,20 @@ namespace io {
  *  (that initiate connections).
  */
 class endpoint {
+  bool _is_acceptor;
+  /* The mandatory filters for the stream configured from this endpoint to
+   * correctly work. This object can be empty. It filters categories and
+   * elements. */
+  const multiplexing::muxer_filter& _stream_mandatory_filter;
+
  protected:
   std::shared_ptr<endpoint> _from;
-  bool _is_acceptor;
-
-  multiplexing::muxer_filter _muxer_filter;
 
  public:
-  endpoint(bool is_accptr);
-  endpoint(endpoint const& other);
-  virtual ~endpoint() noexcept;
-  endpoint& operator=(endpoint const& other) = delete;
+  endpoint(bool is_accptr, const multiplexing::muxer_filter& filter);
+  endpoint(const endpoint& other);
+  virtual ~endpoint() noexcept = default;
+  endpoint& operator=(const endpoint& other) = delete;
   void from(std::shared_ptr<endpoint> endp);
   bool is_acceptor() const noexcept;
   bool is_connector() const noexcept;
@@ -58,8 +61,8 @@ class endpoint {
   virtual bool is_ready() const;
   virtual void stats(nlohmann::json& tree);
 
-  const multiplexing::muxer_filter& get_muxer_filter() const {
-    return _muxer_filter;
+  const multiplexing::muxer_filter& get_stream_mandatory_filter() const {
+    return _stream_mandatory_filter;
   }
 };
 }  // namespace io
