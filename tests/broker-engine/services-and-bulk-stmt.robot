@@ -243,8 +243,8 @@ EBPS2
     Start Broker    ${True}
     Start Engine
     # Let's wait for the external command check start
-    ${content}= Create List     check_for_external_commands()
-    ${result}=  Find In Log with Timeout        ${engineLog0}   ${start}        ${content}      60
+    ${content}=    Create List     check_for_external_commands()
+    ${result}=  Find In Log with Timeout        ${logEngine0}   ${start}        ${content}      60
     Should Be True      ${result}       msg=A message telling check_for_external_commands() should be available.
 
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
@@ -255,7 +255,7 @@ EBPS2
     ${content}=     create list     Check if some statements are ready,  sscr_bind connections
     ${result}=  Find In Log with Timeout        ${centralLog}   ${start}        ${content}      60
     Should Be True  ${result}       msg=A message telling that statements are available should be displayed
-    Stop mysql
+    Kill Mysql
     Stop Engine
     Start mysql
     Kindly Stop Broker   ${True}
