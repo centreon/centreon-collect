@@ -39,10 +39,11 @@ build/*
 ### node ###
 node_modules/
 
-### vscode ###
+### ide ###
 **/.vscode/
 **/.idea
 .scannerwork
+**/.cache
 
 ### temp build files ###
 logs/*

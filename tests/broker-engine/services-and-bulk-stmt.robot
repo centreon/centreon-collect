@@ -200,3 +200,44 @@ EBMSSM
 	Should Be True	${output[0][0]} >= 100000
 	Stop Engine
 	Kindly Stop Broker	True
+
+EBPS2
+    [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from
+    [Tags]    broker    engine    services    unified_sql    benchmark
+    Clear Metrics
+    Config Engine    ${1}    ${1}    ${1000}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Set Services passive    ${0}    service_.*
+    Config Broker    central
+    Config Broker    module    ${1}
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Flush Log     central     0
+    Broker Config Log    central    core    error
+    Broker Config Log    central    tcp    error
+    Broker Config Log    central    sql    trace
+    Broker Config Log    central    perfdata    debug
+    Config Broker Sql Output    central    unified_sql
+    Config Broker Remove Rrd Output    central
+    Clear Retention
+
+    ${start}=    Get Current Date
+    Start Broker    ${True}
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}= Create List     check_for_external_commands()
+    ${result}=  Find In Log with Timeout        ${engineLog0}   ${start}        ${content}      60
+    Should Be True      ${result}       msg=A message telling check_for_external_commands() should be available.
+
+    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
+    FOR    ${i}    IN RANGE    ${1000}
+        Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
+    END
+    ${start}=    Get Current Date
+    ${content}=     create list     Check if some statements are ready,  sscr_bind connections
+    ${result}=  Find In Log with Timeout        ${centralLog}   ${start}        ${content}      60
+    Should Be True  ${result}       msg=A message telling that statements are available should be displayed
+    Stop mysql
+    Stop Engine
+    Start mysql
+    Kindly Stop Broker   ${True}
