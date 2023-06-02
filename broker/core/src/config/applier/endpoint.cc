@@ -31,6 +31,7 @@
 #include "com/centreon/broker/processing/acceptor.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
 #include "com/centreon/broker/processing/failover.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -172,17 +173,34 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
        * if broker sends data to map. This is needed because a failover needs
        * its peer to ack events to release them (and a failover is also able
        * to write data). */
+      multiplexing::muxer_filter r_filter = parse_filter(ep.read_filters);
+      multiplexing::muxer_filter w_filter = parse_filter(ep.write_filters);
       if (is_acceptor) {
         std::unique_ptr<processing::acceptor> acceptr(
             std::make_unique<processing::acceptor>(e, ep.name));
-        acceptr->set_read_filters(parse_filter(ep.read_filters));
-        acceptr->set_write_filters(parse_filter(ep.write_filters));
+        acceptr->set_read_filters(r_filter);
+        acceptr->set_write_filters(w_filter);
+        log_v2::config()->debug(
+            "endpoint applier: acceptor '{}' configured with write filters: {} and read filters: {}",
+            ep.name, w_filter.get_allowed_categories(), r_filter.get_allowed_categories());
         endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
+	if (e->get_stream_mandatory_filter().is_in(w_filter)) {
+	  w_filter = e->get_stream_mandatory_filter();
+	  log_v2::config()->debug("endpoint applier: filters for endpoint '{}' reduced to the needed ones: {}", ep.name, misc::dump_filters(w_filter));
+	}
+	else if (!e->get_stream_mandatory_filter().allow_all()) {
+	  w_filter = e->get_stream_mandatory_filter();
+          log_v2::config()->debug(
+              "endpoint applier: filters for endpoint '{}' are misconfigured, "
+              "if applied cbd would not work, categories applied are {}",
+              ep.name, w_filter.get_allowed_categories());
+        } else
+	  log_v2::config()->debug("endpoint applier: filters {} for endpoint '{}' applied.", w_filter.get_allowed_categories(), ep.name);
+
         auto mux =
-            multiplexing::muxer::create(ep.name, parse_filter(ep.read_filters),
-                                        parse_filter(ep.write_filters), true);
+            multiplexing::muxer::create(ep.name, r_filter, w_filter, true);
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
       }
       {

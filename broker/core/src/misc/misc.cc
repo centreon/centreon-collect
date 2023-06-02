@@ -181,6 +181,9 @@ std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
 
   std::string ret;
   for (auto it = name_by_id.cbegin(), end = name_by_id.cend(); it != end; ++it)
-    ret.append(", ").append(it->second);
+    if (ret.empty())
+      ret.append(it->second);
+    else
+      ret.append(", ").append(it->second);
   return ret;
 }

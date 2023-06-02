@@ -57,6 +57,10 @@ void acceptor::accept() {
     // Create feeder thread.
     std::string name(fmt::format("{}-{}", _name, ++connection_id));
     log_v2::core()->info("New incoming connection '{}'", name);
+    log_v2::config()->debug(
+        "New feeder {} with read_filters {} and write_filters {}", name,
+        _read_filters.get_allowed_categories(),
+        _write_filters.get_allowed_categories());
     auto f{std::make_unique<processing::feeder>(name, u, _read_filters,
                                                 _write_filters)};
 

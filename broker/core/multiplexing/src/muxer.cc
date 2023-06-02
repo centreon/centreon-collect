@@ -587,8 +587,8 @@ void muxer::set_filters(muxer_filter r_filters, muxer_filter w_filters) {
   _user_read_filters = r_filters;
   _user_write_filters = w_filters;
   _read_filters_str = misc::dump_filters(r_filters);
-  _write_filters_str = misc::dump_filters(w_filters);
   set_stream_filter(_stream_filters);
+  _write_filters_str = misc::dump_filters(_stream_filters);
 }
 
 void muxer::set_stream_filter(const muxer_filter& filter) {
@@ -601,8 +601,7 @@ void muxer::set_stream_filter(const muxer_filter& filter) {
   if (!_stream_filters.is_in(_user_write_filters)) {
     SPDLOG_LOGGER_ERROR(log_v2::core(),
                         "The configured write filter for {} is too restrictive "
-                        "and will be ignored."
-                        "{} categories are mandatory.",
+                        "and will be ignored. {} categories are mandatory.",
                         _name, _stream_filters.get_allowed_categories());
   }
 }
