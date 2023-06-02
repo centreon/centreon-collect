@@ -188,6 +188,16 @@ def start_mysql():
         logger.console("Mariadb directly started")
 
 
+def kill_mysql():
+    logger.console("Killing directly MariaDB")
+    for proc in psutil.process_iter():
+        if ('mariadbd' in proc.name()):
+            logger.console(
+                f"process '{proc.name()}' containing mariadbd found: stopping it")
+            proc.kill()
+    logger.console("Mariadb killed")
+
+
 def stop_mysql():
     if not run_env():
         logger.console("Stopping Mariadb with systemd")
