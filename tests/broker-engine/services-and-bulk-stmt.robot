@@ -190,16 +190,17 @@ EBMSSM
 	${duration}=	Broker Get Sql Manager Stats	51001	INSERT INTO data_bin	300
 	Should Be True	${duration} > 0
 
-	# Let's wait for all force checks to be in the storage database.
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	FOR	${i}	IN RANGE	${500}
-	  ${output}=	Query	SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
-	  Exit For Loop If	${output[0][0]} >= 100000
-          Sleep	1s
-	END
-	Should Be True	${output[0][0]} >= 100000
-	Stop Engine
-	Kindly Stop Broker	True
+    # Let's wait for all force checks to be in the storage database.
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${i}    IN RANGE    ${500}
+        ${output}=    Query
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
+        IF    ${output[0][0]} >= 100000    BREAK
+        Sleep    1s
+    END
+    Should Be True    ${output[0][0]} >= 100000
+    Stop Engine
+    Kindly Stop Broker    True
 
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from
@@ -212,7 +213,7 @@ EBPS2
     Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log     central     0
+    Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -225,19 +226,21 @@ EBPS2
     Start Broker    ${True}
     Start Engine
     # Let's wait for the external command check start
-    ${content}=    Create List     check_for_external_commands()
-    ${result}=  Find In Log with Timeout        ${logEngine0}   ${start}        ${content}      60
-    Should Be True      ${result}       msg=A message telling check_for_external_commands() should be available.
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${logEngine0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
+    # We send 3000 service status and during the 1500th, we kill the database. This crashed cbd before
+    # the new patch.
+    FOR    ${i}    IN RANGE    ${3000}
+        IF    ${i} == 1500    Kill Mysql
+        Process Service Check result with metrics    host_1    service_${${i}%1000+1}    1    warning${i}    20
+    END
+
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
     END
-    ${start}=    Get Current Date
-    ${content}=     create list     Check if some statements are ready,  sscr_bind connections
-    ${result}=  Find In Log with Timeout        ${centralLog}   ${start}        ${content}      60
-    Should Be True  ${result}       msg=A message telling that statements are available should be displayed
-    Kill Mysql
+
     Stop Engine
     Start mysql
-    Kindly Stop Broker   ${True}
+    Kindly Stop Broker    ${True}
