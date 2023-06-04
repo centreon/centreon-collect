@@ -812,114 +812,189 @@ void stream::_check_queues(asio::error_code ec) {
       sz_metrics = _metrics.size();
     }
 
-    bool perfdata_done = false;
+    try {
+      bool perfdata_done = false;
 
-    bool resources_done = false;
-    if (_bulk_prepared_statement) {
-      for (uint32_t conn = 0; conn < _perfdata_b->connections_count(); conn++) {
-        if (_perfdata_b->ready(conn)) {
-          log_v2::sql()->debug("Sending {} perfdata on connection {}",
-                               _perfdata_b->size(conn), conn);
-          // Setting the good bind to the stmt
-          _perfdata_b->apply_to_stmt(conn);
-          // Executing the stmt
-          _mysql.run_statement(*_perfdata_stmt,
-                               database::mysql_error::insert_data);
-          perfdata_done = true;
+      bool resources_done = false;
+      if (_bulk_prepared_statement) {
+        for (uint32_t conn = 0; conn < _perfdata_b->connections_count();
+             conn++) {
+          if (_perfdata_b->ready(conn)) {
+            log_v2::sql()->debug("Sending {} perfdata on connection {}",
+                                 _perfdata_b->size(conn), conn);
+            // Setting the good bind to the stmt
+            _perfdata_b->apply_to_stmt(conn);
+            // Executing the stmt
+            _mysql.run_statement(*_perfdata_stmt,
+                                 database::mysql_error::insert_data);
+            perfdata_done = true;
+          }
         }
-      }
-      _finish_action(-1, actions::host_parents | actions::comments |
-                             actions::downtimes | actions::host_dependencies |
-                             actions::service_dependencies);
-      if (_store_in_hosts_services) {
-        if (_hscr_bind) {
-          log_v2::sql()->trace(
-              "Check if some statements are ready,  hscr_bind connections "
-              "count "
-              "= {}",
-              _hscr_bind->connections_count());
-          for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
-               conn++) {
-            if (_hscr_bind->ready(conn)) {
-              log_v2::sql()->debug(
-                  "Sending {} hosts rows of host status on connection {}",
-                  _hscr_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _hscr_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_hscr_update,
-                                   database::mysql_error::store_host_status,
-                                   conn);
-              _add_action(conn, actions::hosts);
+        _finish_action(-1, actions::host_parents | actions::comments |
+                               actions::downtimes | actions::host_dependencies |
+                               actions::service_dependencies);
+        if (_store_in_hosts_services) {
+          if (_hscr_bind) {
+            log_v2::sql()->trace(
+                "Check if some statements are ready,  hscr_bind connections "
+                "count "
+                "= {}",
+                _hscr_bind->connections_count());
+            for (uint32_t conn = 0; conn < _hscr_bind->connections_count();
+                 conn++) {
+              if (_hscr_bind->ready(conn)) {
+                log_v2::sql()->debug(
+                    "Sending {} hosts rows of host status on connection {}",
+                    _hscr_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _hscr_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(*_hscr_update,
+                                     database::mysql_error::store_host_status,
+                                     conn);
+                _add_action(conn, actions::hosts);
+              }
+            }
+          }
+          if (_sscr_bind) {
+            log_v2::sql()->trace(
+                "Check if some statements are ready,  sscr_bind connections "
+                "count "
+                "= {}",
+                _sscr_bind->connections_count());
+            for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
+                 conn++) {
+              if (_sscr_bind->ready(conn)) {
+                log_v2::sql()->debug(
+                    "Sending {} services rows of service status on connection "
+                    "{}",
+                    _sscr_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _sscr_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(
+                    *_sscr_update, database::mysql_error::store_service_status,
+                    conn);
+                _add_action(conn, actions::services);
+              }
             }
           }
         }
-        if (_sscr_bind) {
-          log_v2::sql()->trace(
-              "Check if some statements are ready,  sscr_bind connections "
-              "count "
-              "= {}",
-              _sscr_bind->connections_count());
-          for (uint32_t conn = 0; conn < _sscr_bind->connections_count();
-               conn++) {
-            if (_sscr_bind->ready(conn)) {
-              log_v2::sql()->debug(
-                  "Sending {} services rows of service status on connection {}",
-                  _sscr_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _sscr_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_sscr_update,
-                                   database::mysql_error::store_service_status,
-                                   conn);
-              _add_action(conn, actions::services);
+        if (_store_in_resources) {
+          if (_hscr_resources_bind) {
+            for (uint32_t conn = 0;
+                 conn < _hscr_resources_bind->connections_count(); conn++) {
+              if (_hscr_resources_bind->ready(conn)) {
+                log_v2::sql()->debug(
+                    "Sending {} host rows of resource status on connection {}",
+                    _hscr_resources_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _hscr_resources_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(*_hscr_resources_update,
+                                     database::mysql_error::store_host_status,
+                                     conn);
+                _add_action(conn, actions::resources);
+              }
+            }
+          }
+          if (_sscr_resources_bind) {
+            for (uint32_t conn = 0;
+                 conn < _sscr_resources_bind->connections_count(); conn++) {
+              if (_sscr_resources_bind->ready(conn)) {
+                log_v2::sql()->debug(
+                    "Sending {} service rows of resource status on connection "
+                    "{}",
+                    _sscr_resources_bind->size(conn), conn);
+                // Setting the good bind to the stmt
+                _sscr_resources_bind->apply_to_stmt(conn);
+                // Executing the stmt
+                _mysql.run_statement(
+                    *_sscr_resources_update,
+                    database::mysql_error::store_service_status, conn);
+                _add_action(conn, actions::resources);
+              }
             }
           }
         }
-      }
-      if (_store_in_resources) {
-        if (_hscr_resources_bind) {
-          for (uint32_t conn = 0;
-               conn < _hscr_resources_bind->connections_count(); conn++) {
-            if (_hscr_resources_bind->ready(conn)) {
-              log_v2::sql()->debug(
-                  "Sending {} host rows of resource status on connection {}",
-                  _hscr_resources_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _hscr_resources_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_hscr_resources_update,
-                                   database::mysql_error::store_host_status,
-                                   conn);
-              _add_action(conn, actions::resources);
-            }
-          }
-        }
-        if (_sscr_resources_bind) {
-          for (uint32_t conn = 0;
-               conn < _sscr_resources_bind->connections_count(); conn++) {
-            if (_sscr_resources_bind->ready(conn)) {
-              log_v2::sql()->debug(
-                  "Sending {} service rows of resource status on connection {}",
-                  _sscr_resources_bind->size(conn), conn);
-              // Setting the good bind to the stmt
-              _sscr_resources_bind->apply_to_stmt(conn);
-              // Executing the stmt
-              _mysql.run_statement(*_sscr_resources_update,
-                                   database::mysql_error::store_service_status,
-                                   conn);
-              _add_action(conn, actions::resources);
-            }
-          }
-        }
-      }
-      resources_done = true;
-    } else if (_perfdata_q->ready()) {
-      std::string query = _perfdata_q->get_query();
-      // Execute query.
-      _mysql.run_query(query, database::mysql_error::insert_data);
+        resources_done = true;
+      } else if (_perfdata_q->ready()) {
+        std::string query = _perfdata_q->get_query();
+        // Execute query.
+        _mysql.run_query(query, database::mysql_error::insert_data);
 
-      perfdata_done = true;
+        perfdata_done = true;
+      }
+
+      bool metrics_done = false;
+      if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
+        _next_update_metrics = now + queue_timer_duration;
+        _update_metrics();
+        metrics_done = true;
+      }
+
+      bool customvar_done = false;
+      if (_cv.ready()) {
+        log_v2::sql()->debug("{} new custom variables inserted", _cv.size());
+        std::string query = _cv.get_query();
+        int32_t conn =
+            special_conn::custom_variable % _mysql.connections_count();
+        _mysql.run_query(query, database::mysql_error::update_customvariables,
+                         false, conn);
+        _add_action(conn, actions::custom_variables);
+        customvar_done = true;
+      }
+
+      if (_cvs.ready()) {
+        log_v2::sql()->debug("{} new custom variable status inserted",
+                             _cvs.size());
+        std::string query = _cvs.get_query();
+        int32_t conn =
+            special_conn::custom_variable % _mysql.connections_count();
+        _mysql.run_query(query, database::mysql_error::update_customvariables,
+                         false, conn);
+        _add_action(conn, actions::custom_variables);
+        customvar_done = true;
+      }
+
+      bool downtimes_done = false;
+      if (_downtimes.ready()) {
+        log_v2::sql()->debug("{} new downtimes inserted", _downtimes.size());
+        std::string query = _downtimes.get_query();
+        _finish_action(-1, actions::hosts | actions::instances |
+                               actions::downtimes | actions::host_parents |
+                               actions::host_dependencies |
+                               actions::service_dependencies);
+        int32_t conn = special_conn::downtime % _mysql.connections_count();
+        _mysql.run_query(query, database::mysql_error::update_customvariables,
+                         false, conn);
+        _add_action(conn, actions::downtimes);
+        downtimes_done = true;
+      }
+
+      bool logs_done = false;
+      if (_logs.ready()) {
+        log_v2::sql()->debug("{} new logs inserted", _logs.size());
+        std::string query = _logs.get_query();
+        // Execute query.
+        int32_t conn = special_conn::log % _mysql.connections_count();
+        _mysql.run_query(query, database::mysql_error::update_logs, false,
+                         conn);
+        logs_done = true;
+      }
+
+      // End.
+      log_v2::perfdata()->debug(
+          "unified_sql: end check_queue - resources: {}, "
+          "perfdata: {}, metrics: {}, customvar: "
+          "{}, logs: {}, downtimes: {}",
+          resources_done, perfdata_done, metrics_done, customvar_done,
+          logs_done, downtimes_done);
+    } catch (const std::exception& e) {
+      log_v2::sql()->critical(
+          "sql: Error encountered during bulk dispatch of services, hosts, "
+          "metrics, etc.: {}",
+          e.what());
     }
 
     bool metrics_done = false;
