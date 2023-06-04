@@ -36,6 +36,13 @@ uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 std::mutex muxer::_running_muxers_m;
 absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
 
+static auto log_exclude_include =
+    [](const std::string& filename, uint32_t type, bool excluded) {
+      FILE* f = fopen(fmt::format("/tmp/{}.log", filename).c_str(), "a");
+      fprintf(f, "%d\t%s\n", type, excluded ? "ko" : "ok");
+      fclose(f);
+    };
+
 /**
  *  Constructor.
  *
@@ -51,9 +58,9 @@ muxer::muxer(std::string name,
     : io::stream("muxer"),
       _name(std::move(name)),
       _queue_file_name{queue_file(_name)},
-      _user_read_filters(r_filters),
-      _user_write_filters(w_filters),
-      _write_filters(_user_write_filters),
+      _user_read_filters{r_filters},
+      _user_write_filters{w_filters},
+      _write_filters{_user_write_filters},
       _read_filters_str{misc::dump_filters(r_filters)},
       _write_filters_str{misc::dump_filters(w_filters)},
       _persistent(persistent),
@@ -251,18 +258,20 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       std::lock_guard<std::mutex> lock(_mutex);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
-        if (!_write_filters.allowed((*evt)->type())) {
+        if (!_write_filters.allows((*evt)->type())) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
               "muxer {} event of type {:x} rejected by write filter", _name,
               (*evt)->type());
+          log_exclude_include(_name, (*evt)->type(), true);
           continue;
         }
         SPDLOG_LOGGER_TRACE(log_v2::core(),
                             "muxer {} event of type {:x} written", _name,
                             (*evt)->type());
-        at_least_one_push_to_queue = true;
+        log_exclude_include(_name, (*evt)->type(), false);
 
+        at_least_one_push_to_queue = true;
         _push_to_queue(*evt);
       }
     }
@@ -276,12 +285,18 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     // nothing pushed => to file
     std::lock_guard<std::mutex> lock(_mutex);
     for (; evt != event_queue.end(); ++evt) {
-      if (!_write_filters.allowed((*evt)->type())) {
+      if (!_write_filters.allows((*evt)->type())) {
         SPDLOG_LOGGER_TRACE(
             log_v2::core(),
             "muxer {} event of type {:x} rejected by write filter", _name,
             (*evt)->type());
+        log_exclude_include(_name, (*evt)->type(), true);
         continue;
+      } else {
+        SPDLOG_LOGGER_TRACE(log_v2::core(),
+                            "muxer {} event of type {:x} written", _name,
+                            (*evt)->type());
+        log_exclude_include(_name, (*evt)->type(), false);
       }
       if (!_file) {
         QueueFileStats* s =
@@ -291,8 +306,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       try {
         _file->write(*evt);
         SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "muxer::publish {} publish {} to file {}", _name,
-                            **evt, _queue_file_name);
+                            "muxer::publish {} publish one event to file {}",
+                            _name, _queue_file_name);
       } catch (const std::exception& ex) {
         // in case of exception, we lost event. It's mandatory to avoid infinite
         // loop in case of permanent disk problem
@@ -432,12 +447,15 @@ void muxer::wake() {
  *  @param[in] d  Event to multiplex.
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
-  if (d && _user_read_filters.allowed(d->type()))
+  if (d && _user_read_filters.allows(d->type())) {
     engine::instance_ptr()->publish(d);
-  else
+    log_exclude_include(_name, d->type(), false);
+  } else {
     SPDLOG_LOGGER_TRACE(log_v2::core(),
                         "muxer {} event of type {:x} rejected by read filter",
                         _name, d->type());
+    log_exclude_include(_name, d->type(), true);
+  }
   return 1;
 }
 
@@ -588,12 +606,12 @@ void muxer::set_filters(muxer_filter r_filters, muxer_filter w_filters) {
   _user_write_filters = w_filters;
   _read_filters_str = misc::dump_filters(r_filters);
   set_stream_filter(_stream_filters);
-  _write_filters_str = misc::dump_filters(_stream_filters);
+  _write_filters_str = misc::dump_filters(w_filters);
 }
 
 void muxer::set_stream_filter(const muxer_filter& filter) {
   _stream_filters = filter;
-  if (_stream_filters.allow_all()) {
+  if (_stream_filters.allows_all()) {
     _write_filters = _user_write_filters;
     return;
   }

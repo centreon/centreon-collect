@@ -40,7 +40,7 @@ class muxer_filter_test : public ::testing::Test {
 };
 
 TEST_F(muxer_filter_test, all) {
-  auto event_types = config::applier::endpoint::parse_filter({"all"});
+  auto event_types = config::applier::endpoint::parse_filters({"all"});
   ASSERT_FALSE(event_types.empty());
   multiplexing::muxer_filter all_filter(event_types.begin(), event_types.end());
 
@@ -51,7 +51,7 @@ TEST_F(muxer_filter_test, all) {
 
 TEST_F(muxer_filter_test, bbdo) {
   // events constructor only register some bbdo events
-  auto event_types = config::applier::endpoint::parse_filter({"all"});
+  auto event_types = config::applier::endpoint::parse_filters({"all"});
   ASSERT_FALSE(event_types.empty());
   multiplexing::muxer_filter all_filter(event_types.begin(), event_types.end());
 

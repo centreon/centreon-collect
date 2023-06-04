@@ -82,7 +82,7 @@ class endpoint {
   static void unload();
   static bool loaded();
 
-  static multiplexing::muxer_filter parse_filter(
+  static multiplexing::muxer_filter parse_filters(
       std::set<std::string> const& str_filters);
 };
 }  // namespace applier

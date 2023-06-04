@@ -172,7 +172,7 @@ std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
            it = all_event_container.begin(),
            end = all_event_container.end();
        it != end; ++it) {
-    if (filters.allowed(it->first))
+    if (filters.allows(it->first))
       name_by_id[it->first] = it->second.get_name();
   }
 

@@ -50,10 +50,6 @@ namespace multiplexing {
  *  @see engine
  */
 class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
- public:
-  using filters = absl::flat_hash_set<uint32_t>;
-
- private:
   static uint32_t _event_queue_max_size;
 
   const std::string _name;
