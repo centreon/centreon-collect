@@ -827,8 +827,6 @@ void stream::_check_queues(asio::error_code ec) {
       sz_metrics = _metrics.size();
     }
 
-    // This try/catch is needed by mysql methods that can throw exceptions in
-    // case of error.
     try {
       bool perfdata_done = false;
 
@@ -957,7 +955,7 @@ void stream::_check_queues(asio::error_code ec) {
         int32_t conn =
             special_conn::custom_variable % _mysql.connections_count();
         _mysql.run_query(query, database::mysql_error::update_customvariables,
-                         false, conn);
+                         conn);
         _add_action(conn, actions::custom_variables);
         customvar_done = true;
       }
@@ -969,7 +967,7 @@ void stream::_check_queues(asio::error_code ec) {
         int32_t conn =
             special_conn::custom_variable % _mysql.connections_count();
         _mysql.run_query(query, database::mysql_error::update_customvariables,
-                         false, conn);
+                         conn);
         _add_action(conn, actions::custom_variables);
         customvar_done = true;
       }
@@ -984,7 +982,7 @@ void stream::_check_queues(asio::error_code ec) {
                                actions::service_dependencies);
         int32_t conn = special_conn::downtime % _mysql.connections_count();
         _mysql.run_query(query, database::mysql_error::update_customvariables,
-                         false, conn);
+                         conn);
         _add_action(conn, actions::downtimes);
         downtimes_done = true;
       }
@@ -995,8 +993,7 @@ void stream::_check_queues(asio::error_code ec) {
         std::string query = _logs.get_query();
         // Execute query.
         int32_t conn = special_conn::log % _mysql.connections_count();
-        _mysql.run_query(query, database::mysql_error::update_logs, false,
-                         conn);
+        _mysql.run_query(query, database::mysql_error::update_logs, conn);
         logs_done = true;
       }
 
@@ -1008,73 +1005,9 @@ void stream::_check_queues(asio::error_code ec) {
           resources_done, perfdata_done, metrics_done, customvar_done,
           logs_done, downtimes_done);
     } catch (const std::exception& e) {
-      log_v2::sql()->critical(
-          "sql: Error encountered during bulk dispatch of services, hosts, "
-          "metrics, etc.: {}",
-          e.what());
+      log_v2::sql()->critical("sql: Error while dispatching bulk queries: {}",
+                              e.what());
     }
-
-    bool metrics_done = false;
-    if (now >= _next_update_metrics || sz_metrics >= _max_metrics_queries) {
-      _next_update_metrics = now + queue_timer_duration;
-      _update_metrics();
-      metrics_done = true;
-    }
-
-    bool customvar_done = false;
-    if (_cv.ready()) {
-      log_v2::sql()->debug("{} new custom variables inserted", _cv.size());
-      std::string query = _cv.get_query();
-      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       conn);
-      _add_action(conn, actions::custom_variables);
-      customvar_done = true;
-    }
-
-    if (_cvs.ready()) {
-      log_v2::sql()->debug("{} new custom variable status inserted",
-                           _cvs.size());
-      std::string query = _cvs.get_query();
-      int32_t conn = special_conn::custom_variable % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       conn);
-      _add_action(conn, actions::custom_variables);
-      customvar_done = true;
-    }
-
-    bool downtimes_done = false;
-    if (_downtimes.ready()) {
-      log_v2::sql()->debug("{} new downtimes inserted", _downtimes.size());
-      std::string query = _downtimes.get_query();
-      _finish_action(-1, actions::hosts | actions::instances |
-                             actions::downtimes | actions::host_parents |
-                             actions::host_dependencies |
-                             actions::service_dependencies);
-      int32_t conn = special_conn::downtime % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_customvariables,
-                       conn);
-      _add_action(conn, actions::downtimes);
-      downtimes_done = true;
-    }
-
-    bool logs_done = false;
-    if (_logs.ready()) {
-      log_v2::sql()->debug("{} new logs inserted", _logs.size());
-      std::string query = _logs.get_query();
-      // Execute query.
-      int32_t conn = special_conn::log % _mysql.connections_count();
-      _mysql.run_query(query, database::mysql_error::update_logs, conn);
-      logs_done = true;
-    }
-
-    // End.
-    log_v2::perfdata()->debug(
-        "unified_sql: end check_queue - resources: {}, "
-        "perfdata: {}, metrics: {}, customvar: "
-        "{}, logs: {}, downtimes: {}",
-        resources_done, perfdata_done, metrics_done, customvar_done, logs_done,
-        downtimes_done);
 
     if (!_stop_check_queues) {
       std::lock_guard<std::mutex> l(_timer_m);

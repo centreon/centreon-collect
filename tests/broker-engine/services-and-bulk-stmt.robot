@@ -227,7 +227,7 @@ EBPS2
     Start Engine
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${logEngine0}    ${start}    ${content}    60
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
     # We send 3000 service status and during the 1500th, we kill the database. This crashed cbd before
