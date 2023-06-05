@@ -52,10 +52,10 @@ class acceptor : public endpoint {
 
   std::shared_ptr<io::endpoint> _endp;
   std::list<processing::feeder*> _feeders;
-  multiplexing::muxer_filter _read_filters;
+  const multiplexing::muxer_filter _read_filters;
   std::string _read_filters_str;
   time_t _retry_interval = 15;
-  multiplexing::muxer_filter _write_filters;
+  const multiplexing::muxer_filter _write_filters;
   std::string _write_filters_str;
   std::atomic_bool _listening;
 
@@ -71,15 +71,18 @@ class acceptor : public endpoint {
   virtual uint32_t _get_queued_events() const override;
 
  public:
-  acceptor(std::shared_ptr<io::endpoint> endp, std::string const& name);
+  acceptor(std::shared_ptr<io::endpoint> endp,
+           std::string const& name,
+           const multiplexing::muxer_filter& r_filter,
+           const multiplexing::muxer_filter& w_filter);
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
   ~acceptor();
   void accept();
   void start() override;
   void exit() override final;
-  void set_read_filters(const multiplexing::muxer_filter& filters);
-  void set_write_filters(const multiplexing::muxer_filter& filters);
+  // void set_read_filters(const multiplexing::muxer_filter& filters);
+  // void set_write_filters(const multiplexing::muxer_filter& filters);
   void set_retry_interval(time_t retry_interval);
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;

@@ -34,8 +34,18 @@ using namespace com::centreon::broker::processing;
  *  @param[in] endp       Endpoint.
  *  @param[in] name       Name of the endpoint.
  */
-acceptor::acceptor(std::shared_ptr<io::endpoint> endp, std::string const& name)
-    : endpoint(true, name), _state(stopped), _should_exit(false), _endp(endp) {}
+acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
+                   std::string const& name,
+                   const multiplexing::muxer_filter& r_filter,
+                   const multiplexing::muxer_filter& w_filter)
+    : endpoint(true, name),
+      _state(stopped),
+      _should_exit(false),
+      _endp(endp),
+      _read_filters(r_filter),
+      _read_filters_str(misc::dump_filters(_read_filters)),
+      _write_filters(w_filter),
+      _write_filters_str(misc::dump_filters(_write_filters)) {}
 
 /**
  *  Destructor.
@@ -107,11 +117,11 @@ void acceptor::exit() {
  *
  *  @param[in] filters  Set of accepted event IDs.
  */
-void acceptor::set_read_filters(const multiplexing::muxer_filter& filters) {
-  std::lock_guard<std::mutex> lock(_stat_mutex);
-  _read_filters = filters;
-  _read_filters_str = misc::dump_filters(_read_filters);
-}
+// void acceptor::set_read_filters(const multiplexing::muxer_filter& filters) {
+//   std::lock_guard<std::mutex> lock(_stat_mutex);
+//   _read_filters = filters;
+//   _read_filters_str = misc::dump_filters(_read_filters);
+// }
 
 /**
  *  @brief Set retry interval of the acceptor.
@@ -133,11 +143,11 @@ void acceptor::set_retry_interval(time_t retry_interval) {
  *  This is useful to prevent endpoints of generating some kind of
  *  events.
  */
-void acceptor::set_write_filters(const multiplexing::muxer_filter& filters) {
-  std::lock_guard<std::mutex> lock(_stat_mutex);
-  _write_filters = filters;
-  _write_filters_str = misc::dump_filters(_write_filters);
-}
+// void acceptor::set_write_filters(const multiplexing::muxer_filter& filters) {
+//   std::lock_guard<std::mutex> lock(_stat_mutex);
+//   _write_filters = filters;
+//   _write_filters_str = misc::dump_filters(_write_filters);
+// }
 
 /**
  *  Get the read filters used by the feeder.

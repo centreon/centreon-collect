@@ -177,9 +177,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       multiplexing::muxer_filter w_filter = parse_filters(ep.write_filters);
       if (is_acceptor) {
         std::unique_ptr<processing::acceptor> acceptr(
-            std::make_unique<processing::acceptor>(e, ep.name));
-        acceptr->set_read_filters(r_filter);
-        acceptr->set_write_filters(w_filter);
+            std::make_unique<processing::acceptor>(e, ep.name, r_filter,
+                                                   w_filter));
         log_v2::config()->debug(
             "endpoint applier: acceptor '{}' configured with write filters: {} "
             "and read filters: {}",
