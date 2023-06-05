@@ -178,10 +178,21 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
                   std::make_shared<storage::pb_rebuild_message>();
               data_rebuild->mut_obj().set_state(RebuildMessage_State_DATA);
               database::mysql_result res(future_bin.get());
+              absl::flat_hash_map<uint64_t, time_t> last_inserted;
               while (ms.fetch_row(res)) {
                 uint64_t id_metric = res.value_as_u64(0);
                 time_t ctime = res.value_as_u64(1);
                 double value = res.value_as_f64(2);
+                // duplicate values not allowed by rrd library
+                auto yet_inserted = last_inserted.find(id_metric);
+                if (yet_inserted != last_inserted.end()) {
+                  if (yet_inserted->second >= ctime)
+                    continue;
+                  else
+                    yet_inserted->second = ctime;
+                } else {
+                  last_inserted[id_metric] = ctime;
+                }
                 Point* pt =
                     (*data_rebuild->mut_obj().mutable_timeserie())[id_metric]
                         .add_pts();
