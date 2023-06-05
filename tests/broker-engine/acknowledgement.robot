@@ -73,11 +73,10 @@ BEACK2
     ${start}=    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True
-    ...    ${result}
-    ...    msg=An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
     # Time to set the service to CRITICAL HARD.
     Process Service Check Result    host_1    service_1    ${2}    (1;1) is critical
