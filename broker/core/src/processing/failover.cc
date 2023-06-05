@@ -49,7 +49,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _muxer(mux),
       _update(false) {
   SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' construction.", _name);
-  _muxer->set_stream_filter(endp->get_stream_mandatory_filter());
+  //  _muxer->set_stream_filter(endp->get_stream_mandatory_filter());
 }
 
 /**
@@ -66,11 +66,11 @@ failover::~failover() {
  */
 void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
   _secondary_endpoints.push_back(endp);
-  multiplexing::muxer_filter muxer_filter = endp->get_stream_mandatory_filter();
+  multiplexing::muxer_filter w_filter = endp->get_stream_mandatory_filter();
   for (const auto sec_endpt : _secondary_endpoints) {
-    muxer_filter |= sec_endpt->get_stream_mandatory_filter();
+    w_filter |= sec_endpt->get_stream_mandatory_filter();
   }
-  _muxer->set_stream_filter(muxer_filter);
+  _muxer->set_write_filter(w_filter);
 }
 
 /**

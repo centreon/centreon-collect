@@ -368,8 +368,8 @@ processing::failover* endpoint::_create_failover(
   std::shared_ptr<processing::failover> failovr;
   if (!cfg.failovers.empty()) {
     std::string front_failover(cfg.failovers.front());
-    std::list<config::endpoint>::iterator it(
-        std::find_if(l.begin(), l.end(), failover_match_name(front_failover)));
+    std::list<config::endpoint>::iterator it =
+        std::find_if(l.begin(), l.end(), failover_match_name(front_failover));
     if (it == l.end())
       log_v2::config()->error(
           "endpoint applier: could not find failover '{}' for endpoint '{}'",
