@@ -45,7 +45,11 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
       _read_filters(r_filter),
       _read_filters_str(misc::dump_filters(_read_filters)),
       _write_filters(w_filter),
-      _write_filters_str(misc::dump_filters(_write_filters)) {}
+      _write_filters_str(misc::dump_filters(_write_filters)) {
+  log_v2::config()->trace(
+      "processing::acceptor '{}': read filter <<{}>> ; write filter <<{}>>",
+      name, _read_filters_str, _write_filters_str);
+}
 
 /**
  *  Destructor.
@@ -71,8 +75,8 @@ void acceptor::accept() {
         "New feeder {} with read_filters {} and write_filters {}", name,
         _read_filters.get_allowed_categories(),
         _write_filters.get_allowed_categories());
-    auto f{std::make_unique<processing::feeder>(name, u, _read_filters,
-                                                _write_filters)};
+    auto f = std::make_unique<processing::feeder>(name, u, _read_filters,
+                                                  _write_filters);
 
     std::lock_guard<std::mutex> lock(_stat_mutex);
     _feeders.push_back(f.release());

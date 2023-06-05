@@ -53,14 +53,14 @@ class muxer_filter {
    * accept all events by default
    */
   constexpr muxer_filter() : _mask{detail::all_events} {
-    for (unsigned ind = 0; ind < max_filter_category; ++ind) {
+    for (unsigned ind = 1; ind < max_filter_category; ++ind) {
       _mask[ind] = detail::all_events;
     }
   }
 
   constexpr muxer_filter(const muxer_filter& other) : _mask{} {
-    for (uint32_t i = 0; i < max_filter_category; ++i)
-      _mask[i] = other._mask[i];
+    for (uint32_t ind = 0; ind < max_filter_category; ++ind)
+      _mask[ind] = other._mask[ind];
   }
 
   // the goal of this class is to force a zero initialisation
@@ -71,9 +71,7 @@ class muxer_filter {
    *
    */
   constexpr muxer_filter(const zero_init&) : _mask{0} {
-    uint32_t ind = 0;
-    _mask[ind++] = detail::all_events;
-    for (; ind < max_filter_category; ++ind) {
+    for (unsigned ind = 1; ind < max_filter_category; ++ind) {
       _mask[ind] = 0;
     }
   }
@@ -122,7 +120,7 @@ class muxer_filter {
   template <typename const_uint32_iterator>
   constexpr muxer_filter(const_uint32_iterator begin, const_uint32_iterator end)
       : _mask{detail::all_events} {
-    for (unsigned ind = 1; ind < max_filter_category; ++ind) {
+    for (unsigned ind = 0; ind < max_filter_category; ++ind) {
       _mask[ind] = 0;
     }
     for (; begin != end; ++begin) {
@@ -225,7 +223,7 @@ class muxer_filter {
    */
   std::string get_allowed_categories() const {
     std::string ret;
-    unsigned cat_ind = 1;
+    unsigned cat_ind = 0;
     char sep = ' ';
     for (const uint64_t* cat = _mask; cat < _mask + max_filter_category;
          ++cat, ++cat_ind) {

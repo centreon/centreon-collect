@@ -538,7 +538,8 @@ void parser::_parse_endpoint(const json& elem,
   for (auto it = elem.begin(); it != elem.end(); ++it) {
     if (it.key() == "filters") {
       std::set<std::string> endpoint::*member;
-      if (e.write_filters.empty())  // Input.
+      if (e.get_io_type() == endpoint::input)
+        // if (e.write_filters.empty())  // Input.
         member = &endpoint::read_filters;
       else  // Output.
         member = &endpoint::write_filters;

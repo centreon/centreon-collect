@@ -36,12 +36,14 @@ uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 std::mutex muxer::_running_muxers_m;
 absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
 
-static auto log_exclude_include =
-    [](const std::string& filename, uint32_t type, bool excluded) {
-      FILE* f = fopen(fmt::format("/tmp/{}.log", filename).c_str(), "a");
-      fprintf(f, "%d\t%s\n", type, excluded ? "ko" : "ok");
-      fclose(f);
-    };
+static auto log_exclude_include = [](const std::string& filename,
+                                     uint32_t type,
+                                     const char* subject,
+                                     bool excluded) {
+  FILE* f = fopen(fmt::format("/tmp/{}.log", filename).c_str(), "a");
+  fprintf(f, "%d\t%s\t%s\n", type, subject, excluded ? "FALSE" : "TRUE");
+  fclose(f);
+};
 
 /**
  *  Constructor.
@@ -263,13 +265,13 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
               log_v2::core(),
               "muxer {} event of type {:x} rejected by write filter", _name,
               (*evt)->type());
-          log_exclude_include(_name, (*evt)->type(), true);
+          log_exclude_include(_name, (*evt)->type(), "publish", true);
           continue;
         }
         SPDLOG_LOGGER_TRACE(log_v2::core(),
                             "muxer {} event of type {:x} written", _name,
                             (*evt)->type());
-        log_exclude_include(_name, (*evt)->type(), false);
+        log_exclude_include(_name, (*evt)->type(), "publish", false);
 
         at_least_one_push_to_queue = true;
         _push_to_queue(*evt);
@@ -290,13 +292,13 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
             log_v2::core(),
             "muxer {} event of type {:x} rejected by write filter", _name,
             (*evt)->type());
-        log_exclude_include(_name, (*evt)->type(), true);
+        log_exclude_include(_name, (*evt)->type(), "publish to file", true);
         continue;
       } else {
         SPDLOG_LOGGER_TRACE(log_v2::core(),
                             "muxer {} event of type {:x} written", _name,
                             (*evt)->type());
-        log_exclude_include(_name, (*evt)->type(), false);
+        log_exclude_include(_name, (*evt)->type(), "publish to file", false);
       }
       if (!_file) {
         QueueFileStats* s =
@@ -449,12 +451,12 @@ void muxer::wake() {
 int muxer::write(std::shared_ptr<io::data> const& d) {
   if (d && _user_read_filters.allows(d->type())) {
     engine::instance_ptr()->publish(d);
-    log_exclude_include(_name, d->type(), false);
+    log_exclude_include(_name, d->type(), "write", false);
   } else {
     SPDLOG_LOGGER_TRACE(log_v2::core(),
                         "muxer {} event of type {:x} rejected by read filter",
                         _name, d->type());
-    log_exclude_include(_name, d->type(), true);
+    log_exclude_include(_name, d->type(), "write", true);
   }
   return 1;
 }
@@ -601,12 +603,13 @@ const std::string& muxer::name() const {
  * @param w_filters The write filters.
  */
 void muxer::set_filters(muxer_filter r_filters, muxer_filter w_filters) {
+  log_v2::config()->trace("multiplexing: '{}' set_filters...", _name);
   std::lock_guard<std::mutex> lck(_mutex);
   _user_read_filters = r_filters;
   _user_write_filters = w_filters;
   _read_filters_str = misc::dump_filters(r_filters);
-  set_stream_filter(_stream_filters);
   _write_filters_str = misc::dump_filters(w_filters);
+  set_stream_filter(_stream_filters);
 }
 
 void muxer::set_stream_filter(const muxer_filter& filter) {
