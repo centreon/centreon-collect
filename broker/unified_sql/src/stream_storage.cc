@@ -811,6 +811,8 @@ void stream::_check_queues(asio::error_code ec) {
       sz_metrics = _metrics.size();
     }
 
+    // This try/catch is needed by mysql methods that can throw exceptions in
+    // case of error.
     try {
       bool perfdata_done = false;
 
