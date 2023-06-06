@@ -662,9 +662,11 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
           2, misc::string::escape(cmmnt.data(),
                                   get_comments_col_size(comments_data)));
       b.set_value_as_i64(3, cmmnt.deletion_time(),
-                         mapping::entry::invalid_on_minus_one);
+                         mapping::entry::invalid_on_minus_one |
+                             mapping::entry::invalid_on_zero);
       b.set_value_as_i64(4, cmmnt.entry_time(),
-                         mapping::entry::invalid_on_minus_one);
+                         mapping::entry::invalid_on_minus_one |
+                             mapping::entry::invalid_on_zero);
       b.set_value_as_i32(5, int(cmmnt.entry_type()));
       b.set_value_as_i64(6, cmmnt.expire_time(),
                          mapping::entry::invalid_on_minus_one);
