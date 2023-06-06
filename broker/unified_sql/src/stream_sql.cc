@@ -636,7 +636,7 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
       query_preparator::event_pb_unique unique{
           {10, "host_id", io::protobuf_base::invalid_on_zero, 0},
           {14, "service_id", io::protobuf_base::invalid_on_zero, 0},
-          {6, "entry_time", io::protobuf_base::invalid_on_zero, 0},
+          {6, "entry_time", io::protobuf_base::invalid_on_zero | io::protobuf_base::invalid_on_minus_one, 0},
           {13, "instance_id", io::protobuf_base::invalid_on_zero, 0},
           {11, "internal_id", io::protobuf_base::invalid_on_zero, 0}};
       query_preparator qp(neb::pb_comment::static_type(), unique);
@@ -645,8 +645,8 @@ void stream::_process_pb_comment(const std::shared_ptr<io::data>& d) {
           {{2, "author", 0, get_comments_col_size(comments_author)},
            {3, "type", 0, 0},
            {4, "data", 0, get_comments_col_size(comments_data)},
-           {5, "deletion_time", io::protobuf_base::invalid_on_zero, 0},
-           {6, "entry_time", 0, 0},
+           {5, "deletion_time", io::protobuf_base::invalid_on_zero | io::protobuf_base::invalid_on_minus_one, 0},
+           {6, "entry_time", io::protobuf_base::invalid_on_zero | io::protobuf_base::invalid_on_minus_one, 0},
            {7, "entry_type", 0, 0},
            {8, "expire_time", io::protobuf_base::invalid_on_zero, 0},
            {9, "expires", 0, 0},
