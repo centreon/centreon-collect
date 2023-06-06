@@ -2041,8 +2041,8 @@ TEST_F(DatabaseStorageTest, BulkStatementsWithBooleanValues) {
   bool inside1 = false;
   while (ms->fetch_row(res)) {
     inside1 = true;
-    ASSERT_TRUE(res.value_as_int(2) <= 1);
-    ASSERT_TRUE(res.value_as_int(3) <= 1);
+    ASSERT_TRUE(res.value_as_i32(2) <= 1);
+    ASSERT_TRUE(res.value_as_i32(3) <= 1);
     ASSERT_NE(res.value_as_bool(2), res.value_as_bool(3));
   }
   ASSERT_TRUE(inside1);
