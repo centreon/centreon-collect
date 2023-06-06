@@ -49,7 +49,7 @@ const std::array<int, 5> stream::svc_ordered_status{0, 3, 4, 2, 1};
 
 static constexpr int32_t queue_timer_duration = 10;
 
-void (stream::*const stream::neb_processing_table[])(
+constexpr void (stream::*const stream::neb_processing_table[])(
     const std::shared_ptr<io::data>&) = {
     nullptr,
     &stream::_process_acknowledgement,
