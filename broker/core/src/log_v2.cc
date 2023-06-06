@@ -179,9 +179,10 @@ void log_v2::apply(const config::state& conf) {
         case level::level_enum::warn:
           gpr_set_log_verbosity(GPR_LOG_SEVERITY_INFO);
           break;
-        case level::level_enum::err:
-        case level::level_enum::critical:
-        case level::level_enum::off:
+        // case level::level_enum::err:
+        // case level::level_enum::critical:
+        // case level::level_enum::off:
+        default:
           gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
           break;
       }

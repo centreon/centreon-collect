@@ -84,6 +84,7 @@ broker/libroker.a
 broker/librokerbase.a
 broker/test/python/*.crt
 broker/test/python/*.key
+broker/compile_commands.json
 
 # clib
 clib/inc/com/centreon/clib/version.hh
@@ -119,6 +120,7 @@ engine/scripts/centengine.sh
 engine/src/simumod/neb.cc
 engine/tags
 engine/doc/devel-doc
+engine/compile_commands.json
 
 # gorgone
 gorgone/log

@@ -114,10 +114,10 @@ bulk_or_multi::bulk_or_multi(
     const std::string& on_duplicate_key_part,
     const std::chrono::system_clock::duration execute_delay_ready,
     unsigned row_count_ready)
-    : _first_row_add_time(std::chrono::system_clock::time_point::max()),
+    : _row_count(0),
+      _first_row_add_time(std::chrono::system_clock::time_point::max()),
       _execute_delay_ready(execute_delay_ready),
       _row_count_ready(row_count_ready),
-      _row_count(0),
       _mult_insert(
           std::make_unique<mysql_multi_insert>(query, on_duplicate_key_part)) {}
 

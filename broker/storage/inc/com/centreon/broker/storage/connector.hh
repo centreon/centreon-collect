@@ -35,7 +35,6 @@ namespace storage {
 class connector : public io::endpoint {
   database_config _dbcfg;
   uint32_t _interval_length;
-  uint32_t _rebuild_check_interval;
   uint32_t _rrd_len;
   bool _store_in_data_bin;
 

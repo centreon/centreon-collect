@@ -58,11 +58,6 @@ class muxer_filter {
     }
   }
 
-  constexpr muxer_filter(const muxer_filter& other) : _mask{} {
-    for (uint32_t ind = 0; ind < max_filter_category; ++ind)
-      _mask[ind] = other._mask[ind];
-  }
-
   // the goal of this class is to force a zero initialisation
   struct zero_init {};
 
