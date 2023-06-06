@@ -219,3 +219,46 @@ EBMSSM
     Should Be True    ${output[0][0]} >= 100000
     Stop Engine
     Kindly Stop Broker    True
+
+EBPS2
+    [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from
+    [Tags]    broker    engine    services    unified_sql    benchmark
+    Clear Metrics
+    Config Engine    ${1}    ${1}    ${1000}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Set Services passive    ${0}    service_.*
+    Config Broker    central
+    Config Broker    module    ${1}
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Flush Log    central    0
+    Broker Config Log    central    core    error
+    Broker Config Log    central    tcp    error
+    Broker Config Log    central    sql    trace
+    Broker Config Log    central    perfdata    debug
+    Config Broker Sql Output    central    unified_sql
+    Config Broker Remove Rrd Output    central
+    Clear Retention
+
+    ${start}=    Get Current Date
+    Start Broker    ${True}
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+
+    # We send 3000 service status and during the 1500th, we kill the database. This crashed cbd before
+    # the new patch.
+    FOR    ${i}    IN RANGE    ${3000}
+        IF    ${i} == 1500    Kill Mysql
+        Process Service Check result with metrics    host_1    service_${${i}%1000+1}    1    warning${i}    20
+    END
+
+    FOR    ${i}    IN RANGE    ${1000}
+        Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
+    END
+
+    Stop Engine
+    Start mysql
+    Kindly Stop Broker    ${True}
