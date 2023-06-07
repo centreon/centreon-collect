@@ -624,6 +624,34 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     f.close()
 
 
+##
+# @brief Function to change a value in the commands.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param command_index  index of the command (may be a regex)
+# @param new_command
+#
+def engine_config_change_command(idx: int, command_index: str, new_command: str):
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
+    lines = f.readlines()
+    f.close
+    new_lines = []
+    r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
+    found = 0
+    for line in lines:
+        if found == 1:
+            found = 0
+            new_lines.append(
+                f"    command_line                    {new_command}\n")
+        else:
+            new_lines.append(line)
+        if r.match(line) is not None:
+            found = 1
+    f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
+    f.writelines(new_lines)
+    f.close
+
+
 def engine_config_remove_service_host(idx: int, host: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")

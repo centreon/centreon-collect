@@ -194,3 +194,45 @@ EFHCU2
     Should be true    ${result}    msg=host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
+
+EMACROS
+    [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
+    [Tags]    engine    external_cmd    macros
+    Config Engine    ${1}
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    engine_config_set_value    0    log_level_checks    trace    True
+    engine_config_change_command
+    ...    0
+    ...    \\d+
+    ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
+    Clear Retention
+    ${start}=    Get Current Date
+    Start Engine
+    Start Broker
+
+    ${content}=    Create List    INITIAL HOST STATE: host_1;
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    schedule_forced_svc_check    host_1    service_1
+    Sleep    5s
+    ${content}=    Create List
+    ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
+    ...    HOST ALERT: host_1;DOWN;SOFT;1;
+    ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
+    ...    HOST ALERT: host_1;DOWN;SOFT;2;
+    ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
+    ...    HOST ALERT: host_1;DOWN;HARD;3;
+
+    ${content}=    Create List
+    ...    ResourceFile: /tmp/etc/centreon-engine/config0/resource.cfg - LogFile: /tmp/var/log/centreon-engine/config0/centengine.log - AdminEmail: titus@bidibule.com - AdminPager
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
+
+    Stop Engine
+    Kindly Stop Broker
