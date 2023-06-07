@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2021 Centreon
+** Copyright 2014-2015, 2021, 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -72,6 +72,17 @@ static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
     bam::pb_dimension_ba_timeperiod_relation::static_type(),
     bam::rebuild::static_type()};
 
+/**
+ * @brief Constructor. This function is not easy to use so it is private and
+ * called thanks two static functions:
+ * * create_monitoring_connector()
+ * * create_reporting_connector()
+ *
+ * @param type A stream_type enum giving the following choices :
+ * bam_monitoring_type or bam_reporting_type.
+ * @param db_cfg The database configuration.
+ * @param filter The mandatory filters of the underlying stream.
+ */
 connector::connector(stream_type type,
                      const database_config& db_cfg,
                      const multiplexing::muxer_filter& filter)

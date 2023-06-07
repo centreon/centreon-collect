@@ -327,7 +327,7 @@ CBD_RELOAD_AND_FILTERS
     # We check that output filters to rrd doesn't filter anything
     ${content}=    Create List    rrd event of type .* rejected by write filter
     ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be Equal
+    Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
     ...    msg=Some events are rejected by the rrd output whereas all categories are enabled.
