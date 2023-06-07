@@ -1,5 +1,5 @@
 /*
-** Copyright 2015-2022 Centreon
+** Copyright 2015-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -81,8 +81,6 @@ class acceptor : public endpoint {
   void accept();
   void start() override;
   void exit() override final;
-  // void set_read_filters(const multiplexing::muxer_filter& filters);
-  // void set_write_filters(const multiplexing::muxer_filter& filters);
   void set_retry_interval(time_t retry_interval);
 
   bool wait_for_all_events_written(unsigned ms_timeout) override;

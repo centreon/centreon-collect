@@ -61,6 +61,12 @@ class endpoint {
   virtual bool is_ready() const;
   virtual void stats(nlohmann::json& tree);
 
+  /**
+   * @brief accessor to the filter wanted by the stream used by this endpoint.
+   * This filter is defined by the stream itself and cannot change.
+   *
+   * @return A multiplexing::muxer_filter reference.
+   */
   const multiplexing::muxer_filter& get_stream_mandatory_filter() const {
     return _stream_mandatory_filter;
   }
