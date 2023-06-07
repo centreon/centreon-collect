@@ -200,3 +200,48 @@ BRRDRBUDB1
         ...    ${result}
         ...    msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
     END
+
+BRRDUPLICATE
+    [Documentation]    RRD metric rebuild with a query in centreon_storage and unified sql with duplicate rows in database
+    [Tags]    rrd    metric    rebuild    unified_sql
+    Config Engine    ${1}
+    Config Broker    rrd
+    Config Broker    central
+    Config Broker Sql Output    central    unified_sql
+    Config Broker    module
+    Broker Config Log    rrd    rrd    trace
+    Broker Config Log    central    sql    trace
+    Broker Config Flush Log    central    0
+    Broker Config Flush Log    rrd    0
+    Clear Db    data_bin
+    Create Metrics    3
+
+    ${start}=    Get Current Date
+    Start Broker
+    Start Engine
+    ${result}=    Check Connections
+    Should Be True    ${result}    msg=Engine and Broker not connected
+
+    # We get 3 indexes to rebuild
+    ${index}=    Get Indexes To Rebuild    3    2
+    ${duplicates}=    add_duplicate_metrics
+    Rebuild Rrd Graphs from DB    ${index}
+    Log To Console    Indexes to rebuild: ${index}
+    ${metrics}=    Get Metrics Matching Indexes    ${index}
+    Log To Console    Metrics to rebuild: ${metrics}
+    Reload Broker
+
+    ${content1}=    Create List    RRD: Starting to rebuild metrics
+    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild START
+
+    ${content1}=    Create List    RRD: Rebuilding metric
+    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild DATA
+
+    ${content1}=    Create List    RRD: Finishing to rebuild metrics
+    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
+    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild END
+
+    ${result}=    check_for_NaN_metric    ${duplicates}
+    Should Be True    ${result}    msg=at least one metric contains NaN value
