@@ -46,16 +46,20 @@ static auto log_exclude_include = [](const std::string& filename,
 };
 
 /**
- *  Constructor.
+ * @brief Constructor.
  *
- *  @param[in] name        Name associated to this muxer. It is used to
- *                         create on-disk files.
- *  @param[in] persistent  Whether or not this muxer should backup
- *                         unprocessed events in a persistent storage.
+ * @param name            Name associated to this muxer. It is used to create
+ *                        on-disk files.
+ * @param r_filter        The read filter constructed from the stream and the
+ *                        user configuration.
+ * @param w_filter        The write filter constructed from the stream and the
+ *                        user configuration.
+ * @param persistent      Wether or not this muxer should backup unprocessed
+ *                        events in a persistent storage.
  */
 muxer::muxer(std::string name,
-             muxer_filter r_filters,
-             muxer_filter w_filters,
+             const muxer_filter& r_filter,
+             const muxer_filter& w_filter,
              bool persistent)
     : io::stream("muxer"),
       _name(std::move(name)),

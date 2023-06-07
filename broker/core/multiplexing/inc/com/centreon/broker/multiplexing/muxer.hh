@@ -80,8 +80,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void _update_stats(void) noexcept;
 
   muxer(std::string name,
-        muxer_filter r_filters,
-        muxer_filter w_filters,
+        const muxer_filter& r_filters,
+        const muxer_filter& w_filters,
         bool persistent = false);
 
  public:
