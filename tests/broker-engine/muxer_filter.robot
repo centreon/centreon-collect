@@ -284,7 +284,7 @@ CBD_RELOAD_AND_FILTERS
     Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
 
     Log To Console    Second configuration: only storage events are sent.
-    ${start}=    Get Round Current Date
+    ${start}=    Get Current Date
     Restart Engine
     Reload Broker
 
@@ -309,9 +309,101 @@ CBD_RELOAD_AND_FILTERS
     Log To Console    Third configuration: all events are sent.
     # New configuration
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
-    ${start}=    Get Round Current Date
     Restart Engine
     Reload Broker
+    ${start}=    Get Current Date
+
+    # We check that output filters to rrd are set to "all"
+    ${content}=    Create List
+    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No message about the output filters to rrd broker.
+
+    # Let's wait for storage data written into rrd files
+    ${content}=    Create List    RRD: new pb status data for index
+    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No status from central broker for 1mn.
+
+    # We check that output filters to rrd doesn't filter anything
+    ${content}=    Create List    rrd event of type .* rejected by write filter
+    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be Equal As Strings
+    ...    ${result[0]}
+    ...    False
+    ...    msg=Some events are rejected by the rrd output whereas all categories are enabled.
+
+    Stop Engine
+    Kindly Stop Broker    True
+
+CBD_RELOAD_AND_FILTERS_WITH_OPR
+    [Documentation]    We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
+    [Tags]    broker    engine    filter
+
+    Clear Retention
+    Config Broker    module    ${1}
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Output Remove    central    centreon-broker-master-rrd    host
+    Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
+    Broker Config Input Set    rrd    central-rrd-master-input    host    localhost
+    Broker Config Log    central    config    trace
+    Broker Config Log    rrd    rrd    debug
+    Config BBDO3    ${1}
+    Config Engine    ${1}
+
+    Log To Console    First configuration: all events are sent to rrd.
+    Start Broker
+    ${start}=    Get Current Date
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+
+    # Let's wait for storage data written into rrd files
+    ${content}=    Create List    RRD: new pb status data for index
+    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No status from central broker for 1mn.
+
+    # We check that output filters to rrd are set to "all"
+    ${content}=    Create List
+    ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No message about the output filters to rrd broker.
+
+    # New configuration
+    Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
+
+    Log To Console    Second configuration: only storage events are sent.
+    ${start}=    Get Current Date
+    Restart Engine
+    Reload Broker
+
+    # We check that output filters to rrd are set to "storage"
+    ${content}=    Create List
+    ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
+    ...    endpoint applier: filters
+    ...    storage for endpoint 'centreon-broker-master-rrd' applied.
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No message about the output filters to rrd broker.
+
+    # Let's wait for storage data written into rrd files
+    ${content}=    Create List    RRD: new pb status data for index
+    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No status from central broker for 1mn.
+
+    # We check that output filters to rrd are set to "storage"
+    ${content}=    Create List    rrd event of type .* rejected by write filter
+    ${result}=    Find Regex In Log with Timeout    ${centralLog}    ${start}    ${content}    120
+    Should Be True    ${result}    msg=No event rejected by the rrd output whereas only storage category is enabled.
+
+    Log To Console    Third configuration: all events are sent.
+    # New configuration
+    Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    Restart Engine
+    Reload Broker
+    ${start}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"
     ${content}=    Create List

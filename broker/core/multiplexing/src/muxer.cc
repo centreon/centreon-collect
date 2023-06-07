@@ -64,11 +64,10 @@ muxer::muxer(std::string name,
     : io::stream("muxer"),
       _name(std::move(name)),
       _queue_file_name{queue_file(_name)},
-      _user_read_filters{r_filters},
-      _user_write_filters{w_filters},
-      _write_filters{_user_write_filters},
-      _read_filters_str{misc::dump_filters(r_filters)},
-      _write_filters_str{misc::dump_filters(w_filters)},
+      _read_filter{r_filter},
+      _write_filter{w_filter},
+      _read_filters_str{misc::dump_filters(r_filter)},
+      _write_filters_str{misc::dump_filters(w_filter)},
       _persistent(persistent),
       _events_size{0u},
       _last_stats{std::time(nullptr)} {
@@ -127,15 +126,19 @@ muxer::muxer(std::string name,
  * @brief muxer must be in a shared_ptr
  * so this static method creates it and registers it in engine
  *
- * @param name
- * @param r_filters
- * @param w_filters
- * @param persistent
+ * @param name            Name associated to this muxer. It is used to create
+ *                        on-disk files.
+ * @param r_filter        The read filter constructed from the stream and the
+ *                        user configuration.
+ * @param w_filter        The write filter constructed from the stream and the
+ *                        user configuration.
+ * @param persistent      Wether or not this muxer should backup unprocessed
+ *                        events in a persistent storage.
  * @return std::shared_ptr<muxer>
  */
 std::shared_ptr<muxer> muxer::create(std::string name,
-                                     muxer_filter r_filters,
-                                     muxer_filter w_filters,
+                                     const muxer_filter& r_filter,
+                                     const muxer_filter& w_filter,
                                      bool persistent) {
   std::shared_ptr<muxer> retval;
   {
@@ -148,11 +151,11 @@ std::shared_ptr<muxer> muxer::create(std::string name,
     if (retval) {
       log_v2::config()->debug("muxer: muxer '{}' already exists, reusing it",
                               name);
-      retval->set_filters(r_filters, w_filters);
+      retval->set_filters(r_filter, w_filter);
     } else {
       log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
       retval = std::shared_ptr<muxer>(
-          new muxer(name, r_filters, w_filters, persistent));
+          new muxer(name, r_filter, w_filter, persistent));
       _running_muxers[name] = retval;
     }
   }
@@ -264,7 +267,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       std::lock_guard<std::mutex> lock(_mutex);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
-        if (!_write_filters.allows((*evt)->type())) {
+        if (!_write_filter.allows((*evt)->type())) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
               "muxer {} event of type {:x} rejected by write filter", _name,
@@ -291,7 +294,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     // nothing pushed => to file
     std::lock_guard<std::mutex> lock(_mutex);
     for (; evt != event_queue.end(); ++evt) {
-      if (!_write_filters.allows((*evt)->type())) {
+      if (!_write_filter.allows((*evt)->type())) {
         SPDLOG_LOGGER_TRACE(
             log_v2::core(),
             "muxer {} event of type {:x} rejected by write filter", _name,
@@ -453,7 +456,7 @@ void muxer::wake() {
  *  @param[in] d  Event to multiplex.
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
-  if (d && _user_read_filters.allows(d->type())) {
+  if (d && _read_filter.allows(d->type())) {
     engine::instance_ptr()->publish(d);
     log_exclude_include(_name, d->type(), "write", false);
   } else {
@@ -603,38 +606,19 @@ const std::string& muxer::name() const {
  * @brief In case of a muxer reused by a failover, we have to update its
  * filters. This is the purpose of this function.
  *
- * @param r_filters The read filters.
- * @param w_filters The write filters.
+ * @param r_filter The read filter.
+ * @param w_filter The write filter.
  */
-void muxer::set_filters(muxer_filter r_filters, muxer_filter w_filters) {
+void muxer::set_filters(muxer_filter r_filter, muxer_filter w_filter) {
   log_v2::config()->trace("multiplexing: '{}' set_filters...", _name);
   std::lock_guard<std::mutex> lck(_mutex);
-  _user_read_filters = r_filters;
-  _user_write_filters = w_filters;
-  _read_filters_str = misc::dump_filters(r_filters);
-  _write_filters_str = misc::dump_filters(w_filters);
-  //  muxer_filter toto = _user_write_filters;
-  //  set_stream_filter(_stream_filters);
-  //  assert(toto == _stream_filters);
+  _read_filter = r_filter;
+  _write_filter = w_filter;
+  _read_filters_str = misc::dump_filters(r_filter);
+  _write_filters_str = misc::dump_filters(w_filter);
 }
 
-void muxer::set_write_filter(muxer_filter w_filters) {
-  _user_write_filters = w_filters;
-  _write_filters_str = misc::dump_filters(w_filters);
+void muxer::set_write_filter(muxer_filter w_filter) {
+  _write_filter = w_filter;
+  _write_filters_str = misc::dump_filters(w_filter);
 }
-
-// void muxer::set_stream_filter(const muxer_filter& filter) {
-//   _stream_filters = filter;
-//   if (_stream_filters.allows_all()) {
-//     _write_filters = _user_write_filters;
-//     return;
-//   }
-//   _write_filters = _stream_filters;
-//   if (!_stream_filters.is_in(_user_write_filters)) {
-//     SPDLOG_LOGGER_ERROR(log_v2::core(),
-//                         "The configured write filter for {} is too
-//                         restrictive " "and will be ignored. {} categories are
-//                         mandatory.", _name,
-//                         _stream_filters.get_allowed_categories());
-//   }
-// }
