@@ -1335,7 +1335,7 @@ def stop_map():
 # @param count is the number of indexes to get.
 #
 # @return a list of indexes
-def get_indexes_to_rebuild(count: int):
+def get_indexes_to_rebuild(count: int, nb_day=180):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1359,12 +1359,13 @@ def get_indexes_to_rebuild(count: int):
                     logger.console(
                         "building data for metric {}".format(r['metric_id']))
                     # We go back to 180 days with steps of 5 mn
-                    start = int(time.time()) - 24 * 60 * 60 * 180
+                    start = int(time.time()/86400)*86400 - \
+                        24 * 60 * 60 * nb_day
                     value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
                     # We set the value to a constant on 180 days
-                    for i in range(0, 24 * 60 * 60 * 180, 60 * 5):
+                    for i in range(0, 24 * 60 * 60 * nb_day, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
                     connection.commit()
@@ -1376,6 +1377,59 @@ def get_indexes_to_rebuild(count: int):
     # if the loop is already and retval length is not sufficiently long, we
     # still return what we get.
     return retval
+
+
+##
+# @brief add a value at the mid of the first day of each metric
+#
+#
+# @return a list of indexes of pair <time of oldest value>, <metric id>
+def add_duplicate_metrics():
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    retval = []
+    with connection:
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM(SELECT  min(ctime) AS ctime, count(*) AS nb, id_metric FROM data_bin GROUP BY id_metric) s WHERE nb > 100"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            for metric_info in result:
+                # insert a duplicate value at the mid of the day
+                low_limit = metric_info['ctime'] + 43200 - 60
+                upper_limit = metric_info['ctime'] + 43200 + 60
+                cursor.execute(
+                    f"INSERT INTO data_bin SELECT * FROM data_bin WHERE id_metric={metric_info['id_metric']} AND ctime BETWEEN {low_limit} AND {upper_limit}")
+                retval.append({metric_info['id_metric'], metric_info['ctime']})
+            connection.commit()
+    return retval
+
+
+##
+# @brief check that metrics are not a NaN during one day
+#
+# @param an array of pair <time of oldest value>, <metric id> returned by add_duplicate_metrics
+#
+# @return true or false
+def check_for_NaN_metric(add_duplicate_metrics_ret):
+    for min_timestamp, metric_id in add_duplicate_metrics_ret:
+        max_timestamp = min_timestamp + 86400
+        res = getoutput(
+            f"rrdtool dump {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
+        # we search a string like <!-- 2022-12-07 23: 00: 00 CET / 1670450400 - -> < row > <v > NaN < /v > </row >
+        row_search = re.compile(
+            r"(\d+)\s+\-\-\>\s+\<row\>\<v\>([0-9\.e+NaN]+)")
+        for line in res.splitlines():
+            extract = row_search.search(line)
+            if extract is not None:
+                ts = int(extract.group(1))
+                val = extract.group(2)
+                if ts > min_timestamp and ts < max_timestamp and val == "NaN":
+                    return False
+    return True
 
 
 ##
