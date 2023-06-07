@@ -195,9 +195,10 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
               ep.name, misc::dump_filters(w_filter));
         } else if (!e->get_stream_mandatory_filter().allows_all()) {
           w_filter = e->get_stream_mandatory_filter();
-          log_v2::config()->debug(
-              "endpoint applier: filters for endpoint '{}' are misconfigured, "
-              "if applied cbd would not work, categories applied are {}",
+          log_v2::config()->error(
+              "endpoint applier: The configured write filters for the endpoint "
+              "'{}' are too restrictive and will be ignored.{} categories are "
+              "mandatory.",
               ep.name, w_filter.get_allowed_categories());
         } else
           log_v2::config()->debug(
@@ -597,7 +598,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
       applied_filters.emplace_front("all");
     }
   }
-  log_v2::config()->info("Filters applied on endpoint: {}",
+  log_v2::config()->info("Filters applied on endpoint:{}",
                          fmt::join(applied_filters, ", "));
   return elements;
 }
