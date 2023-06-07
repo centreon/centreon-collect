@@ -622,6 +622,97 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     f.close()
 
 
+##
+# @brief Function to change a value in the commands.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param command_index  index of the command (may be a regex)
+# @param new_command
+#
+def engine_config_change_command(idx: int, command_index: str, new_command: str):
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
+    lines = f.readlines()
+    f.close
+    new_lines = []
+    r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
+    found = 0
+    for line in lines:
+        if found == 1:
+            found = 0
+            new_lines.append(
+                f"    command_line                    {new_command}\n")
+        else:
+            new_lines.append(line)
+        if r.match(line) is not None:
+            found = 1
+    f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
+    f.writelines(new_lines)
+    f.close
+
+
+def engine_config_remove_service_host(idx: int, host: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    serv_begin = re.compile(r"^define service {$")
+    serv_end = re.compile(r"^}$")
+    serv_begin_idx = 0
+    while True:
+        if (serv_begin_idx >= len(lines)):
+            break
+        if (serv_begin.match(lines[serv_begin_idx])):
+            for serv_line_idx in range(serv_begin_idx, len(lines)):
+                if (host_name.match(lines[serv_line_idx])):
+                    for end_serv_line in range(serv_line_idx, len(lines)):
+                        if serv_end.match(lines[end_serv_line]):
+                            del lines[serv_begin_idx:end_serv_line + 1]
+                            break
+                    break
+                elif serv_end.match(lines[serv_line_idx]):
+                    serv_begin_idx = serv_line_idx
+                    break
+        else:
+            serv_begin_idx = serv_begin_idx + 1
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+def engine_config_remove_host(idx: int, host: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_begin = re.compile(r"^define host {$")
+    host_end = re.compile(r"^}$")
+    host_begin_idx = 0
+    while True:
+        if (host_begin_idx >= len(lines)):
+            break
+        if (host_begin.match(lines[host_begin_idx])):
+            for host_line_idx in range(host_begin_idx, len(lines)):
+                if (host_name.match(lines[host_line_idx])):
+                    for end_serv_line in range(host_line_idx, len(lines)):
+                        if host_end.match(lines[end_serv_line]):
+                            del lines[host_begin_idx:end_serv_line + 1]
+                            break
+                    break
+                elif host_end.match(lines[host_line_idx]):
+                    host_begin_idx = host_line_idx
+                    break
+        else:
+            host_begin_idx = host_begin_idx + 1
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
 def add_host_group(index: int, id_host_group: int, members: list):
     mbs = [l for l in members if l in engine.hosts]
     f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
