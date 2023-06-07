@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012, 2020-2021 Centreon
+** Copyright 2011-2012, 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -69,8 +69,8 @@ class feeder : public stat_visitable {
  public:
   feeder(const std::string& name,
          std::unique_ptr<io::stream>& client,
-         multiplexing::muxer_filter read_filters,
-         multiplexing::muxer_filter write_filters);
+         const multiplexing::muxer_filter& read_filters,
+         const multiplexing::muxer_filter& write_filters);
   ~feeder();
   feeder(const feeder&) = delete;
   feeder& operator=(const feeder&) = delete;
