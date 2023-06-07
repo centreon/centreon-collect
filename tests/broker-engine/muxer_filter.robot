@@ -426,3 +426,75 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     Stop Engine
     Kindly Stop Broker    True
+
+SEVERAL_FILTERS_ON_LUA_EVENT
+    [Documentation]    Two stream connectors with different filters are configured.
+    [Tags]    broker    engine    filter
+    Remove File    /tmp/all_lua_event.log
+    Remove File    /tmp/all_lua_event-bis.log
+
+    Config Engine    ${1}    ${50}    ${20}
+    Config Broker    central
+    Config Broker    module    ${1}
+    Config Broker    rrd
+    Broker Config Log    central    sql    debug
+    Config Broker Sql Output    central    unified_sql
+    Config BBDO3    1
+    Broker Config Add Lua Output
+    ...    central
+    ...    test-filter
+    ...    ${SCRIPTS}test-log-all-event.lua
+    Broker Config Add Lua Output
+    ...    central
+    ...    test-filter-bis
+    ...    ${SCRIPTS}test-log-all-event-bis.lua
+
+    # We use the possibility of broker to allow to filter by type and not only by category
+    Broker Config Output Set Json
+    ...    central
+    ...    test-filter
+    ...    filters
+    ...    {"category": [ "storage:pb_metric_mapping"]}
+
+    Broker Config Output Set Json
+    ...    central
+    ...    test-filter-bis
+    ...    filters
+    ...    {"category": [ "neb:ServiceStatus"]}
+
+    Start Broker    True
+    Start Engine
+
+    Wait Until Created    /tmp/all_lua_event.log
+    FOR    ${index}    IN RANGE    30
+        # search for pb_metric_mapping
+        ${res}=    Get File Size    /tmp/all_lua_event.log
+        Sleep    1s
+        IF    ${res} > 100    BREAK
+    END
+    ${content}=    Get File    /tmp/all_lua_event.log
+    @{lines}=    Split To lines    ${content}
+    FOR    ${line}    IN    @{lines}
+        Should Contain
+        ...    ${line}
+        ...    "_type":196620
+        ...    msg=All the lines in all_lua_event.log should contain "_type":196620
+    END
+
+    Wait Until Created    /tmp/all_lua_event-bis.log
+    FOR    ${index}    IN RANGE    30
+        # search for pb_metric_mapping
+        ${res}=    Get File Size    /tmp/all_lua_event-bis.log
+        Sleep    1s
+        IF    ${res} > 100    BREAK
+    END
+    ${content}=    Get File    /tmp/all_lua_event-bis.log
+    @{lines}=    Split To lines    ${content}
+    FOR    ${line}    IN    @{lines}
+        Should Contain
+        ...    ${line}
+        ...    "_type":65565
+        ...    msg=All the lines in all_lua_event-bis.log should contain "_type":65565
+    END
+    Stop Engine
+    Kindly Stop Broker    True
