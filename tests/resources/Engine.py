@@ -415,7 +415,7 @@ passive_checks_enabled 1
 
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
-            f = open(config_dir + "/centengine.cfg", "w+")
+            f = open(config_dir + "/centengine.cfg", "w")
             bb = self.create_centengine(inst, debug_level=debug_level)
             f.write(bb)
             f.close()
@@ -495,6 +495,22 @@ define timeperiod {
             f.close()
             f = open(config_dir + "/hostgroups.cfg", "w")
             f.close()
+            f = open(config_dir + "/contacts.cfg", "w")
+            f.write("""define contact {
+    contact_name                   John_Doe
+    alias                          admin
+    email                          admin@admin.tld
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      n
+    service_notification_options   w,c,r
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+}
+            """)
+            f.close()
+
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "notif.pl"]:
@@ -573,6 +589,20 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     f.writelines(lines)
     f.close()
 
+##
+# @brief Function to add a value in the centengine.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_add_value(idx: int, key: str, value: str):
+    filename = ETC_ROOT + \
+        "/centreon-engine/config{}/centengine.cfg".format(idx)
+    f = open(filename, "a")
+    f.write(f"{key}={value}")
+    f.close()
+
 
 ##
 # @brief Function to change a value in the services.cfg for the config idx.
@@ -648,6 +678,46 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
     f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
     f.writelines(new_lines)
     f.close
+
+
+##
+# @brief Function to add a new command in the commands.cfg for the config idx
+#
+# @param idx index of the configuration (from 0)
+# @param command_name
+# @param new_command
+#
+def engine_config_add_command(idx: int, command_name: str, new_command: str):
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
+    f.write("""define command {{
+    command_name                   {} 
+    command_line                   {}
+}}
+    """.format(command_name, new_command))
+    f.close()
+
+
+#
+# @param idx index of the configuration (from 0)
+# @param desc contact_name
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, f"    {key}              {value}\n")
+            break
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
 
 
 def engine_config_remove_service_host(idx: int, host: str):
