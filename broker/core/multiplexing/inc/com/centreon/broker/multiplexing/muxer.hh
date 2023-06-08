@@ -108,8 +108,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   const std::string& name() const;
-  void set_filters(muxer_filter r_filter, muxer_filter w_filter);
-  void set_write_filter(muxer_filter w_filter);
+  void set_read_filter(const muxer_filter& w_filter);
+  void set_write_filter(const muxer_filter& w_filter);
 };
 }  // namespace multiplexing
 

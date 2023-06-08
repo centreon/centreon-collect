@@ -151,7 +151,8 @@ std::shared_ptr<muxer> muxer::create(std::string name,
     if (retval) {
       log_v2::config()->debug("muxer: muxer '{}' already exists, reusing it",
                               name);
-      retval->set_filters(r_filter, w_filter);
+      retval->set_read_filter(r_filter);
+      retval->set_write_filter(w_filter);
     } else {
       log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
       retval = std::shared_ptr<muxer>(
@@ -598,27 +599,35 @@ void muxer::remove_queue_files() {
   file.remove_all_files();
 }
 
+/**
+ * @brief Muxer name accessor.
+ *
+ * @return a reference to the name.
+ */
 const std::string& muxer::name() const {
   return _name;
 }
 
 /**
  * @brief In case of a muxer reused by a failover, we have to update its
- * filters. This is the purpose of this function.
+ * filters. This function updates the read filter.
  *
- * @param r_filter The read filter.
- * @param w_filter The write filter.
+ * @param r_filter        The read filter.
  */
-void muxer::set_filters(muxer_filter r_filter, muxer_filter w_filter) {
-  log_v2::config()->trace("multiplexing: '{}' set_filters...", _name);
-  std::lock_guard<std::mutex> lck(_mutex);
+void muxer::set_read_filter(const muxer_filter& r_filter) {
+  log_v2::config()->trace("multiplexing: '{}' set read filter...", _name);
   _read_filter = r_filter;
-  _write_filter = w_filter;
   _read_filters_str = misc::dump_filters(r_filter);
-  _write_filters_str = misc::dump_filters(w_filter);
 }
 
-void muxer::set_write_filter(muxer_filter w_filter) {
+/**
+ * @brief In case of a muxer reused by a failover, we have to update its
+ * filters. This function updates the write filter.
+ *
+ * @param r_filter        The write filter.
+ */
+void muxer::set_write_filter(const muxer_filter& w_filter) {
+  log_v2::config()->trace("multiplexing: '{}' set write filter...", _name);
   _write_filter = w_filter;
   _write_filters_str = misc::dump_filters(w_filter);
 }
