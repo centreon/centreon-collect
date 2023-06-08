@@ -6,6 +6,7 @@ Library             Process
 Library             OperatingSystem
 Library             DateTime
 Library             Collections
+Library             DatabaseLibrary
 Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
@@ -18,7 +19,6 @@ Test Teardown       Save logs If Failed
 
 *** Test Cases ***
 SDER
-    [Documentation]
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${1}    ${25}
     Config Broker    rrd
@@ -39,39 +39,27 @@ SDER
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-    ${start}=    Get Round Current Date
-    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
-    FOR    ${i}    IN RANGE    ${25}
-        Process Service Check result    host_1    service_${i+1}    1    critical${i}
-    END
     Stop Engine
 
-    modify retention dat    0   host_1  service_1  current_attempt   280
-    modify retention dat    0   host_1  service_1  max_attempts   280
-    modify retention dat host       0   host_1  max_attempts    280
+    modify retention dat    0    host_1    service_1    current_attempt    280
+    # modified attributes is a bit field. We must set the bit corresponding to MAX_ATTEMPTS to be allowed to change max_attempts. Otherwise it will be set to 3.
+    modify retention dat    0    host_1    service_1    modified_attributes    65535
+    modify retention dat    0    host_1    service_1    max_attempts    280
+
+    modify retention dat    0    host_1    service_1    current_state    2
+    modify retention dat    0    host_1    service_1    state_type    1
     Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
-   FOR    ${index}    IN RANGE    3
-        Log To Console    SELECT check_attempts from resources WHERE name='service_1'
-        ${output}=    Query    SELECT check_attempts from resources WHERE name='service_1'
+    FOR    ${index}    IN RANGE    30
+        Log To Console    SELECT check_attempt from services WHERE description='service_1'
+        ${output}=    Query    SELECT check_attempt from services WHERE description='service_1'
         Log To Console    ${output}
-        Sleep    1s
         IF    "${output}" == "((280,),)"    BREAK
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    ((280,),)
 
-        Sleep    1s
-
-    FOR    ${index}    IN RANGE    10
-        Log To Console    SELECT max_check_attempts  from resources WHERE name='service_1'
-        ${output}=    Query    SELECT max_check_attempts from resources WHERE name='service_1'
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((280,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((280,),)
-
-   Stop Engine
-   Kindly Stop Broker
+    Stop Engine
+    Kindly Stop Broker
