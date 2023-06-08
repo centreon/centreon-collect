@@ -1824,3 +1824,40 @@ def modify_retention_dat(poller, host, service, key, value):
             f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
         ff.writelines(lines)
         ff.close()
+
+
+def modify_retention_dat_host(poller, host, key, value):
+    if host != "" and host != "":
+        # We want a host
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+        lines = ff.readlines()
+        ff.close()
+
+        r_hst = re.compile(r"^\s*host_name=(.*)$")
+        in_block = False
+        hst = ""
+        for i in range(len(lines)):
+            l = lines[i]
+            if not in_block:
+                if l == "host {\n":
+                    in_block = True
+                    continue
+            else:
+                if l == "}\n":
+                    in_block = False
+                    hst = ""
+                    continue
+                m = r_hst.match(l)
+                if m:
+                    hst = m.group(1)
+                    continue
+                if l.startswith(f"{key}=") and host == hst:
+                    logger.console(f"key '{key}' found !")
+                    lines[i] = f"{key}={value}\n"
+                    hst = ""
+
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        ff.writelines(lines)
+        ff.close()
