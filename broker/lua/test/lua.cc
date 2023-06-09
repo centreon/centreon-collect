@@ -557,6 +557,7 @@ TEST_F(LuaTest, HostCacheTest) {
   auto hst{std::make_shared<neb::host>()};
   hst->host_id = 1;
   hst->host_name = "centreon";
+  hst->check_command = "echo 'John Doe'";
   hst->alias = "alias-centreon";
   hst->address = "4.3.2.1";
   _cache->write(hst);
@@ -565,12 +566,17 @@ TEST_F(LuaTest, HostCacheTest) {
                "function init(conf)\n"
                "  broker_log:set_parameters(3, '/tmp/log')\n"
                "  local hstname = broker_cache:get_hostname(1)\n"
-               "  broker_log:info(1, 'host is ' .. tostring(hstname))\n"
+               "  local cc = broker_cache:get_check_command(1)\n"
+               "  broker_log:info(1, 'host is ' .. hstname)\n"
+               "  broker_log:info(1, 'check command 1 is ' .. cc)\n"
+               "  broker_log:info(1, 'check command 2 is ' .. "
+               "tostring(broker_cache:get_check_command(1234)))\n"
                "  local hst = broker_cache:get_host(1)\n"
                "  broker_log:info(1, 'alias ' .. hst.alias .. ' address ' .. "
                "hst.address .. ' name ' .. hst.name)\n"
                "end\n\n"
                "function write(d)\n"
+               "  return true\n"
                "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
@@ -578,6 +584,8 @@ TEST_F(LuaTest, HostCacheTest) {
   ASSERT_NE(lst.find("host is centreon"), std::string::npos);
   ASSERT_NE(lst.find("alias alias-centreon address 4.3.2.1 name centreon"),
             std::string::npos);
+  ASSERT_NE(lst.find("check command 1 is echo 'John Doe'"), std::string::npos);
+  ASSERT_NE(lst.find("check command 2 is nil"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
@@ -788,20 +796,27 @@ TEST_F(LuaTest, ServiceCacheTest) {
   svc->host_id = 1;
   svc->service_id = 14;
   svc->service_description = "description";
+  svc->check_command = "echo Supercalifragilisticexpialidocious";
   _cache->write(svc);
 
-  CreateScript(
-      filename,
-      "function init(conf)\n"
-      "  broker_log:set_parameters(3, '/tmp/log')\n"
-      "  local svc = broker_cache:get_service_description(1, 14)\n"
-      "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
-      "end\n\n"
-      "function write(d)\n"
-      "end\n");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  local svc = broker_cache:get_service_description(1, 14)\n"
+               "  local cc = broker_cache:get_check_command(1, 14)\n"
+               "  broker_log:info(1, 'service description is ' .. svc)\n"
+               "  broker_log:info(1, 'service check command is ' .. cc)\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
   auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is description"), std::string::npos);
+  ASSERT_NE(
+      lst.find(
+          "service check command is echo Supercalifragilisticexpialidocious"),
+      std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
@@ -856,6 +871,7 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   svc->mut_obj().set_host_id(1);
   svc->mut_obj().set_service_id(14);
   svc->mut_obj().set_description("description");
+  svc->mut_obj().set_check_command("du -h");
   svc->mut_obj().set_enabled(true);
   TagInfo* tag = svc->mut_obj().mutable_tags()->Add();
   tag->set_id(23);
@@ -881,6 +897,8 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
       "  broker_log:info(1, 'service event handler is ' .. s.event_handler)\n"
       "  broker_log:info(1, 'service tag[1] is ' .. s.tags[1].id)\n"
       "  broker_log:info(1, 'service tag[2] is ' .. s.tags[2].id)\n"
+      "  broker_log:info(1, 'service check command is ' .. "
+      "broker_cache:get_check_command(1, 14))\n"
       "end\n\n"
       "function write(d)\n"
       "end\n");
@@ -890,6 +908,7 @@ TEST_F(LuaTest, ServiceCacheTestPbAndAdaptive) {
   ASSERT_NE(lst.find("service event handler is fedcba"), std::string::npos);
   ASSERT_NE(lst.find("service tag[1] is 23"), std::string::npos);
   ASSERT_NE(lst.find("service tag[2] is 24"), std::string::npos);
+  ASSERT_NE(lst.find("service check command is du -h"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
@@ -1071,6 +1090,8 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
   auto hst{std::make_shared<neb::pb_host>()};
   hst->mut_obj().set_host_id(1);
   hst->mut_obj().set_name("host1");
+  hst->mut_obj().set_check_command("free");
+  hst->mut_obj().set_enabled(true);
   _cache->write(hst);
   auto im{std::make_shared<storage::index_mapping>()};
   im->index_id = 7;
@@ -1087,6 +1108,8 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
       "broker_cache:get_service_description(index_mapping.host_id, "
       "index_mapping.service_id)\n"
       "  broker_log:info(1, 'service description is ' .. tostring(svc))\n"
+      "  broker_log:info(1, 'check command is ' .. "
+      "tostring(broker_cache:get_check_command(1)))\n"
       "end\n\n"
       "function write(d)\n"
       "end\n");
@@ -1094,6 +1117,7 @@ TEST_F(LuaTest, PbIndexMetricCacheTest) {
   std::string lst(ReadFile("/tmp/log"));
   ASSERT_NE(lst.find("service description is MyDescription"),
             std::string::npos);
+  ASSERT_NE(lst.find("check command is free"), std::string::npos);
   RemoveFile(filename);
   RemoveFile("/tmp/log");
 }
