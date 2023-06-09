@@ -1329,8 +1329,8 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                 else {
                   log_v2::sql()->critical(
                       "Could not insert host resource in database and no host "
-                      "resource in database with id {}",
-                      h.host_id());
+                      "resource in database with id {}: {}",
+                      h.host_id(), e.what());
                   return;
                 }
               } catch (const std::exception& e) {
@@ -2534,6 +2534,12 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
                   log_v2::sql()->debug(
                       "Service resource ({}, {}) found in database with id {}",
                       s.host_id(), s.service_id(), found->second);
+                } else {
+                  log_v2::sql()->critical(
+                      "Could not insert service resource in database and no "
+                      "service resource in database with id ({},{}): {}",
+                      s.host_id(), s.service_id(), e.what());
+                  return;
                 }
               } catch (const std::exception& e) {
                 log_v2::sql()->critical(
