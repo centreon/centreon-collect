@@ -318,6 +318,7 @@ CBD_RELOAD_AND_FILTERS
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
     ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No message about the output filters to rrd broker.
+    ${start}=    Get Current Date
 
     # Let's wait for storage data written into rrd files
     ${content}=    Create List    RRD: new pb status data for index
