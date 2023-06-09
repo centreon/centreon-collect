@@ -31,9 +31,14 @@ using namespace com::centreon::broker;
 const std::string MSG1("0123456789abcdef");
 const std::string MSG2("foo bar baz qux");
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class PublisherWrite : public testing::Test {
  public:
-  void SetUp() override { config::applier::init(0, "test_broker", 0); }
+  void SetUp() override {
+    g_io_context->restart();
+    config::applier::init(0, "test_broker", 0);
+  }
 
   void TearDown() override { config::applier::deinit(); }
 };
@@ -49,8 +54,8 @@ TEST_F(PublisherWrite, Write) {
 
     // Subscriber.
     absl::flat_hash_set<uint32_t> filters{io::raw::static_type()};
-    multiplexing::muxer mux("core_multiplexing_publisher_write", filters,
-                            filters, true);
+    std::shared_ptr<multiplexing::muxer> mux(multiplexing::muxer::create(
+        "core_multiplexing_publisher_write", filters, filters, true));
 
     // Publish event.
     {
@@ -60,7 +65,7 @@ TEST_F(PublisherWrite, Write) {
     }
 
     // Launch multiplexing.
-    multiplexing::engine::instance().start();
+    multiplexing::engine::instance_ptr()->start();
 
     // Publish another event.
     {
@@ -76,7 +81,7 @@ TEST_F(PublisherWrite, Write) {
       bool ret;
       int count = 0;
       do {
-        ret = mux.read(data, 0);
+        ret = mux->read(data, 0);
         std::this_thread::sleep_for(std::chrono::milliseconds(10));
         count++;
       } while (!ret && count < 100);

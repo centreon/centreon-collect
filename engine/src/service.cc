@@ -459,7 +459,7 @@ std::ostream& operator<<(std::ostream& os,
      << "\n  problem_has_been_acknowledged:        "
      << obj.problem_has_been_acknowledged()
      << "\n  acknowledgement_type:                 "
-     << obj.get_acknowledgement_type()
+     << obj.get_acknowledgement()
      << "\n  host_problem_at_last_check:           "
      << obj.get_host_problem_at_last_check()
      << "\n  check_type:                           " << obj.get_check_type()
@@ -776,7 +776,7 @@ com::centreon::engine::service* add_service(
       high_flap_threshold, check_freshness, freshness_threshold,
       obsess_over_service, timezone, icon_id)};
   try {
-    obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
     flap_detection_on = none;
@@ -844,8 +844,7 @@ void service::check_for_expired_acknowledgement() {
             log_v2::events(),
             "Acknowledgement of service '{}' on host '{}' just expired",
             get_description(), this->get_host_ptr()->name());
-        set_problem_has_been_acknowledged(false);
-        set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+        set_acknowledgement(AckType::NONE);
         // FIXME DBO: could be improved with something smaller.
         // We will see later, I don't know if there are many events concerning
         // acks.
@@ -1399,17 +1398,15 @@ int service::handle_async_check_result(
     /* reset notification suppression option */
     set_no_more_notifications(false);
 
-    if (ACKNOWLEDGEMENT_NORMAL == this->get_acknowledgement_type() &&
+    if (AckType::NORMAL == get_acknowledgement() &&
         (state_change || !hard_state_change)) {
-      set_problem_has_been_acknowledged(false);
-      set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_service_acknowledgement_comments(this);
-    } else if (this->get_acknowledgement_type() == ACKNOWLEDGEMENT_STICKY &&
+    } else if (get_acknowledgement() == AckType::STICKY &&
                _current_state == service::state_ok) {
-      set_problem_has_been_acknowledged(false);
-      set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_service_acknowledgement_comments(this);
@@ -1474,8 +1471,7 @@ int service::handle_async_check_result(
 
     /* reset the acknowledgement flag (this should already have been done, but
      * just in case...) */
-    set_problem_has_been_acknowledged(false);
-    set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    set_acknowledgement(AckType::NONE);
 
     /* verify the route to the host and send out host recovery notifications */
     if (hst->get_current_state() != host::state_up) {
@@ -1585,8 +1581,7 @@ int service::handle_async_check_result(
     _last_hard_state = service::state_ok;
     set_last_notification(static_cast<time_t>(0));
     set_next_notification(static_cast<time_t>(0));
-    set_problem_has_been_acknowledged(false);
-    set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    set_acknowledgement(AckType::NONE);
     set_no_more_notifications(false);
 
     if (reschedule_check)
@@ -2484,6 +2479,34 @@ int service::run_async_check(int check_options,
                              bool reschedule_check,
                              bool* time_is_valid,
                              time_t* preferred_time) noexcept {
+  return run_async_check_local(check_options, latency, scheduled_check,
+                               reschedule_check, time_is_valid, preferred_time,
+                               this);
+}
+
+/**
+ * @brief The big work of run_async_check is done here. The function has been
+ * split because of anomalydetection that needs to call the same method but
+ * with its dependency service. Then, macros have to be computed with the
+ * dependency service.
+ *
+ * @param check_options
+ * @param latency
+ * @param scheduled_check
+ * @param reschedule_check
+ * @param time_is_valid
+ * @param preferred_time
+ * @param svc  A pointer to the service used to compute macros.
+ *
+ * @return OK or ERROR
+ */
+int service::run_async_check_local(int check_options,
+                                   double latency,
+                                   bool scheduled_check,
+                                   bool reschedule_check,
+                                   bool* time_is_valid,
+                                   time_t* preferred_time,
+                                   service* svc) noexcept {
   engine_logger(dbg_functions, basic)
       << "service::run_async_check, check_options=" << check_options
       << ", latency=" << latency << ", scheduled_check=" << scheduled_check
@@ -2568,11 +2591,11 @@ int service::run_async_check(int check_options,
 
   // Get current host and service macros.
   nagios_macros* macros(get_global_macros());
-  grab_host_macros_r(macros, get_host_ptr());
-  grab_service_macros_r(macros, this);
+  grab_host_macros_r(macros, svc->get_host_ptr());
+  grab_service_macros_r(macros, svc);
   std::string tmp;
   get_raw_command_line_r(macros, get_check_command_ptr(),
-                         check_command().c_str(), tmp, 0);
+                         svc->check_command().c_str(), tmp, 0);
 
   // Time to start command.
   gettimeofday(&start_time, nullptr);
@@ -2820,7 +2843,7 @@ bool service::schedule_check(time_t check_time,
 
 void service::set_flap(double percent_change,
                        double high_threshold,
-                       double low_threshold,
+                       double low_threshold [[maybe_unused]],
                        int allow_flapstart_notification) {
   engine_logger(dbg_functions, basic) << "set_service_flap()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "set_service_flap()");
@@ -2878,7 +2901,7 @@ void service::set_flap(double percent_change,
 
 /* handles a service that has stopped flapping */
 void service::clear_flap(double percent_change,
-                         double high_threshold,
+                         double high_threshold [[maybe_unused]],
                          double low_threshold) {
   engine_logger(dbg_functions, basic) << "clear_service_flap()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "clear_service_flap()");
@@ -3174,7 +3197,7 @@ int service::notify_contact(nagios_macros* mac,
     engine_logger(dbg_notifications, most)
         << "Processed notification command: " << processed_command;
     log_v2::notifications()->trace("Processed notification command: {}",
-                                  processed_command);
+                                   processed_command);
 
     /* log the notification to program log file */
     if (config->log_notifications()) {
@@ -3752,7 +3775,7 @@ void service::set_host_ptr(host* h) {
   _host_ptr = h;
 }
 
-host const* service::get_host_ptr() const {
+const host* service::get_host_ptr() const {
   return _host_ptr;
 }
 

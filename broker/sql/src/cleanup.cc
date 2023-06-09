@@ -126,17 +126,17 @@ void cleanup::_run() {
         "    ON hosts.instance_id=instances.instance_id"
         "  SET index_data.to_delete=1"
         "  WHERE instances.deleted=1",
-        database::mysql_error::flag_index_data, false);
+        database::mysql_error::flag_index_data);
     ms.run_query(
         "DELETE hosts FROM hosts INNER JOIN instances"
         "  ON hosts.instance_id=instances.instance_id"
         "  WHERE instances.deleted=1",
-        database::mysql_error::delete_hosts, false);
+        database::mysql_error::delete_hosts);
     ms.run_query(
         "DELETE modules FROM modules INNER JOIN instances"
         "  ON modules.instance_id=instances.instance_id"
         "  WHERE instances.deleted=1",
-        database::mysql_error::delete_modules, false);
+        database::mysql_error::delete_modules);
 
     // Sleep a while.
     time_t target(time(nullptr) + _interval);

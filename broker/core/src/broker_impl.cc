@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -190,11 +190,33 @@ grpc::Status broker_impl::GetGenericStats(
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::GetSqlManagerStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
-    SqlManagerStats* response) {
-  stats::center::instance().get_sql_manager_stats(response);
+grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
+                                             __attribute__((unused)),
+                                             const SqlConnection* request,
+                                             SqlManagerStats* response) {
+  if (!request->has_id())
+    stats::center::instance().get_sql_manager_stats(response);
+  else {
+    try {
+      stats::center::instance().get_sql_manager_stats(response, request->id());
+    } catch (const std::exception& e) {
+      return grpc::Status(grpc::StatusCode::NOT_FOUND, e.what());
+    }
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::SetSqlManagerStats(
+    grpc::ServerContext* context [[maybe_unused]],
+    const SqlManagerStatsOptions* request,
+    ::google::protobuf::Empty*) {
+  auto& conf = config::applier::state::instance().mut_stats_conf();
+
+  if (request->has_slowest_statements_count())
+    conf.sql_slowest_statements_count = request->slowest_statements_count();
+  if (request->has_slowest_queries_count())
+    conf.sql_slowest_queries_count = request->slowest_queries_count();
+
   return grpc::Status::OK;
 }
 
@@ -279,8 +301,11 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
                                      LogInfo* response) {
   auto& name{request->str_arg()};
   auto& map = *response->mutable_level();
-  auto lvs = log_v2::instance().levels();
-  response->set_log_file(log_v2::instance().log_name());
+  auto lvs = log_v2::instance()->levels();
+  response->set_log_name(log_v2::instance()->log_name());
+  response->set_log_file(log_v2::instance()->file_path());
+  response->set_log_flush_period(
+      log_v2::instance()->get_flush_interval().count());
   if (!name.empty()) {
     auto found = std::find_if(lvs.begin(), lvs.end(),
                               [&name](std::pair<std::string, std::string>& p) {
@@ -305,11 +330,33 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
                                       const LogLevel* request,
                                       ::google::protobuf::Empty*) {
   const std::string& logger_name{request->logger()};
-  const std::string& level{request->level()};
-  try {
-    log_v2::instance().set_level(logger_name, level);
-  } catch (const std::exception& e) {
-    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, e.what());
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
+  if (!logger) {
+    std::string err_detail =
+        fmt::format("The '{}' logger does not exist", logger_name);
+    SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
   }
+}
+
+grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  bool done = false;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    if (!done) {
+      std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
+          std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(
+              logger);
+      if (logger_base) {
+        logger_base->get_parent()->set_flush_interval(request->period());
+        done = true;
+      }
+    }
+  });
   return grpc::Status::OK;
 }

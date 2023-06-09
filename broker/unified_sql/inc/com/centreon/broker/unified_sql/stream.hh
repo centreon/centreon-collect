@@ -24,16 +24,16 @@
 #include <condition_variable>
 #include <deque>
 #include <list>
-#include <memory>
 #include <mutex>
 #include <unordered_map>
 
-#include "bbdo/service.pb.h"
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
-#include "com/centreon/broker/mysql.hh"
+#include "com/centreon/broker/unified_sql/bulk_bind.hh"
+#include "com/centreon/broker/unified_sql/bulk_queries.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 
@@ -46,6 +46,7 @@ class service_status;
 namespace unified_sql {
 
 constexpr const char* BAM_NAME = "_Module_";
+constexpr int32_t dt_queue_timer_duration = 5;
 
 /**
  * @brief The conflict manager.
@@ -154,12 +155,6 @@ class stream : public io::stream {
     double max;
     bool metric_mapping_sent;
   };
-  struct metric_value {
-    time_t c_time;
-    uint32_t metric_id;
-    short status;
-    double value;
-  };
 
   static void (stream::*const _neb_processing_table[])(
       const std::shared_ptr<io::data>&);
@@ -171,6 +166,7 @@ class stream : public io::stream {
 
   std::atomic_int _pending_events;
   uint32_t _count;
+  bool _bulk_prepared_statement = false;
 
   /* Current actions by connection */
   std::vector<uint32_t> _action;
@@ -193,12 +189,8 @@ class stream : public io::stream {
   uint32_t _max_log_queries = 0u;
   uint32_t _max_dt_queries = 0u;
 
-  std::time_t _next_insert_perfdatas;
   std::time_t _next_update_metrics;
-  std::time_t _next_update_cv;
-  std::time_t _next_insert_logs;
   std::time_t _next_loop_timeout;
-  std::time_t _next_update_downtimes;
 
   asio::steady_timer _queues_timer;
   /* To give the order to stop the check_queues */
@@ -224,6 +216,7 @@ class stream : public io::stream {
 
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
 
+  mutable std::mutex _timer_m;
   std::mutex _group_clean_timer_m;
   asio::system_timer _group_clean_timer;
 
@@ -235,25 +228,27 @@ class stream : public io::stream {
    * _max_perfdata_queries. The filled table here is 'data_bin'. */
   mutable std::mutex _queues_m;
   mutable std::condition_variable _queues_cond_var;
-  std::deque<metric_value> _perfdata_queue;
   /* This map is also sent in bulk to the database. The insert is done if
    * the loop timeout is reached or if the queue size is greater than
    * _max_metrics_queries. Values here are the real time values, so if the
    * same metric is recevied two times, the new value can overwrite the old
    * one, that's why we store those values in a map. The filled table here is
    * 'metrics'. */
-  std::unordered_map<int32_t, metric_info*> _metrics;
+  std::unordered_map<int32_t, metric_info> _metrics;
 
   /* These queues are sent in bulk to the database. The insert/update is done
    * if the loop timeout is reached or if the queue size is greater than
-   * _max_cv_queries/_max_log_queries. The filled table here is respectively
-   * 'customvariables'/'logs'. The queue elements are pairs of a string used
-   * for the query and a pointer to a boolean so that we can acknowledge the
-   * BBDO event when written. */
-  std::deque<std::string> _cv_queue;
-  std::deque<std::string> _cvs_queue;
-  std::deque<std::string> _log_queue;
-  std::deque<std::string> _downtimes_queue;
+   * _max_cv_queries/_max_log_queries. */
+  bulk_queries _cv;
+  bulk_queries _cvs;
+
+  std::unique_ptr<bulk_queries> _perfdata_q;
+
+  std::unique_ptr<database::mysql_bulk_stmt> _perfdata_stmt;
+  std::unique_ptr<bulk_bind> _perfdata_b;
+
+  bulk_queries _logs;
+  bulk_queries _downtimes;
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
@@ -261,8 +256,6 @@ class stream : public io::stream {
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _comment_insupdate;
   database::mysql_stmt _custom_variable_delete;
-  database::mysql_stmt _custom_variable_status_insupdate;
-  database::mysql_stmt _downtime_insupdate;
   database::mysql_stmt _event_handler_insupdate;
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
@@ -286,8 +279,13 @@ class stream : public io::stream {
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _pb_service_insupdate;
   database::mysql_stmt _service_status_update;
-  database::mysql_stmt _hscr_update;
-  database::mysql_stmt _sscr_update;
+
+  std::unique_ptr<database::mysql_stmt_base> _hscr_update;
+  std::unique_ptr<bulk_bind> _hscr_bind;
+
+  std::unique_ptr<database::mysql_stmt_base> _sscr_update;
+  std::unique_ptr<bulk_bind> _sscr_bind;
+
   database::mysql_stmt _severity_insert;
   database::mysql_stmt _severity_update;
   database::mysql_stmt _tag_insert;
@@ -298,10 +296,15 @@ class stream : public io::stream {
   database::mysql_stmt _resources_host_update;
   database::mysql_stmt _resources_service_insert;
   database::mysql_stmt _resources_service_update;
+
   database::mysql_stmt _resources_disable;
   database::mysql_stmt _resources_tags_remove;
-  database::mysql_stmt _hscr_resources_update;
-  database::mysql_stmt _sscr_resources_update;
+
+  std::unique_ptr<database::mysql_stmt_base> _hscr_resources_update;
+  std::unique_ptr<bulk_bind> _hscr_resources_bind;
+
+  std::unique_ptr<database::mysql_stmt_base> _sscr_resources_update;
+  std::unique_ptr<bulk_bind> _sscr_resources_bind;
 
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
@@ -311,7 +314,6 @@ class stream : public io::stream {
   void _update_hosts_and_services_of_unresponsive_instances();
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
-  void _update_downtimes();
   bool _is_valid_poller(uint32_t instance_id);
   void _check_queues(asio::error_code ec);
   void _check_deleted_index();
@@ -360,6 +362,7 @@ class stream : public io::stream {
       const std::shared_ptr<io::data>& d);
 
   void _load_deleted_instances();
+  void _init_statements();
   void _load_caches();
   void _clean_tables(uint32_t instance_id);
   void _clean_group_table();
@@ -369,9 +372,6 @@ class stream : public io::stream {
   void _finish_actions();
   void _add_action(int32_t conn, actions action);
   void _update_metrics();
-  void _insert_perfdatas();
-  void _update_customvariables();
-  void _insert_logs();
   // void __exit();
   void _clear_instances_cache(const std::list<uint64_t>& ids);
   bool _host_instance_known(uint64_t host_id) const;
@@ -399,7 +399,7 @@ class stream : public io::stream {
   int32_t flush() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline = -1) override;
   int32_t stop() override;
-  void statistics(nlohmann::json& tree) const;
+  void statistics(nlohmann::json& tree) const override;
   void remove_graphs(const std::shared_ptr<io::data>& d);
   void remove_poller(const std::shared_ptr<io::data>& d);
   void update() override;

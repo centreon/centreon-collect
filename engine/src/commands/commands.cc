@@ -745,7 +745,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   std::string svc_description;
   std::string ack_author;
   std::string ack_data;
-  int type(ACKNOWLEDGEMENT_NORMAL);
+  int type(AckType::NORMAL);
   int notify(true);
   int persistent(true);
   service_map::const_iterator found;
@@ -966,12 +966,14 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   /* get the duration */
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
-  if (!absl::SimpleAtoi(temp_ptr, &duration)) {
-    log_v2::external_command()->error(
-        "Error: could not schedule downtime : duration '{}' must be an integer "
-        ">= 0",
-        temp_ptr);
-    return ERROR;
+  if (*temp_ptr) {
+    if (!absl::SimpleAtoi(temp_ptr, &duration)) {
+      log_v2::external_command()->error(
+          "Error: could not schedule downtime : duration '{}' must be an "
+          "integer >= 0",
+          temp_ptr);
+      return ERROR;
+    }
   }
 
   /* get the author */
@@ -988,8 +990,11 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   ** strtoul converts a nullptr value to 0 so if set to 0, bail out as a
   ** duration>0 is needed.
   */
-  if (!fixed && !duration)
+  if (!fixed && !duration) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "no duration defined for a fixed downtime");
     return ERROR;
+  }
 
   /* duration should be auto-calculated, not user-specified */
   if (fixed)
@@ -1193,9 +1198,7 @@ int cmd_delete_downtime_full(int cmd, char* args) {
   if (*temp_ptr)
     criterias.push_back(downtime_finder::criteria("author", temp_ptr));
   // Comment.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
-    return ERROR;
-  if (*temp_ptr)
+  if ((temp_ptr = my_strtok(nullptr, ";")) && *temp_ptr)
     criterias.push_back(downtime_finder::criteria("comment", temp_ptr));
 
   // Find downtimes.
@@ -2514,12 +2517,8 @@ void acknowledge_host_problem(host* hst,
     return;
 
   /* set the acknowledgement flag */
-  hst->set_problem_has_been_acknowledged(true);
-
-  /* set the acknowledgement type */
-  hst->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
-                                    ? ACKNOWLEDGEMENT_STICKY
-                                    : ACKNOWLEDGEMENT_NORMAL);
+  hst->set_acknowledgement(type == AckType::STICKY ? AckType::STICKY
+                                                   : AckType::NORMAL);
 
   /* schedule acknowledgement expiration */
   time_t current_time = time(nullptr);
@@ -2559,12 +2558,8 @@ void acknowledge_service_problem(service* svc,
     return;
 
   /* set the acknowledgement flag */
-  svc->set_problem_has_been_acknowledged(true);
-
-  /* set the acknowledgement type */
-  svc->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
-                                    ? ACKNOWLEDGEMENT_STICKY
-                                    : ACKNOWLEDGEMENT_NORMAL);
+  svc->set_acknowledgement(type == AckType::STICKY ? AckType::STICKY
+                                                   : AckType::NORMAL);
 
   /* schedule acknowledgement expiration */
   time_t current_time = time(nullptr);
@@ -2595,7 +2590,7 @@ void acknowledge_service_problem(service* svc,
 /* removes a host acknowledgement */
 void remove_host_acknowledgement(host* hst) {
   /* set the acknowledgement flag */
-  hst->set_problem_has_been_acknowledged(false);
+  hst->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the host info */
   hst->update_status();
@@ -2607,7 +2602,7 @@ void remove_host_acknowledgement(host* hst) {
 /* removes a service acknowledgement */
 void remove_service_acknowledgement(service* svc) {
   /* set the acknowledgement flag */
-  svc->set_problem_has_been_acknowledged(false);
+  svc->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the service info */
   svc->update_status();

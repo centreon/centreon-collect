@@ -111,7 +111,7 @@ downtime_finder::result_set downtime_finder::find_matching_all(
  *
  *  @return True if downtime matches the criteria.
  */
-bool downtime_finder::_match_criteria(host_downtime const& dt,
+bool downtime_finder::_match_criteria(const host_downtime& dt,
                                       downtime_finder::criteria const& crit) {
   bool retval{false};
   if (crit.first == "host") {

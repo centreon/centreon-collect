@@ -47,6 +47,6 @@ RUN pip3 install conan==1.57.0 --prefix=/usr --upgrade
 RUN rm -rf ~/.conan/profiles/default
 COPY conanfile.txt .
 RUN cat conanfile.txt
-RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build='*'
+RUN conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
 WORKDIR /src

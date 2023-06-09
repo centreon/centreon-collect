@@ -36,10 +36,11 @@ pool& pool::instance() {
   return *_instance;
 }
 
-void pool::load(size_t size) {
+void pool::load(const std::shared_ptr<asio::io_context>& io_context,
+                size_t size) {
   std::lock_guard<std::mutex> lck(_init_m);
   if (_instance == nullptr)
-    _instance = new pool(size);
+    _instance = new pool(io_context, size);
   else
     log_v2::core()->error("pool already started.");
 }
@@ -58,7 +59,7 @@ void pool::unload() {
  * @return the IO context.
  */
 asio::io_context& pool::io_context() {
-  return instance()._io_context;
+  return *instance()._io_context;
 }
 
 /**
@@ -71,21 +72,29 @@ asio::io_context& pool::io_context() {
  * The idea here, is that when the pool is started, no stats are done. And when
  * the stats::center is well started, it asks the pool to start its stats.
  */
-pool::pool(size_t size)
+pool::pool(const std::shared_ptr<asio::io_context>& io_context, size_t size)
     : _stats(nullptr),
       _pool_size{size == 0 ? std::max(std::thread::hardware_concurrency(), 3u)
                            : size},
-      _io_context(_pool_size),
-      _worker{asio::make_work_guard(_io_context)},
+      _io_context(io_context),
+      _worker{asio::make_work_guard(*_io_context)},
       _closed(true),
-      _timer(_io_context),
+      _timer(*_io_context),
       _stats_running{false} {
   std::lock_guard<std::mutex> lock(_closed_m);
   if (_closed) {
     log_v2::core()->info("Starting the TCP thread pool of {} threads",
                          _pool_size);
     for (uint32_t i = 0; i < _pool_size; ++i) {
-      _pool.emplace_back([this] { _io_context.run(); });
+      _pool.emplace_back([ctx = _io_context] {
+        try {
+          log_v2::core()->info("start of asio thread {:x}", pthread_self());
+          ctx->run();
+        } catch (const std::exception& e) {
+          log_v2::core()->critical("catch in io_context run: {} {} thread {:x}",
+                                   e.what(), typeid(e).name(), pthread_self());
+        }
+      });
       char str[16];
       sprintf(str, "pool_thread%u", i);
       pthread_setname_np(_pool[i].native_handle(), str);
@@ -95,16 +104,17 @@ pool::pool(size_t size)
 }
 
 /**
- * @brief Start the stats of the pool. This method is called by the stats engine
- * when it is ready.
+ * @brief Start the stats of the pool. This method is called by the stats
+ * engine when it is ready.
  *
  * @param stats The pointer used by the pool to set its data in the stats
  * engine.
  */
 void pool::start_stats(ThreadPool* stats) {
   _stats = stats;
-  /* The only time, we set a data directly to stats, this is because this method
-   * is called by the stats engine and the _check_latency has not started yet */
+  /* The only time, we set a data directly to stats, this is because this
+   * method is called by the stats engine and the _check_latency has not
+   * started yet */
   _stats->set_size(_pool_size);
   _stats_running = true;
   _timer.expires_after(std::chrono::seconds(10));
@@ -159,12 +169,12 @@ void pool::_check_latency(asio::error_code ec) {
                          ec.message());
   else {
     auto start = std::chrono::system_clock::now();
-    asio::post(_io_context, [start, this] {
+    asio::post(*_io_context, [start, this] {
       auto end = std::chrono::system_clock::now();
       auto duration = std::chrono::duration<double, std::milli>(end - start);
-      stats::center::instance().update(
-          _stats->mutable_latency(), fmt::format("{:.3f}ms", duration.count()));
-      log_v2::core()->trace("Thread pool latency {:.3f}ms", duration.count());
+      float d = duration.count() / 1000.0f;
+      stats::center::instance().update(&ThreadPool::set_latency, _stats, d);
+      log_v2::core()->trace("Thread pool latency {:.5f}s", d);
     });
     if (_stats_running) {
       _timer.expires_after(std::chrono::seconds(10));

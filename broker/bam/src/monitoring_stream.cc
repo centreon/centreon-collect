@@ -62,6 +62,7 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
       _ext_cmd_file(ext_cmd_file),
       _mysql(db_cfg),
       _pending_events(0),
+      _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
       _cache(std::move(cache)),
       _forced_svc_checks_timer{pool::io_context()} {
@@ -97,6 +98,7 @@ monitoring_stream::~monitoring_stream() {
  */
 int32_t monitoring_stream::flush() {
   _mysql.commit();
+  _pending_request = 0;
   int retval = _pending_events;
   log_v2::bam()->trace("BAM: monitoring_stream flush: {} events", retval);
   _pending_events = 0;
@@ -189,11 +191,25 @@ void monitoring_stream::update() {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
-  log_v2::bam()->trace("BAM: monitoring_stream write");
+  log_v2::bam()->trace("BAM: monitoring_stream::write - event of type {:x}",
+                       data->type());
   // Take this event into account.
   ++_pending_events;
-  if (!validate(data, get_name()))
-    return 0;
+
+  // this lambda ask mysql to do a commit if we have get_queries_per_transaction
+  // waiting requests
+  auto commit_if_needed = [this]() {
+    if (_mysql.get_config().get_queries_per_transaction() > 0) {
+      if (_pending_request >=
+          _mysql.get_config().get_queries_per_transaction()) {
+        _mysql.commit();
+        _pending_request = 0;
+      }
+    } else {  // auto commit => nothing to do
+      _pending_request = 0;
+    }
+  };
+
   log_v2::bam()->trace("BAM: {} pending events", _pending_events);
 
   // Process service status events.
@@ -272,13 +288,15 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _ba_update.bind_value_as_f64(2, status->level_downtime);
       _ba_update.bind_value_as_u32(6, status->ba_id);
       if (status->last_state_change.is_null())
-        _ba_update.bind_value_as_null(3);
+        _ba_update.bind_null_u64(3);
       else
         _ba_update.bind_value_as_u64(3, status->last_state_change.get_time_t());
       _ba_update.bind_value_as_bool(4, status->in_downtime);
       _ba_update.bind_value_as_i32(5, status->state);
 
-      _mysql.run_statement(_ba_update, database::mysql_error::update_ba, true);
+      _mysql.run_statement(_ba_update, database::mysql_error::update_ba);
+      ++_pending_request;
+      commit_if_needed();
 
       if (status->state_changed) {
         std::pair<std::string, std::string> ba_svc_name(
@@ -311,7 +329,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _kpi_update.bind_value_as_f64(3, status->level_nominal_hard);
       _kpi_update.bind_value_as_i32(4, 1 + 1);
       if (status->last_state_change.is_null())
-        _kpi_update.bind_value_as_null(5);
+        _kpi_update.bind_null_u64(5);
       else
         _kpi_update.bind_value_as_u64(5,
                                       status->last_state_change.get_time_t());
@@ -320,8 +338,9 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _kpi_update.bind_value_as_bool(8, status->in_downtime);
       _kpi_update.bind_value_as_u32(9, status->kpi_id);
 
-      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi,
-                           true);
+      _mysql.run_statement(_kpi_update, database::mysql_error::update_kpi);
+      ++_pending_request;
+      commit_if_needed();
     } break;
     case inherited_downtime::static_type(): {
       std::string cmd;
@@ -350,9 +369,26 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     default:
       break;
   }
-
-  // Event acknowledgement.
-  return 0;
+  // if uncommited request, we can't yet acknowledge
+  if (_pending_request) {
+    if (_pending_events >=
+        10 * _mysql.get_config().get_queries_per_transaction()) {
+      log_v2::bam()->trace(
+          "BAM: monitoring_stream write: too many pending events =>flush and "
+          "acknowledge {} events",
+          _pending_events);
+      return flush();
+    }
+    log_v2::bam()->trace(
+        "BAM: monitoring_stream write: 0 events (request pending) {} to "
+        "acknowledge",
+        _pending_events);
+    return 0;
+  }
+  int retval = _pending_events;
+  _pending_events = 0;
+  log_v2::bam()->trace("BAM: monitoring_stream write: {} events", retval);
+  return retval;
 }
 
 /**
@@ -431,7 +467,7 @@ void monitoring_stream::_rebuild() {
 void monitoring_stream::_explicitly_send_forced_svc_checks(
     const asio::error_code& ec) {
   static int count = 0;
-  log_v2::bam()->error("BAM: time to send forced service checks {}", count++);
+  log_v2::bam()->debug("BAM: time to send forced service checks {}", count++);
   if (!ec) {
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);

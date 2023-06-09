@@ -42,7 +42,7 @@ set_target_properties(
 )
 
 if (WITH_COVERAGE)
-  set(COVERAGE_EXCLUDES '${PROJECT_BINARY_DIR}/*' '${PROJECT_SOURCE_DIR}/tests/*' '/usr/include/* ')
+  set(COVERAGE_EXCLUDES '${PROJECT_SOURCE_DIR}/test/*' '/usr/include/*')
   SETUP_TARGET_FOR_COVERAGE(
       NAME clib-test-coverage
       EXECUTABLE ut_clib

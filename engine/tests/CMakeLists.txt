@@ -1,21 +1,19 @@
 #
-# Copyright 2016, 2020-2022 Centreon
+# Copyright 2016, 2020-2023 Centreon
 #
 
 # This file is part of Centreon Engine.
 #
-# Centreon Engine is free software : you can redistribute it and / or
-# modify it under the terms of the GNU General Public License version 2
-# as published by the Free Software Foundation.
+# Centreon Engine is free software : you can redistribute it and / or modify it
+# under the terms of the GNU General Public License version 2 as published by
+# the Free Software Foundation.
 #
-# Centreon Engine is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
+# Centreon Engine is distributed in the hope that it will be useful, but WITHOUT
+# ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 #
-# You should have received a copy of the GNU General Public License
-# along with Centreon Engine. If not, see
-# <http://www.gnu.org/licenses/>.
+# You should have received a copy of the GNU General Public License along with
+# Centreon Engine. If not, see <http://www.gnu.org/licenses/>.
 #
 
 # Enable unit tests or not .
@@ -69,6 +67,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/configuration/applier/applier-service.cc"
       "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
       "${TESTS_DIR}/configuration/applier/applier-servicegroup.cc"
+      "${TESTS_DIR}/configuration/applier/applier-state.cc"
       "${TESTS_DIR}/configuration/contact.cc"
       "${TESTS_DIR}/configuration/host.cc"
       "${TESTS_DIR}/configuration/object.cc"
@@ -119,12 +118,21 @@ if(WITH_TESTING)
       "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
       "${TESTS_DIR}/timeperiod/utils.cc"
-      # # Headers.
+      # Headers.
       "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/timeperiod/utils.hh")
 
   # Unit test executable.
   include_directories(${TESTS_DIR})
+
+  if(WITH_ASAN)
+    set(CMAKE_BUILD_TYPE Debug)
+    set(CMAKE_CXX_FLAGS_DEBUG
+        "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+    set(CMAKE_LINKER_FLAGS_DEBUG
+        "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address"
+    )
+  endif()
 
   add_executable(ut_engine ${ut_sources})
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
@@ -156,6 +164,7 @@ if(WITH_TESTING)
     ut_engine
     ${ENGINERPC}
     cce_core
+    enginelog
     pthread
     ${GCOV}
     CONAN_PKG::gtest

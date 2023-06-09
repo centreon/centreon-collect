@@ -42,6 +42,12 @@ class state {
   std::string _poller_name;
   size_t _pool_size;
   modules _modules;
+
+  struct stats {
+    uint32_t sql_slowest_statements_count = false;
+    uint32_t sql_slowest_queries_count = false;
+  } _stats_conf;
+
   absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
   mutable std::mutex _connected_pollers_m;
 
@@ -67,6 +73,8 @@ class state {
   void add_poller(uint64_t poller_id, const std::string& poller_name);
   void remove_poller(uint64_t poller_id);
   bool has_connection_from_poller(uint64_t poller_id) const;
+  stats& mut_stats_conf();
+  const stats& stats_conf() const;
 };
 }  // namespace applier
 }  // namespace config

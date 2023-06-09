@@ -70,7 +70,7 @@ class HostNotification : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
   }
 
@@ -295,7 +295,7 @@ TEST_F(HostNotification,
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
-  _host->set_problem_has_been_acknowledged(true);
+  _host->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(host_escalation);
   ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
                           notifier::notification_option_none),
@@ -316,7 +316,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationAfterPreviousTooSoon) {
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
-  _host->set_problem_has_been_acknowledged(true);
+  _host->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(host_escalation);
   _host->set_last_notification(19999);
   ASSERT_EQ(_host->notify(notifier::reason_normal, "", "",
@@ -339,7 +339,7 @@ TEST_F(HostNotification,
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
-  _host->set_problem_has_been_acknowledged(true);
+  _host->set_acknowledgement(AckType::NORMAL);
   ASSERT_TRUE(host_escalation);
   _host->set_last_notification(19500);
   _host->set_notification_number(1);
@@ -363,7 +363,7 @@ TEST_F(HostNotification, SimpleNormalHostNotificationOnStateNotNotified) {
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
-  _host->set_problem_has_been_acknowledged(false);
+  _host->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(host_escalation);
   _host->remove_notify_on(notifier::down);
   _host->set_current_state(engine::host::state_down);
@@ -387,7 +387,7 @@ TEST_F(HostNotification,
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
-  _host->set_problem_has_been_acknowledged(false);
+  _host->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(host_escalation);
   _host->set_current_state(engine::host::state_down);
   _host->set_last_hard_state_change(20000 - 200);
@@ -413,7 +413,7 @@ TEST_F(HostNotification,
       new engine::hostescalation("host_name", 0, 1, 1.0, "", 7, Uuid())};
   _host->set_notification_period_ptr(tperiod.get());
 
-  _host->set_problem_has_been_acknowledged(false);
+  _host->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(host_escalation);
   _host->set_current_state(engine::host::state_down);
   _host->set_last_hard_state_change(20000 - 400);

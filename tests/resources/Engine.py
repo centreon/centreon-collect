@@ -9,6 +9,7 @@ from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
+import math
 import random
 import shutil
 import sys
@@ -25,6 +26,7 @@ VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 CONF_DIR = ETC_ROOT + "/centreon-engine"
 ENGINE_HOME = VAR_ROOT + "/lib/centreon-engine"
+TIMEOUT = 30
 
 
 class EngineInstance:
@@ -558,12 +560,14 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     lines = f.readlines()
     f.close()
 
-    if force:
+    replaced = False
+    for i in range(len(lines)):
+        if lines[i].startswith(key + "="):
+            lines[i] = "{}={}\n".format(key, value)
+            replaced = True
+
+    if not replaced and force:
         lines.append("{}={}\n".format(key, value))
-    else:
-        for i in range(len(lines)):
-            if lines[i].startswith(key + "="):
-                lines[i] = "{}={}\n".format(key, value)
 
     f = open(filename, "w")
     f.writelines(lines)
@@ -640,6 +644,46 @@ def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     f.close()
 
 
+def rename_service(index: int, hst: str, svc: str, new_svc: str):
+    f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r")
+    ll = f.readlines()
+    f.close()
+    rs_start = re.compile(r"^\s*define service {")
+    rs_end = re.compile(r"^\s*}")
+    rs_hst = re.compile(r"^\s*host_name\s+([a-z_0-9]+)")
+    rs_svc = re.compile(r"^\s*service_description\s+([a-z_0-9]+)")
+    inside = False
+    my_hst = None
+    my_svc = None
+    l_svc = None
+
+    for i in range(len(ll)):
+        l = ll[i]
+        if inside:
+            if rs_end.match(l):
+                inside = False
+                if svc == my_svc and hst == my_hst:
+                    ll[l_svc] = f"    service_description\t{new_svc}\n"
+                svc, hst, l_svc = None, None, None
+                continue
+            m = rs_hst.search(l)
+            if m:
+                my_hst = m.group(1)
+            else:
+                m = rs_svc.search(l)
+                if m:
+                    my_svc = m.group(1)
+                    l_svc = i
+
+        else:
+            if rs_start.match(l):
+                inside = True
+
+    f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "w")
+    f.writelines(ll)
+    f.close()
+
+
 def add_service_group(index: int, id_service_group: int, members: list):
     f = open(
         ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
@@ -706,7 +750,27 @@ def add_bam_config_to_engine():
 
 def create_ba_with_services(name: str, typ: str, svc: list, dt_policy="inherit"):
     global dbconf
-    dbconf.create_ba_with_services(name, typ, svc, dt_policy)
+    return dbconf.create_ba_with_services(name, typ, svc, dt_policy)
+
+
+def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt_policy="inherit"):
+    global dbconf
+    return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
+
+
+def add_boolean_kpi(id_ba: int, expression: str, critical_impact: int):
+    dbconf.add_boolean_kpi(id_ba, expression, critical_impact)
+
+
+def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    dbconf.add_ba_kpi(id_ba_src, id_ba_dest, critical_impact,
+                      warning_impact, unknown_impact)
+
+
+def add_service_kpi(host: str, serv: str, id_ba: int, critical_impact: int, warning_impact: int, unknown_impact: int):
+    global dbconf
+    dbconf.add_service_kpi(
+        host, serv, id_ba, critical_impact, warning_impact, unknown_impact)
 
 
 def get_command_id(service: int):
@@ -1141,10 +1205,32 @@ def process_host_check_result(hst: str, state: int, output: str):
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
+    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};0;0;{4};admin;Downtime set by admin\n".format(
+        hst, svc, now, now+duration, duration)
+    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
+    now = int(time.time())
     cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin\n".format(
         hst, svc, now, now + duration, duration)
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
+    f.close()
+
+
+def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
+    now = int(time.time())
+    cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
+        hst, now, now + duration)
+    cmd2 = "[{1}] SCHEDULE_HOST_SVC_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
+        hst, now, now + duration)
+    f = open(
+        VAR_ROOT + "/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
+    f.write(cmd1)
+    f.write(cmd2)
     f.close()
 
 
@@ -1165,7 +1251,16 @@ def delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
     cmd = "[{}] DEL_HOST_DOWNTIME_FULL;{};;;;;;;;\n".format(now, hst)
     f = open(
-        VAR_ROOT + "/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
+        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def delete_service_downtime_full(poller: int, hst: str, svc: str):
+    now = int(time.time())
+    cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
+    f = open(
+        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
     f.write(cmd)
     f.close()
 
@@ -1230,6 +1325,35 @@ def add_severity_to_services(poller: int, severity_id: int, svc_lst):
         if m is not None and m.group(1) in svc_lst:
             lines.insert(
                 i + 1, "    severity_id                     {}\n".format(severity_id))
+
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
+    ff.writelines(lines)
+    ff.close()
+
+
+def set_services_passive(poller: int, srv_regex):
+    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
+    r = re.compile(f"^\s*service_description\s*({srv_regex})$")
+    rce = re.compile(r"^\s*([a-z]*)_checks_enabled\s*([01])$")
+    rc = re.compile(r"^\s*}\s*$")
+    desc = ""
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m:
+            desc = m.group(1)
+        elif len(desc) > 0:
+            m = rce.match(lines[i])
+            if m:
+                if m.group(1) == "active":
+                    lines[i] = "    active_checks_enabled           0\n"
+                elif m.group(1) == "passive":
+                    lines[i] = "    passive_checks_enabled          1\n"
+            else:
+                m = rc.match(lines[i])
+                if m:
+                    desc = ""
 
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
     ff.writelines(lines)
@@ -1314,28 +1438,35 @@ def remove_severities_from_hosts(poller: int):
 #
 
 
-def check_search(debug_file_path: str, str_to_search):
-    with open(debug_file_path, 'r') as f:
-        lines = f.readlines()
-        for first_ind in range(len(lines)):
-            find_index = lines[first_ind].find(str_to_search + ' ')
-            if (find_index > 0):
-                for second_ind in range(first_ind, len(lines)):
-                    # search cmd_id
-                    m = re.search(
-                        r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
-                    if m is not None:
-                        cmd_id = m.group(1)
-                        r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
-                            cmd_id + ",\s+(\S[\s\S]+)$"
-                        for third_ind in range(second_ind, len(lines)):
-                            m = re.match(
-                                r_query_execute, lines[third_ind])
-                            if m is not None:
-                                return m.group(1)
-                        return "_recv_query_execute not found" + r_query_execute
-                return "connector::run not found"
-        return "check_search don t find " + str_to_search
+def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        cmd_executed = False
+        with open(debug_file_path, 'r') as f:
+            lines = f.readlines()
+            for first_ind in range(len(lines)):
+                find_index = lines[first_ind].find(str_to_search + ' ')
+                if (find_index > 0):
+                    cmd_executed = True
+                    for second_ind in range(first_ind, len(lines)):
+                        # search cmd_id
+                        m = re.search(
+                            r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
+                        if m is not None:
+                            cmd_id = m.group(1)
+                            r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
+                                cmd_id + ",\s+(\S[\s\S]+)$"
+                            for third_ind in range(second_ind, len(lines)):
+                                m = re.match(
+                                    r_query_execute, lines[third_ind])
+                                if m is not None:
+                                    return m.group(1)
+        time.sleep(1)
+
+    if not cmd_executed:
+        return f"_recv_query_execute not found on '{r_query_execute}'"
+    else:
+        return f"check_search doesn't find '{str_to_search}'"
 
 
 def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
@@ -1431,6 +1562,16 @@ def external_command(func):
     return wrapper
 
 
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        v = math.sin((now + m) / 1000) * 5
+        pd.append(f"metric{m}={v}")
+    full_output = " ".join(pd)
+    process_service_check_result(hst, svc, state, full_output, config)
+
+
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
     cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
@@ -1463,7 +1604,12 @@ def del_host_comment(comment_id):
 @external_command
 def change_host_check_command(hst: str, Check_Command: str):
     return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
-        now, hst, Check_Command)
+        hst, Check_Command)
+
+
+@external_command
+def set_svc_notification_number(host_name: string, svc_description: string, value):
+    return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
 
 
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):

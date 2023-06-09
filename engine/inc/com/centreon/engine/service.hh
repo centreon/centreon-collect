@@ -63,6 +63,14 @@ class service : public notifier {
  protected:
   service_type _service_type;
 
+  int run_async_check_local(int check_options,
+                            double latency,
+                            bool scheduled_check,
+                            bool reschedule_check,
+                            bool* time_is_valid,
+                            time_t* preferred_time,
+                            service* svc) noexcept;
+
  public:
   static std::array<std::pair<uint32_t, std::string>, 4> const
       tab_service_states;

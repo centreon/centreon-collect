@@ -1,19 +1,19 @@
 /*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
 */
 
 syntax = "proto3";
@@ -34,15 +34,16 @@ enum ServiceType {
   ANOMALY_DETECTION = 4;
 }
 
+enum AckType {
+  NONE = 0;
+  NORMAL = 1;
+  STICKY = 2;
+}
+
 message Service {
   uint64 host_id = 1;
   uint64 service_id = 2;
 
-  enum AckType {
-    NONE = 0;
-    NORMAL = 1;
-    STICKY = 2;
-  }
   bool acknowledged = 3;
   AckType acknowledgement_type = 4;
 
@@ -207,11 +208,6 @@ message ServiceStatus {
   int64 last_notification = 27;
   int64 next_notification = 28;
 
-  enum AckType {
-    NONE = 0;
-    NORMAL = 1;
-    STICKY = 2;
-  }
   AckType acknowledgement_type = 29;
   int32 scheduled_downtime_depth = 30;
 
@@ -247,4 +243,186 @@ message AdaptiveService {
   optional bool check_freshness = 15;
   optional string check_period = 16;
   optional string notification_period = 17;
+}
+
+message Host {
+  uint64 host_id = 1;
+
+  bool acknowledged = 2;
+  AckType acknowledgement_type = 3;
+
+  bool active_checks = 4;
+  bool enabled = 5;
+  int32 scheduled_downtime_depth = 6;
+  string check_command = 7;
+  int32 check_interval = 8;
+  string check_period = 9;
+
+  enum CheckType {
+    ACTIVE = 0;
+    PASSIVE = 1;
+  }
+  CheckType check_type = 10;
+  int32 check_attempt = 11;
+  enum State {
+    UP = 0;
+    DOWN = 1;
+    UNREACHABLE = 2;
+  }
+  State state = 12;
+  bool event_handler_enabled = 13;
+  string event_handler = 14;
+  double execution_time = 15;
+  bool flap_detection = 16;
+  bool checked = 17;
+  bool flapping = 18;
+  int64 last_check = 19;
+  State last_hard_state = 20;
+  int64 last_hard_state_change = 21;
+  int64 last_notification = 22;
+  int32 notification_number = 23;
+  int64 last_state_change = 24;
+  int64 last_time_down = 25;
+  int64 last_time_unreachable = 26;
+  int64 last_time_up = 27;
+  int64 last_update = 28;
+  double latency = 29;
+  int32 max_check_attempts = 30;
+  int64 next_check = 31;
+  int64 next_host_notification = 32;
+  bool no_more_notifications = 33;
+  bool notify = 34;
+  string output = 35;
+  bool passive_checks = 36;
+  double percent_state_change = 37;
+  string perfdata = 38;
+  double retry_interval = 39;
+  bool should_be_scheduled = 40;
+  bool obsess_over_host = 41;
+
+  enum StateType {
+    SOFT = 0;
+    HARD = 1;
+  }
+
+  StateType state_type = 42;
+  string action_url = 43;
+  string address = 44;
+  string alias = 45;
+  bool check_freshness = 46;
+  bool default_active_checks = 47;
+  bool default_event_handler_enabled = 48;
+  bool default_flap_detection = 49;
+  bool default_notify = 50;
+  bool default_passive_checks = 51;
+  string display_name = 52;
+  double first_notification_delay = 53;
+  bool flap_detection_on_down = 54;
+  bool flap_detection_on_unreachable = 55;
+  bool flap_detection_on_up = 56;
+  double freshness_threshold = 57;
+  double high_flap_threshold = 58;
+  string name = 59;
+  string icon_image = 60;
+  string icon_image_alt = 61;
+  int32 instance_id = 62;
+  double low_flap_threshold = 63;
+  string notes = 64;
+  string notes_url = 65;
+  double notification_interval = 66;
+  string notification_period = 67;
+  bool notify_on_down = 68;
+  bool notify_on_downtime = 69;
+  bool notify_on_flapping = 70;
+  bool notify_on_recovery = 71;
+  bool notify_on_unreachable = 72;
+  bool stalk_on_down = 73;
+  bool stalk_on_unreachable = 74;
+  bool stalk_on_up = 75;
+  string statusmap_image = 76;
+  bool retain_nonstatus_information = 77;
+  bool retain_status_information = 78;
+  string timezone = 79;
+  uint64 severity_id = 80;
+  repeated TagInfo tags = 81;
+  uint64 icon_id = 82;
+}
+
+/**
+ * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
+ */
+message HostStatus {
+  uint64 host_id = 1;
+
+  bool checked = 2;
+  enum CheckType {
+    ACTIVE = 0;
+    PASSIVE = 1;
+  }
+  CheckType check_type = 3;
+
+  enum State {
+    UP = 0;
+    DOWN = 1;
+    UNREACHABLE = 2;
+  }
+  State state = 4;
+  enum StateType {
+    SOFT = 0;
+    HARD = 1;
+  }
+  StateType state_type = 5;
+  int64 last_state_change = 6;
+  State last_hard_state = 7;
+  int64 last_hard_state_change = 8;
+  int64 last_time_up = 9;
+  int64 last_time_down = 10;
+  int64 last_time_unreachable = 11;
+
+  string output = 12;
+  string long_output = 13;
+  string perfdata = 14;
+
+  bool flapping = 15;
+  double percent_state_change = 16;
+  double latency = 17;
+  double execution_time = 18;
+  int64 last_check = 19;
+  int64 next_check = 20;
+  bool should_be_scheduled = 21;
+  int32 check_attempt = 22;
+
+  int32 notification_number = 23;
+  bool no_more_notifications = 24;
+  int64 last_notification = 25;
+  int64 next_host_notification = 26;
+
+  AckType acknowledgement_type = 27;
+  int32 scheduled_downtime_depth = 28;
+}
+
+/**
+ * @brief Message used to send adaptive host configuration. When only one
+ * or two configuration items change, this event is used.
+ *
+ * Only used with BBDO 3.0
+ */
+message AdaptiveHost {
+  uint64 host_id = 1;
+
+  optional bool notify = 2;
+  optional bool active_checks = 3;
+  optional bool should_be_scheduled = 4;
+  optional bool passive_checks = 5;
+  optional bool event_handler_enabled = 6;
+  optional bool flap_detection = 7;
+  optional bool obsess_over_host = 8;
+  optional string event_handler = 9;
+  optional string check_command  = 10;
+  optional uint32 check_interval  = 11;
+  optional uint32 retry_interval  = 12;
+  optional uint32 max_check_attempts  = 13;
+  optional bool check_freshness = 14;
+  optional string check_period  = 15;
+  optional string notification_period  = 16;
 }

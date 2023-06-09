@@ -29,6 +29,14 @@ using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
+namespace fmt {
+
+// mandatory to log
+template <>
+struct formatter<io::raw> : ostream_formatter {};
+
+}  // namespace fmt
+
 com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
     : io::stream("GRPC"), _accept(false) {
   _channel = client::create(conf);

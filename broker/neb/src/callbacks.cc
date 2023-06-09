@@ -21,6 +21,7 @@
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 
+#include "bbdo/neb.pb.h"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
@@ -1110,7 +1111,7 @@ int neb::callback_host(int callback_type, void* data) {
 
     // Set host parameters.
     my_host->acknowledged = h->problem_has_been_acknowledged();
-    my_host->acknowledgement_type = h->get_acknowledgement_type();
+    my_host->acknowledgement_type = h->get_acknowledgement();
     if (!h->get_action_url().empty())
       my_host->action_url =
           misc::string::check_string_utf8(h->get_action_url());
@@ -1327,7 +1328,7 @@ int neb::callback_pb_host(int callback_type, void* data) {
 
     // Set host parameters.
     host.set_acknowledged(eh->problem_has_been_acknowledged());
-    host.set_acknowledgement_type(eh->get_acknowledgement_type());
+    host.set_acknowledgement_type(eh->get_acknowledgement());
     if (!eh->get_action_url().empty())
       host.set_action_url(
           misc::string::check_string_utf8(eh->get_action_url()));
@@ -1555,7 +1556,7 @@ int neb::callback_host_status(int callback_type, void* data) {
     const engine::host* h = static_cast<engine::host*>(
         static_cast<nebstruct_host_status_data*>(data)->object_ptr);
     host_status->acknowledged = h->problem_has_been_acknowledged();
-    host_status->acknowledgement_type = h->get_acknowledgement_type();
+    host_status->acknowledgement_type = h->get_acknowledgement();
     host_status->active_checks_enabled = h->active_checks_enabled();
     if (!h->check_command().empty())
       host_status->check_command =
@@ -1674,10 +1675,9 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
     log_v2::neb()->error("could not find ID of host '{}'", eh->name());
 
   if (eh->problem_has_been_acknowledged())
-    hscr.set_acknowledgement_type(
-        static_cast<HostStatus_AckType>(eh->get_acknowledgement_type()));
+    hscr.set_acknowledgement_type(eh->get_acknowledgement());
   else
-    hscr.set_acknowledgement_type(HostStatus_AckType_NONE);
+    hscr.set_acknowledgement_type(AckType::NONE);
 
   hscr.set_check_type(static_cast<HostStatus_CheckType>(eh->get_check_type()));
   hscr.set_check_attempt(eh->get_current_attempt());
@@ -1720,7 +1720,7 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
   // Acknowledgement event.
   auto it = gl_acknowledgements.find(std::make_pair(hscr.host_id(), 0u));
   if (it != gl_acknowledgements.end() &&
-      hscr.acknowledgement_type() == HostStatus_AckType_NONE) {
+      hscr.acknowledgement_type() == AckType::NONE) {
     if (!(!hscr.state()  // !(OK or (normal ack and NOK))
           || (!it->second.is_sticky && (hscr.state() != it->second.state)))) {
       auto ack = std::make_shared<neb::acknowledgement>(it->second);
@@ -2090,7 +2090,7 @@ int neb::callback_service(int callback_type, void* data) {
 
     // Fill output var.
     my_service->acknowledged = s->problem_has_been_acknowledged();
-    my_service->acknowledgement_type = s->get_acknowledgement_type();
+    my_service->acknowledgement_type = s->get_acknowledgement();
     if (!s->get_action_url().empty())
       my_service->action_url =
           misc::string::check_string_utf8(s->get_action_url());
@@ -2324,8 +2324,7 @@ int neb::callback_pb_service(int callback_type, void* data) {
 
     // Fill output var.
     srv.set_acknowledged(es->problem_has_been_acknowledged());
-    srv.set_acknowledgement_type(
-        static_cast<Service_AckType>(es->get_acknowledgement_type()));
+    srv.set_acknowledgement_type(es->get_acknowledgement());
     if (!es->get_action_url().empty())
       srv.set_action_url(misc::string::check_string_utf8(es->get_action_url()));
     srv.set_active_checks(es->active_checks_enabled());
@@ -2717,10 +2716,9 @@ int32_t neb::callback_pb_service_status(int callback_type
                          es->get_hostname(), es->get_description());
 
   if (es->problem_has_been_acknowledged())
-    sscr.set_acknowledgement_type(
-        static_cast<ServiceStatus_AckType>(es->get_acknowledgement_type()));
+    sscr.set_acknowledgement_type(es->get_acknowledgement());
   else
-    sscr.set_acknowledgement_type(ServiceStatus_AckType_NONE);
+    sscr.set_acknowledgement_type(AckType::NONE);
 
   sscr.set_check_type(
       static_cast<ServiceStatus_CheckType>(es->get_check_type()));
@@ -2809,7 +2807,7 @@ int32_t neb::callback_pb_service_status(int callback_type
   auto it = gl_acknowledgements.find(
       std::make_pair(sscr.host_id(), sscr.service_id()));
   if (it != gl_acknowledgements.end() &&
-      sscr.acknowledgement_type() == ServiceStatus_AckType_NONE) {
+      sscr.acknowledgement_type() == AckType::NONE) {
     if (!(!sscr.state()  // !(OK or (normal ack and NOK))
           || (!it->second.is_sticky && (sscr.state() != it->second.state)))) {
       auto ack = std::make_shared<neb::acknowledgement>(it->second);
@@ -2847,7 +2845,7 @@ int neb::callback_service_status(int callback_type, void* data) {
     engine::service const* s{static_cast<engine::service*>(
         static_cast<nebstruct_service_status_data*>(data)->object_ptr)};
     service_status->acknowledged = s->problem_has_been_acknowledged();
-    service_status->acknowledgement_type = s->get_acknowledgement_type();
+    service_status->acknowledgement_type = s->get_acknowledgement();
     service_status->active_checks_enabled = s->active_checks_enabled();
     if (!s->check_command().empty())
       service_status->check_command =

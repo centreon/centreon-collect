@@ -56,4 +56,10 @@ std::ostream& operator<<(std::ostream& s, const data& d);
 
 CCB_END()
 
+namespace fmt {
+template <>
+struct formatter<com::centreon::broker::io::data> : ostream_formatter {};
+
+}  // namespace fmt
+
 #endif  // !CCB_IO_DATA_HH

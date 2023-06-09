@@ -39,7 +39,7 @@ namespace bam {
  *  @brief Availability thread
  *
  */
-class availability_thread {
+class availability_thread final {
  public:
   availability_thread(database_config const& db_cfg,
                       timeperiod_map& shared_map);

@@ -219,7 +219,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
       int i;
       for (i = 0; i < 10 && tmp[i]; i++)
         ;
-      log_v2::perfdata()->error(
+      log_v2::perfdata()->warn(
           "invalid perfdata format in service {}: equal sign not present or "
           "misplaced '{}'",
           id(), fmt::string_view(s, (tmp - s) + i));
@@ -239,7 +239,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
       for (i = 0; i < 10 && tmp[i]; i++)
         ;
 
-      log_v2::perfdata()->error(
+      log_v2::perfdata()->warn(
           "storage: invalid perfdata format in service {}: no numeric value "
           "after equal sign "
           "'{}'",

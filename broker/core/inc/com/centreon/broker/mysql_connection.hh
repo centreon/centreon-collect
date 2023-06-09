@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 - 2021 Centreon
+** Copyright 2018 - 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,12 +19,12 @@
 #ifndef CCB_MYSQL_CONNECTION_HH
 #define CCB_MYSQL_CONNECTION_HH
 
-#include <future>
-
+#include "com/centreon/broker/database/mysql_bulk_stmt.hh"
 #include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/database/mysql_result.hh"
 #include "com/centreon/broker/database/mysql_stmt.hh"
 #include "com/centreon/broker/database/mysql_task.hh"
+#include "com/centreon/broker/database/stats.hh"
 #include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/stats/center.hh"
 
@@ -78,14 +78,14 @@ class mysql_connection {
   std::mutex _start_m;
   std::condition_variable _start_condition;
 
-  // Mutex to access the configuration
-  mutable std::mutex _cfg_mutex;
-  std::string _host;
-  std::string _socket;
-  std::string _user;
-  std::string _pwd;
-  std::string _name;
-  int _port;
+  const std::string _host;
+  const std::string _socket;
+  const std::string _user;
+  const std::string _pwd;
+  const std::string _name;
+  const int _port;
+  const unsigned _max_second_commit_delay;
+  time_t _last_commit;
   std::atomic<connection_state> _state;
 
   /**
@@ -97,9 +97,11 @@ class mysql_connection {
    */
   bool _connected;
   std::time_t _switch_point;
-  SqlConnectionStats* _stats;
+  SqlConnectionStats* _proto_stats;
   std::time_t _last_stats;
   uint32_t _qps;
+
+  database::stats _stats;
 
   /* mutex to protect the string access in _error */
   mutable std::mutex _error_m;
@@ -110,7 +112,12 @@ class mysql_connection {
   /**************************************************************************/
   bool _server_error(int code) const;
   void _run();
-  std::string _get_stack();
+  void _process_tasks(std::list<std::unique_ptr<database::mysql_task>>& task);
+  void _process_while_empty_task(
+      std::list<std::unique_ptr<database::mysql_task>>& task);
+
+  std::string _get_stack(
+      const std::list<std::unique_ptr<database::mysql_task>>& task);
   void _query(database::mysql_task* t);
   void _query_res(database::mysql_task* t);
   void _query_int(database::mysql_task* t);
@@ -121,8 +128,8 @@ class mysql_connection {
   template <typename T>
   void _statement_int(database::mysql_task* t);
   void _fetch_row_sync(database::mysql_task* task);
+  void _get_version(database::mysql_task* t);
   void _push(std::unique_ptr<database::mysql_task>&& q);
-  void _debug(MYSQL_BIND* bind, uint32_t size);
   bool _try_to_reconnect();
 
   static void (mysql_connection::*const _task_processing_table[])(
@@ -131,30 +138,34 @@ class mysql_connection {
   void _prepare_connection();
   void _clear_connection();
   void _update_stats() noexcept;
+  void _send_exceptions_to_task_futures(
+      std::list<std::unique_ptr<database::mysql_task>>& tasks_list);
+
+  inline void set_need_to_commit() { _need_commit = true; }
 
  public:
   /**************************************************************************/
   /*                  Methods executed by the main thread                   */
   /**************************************************************************/
 
-  mysql_connection(database_config const& db_cfg, SqlConnectionStats* stats);
+  mysql_connection(const database_config& db_cfg, SqlConnectionStats* stats);
   ~mysql_connection();
 
   void prepare_query(int id, std::string const& query);
-  void commit(
-      const database::mysql_task_commit::mysql_task_commit_data::pointer&
-          commit_data);
-  void run_query(std::string const& query, my_error::code ec, bool fatal);
+  void commit(std::promise<void>&& p);
+  void run_query(std::string const& query, my_error::code ec);
   void run_query_and_get_result(std::string const& query,
                                 std::promise<database::mysql_result>&& promise);
   void run_query_and_get_int(std::string const& query,
                              std::promise<int>&& promise,
                              database::mysql_task::int_type type);
+  void get_server_version(std::promise<const char*>&& promise);
 
-  void run_statement(database::mysql_stmt& stmt, my_error::code ec, bool fatal);
+  void run_statement(database::mysql_stmt_base& stmt, my_error::code ec);
   void run_statement_and_get_result(
       database::mysql_stmt& stmt,
-      std::promise<database::mysql_result>&& promise);
+      std::promise<database::mysql_result>&& promise,
+      size_t length);
 
   template <typename T>
   void run_statement_and_get_int(database::mysql_stmt& stmt,
@@ -167,12 +178,10 @@ class mysql_connection {
   void finish();
   bool fetch_row(database::mysql_result& result);
   mysql_bind_mapping get_stmt_mapping(int stmt_id) const;
-  int get_stmt_size() const;
   bool match_config(database_config const& db_cfg) const;
   int get_tasks_count() const;
   bool is_finish_asked() const;
   bool is_finished() const;
-  bool ping();
   bool is_in_error() const;
   void clear_error();
   std::string get_error_message();

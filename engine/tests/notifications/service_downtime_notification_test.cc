@@ -74,7 +74,7 @@ class ServiceDowntimeNotification : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
     _host->set_max_attempts(1);
 
@@ -82,7 +82,7 @@ class ServiceDowntimeNotification : public TestEngine {
     _svc = sm.begin()->second;
     _svc->set_current_state(engine::service::state_ok);
     _svc->set_state_type(checkable::hard);
-    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_acknowledgement(AckType::NONE);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
     _svc->set_max_attempts(1);
   }

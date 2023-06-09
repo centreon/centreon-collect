@@ -822,7 +822,7 @@ std::ostream& operator<<(std::ostream& os, const host& obj) {
      << obj.problem_has_been_acknowledged()
      << "\n"
         "  acknowledgement_type:                 "
-     << obj.get_acknowledgement_type()
+     << obj.get_acknowledgement()
      << "\n"
         "  check_type:                           "
      << obj.get_check_type()
@@ -2145,7 +2145,7 @@ void host::check_for_flapping(bool update,
 
 void host::set_flap(double percent_change,
                     double high_threshold,
-                    double low_threshold,
+                    double low_threshold [[maybe_unused]],
                     bool allow_flapstart_notification) {
   engine_logger(dbg_functions, basic) << "set_host_flap()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "set_host_flap()");
@@ -2201,7 +2201,7 @@ void host::set_flap(double percent_change,
 
 /* handles a host that has stopped flapping */
 void host::clear_flap(double percent_change,
-                      double high_threshold,
+                      double high_threshold [[maybe_unused]],
                       double low_threshold) {
   engine_logger(dbg_functions, basic) << "host::clear_flap()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "host::clear_flap()");
@@ -2261,9 +2261,7 @@ void host::check_for_expired_acknowledgement() {
             << "Acknowledgement of host '" << name() << "' just expired";
         SPDLOG_LOGGER_INFO(log_v2::events(),
                            "Acknowledgement of host '{}' just expired", name());
-        set_problem_has_been_acknowledged(false);
-        set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
-        // FIXME DBO: could be improved with something smaller.
+        set_acknowledgement(AckType::NONE);
         update_status();
       }
     }
@@ -2342,16 +2340,14 @@ int host::handle_state() {
     }
 
     /* reset the acknowledgement flag if necessary */
-    if (get_acknowledgement_type() == ACKNOWLEDGEMENT_NORMAL) {
-      set_problem_has_been_acknowledged(false);
-      set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    if (get_acknowledgement() == AckType::NORMAL) {
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_host_acknowledgement_comments(this);
-    } else if (get_acknowledgement_type() == ACKNOWLEDGEMENT_STICKY &&
+    } else if (get_acknowledgement() == AckType::STICKY &&
                get_current_state() == host::state_up) {
-      set_problem_has_been_acknowledged(false);
-      set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+      set_acknowledgement(AckType::NONE);
 
       /* remove any non-persistant comments associated with the ack */
       comment::delete_host_acknowledgement_comments(this);
@@ -2581,7 +2577,7 @@ int host::notify_contact(nagios_macros* mac,
     engine_logger(dbg_notifications, most)
         << "Processed notification command: " << processed_command;
     log_v2::notifications()->trace("Processed notification command: {}",
-                                  processed_command);
+                                   processed_command);
 
     /* log the notification to program log file */
     if (config->log_notifications()) {

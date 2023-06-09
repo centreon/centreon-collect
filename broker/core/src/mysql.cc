@@ -62,27 +62,37 @@ mysql::~mysql() {
  *  If an error occures, an exception is thrown.
  */
 void mysql::commit(int thread_id) {
-  mysql_task_commit::mysql_task_commit_data::pointer commit_data;
+  std::string error;
   if (thread_id < 0) {
-    commit_data = std::make_shared<mysql_task_commit::mysql_task_commit_data>(
-        _connection.size());
-    for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
-             it(_connection.begin()),
-         end(_connection.end());
-         it != end; ++it) {
-      (*it)->commit(commit_data);
+    std::vector<std::future<void>> futures;
+    futures.reserve(_connection.size());
+    for (auto& c : _connection) {
+      std::promise<void> p;
+      futures.push_back(p.get_future());
+      c->commit(std::move(p));
+    }
+    for (auto& f : futures) {
+      /* We must handle exceptions thrown only in case of cbd stopped. Errors
+       * are then all the same. We get the first one and send it to the caller.
+       */
+      try {
+        f.wait();
+      } catch (const std::exception& e) {
+        error = e.what();
+      }
     }
   } else {
-    commit_data =
-        std::make_shared<mysql_task_commit::mysql_task_commit_data>(1);
-    _connection[thread_id]->commit(commit_data);
+    std::promise<void> p;
+    std::future<void> f = p.get_future();
+    _connection[thread_id]->commit(std::move(p));
+    try {
+      f.wait();
+    } catch (const std::exception& e) {
+      error = e.what();
+    }
   }
-
-  try {
-    if (commit_data->get())
-      _pending_queries = 0;
-  } catch (std::exception const& e) {
-    throw;
+  if (!error.empty()) {
+    throw msg_fmt(error);
   }
 }
 
@@ -97,24 +107,6 @@ void mysql::commit(int thread_id) {
 bool mysql::fetch_row(mysql_result& res) {
   _check_errors();
   return res.get_connection()->fetch_row(res);
-}
-
-/**
- *  This method commits only if the max queries per transaction is reached.
- *
- * @return true if a commit has been done, false otherwise.
- */
-bool mysql::commit_if_needed() {
-  bool retval(false);
-  int qpt(_db_cfg.get_queries_per_transaction());
-  if (qpt > 1) {
-    ++_pending_queries;
-    if (_pending_queries >= qpt) {
-      commit();
-      retval = true;
-    }
-  }
-  return retval;
 }
 
 /**
@@ -135,22 +127,19 @@ void mysql::_check_errors() {
  * @param query The query to execute.
  * @param error_msg An error message to complete the error message returned
  *                  by the mysql connector.
- * @param fatal A boolean telling if the error is fatal. In that case, an
- *              exception will be thrown if an error occures.
  * @param thread A thread id or 0 to keep the library choosing which one.
  *
  * @return The thread id that executed the query.
  */
 int mysql::run_query(std::string const& query,
                      my_error::code ec,
-                     bool fatal,
                      int thread_id) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_query(query, ec, fatal);
+  _connection[thread_id]->run_query(query, ec);
   return thread_id;
 }
 
@@ -217,22 +206,19 @@ int mysql::run_query_and_get_int(std::string const& query,
  * @param stmt The statement to execute.
  * @param error_msg An error message to complete the error message returned
  *                  by the mysql connector.
- * @param fatal A boolean telling if the error is fatal. In that case, an
- *              exception will be thrown if an error occures.
- * @param thread A thread id or 0 to keep the library choosing which one.
+ * @param thread A thread id or -1 to keep the library choosing which one.
  *
  * @return The thread id that executed the query.
  */
-int mysql::run_statement(database::mysql_stmt& stmt,
+int mysql::run_statement(database::mysql_stmt_base& stmt,
                          my_error::code ec,
-                         bool fatal,
                          int thread_id) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_statement(stmt, ec, fatal);
+  _connection[thread_id]->run_statement(stmt, ec);
   return thread_id;
 }
 
@@ -245,7 +231,10 @@ int mysql::run_statement(database::mysql_stmt& stmt,
  *                available.
  * @param error_msg An error message to complete the error message returned
  *                  by the mysql connector.
- * @param thread_id A thread id or 0 to keep the library choosing which one.
+ * @param thread_id A thread id or -1 to keep the library choosing which one.
+ * @param length The max length of a column in characters. If it is too short,
+ * the query will fail by returning nothing with an error message telling
+ * this value is too short.
  *
  * With this function, the query is done. The promise will provide the result
  * if available and it will contain an exception if the query failed.
@@ -254,14 +243,15 @@ int mysql::run_statement(database::mysql_stmt& stmt,
  */
 int mysql::run_statement_and_get_result(database::mysql_stmt& stmt,
                                         std::promise<mysql_result>&& promise,
-                                        int thread_id) {
+                                        int thread_id,
+                                        size_t length) {
   _check_errors();
   if (thread_id < 0)
     // Here, we use _current_thread
     thread_id = choose_best_connection(-1);
 
-  _connection[thread_id]->run_statement_and_get_result(stmt,
-                                                       std::move(promise));
+  _connection[thread_id]->run_statement_and_get_result(stmt, std::move(promise),
+                                                       length);
   return thread_id;
 }
 
@@ -270,7 +260,7 @@ int mysql::run_statement_and_get_result(database::mysql_stmt& stmt,
  *
  * @param stmt The statement to prepare.
  */
-void mysql::prepare_statement(mysql_stmt const& stmt) {
+void mysql::prepare_statement(const mysql_stmt_base& stmt) {
   _check_errors();
   for (std::vector<std::shared_ptr<mysql_connection>>::const_iterator
            it(_connection.begin()),
@@ -381,4 +371,15 @@ int mysql::choose_connection_by_instance(int instance_id) const {
  */
 const database_config& mysql::get_config() const {
   return _db_cfg;
+}
+
+const char* mysql::get_server_version() {
+  if (_connection.empty())
+    return "";
+  else {
+    std::promise<const char*> p;
+    auto future = p.get_future();
+    _connection[0]->get_server_version(std::move(p));
+    return future.get();
+  }
 }

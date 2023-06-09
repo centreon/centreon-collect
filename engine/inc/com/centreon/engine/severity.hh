@@ -23,15 +23,17 @@
 #include <absl/container/flat_hash_map.h>
 
 /* Forward declaration. */
-namespace com::centreon::engine {
+namespace com {
+namespace centreon {
+namespace engine {
 class severity;
 }
+}  // namespace centreon
+}  // namespace com
 
 using severity_map =
     absl::flat_hash_map<std::pair<uint32_t, uint16_t>,
                         std::shared_ptr<com::centreon::engine::severity>>;
-using severity_map_unsafe =
-    absl::flat_hash_map<std::string, com::centreon::engine::severity*>;
 
 CCE_BEGIN()
 
@@ -79,6 +81,5 @@ CCE_END()
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::severity const& obj);
-std::ostream& operator<<(std::ostream& os, severity_map_unsafe const& obj);
 
 #endif  // !CCE_SEVERITY_HH

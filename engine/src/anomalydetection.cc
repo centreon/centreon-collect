@@ -188,25 +188,23 @@ const std::string cancellable_command::_empty;
  */
 uint64_t cancellable_command::run(
     const std::string& processed_cmd,
-    nagios_macros& macors,
+    nagios_macros& macros,
     uint32_t timeout,
     const check_result::pointer& to_push_to_checker,
     const void* caller) {
   if (_fake_result) {
     checks::checker::instance().add_check_result_to_reap(_fake_result);
     return 0;  // no command => no async result
+  } else if (_original_command) {
+    uint64_t id = _original_command->run(processed_cmd, macros, timeout,
+                                         to_push_to_checker, caller);
+    log_v2::checks()->debug(
+        "cancellable_command::run command launched id={} cmd {}", id,
+        _original_command);
+    return id;
   } else {
-    if (_original_command) {
-      uint64_t id = _original_command->run(processed_cmd, macors, timeout,
-                                           to_push_to_checker, caller);
-      log_v2::checks()->debug(
-          "cancellable_command::run command launched id={} cmd {}", id,
-          _original_command);
-      return id;
-    } else {
-      log_v2::checks()->debug("cancellable_command::run no original command");
-      return 0;
-    }
+    log_v2::checks()->debug("cancellable_command::run no original command");
+    return 0;
   }
 }
 
@@ -741,7 +739,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
       high_flap_threshold, check_freshness, freshness_threshold,
       obsess_over_service, timezone, icon_id, sensitivity)};
   try {
-    obj->set_acknowledgement_type(ACKNOWLEDGEMENT_NONE);
+    obj->set_acknowledgement(AckType::NONE);
     obj->set_check_options(CHECK_OPTION_NONE);
     uint32_t flap_detection_on;
     flap_detection_on = none;
@@ -863,13 +861,14 @@ int anomalydetection::run_async_check(int check_options,
     _dependent_service->get_check_command_ptr()->add_caller_group(group,
                                                                   group + 2);
   }
-  if (std::static_pointer_cast<commands::cancellable_command>(
-          get_check_command_ptr())
-          ->get_original_command() !=
+  auto my_check_command =
+      std::static_pointer_cast<commands::cancellable_command>(
+          get_check_command_ptr());
+  // FIXME DBO: else if would be better...
+  if (my_check_command->get_original_command() !=
       _dependent_service->get_check_command_ptr()) {
-    std::static_pointer_cast<commands::cancellable_command>(
-        get_check_command_ptr())
-        ->set_original_command(_dependent_service->get_check_command_ptr());
+    my_check_command->set_original_command(
+        _dependent_service->get_check_command_ptr());
     service* group[2] = {this, _dependent_service};
     _dependent_service->get_check_command_ptr()->add_caller_group(group,
                                                                   group + 2);
@@ -895,13 +894,9 @@ int anomalydetection::run_async_check(int check_options,
           "without check",
           get_description(), get_hostname());
     }
-    std::static_pointer_cast<commands::cancellable_command>(
-        get_check_command_ptr())
-        ->set_fake_result(fake_res);
+    my_check_command->set_fake_result(fake_res);
   } else {
-    if (!std::static_pointer_cast<commands::cancellable_command>(
-             get_check_command_ptr())
-             ->get_original_command()) {
+    if (!my_check_command->get_original_command()) {
       SPDLOG_LOGGER_ERROR(
           log_v2::checks(),
           "anomaly: no original commands for host {} => do nothing",
@@ -913,14 +908,12 @@ int anomalydetection::run_async_check(int check_options,
         "** Running async check of anomalydetection '{} ' on host '{}'... with "
         "check",
         get_description(), get_hostname());
-    std::static_pointer_cast<commands::cancellable_command>(
-        get_check_command_ptr())
-        ->reset_fake_result();  // execute original commands
+    my_check_command->reset_fake_result();  // execute original commands
   }
 
-  return service::run_async_check(check_options, latency, scheduled_check,
-                                  reschedule_check, time_is_valid,
-                                  preferred_time);
+  return run_async_check_local(check_options, latency, scheduled_check,
+                               reschedule_check, time_is_valid, preferred_time,
+                               _dependent_service);
 }
 
 /**
