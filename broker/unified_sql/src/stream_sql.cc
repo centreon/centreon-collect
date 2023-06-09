@@ -1326,6 +1326,13 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
                       "Host resource (host {}) found in database with id {}",
                       h.host_id(), found->second);
                 }
+                else {
+                  log_v2::sql()->critical(
+                      "Could not insert host resource in database and no host "
+                      "resource in database with id {}",
+                      h.host_id());
+                  return;
+                }
               } catch (const std::exception& e) {
                 log_v2::sql()->critical(
                     "No host resource in database with id {}: {}", h.host_id(),
