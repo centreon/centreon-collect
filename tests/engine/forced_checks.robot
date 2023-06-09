@@ -194,3 +194,84 @@ EFHCU2
     Should be true    ${result}    msg=host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
+
+EMACROS
+    [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
+    [Tags]    engine    external_cmd    macros
+    Config Engine    ${1}
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    engine_config_set_value    0    log_level_checks    trace    True
+    engine_config_change_command
+    ...    0
+    ...    \\d+
+    ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
+    Clear Retention
+    ${start}=    Get Current Date
+    Start Engine
+    Start Broker
+
+    ${content}=    Create List    INITIAL HOST STATE: host_1;
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    schedule_forced_svc_check    host_1    service_1
+    Sleep    5s
+
+    ${content}=    Create List
+    ...    ResourceFile: /tmp/etc/centreon-engine/config0/resource.cfg - LogFile: /tmp/var/log/centreon-engine/config0/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
+
+    Stop Engine
+    Kindly Stop Broker
+
+EMACROS_NOTIF
+    [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
+    [Tags]    engine    external_cmd    macros
+    Config Engine    ${1}
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
+    Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    engine_config_set_value    0    log_level_checks    trace    True
+    engine_config_add_value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    engine_config_add_command
+    ...    0
+    ...    command_notif
+    ...    /bin/sh -c '/bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$" >> /tmp/notif_toto.txt'
+    engine_config_set_value_in_services    0    service_1    contacts    John_Doe
+    engine_config_set_value_in_services    0    service_1    notification_options    w,c,r
+    engine_config_set_value_in_services    0    service_1    notifications_enabled    1
+    engine_config_set_value_in_contacts    0    John_Doe    host_notification_commands    command_notif
+    engine_config_set_value_in_contacts    0    John_Doe    service_notification_commands    command_notif
+
+    Remove File    /tmp/notif_toto.txt
+    Clear Retention
+    ${start}=    Get Current Date
+    Start Engine
+    Start Broker
+
+    ${content}=    Create List    INITIAL HOST STATE: host_1;
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+
+    FOR    ${i}    IN RANGE    3
+        Process Service Check result    host_1    service_1    2    critical
+    END
+
+    Wait Until Created    /tmp/notif_toto.txt    30s
+
+    ${grep_res}=    Grep File
+    ...    /tmp/notif_toto.txt
+    ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
+
+    Stop Engine
+    Kindly Stop Broker
