@@ -575,6 +575,33 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
     return False
 
 
+def check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.service_id, s.enabled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['enabled'] is not None:
+                    logger.console(
+                        f"enabled {service_desc}is enabled")
+                else:
+                    logger.console(
+                        f"enabled {service_desc}is disabled")
+                return False
+        time.sleep(1)
+    return False
+
+
 def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
