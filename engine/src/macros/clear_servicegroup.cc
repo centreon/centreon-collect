@@ -37,7 +37,7 @@ int clear_servicegroup_macros_r(nagios_macros* mac) {
       MACRO_SERVICEGROUPMEMBERS,  MACRO_SERVICEGROUPACTIONURL,
       MACRO_SERVICEGROUPNOTESURL, MACRO_SERVICEGROUPNOTES};
   for (unsigned int i = 0; i < sizeof(to_free) / sizeof(*to_free); ++i) {
-    mac->x[i] = "";
+    mac->x[to_free[i]] = "";
   }
 
   // Clear pointers.
