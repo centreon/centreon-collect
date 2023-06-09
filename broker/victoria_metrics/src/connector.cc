@@ -24,9 +24,15 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
 
+static constexpr multiplexing::muxer_filter _victoria_stream_filter = {
+    storage::metric::static_type(), storage::status::static_type(),
+    storage::pb_metric::static_type(), storage::pb_status::static_type()};
+
 connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
                      const std::string& account_id)
-    : io::endpoint(false), _conf(conf), _account_id(account_id) {}
+    : io::endpoint(false, _victoria_stream_filter),
+      _conf(conf),
+      _account_id(account_id) {}
 
 std::unique_ptr<io::stream> connector::open() {
   std::shared_ptr<stream> s;
