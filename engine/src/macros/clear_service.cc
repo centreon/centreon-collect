@@ -69,7 +69,7 @@ int clear_service_macros_r(nagios_macros* mac) {
                                          MACRO_SERVICEID,
                                          MACRO_SERVICETIMEZONE};
   for (unsigned int i = 0; i < sizeof(to_free) / sizeof(*to_free); ++i) {
-    mac->x[i] = "";
+    mac->x[to_free[i]] = "";
   }
 
   // Clear custom service variables.
