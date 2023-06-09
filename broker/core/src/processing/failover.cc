@@ -49,7 +49,6 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _muxer(mux),
       _update(false) {
   SPDLOG_LOGGER_TRACE(log_v2::core(), "failover '{}' construction.", _name);
-  //  _muxer->set_stream_filter(endp->get_stream_mandatory_filter());
 }
 
 /**

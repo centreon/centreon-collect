@@ -115,19 +115,6 @@ void acceptor::exit() {
 }
 
 /**
- *  @brief Set read filters.
- *
- *  This is only useful in input mode.
- *
- *  @param[in] filters  Set of accepted event IDs.
- */
-// void acceptor::set_read_filters(const multiplexing::muxer_filter& filters) {
-//   std::lock_guard<std::mutex> lock(_stat_mutex);
-//   _read_filters = filters;
-//   _read_filters_str = misc::dump_filters(_read_filters);
-// }
-
-/**
  *  @brief Set retry interval of the acceptor.
  *
  *  The retry interval is only used in case of error of the acceptor. In
@@ -140,18 +127,6 @@ void acceptor::exit() {
 void acceptor::set_retry_interval(time_t retry_interval) {
   _retry_interval = retry_interval;
 }
-
-/**
- *  @brief Set write filters.
- *
- *  This is useful to prevent endpoints of generating some kind of
- *  events.
- */
-// void acceptor::set_write_filters(const multiplexing::muxer_filter& filters) {
-//   std::lock_guard<std::mutex> lock(_stat_mutex);
-//   _write_filters = filters;
-//   _write_filters_str = misc::dump_filters(_write_filters);
-// }
 
 /**
  *  Get the read filters used by the feeder.

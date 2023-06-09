@@ -16,8 +16,6 @@
 ** For more information : contact@centreon.com
 */
 
-#include <absl/strings/str_join.h>
-
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
