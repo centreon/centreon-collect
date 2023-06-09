@@ -45,7 +45,7 @@ connector::connector(std::string const& cert,
                      std::string const& key,
                      std::string const& ca,
                      std::string const& tls_hostname)
-    : io::endpoint(false),
+    : io::endpoint(false, {}),
       _ca(ca),
       _cert(cert),
       _key(key),

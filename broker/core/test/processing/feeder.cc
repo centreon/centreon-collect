@@ -24,6 +24,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/center.hh"
 
@@ -57,8 +58,8 @@ class TestFeeder : public ::testing::Test {
     io::events::load();
 
     std::unique_ptr<io::stream> client(new TestStream);
-    absl::flat_hash_set<uint32_t> read_filters;
-    absl::flat_hash_set<uint32_t> write_filters;
+    multiplexing::muxer_filter read_filters;
+    multiplexing::muxer_filter write_filters;
     _feeder = std::make_unique<feeder>("test-feeder", client, read_filters,
                                        write_filters);
   }

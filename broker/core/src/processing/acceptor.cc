@@ -34,8 +34,22 @@ using namespace com::centreon::broker::processing;
  *  @param[in] endp       Endpoint.
  *  @param[in] name       Name of the endpoint.
  */
-acceptor::acceptor(std::shared_ptr<io::endpoint> endp, std::string const& name)
-    : endpoint(true, name), _state(stopped), _should_exit(false), _endp(endp) {}
+acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
+                   std::string const& name,
+                   const multiplexing::muxer_filter& r_filter,
+                   const multiplexing::muxer_filter& w_filter)
+    : endpoint(true, name),
+      _state(stopped),
+      _should_exit(false),
+      _endp(endp),
+      _read_filters(r_filter),
+      _read_filters_str(misc::dump_filters(_read_filters)),
+      _write_filters(w_filter),
+      _write_filters_str(misc::dump_filters(_write_filters)) {
+  log_v2::config()->trace(
+      "processing::acceptor '{}': read filter <<{}>> ; write filter <<{}>>",
+      name, _read_filters_str, _write_filters_str);
+}
 
 /**
  *  Destructor.
@@ -57,8 +71,12 @@ void acceptor::accept() {
     // Create feeder thread.
     std::string name(fmt::format("{}-{}", _name, ++connection_id));
     log_v2::core()->info("New incoming connection '{}'", name);
-    auto f{std::make_unique<processing::feeder>(name, u, _read_filters,
-                                                _write_filters)};
+    log_v2::config()->debug(
+        "New feeder {} with read_filters {} and write_filters {}", name,
+        _read_filters.get_allowed_categories(),
+        _write_filters.get_allowed_categories());
+    auto f = std::make_unique<processing::feeder>(name, u, _read_filters,
+                                                  _write_filters);
 
     std::lock_guard<std::mutex> lock(_stat_mutex);
     _feeders.push_back(f.release());
@@ -97,19 +115,6 @@ void acceptor::exit() {
 }
 
 /**
- *  @brief Set read filters.
- *
- *  This is only useful in input mode.
- *
- *  @param[in] filters  Set of accepted event IDs.
- */
-void acceptor::set_read_filters(const absl::flat_hash_set<uint32_t>& filters) {
-  std::lock_guard<std::mutex> lock(_stat_mutex);
-  _read_filters = filters;
-  _read_filters_str = misc::dump_filters(_read_filters);
-}
-
-/**
  *  @brief Set retry interval of the acceptor.
  *
  *  The retry interval is only used in case of error of the acceptor. In
@@ -121,18 +126,6 @@ void acceptor::set_read_filters(const absl::flat_hash_set<uint32_t>& filters) {
  */
 void acceptor::set_retry_interval(time_t retry_interval) {
   _retry_interval = retry_interval;
-}
-
-/**
- *  @brief Set write filters.
- *
- *  This is useful to prevent endpoints of generating some kind of
- *  events.
- */
-void acceptor::set_write_filters(absl::flat_hash_set<uint32_t> const& filters) {
-  std::lock_guard<std::mutex> lock(_stat_mutex);
-  _write_filters = filters;
-  _write_filters_str = misc::dump_filters(_write_filters);
 }
 
 /**

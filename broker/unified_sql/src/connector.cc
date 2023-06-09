@@ -26,7 +26,7 @@ using namespace com::centreon::broker::unified_sql;
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {}
+connector::connector() : io::endpoint(false, stream::get_muxer_filter()) {}
 
 /**
  *  Set connection parameters.

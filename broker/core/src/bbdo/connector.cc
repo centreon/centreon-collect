@@ -46,7 +46,7 @@ connector::connector(bool negotiate,
                      bool coarse,
                      uint32_t ack_limit,
                      std::list<std::shared_ptr<io::extension>>&& extensions)
-    : io::endpoint{false},
+    : io::endpoint{false, {}},
       _is_input{connector_is_input},
       _coarse{coarse},
       _negotiate{negotiate},

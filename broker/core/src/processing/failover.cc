@@ -65,6 +65,11 @@ failover::~failover() {
  */
 void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
   _secondary_endpoints.push_back(endp);
+  multiplexing::muxer_filter w_filter = endp->get_stream_mandatory_filter();
+  for (const auto& sec_endpt : _secondary_endpoints) {
+    w_filter |= sec_endpt->get_stream_mandatory_filter();
+  }
+  _muxer->set_write_filter(w_filter);
 }
 
 /**

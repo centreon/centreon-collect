@@ -33,7 +33,7 @@ using namespace com::centreon::broker::grpc;
  * @param port The port used for the connection.
  */
 connector::connector(const grpc_config::pointer& conf)
-    : io::limit_endpoint(false), _conf(conf) {}
+    : io::limit_endpoint(false, {}), _conf(conf) {}
 
 /**
  * @brief open a new connection

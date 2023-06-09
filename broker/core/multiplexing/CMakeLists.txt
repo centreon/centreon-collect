@@ -24,11 +24,7 @@ set(SRC_DIR "src")
 set(TESTS_DIR "${PROJECT_SOURCE_DIR}/core/multiplexing/test")
 
 # Sources.
-set(SOURCES
-    ${SRC_DIR}/engine.cc
-    ${SRC_DIR}/muxer.cc
-    ${SRC_DIR}/publisher.cc
-)
+set(SOURCES ${SRC_DIR}/engine.cc ${SRC_DIR}/muxer.cc ${SRC_DIR}/publisher.cc)
 
 # Static libraries.
 add_library(multiplexing STATIC ${SOURCES})
@@ -37,12 +33,8 @@ target_precompile_headers(multiplexing PRIVATE ../precomp_inc/precomp.hpp)
 target_link_libraries(multiplexing CONAN_PKG::spdlog)
 
 if(WITH_TESTING)
-    set(
-        TESTS_SOURCES
-        ${TESTS_SOURCES}
-        ${TESTS_DIR}/engine/start_stop.cc
-        ${TESTS_DIR}/muxer/read.cc
-        ${TESTS_DIR}/publisher/read.cc
-        ${TESTS_DIR}/publisher/write.cc
-    )
+  set(TESTS_SOURCES
+      ${TESTS_SOURCES} ${TESTS_DIR}/engine/start_stop.cc
+      ${TESTS_DIR}/muxer/muxer_filter.cc ${TESTS_DIR}/muxer/read.cc
+      ${TESTS_DIR}/publisher/read.cc ${TESTS_DIR}/publisher/write.cc)
 endif(WITH_TESTING)

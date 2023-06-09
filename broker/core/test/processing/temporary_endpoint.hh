@@ -41,7 +41,7 @@ class temporary_endpoint : public io::endpoint {
    *  @param[in] id The temporary id.
    */
   temporary_endpoint(std::string const& id = "")
-      : io::endpoint(false), _id(id) {}
+      : io::endpoint(false, {}), _id(id) {}
   /**
    *  Copy constructor.
    *

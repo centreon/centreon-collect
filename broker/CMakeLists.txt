@@ -292,6 +292,8 @@ endif()
 # Broker vars
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
+add_subdirectory(core/multiplexing)
+
 # Core library.
 set(LIBROKER_SOURCES
     # Sources.
@@ -435,12 +437,12 @@ set(LIBROKER_SOURCES
 # Static libraries.
 add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
 set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerlog PRIVATE core/precomp_inc/precomp.hpp)
+target_precompile_headers(rokerlog REUSE_FROM multiplexing)
 target_link_libraries(rokerlog CONAN_PKG::spdlog)
 
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerbase PRIVATE core/precomp_inc/precomp.hpp)
+target_precompile_headers(rokerbase REUSE_FROM multiplexing)
 add_dependencies(rokerbase berpc target_bbdo)
 target_link_libraries(
   rokerbase
@@ -493,9 +495,6 @@ endif()
 
 # Module list.
 unset(MODULE_LIST)
-
-# multiplexing library linked in final executable such as cbd or cbmod
-add_subdirectory(core/multiplexing)
 
 # sql library
 add_subdirectory(core/sql)

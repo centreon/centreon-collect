@@ -522,7 +522,8 @@ void kpi_service::visit(io::stream* visitor) {
         }
       }
       // If state changed, close event and open a new one.
-      else if (_last_check.get_time_t() >= _event->start_time() &&
+      else if (_last_check.get_time_t() >=
+                   static_cast<time_t>(_event->start_time()) &&
                (_downtimed != _event->in_downtime() ||
                 _state_hard != _event->status())) {
         log_v2::bam()->trace(

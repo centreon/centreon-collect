@@ -237,8 +237,6 @@ class stream : public io::stream {
     bool metric_mapping_sent;
   };
 
-  static void (stream::*const _neb_processing_table[])(
-      const std::shared_ptr<io::data>&);
   instance_state _state;
 
   mutable std::mutex _fifo_m;
@@ -470,6 +468,9 @@ class stream : public io::stream {
   void _start_loop_timer();
 
  public:
+  static void (stream::*const neb_processing_table[])(
+      const std::shared_ptr<io::data>&);
+
   stream(database_config const& dbcfg,
          uint32_t rrd_len,
          uint32_t interval_length,
@@ -483,7 +484,8 @@ class stream : public io::stream {
   stream(const stream&) = delete;
   ~stream() noexcept;
 
-  int32_t get_acks(stream_type c);
+  static const multiplexing::muxer_filter& get_muxer_filter();
+
   void update_metric_info_cache(uint64_t index_id,
                                 uint32_t metric_id,
                                 std::string const& metric_name,

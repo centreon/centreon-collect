@@ -26,7 +26,8 @@ using namespace com::centreon::broker::io;
  *
  *  @param[in] is_accptr  True if endpoint is an acceptor.
  */
-endpoint::endpoint(bool is_accptr) : _is_acceptor(is_accptr) {}
+endpoint::endpoint(bool is_accptr, const multiplexing::muxer_filter& filter)
+    : _is_acceptor(is_accptr), _stream_mandatory_filter{filter} {}
 
 /**
  *  Copy constructor.
@@ -34,12 +35,9 @@ endpoint::endpoint(bool is_accptr) : _is_acceptor(is_accptr) {}
  *  @param[in] other  Object to copy.
  */
 endpoint::endpoint(endpoint const& other)
-    : _from(other._from), _is_acceptor(other._is_acceptor) {}
-
-/**
- *  Destructor.
- */
-endpoint::~endpoint() noexcept {}
+    : _is_acceptor(other._is_acceptor),
+      _stream_mandatory_filter{other._stream_mandatory_filter},
+      _from(other._from) {}
 
 /**
  *  Set the lower layer endpoint object of this endpoint.
@@ -48,8 +46,6 @@ endpoint::~endpoint() noexcept {}
  */
 void endpoint::from(std::shared_ptr<endpoint> endp) {
   _from = endp;
-  if (_from)
-    _from->set_filter(_filter);
 }
 
 /**
@@ -78,21 +74,6 @@ bool endpoint::is_connector() const noexcept {
 void endpoint::stats(nlohmann::json& tree) {
   if (_from)
     _from->stats(tree);
-}
-
-/**
- *  Set the filter used by this endpoint.
- *
- *  For connector endpoints, the filters are already set by the failover.
- *  Acceptor manage subscribers manually and needs to apply
- *  the filters themselves.
- *
- *  @param[in] filter  The filter.
- */
-void endpoint::set_filter(std::set<uint32_t> const& filter) {
-  _filter = filter;
-  if (_from)
-    _from->set_filter(filter);
 }
 
 /**

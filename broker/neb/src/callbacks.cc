@@ -2018,7 +2018,8 @@ int neb::callback_host_status(int callback_type, void* data) {
             static_cast<neb::pb_acknowledgement*>(it->second.get());
         if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
               || (!a->obj().sticky() &&
-                  host_status->current_state != a->obj().state()))) {
+                  host_status->current_state !=
+                      static_cast<short>(a->obj().state())))) {
           a->mut_obj().set_deletion_time(time(nullptr));
           gl_publisher.write(std::move(it->second));
         }
@@ -2127,7 +2128,8 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
       neb::pb_acknowledgement* a =
           static_cast<neb::pb_acknowledgement*>(it->second.get());
       if (!(!hscr.state()  // !(OK or (normal ack and NOK))
-            || (!a->obj().sticky() && hscr.state() != a->obj().state()))) {
+            || (!a->obj().sticky() &&
+                hscr.state() != static_cast<short>(a->obj().state())))) {
         a->mut_obj().set_deletion_time(time(nullptr));
         gl_publisher.write(std::move(it->second));
       }
@@ -3395,7 +3397,8 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
       neb::pb_acknowledgement* a =
           static_cast<neb::pb_acknowledgement*>(it->second.get());
       if (!(!sscr.state()  // !(OK or (normal ack and NOK))
-            || (!a->obj().sticky() && sscr.state() != a->obj().state()))) {
+            || (!a->obj().sticky() &&
+                static_cast<uint32_t>(sscr.state()) != a->obj().state()))) {
         a->mut_obj().set_deletion_time(time(nullptr));
         gl_publisher.write(std::move(it->second));
       }
@@ -3528,7 +3531,8 @@ int neb::callback_service_status(int callback_type, void* data) {
             static_cast<neb::pb_acknowledgement*>(it->second.get());
         if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
               || (!a->obj().sticky() &&
-                  service_status->current_state != a->obj().state()))) {
+                  service_status->current_state !=
+                      static_cast<short>(a->obj().state())))) {
           a->mut_obj().set_deletion_time(time(nullptr));
           gl_publisher.write(std::move(it->second));
         }

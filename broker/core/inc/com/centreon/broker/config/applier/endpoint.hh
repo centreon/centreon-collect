@@ -19,6 +19,7 @@
 #ifndef CCB_CONFIG_APPLIER_ENDPOINT_HH
 #define CCB_CONFIG_APPLIER_ENDPOINT_HH
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -66,8 +67,6 @@ class endpoint {
       std::list<config::endpoint> const& new_endpoints,
       std::list<config::endpoint>& to_create,
       std::list<config::endpoint>& to_delete);
-  absl::flat_hash_set<uint32_t> _filters(
-      std::set<std::string> const& str_filters);
 
  public:
   typedef std::map<config::endpoint, processing::endpoint*>::iterator iterator;
@@ -82,6 +81,9 @@ class endpoint {
   static void load();
   static void unload();
   static bool loaded();
+
+  static multiplexing::muxer_filter parse_filters(
+      const std::set<std::string>& str_filters);
 };
 }  // namespace applier
 }  // namespace config

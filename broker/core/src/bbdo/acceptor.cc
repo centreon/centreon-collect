@@ -53,7 +53,7 @@ acceptor::acceptor(std::string name,
                    bool coarse,
                    uint32_t ack_limit,
                    std::list<std::shared_ptr<io::extension>>&& extensions)
-    : io::endpoint(!one_peer_retention_mode),
+    : io::endpoint(!one_peer_retention_mode, {}),
       _coarse(coarse),
       _name(std::move(name)),
       _negotiate(negotiate),

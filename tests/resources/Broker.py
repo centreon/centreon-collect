@@ -875,17 +875,15 @@ def broker_config_output_remove(name, output, key):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     if key in output_dict:
         output_dict.pop(key)
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_input_set(name, inp, key, value):
@@ -895,16 +893,15 @@ def broker_config_input_set(name, inp, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+
     conf = json.loads(buf)
     input_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     input_dict[key] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_input_remove(name, inp, key):

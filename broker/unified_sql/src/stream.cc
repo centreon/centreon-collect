@@ -49,7 +49,7 @@ const std::array<int, 5> stream::svc_ordered_status{0, 3, 4, 2, 1};
 
 static constexpr int32_t queue_timer_duration = 10;
 
-void (stream::*const stream::_neb_processing_table[])(
+constexpr void (stream::*const stream::neb_processing_table[])(
     const std::shared_ptr<io::data>&) = {
     nullptr,
     &stream::_process_acknowledgement,
@@ -99,6 +99,10 @@ void (stream::*const stream::_neb_processing_table[])(
     &stream::_process_pb_acknowledgement,
     &stream::_process_pb_responsive_instance,
 };
+
+constexpr size_t neb_processing_table_size =
+    sizeof(stream::neb_processing_table) /
+    sizeof(stream::neb_processing_table[0]);
 
 stream::stream(const database_config& dbcfg,
                uint32_t rrd_len,
@@ -637,8 +641,8 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   uint16_t cat = category_of_type(type);
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
-    if (_neb_processing_table[elem]) {
-      (this->*(_neb_processing_table[elem]))(data);
+    if (elem < neb_processing_table_size && neb_processing_table[elem]) {
+      (this->*(neb_processing_table[elem]))(data);
     } else {
       SPDLOG_LOGGER_ERROR(log_v2::sql(), "unknown neb event type: {}", elem);
     }
@@ -671,6 +675,30 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
 
   _pending_events -= retval;
   return retval;
+}
+
+class unified_muxer_filter : public multiplexing::muxer_filter {
+ public:
+  constexpr unified_muxer_filter()
+      : multiplexing::muxer_filter(multiplexing::muxer_filter::zero_init()) {
+    // first neb table
+    for (unsigned neb_index = 0; neb_index < neb_processing_table_size;
+         ++neb_index) {
+      if (stream::neb_processing_table[neb_index]) {
+        _mask[io::neb] |= 1ULL << neb_index;
+      }
+    }
+    // others
+    _mask[io::bbdo] |= 1ULL << bbdo::de_rebuild_graphs;
+    _mask[io::bbdo] |= 1ULL << bbdo::de_remove_graphs;
+    _mask[io::bbdo] |= 1ULL << bbdo::de_remove_poller;
+  }
+};
+
+constexpr unified_muxer_filter _muxer_filter;
+
+const multiplexing::muxer_filter& stream::get_muxer_filter() {
+  return _muxer_filter;
 }
 
 /**
@@ -768,10 +796,10 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
                   "unified_sql: the 'metrics' table contains rows with "
                   "metric_id <= 0 ; you should remove them.");
             if (host_id <= 0)
-              SPDLOG_LOGGER_ERROR(
-                  log_v2::sql(),
-                  "unified_sql: the 'metrics' table contains rows with host_id "
-                  "<= 0 ; you should remove them.");
+              SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                                  "unified_sql: the 'metrics' table "
+                                  "contains rows with host_id "
+                                  "<= 0 ; you should remove them.");
             if (service_id <= 0)
               SPDLOG_LOGGER_ERROR(
                   log_v2::sql(),
@@ -801,10 +829,10 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         while (ms.fetch_row(res)) {
           int32_t metric_id = res.value_as_i32(1);
           if (metric_id <= 0)
-            SPDLOG_LOGGER_ERROR(
-                log_v2::sql(),
-                "unified_sql: the 'metrics' table contains rows with metric_id "
-                "<= 0 ; you should remove them.");
+            SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                                "unified_sql: the 'metrics' table contains "
+                                "rows with metric_id "
+                                "<= 0 ; you should remove them.");
           else {
             metrics_to_delete.insert(metric_id);
             _metric_cache.erase({res.value_as_u64(0), res.value_as_str(2)});
@@ -812,11 +840,11 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         }
       }
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(
-          log_v2::sql(),
-          "could not query index / metrics table(s) to get index to delete: "
-          "{} ",
-          e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                          "could not query index / metrics table(s) to get "
+                          "index to delete: "
+                          "{} ",
+                          e.what());
     }
 
     std::string mids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
@@ -858,7 +886,8 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
 /**
  * @brief process a remove poller message.
  *
- * @param d The BBDO message with the name or the id of the poller to remove.
+ * @param d The BBDO message with the name or the id of the poller to
+ * remove.
  */
 void stream::remove_poller(const std::shared_ptr<io::data>& d) {
   const bbdo::pb_remove_poller& poller =

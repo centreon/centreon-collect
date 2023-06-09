@@ -33,10 +33,6 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
-static bool time_is_undefined(uint64_t t) {
-  return t == 0 || t == static_cast<uint64_t>(-1);
-}
-
 /**
  *  @brief Clean tables with data associated to the instance.
  *
@@ -1090,10 +1086,10 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
   time_t now = time(nullptr);
   if (hc.check_type() ==
           com::centreon::broker::CheckPassive ||  // - passive result
-      !hc.active_checks_enabled() ||      // - active checks are disabled,
-                                          //   status might not be updated
-      hc.next_check() >= now - 5 * 60 ||  // - normal case
-      !hc.next_check()) {                 // - initial state
+      !hc.active_checks_enabled() ||  // - active checks are disabled,
+                                      //   status might not be updated
+      static_cast<time_t>(hc.next_check()) >= now - 5 * 60 ||  // - normal case
+      !hc.next_check()) {  // - initial state
     // Apply to DB.
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),

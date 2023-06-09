@@ -25,7 +25,7 @@ using namespace com::centreon::broker::simu;
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {}
+connector::connector() : io::endpoint(false, {}) {}
 
 /**
  *  Copy constructor.

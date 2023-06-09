@@ -1,17 +1,17 @@
 #
 # Copyright 2016-2023 Centreon
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not
+# use this file except in compliance with the License. You may obtain a copy of
+# the License at
 #
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+# WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+# License for the specific language governing permissions and limitations under
+# the License.
 #
 # For more information : contact@centreon.com
 #
@@ -76,14 +76,13 @@ target_link_libraries(
 if(WITH_ASAN)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-    "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
   set(CMAKE_LINKER_FLAGS_DEBUG
-    "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
 add_executable(
   ut_broker
-
   # Core sources.
   ${TESTS_DIR}/bbdo/category.cc
   ${TESTS_DIR}/bbdo/output.cc
@@ -118,7 +117,6 @@ add_executable(
   ${TESTS_DIR}/io.cc
   ${TESTS_DIR}/main.cc
   ${TESTS_DIR}/test_server.cc
-
   # Module sources.
   ${TESTS_SOURCES})
 
@@ -140,14 +138,14 @@ target_link_libraries(
   CONAN_PKG::openssl
   CONAN_PKG::grpc)
 
-add_dependencies(ut_broker
+add_dependencies(
+  ut_broker
   test_util
   roker
   rokerbase
   rokerlog
   multiplexing
-  conflictmgr
-)
+  conflictmgr)
 
 set_target_properties(ut_broker PROPERTIES COMPILE_FLAGS "-fPIC")
 
@@ -156,20 +154,20 @@ target_precompile_headers(ut_broker REUSE_FROM rokerbase)
 set_target_properties(
   ut_broker rpc_client
   PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/tests
-  RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
-  RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
-  RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
-  RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
+             RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/tests
+             RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/tests)
 
 # keys used by ut_broker grpc
 file(COPY ${PROJECT_SOURCE_DIR}/grpc/test/grpc_test_keys
-  DESTINATION ${CMAKE_BINARY_DIR}/tests)
+     DESTINATION ${CMAKE_BINARY_DIR}/tests)
 
 add_test(NAME tests COMMAND ut_broker)
 
 if(WITH_COVERAGE)
   set(COVERAGE_EXCLUDES '*/main.cc' '*/test/*' '/usr/include/*'
-    '${CMAKE_BINARY_DIR}/*' '*/.conan/*')
+                        '${CMAKE_BINARY_DIR}/*' '*/.conan/*')
   setup_target_for_coverage(NAME broker-test-coverage EXECUTABLE ut_broker
-    DEPENDENCIES ut_broker)
+                            DEPENDENCIES ut_broker)
 endif()

@@ -25,6 +25,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/persistent_cache.hh"
@@ -172,16 +173,40 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
        * if broker sends data to map. This is needed because a failover needs
        * its peer to ack events to release them (and a failover is also able
        * to write data). */
+      multiplexing::muxer_filter r_filter = parse_filters(ep.read_filters);
+      multiplexing::muxer_filter w_filter = parse_filters(ep.write_filters);
       if (is_acceptor) {
         std::unique_ptr<processing::acceptor> acceptr(
-            std::make_unique<processing::acceptor>(e, ep.name));
-        acceptr->set_read_filters(_filters(ep.read_filters));
-        acceptr->set_write_filters(_filters(ep.write_filters));
+            std::make_unique<processing::acceptor>(e, ep.name, r_filter,
+                                                   w_filter));
+        log_v2::config()->debug(
+            "endpoint applier: acceptor '{}' configured with write filters: {} "
+            "and read filters: {}",
+            ep.name, w_filter.get_allowed_categories(),
+            r_filter.get_allowed_categories());
         endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
-        auto mux{multiplexing::muxer::create(ep.name, _filters(ep.read_filters),
-                                             _filters(ep.write_filters), true)};
+        if (e->get_stream_mandatory_filter().is_in(w_filter)) {
+          w_filter = e->get_stream_mandatory_filter();
+          log_v2::config()->debug(
+              "endpoint applier: filters for endpoint '{}' reduced to the "
+              "needed ones: {}",
+              ep.name, misc::dump_filters(w_filter));
+        } else if (!e->get_stream_mandatory_filter().allows_all()) {
+          w_filter = e->get_stream_mandatory_filter();
+          log_v2::config()->error(
+              "endpoint applier: The configured write filters for the endpoint "
+              "'{}' are too restrictive and will be ignored.{} categories are "
+              "mandatory.",
+              ep.name, w_filter.get_allowed_categories());
+        } else
+          log_v2::config()->debug(
+              "endpoint applier: filters {} for endpoint '{}' applied.",
+              w_filter.get_allowed_categories(), ep.name);
+
+        auto mux =
+            multiplexing::muxer::create(ep.name, r_filter, w_filter, true);
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
       }
       {
@@ -344,8 +369,8 @@ processing::failover* endpoint::_create_failover(
   std::shared_ptr<processing::failover> failovr;
   if (!cfg.failovers.empty()) {
     std::string front_failover(cfg.failovers.front());
-    std::list<config::endpoint>::iterator it(
-        std::find_if(l.begin(), l.end(), failover_match_name(front_failover)));
+    std::list<config::endpoint>::iterator it =
+        std::find_if(l.begin(), l.end(), failover_match_name(front_failover));
     if (it == l.end())
       log_v2::config()->error(
           "endpoint applier: could not find failover '{}' for endpoint '{}'",
@@ -526,15 +551,15 @@ void endpoint::_diff_endpoints(
 }
 
 /**
- *  Create filters from a set of category.
+ *  Create filters from a set of categories.
  *
  *  @param[in] cfg  Endpoint configuration.
  *
  *  @return Filters.
  */
-absl::flat_hash_set<uint32_t> endpoint::_filters(
+multiplexing::muxer_filter endpoint::parse_filters(
     const std::set<std::string>& str_filters) {
-  absl::flat_hash_set<uint32_t> elements;
+  multiplexing::muxer_filter elements({});
   std::forward_list<fmt::string_view> applied_filters;
   auto fill_elements = [&elements](const std::string& str) -> bool {
     bool retval = false;
@@ -552,22 +577,28 @@ absl::flat_hash_set<uint32_t> endpoint::_filters(
     return retval;
   };
 
-  for (auto& str : str_filters) {
-    bool ok = false;
-    try {
-      ok = fill_elements(str);
-    } catch (const std::exception& e) {
-      log_v2::config()->error(
-          "endpoint applier: '{}' is not a known category: {}", str, e.what());
-    }
-    if (ok)
-      applied_filters.emplace_front(str);
-  }
-  if (applied_filters.empty() && !str_filters.empty()) {
-    fill_elements("all");
+  if (str_filters.size() == 1 && *str_filters.begin() == "all") {
+    elements = multiplexing::muxer_filter();
     applied_filters.emplace_front("all");
+  } else {
+    for (auto& str : str_filters) {
+      bool ok = false;
+      try {
+        ok = fill_elements(str);
+      } catch (const std::exception& e) {
+        log_v2::config()->error(
+            "endpoint applier: '{}' is not a known category: {}", str,
+            e.what());
+      }
+      if (ok)
+        applied_filters.emplace_front(str);
+    }
+    if (applied_filters.empty() && !str_filters.empty()) {
+      fill_elements("all");
+      applied_filters.emplace_front("all");
+    }
   }
-  log_v2::config()->info("Filters applied on endpoint: {}",
+  log_v2::config()->info("Filters applied on endpoint:{}",
                          fmt::join(applied_filters, ", "));
   return elements;
 }

@@ -17,15 +17,31 @@
 */
 
 #include "com/centreon/broker/graphite/connector.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/metric_mapping.hh"
+#include "com/centreon/broker/graphite/internal.hh"
 #include "com/centreon/broker/graphite/stream.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
 
+static constexpr multiplexing::muxer_filter _graphite_stream_filter = {
+    storage::metric::static_type(), storage::status::static_type(),
+    storage::pb_metric::static_type(), storage::pb_status::static_type(),
+    // cache events
+    neb::instance::static_type(), neb::pb_instance::static_type(),
+    neb::host::static_type(), neb::pb_host::static_type(),
+    neb::service::static_type(), neb::pb_service::static_type(),
+    storage::index_mapping::static_type(),
+    storage::pb_index_mapping::static_type(),
+    storage::metric_mapping::static_type(),
+    storage::pb_metric_mapping::static_type()};
+
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {}
+connector::connector() : io::endpoint(false, _graphite_stream_filter) {}
 
 /**
  *  Set connection parameters.

@@ -21,6 +21,7 @@
 
 #include <absl/container/flat_hash_map.h>
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
 CCB_BEGIN()
@@ -49,16 +50,12 @@ namespace multiplexing {
  *  @see engine
  */
 class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
- public:
-  using filters = absl::flat_hash_set<uint32_t>;
-
- private:
   static uint32_t _event_queue_max_size;
 
   const std::string _name;
   const std::string _queue_file_name;
-  filters _read_filters;
-  filters _write_filters;
+  multiplexing::muxer_filter _read_filter;
+  multiplexing::muxer_filter _write_filter;
   std::string _read_filters_str;
   std::string _write_filters_str;
   const bool _persistent;
@@ -81,8 +78,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void _update_stats(void) noexcept;
 
   muxer(std::string name,
-        muxer::filters r_filters,
-        muxer::filters w_filters,
+        const muxer_filter& r_filter,
+        const muxer_filter& w_filter,
         bool persistent = false);
 
  public:
@@ -92,8 +89,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   static uint32_t event_queue_max_size() noexcept;
 
   static std::shared_ptr<muxer> create(std::string name,
-                                       muxer::filters r_filters,
-                                       muxer::filters w_filters,
+                                       const muxer_filter& r_filter,
+                                       const muxer_filter& w_filter,
                                        bool persistent = false);
   muxer(const muxer&) = delete;
   muxer& operator=(const muxer&) = delete;
@@ -101,8 +98,6 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void ack_events(int count);
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
-  const filters& read_filters() const;
-  const filters& write_filters() const;
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
   uint32_t get_event_queue_size() const;
@@ -113,7 +108,8 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   int32_t write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override;
   const std::string& name() const;
-  void set_filters(muxer::filters r_filters, muxer::filters w_filters);
+  void set_read_filter(const muxer_filter& w_filter);
+  void set_write_filter(const muxer_filter& w_filter);
 };
 }  // namespace multiplexing
 
