@@ -2,7 +2,9 @@ from os import makedirs
 from os.path import exists, dirname
 import pymysql.cursors
 import time
+import re
 import shutil
+import psutil
 import socket
 import sys
 import time
@@ -17,6 +19,7 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
+from google.protobuf.json_format import MessageToJson
 from robot.libraries.BuiltIn import BuiltIn
 
 TIMEOUT = 30
@@ -40,14 +43,14 @@ config = {
         "poller_id": 1,
         "poller_name": "Central",
         "module_directory": "/usr/share/centreon/lib/centreon-broker",
-        "log_timestamp": true,
-        "log_thread_id": false,
+        "log_timestamp": "yes",
+        "log_thread_id": "no",
         "event_queue_max_size": 100000,
         "command_file": "{7}/lib/centreon-broker/command.sock",
         "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "log_pid": true,
-            "flush_period": 1,
+            "log_pid": "yes",
+            "flush_period": 0,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -155,8 +158,8 @@ config = {
         "command_file": "",
         "cache_directory": "{7}/lib/centreon-engine",
         "log": {{
-            "log_pid": true,
-            "flush_period": 1,
+            "log_pid": "yes",
+            "flush_period": 0,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -215,8 +218,8 @@ config = {
         "command_file": "",
         "cache_directory": "{7}/lib/centreon-broker",
         "log": {{
-            "log_pid": true,
-            "flush_period": 1,
+            "log_pid": "yes",
+            "flush_period": 0,
             "directory": "{7}/log/centreon-broker/",
             "filename": "",
             "max_size": 0,
@@ -433,31 +436,31 @@ def config_broker(name, poller_inst: int = 1):
         broker_name = "central-module-master"
         filename = "central-module0.json"
     else:
-        if not exists(VAR_ROOT + "/lib/centreon/metrics/"):
-            makedirs(VAR_ROOT + "/lib/centreon/metrics/")
-        if not exists(VAR_ROOT + "/lib/centreon/status/"):
-            makedirs(VAR_ROOT + "/lib/centreon/status/")
-        if not exists(VAR_ROOT + "/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/metrics/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/status/"):
+            makedirs(f"{VAR_ROOT}/lib/centreon/status/")
+        if not exists(f"{VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd"):
             getoutput(
-                "rrdcreate " + VAR_ROOT + "/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
+                f"rrdcreate {VAR_ROOT}/lib/centreon/metrics/tmpl_15552000_300_0.rrd DS:value:ABSOLUTE:3000:U:U RRA:AVERAGE:0.5:1:864000")
         broker_id = 2
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
 
     if name == 'module':
         for i in range(poller_inst):
-            broker_name = ETC_ROOT + "/centreon-broker/central-module{}.json".format(
-                i)
+            broker_name = f"{ETC_ROOT}/centreon-broker/central-module{i}.json"
             buf = config[name].format(
-                broker_id, "central-module-master{}".format(i), "", "", "", "", "", VAR_ROOT)
+                broker_id, f"central-module-master{i}", "", "", "", "", "", VAR_ROOT)
             conf = json.loads(buf)
+            conf["centreonBroker"]["poller_name"] = f"Poller{i}"
             conf["centreonBroker"]["poller_id"] = i + 1
 
             f = open(broker_name, "w")
             f.write(json.dumps(conf, indent=2))
             f.close()
     else:
-        f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+        f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
         f.write(config[name].format(broker_id, broker_name,
                 DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         f.close()
@@ -470,6 +473,7 @@ def change_broker_tcp_output_to_grpc(name: str):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
     _apply_conf(name, output_to_grpc)
+
 
 def add_path_to_rrd_output(name: str, path: str):
     def rrd_output(conf):
@@ -754,14 +758,14 @@ def broker_config_output_set(name, output, key, value):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
     f.write(json.dumps(conf, indent=2))
     f.close()
 
@@ -1145,13 +1149,97 @@ def run_reverse_bam(duration, interval):
     getoutput("kill -9 $(ps aux | grep map_client.py | awk '{print $2}')")
 
 
+def start_map():
+    global map_process
+    map_process = subp.Popen("broker/map_client_types.py",
+                             shell=True, stdout=subp.DEVNULL, stdin=subp.DEVNULL)
+
+
+def clear_map_logs():
+    with open('/tmp/map-output.log', 'w') as f:
+        f.write("")
+
+
+def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
+    retval = False
+    limit = time.time() + timeout
+    while time.time() < limit:
+        output = ""
+        try:
+            with open('/tmp/map-output.log', 'r') as f:
+                output = f.readlines()
+        except FileNotFoundError:
+            time.sleep(5)
+            continue
+
+        categories = list(map(int, categories_str))
+        r = re.compile(r"^type: ([0-9]*)'?$")
+        cat = {}
+        expected = list(map(int, expected_events))
+        lines = list(filter(r.match, output))
+        retval = True
+        for o in lines:
+            m = r.match(o)
+            elem = int(m.group(1))
+            if elem in expected:
+                expected.remove(elem)
+            c = elem >> 16
+            if c in categories:
+                cat[c] = 1
+            elif c != 2:
+                logger.console(f"Category {c} not expected")
+                retval = False
+                break
+        if retval and len(categories) != len(cat):
+            logger.console(
+                f"There are {len(categories)} categories expected whereas {len(cat)} are sent to map")
+            retval = False
+
+        if retval and len(expected) > 0:
+            logger.console(f"Events of types {str(expected)} not sent")
+            retval = False
+
+        if retval:
+            break
+        time.sleep(5)
+
+    return retval
+
+
+def get_map_output():
+    global map_process
+    return map_process.communicate()[0]
+
+
+def stop_map():
+    for proc in psutil.process_iter():
+        if 'map_client_type' in proc.name():
+            logger.console(
+                f"process '{proc.name()}' containing map_client_type found: stopping it")
+            proc.terminate()
+            try:
+                logger.console("Waiting for 30s map_client_type to stop")
+                proc.wait(30)
+            except:
+                logger.console("map_client_type don't want to stop => kill")
+                proc.kill()
+
+    for proc in psutil.process_iter():
+        if 'map_client_type' in proc.name():
+            logger.console(f"process '{proc.name()}' still alive")
+            logger.console("map_client_type don't want to stop => kill")
+            proc.kill()
+
+    logger.console("map_client_type stopped")
+
+
 ##
 # @brief Get count indexes that are available to rebuild them.
 #
 # @param count is the number of indexes to get.
 #
 # @return a list of indexes
-def get_indexes_to_rebuild(count: int):
+def get_indexes_to_rebuild(count: int, nb_day=180):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1174,20 +1262,16 @@ def get_indexes_to_rebuild(count: int):
                 if int(r['metric_id']) in ids:
                     logger.console(
                         "building data for metric {}".format(r['metric_id']))
-                    start = int(time.time()) - 24 * 60 * 60 * 30
-                    # We go back to 30 days with steps of 5 mn
-                    value1 = int(r['metric_id'])
-                    value2 = 0
-                    value = value1
+                    # We go back to 180 days with steps of 5 mn
+                    start = int(time.time()/86400)*86400 - \
+                        24 * 60 * 60 * nb_day
+                    value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
-                    for i in range(0, 24 * 60 * 60 * 30, 60 * 5):
+                    # We set the value to a constant on 180 days
+                    for i in range(0, 24 * 60 * 60 * nb_day, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
-                        if value == value1:
-                            value = value2
-                        else:
-                            value = value1
                     connection.commit()
                     retval.append(int(r['index_id']))
 
@@ -1197,6 +1281,60 @@ def get_indexes_to_rebuild(count: int):
     # if the loop is already and retval length is not sufficiently long, we
     # still return what we get.
     return retval
+
+##
+# @brief add a value at the mid of the first day of each metric
+#
+#
+# @return a list of indexes of pair <time of oldest value>, <metric id>
+
+
+def add_duplicate_metrics():
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    retval = []
+    with connection:
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM(SELECT  min(ctime) AS ctime, count(*) AS nb, id_metric FROM data_bin GROUP BY id_metric) s WHERE nb > 100"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            for metric_info in result:
+                # insert a duplicate value at the mid of the day
+                low_limit = metric_info['ctime'] + 43200 - 60
+                upper_limit = metric_info['ctime'] + 43200 + 60
+                cursor.execute(
+                    f"INSERT INTO data_bin SELECT * FROM data_bin WHERE id_metric={metric_info['id_metric']} AND ctime BETWEEN {low_limit} AND {upper_limit}")
+                retval.append({metric_info['id_metric'], metric_info['ctime']})
+            connection.commit()
+    return retval
+
+
+##
+# @brief check that metrics are not a NaN during one day
+#
+# @param an array of pair <time of oldest value>, <metric id> returned by add_duplicate_metrics
+#
+# @return true or false
+def check_for_NaN_metric(add_duplicate_metrics_ret):
+    for min_timestamp, metric_id in add_duplicate_metrics_ret:
+        max_timestamp = min_timestamp + 86400
+        res = getoutput(
+            f"rrdtool dump {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
+        # we search a string like <!-- 2022-12-07 23: 00: 00 CET / 1670450400 - -> < row > <v > NaN < /v > </row >
+        row_search = re.compile(
+            r"(\d+)\s+\-\-\>\s+\<row\>\<v\>([0-9\.e+NaN]+)")
+        for line in res.splitlines():
+            extract = row_search.search(line)
+            if extract is not None:
+                ts = int(extract.group(1))
+                val = extract.group(2)
+                if ts > min_timestamp and ts < max_timestamp and val == "NaN":
+                    return False
+    return True
 
 
 ##
@@ -1245,6 +1383,49 @@ def remove_graphs(port, indexes, metrics, timeout=10):
                 break
             except:
                 logger.console("gRPC server not ready")
+
+
+def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            opts = broker_pb2.SqlManagerStatsOptions()
+            opts.slowest_statements_count = stmt
+            opts.slowest_queries_count = queries
+            try:
+                stub.SetSqlManagerStats(opts)
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            con = broker_pb2.SqlConnection()
+            try:
+                res = stub.GetSqlManagerStats(con)
+                logger.console(res)
+                res = MessageToJson(res)
+                logger.console(res)
+                res = json.loads(res)
+                for c in res["connections"]:
+                    if "slowestQueries" in c:
+                        for q in c["slowestQueries"]:
+                            if query in q["query"]:
+                                return q["duration"]
+                    if "slowestStatements" in c:
+                        for q in c["slowestStatements"]:
+                            if query in q["statementQuery"]:
+                                return q["duration"]
+            except:
+                logger.console("gRPC server not ready")
+    return -1
 
 
 ##
@@ -1309,7 +1490,7 @@ def rebuild_rrd_graphs(port, indexes, timeout: int = TIMEOUT):
 #
 # @param indexes The list of indexes corresponding to metrics to rebuild.
 #
-def rebuild_rrd_graphs_from_db(indexes, timeout: int = TIMEOUT):
+def rebuild_rrd_graphs_from_db(indexes):
     connection = pymysql.connect(host=DB_HOST,
                                  user=DB_USER,
                                  password=DB_PASS,
@@ -1337,7 +1518,7 @@ def rebuild_rrd_graphs_from_db(indexes, timeout: int = TIMEOUT):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-30d --end=now"
+    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
                     "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
                     .format(metric))
@@ -1347,10 +1528,10 @@ def compare_rrd_average_value(metric, value: float):
         err = abs(res - float(value)) / float(value)
         logger.console(
             f"expected value: {value} - result value: {res} - err: {err}")
-        return err < 0.01
+        return err < 0.005
     else:
         logger.console(
-            "It was impossible to get the average value from the file " + VAR_ROOT + "/lib/centreon/metrics/{}.rrd from the last 30 days".format(metric))
+            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
 
@@ -1371,10 +1552,14 @@ def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
                 res = stub.GetSqlManagerStats(empty_pb2.Empty())
                 if len(res.connections) < count:
                     continue
+                count = 0
                 for c in res.connections:
                     if c.down_since:
-                        continue
-                return True
+                        pass
+                    else:
+                        count += 1
+                if count == 3:
+                    return True
             except:
                 logger.console("gRPC server not ready")
     return False
@@ -1417,7 +1602,7 @@ def add_bam_config_to_broker(name):
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
+    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "r")
     buf = f.read()
     f.close()
     conf = json.loads(buf)
@@ -1499,3 +1684,70 @@ def check_poller_enabled_in_database(poller_id: int, timeout: int):
                     return True
         time.sleep(5)
     return False
+
+
+def get_broker_log_level(port, name, log, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call GetLogInfo")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.GenericString()
+            ref.str_arg = log
+            try:
+                res = stub.GetLogInfo(ref)
+                res = res.level[log]
+                return res
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        logger.console("Try to call SetLogLevel")
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            ref = broker_pb2.LogLevel()
+            ref.logger = log
+            try:
+                ref.level = broker_pb2.LogLevel.LogLevelEnum.Value(
+                    level.upper())
+            except ValueError as value_error:
+                res = str(value_error)
+                break
+
+            try:
+                res = stub.SetLogLevel(ref)
+                break
+            except grpc.RpcError as rpc_error:
+                if rpc_error.code() == grpc.StatusCode.INVALID_ARGUMENT:
+                    res = rpc_error.details()
+                break
+            except:
+                logger.console("gRPC server not ready")
+    return res
+
+
+def config_broker_remove_rrd_output(name):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    conf = {}
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+        conf = json.loads(buf)
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if "rrd" in v["name"] and v["type"] == "ipv4":
+                output_dict.pop(i)
+                break
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))

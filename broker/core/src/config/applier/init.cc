@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013, 2021 Centreon
+** Copyright 2011-2013, 2021-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -24,7 +24,6 @@
 #include <thread>
 #include <vector>
 
-#include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 
 #include <asio.hpp>

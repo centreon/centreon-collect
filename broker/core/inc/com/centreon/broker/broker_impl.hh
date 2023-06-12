@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ class broker_impl final : public Broker::Service {
                                GenericString* response) override;
 
   grpc::Status GetSqlManagerStats(grpc::ServerContext* context,
-                                  const ::google::protobuf::Empty* request,
+                                  const SqlConnection* request,
                                   SqlManagerStats* response) override;
   grpc::Status GetConflictManagerStats(grpc::ServerContext* context,
                                        const ::google::protobuf::Empty* request,
@@ -91,9 +91,16 @@ class broker_impl final : public Broker::Service {
   grpc::Status GetLogInfo(grpc::ServerContext* context [[maybe_unused]],
                           const GenericString* request,
                           LogInfo* response) override;
-  grpc::Status SetLogParam(grpc::ServerContext* context [[maybe_unused]],
-                           const LogParam* request,
+
+  grpc::Status SetLogLevel(grpc::ServerContext* context [[maybe_unused]],
+                           const LogLevel* request,
                            ::google::protobuf::Empty*) override;
+  grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
+                                 const LogFlushPeriod* request,
+                                 ::google::protobuf::Empty*) override;
+  grpc::Status SetSqlManagerStats(grpc::ServerContext* context [[maybe_unused]],
+                                  const SqlManagerStatsOptions* request,
+                                  ::google::protobuf::Empty*) override;
 
  public:
   void set_broker_name(const std::string& s);

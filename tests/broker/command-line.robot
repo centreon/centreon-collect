@@ -26,7 +26,7 @@ BCL2
 	[Tags]	Broker	start-stop
 	Config Broker	central
 	Broker Config Log	central	core	debug
-	Broker Config Flush Log	module0	0
+	Broker Config Flush Log	central	0
 	${start}=	Get Current Date	exclude_millis=True
 	Sleep	1s
 	Start Broker With Args	-s5	${EtcRoot}/centreon-broker/central-broker.json

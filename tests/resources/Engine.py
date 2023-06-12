@@ -5,6 +5,7 @@ from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
+import math
 import random
 import shutil
 import sys
@@ -23,6 +24,7 @@ VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 CONF_DIR = ETC_ROOT + "/centreon-engine"
 ENGINE_HOME = VAR_ROOT + "/lib/centreon-engine"
+TIMEOUT = 30
 
 
 class EngineInstance:
@@ -773,12 +775,21 @@ def get_command_id(service: int):
     return dbconf.command[cmd_name]
 
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str):
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        v = math.sin((now + m) / 1000) * 5
+        pd.append(f"metric{m}={v}")
+    full_output = " ".join(pd)
+    process_service_check_result(hst, svc, state, full_output, config)
+
+
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
     cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_interval: int):
@@ -1312,6 +1323,7 @@ def set_services_passive(poller: int, srv_regex):
     ff.writelines(lines)
     ff.close()
 
+
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
     ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()
@@ -1390,28 +1402,35 @@ def remove_severities_from_hosts(poller: int):
 #
 
 
-def check_search(debug_file_path: str, str_to_search):
-    with open(debug_file_path, 'r') as f:
-        lines = f.readlines()
-        for first_ind in range(len(lines)):
-            find_index = lines[first_ind].find(str_to_search + ' ')
-            if (find_index > 0):
-                for second_ind in range(first_ind, len(lines)):
-                    # search cmd_id
-                    m = re.search(
-                        r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
-                    if m is not None:
-                        cmd_id = m.group(1)
-                        r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
-                            cmd_id + ",\s+(\S[\s\S]+)$"
-                        for third_ind in range(second_ind, len(lines)):
-                            m = re.match(
-                                r_query_execute, lines[third_ind])
-                            if m is not None:
-                                return m.group(1)
-                        return "_recv_query_execute not found" + r_query_execute
-                return "connector::run not found"
-        return "check_search don t find " + str_to_search
+def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        cmd_executed = False
+        with open(debug_file_path, 'r') as f:
+            lines = f.readlines()
+            for first_ind in range(len(lines)):
+                find_index = lines[first_ind].find(str_to_search + ' ')
+                if (find_index > 0):
+                    cmd_executed = True
+                    for second_ind in range(first_ind, len(lines)):
+                        # search cmd_id
+                        m = re.search(
+                            r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
+                        if m is not None:
+                            cmd_id = m.group(1)
+                            r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
+                                cmd_id + ",\s+(\S[\s\S]+)$"
+                            for third_ind in range(second_ind, len(lines)):
+                                m = re.match(
+                                    r_query_execute, lines[third_ind])
+                                if m is not None:
+                                    return m.group(1)
+        time.sleep(1)
+
+    if not cmd_executed:
+        return f"_recv_query_execute not found on '{r_query_execute}'"
+    else:
+        return f"check_search doesn't find '{str_to_search}'"
 
 
 def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
@@ -1562,3 +1581,85 @@ def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, m
 ]
 """)
     f.close()
+
+
+def modify_retention_dat(poller, host, service, key, value):
+    if host != "" and host != "":
+        # We want a service
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+        lines = ff.readlines()
+        ff.close()
+
+        r_hst = re.compile(r"^\s*host_name=(.*)$")
+        r_svc = re.compile(r"^\s*service_description=(.*)$")
+        in_block = False
+        hst = ""
+        svc = ""
+        for i in range(len(lines)):
+            l = lines[i]
+            if not in_block:
+                if l == "service {\n":
+                    in_block = True
+                    continue
+            else:
+                if l == "}\n":
+                    in_block = False
+                    hst = ""
+                    svc = ""
+                    continue
+                m = r_hst.match(l)
+                if m:
+                    hst = m.group(1)
+                    continue
+                m = r_svc.match(l)
+                if m:
+                    svc = m.group(1)
+                    continue
+                if l.startswith(f"{key}=") and host == hst and svc == service:
+                    logger.console(f"key '{key}' found !")
+                    lines[i] = f"{key}={value}\n"
+                    hst = ""
+                    svc = ""
+
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        ff.writelines(lines)
+        ff.close()
+
+
+def modify_retention_dat_host(poller, host, key, value):
+    if host != "" and host != "":
+        # We want a host
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+        lines = ff.readlines()
+        ff.close()
+
+        r_hst = re.compile(r"^\s*host_name=(.*)$")
+        in_block = False
+        hst = ""
+        for i in range(len(lines)):
+            l = lines[i]
+            if not in_block:
+                if l == "host {\n":
+                    in_block = True
+                    continue
+            else:
+                if l == "}\n":
+                    in_block = False
+                    hst = ""
+                    continue
+                m = r_hst.match(l)
+                if m:
+                    hst = m.group(1)
+                    continue
+                if l.startswith(f"{key}=") and host == hst:
+                    logger.console(f"key '{key}' found !")
+                    lines[i] = f"{key}={value}\n"
+                    hst = ""
+
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        ff.writelines(lines)
+        ff.close()

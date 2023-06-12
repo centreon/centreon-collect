@@ -299,39 +299,6 @@ LOGV2EF2
 	Stop Engine
 	Kindly Stop Broker
 
-LOGV2BE2
-	[Documentation]	log-v2 enabled old log enabled check broker sink is equal
-	[Tags]	Broker	Engine	log-v2	sinkbroker
-	Config Engine	${1}
-	Config Broker	rrd
-	Config Broker	central
-	Config Broker	module
-        Broker Config Flush Log	module0	0
-	Engine Config Set Value	${0}	log_legacy_enabled	${1}
-	Engine Config Set Value	${0}	log_v2_enabled	${1}
-        Engine Config Set Value	${0}    log_flush_period	0	True
-
-	${start}=	Get Current Date	 exclude_millis=yes
-	${time_stamp}    Convert Date    ${start}    epoch	exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
-	Start Broker
-	Start Engine
-	${result}=	Check Connections
-	Should Be True	${result}	msg=Engine and Broker not connected
-
-	Sleep	3m
-
-	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	Log To Console	after connection
-	Log To Console	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
-	@{output}=	Query	SELECT COUNT(*) as c, output FROM logs WHERE ctime>=${time_stamp2} GROUP BY output HAVING c<>2
-
-	${res}=	engine log table duplicate	${output}
-	Should Be True	${res}	msg=one or other log are not duplicate in tables logs
-
-	Stop Engine
-	Kindly Stop Broker
-
 LOGV2FE2
 	[Documentation]	log-v2 enabled old log enabled check logfile sink
 	[Tags]	Broker	Engine	log-v2

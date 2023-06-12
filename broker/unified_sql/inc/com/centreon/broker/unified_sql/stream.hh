@@ -217,6 +217,7 @@ class stream : public io::stream {
 
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
 
+  mutable std::mutex _timer_m;
   std::mutex _group_clean_timer_m;
   asio::system_timer _group_clean_timer;
 
@@ -241,7 +242,12 @@ class stream : public io::stream {
    * _max_cv_queries/_max_log_queries. */
   bulk_queries _cv;
   bulk_queries _cvs;
-  bulk_queries _perfdata;
+
+  std::unique_ptr<bulk_queries> _perfdata_q;
+
+  std::unique_ptr<database::mysql_bulk_stmt> _perfdata_stmt;
+  std::unique_ptr<bulk_bind> _perfdata_b;
+
   bulk_queries _logs;
   bulk_queries _downtimes;
 

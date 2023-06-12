@@ -3,6 +3,7 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 import time
+import psutil
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
@@ -71,6 +72,24 @@ def get_date(d: str):
     return retval
 
 
+#  When you use Get Current Date with exclude_millis=True
+#  it rounds result to nearest lower or upper second
+def get_round_current_date():
+    return int(time.time())
+
+
+def find_regex_in_log_with_timeout(log: str, date, content, timeout: int):
+    limit = time.time() + timeout
+    c = ""
+    while time.time() < limit:
+        ok, c = find_in_log(log, date, content, True)
+        if ok:
+            return True, c
+        time.sleep(5)
+    logger.console(f"Unable to find regex '{c}' from {date} during {timeout}s")
+    return False, c
+
+
 def find_in_log_with_timeout(log: str, date, content, timeout: int):
     limit = time.time() + timeout
     c = ""
@@ -84,17 +103,21 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
-def find_in_log(log: str, date, content):
+def find_in_log(log: str, date, content, regex=False):
     """Find content in log file from the given date
 
     Args:
         log (str): The log file
         date (_type_): A date as a string
         content (_type_): An array of strings we want to find in the log.
+        regex (boolean): Telling if we search for some regex expressions.
 
     Returns:
         boolean,str: The boolean is True on success, and the string contains the first string not found in logs otherwise.
     """
+
+    res = []
+
     try:
         f = open(log, "r")
         lines = f.readlines()
@@ -105,15 +128,20 @@ def find_in_log(log: str, date, content):
             found = False
             for i in range(idx, len(lines)):
                 line = lines[i]
-                if c in line:
-                    logger.console(
-                        "\"{}\" found at line {} from {}".format(c, i, idx))
+                if regex:
+                    match = re.search(c, line)
+                else:
+                    match = c in line
+                if match:
+                    logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
+                    if regex:
+                        res.append(line)
                     break
             if not found:
                 return False, c
 
-        return True, ""
+        return True, res
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
         return False, content[0]
@@ -160,6 +188,16 @@ def start_mysql():
         logger.console("Mariadb directly started")
 
 
+def kill_mysql():
+    logger.console("Killing directly MariaDB")
+    for proc in psutil.process_iter():
+        if ('mariadbd' in proc.name()):
+            logger.console(
+                f"process '{proc.name()}' containing mariadbd found: stopping it")
+            proc.kill()
+    logger.console("Mariadb killed")
+
+
 def stop_mysql():
     if not run_env():
         logger.console("Stopping Mariadb with systemd")
@@ -167,7 +205,24 @@ def stop_mysql():
         logger.console("Mariadb stopped with systemd")
     else:
         logger.console("Stopping directly MariaDB")
-        getoutput("kill -SIGTERM $(pidof mariadbd)")
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                logger.console(
+                    f"process '{proc.name()}' containing mariadbd found: stopping it")
+                proc.terminate()
+                try:
+                    logger.console("Waiting for 30s mariadbd to stop")
+                    proc.wait(30)
+                except:
+                    logger.console("mariadb don't want to stop => kill")
+                    proc.kill()
+
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                logger.console(f"process '{proc.name()}' still alive")
+                logger.console("mariadb don't want to stop => kill")
+                proc.kill()
+
         logger.console("Mariadb directly stopped")
 
 
@@ -175,34 +230,30 @@ def stop_rrdcached():
     getoutput(
         "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
 
-def stop_rrdcached():
-        getoutput(
-            "kill -9 $(ps ax | grep '.usr.bin.rrdcached' | grep -v grep | awk '{print $1}')")
-
 
 def kill_broker():
     getoutput(
-        "kill -SIGKILL $(ps aux | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $2}')")
+        "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbwd' | grep -v grep | awk '{print $1}')")
     getoutput(
-        "kill -SIGKILL $(ps aux | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $2}')")
+        "kill -SIGKILL $(ps ax | grep '/usr/sbin/cbd' | grep -v grep | awk '{print $1}')")
 
 
 def kill_engine():
     getoutput(
-        "kill -SIGKILL $(ps aux | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $2}')")
+        "kill -SIGKILL $(ps ax | grep '/usr/sbin/centengine' | grep -v grep | awk '{print $1}')")
 
 
 def clear_retention():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
     getoutput("find /tmp -name 'lua*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.memory.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.queue.*' -delete")
-    getoutput("find " + VAR_ROOT + " -name '*.unprocessed*' -delete")
-    getoutput("find " + VAR_ROOT + " -name 'retention.dat' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.memory.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.queue.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.unprocessed*' -delete")
+    getoutput(f"find {VAR_ROOT} -name 'retention.dat' -delete")
 
 
 def clear_cache():
-    getoutput("find " + VAR_ROOT + " -name '*.cache.*' -delete")
+    getoutput(f"find {VAR_ROOT} -name '*.cache.*' -delete")
 
 
 def engine_log_table_duplicate(result: list):
@@ -257,7 +308,11 @@ def check_engine_logs_are_duplicated(log: str, date):
 
 
 def find_line_from(lines, date):
-    my_date = parser.parse(date)
+    try:
+        my_date = parser.parse(date)
+    except:
+        my_date = datetime.fromtimestamp(date)
+
     p = re.compile(r"\[([^\]]*)\]")
 
     # Let's find my_date
@@ -472,9 +527,10 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT current_status FROM mod_bam WHERE name='{}'".format(ba_name))
+                    f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
-                if result[0]['current_status'] is not None and int(result[0]['current_status']) == status:
+                logger.console(f"ba: {result[0]}")
+                if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -495,9 +551,9 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
                 cursor.execute("SELECT s.scheduled_downtime_depth from services s LEFT JOIN hosts h ON s.host_id=h.host_id wHERE s.description='{}' AND h.name='{}'".format(
                     service_desc, hostname))
                 result = cursor.fetchall()
-                if not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
                     return True
-        time.sleep(5)
+        time.sleep(2)
     return False
 
 
@@ -832,6 +888,7 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
         time.sleep(1)
     return False
 
+
 def create_bad_queue(filename: str):
     f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
     buffer = bytearray(10000)
@@ -851,3 +908,56 @@ def create_bad_queue(filename: str):
             t = 0
     f.write(buffer)
     f.close()
+
+
+def get_version():
+    f = open("../CMakeLists.txt", "r")
+    lines = f.readlines()
+    f.close()
+    filtered = filter(lambda l: l.startswith("set(COLLECT_"), lines)
+
+    rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
+    rmin = re.compile(r"set\(COLLECT_MINOR\s*([0-9]+)")
+    rpatch = re.compile(r"set\(COLLECT_PATCH\s*([0-9]+)")
+    for l in filtered:
+        m1 = rmaj.match(l)
+        m2 = rmin.match(l)
+        m3 = rpatch.match(l)
+        if m1:
+            maj = m1.group(1)
+        elif m2:
+            mini = m2.group(1)
+        elif m3:
+            patch = m3.group(1)
+    return f"{maj}.{mini}.{patch}"
+
+
+def check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+                result = cursor.fetchall()
+                logger.console(
+                    f"result: {int(result[0]['status'])} status: {int(status)}")
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                    if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
+                        return True
+                    else:
+                        return True
+        time.sleep(1)
+    return False
+
+

@@ -5,6 +5,16 @@ Library	OperatingSystem
 Library	Common.py
 
 *** Keywords ***
+Config BBDO3
+	[Arguments]	${nbEngine}
+	Config Broker Sql Output	central	unified_sql
+        Broker Config Add Item	rrd	bbdo_version	3.0.0
+        Broker Config Add Item	central	bbdo_version	3.0.0
+        FOR	${i}	IN RANGE	${nbEngine}
+	 ${mod}=	Catenate	SEPARATOR=	module	${i}
+         Broker Config Add Item	${mod}	bbdo_version	3.0.0
+	END
+
 Clean Before Suite
 	Stop Processes
 	Clear Engine Logs
@@ -12,7 +22,7 @@ Clean Before Suite
 
 Clean Before Suite With rrdcached
 	Clean Before Suite
-        log to console	Starting RRDCached
+	log to console	Starting RRDCached
 	Run Process	/usr/bin/rrdcached	-l	unix:${BROKER_LIB}/rrdcached.sock	-V	LOG_DEBUG	-F
 
 Clean Grpc Before Suite
@@ -25,9 +35,9 @@ Clean After Suite
 	Terminate All Processes	kill=True
 
 Clean After Suite With rrdcached
-        Clean after Suite
-        log to console	Stopping RRDCached
-        Stop rrdcached
+	Clean after Suite
+	log to console	Stopping RRDCached
+	Stop rrdcached
 
 Clear Engine Logs
 	Remove Directory	${ENGINE_LOG}	Recursive=True
@@ -63,18 +73,19 @@ Kindly Stop Broker
 	ELSE
 	  Should Be Equal As Integers	${result.rc}	0	msg=Central Broker not correctly stopped
 	END
+
 	IF  not ${only_central}
-		${result}=	Wait For Process	b2	timeout=60s
+		${result}=	Wait For Process	b2	timeout=60s	on_timeout=kill
 		# In case of process not stopping
 		IF	"${result}" == "${None}"
-			Dump Process	b2	broker-rrd
-			Send Signal To Process	SIGKILL	b2
-			Fail	RRD Broker not correctly stopped (coredump generated)
+		  Dump Process	b2	broker-rrd
+		  Send Signal To Process	SIGKILL	b2
+		  Fail	RRD Broker not correctly stopped (coredump generated)
 		ELSE
-			Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
+		  Should Be Equal As Integers	${result.rc}	0	msg=RRD Broker not correctly stopped
 		END
 	END
-	
+
 Stop Broker
 	${result}=	Terminate Process	b1	kill=False
 	Should Be Equal As Integers	${result.rc}	0
@@ -168,6 +179,11 @@ Dump Process
 	Run Process	gcore	-o	${output}	${pid}
 	Log To Console	Done...
 
+Clear Metrics
+	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
+	Execute SQL String	DELETE FROM metrics
+	Execute SQL String	DELETE FROM index_data
+	Execute SQL String	DELETE FROM data_bin
 
 *** Variables ***
 ${BROKER_LOG}	${VarRoot}/log/centreon-broker
