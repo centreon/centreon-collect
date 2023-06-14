@@ -34,6 +34,10 @@ apt-get -y install cmake \
     locales \
     zstd
 
+echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
+apt-get update
+apt-get install -y nfpm
+
 apt-get clean
 
 localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8

@@ -23,15 +23,15 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: alma8
-            distrib: el8
-            package_extension: rpm
-          - image: alma9
+          # - image: centreon-collect-alma8
+          #   distrib: el8
+          #   package_extension: rpm
+          - image: centreon-collect-alma9
             distrib: el9
             package_extension: rpm
-          - image: debian-bullseye
-            distrib: bullseye
-            package_extension: deb
+          # - image: centreon-collect-debian-bullseye
+          #   distrib: bullseye
+          #   package_extension: deb
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}
