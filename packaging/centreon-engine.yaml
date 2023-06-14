@@ -1,0 +1,124 @@
+name: "centreon-engine"
+arch: "amd64"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Centreon Engine is a monitoring engine, compatible with Nagios
+  configuration, designed to monitor hosts and services on your network.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://centreon.com"
+license: "Apache-2.0"
+
+depends:
+  - centreon-clib
+
+contents:
+  - src: "../engine/conf/centengine.cfg.in"
+    dst: "/etc/centreon-engine/centengine.cfg"
+    type: config|noreplace
+    file_info:
+      mode: 0664
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "../engine/conf/resource.cfg.in"
+    dst: "/etc/centreon-engine/resource.cfg"
+    type: config|noreplace
+    file_info:
+      mode: 0664
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "../engine/conf/commands.cfg.in"
+    dst: "/etc/centreon-engine/commands.cfg"
+    type: config|noreplace
+    file_info:
+      mode: 0664
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "../engine/conf/timeperiods.cfg.in"
+    dst: "/etc/centreon-engine/timeperiods.cfg"
+    type: config|noreplace
+    file_info:
+      mode: 0664
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "../logrotate.d/centengine"
+    dst: "/etc/logrotate.d/centengine"
+    type: config|noreplace
+    file_info:
+      owner: root
+      group: root
+
+  - src: "../centengine.service"
+    dst: "/usr/lib/systemd/system/centengine.service"
+    file_info:
+      mode: 755
+      owner: root
+      group: root
+
+  - src: "../centengine"
+    dst: "/usr/sbin/centengine"
+    file_info:
+      owner: root
+      group: root
+
+  - src: "../centenginestats"
+    dst: "/usr/sbin/centenginestats"
+    file_info:
+      owner: root
+      group: root
+
+  - src: "./integrate_centreon_engine2centreon.sh"
+    dst: "/usr/share/centreon-engine/extra/integrate_centreon_engine2centreon.sh"
+    file_info:
+      mode: 0775
+      owner: root
+      group: root
+
+  - dst: /var/log/centreon-engine
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
+  - dst: /var/lib/centreon-engine
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
+conflicts:
+  - centreon-engine-daemon
+  - centreon-engine-extcommands
+replaces:
+  - centreon-engine-daemon
+  - centreon-engine-extcommands
+provides:
+  - centreon-engine-daemon
+  - centreon-engine-extcommands
+
+overrides:
+  rpm:
+    depends:
+      - centreon-clib = ${VERSION}-${RELEASE}
+  deb:
+    depends:
+      - centreon-clib (= ${VERSION}-${RELEASE})
+
+rpm:
+  summary: Centreon Engine monitoring core.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}
