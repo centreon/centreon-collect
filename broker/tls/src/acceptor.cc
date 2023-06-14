@@ -64,7 +64,7 @@ acceptor::acceptor(std::string const& cert,
  *
  *  @see tls::stream
  */
-std::unique_ptr<io::stream> acceptor::open() {
+std::shared_ptr<io::stream> acceptor::open() {
   /*
   ** The process of accepting a TLS client is pretty straight-forward.
   ** Just follow the comments the have an overview of performed
@@ -72,7 +72,7 @@ std::unique_ptr<io::stream> acceptor::open() {
   */
 
   // First accept a client from the lower layer.
-  std::unique_ptr<io::stream> lower(_from->open());
+  std::shared_ptr<io::stream> lower(_from->open());
   if (lower)
     return open(std::move(lower));
   return nullptr;
@@ -85,9 +85,9 @@ std::unique_ptr<io::stream> acceptor::open() {
  *
  *  @return Encrypted stream.
  */
-std::unique_ptr<io::stream> acceptor::open(
+std::shared_ptr<io::stream> acceptor::open(
     const std::shared_ptr<io::stream>& lower) {
-  std::unique_ptr<io::stream> u;
+  std::shared_ptr<io::stream> u;
   if (lower) {
     int ret;
 

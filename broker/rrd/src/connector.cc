@@ -56,8 +56,8 @@ connector::connector()
  *
  *  @return Stream object.
  */
-std::unique_ptr<io::stream> connector::open() {
-  std::unique_ptr<io::stream> retval;
+std::shared_ptr<io::stream> connector::open() {
+  std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
     retval.reset(new output<cached<asio::local::stream_protocol::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,

@@ -39,7 +39,7 @@ class connector : public io::endpoint {
   uint32_t _ack_limit;
   std::list<std::shared_ptr<io::extension>> _extensions;
 
-  std::unique_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
+  std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
 
  public:
   connector(bool negotiate,
@@ -51,7 +51,7 @@ class connector : public io::endpoint {
   ~connector() noexcept = default;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace bbdo
 

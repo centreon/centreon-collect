@@ -82,7 +82,7 @@ void connector::connect_to(std::string const& user,
  *
  * @return An Influxdb connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   return std::unique_ptr<stream>(
       new stream(_user, _password, _addr, _port, _db, _queries_per_transaction,
                  _status_ts, _status_cols, _metric_ts, _metric_cols, _cache));

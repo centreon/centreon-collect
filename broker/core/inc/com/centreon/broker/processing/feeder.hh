@@ -40,42 +40,56 @@ namespace processing {
  *
  *  Take events from a source and send them to a destination.
  */
-class feeder : public stat_visitable {
-  enum state { stopped, running, finished };
+class feeder : public stat_visitable,
+               public std::enable_shared_from_this<feeder> {
+  enum class state : unsigned { running, finished };
   // Condition variable used when waiting for the thread to finish
-  std::unique_ptr<std::thread> _thread;
-  state _state;
-  mutable std::mutex _state_m;
-  std::condition_variable _state_cv;
+  std::atomic<state> _state;
 
-  std::atomic_bool _should_exit;
-
-  std::unique_ptr<io::stream> _client;
+  std::shared_ptr<io::stream> _client;
   // as the muxer may be embeded in a lambda run by asio thread, we use a
   // shared_ptr
   std::shared_ptr<multiplexing::muxer> _muxer;
 
-  // This mutex is used for the stat thread.
-  mutable misc::shared_mutex _client_m;
-
-  void _callback() noexcept;
+  asio::system_timer _stat_timer;
+  asio::system_timer _read_from_stream_timer;
+  std::shared_ptr<asio::io_context> _io_context;
 
  protected:
+  feeder(const std::string& name,
+         std::shared_ptr<io::stream>& client,
+         const multiplexing::muxer_filter& read_filters,
+         const multiplexing::muxer_filter& write_filters);
+
   const std::string& _get_read_filters() const override;
   const std::string& _get_write_filters() const override;
   void _forward_statistic(nlohmann::json& tree) override;
   uint32_t _get_queued_events() const override;
 
+  template <bool to_lock>
+  void _start_stat_timer();
+  void _stat_timer_handler(const asio::error_code& err);
+
+  void _start_read_from_stream_timer();
+  void _read_from_stream_timer_handler(const asio::error_code& err);
+
+  void _read_from_muxer();
+  void _on_event_from_muxer(const std::shared_ptr<io::data>& event);
+
  public:
-  feeder(const std::string& name,
-         std::unique_ptr<io::stream>& client,
-         const multiplexing::muxer_filter& read_filters,
-         const multiplexing::muxer_filter& write_filters);
+  static std::shared_ptr<feeder> create(
+      const std::string& name,
+      std::shared_ptr<io::stream>& client,
+      const multiplexing::muxer_filter& read_filters,
+      const multiplexing::muxer_filter& write_filters);
+
   ~feeder();
   feeder(const feeder&) = delete;
   feeder& operator=(const feeder&) = delete;
+
+  void stop();
+
   bool is_finished() const noexcept;
-  const char* get_state() const;
 
   bool wait_for_all_events_written(unsigned ms_timeout);
 };

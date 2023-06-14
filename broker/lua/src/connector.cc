@@ -65,6 +65,6 @@ void connector::connect_to(
  *
  *  @return a lua connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   return std::make_unique<stream>(_lua_script, _conf_params, _cache);
 }

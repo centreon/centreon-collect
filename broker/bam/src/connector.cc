@@ -131,13 +131,13 @@ std::unique_ptr<bam::connector> connector::create_reporting_connector(
  *
  * @return BAM connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   if (_type == bam_reporting_type)
-    return std::unique_ptr<io::stream>(new reporting_stream(_db_cfg));
+    return std::shared_ptr<io::stream>(new reporting_stream(_db_cfg));
   else {
     database_config storage_db_cfg(_db_cfg);
     storage_db_cfg.set_name(_storage_db_name);
-    auto u = std::make_unique<monitoring_stream>(_ext_cmd_file, _db_cfg,
+    auto u = std::make_shared<monitoring_stream>(_ext_cmd_file, _db_cfg,
                                                  storage_db_cfg, _cache);
     // FIXME DBR: just after this creation, initialize() is called by update()
     // So I think this call is not needed. But for now not totally sure.

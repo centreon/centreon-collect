@@ -44,8 +44,8 @@ class connector : public io::endpoint {
   ~connector() = default;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
-  std::unique_ptr<io::stream> open();
-  std::unique_ptr<io::stream> open(std::shared_ptr<io::stream> lower);
+  std::shared_ptr<io::stream> open();
+  std::shared_ptr<io::stream> open(std::shared_ptr<io::stream> lower);
 };
 }  // namespace tls2
 

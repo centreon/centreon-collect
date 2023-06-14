@@ -55,7 +55,7 @@ class connector : public io::endpoint {
                   unsigned short db_port,
                   uint32_t queries_per_transaction,
                   std::shared_ptr<persistent_cache> const& cache);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace graphite
 

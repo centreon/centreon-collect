@@ -44,7 +44,7 @@ class TestStream : public io::stream {
 
 class TestFeeder : public ::testing::Test {
  protected:
-  std::unique_ptr<feeder> _feeder;
+  std::shared_ptr<feeder> _feeder;
 
  public:
   void SetUp() override {
@@ -57,11 +57,11 @@ class TestFeeder : public ::testing::Test {
     io::protocols::load();
     io::events::load();
 
-    std::unique_ptr<io::stream> client(new TestStream);
+    std::shared_ptr<io::stream> client(new TestStream);
     multiplexing::muxer_filter read_filters;
     multiplexing::muxer_filter write_filters;
-    _feeder = std::make_unique<feeder>("test-feeder", client, read_filters,
-                                       write_filters);
+    _feeder =
+        feeder::create("test-feeder", client, read_filters, write_filters);
   }
 
   void TearDown() override {

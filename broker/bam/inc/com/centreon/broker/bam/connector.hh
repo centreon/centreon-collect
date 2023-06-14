@@ -63,7 +63,7 @@ class connector : public io::endpoint {
                           std::string const& storage_db_name,
                           std::shared_ptr<persistent_cache> cache);
   void connect_reporting(database_config const& db_cfg);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace bam
 

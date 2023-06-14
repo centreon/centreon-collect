@@ -48,7 +48,7 @@ class acceptor : public io::endpoint {
 
   void add_child(std::string const& child);
   void listen();
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
   void remove_child(std::string const& child);
   void stats(nlohmann::json& tree) override;
   bool is_ready() const override;

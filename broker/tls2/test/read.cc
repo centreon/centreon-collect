@@ -34,11 +34,11 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class TlsStreamRead : public ::testing::Test {
  protected:
   std::unique_ptr<tls2::connector> _connector;
-  std::unique_ptr<io::stream> _stream_con;
+  std::shared_ptr<io::stream> _stream_con;
   std::shared_ptr<StreamMemoryStream> _substream_con;
 
   std::unique_ptr<tls2::acceptor> _acceptor;
-  std::unique_ptr<io::stream> _stream_acc;
+  std::shared_ptr<io::stream> _stream_acc;
   std::shared_ptr<StreamMemoryStream> _substream_acc;
 
  public:

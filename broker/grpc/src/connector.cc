@@ -40,7 +40,7 @@ connector::connector(const grpc_config::pointer& conf)
  *
  * @return std::unique_ptr<io::stream>
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   SPDLOG_LOGGER_INFO(log_v2::grpc(), "Connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
@@ -58,6 +58,6 @@ std::unique_ptr<io::stream> connector::open() {
  *
  * @return std::unique_ptr<io::stream>
  */
-std::unique_ptr<io::stream> connector::create_stream() {
-  return std::make_unique<stream>(_conf);
+std::shared_ptr<io::stream> connector::create_stream() {
+  return std::make_shared<stream>(_conf);
 }
