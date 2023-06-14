@@ -72,7 +72,7 @@ void connector::connect_to(std::string const& metric_naming,
  *
  *  @return Graphite connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   return std::unique_ptr<stream>(new stream(
       _metric_naming, _status_naming, _escape_string, _user, _password, _addr,
       _port, _queries_per_transaction, _persistent_cache));

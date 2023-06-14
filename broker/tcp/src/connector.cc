@@ -49,7 +49,7 @@ connector::~connector() {}
  *
  * @return The TCP connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   // Launch connection process.
   log_v2::tcp()->info("TCP: connecting to {}:{}", _conf->get_host(),
                       _conf->get_port());
@@ -68,6 +68,6 @@ std::unique_ptr<io::stream> connector::open() {
  *
  * @return std::shared_ptr<stream>
  */
-std::unique_ptr<io::stream> connector::create_stream() {
-  return std::make_unique<stream>(_conf);
+std::shared_ptr<io::stream> connector::create_stream() {
+  return std::make_shared<stream>(_conf);
 }

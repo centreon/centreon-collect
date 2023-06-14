@@ -78,10 +78,10 @@ acceptor::~acceptor() noexcept {
  *  @return Always return null stream. A new thread will be launched to
  *          process the incoming connection.
  */
-std::unique_ptr<io::stream> acceptor::open() {
+std::shared_ptr<io::stream> acceptor::open() {
   // Wait for client from the lower layer.
   if (_from) {
-    std::unique_ptr<io::stream> u = _from->open();
+    std::shared_ptr<io::stream> u = _from->open();
 
     // Add BBDO layer.
     if (u) {
@@ -103,7 +103,7 @@ std::unique_ptr<io::stream> acceptor::open() {
     }
   }
 
-  return std::unique_ptr<io::stream>();
+  return std::shared_ptr<io::stream>();
 }
 
 /**

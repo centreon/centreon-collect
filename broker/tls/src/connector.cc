@@ -56,9 +56,9 @@ connector::connector(std::string const& cert,
  *
  *  @return New connected stream.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   // First connect the lower layer.
-  std::unique_ptr<io::stream> lower(_from->open());
+  std::shared_ptr<io::stream> lower(_from->open());
   if (lower)
     return open(std::move(lower));
   return nullptr;
@@ -71,8 +71,8 @@ std::unique_ptr<io::stream> connector::open() {
  *
  *  @return Encrypted stream.
  */
-std::unique_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
-  std::unique_ptr<io::stream> u;
+std::shared_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
+  std::shared_ptr<io::stream> u;
   if (lower) {
     int ret;
     // Load parameters.

@@ -34,9 +34,9 @@ class connector : public io::limit_endpoint {
   connector& operator=(const connector&) = delete;
   connector(const connector&) = delete;
 
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 
-  std::unique_ptr<io::stream> create_stream() override;
+  std::shared_ptr<io::stream> create_stream() override;
 };
 };  // namespace grpc
 

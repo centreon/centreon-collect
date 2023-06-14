@@ -79,7 +79,7 @@ TEST_F(TlsTest, AnonTlsStream) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     // tls_cbd->handshake();
@@ -110,7 +110,7 @@ TEST_F(TlsTest, AnonTlsStream) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
+    std::shared_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 
@@ -146,7 +146,7 @@ TEST_F(TlsTest, AnonTlsStreamContinuous) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     // tls_cbd->handshake();
@@ -181,7 +181,7 @@ TEST_F(TlsTest, AnonTlsStreamContinuous) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine = tls_c->open(u_centengine);
+    std::shared_ptr<io::stream> io_tls_centengine = tls_c->open(u_centengine);
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 
@@ -237,7 +237,7 @@ TEST_F(TlsTest, TlsStream) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     do {
@@ -267,7 +267,7 @@ TEST_F(TlsTest, TlsStream) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
+    std::shared_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 
@@ -319,7 +319,7 @@ TEST_F(TlsTest, TlsStreamCa) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     do {
@@ -349,7 +349,7 @@ TEST_F(TlsTest, TlsStreamCa) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
+    std::shared_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 
@@ -401,7 +401,7 @@ TEST_F(TlsTest, TlsStreamCaError) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     do {
@@ -434,7 +434,7 @@ TEST_F(TlsTest, TlsStreamCaError) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine;
+    std::shared_ptr<io::stream> io_tls_centengine;
     ASSERT_THROW(io_tls_centengine = tls_c->open(u_centengine), std::exception);
   });
 
@@ -474,7 +474,7 @@ TEST_F(TlsTest, TlsStreamCaHostname) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     do {
@@ -504,7 +504,7 @@ TEST_F(TlsTest, TlsStreamCaHostname) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
+    std::shared_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 
@@ -559,7 +559,7 @@ TEST_F(TlsTest, TlsStreamBigData) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     char c = 'A';
@@ -608,7 +608,7 @@ TEST_F(TlsTest, TlsStreamBigData) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
+    std::shared_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 
@@ -670,7 +670,7 @@ TEST_F(TlsTest, TlsStreamLongData) {
       u_cbd = a->open();
     } while (!u_cbd);
 
-    std::unique_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
+    std::shared_ptr<io::stream> io_tls_cbd = tls_a->open(u_cbd);
     tls::stream* tls_cbd = static_cast<tls::stream*>(io_tls_cbd.get());
 
     char c = 'A';
@@ -720,7 +720,7 @@ TEST_F(TlsTest, TlsStreamLongData) {
       u_centengine = c->open();
     } while (!u_centengine);
 
-    std::unique_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
+    std::shared_ptr<io::stream> io_tls_centengine{tls_c->open(u_centengine)};
     tls::stream* tls_centengine =
         static_cast<tls::stream*>(io_tls_centengine.get());
 

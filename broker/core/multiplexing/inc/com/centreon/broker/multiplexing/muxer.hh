@@ -49,7 +49,11 @@ namespace multiplexing {
  *
  *  @see engine
  */
-class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
+class muxer : public io::stream {
+ public:
+  using read_handler = std::function<void()>;
+
+ private:
   static uint32_t _event_queue_max_size;
 
   const std::string _name;
@@ -59,6 +63,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::string _read_filters_str;
   std::string _write_filters_str;
   const bool _persistent;
+  read_handler _read_handler;
 
   std::unique_ptr<persistent_file> _file;
   std::condition_variable _cv;
@@ -99,6 +104,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void ack_events(int count);
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
+  std::shared_ptr<io::data> read(read_handler&& handler);
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
   uint32_t get_event_queue_size() const;
@@ -107,6 +113,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void statistics(nlohmann::json& tree) const override;
   void wake();
   int32_t write(std::shared_ptr<io::data> const& d) override;
+  void write(std::list<std::shared_ptr<io::data>>& to_publish);
   int32_t stop() override;
   const std::string& name() const;
   void set_read_filter(const muxer_filter& w_filter);

@@ -38,9 +38,9 @@ class acceptor : public io::endpoint {
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
 
-  std::unique_ptr<io::stream> open() override;
-  std::unique_ptr<io::stream> open(const system_clock::time_point& dead_line);
-  std::unique_ptr<io::stream> open(const system_clock::duration& delay) {
+  std::shared_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open(const system_clock::time_point& dead_line);
+  std::shared_ptr<io::stream> open(const system_clock::duration& delay) {
     return open(system_clock::now() + delay);
   }
   bool is_ready() const override;

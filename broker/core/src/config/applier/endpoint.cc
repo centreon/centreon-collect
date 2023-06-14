@@ -233,8 +233,7 @@ void endpoint::_discard() {
   log_v2::config()->debug("endpoint applier: destruction");
 
   // wait for failover and feeder to push endloop event
-  ::usleep(processing::stat_visitable::idle_microsec_wait_idle_thread_delay +
-           100000);
+  ::usleep(processing::idle_microsec_wait_idle_thread_delay + 100000);
   // Exit threads.
   {
     log_v2::config()->debug("endpoint applier: requesting threads termination");

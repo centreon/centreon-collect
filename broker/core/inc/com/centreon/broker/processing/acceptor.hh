@@ -51,7 +51,7 @@ class acceptor : public endpoint {
   std::atomic_bool _should_exit;
 
   std::shared_ptr<io::endpoint> _endp;
-  std::list<processing::feeder*> _feeders;
+  std::list<std::shared_ptr<processing::feeder>> _feeders;
   const multiplexing::muxer_filter _read_filters;
   std::string _read_filters_str;
   time_t _retry_interval = 15;

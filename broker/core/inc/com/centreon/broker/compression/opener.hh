@@ -35,14 +35,14 @@ class opener : public io::endpoint {
   const int _level;
   const size_t _size;
 
-  std::unique_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
+  std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
 
  public:
   opener(int32_t level = -1, size_t size = 0);
   ~opener() noexcept = default;
   opener(const opener&) = delete;
   opener& operator=(const opener&) = delete;
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace compression
 

@@ -57,7 +57,7 @@ class endpoint {
   void from(std::shared_ptr<endpoint> endp);
   bool is_acceptor() const noexcept;
   bool is_connector() const noexcept;
-  virtual std::unique_ptr<stream> open() = 0;
+  virtual std::shared_ptr<stream> open() = 0;
   virtual bool is_ready() const;
   virtual void stats(nlohmann::json& tree);
 

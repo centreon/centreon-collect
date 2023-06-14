@@ -101,7 +101,7 @@ std::unique_ptr<com::centreon::broker::grpc::acceptor> grpc_test_server::s;
 
 TEST_P(grpc_test_server, ClientToServerSendReceive) {
   com::centreon::broker::grpc::stream client(conf);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -130,7 +130,7 @@ INSTANTIATE_TEST_SUITE_P(grpc_test_server,
 
 TEST_P(grpc_test_server, ServerToClientSendReceive) {
   com::centreon::broker::grpc::stream client(conf);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -187,7 +187,7 @@ INSTANTIATE_TEST_SUITE_P(grpc_comm_failure,
 
 TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -209,7 +209,7 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
 
 TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(2000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -242,7 +242,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
   relay->shutdown_relays();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -284,7 +284,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   relay->shutdown_relays();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -385,7 +385,7 @@ INSTANTIATE_TEST_SUITE_P(grpc_test_server_crypted,
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeySendReceive) {
   com::centreon::broker::grpc::stream client(conf_crypted_client1234);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -422,7 +422,7 @@ com::centreon::broker::grpc::grpc_config::pointer
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeyAndBadAuthorization) {
   com::centreon::broker::grpc::stream client(conf_crypted_client1234_bad_auth);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(200));
 
   ASSERT_EQ(accepted.get(), nullptr);

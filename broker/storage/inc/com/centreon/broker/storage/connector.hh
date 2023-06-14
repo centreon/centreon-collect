@@ -48,7 +48,7 @@ class connector : public io::endpoint {
                   uint32_t rrd_len,
                   uint32_t interval_length,
                   bool store_in_data_bin = true);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace storage
 
