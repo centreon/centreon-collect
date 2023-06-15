@@ -53,8 +53,7 @@ jobs:
       - run: cat /proc/meminfo
 
       - run: |
-          apt-get update
-          apt-get install -y sudo
+          dnf install -y sudo
         shell: bash
 
       - name: Compile sources
