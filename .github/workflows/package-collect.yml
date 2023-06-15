@@ -39,7 +39,7 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      options: "--user 1001"
+      options: "--user root"
 
     name: package ${{ matrix.distrib }}
 
@@ -48,6 +48,7 @@ jobs:
         uses: actions/checkout@v3
 
       - run: |
+          id
           dnf install -y sudo
         shell: bash
 
