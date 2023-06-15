@@ -62,6 +62,19 @@ contents:
       owner: root
       group: root
 
+  - src: "../lib"
+    dst: "/usr/lib64/centreon-engine/externalcmd.so"
+    file_info:
+      owner: root
+      group: root
+
+  - dst: "/var/lib/centreon-engine/rw"
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-engine
+      group: centreon-engine
+
   - src: "../bin/centengine"
     dst: "/usr/sbin/centengine"
     file_info:
@@ -104,6 +117,10 @@ replaces:
 provides:
   - centreon-engine-daemon
   - centreon-engine-extcommands
+
+scripts:
+  postinstall: ./scripts/centreon-engine-postinstall.sh
+  preremove: ./scripts/centreon-engine-preremove.sh
 
 overrides:
   rpm:
