@@ -50,29 +50,33 @@ jobs:
           pip3 install conan==1.57.0 --upgrade
           conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
+          # -DWITH_CLANG=ON
+          # -DNG=ON
+
           cmake3 \
                   -G "Ninja" \
-                  -DWITH_CLANG=ON \
-                  -DNG=ON \
-                  -DWITH_TESTING=0 \
-                  -DWITH_BENCH=1 \
+                  -DWITH_TESTING=OFF \
+                  -DWITH_BENCH=OFF \
+                  -DWITH_MODULE_SIMU=OFF \
                   -DCMAKE_INSTALL_PREFIX=/usr \
-                  -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
+                  -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
                   -DWITH_STARTUP_DIR=/lib/systemd/system \
                   -DWITH_STARTUP_SCRIPT=systemd \
                   -DWITH_USER_BROKER=centreon-broker \
                   -DWITH_GROUP_BROKER=centreon-broker \
                   -DWITH_USER_ENGINE=centreon-engine \
                   -DWITH_GROUP_ENGINE=centreon-engine \
-                  -DWITH_DAEMONS=y \
-                  -DWITH_CONFIG_FILES=y \
+                  -DWITH_DAEMONS=ON \
+                  -DWITH_CREATE_FILES=OFF \
+                  -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   .
 
           ninja -j 8
         shell: bash
 
-      - run: ls -l
+      - run: ls -Rl bin
+      - run: ls -Rl lib
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v3

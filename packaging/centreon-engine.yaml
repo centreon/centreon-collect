@@ -27,7 +27,7 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../engine/conf/resource.cfg.in"
+  - src: "../engine/conf/resource.cfg"
     dst: "/etc/centreon-engine/resource.cfg"
     type: config|noreplace
     file_info:
@@ -35,7 +35,7 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../engine/conf/commands.cfg.in"
+  - src: "../engine/conf/commands.cfg"
     dst: "/etc/centreon-engine/commands.cfg"
     type: config|noreplace
     file_info:
@@ -43,7 +43,7 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../engine/conf/timeperiods.cfg.in"
+  - src: "../engine/conf/timeperiods.cfg"
     dst: "/etc/centreon-engine/timeperiods.cfg"
     type: config|noreplace
     file_info:
@@ -51,38 +51,38 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../logrotate.d/centengine"
+  - src: "../engine/scripts/logrotate.conf"
     dst: "/etc/logrotate.d/centengine"
     type: config|noreplace
     file_info:
       owner: root
       group: root
 
-  - src: "../centengine.service"
+  - src: "../engine/scripts/centengine.service"
     dst: "/usr/lib/systemd/system/centengine.service"
     file_info:
       mode: 755
       owner: root
       group: root
 
-  - src: "../centengine"
+  - src: "../bin/centengine"
     dst: "/usr/sbin/centengine"
     file_info:
       owner: root
       group: root
 
-  - src: "../centenginestats"
+  - src: "../bin/centenginestats"
     dst: "/usr/sbin/centenginestats"
     file_info:
       owner: root
       group: root
 
-  - src: "./integrate_centreon_engine2centreon.sh"
-    dst: "/usr/share/centreon-engine/extra/integrate_centreon_engine2centreon.sh"
-    file_info:
-      mode: 0775
-      owner: root
-      group: root
+  # - src: "./integrate_centreon_engine2centreon.sh"
+  #   dst: "/usr/share/centreon-engine/extra/integrate_centreon_engine2centreon.sh"
+  #   file_info:
+  #     mode: 0775
+  #     owner: root
+  #     group: root
 
   - dst: /var/log/centreon-engine
     type: dir
