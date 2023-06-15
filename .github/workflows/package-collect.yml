@@ -17,8 +17,9 @@ on:
         type: string
 
 jobs:
-  package-rpm:
-    runs-on: [self-hosted, collect]
+  package:
+    #runs-on: [self-hosted, collect]
+    runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -38,6 +39,7 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      #options: "--cpus 8 "
 
     name: package ${{ matrix.distrib }}
 

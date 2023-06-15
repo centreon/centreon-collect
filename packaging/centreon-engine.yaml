@@ -15,9 +15,6 @@ vendor: "Centreon"
 homepage: "https://centreon.com"
 license: "Apache-2.0"
 
-depends:
-  - centreon-clib
-
 contents:
   - src: "../engine/conf/centengine.cfg.in"
     dst: "/etc/centreon-engine/centengine.cfg"
