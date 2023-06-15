@@ -52,6 +52,11 @@ jobs:
       - run: cat /proc/cpuinfo
       - run: cat /proc/meminfo
 
+      - run: |
+          apt-get update
+          apt-get install -y sudo
+        shell: bash
+
       - name: Compile sources
         run: |
           sudo pip3 install conan==1.57.0 --upgrade
@@ -84,11 +89,6 @@ jobs:
 
       - run: ls -Rl bin
       - run: ls -Rl lib
-
-      - run: |
-          apt-get update
-          apt-get install -y sudo
-        shell: bash
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v3
