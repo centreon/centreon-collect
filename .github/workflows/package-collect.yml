@@ -85,6 +85,11 @@ jobs:
       - run: ls -Rl bin
       - run: ls -Rl lib
 
+      - run: |
+          apt-get update
+          apt-get install -y sudo
+        shell: bash
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
