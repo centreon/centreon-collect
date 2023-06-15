@@ -13,6 +13,12 @@ dnf config-manager --set-enabled crb
 
 dnf install -y epel-release
 
+echo '[goreleaser]
+name=GoReleaser
+baseurl=https://repo.goreleaser.com/yum/
+enabled=1
+gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
+
 dnf install -y cmake \
     gcc \
     gcc-c++ \
@@ -38,7 +44,9 @@ dnf install -y cmake \
     perl \
     rpm-build \
     procps-ng \
-    zstd
+    zstd \
+    nfpm \
+    sudo
 
 pip3 install conan==1.57.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
