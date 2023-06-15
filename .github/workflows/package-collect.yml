@@ -39,7 +39,7 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      options: "--cpus 8"
+      options: "--cpus 7"
       # volumes:
       #   - /__w
 
