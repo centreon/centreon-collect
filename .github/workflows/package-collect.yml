@@ -18,8 +18,8 @@ on:
 
 jobs:
   package:
-    #runs-on: [self-hosted, collect]
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, collect]
+    #runs-on: ubuntu-22.04
 
     strategy:
       matrix:
@@ -39,7 +39,9 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      #options: "--cpus 8 "
+      options: "--cpus 8"
+      volumes:
+        - /__w
 
     name: package ${{ matrix.distrib }}
 
