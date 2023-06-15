@@ -108,12 +108,12 @@ jobs:
       #     rm -rf *-debuginfo*.rpm
       #     rm -rf *-debugsource*.rpm
 
-      # - name: Upload package artifacts
-      #   uses: actions/upload-artifact@v3
-      #   with:
-      #     name: packages-rpm-${{ matrix.distrib }}
-      #     path: ./*.rpm
-      #     retention-days: 1
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-${{ matrix.distrib }}
+          path: ./*.rpm
+          retention-days: 1
 
   # package-deb:
   #   runs-on: [self-hosted, collect]
