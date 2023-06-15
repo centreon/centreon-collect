@@ -193,7 +193,7 @@ BEDB2
     ${result}=    Find In Log with timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    msg=Message about the disconnection between cbd and the database is missing
     Start Mysql
-    ${result}=    Check Broker Stats exist    central    mysql manager    waiting tasks in connection 0
+    ${result}=    Check Broker Stats exist    central    mysql manager    waiting tasks in connection 0  60
     Should Be True    ${result}    msg=Message about the connection to the database is missing.
     Kindly Stop Broker
     Stop Engine

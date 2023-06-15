@@ -55,6 +55,8 @@ class feeder : public stat_visitable,
   asio::system_timer _read_from_stream_timer;
   std::shared_ptr<asio::io_context> _io_context;
 
+  mutable std::mutex _protect;
+
  protected:
   feeder(const std::string& name,
          std::shared_ptr<io::stream>& client,
