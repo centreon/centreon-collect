@@ -52,11 +52,13 @@ jobs:
 
           cmake3 \
                   -G "Ninja" \
+                  -DWITH_CLANG=ON \
+                  -DNG=ON \
                   -DWITH_TESTING=0 \
                   -DWITH_BENCH=1 \
                   -DCMAKE_INSTALL_PREFIX=/usr \
                   -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
-                  -DWITH_STARTUP_DIR=%{_unitdir} \
+                  -DWITH_STARTUP_DIR=/lib/systemd/system \
                   -DWITH_STARTUP_SCRIPT=systemd \
                   -DWITH_USER_BROKER=centreon-broker \
                   -DWITH_GROUP_BROKER=centreon-broker \
@@ -70,11 +72,13 @@ jobs:
           ninja -j 8
         shell: bash
 
+      - run: ls -l
+
       - name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
           name: build
-          path: ./
+          path: ./bin
           retention-days: 1
 
       - uses: ./.github/actions/package
