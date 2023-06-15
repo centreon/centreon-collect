@@ -40,8 +40,8 @@ jobs:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
       options: "--privileged --cpus 7"
-      volumes:
-        - /__w
+      # volumes:
+      #   - /__w
 
     name: package ${{ matrix.distrib }}
 
@@ -49,15 +49,18 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
+      - run: cat /proc/cpuinfo
+      - run: cat /proc/meminfo
+
       - name: Compile sources
         run: |
-          pip3 install conan==1.57.0 --upgrade
-          conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo pip3 install conan==1.57.0 --upgrade
+          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           # -DWITH_CLANG=ON
           # -DNG=ON
 
-          cmake3 \
+          sudo cmake3 \
                   -G "Ninja" \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=OFF \
@@ -76,7 +79,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   .
 
-          ninja -j 8
+          sudo ninja -j 7
         shell: bash
 
       - run: ls -Rl bin
