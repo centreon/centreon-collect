@@ -80,13 +80,7 @@ jobs:
 
       - run: ls -Rl bin
       - run: ls -Rl lib
-
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: build
-          path: ./bin
-          retention-days: 1
+      - run: ls -l
 
       - uses: ./.github/actions/package
         with:

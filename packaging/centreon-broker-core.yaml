@@ -45,14 +45,26 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
+conflicts:
+  - centreon-broker
+replaces:
+  - centreon-broker
+provides:
+  - centreon-broker
+
+scripts:
+  preinstall: ./scripts/centreon-broker-core-preinstall.sh
+
 overrides:
   rpm:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}
+      - centreon-common
       - gnutls >= 3.3.29
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE})
+      - centreon-common
       - gnutls (>= 3.3.29)
 
 rpm:
