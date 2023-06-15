@@ -17,6 +17,7 @@
  *
  */
 #include "configuration/serviceescalation_helper.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
@@ -59,7 +60,31 @@ bool serviceescalation_helper::hook(absl::string_view key,
                                     const absl::string_view& value) {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
   key = validate_key(key);
-  if (key == "contactgroups") {
+
+  if (key == "escalation_options") {
+    uint32_t options = action_he_none;
+    auto arr = absl::StrSplit(value, ',');
+    for (auto& v : arr) {
+      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      if (vv == "w" || vv == "warning")
+        options |= action_se_warning;
+      else if (vv == "u" || "unknown")
+        options |= action_se_unknown;
+      else if (vv == "c" || vv == "critical")
+        options |= action_se_critical;
+      else if (vv == "r" || vv == "recovery")
+        options |= action_se_recovery;
+      else if (vv == "n" || vv == "none")
+        options = action_se_none;
+      else if (vv == "a" || vv == "all")
+        options = action_se_warning | action_se_unknown | action_se_critical |
+                  action_se_recovery;
+      else
+        return false;
+    }
+    obj->set_escalation_options(options);
+    return true;
+  } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
   } else if (key == "hostgroups") {
