@@ -17,6 +17,7 @@
  *
  */
 #include "configuration/service_helper.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;

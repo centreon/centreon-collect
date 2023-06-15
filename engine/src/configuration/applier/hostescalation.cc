@@ -24,6 +24,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "configuration/message_helper.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -88,6 +89,46 @@ void applier::hostescalation::add_object(
        end(obj.contactgroups().end());
        it != end; ++it)
     he->get_contactgroups().insert({*it, nullptr});
+}
+
+/**
+ *  Expand a host escalation.
+ *
+ *  @param[in,out] s  Configuration being applied.
+ */
+void applier::hostescalation::expand_objects(configuration::State& s) {
+  std::list<std::unique_ptr<Hostescalation>> resolved;
+  for (auto& he : *s.mutable_hostescalations()) {
+    if (he.hostgroups().data().size() > 0) {
+      absl::flat_hash_set<absl::string_view> host_names;
+      for (auto& hname : he.hosts().data())
+        host_names.emplace(hname);
+      for (auto& hg_name : he.hostgroups().data()) {
+        auto found_hg =
+            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
+                         [&hg_name](const Hostgroup& hg) {
+                           return hg.hostgroup_name() == hg_name;
+                         });
+        if (found_hg != s.hostgroups().end()) {
+          for (auto& h : found_hg->members().data())
+            host_names.emplace(h);
+        } else
+          throw engine_error() << fmt::format(
+              "Could not expand non-existing host group '{}'", hg_name);
+      }
+      he.mutable_hostgroups()->clear_data();
+      he.mutable_hosts()->clear_data();
+      for (auto& n : host_names) {
+        resolved.emplace_back(std::make_unique<Hostescalation>());
+        auto& e = resolved.back();
+        e->CopyFrom(he);
+        fill_string_group(e->mutable_hosts(), n);
+      }
+    }
+  }
+  s.clear_hostescalations();
+  for (auto& e : resolved)
+    s.mutable_hostescalations()->AddAllocated(e.release());
 }
 
 /**

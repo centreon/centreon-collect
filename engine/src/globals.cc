@@ -39,7 +39,16 @@ char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
 
 com::centreon::engine::restart_stats restart_apply_stats;
 
-char* config_file(NULL);
+/**
+ * @brief If true, it is the legacy configuration mechanism that is in place.
+ * If false, it is the new mechanism with Protobuf objects.
+ *
+ * This is a first step for the transition. This flag will disappear when the
+ * transition will be over.
+ */
+bool legacy_conf = true;
+
+std::string config_file;
 char* debug_file(NULL);
 char* global_host_event_handler(NULL);
 char* global_service_event_handler(NULL);

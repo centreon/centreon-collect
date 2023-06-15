@@ -454,9 +454,9 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->cfg_main(new_cfg.cfg_main());
   config->check_external_commands(new_cfg.check_external_commands());
   config->check_host_freshness(new_cfg.check_host_freshness());
-  config->check_orphaned_hosts(new_cfg.check_orphaned_hosts());
-  config->check_orphaned_services(new_cfg.check_orphaned_services());
-  config->check_reaper_interval(new_cfg.check_reaper_interval());
+  config->set_check_orphaned_hosts(new_cfg.check_orphaned_hosts());
+  config->set_check_orphaned_services(new_cfg.check_orphaned_services());
+  config->set_check_reaper_interval(new_cfg.check_reaper_interval());
   config->check_service_freshness(new_cfg.check_service_freshness());
   config->command_check_interval(new_cfg.command_check_interval(),
                                  new_cfg.command_check_interval_is_seconds());
@@ -493,8 +493,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   //  config->host_perfdata_file_processing_interval(
   //      new_cfg.host_perfdata_file_processing_interval());
   //  config->host_perfdata_file_template(new_cfg.host_perfdata_file_template());
-  config->illegal_object_chars(new_cfg.illegal_object_chars());
-  config->illegal_output_chars(new_cfg.illegal_output_chars());
+  config->set_illegal_object_chars(new_cfg.illegal_object_chars());
+  config->set_illegal_output_chars(new_cfg.illegal_output_chars());
   config->interval_length(new_cfg.interval_length());
   config->log_event_handlers(new_cfg.log_event_handlers());
   config->log_external_commands(new_cfg.log_external_commands());
@@ -508,7 +508,8 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->max_debug_file_size(new_cfg.max_debug_file_size());
   config->max_host_check_spread(new_cfg.max_host_check_spread());
   config->max_log_file_size(new_cfg.max_log_file_size());
-  config->max_parallel_service_checks(new_cfg.max_parallel_service_checks());
+  config->set_max_parallel_service_checks(
+      new_cfg.max_parallel_service_checks());
   config->max_service_check_spread(new_cfg.max_service_check_spread());
   config->notification_timeout(new_cfg.notification_timeout());
   config->obsess_over_hosts(new_cfg.obsess_over_hosts());
@@ -555,7 +556,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->use_large_installation_tweaks(
       new_cfg.use_large_installation_tweaks());
   config->instance_heartbeat_interval(new_cfg.instance_heartbeat_interval());
-  config->use_regexp_matches(new_cfg.use_regexp_matches());
+  config->set_use_regexp_matches(new_cfg.use_regexp_matches());
   config->use_retained_program_state(new_cfg.use_retained_program_state());
   config->use_retained_scheduling_info(new_cfg.use_retained_scheduling_info());
   config->use_setpgid(new_cfg.use_setpgid());
@@ -1422,22 +1423,21 @@ void applier::state::_processing(configuration::State& new_cfg,
   // Expand anomalydetections.
   _expand<configuration::Anomalydetection, applier::anomalydetection>(new_cfg);
 
-  //  // Expand servicegroups.
-  //  _expand<configuration::servicegroup, applier::servicegroup>(new_cfg);
-  //
-  //  // Expand hostdependencies.
-  //  _expand<configuration::hostdependency,
-  //  applier::hostdependency>(new_cfg);
-  //
+  // Expand servicegroups.
+  _expand<configuration::Servicegroup, applier::servicegroup>(new_cfg);
+
+  // Expand hostdependencies.
+  _expand<configuration::Hostdependency, applier::hostdependency>(new_cfg);
+
   // Expand servicedependencies.
   _expand<configuration::Servicedependency, applier::servicedependency>(
       new_cfg);
-  //
-  //  // Expand hostescalations.
-  //  _expand<configuration::hostescalation, applier::hostescalation>(new_cfg);
-  //
-  //  // Expand serviceescalations.
-  //  _expand<configuration::serviceescalation, applier::serviceescalation>(
+
+  // Expand hostescalations.
+  _expand<configuration::Hostescalation, applier::hostescalation>(new_cfg);
+
+  // Expand serviceescalations.
+  //  _expand<configuration::Serviceescalation, applier::serviceescalation>(
   //      new_cfg);
 
   //
