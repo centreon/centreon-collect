@@ -39,7 +39,6 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      options: "--user root"
 
     name: package ${{ matrix.distrib }}
 
@@ -54,10 +53,10 @@ jobs:
 
       - name: Compile sources
         run: |
-          pip3 install conan==1.57.0 --upgrade
-          conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo pip3 install conan==1.57.0 --upgrade
+          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-          cmake3 \
+          sudo cmake3 \
                   -G "Ninja" \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=OFF \
@@ -76,7 +75,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   .
 
-          sudo ninja -j 8
+                  sudo sudo ninja -j 8
         shell: bash
 
       - run: ls -Rl bin
