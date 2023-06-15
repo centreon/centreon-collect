@@ -172,7 +172,7 @@ void pool::_stop() {
  * computation every 10s.
  *
  */
-void pool::_check_latency(boost::system::error_code ec) {
+void pool::_check_latency(const boost::system::error_code& ec) {
   if (ec)
     log_v2::core()->info("pool: the latency check encountered an error: {}",
                          ec.message());
@@ -188,7 +188,7 @@ void pool::_check_latency(boost::system::error_code ec) {
     if (_stats_running) {
       _timer.expires_after(std::chrono::seconds(10));
       _timer.async_wait(
-          std::bind(&pool::_check_latency, this, std::placeholders::_1));
+          [this](const boost::system::error_code& ec) { _check_latency(ec); });
     }
   }
 }

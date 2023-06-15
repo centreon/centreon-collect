@@ -120,7 +120,6 @@ std::string const& feeder::_get_write_filters() const {
  *  @param[in] tree  The statistic tree.
  */
 void feeder::_forward_statistic(nlohmann::json& tree) {
-  std::unique_lock<std::mutex> l(_stat_mutex);
   if (_client) {
     _client->statistics(tree);
   }
@@ -141,7 +140,7 @@ void feeder::_read_from_muxer() {
   try {
     std::shared_ptr<multiplexing::muxer> mux;
     {
-      std::unique_lock<std::mutex> l(_stat_mutex);
+      std::unique_lock<std::mutex> l(_protect);
       if (!_muxer) {
         return;
       }
@@ -176,7 +175,6 @@ void feeder::_read_from_muxer() {
 /**
  * @brief called when muxer event is available
  * write event to client stream
- * _stat_mutex must be locked before call
  * @param event
  */
 void feeder::_on_event_from_muxer(const std::shared_ptr<io::data>& event) {
@@ -194,7 +192,7 @@ void feeder::_on_event_from_muxer(const std::shared_ptr<io::data>& event) {
     std::shared_ptr<io::stream> client;
     std::shared_ptr<multiplexing::muxer> mux;
     {
-      std::unique_lock<std::mutex> l(_stat_mutex);
+      std::unique_lock<std::mutex> l(_protect);
       if (!_client) {
         return;
       }
@@ -233,7 +231,7 @@ void feeder::stop() {
     return;
   }
 
-  std::unique_lock<std::mutex> l(_stat_mutex);
+  std::unique_lock<std::mutex> l(_protect);
   // muxer should not receive events
   multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
   _stat_timer.cancel();
@@ -262,7 +260,7 @@ uint32_t feeder::_get_queued_events() const {
 }
 
 bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
-  std::unique_lock<std::mutex> l(_stat_mutex);
+  std::unique_lock<std::mutex> l(_protect);
   if (_client) {
     return _client->wait_for_all_events_written(ms_timeout);
   }
@@ -271,7 +269,7 @@ bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
 
 template <bool to_lock>
 void feeder::_start_stat_timer() {
-  std::unique_lock<std::mutex> l(_stat_mutex, std::defer_lock);
+  std::unique_lock<std::mutex> l(_protect, std::defer_lock);
   if (to_lock) {
     l.lock();
   }
@@ -286,13 +284,13 @@ void feeder::_stat_timer_handler(const asio::error_code& err) {
   if (err) {
     return;
   }
-  std::unique_lock<std::mutex> l(_stat_mutex);
+  std::unique_lock<std::mutex> l(_protect);
   set_queued_events(_muxer->get_event_queue_size());
   _start_stat_timer<false>();
 }
 
 void feeder::_start_read_from_stream_timer() {
-  std::unique_lock<std::mutex> l(_stat_mutex);
+  std::unique_lock<std::mutex> l(_protect);
   _read_from_stream_timer.expires_from_now(
       std::chrono::microseconds(idle_microsec_wait_idle_thread_delay));
   _read_from_stream_timer.async_wait(
@@ -308,7 +306,7 @@ void feeder::_read_from_stream_timer_handler(const asio::error_code& err) {
   std::shared_ptr<multiplexing::muxer> mux;
   std::shared_ptr<io::stream> client;
   {
-    std::unique_lock<std::mutex> l(_stat_mutex);
+    std::unique_lock<std::mutex> l(_protect);
     if (!_muxer) {
       return;
     }

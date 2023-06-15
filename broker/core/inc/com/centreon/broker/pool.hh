@@ -80,7 +80,7 @@ class pool {
   pool(const std::shared_ptr<asio::io_context>& io_context, size_t size);
   ~pool() noexcept;
   void _stop();
-  void _check_latency(boost::system::error_code ec);
+  void _check_latency(const boost::system::error_code& ec);
 
  public:
   pool(const pool&) = delete;
