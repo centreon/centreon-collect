@@ -1,7 +1,7 @@
 /*
 ** Copyright 1999-2009 Ethan Galstad
 ** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2021 Centreon
+** Copyright 2011-2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -158,23 +158,29 @@ int main(int argc, char* argv[]) {
     }
 
     // Invalid argument count.
-    if ((argc < 2)
+    if (argc < 2
         // Main configuration file not on command line.
-        || (optind >= argc))
+        || optind >= argc)
       error = true;
     else {
       // Config file is last argument specified.
-      config_file = string::dup(argv[optind]);
+      config_file = argv[optind];
 
       // Make sure the config file uses an absolute path.
       if (config_file[0] != '/') {
         // Get absolute path of current working directory.
-        std::string buffer(com::centreon::io::directory_entry::current_path());
-        buffer.append("/");
-        buffer.append(config_file);
-        string::setstr(config_file, buffer);
+        std::string buffer{fmt::format(
+            "{}/{}", com::centreon::io::directory_entry::current_path(),
+            config_file)};
+        config_file = std::move(buffer);
       }
     }
+
+    absl::string_view legacy = getenv("CENTENGINE_LEGACY");
+    if (absl::SimpleAtob(legacy, &legacy_conf))
+      log_v2::config()->info("Legacy configuration mechanism used");
+    else
+      log_v2::config()->info("New Protobuf configuration mechanism used");
 
     // Reset umask.
     umask(S_IWGRP | S_IWOTH);
@@ -251,21 +257,25 @@ int main(int argc, char* argv[]) {
     // We're just verifying the configuration.
     else if (verify_config) {
       try {
-        // Read in the configuration files (main config file,
-        // resource and object config files).
-        configuration::State pb_config;
-        {
-          configuration::parser p;
-          p.parse(config_file, &pb_config);
+        if (legacy_conf) {
+          // Read in the configuration files (main config file,
+          // resource and object config files).
+          configuration::state config;
+          {
+            configuration::parser p;
+            p.parse(config_file, config);
+          }
+          configuration::applier::state::instance().apply(config);
+        } else {
+          // Read in the configuration files (main config file,
+          // resource and object config files).
+          configuration::State pb_config;
+          {
+            configuration::parser p;
+            p.parse(config_file, &pb_config);
+          }
+          configuration::applier::state::instance().apply(pb_config);
         }
-        configuration::applier::state::instance().apply(pb_config);
-        configuration::state config;
-        {
-          configuration::parser p;
-          p.parse(config_file, config);
-        }
-        configuration::applier::state::instance().apply(config);
-
         std::cout << "\n Checked " << commands::command::commands.size()
                   << " commands.\n Checked "
                   << commands::connector::connectors.size()
@@ -286,8 +296,8 @@ int main(int argc, char* argv[]) {
                   << " services.\n Checked " << timeperiod::timeperiods.size()
                   << " time periods.\n\n Total Warnings: " << config_warnings
                   << "\n Total Errors:   " << config_errors << std::endl;
-        retval = (config_errors ? EXIT_FAILURE : EXIT_SUCCESS);
-      } catch (std::exception const& e) {
+        retval = config_errors ? EXIT_FAILURE : EXIT_SUCCESS;
+      } catch (const std::exception& e) {
         std::cout << "Error while processing a config file: " << e.what()
                   << std::endl;
 
@@ -311,27 +321,51 @@ int main(int argc, char* argv[]) {
     // We're just testing scheduling.
     else if (test_scheduling) {
       try {
-        // Parse configuration.
-        configuration::state config;
-        {
-          configuration::parser p;
-          p.parse(config_file, config);
-        }
-
-        // Parse retention.
-        retention::state state;
-        if (!config.state_retention_file().empty()) {
-          retention::parser p;
-          try {
-            p.parse(config.state_retention_file(), state);
-          } catch (std::exception const& e) {
-            std::cout << "Error while parsing the retention: {}" << e.what()
-                      << std::endl;
+        if (legacy_conf) {
+          // Parse configuration.
+          configuration::state config;
+          {
+            configuration::parser p;
+            p.parse(config_file, config);
           }
-        }
 
-        // Apply configuration.
-        configuration::applier::state::instance().apply(config, state);
+          // Parse retention.
+          retention::state state;
+          if (!config.state_retention_file().empty()) {
+            retention::parser p;
+            try {
+              p.parse(config.state_retention_file(), state);
+            } catch (std::exception const& e) {
+              std::cout << "Error while parsing the retention: {}" << e.what()
+                        << std::endl;
+            }
+          }
+
+          // Apply configuration.
+          configuration::applier::state::instance().apply(config, state);
+        } else {
+          // Parse configuration.
+          configuration::State pb_config;
+          {
+            configuration::parser p;
+            p.parse(config_file, &pb_config);
+          }
+
+          // Parse retention.
+          retention::state state;
+          if (!pb_config.state_retention_file().empty()) {
+            retention::parser p;
+            try {
+              p.parse(pb_config.state_retention_file(), state);
+            } catch (std::exception const& e) {
+              std::cout << "Error while parsing the retention: {}" << e.what()
+                        << std::endl;
+            }
+          }
+
+          // Apply configuration.
+          configuration::applier::state::instance().apply(pb_config, state);
+        }
 
         display_scheduling_info();
         retval = EXIT_SUCCESS;
@@ -346,69 +380,130 @@ int main(int argc, char* argv[]) {
     }
     // Else start to monitor things.
     else {
+      auto generate_port = [] {
+        std::random_device rd;  // Will be used to obtain a seed for the
+                                // random number engine
+        std::mt19937 gen(
+            rd());  // Standard mersenne_twister_engine seeded with rd()
+        std::uniform_int_distribution<uint16_t> dis(50000, 50999);
+
+        uint16_t port = dis(gen);
+        return port;
+      };
+
       try {
-        // Parse configuration.
-        configuration::State config;
-        {
-          configuration::parser p;
-          p.parse(config_file, &config);
-        }
-
-        uint16_t port = config.rpc_port();
-
-        if (!port) {
-          std::random_device rd;  // Will be used to obtain a seed for the
-                                  // random number engine
-          std::mt19937 gen(
-              rd());  // Standard mersenne_twister_engine seeded with rd()
-          std::uniform_int_distribution<uint16_t> dis(50000, 50999);
-
-          port = dis(gen);
-        }
-
-        const std::string& listen_address = config.rpc_listen_address();
-
-        std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
-            new enginerpc(listen_address, port), [](enginerpc* rpc) {
-              rpc->shutdown();
-              delete rpc;
-            });
-
-        // Parse retention.
-        retention::state state;
-        {
-          retention::parser p;
-          try {
-            p.parse(config.state_retention_file(), state);
-          } catch (const std::exception& e) {
-            log_v2::config()->error("{}", e.what());
-            engine_logger(logging::log_config_error, logging::basic)
-                << e.what();
+        absl::string_view listen_address;
+        uint16_t port;
+        if (legacy_conf) {
+          // Parse configuration.
+          configuration::state config;
+          {
+            configuration::parser p;
+            p.parse(config_file, config);
           }
+          port = config.grpc_port();
+
+          if (!port)
+            port = generate_port();
+
+          listen_address = config.rpc_listen_address();
+          std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
+              new enginerpc(listen_address, port), [](enginerpc* rpc) {
+                rpc->shutdown();
+                delete rpc;
+              });
+
+          // Parse retention.
+          retention::state state;
+          {
+            retention::parser p;
+            try {
+              p.parse(config.state_retention_file(), state);
+            } catch (const std::exception& e) {
+              log_v2::config()->error("{}", e.what());
+              engine_logger(logging::log_config_error, logging::basic)
+                  << e.what();
+            }
+          }
+
+          // Get program (re)start time and save as macro. Needs to be
+          // done after we read config files, as user may have overridden
+          // timezone offset.
+          program_start = std::time(nullptr);
+          mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
+
+          // Load broker modules.
+          for (auto& m : config.broker_module()) {
+            std::string filename;
+            std::string args;
+            if (!string::split(m, filename, args, ' '))
+              filename = m;
+            broker::loader::instance().add_module(filename, args);
+          }
+          neb_init_callback_list();
+
+          // Add broker backend.
+          com::centreon::logging::engine::instance().add(
+              &backend_broker_log, logging::log_all, logging::basic);
+
+          // Apply configuration.
+          configuration::applier::state::instance().apply(config, state);
+
+        } else {
+          // Parse configuration.
+          configuration::State pb_config;
+          {
+            configuration::parser p;
+            p.parse(config_file, &pb_config);
+          }
+          port = pb_config.grpc_port();
+
+          if (!port)
+            port = generate_port();
+
+          listen_address = pb_config.rpc_listen_address();
+          std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
+              new enginerpc(listen_address, port), [](enginerpc* rpc) {
+                rpc->shutdown();
+                delete rpc;
+              });
+
+          // Parse retention.
+          retention::state state;
+          {
+            retention::parser p;
+            try {
+              p.parse(pb_config.state_retention_file(), state);
+            } catch (const std::exception& e) {
+              log_v2::config()->error("{}", e.what());
+              engine_logger(logging::log_config_error, logging::basic)
+                  << e.what();
+            }
+          }
+
+          // Get program (re)start time and save as macro. Needs to be
+          // done after we read config files, as user may have overridden
+          // timezone offset.
+          program_start = std::time(nullptr);
+          mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
+
+          // Load broker modules.
+          for (auto& m : pb_config.broker_module()) {
+            std::string filename;
+            std::string args;
+            if (!string::split(m, filename, args, ' '))
+              filename = m;
+            broker::loader::instance().add_module(filename, args);
+          }
+          neb_init_callback_list();
+
+          // Add broker backend.
+          com::centreon::logging::engine::instance().add(
+              &backend_broker_log, logging::log_all, logging::basic);
+
+          // Apply configuration.
+          configuration::applier::state::instance().apply(pb_config, state);
         }
-
-        // Get program (re)start time and save as macro. Needs to be
-        // done after we read config files, as user may have overridden
-        // timezone offset.
-        program_start = std::time(nullptr);
-        mac->x[MACRO_PROCESSSTARTTIME] = std::to_string(program_start);
-
-        // Load broker modules.
-        for (auto& m : config.broker_module()) {
-          std::string filename;
-          std::string args;
-          if (!string::split(m, filename, args, ' '))
-            filename = m;
-          broker::loader::instance().add_module(filename, args);
-        }
-        neb_init_callback_list();
-
-        // Add broker backend.
-        com::centreon::logging::engine::instance().add(
-            &backend_broker_log, logging::log_all, logging::basic);
-
-        // Apply configuration.
-        configuration::applier::state::instance().apply(config, state);
 
         // Handle signals (interrupts).
         setup_sighandler();
@@ -498,8 +593,6 @@ int main(int argc, char* argv[]) {
     // Memory cleanup.
     cleanup();
     spdlog::shutdown();
-    delete[] config_file;
-    config_file = NULL;
   } catch (std::exception const& e) {
     engine_logger(logging::log_runtime_error, logging::basic)
         << "Error: " << e.what();
@@ -507,8 +600,10 @@ int main(int argc, char* argv[]) {
   }
 
   // Unload singletons and global objects.
-  delete config;
-  config = nullptr;
+  if (legacy_conf) {
+    delete config;
+    config = nullptr;
+  }
 
   return retval;
 }

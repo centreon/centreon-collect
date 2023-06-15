@@ -17,6 +17,7 @@
  *
  */
 #include "configuration/host_helper.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
@@ -160,11 +161,13 @@ bool host_helper::hook(absl::string_view key, const absl::string_view& value) {
 void host_helper::check_validity() const {
   const Host* o = static_cast<const Host*>(obj());
 
-  if (o->host_name().empty())
-    throw msg_fmt("Host has no name (property 'host_name')");
-  if (o->address().empty())
-    throw msg_fmt("Host '{}' has no address (property 'address')",
-                  o->host_name());
+  if (o->obj().register_()) {
+    if (o->host_name().empty())
+      throw msg_fmt("Host has no name (property 'host_name')");
+    if (o->address().empty())
+      throw msg_fmt("Host '{}' has no address (property 'address')",
+                    o->host_name());
+  }
 }
 
 /**

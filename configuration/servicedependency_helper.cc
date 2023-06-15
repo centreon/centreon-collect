@@ -17,6 +17,7 @@
  *
  */
 #include "configuration/servicedependency_helper.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
@@ -72,7 +73,37 @@ bool servicedependency_helper::hook(absl::string_view key,
                                     const absl::string_view& value) {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
   key = validate_key(key);
-  if (key == "dependent_hostgroups") {
+
+  if (key == "execution_failure_options" ||
+      key == "notification_failure_options") {
+    uint32_t options = action_sd_none;
+    auto arr = absl::StrSplit(value, ',');
+    for (auto& v : arr) {
+      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      if (vv == "o" || vv == "ok")
+        options |= action_sd_ok;
+      else if (vv == "u" || vv == "unknown")
+        options |= action_sd_unknown;
+      else if (vv == "w" || vv == "warning")
+        options |= action_sd_warning;
+      else if (vv == "c" || vv == "critical")
+        options |= action_sd_critical;
+      else if (vv == "p" || vv == "pending")
+        options |= action_sd_pending;
+      else if (vv == "n" || vv == "none")
+        options = action_sd_none;
+      else if (vv == "a" || vv == "all")
+        options = action_sd_ok | action_sd_warning | action_sd_critical |
+                  action_sd_pending;
+      else
+        return false;
+    }
+    if (key[0] == 'e')
+      obj->set_execution_failure_options(options);
+    else
+      obj->set_notification_failure_options(options);
+    return true;
+  } else if (key == "dependent_hostgroups") {
     fill_string_group(obj->mutable_dependent_hostgroups(), value);
     return true;
   } else if (key == "dependent_hosts") {

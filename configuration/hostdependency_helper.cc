@@ -17,6 +17,7 @@
  *
  */
 #include "configuration/hostdependency_helper.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
@@ -65,7 +66,8 @@ bool hostdependency_helper::hook(absl::string_view key,
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
   key = validate_key(key);
 
-  if (key == "notification_failure_options") {
+  if (key == "notification_failure_options" ||
+      key == "execution_failure_options") {
     auto opts = absl::StrSplit(value, ',');
     uint16_t options = action_hd_none;
 
@@ -87,7 +89,10 @@ bool hostdependency_helper::hook(absl::string_view key,
       else
         return false;
     }
-    obj->set_notification_failure_options(options);
+    if (key[0] == 'n')
+      obj->set_notification_failure_options(options);
+    else
+      obj->set_execution_failure_options(options);
     return true;
   } else if (key == "dependent_hostgroups") {
     fill_string_group(obj->mutable_dependent_hostgroups(), value);

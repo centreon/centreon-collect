@@ -97,7 +97,7 @@ TEST_F(ApplierGlobal, RpcPort) {
   configuration::parser parser;
   configuration::state st;
 
-  ASSERT_EQ(st.rpc_port(), 0u);
+  ASSERT_EQ(st.grpc_port(), 0u);
 
   std::remove("/tmp/test-config.cfg");
 
@@ -108,14 +108,14 @@ TEST_F(ApplierGlobal, RpcPort) {
   parser.parse("/tmp/test-config.cfg", st);
   std::remove("/tmp/test-config.cfg");
 
-  ASSERT_EQ(st.rpc_port(), 42u);
+  ASSERT_EQ(st.grpc_port(), 42u);
 }
 
 TEST_F(ApplierGlobal, RpcListenAddress) {
   configuration::parser parser;
   configuration::state st;
 
-  ASSERT_EQ(st.rpc_port(), 0u);
+  ASSERT_EQ(st.grpc_port(), 0u);
 
   std::remove("/tmp/test-config.cfg");
 
@@ -133,7 +133,7 @@ TEST_F(ApplierGlobal, NotDefinedRpcListenAddress) {
   configuration::parser parser;
   configuration::state st;
 
-  ASSERT_EQ(st.rpc_port(), 0u);
+  ASSERT_EQ(st.grpc_port(), 0u);
 
   std::remove("/tmp/test-config.cfg");
 
