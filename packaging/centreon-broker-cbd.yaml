@@ -32,7 +32,7 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../broker/config/watchdog.json"
+  - src: "../broker/script/watchdog.json"
     dst: "/etc/centreon-broker/watchdog.json"
     type: config|noreplace
     file_info:
