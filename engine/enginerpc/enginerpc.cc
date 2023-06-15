@@ -26,8 +26,9 @@
 
 using namespace com::centreon::engine;
 
-enginerpc::enginerpc(const std::string& address, uint16_t port) {
-  std::string server_address{fmt::format("{}:{}", address, port)};
+enginerpc::enginerpc(absl::string_view address, uint16_t port) {
+  std::string server_address{fmt::format(
+      "{}:{}", fmt::string_view(address.data(), address.size()), port)};
   grpc::ServerBuilder builder;
   builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
   builder.RegisterService(&_service);
