@@ -39,16 +39,13 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      options: "--user root"
+      options: "--user 1001"
 
     name: package ${{ matrix.distrib }}
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
-
-      - run: cat /proc/cpuinfo
-      - run: cat /proc/meminfo
 
       - run: |
           dnf install -y sudo
