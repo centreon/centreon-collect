@@ -80,7 +80,10 @@ jobs:
 
       - run: ls -Rl bin
       - run: ls -Rl lib
-      - run: ls -l
+      - run: |
+          dnf install -y mlocate
+          updatedb
+          locate libcentreon_clib.so
 
       - uses: ./.github/actions/package
         with:
