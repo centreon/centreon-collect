@@ -70,6 +70,13 @@ jobs:
           ninja -j 8
         shell: bash
 
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: build
+          path: ./
+          retention-days: 1
+
       - uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/*.yaml"
