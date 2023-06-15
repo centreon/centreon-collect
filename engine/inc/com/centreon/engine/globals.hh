@@ -40,6 +40,7 @@
 extern "C" {
 #endif /* C++ */
 
+extern bool legacy_conf;
 extern int config_errors;
 extern int config_warnings;
 
@@ -48,7 +49,7 @@ extern com::centreon::engine::restart_stats restart_apply_stats;
 
 extern com::centreon::engine::configuration::State pb_config;
 extern com::centreon::engine::configuration::state* config;
-extern char* config_file;
+extern std::string config_file;
 
 extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
 extern com::centreon::engine::commands::command*

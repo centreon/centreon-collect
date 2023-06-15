@@ -17,6 +17,7 @@
  *
  */
 #include "configuration/hostescalation_helper.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
@@ -56,7 +57,28 @@ bool hostescalation_helper::hook(absl::string_view key,
                                  const absl::string_view& value) {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
   key = validate_key(key);
-  if (key == "contactgroups") {
+
+  if (key == "escalation_options") {
+    uint32_t options = action_he_none;
+    auto arr = absl::StrSplit(value, ',');
+    for (auto& v : arr) {
+      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      if (vv == "d" || vv == "down")
+        options |= action_he_down;
+      else if (vv == "u" || "unreachable")
+        options |= action_he_unreachable;
+      else if (vv == "r" || vv == "recovery")
+        options |= action_he_recovery;
+      else if (vv == "n" || vv == "none")
+        options = action_he_none;
+      else if (vv == "a" || vv == "all")
+        options = action_he_down | action_he_unreachable | action_he_recovery;
+      else
+        return false;
+    }
+    obj->set_escalation_options(options);
+    return true;
+  } else if (key == "contactgroups") {
     fill_string_group(obj->mutable_contactgroups(), value);
     return true;
   } else if (key == "hostgroups") {

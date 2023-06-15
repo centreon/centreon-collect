@@ -197,6 +197,11 @@ TEST_F(HostDependency, ExpandHostdependency) {
   configuration::applier::hostdependency hd_aply;
   hd_aply.expand_objects(s);
   ASSERT_EQ(s.hostdependencies().size(), 12);
+  ASSERT_TRUE(std::all_of(s.hostdependencies().begin(),
+                          s.hostdependencies().end(), [](const auto& hd) {
+                            return hd.hostgroups().empty() &&
+                                   hd.dependent_hostgroups().empty();
+                          }));
 }
 
 TEST_F(HostDependency, PbExpandHostdependency) {
@@ -208,4 +213,9 @@ TEST_F(HostDependency, PbExpandHostdependency) {
   configuration::applier::hostdependency hd_aply;
   hd_aply.expand_objects(s);
   ASSERT_EQ(s.hostdependencies().size(), 12);
+  ASSERT_TRUE(std::all_of(s.hostdependencies().begin(),
+                          s.hostdependencies().end(), [](const auto& hd) {
+                            return hd.hostgroups().data().empty() &&
+                                   hd.dependent_hostgroups().data().empty();
+                          }));
 }

@@ -10,7 +10,7 @@ class enginerpc final {
   std::unique_ptr<grpc::Server> _server;
 
  public:
-  enginerpc(const std::string& address, uint16_t port);
+  enginerpc(absl::string_view address, uint16_t port);
   enginerpc() = delete;
   enginerpc(const enginerpc&) = delete;
   ~enginerpc() = default;

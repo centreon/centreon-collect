@@ -17,9 +17,12 @@
  *
  */
 #include "configuration/state_helper.hh"
+#include "com/centreon/engine/events/sched_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
+
+extern sched_info scheduling_info;
 
 namespace com {
 namespace centreon {
@@ -37,7 +40,17 @@ state_helper::state_helper(State* obj)
           object_type::state,
           obj,
           {
+              {"check_for_orphaned_hosts", "check_orphaned_hosts"},
+              {"check_for_orphaned_services", "check_orphaned_services"},
+              {"check_result_reaper_frequency", "check_reaper_interval"},
+              {"illegal_macro_output_chars", "illegal_output_chars"},
+              {"illegal_object_name_chars", "illegal_object_chars"},
+              {"max_concurrent_checks", "max_parallel_service_checks"},
+              {"rpc_port", "grpc_port"},
               {"service_interleave_factor", "service_interleave_factor_method"},
+              {"service_reaper_frequency", "check_reaper_interval"},
+              {"use_agressive_host_checking", "use_aggressive_host_checking"},
+              {"use_regexp_matching", "use_regexp_matches"},
               {"xcddefault_comment_file", "comment_file"},
               {"xdddefault_downtime_file", "downtime_file"},
           },
@@ -113,6 +126,62 @@ bool state_helper::hook(absl::string_view key, const absl::string_view& value) {
       obj->mutable_service_inter_check_delay_method()->set_user_value(
           user_value);
     }
+    return true;
+  } else if (key == "command_check_interval") {
+    absl::string_view v;
+    if (value[value.size() - 1] == 's') {
+      obj->set_command_check_interval_is_seconds(true);
+      v = value.substr(0, value.size() - 1);
+    } else {
+      obj->set_command_check_interval_is_seconds(false);
+      v = value;
+    }
+    int32_t res;
+    if (absl::SimpleAtoi(v, &res)) {
+      obj->set_command_check_interval(res);
+      return true;
+    } else {
+      throw msg_fmt(
+          "command_check_interval is an integer representing a duration "
+          "between two consecutive external command checks. This number can be "
+          "a number of 'time units' or a number of seconds. For the latter, "
+          "you must append a 's' after the number: the current incorrect value "
+          "is: '{}'",
+          fmt::string_view(value.data(), value.size()));
+      return false;
+    }
+  } else if (key == "service_interleave_factor_method") {
+    if (value == "s")
+      obj->set_service_interleave_factor_method(ilf_smart);
+    else {
+      obj->set_service_interleave_factor_method(ilf_user);
+      int32_t res;
+      if (!absl::SimpleAtoi(value, &res) || res < 1)
+        scheduling_info.service_interleave_factor = 1;
+    }
+    return true;
+  } else if (key == "check_reaper_interval") {
+    int32_t res;
+    if (!absl::SimpleAtoi(value, &res) || res == 0)
+      throw msg_fmt(
+          "check_reaper_interval must be a strictly positive integer (current "
+          "value '{}'",
+          fmt::string_view(value.data(), value.size()));
+    else
+      obj->set_check_reaper_interval(res);
+    return true;
+  } else if (key == "event_broker_options") {
+    if (value != "-1") {
+      uint32_t res;
+      if (absl::SimpleAtoi(value, &res))
+        obj->set_event_broker_options(res);
+      else
+        throw msg_fmt(
+            "event_broker_options must be a positive integer or '-1' and not "
+            "'{}'",
+            fmt::string_view(value.data(), value.size()));
+    } else
+      obj->set_event_broker_options(static_cast<uint32_t>(-1));
     return true;
   }
   return false;

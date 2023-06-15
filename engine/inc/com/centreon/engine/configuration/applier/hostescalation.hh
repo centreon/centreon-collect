@@ -20,6 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 
+#include "configuration/state.pb.h"
+
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -29,24 +31,29 @@ class state;
 
 namespace applier {
 class hostescalation {
- public:
-  hostescalation();
-  hostescalation(hostescalation const& right) = delete;
-  ~hostescalation() throw();
-  hostescalation& operator=(hostescalation const& right) = delete;
-  void add_object(configuration::hostescalation const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::hostescalation const& obj);
-  void remove_object(configuration::hostescalation const& obj);
-  void resolve_object(configuration::hostescalation const& obj);
-
- private:
   void _expand_hosts(std::set<std::string> const& h,
                      std::set<std::string> const& hg,
                      configuration::state const& s,
                      std::set<std::string>& expanded);
   void _inherits_special_vars(configuration::hostescalation& obj,
                               configuration::state& s);
+
+ public:
+  hostescalation();
+  hostescalation(hostescalation const& right) = delete;
+  ~hostescalation() throw();
+  hostescalation& operator=(hostescalation const& right) = delete;
+  void add_object(const configuration::Hostescalation& obj);
+  void add_object(const configuration::hostescalation& obj);
+  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::state& s);
+  void modify_object(configuration::Hostescalation* to_modify,
+                     configuration::Hostescalation& new_object);
+  void modify_object(configuration::hostescalation const& obj);
+  void remove_object(ssize_t idx);
+  void remove_object(configuration::hostescalation const& obj);
+  void resolve_object(const configuration::Hostescalation& obj);
+  void resolve_object(configuration::hostescalation const& obj);
 };
 }  // namespace applier
 }  // namespace configuration

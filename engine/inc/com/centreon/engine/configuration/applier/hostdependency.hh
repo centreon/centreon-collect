@@ -31,6 +31,11 @@ class state;
 
 namespace applier {
 class hostdependency {
+  void _expand_hosts(std::set<std::string> const& hosts,
+                     std::set<std::string> const& hostgroups,
+                     configuration::state& s,
+                     std::set<std::string>& expanded);
+
  public:
   hostdependency() = default;
   hostdependency(const hostdependency&) = delete;
@@ -47,12 +52,6 @@ class hostdependency {
   void remove_object(configuration::hostdependency const& obj);
   void resolve_object(const configuration::Hostdependency& obj);
   void resolve_object(configuration::hostdependency const& obj);
-
- private:
-  void _expand_hosts(std::set<std::string> const& hosts,
-                     std::set<std::string> const& hostgroups,
-                     configuration::state& s,
-                     std::set<std::string>& expanded);
 };
 }  // namespace applier
 }  // namespace configuration
