@@ -26,7 +26,8 @@ if(WITH_TESTING)
   # Set directory.
   set(TESTS_DIR "${PROJECT_SOURCE_DIR}/tests")
   include_directories(${PROJECT_SOURCE_DIR}/enginerpc)
-  add_definitions(-DENGINERPC_TESTS_PATH="${TESTS_DIR}/enginerpc")
+  add_definitions("-DENGINERPC_TESTS_PATH=${TESTS_DIR}/enginerpc"
+                  "-DENGINE_CFG_TEST=\"${TESTS_DIR}/cfg_files\"")
 
   add_executable(rpc_client_engine ${TESTS_DIR}/enginerpc/client.cc)
 

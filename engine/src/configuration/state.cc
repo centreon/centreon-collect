@@ -62,12 +62,12 @@ absl::flat_hash_map<std::string, state::setter_func> const state::_setters{
     {"cfg_dir", SETTER(std::string const&, _set_cfg_dir)},
     {"cfg_file", SETTER(std::string const&, _set_cfg_file)},
     {"check_external_commands", SETTER(bool, check_external_commands)},
-    {"check_for_orphaned_hosts", SETTER(bool, check_orphaned_hosts)},
-    {"check_for_orphaned_services", SETTER(bool, check_orphaned_services)},
+    {"check_for_orphaned_hosts", SETTER(bool, set_check_orphaned_hosts)},
+    {"check_for_orphaned_services", SETTER(bool, set_check_orphaned_services)},
     {"check_for_updates", SETTER(std::string const&, _set_check_for_updates)},
     {"check_host_freshness", SETTER(bool, check_host_freshness)},
     {"check_result_reaper_frequency",
-     SETTER(unsigned int, check_reaper_interval)},
+     SETTER(unsigned int, set_check_reaper_interval)},
     {"check_service_freshness", SETTER(bool, check_service_freshness)},
     {"child_processes_fork_twice",
      SETTER(std::string const&, _set_child_processes_fork_twice)},
@@ -126,9 +126,9 @@ absl::flat_hash_map<std::string, state::setter_func> const state::_setters{
     {"host_perfdata_file_template",
      SETTER(std::string const&, host_perfdata_file_template)},
     {"illegal_macro_output_chars",
-     SETTER(std::string const&, illegal_output_chars)},
+     SETTER(std::string const&, set_illegal_output_chars)},
     {"illegal_object_name_chars",
-     SETTER(std::string const&, illegal_object_chars)},
+     SETTER(std::string const&, set_illegal_object_chars)},
     {"interval_length", SETTER(unsigned int, interval_length)},
     {"lock_file", SETTER(std::string const&, _set_lock_file)},
     {"log_archive_path", SETTER(std::string const&, _set_log_archive_path)},
@@ -148,7 +148,7 @@ absl::flat_hash_map<std::string, state::setter_func> const state::_setters{
     {"low_service_flap_threshold", SETTER(float, low_service_flap_threshold)},
     {"macros_filter", SETTER(std::string const&, macros_filter)},
     {"max_concurrent_checks",
-     SETTER(unsigned int, max_parallel_service_checks)},
+     SETTER(unsigned int, set_max_parallel_service_checks)},
     {"max_debug_file_size", SETTER(unsigned long, max_debug_file_size)},
     {"max_host_check_spread", SETTER(unsigned int, max_host_check_spread)},
     {"max_log_file_size", SETTER(unsigned long, max_log_file_size)},
@@ -169,7 +169,8 @@ absl::flat_hash_map<std::string, state::setter_func> const state::_setters{
     {"perfdata_timeout", SETTER(int, perfdata_timeout)},
     {"poller_name", SETTER(std::string const&, poller_name)},
     {"poller_id", SETTER(uint32_t, poller_id)},
-    {"rpc_port", SETTER(uint16_t, rpc_port)},
+    {"grpc_port", SETTER(uint16_t, set_grpc_port)},
+    {"rpc_port", SETTER(uint16_t, set_grpc_port)},
     {"rpc_listen_address", SETTER(const std::string&, rpc_listen_address)},
     {"precached_object_file",
      SETTER(std::string const&, _set_precached_object_file)},
@@ -211,7 +212,8 @@ absl::flat_hash_map<std::string, state::setter_func> const state::_setters{
      SETTER(unsigned int, service_perfdata_file_processing_interval)},
     {"service_perfdata_file_template",
      SETTER(std::string const&, service_perfdata_file_template)},
-    {"service_reaper_frequency", SETTER(unsigned int, check_reaper_interval)},
+    {"service_reaper_frequency",
+     SETTER(unsigned int, set_check_reaper_interval)},
     {"sleep_time", SETTER(float, sleep_time)},
     {"soft_state_dependencies", SETTER(bool, soft_state_dependencies)},
     {"state_retention_file", SETTER(std::string const&, state_retention_file)},
@@ -229,7 +231,7 @@ absl::flat_hash_map<std::string, state::setter_func> const state::_setters{
      SETTER(bool, use_large_installation_tweaks)},
     {"instance_heartbeat_interval",
      SETTER(uint32_t, instance_heartbeat_interval)},
-    {"use_regexp_matching", SETTER(bool, use_regexp_matches)},
+    {"use_regexp_matching", SETTER(bool, set_use_regexp_matches)},
     {"use_retained_program_state", SETTER(bool, use_retained_program_state)},
     {"use_retained_scheduling_info",
      SETTER(bool, use_retained_scheduling_info)},
@@ -461,7 +463,7 @@ state::state()
       _perfdata_timeout(default_perfdata_timeout),
       _poller_name(default_poller_name),
       _poller_id{0},
-      _rpc_port{0},
+      _grpc_port{0},
       _rpc_listen_address{default_rpc_listen_address},
       _process_performance_data(default_process_performance_data),
       _retained_contact_host_attribute_mask(
@@ -624,7 +626,7 @@ state& state::operator=(state const& right) {
     _perfdata_timeout = right._perfdata_timeout;
     _poller_name = right._poller_name;
     _poller_id = right._poller_id;
-    _rpc_port = right._rpc_port;
+    _grpc_port = right._grpc_port;
     _rpc_listen_address = right._rpc_listen_address;
     _process_performance_data = right._process_performance_data;
     _retained_contact_host_attribute_mask =
@@ -775,7 +777,7 @@ bool state::operator==(state const& right) const noexcept {
       _ocsp_timeout == right._ocsp_timeout &&
       _perfdata_timeout == right._perfdata_timeout &&
       _poller_name == right._poller_name && _poller_id == right._poller_id &&
-      _rpc_port == right._rpc_port &&
+      _grpc_port == right._grpc_port &&
       _rpc_listen_address == right._rpc_listen_address &&
       _process_performance_data == right._process_performance_data &&
       _retained_contact_host_attribute_mask ==
@@ -1174,7 +1176,7 @@ bool state::check_orphaned_hosts() const noexcept {
  *
  *  @param[in] value The new check_orphaned_hosts value.
  */
-void state::check_orphaned_hosts(bool value) {
+void state::set_check_orphaned_hosts(bool value) {
   _check_orphaned_hosts = value;
 }
 
@@ -1183,7 +1185,7 @@ void state::check_orphaned_hosts(bool value) {
  *
  *  @param[in] value The new check_orphaned_services value.
  */
-void state::check_orphaned_services(bool value) {
+void state::set_check_orphaned_services(bool value) {
   _check_orphaned_services = value;
 }
 
@@ -1210,7 +1212,7 @@ unsigned int state::check_reaper_interval() const noexcept {
  *
  *  @param[in] value The new check_reaper_interval value.
  */
-void state::check_reaper_interval(unsigned int value) {
+void state::set_check_reaper_interval(unsigned int value) {
   if (!value)
     throw engine_error() << "check_reaper_interval cannot be 0";
   _check_reaper_interval = value;
@@ -2205,7 +2207,7 @@ std::string const& state::illegal_object_chars() const noexcept {
  *
  *  @param[in] value The new illegal_object_chars value.
  */
-void state::illegal_object_chars(std::string const& value) {
+void state::set_illegal_object_chars(std::string const& value) {
   _illegal_object_chars = value;
 }
 
@@ -2223,7 +2225,7 @@ std::string const& state::illegal_output_chars() const noexcept {
  *
  *  @param[in] value The new illegal_output_chars value.
  */
-void state::illegal_output_chars(std::string const& value) {
+void state::set_illegal_output_chars(std::string const& value) {
   _illegal_output_chars = value;
 }
 
@@ -2536,7 +2538,7 @@ unsigned int state::max_parallel_service_checks() const noexcept {
  *
  *  @param[in] value The new max_parallel_service_checks value.
  */
-void state::max_parallel_service_checks(unsigned int value) {
+void state::set_max_parallel_service_checks(unsigned int value) {
   _max_parallel_service_checks = value;
 }
 
@@ -2747,21 +2749,21 @@ void state::poller_id(uint32_t value) {
 }
 
 /**
- *  Get rpc_port value.
+ *  Get grpc_port value.
  *
  *  @return The poller_id value.
  */
-uint16_t state::rpc_port() const noexcept {
-  return _rpc_port;
+uint16_t state::grpc_port() const noexcept {
+  return _grpc_port;
 }
 
 /**
- *  Set the rpc_port value.
+ *  Set the grpc_port value.
  *
  *  @param[in] value The new poller_id value.
  */
-void state::rpc_port(uint16_t value) {
-  _rpc_port = value;
+void state::set_grpc_port(uint16_t value) {
+  _grpc_port = value;
 }
 
 /**
@@ -3633,7 +3635,7 @@ bool state::use_regexp_matches() const noexcept {
  *
  *  @param[in] value The new use_regexp_matches value.
  */
-void state::use_regexp_matches(bool value) {
+void state::set_use_regexp_matches(bool value) {
   _use_regexp_matches = value;
 }
 
