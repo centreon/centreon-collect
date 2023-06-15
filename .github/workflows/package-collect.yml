@@ -40,8 +40,8 @@ jobs:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
       options: "--cpus 8"
-      volumes:
-        - /__w
+      # volumes:
+      #   - /__w
 
     name: package ${{ matrix.distrib }}
 
