@@ -39,9 +39,9 @@ jobs:
       credentials:
         username: ${{ secrets.DOCKER_REGISTRY_ID }}
         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      options: "--cpus 7"
-      # volumes:
-      #   - /__w
+      options: "--privileged --cpus 7"
+      volumes:
+        - /__w
 
     name: package ${{ matrix.distrib }}
 
