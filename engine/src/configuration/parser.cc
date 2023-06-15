@@ -19,6 +19,8 @@
 
 #include "com/centreon/engine/configuration/parser.hh"
 #include <absl/container/flat_hash_set.h>
+#include <memory>
+#include "absl/strings/numbers.h"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
@@ -38,6 +40,7 @@
 #include "configuration/serviceescalation_helper.hh"
 #include "configuration/servicegroup_helper.hh"
 #include "configuration/severity_helper.hh"
+#include "configuration/state_helper.hh"
 #include "configuration/tag_helper.hh"
 #include "configuration/timeperiod_helper.hh"
 
@@ -81,6 +84,8 @@ parser::parser(unsigned int read_options)
 
 void parser::parse(const std::string& path, State* pb_config) {
   /* Parse the global configuration file. */
+  auto helper = std::make_unique<state_helper>(pb_config);
+  _pb_helper[pb_config] = std::move(helper);
   _parse_global_configuration(path, pb_config);
 
   // parse configuration files.
@@ -354,19 +359,20 @@ static bool fill_pair_string_group(PairStringSet* grp,
   return true;
 }
 
-bool set(
-    State* msg,
-    const absl::string_view& key,
-    const absl::string_view& value,
-    const absl::flat_hash_map<std::string, std::string>& correspondence = {}) {
+bool set_global(std::unique_ptr<message_helper>& helper,
+                const absl::string_view& key,
+                const absl::string_view& value) {
+  //    const absl::flat_hash_map<std::string, std::string>& correspondence =
+  //    {}) {
+  State* msg = static_cast<State*>(helper->mut_obj());
   const Descriptor* desc = msg->GetDescriptor();
   const FieldDescriptor* f;
   const Reflection* refl;
 
   f = desc->FindFieldByName(std::string(key.data(), key.size()));
   if (f == nullptr) {
-    auto it = correspondence.find(key);
-    if (it != correspondence.end())
+    auto it = helper->correspondence().find(key);
+    if (it != helper->correspondence().end())
       f = desc->FindFieldByName(it->second);
     if (f == nullptr)
       return false;
@@ -401,6 +407,14 @@ bool set(
       uint64_t val;
       if (absl::SimpleAtoi(value, &val)) {
         refl->SetUInt64(static_cast<Message*>(msg), f, val);
+        return true;
+      } else
+        return false;
+    } break;
+    case FieldDescriptor::TYPE_FLOAT: {
+      float val;
+      if (absl::SimpleAtof(value, &val)) {
+        refl->SetFloat(static_cast<Message*>(msg), f, val);
         return true;
       } else
         return false;
@@ -599,6 +613,7 @@ void parser::_parse_global_configuration(const std::string& path,
   _current_path = path;
 
   auto tab{absl::StrSplit(content, '\n')};
+  auto& cfg_helper = _pb_helper[pb_config];
   for (auto it = tab.begin(); it != tab.end(); ++it) {
     absl::string_view l = absl::StripAsciiWhitespace(*it);
     if (l.empty() || l[0] == '#')
@@ -606,9 +621,14 @@ void parser::_parse_global_configuration(const std::string& path,
     std::pair<absl::string_view, absl::string_view> p = absl::StrSplit(l, '=');
     p.first = absl::StripTrailingAsciiWhitespace(p.first);
     p.second = absl::StripLeadingAsciiWhitespace(p.second);
-    if (!set(pb_config, p.first, p.second))
-      throw engine_error() << fmt::format(
-          "Unable to parse '{}' key with value '{}'", p.first, p.second);
+    bool retval = false;
+    /* particular cases with hook */
+    retval = cfg_helper->hook(p.first, p.second);
+    if (!retval) {
+      if (!set_global(cfg_helper, p.first, p.second))
+        throw engine_error() << fmt::format(
+            "Unable to parse '{}' key with value '{}'", p.first, p.second);
+    }
   }
 }
 
@@ -650,7 +670,7 @@ void parser::_parse_object_definitions(const std::string& path,
   auto tab{absl::StrSplit(content, '\n')};
   std::string ll;
   bool append_to_previous_line = false;
-  Message* msg = nullptr;
+  std::unique_ptr<Message> msg;
   std::unique_ptr<message_helper> msg_helper;
 
   int current_line = 1;
@@ -658,7 +678,7 @@ void parser::_parse_object_definitions(const std::string& path,
 
   for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
     absl::string_view l = absl::StripAsciiWhitespace(*it);
-    if (l.empty() || l[0] == '#')
+    if (l.empty() || l[0] == '#' || l[0] == ';')
       continue;
 
     /* Multiline */
@@ -689,15 +709,85 @@ void parser::_parse_object_definitions(const std::string& path,
           const Object& obj =
               *static_cast<const Object*>(&refl->GetMessage(*msg, f));
           auto otype = msg_helper->otype();
-          _pb_helper[msg] = std::move(msg_helper);
-          if (!obj.name().empty()) {
+          _pb_helper[msg.get()] = std::move(msg_helper);
+          if (!obj.register_() && !obj.name().empty()) {
             pb_map_object& tmpl = _pb_templates[otype];
             auto it = tmpl.find(obj.name());
             if (it != tmpl.end())
               throw engine_error() << fmt::format(
                   "Parsing of '{}' failed {}: {} already exists", type,
                   "file_info" /*_get_file_info(obj.get()) */, obj.name());
-            tmpl[obj.name()] = msg;
+            tmpl[obj.name()] = std::move(msg);
+          } else {
+            switch (otype) {
+              case message_helper::contact:
+                pb_config->mutable_contacts()->AddAllocated(
+                    static_cast<Contact*>(msg.release()));
+                break;
+              case message_helper::host:
+                pb_config->mutable_hosts()->AddAllocated(
+                    static_cast<Host*>(msg.release()));
+                break;
+              case message_helper::service:
+                pb_config->mutable_services()->AddAllocated(
+                    static_cast<Service*>(msg.release()));
+                break;
+              case message_helper::anomalydetection:
+                pb_config->mutable_anomalydetections()->AddAllocated(
+                    static_cast<Anomalydetection*>(msg.release()));
+                break;
+              case message_helper::hostdependency:
+                pb_config->mutable_hostdependencies()->AddAllocated(
+                    static_cast<Hostdependency*>(msg.release()));
+                break;
+              case message_helper::servicedependency:
+                pb_config->mutable_servicedependencies()->AddAllocated(
+                    static_cast<Servicedependency*>(msg.release()));
+                break;
+              case message_helper::timeperiod:
+                pb_config->mutable_timeperiods()->AddAllocated(
+                    static_cast<Timeperiod*>(msg.release()));
+                break;
+              case message_helper::command:
+                pb_config->mutable_commands()->AddAllocated(
+                    static_cast<Command*>(msg.release()));
+                break;
+              case message_helper::hostgroup:
+                pb_config->mutable_hostgroups()->AddAllocated(
+                    static_cast<Hostgroup*>(msg.release()));
+                break;
+              case message_helper::servicegroup:
+                pb_config->mutable_servicegroups()->AddAllocated(
+                    static_cast<Servicegroup*>(msg.release()));
+                break;
+              case message_helper::tag:
+                pb_config->mutable_tags()->AddAllocated(
+                    static_cast<Tag*>(msg.release()));
+                break;
+              case message_helper::contactgroup:
+                pb_config->mutable_contactgroups()->AddAllocated(
+                    static_cast<Contactgroup*>(msg.release()));
+                break;
+              case message_helper::connector:
+                pb_config->mutable_connectors()->AddAllocated(
+                    static_cast<Connector*>(msg.release()));
+                break;
+              case message_helper::severity:
+                pb_config->mutable_severities()->AddAllocated(
+                    static_cast<Severity*>(msg.release()));
+                break;
+              case message_helper::serviceescalation:
+                pb_config->mutable_serviceescalations()->AddAllocated(
+                    static_cast<Serviceescalation*>(msg.release()));
+                break;
+              case message_helper::hostescalation:
+                pb_config->mutable_hostescalations()->AddAllocated(
+                    static_cast<Hostescalation*>(msg.release()));
+                break;
+              default:
+                log_v2::config()->critical(
+                    "Attempt to add an object of unknown type");
+            }
           }
         }
         msg = nullptr;
@@ -706,8 +796,12 @@ void parser::_parse_object_definitions(const std::string& path,
         /* ------------------------------------ */
         size_t pos = l.find_first_of(" \t");
         absl::string_view key = l.substr(0, pos);
-        l.remove_prefix(pos);
-        l = absl::StripLeadingAsciiWhitespace(l);
+        if (pos != std::string::npos) {
+          l.remove_prefix(pos);
+          l = absl::StripLeadingAsciiWhitespace(l);
+        } else
+          l = {};
+
         bool retval = false;
         /* particular cases with hook */
         retval = msg_helper->hook(key, l);
@@ -739,67 +833,68 @@ void parser::_parse_object_definitions(const std::string& path,
       l = absl::StripTrailingAsciiWhitespace(l.substr(0, l.size() - 1));
       type = std::string(l.data(), l.size());
       if (type == "contact") {
-        msg = pb_config->add_contacts();
+        msg = std::make_unique<Contact>();
         msg_helper =
-            std::make_unique<contact_helper>(static_cast<Contact*>(msg));
+            std::make_unique<contact_helper>(static_cast<Contact*>(msg.get()));
       } else if (type == "host") {
-        msg = pb_config->add_hosts();
-        msg_helper = std::make_unique<host_helper>(static_cast<Host*>(msg));
+        msg = std::make_unique<Host>();
+        msg_helper =
+            std::make_unique<host_helper>(static_cast<Host*>(msg.get()));
       } else if (type == "service") {
-        msg = pb_config->add_services();
+        msg = std::make_unique<Service>();
         msg_helper =
-            std::make_unique<service_helper>(static_cast<Service*>(msg));
+            std::make_unique<service_helper>(static_cast<Service*>(msg.get()));
       } else if (type == "anomalydetection") {
-        msg = pb_config->add_anomalydetections();
+        msg = std::make_unique<Anomalydetection>();
         msg_helper = std::make_unique<anomalydetection_helper>(
-            static_cast<Anomalydetection*>(msg));
+            static_cast<Anomalydetection*>(msg.get()));
       } else if (type == "hostdependency") {
-        msg = pb_config->add_hostdependencies();
+        msg = std::make_unique<Hostdependency>();
         msg_helper = std::make_unique<hostdependency_helper>(
-            static_cast<Hostdependency*>(msg));
+            static_cast<Hostdependency*>(msg.get()));
       } else if (type == "servicedependency") {
-        msg = pb_config->add_servicedependencies();
+        msg = std::make_unique<Servicedependency>();
         msg_helper = std::make_unique<servicedependency_helper>(
-            static_cast<Servicedependency*>(msg));
+            static_cast<Servicedependency*>(msg.get()));
       } else if (type == "timeperiod") {
-        msg = pb_config->add_timeperiods();
-        msg_helper =
-            std::make_unique<timeperiod_helper>(static_cast<Timeperiod*>(msg));
+        msg = std::make_unique<Timeperiod>();
+        msg_helper = std::make_unique<timeperiod_helper>(
+            static_cast<Timeperiod*>(msg.get()));
       } else if (type == "command") {
-        msg = pb_config->add_commands();
+        msg = std::make_unique<Command>();
         msg_helper =
-            std::make_unique<command_helper>(static_cast<Command*>(msg));
+            std::make_unique<command_helper>(static_cast<Command*>(msg.get()));
       } else if (type == "hostgroup") {
-        msg = pb_config->add_hostgroups();
-        msg_helper =
-            std::make_unique<hostgroup_helper>(static_cast<Hostgroup*>(msg));
+        msg = std::make_unique<Hostgroup>();
+        msg_helper = std::make_unique<hostgroup_helper>(
+            static_cast<Hostgroup*>(msg.get()));
       } else if (type == "servicegroup") {
-        msg = pb_config->add_servicegroups();
+        msg = std::make_unique<Servicegroup>();
         msg_helper = std::make_unique<servicegroup_helper>(
-            static_cast<Servicegroup*>(msg));
+            static_cast<Servicegroup*>(msg.get()));
       } else if (type == "tag") {
-        msg = pb_config->add_tags();
-        msg_helper = std::make_unique<tag_helper>(static_cast<Tag*>(msg));
+        msg = std::make_unique<Tag>();
+        msg_helper = std::make_unique<tag_helper>(static_cast<Tag*>(msg.get()));
       } else if (type == "contactgroup") {
-        msg = pb_config->add_contactgroups();
+        msg = std::make_unique<Contactgroup>();
         msg_helper = std::make_unique<contactgroup_helper>(
-            static_cast<Contactgroup*>(msg));
+            static_cast<Contactgroup*>(msg.get()));
       } else if (type == "connector") {
-        msg = pb_config->add_connectors();
-        msg_helper =
-            std::make_unique<connector_helper>(static_cast<Connector*>(msg));
+        msg = std::make_unique<Connector>();
+        msg_helper = std::make_unique<connector_helper>(
+            static_cast<Connector*>(msg.get()));
       } else if (type == "severity") {
-        msg = pb_config->add_severities();
-        msg_helper =
-            std::make_unique<severity_helper>(static_cast<Severity*>(msg));
+        msg = std::make_unique<Severity>();
+        msg_helper = std::make_unique<severity_helper>(
+            static_cast<Severity*>(msg.get()));
       } else if (type == "serviceescalation") {
-        msg = pb_config->add_serviceescalations();
+        msg = std::make_unique<Serviceescalation>();
         msg_helper = std::make_unique<serviceescalation_helper>(
-            static_cast<Serviceescalation*>(msg));
+            static_cast<Serviceescalation*>(msg.get()));
       } else if (type == "hostescalation") {
-        msg = pb_config->add_hostescalations();
+        msg = std::make_unique<Hostescalation>();
         msg_helper = std::make_unique<hostescalation_helper>(
-            static_cast<Hostescalation*>(msg));
+            static_cast<Hostescalation*>(msg.get()));
       } else {
         log_v2::config()->error("Type '{}' not yet supported by the parser",
                                 type);
@@ -829,7 +924,7 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
   int current_line = 1;
   for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
     absl::string_view l = absl::StripLeadingAsciiWhitespace(*it);
-    if (l.empty() || l[0] == '#')
+    if (l.empty() || l[0] == '#' || l[0] == ';')
       continue;
     std::pair<absl::string_view, absl::string_view> p = absl::StrSplit(l, '=');
     p.first = absl::StripTrailingAsciiWhitespace(p.first);
@@ -1153,8 +1248,8 @@ void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
     auto it = tmpls.find(u);
     if (it == tmpls.end())
       throw engine_error() << "Cannot merge object of type '" << u << "'";
-    _resolve_template(_pb_helper[it->second], tmpls);
-    _merge(msg_helper, it->second);
+    _resolve_template(_pb_helper[it->second.get()], tmpls);
+    _merge(msg_helper, it->second.get());
   }
 }
 
@@ -1196,6 +1291,9 @@ void parser::_resolve_template(State* pb_config) {
 
   for (Contactgroup& cg : *pb_config->mutable_contactgroups())
     _resolve_template(_pb_helper[&cg], _pb_templates[object::contactgroup]);
+
+  for (Host& h : *pb_config->mutable_hosts())
+    _resolve_template(_pb_helper[&h], _pb_templates[object::host]);
 
   for (Service& s : *pb_config->mutable_services())
     _resolve_template(_pb_helper[&s], _pb_templates[object::service]);

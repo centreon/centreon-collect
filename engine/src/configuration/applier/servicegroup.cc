@@ -148,16 +148,16 @@ void applier::servicegroup::expand_objects(configuration::State& s) {
   // Here, we store each Servicegroup pointer by its name.
   absl::flat_hash_map<absl::string_view, configuration::Servicegroup*>
       sg_by_name;
-  for (auto& sg_conf : *pb_config.mutable_servicegroups())
+  for (auto& sg_conf : *s.mutable_servicegroups())
     sg_by_name[sg_conf.servicegroup_name()] = &sg_conf;
 
   // Each servicegroup can contain servicegroups, that is to mean the services
   // in the sub servicegroups are also in our servicegroup.
   // So, we iterate through all the servicegroups defined in the configuration,
-  // and for each one if it has servicegroup members, we fill its service members
-  // with theirs and then we clear the servicegroup members. At that step, a
-  // servicegroup is considered as resolved.
-  for (auto& sg_conf : *pb_config.mutable_servicegroups()) {
+  // and for each one if it has servicegroup members, we fill its service
+  // members with theirs and then we clear the servicegroup members. At that
+  // step, a servicegroup is considered as resolved.
+  for (auto& sg_conf : *s.mutable_servicegroups()) {
     if (!resolved.contains(sg_conf.servicegroup_name())) {
       _resolve_members(s, &sg_conf, resolved, sg_by_name);
     }
@@ -203,7 +203,9 @@ void applier::servicegroup::modify_object(
       engine::servicegroup::servicegroups.find(to_modify->servicegroup_name());
 
   if (it_obj == engine::servicegroup::servicegroups.end())
-    throw engine_error() << fmt::format("Could not modify non-existing service group object '{}'", to_modify->servicegroup_name());
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing service group object '{}'",
+        to_modify->servicegroup_name());
   engine::servicegroup* sg = it_obj->second.get();
 
   // Modify properties.
@@ -218,7 +220,7 @@ void applier::servicegroup::modify_object(
   if (!MessageDifferencer::Equals(new_object.members(), to_modify->members())) {
     // Delete all old service group members.
     for (service_map_unsafe::iterator it = it_obj->second->members.begin(),
-         end = it_obj->second->members.end();
+                                      end = it_obj->second->members.end();
          it != end; ++it) {
       broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE, it->second, sg);
     }

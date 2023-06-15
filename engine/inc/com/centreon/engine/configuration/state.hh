@@ -128,11 +128,11 @@ class state {
   bool check_host_freshness() const noexcept;
   void check_host_freshness(bool value);
   bool check_orphaned_hosts() const noexcept;
-  void check_orphaned_hosts(bool value);
-  void check_orphaned_services(bool value);
+  void set_check_orphaned_hosts(bool value);
+  void set_check_orphaned_services(bool value);
   bool check_orphaned_services() const noexcept;
   unsigned int check_reaper_interval() const noexcept;
-  void check_reaper_interval(unsigned int value);
+  void set_check_reaper_interval(unsigned int value);
   bool check_service_freshness() const noexcept;
   void check_service_freshness(bool value);
   const set_severity& severities() const noexcept;
@@ -232,9 +232,9 @@ class state {
   void host_perfdata_file_processing_interval(unsigned int value);
   void host_perfdata_file_template(std::string const& value);
   std::string const& illegal_object_chars() const noexcept;
-  void illegal_object_chars(std::string const& value);
+  void set_illegal_object_chars(const std::string& value);
   std::string const& illegal_output_chars() const noexcept;
-  void illegal_output_chars(std::string const& value);
+  void set_illegal_output_chars(std::string const& value);
   unsigned int interval_length() const noexcept;
   void interval_length(unsigned int value);
   bool log_event_handlers() const noexcept;
@@ -270,7 +270,7 @@ class state {
   uint32_t log_flush_period() const noexcept;
   void log_flush_period(uint32_t value);
   unsigned int max_parallel_service_checks() const noexcept;
-  void max_parallel_service_checks(unsigned int value);
+  void set_max_parallel_service_checks(unsigned int value);
   unsigned int max_service_check_spread() const noexcept;
   void max_service_check_spread(unsigned int value);
   unsigned int notification_timeout() const noexcept;
@@ -293,8 +293,8 @@ class state {
   void poller_name(std::string const& value);
   uint32_t poller_id() const noexcept;
   void poller_id(uint32_t value);
-  uint16_t rpc_port() const noexcept;
-  void rpc_port(uint16_t value);
+  uint16_t grpc_port() const noexcept;
+  void set_grpc_port(uint16_t value);
   const std::string& rpc_listen_address() const noexcept;
   void rpc_listen_address(const std::string& listen_address);
   bool process_performance_data() const noexcept;
@@ -381,7 +381,7 @@ class state {
   uint32_t instance_heartbeat_interval() const noexcept;
   void instance_heartbeat_interval(uint32_t value);
   bool use_regexp_matches() const noexcept;
-  void use_regexp_matches(bool value);
+  void set_use_regexp_matches(bool value);
   bool use_retained_program_state() const noexcept;
   void use_retained_program_state(bool value);
   bool use_retained_scheduling_info() const noexcept;
@@ -588,7 +588,7 @@ class state {
   int _perfdata_timeout;
   std::string _poller_name;
   uint32_t _poller_id;
-  uint16_t _rpc_port;
+  uint16_t _grpc_port;
   std::string _rpc_listen_address;
   bool _process_performance_data;
   std::list<std::string> _resource_file;

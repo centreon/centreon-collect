@@ -17,6 +17,7 @@
  *
  */
 #include "configuration/timeperiod_helper.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
@@ -97,7 +98,10 @@ void timeperiod_helper::check_validity() const {
   if (o->timeperiod_name().empty())
     throw msg_fmt("Time period has no name (property 'timeperiod_name')");
 }
-void timeperiod_helper::_init() {}
+void timeperiod_helper::_init() {
+  Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
+}
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon

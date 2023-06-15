@@ -41,7 +41,8 @@ CCE_BEGIN()
 
 namespace configuration {
 using Message = ::google::protobuf::Message;
-using pb_map_object = absl::flat_hash_map<std::string, Message*>;
+using pb_map_object =
+    absl::flat_hash_map<std::string, std::unique_ptr<Message>>;
 using pb_map_helper =
     absl::flat_hash_map<Message*, std::unique_ptr<message_helper>>;
 

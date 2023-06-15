@@ -187,6 +187,11 @@ void {cname}::_init() {{
 void {cname}::_init() {{\n"""]
         header = True
 
+    if name == "timeperiod":
+        cc_lines.append(
+            f"{cap_name} * obj = static_cast < {cap_name} * > (mut_obj());\n")
+        cc_lines.append("obj->mutable_obj()->set_register_(true);\n")
+
     cc_lines.append("}\n")
     if cap_name in ["Contact", "Service", "Host", "Anomalydetection"]:
         cc_lines.append(f"""
@@ -231,6 +236,12 @@ bool {cname}::insert_customvariable(absl::string_view key, absl::string_view val
 def prepare_filehelper_cc(name: str):
     filename = f"/tmp/configuration/{name}_helper.cc"
     fhcc = open(filename, "w")
+    complement = ""
+    addon = ""
+    if name == "state":
+        complement = "#include \"com/centreon/engine/events/sched_info.hh\""
+        addon = "extern sched_info scheduling_info;\n"
+
     fhcc.write(f"""/*
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
@@ -250,9 +261,12 @@ def prepare_filehelper_cc(name: str):
  *
  */
 #include "configuration/{name}_helper.hh"
+{complement}
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
+
+{addon}
 
 namespace com {{
 namespace centreon {{
@@ -473,7 +487,7 @@ def get_default_values(cap_name, cpp, msg: [str]):
 
 def get_correspondence(cpp):
     retval = "{\n"
-    r = re.compile(r".*{\"(.*)\",\s*SETTER\([^,]*,\s*_?set_(.*)\)}")
+    r = re.compile(r".*{\"(.*)\",\s*SETTER\([^,]*,\s*_?(?:set_)?(.*)\)}")
 
     def_value = {}
     l = ""
@@ -565,6 +579,58 @@ def build_hook_content(cname: str, msg):
       obj->mutable_service_inter_check_delay_method()->set_user_value(user_value);
     }
     return true;
+  } else if (key == "command_check_interval") {
+    absl::string_view v;
+    if (value[value.size() - 1] == 's') {
+      obj->set_command_check_interval_is_seconds(true);
+      v = value.substr(0, value.size() - 1);
+    } else {
+      obj->set_command_check_interval_is_seconds(false);
+      v = value;
+    }
+    int32_t res;
+    if (absl::SimpleAtoi(v, &res)) {
+      obj->set_command_check_interval(res);
+      return true;
+    }
+    else {
+      throw msg_fmt(
+          "command_check_interval is an integer representing a duration "
+          "between two consecutive external command checks. This number can be "
+          "a number of 'time units' or a number of seconds. For the latter, "
+          "you must append a 's' after the number: the current incorrect value "
+          "is: '{}'",
+          fmt::string_view(value.data(), value.size()));
+      return false;
+    }
+  } else if (key == "service_interleave_factor_method") {
+    if (value == "s")
+      obj->set_service_interleave_factor_method(ilf_smart);
+    else {
+      obj->set_service_interleave_factor_method(ilf_user);
+      int32_t res;
+      if (!absl::SimpleAtoi(value, &res) || res < 1)
+        scheduling_info.service_interleave_factor = 1;
+    }
+    return true;
+  } else if (key == "check_reaper_interval") {
+    int32_t res;
+    if (!absl::SimpleAtoi(value, &res) || res == 0)
+      throw msg_fmt("check_reaper_interval must be a strictly positive integer (current value '{}'", fmt::string_view(value.data(), value.size()));
+    else
+      obj->set_check_reaper_interval(res);
+    return true;
+  } else if (key == "event_broker_options") {
+    if (value != "-1") {
+      uint32_t res;
+      if (absl::SimpleAtoi(value, &res))
+        obj->set_event_broker_options(res);
+      else
+        throw msg_fmt("event_broker_options must be a positive integer or '-1' and not '{}'", fmt::string_view(value.data(), value.size()));
+    }
+    else
+      obj->set_event_broker_options(static_cast<uint32_t>(-1));
+    return true;
   }
 """)
     elif cname == 'Severity':
@@ -606,12 +672,96 @@ def build_hook_content(cname: str, msg):
       return false;
   }
 """)
+    elif cname == "Servicedependency":
+        retval.append(f"""
+      if (key == "execution_failure_options" || key == "notification_failure_options") {{
+        uint32_t options = action_sd_none;
+        auto arr = absl::StrSplit(value, ',');
+        for (auto& v : arr) {{
+          absl::string_view vv = absl::StripAsciiWhitespace(v);
+          if (vv == "o" || vv == "ok")
+            options |= action_sd_ok;
+          else if (vv == "u" || vv == "unknown")
+            options |= action_sd_unknown;
+          else if (vv == "w" || vv == "warning")
+            options |= action_sd_warning;
+          else if (vv == "c" || vv == "critical")
+            options |= action_sd_critical;
+          else if (vv == "p" || vv == "pending")
+            options |= action_sd_pending;
+          else if (vv == "n" || vv == "none")
+            options = action_sd_none;
+          else if (vv == "a" || vv == "all")
+            options = action_sd_ok | action_sd_warning | action_sd_critical | action_sd_pending;
+          else
+            return false;  
+        }}
+        if (key[0] == 'e')
+          obj->set_execution_failure_options(options);
+        else
+          obj->set_notification_failure_options(options);
+        return true;
+      }}
+    """)
+        els = "else "
+    elif cname == "Serviceescalation":
+        retval.append(f"""
+  if (key == "escalation_options") {{
+    uint32_t options = action_he_none;
+    auto arr = absl::StrSplit(value, ',');
+    for (auto& v : arr) {{
+      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      if (vv == "w" || vv == "warning")
+        options |= action_se_warning;
+      else if (vv == "u" || "unknown")
+        options |= action_se_unknown;
+      else if (vv == "c" || vv == "critical")
+        options |= action_se_critical;
+      else if (vv == "r" || vv == "recovery")
+        options |= action_se_recovery;
+      else if (vv == "n" || vv == "none")
+        options = action_se_none;
+      else if (vv == "a" || vv == "all")
+        options = action_se_warning | action_se_unknown | action_se_critical | action_se_recovery;
+      else
+        return false;  
+    }}
+    obj->set_escalation_options(options);
+    return true;
+  }}
+""")
+        els = "else "
+    elif cname == 'Hostescalation':
+        retval.append(f"""
+  if (key == "escalation_options") {{
+    uint32_t options = action_he_none;
+    auto arr = absl::StrSplit(value, ',');
+    for (auto& v : arr) {{
+      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      if (vv == "d" || vv == "down")
+        options |= action_he_down;
+      else if (vv == "u" || "unreachable")
+        options |= action_he_unreachable;
+      else if (vv == "r" || vv == "recovery")
+        options |= action_he_recovery;
+      else if (vv == "n" || vv == "none")
+        options = action_he_none;
+      else if (vv == "a" || vv == "all")
+        options = action_he_down | action_he_unreachable | action_he_recovery;
+      else
+        return false;  
+    }}
+    obj->set_escalation_options(options);
+    return true;
+  }}
+""")
+        els = "else "
     elif cname == 'Hostdependency':
         retval.append("""
-  if (key == "notification_failure_options") {
+  if (key == "notification_failure_options" || key == "execution_failure_options") {
     auto opts = absl::StrSplit(value, ',');
     uint16_t options = action_hd_none;
-    
+
     for (auto& o : opts) {
         absl::string_view ov = absl::StripAsciiWhitespace(o);
         if (ov == "o" || ov == "up")
@@ -629,7 +779,10 @@ def build_hook_content(cname: str, msg):
         else
             return false;
     }
-    obj->set_notification_failure_options(options);
+    if (key[0] == 'n')
+        obj->set_notification_failure_options(options);
+    else
+        obj->set_execution_failure_options(options);
     return true;
   }
 """)
@@ -820,11 +973,13 @@ def build_check_validity(cname: str, msg):
 """)
     elif cname == "Host":
         retval.append("""
+    if (o->obj().register_()) {
       if (o->host_name().empty())
         throw msg_fmt("Host has no name (property 'host_name')");
       if (o->address().empty())
         throw msg_fmt("Host '{}' has no address (property 'address')",
                       o->host_name());
+    }
 """)
     elif cname == "Hostdependency":
         retval.append("""
