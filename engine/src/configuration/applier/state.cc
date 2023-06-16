@@ -1509,9 +1509,13 @@ void applier::state::_processing(configuration::State& new_cfg,
       new_cfg.hostgroups().begin(), new_cfg.hostgroups().end(),
       &configuration::Hostgroup::hostgroup_name);
 
-  //  // Build difference for services.
-  //  difference<set_service> diff_services;
-  //  diff_services.parse(config->services(), new_cfg.services());
+  // Build difference for services.
+  //  pb_difference<configuration::Service> diff_services;
+  //  diff_services.parse(pb_config.services().begin(),
+  //  pb_config.services().end(),
+  //                      new_cfg.services().begin(), new_cfg.services().end(),
+  //                      &configuration::Service::host_name,
+  //                      &configuration::Service::service_description);
   //
   //  // Build difference for anomalydetections.
   //  difference<set_anomalydetection> diff_anomalydetections;
@@ -1553,7 +1557,7 @@ void applier::state::_processing(configuration::State& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    log_v2::instance().apply(new_cfg);
+    log_v2::instance()->apply(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);
@@ -1612,8 +1616,8 @@ void applier::state::_processing(configuration::State& new_cfg,
     _pb_apply<configuration::Host, applier::host>(diff_hosts);
     _pb_apply<configuration::Hostgroup, applier::hostgroup>(diff_hostgroups);
 
-//    // Apply services.
-//    _pb_apply<configuration::Service, applier::service>(diff_services);
+    // Apply services.
+    _pb_apply<configuration::Service, applier::service>(diff_services);
 
 //    // Apply anomalydetections.
 //    _apply<configuration::anomalydetection, applier::anomalydetection>(

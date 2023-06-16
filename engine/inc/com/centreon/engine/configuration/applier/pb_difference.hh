@@ -131,6 +131,45 @@ class pb_difference {
       ++i;
     }
   }
+
+  void parse(typename Container::iterator old_first,
+             typename Container::iterator old_last,
+             typename Container::iterator new_first,
+             typename Container::iterator new_last,
+             const std::string& (T::*key1)() const,
+             const std::string& (T::*key2)() const) {
+    absl::flat_hash_map<std::pair<std::string, std::string>, T*> keys_values;
+    for (auto it = old_first; it != old_last; ++it) {
+      const T& item = *it;
+      keys_values[{(item.*key1)(), (item.*key2)()}] = const_cast<T*>(&(*it));
+    }
+
+    absl::flat_hash_set<std::string> new_keys;
+    for (auto it = new_first; it != new_last; ++it) {
+      const T& item = *it;
+      new_keys.insert({(item.*key1)(), (item.*key2)()});
+      if (!keys_values.contains({(item.*key1)(), (item.*key2)()})) {
+        // New object to add
+        _added.push_back(item);
+      } else {
+        // Object to modify or equal
+        if (!MessageDifferencer::Equals(
+                item, *keys_values[{(item.*key1)(), (item.*key2)()}])) {
+          // There are changes in this object
+          _modified.push_back(std::make_pair(
+              keys_values[{(item.*key1)(), (item.*key2)()}], *it));
+        }
+      }
+    }
+
+    ssize_t i = 0;
+    for (auto it = old_first; it != old_last; ++it) {
+      const T& item = *it;
+      if (!new_keys.contains({(item.*key1)(), (item.*key2)()}))
+        _deleted.push_back(i);
+      ++i;
+    }
+  }
 };
 }  // namespace applier
 }  // namespace configuration
