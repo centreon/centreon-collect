@@ -71,7 +71,7 @@ jobs:
         shell: bash
         run: |
           rm -rf *-devel*.rpm
-          rm -rf *-debuginfo*.rpm
+          #rm -rf *-debuginfo*.rpm
           rm -rf *-debugsource*.rpm
 
       - name: Upload package artifacts
