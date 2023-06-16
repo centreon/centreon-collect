@@ -26,9 +26,9 @@
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "configuration/command_helper.hh"
+#include "configuration/hostdependency_helper.hh"
 #include "configuration/state-generated.pb.h"
 #include "configuration/timeperiod_helper.hh"
-#include "configuration/hostdependency_helper.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
@@ -193,7 +193,8 @@ configuration::Hostdependency TestEngine::new_pb_configuration_hostdependency(
   EXPECT_TRUE(hd_hlp.hook("dependent_host", dep_hostname));
   EXPECT_TRUE(hd_hlp.hook("notification_failure_options", "u,d"));
   hd.set_inherits_parent(true);
-  hd.set_dependency_type(configuration::DependencyKind::notification_dependency);
+  hd.set_dependency_type(
+      configuration::DependencyKind::notification_dependency);
   return hd;
 }
 
@@ -277,7 +278,7 @@ void TestEngine::fill_pb_configuration_service(
     const std::string& contacts,
     uint64_t svc_id) {
   auto* svc = static_cast<configuration::Service*>(svc_hlp->mut_obj());
-  fill_string_group(svc->mutable_hosts(), hostname);
+  svc->set_host_name(hostname);
   svc->set_service_description(description);
   auto it = conf_hosts.find(hostname);
   // We fake here the expand_object on configuration::service

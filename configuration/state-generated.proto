@@ -227,7 +227,7 @@ message Anomalydetection {
   string notes = 29;
   string notes_url = 30;
   optional bool notifications_enabled = 31;    // Optional - Default value: true
-  optional uint32 notification_interval = 32;  // Optional - Default value: 30
+  optional uint32 notification_interval = 32;  // Optional - Default value: 0
   optional uint32 notification_options =
       33;  // Optional - Default value: action_svc_ok | action_svc_warning
            // |action_svc_critical | action_svc_unknown |action_svc_flapping |
@@ -345,7 +345,7 @@ message Host {
   string notes = 33;
   string notes_url = 34;
   optional bool notifications_enabled = 35;    // Optional - Default value: true
-  optional uint32 notification_interval = 36;  // Optional - Default value: 30
+  optional uint32 notification_interval = 36;  // Optional - Default value: 0
   optional uint32 notification_options =
       37;  // Optional - Default value: action_hst_up | action_hst_down
            // |action_hst_unreachable |action_hst_flapping |action_hst_downtime
@@ -433,42 +433,41 @@ message Service {
            // |action_svc_unknown |action_svc_critical
   optional uint32 freshness_threshold = 20;  // Optional - Default value: 0
   optional uint32 high_flap_threshold = 21;  // Optional - Default value: 0
-  StringSet hostgroups = 22;
-  StringSet hosts = 23;
-  string icon_image = 24;
-  string icon_image_alt = 25;
+  string host_name = 22;
+  string icon_image = 23;
+  string icon_image_alt = 24;
   optional uint32 initial_state =
-      26;  // Optional - Default value: engine::service::state_ok
-  optional bool is_volatile = 27;           // Optional - Default value: false
-  optional uint32 low_flap_threshold = 28;  // Optional - Default value: 0
-  optional uint32 max_check_attempts = 29;  // Optional - Default value: 3
-  string notes = 30;
-  string notes_url = 31;
-  optional bool notifications_enabled = 32;    // Optional - Default value: true
-  optional uint32 notification_interval = 33;  // Optional - Default value: 30
+      25;  // Optional - Default value: engine::service::state_ok
+  optional bool is_volatile = 26;           // Optional - Default value: false
+  optional uint32 low_flap_threshold = 27;  // Optional - Default value: 0
+  optional uint32 max_check_attempts = 28;  // Optional - Default value: 3
+  string notes = 29;
+  string notes_url = 30;
+  optional bool notifications_enabled = 31;    // Optional - Default value: true
+  optional uint32 notification_interval = 32;  // Optional - Default value: 0
   optional uint32 notification_options =
-      34;  // Optional - Default value: action_svc_ok | action_svc_warning |
+      33;  // Optional - Default value: action_svc_ok | action_svc_warning |
            // action_svc_critical | action_svc_unknown |action_svc_flapping |
            // action_svc_downtime
-  optional string notification_period = 35;  // Optional
-  optional bool obsess_over_service = 36;    // Optional - Default value: true
-  optional bool process_perf_data = 37;      // Optional - Default value: true
+  optional string notification_period = 34;  // Optional
+  optional bool obsess_over_service = 35;    // Optional - Default value: true
+  optional bool process_perf_data = 36;      // Optional - Default value: true
   optional bool retain_nonstatus_information =
-      38;  // Optional - Default value: true
+      37;  // Optional - Default value: true
   optional bool retain_status_information =
-      39;                               // Optional - Default value: true
-  optional uint32 retry_interval = 40;  // Optional - Default value: 1
-  optional uint32 recovery_notification_delay = 41;  // Optional
-  StringSet servicegroups = 42;
-  string service_description = 43;
-  uint64 host_id = 44;
-  uint64 service_id = 45;
+      38;                               // Optional - Default value: true
+  optional uint32 retry_interval = 39;  // Optional - Default value: 1
+  optional uint32 recovery_notification_delay = 40;  // Optional
+  StringSet servicegroups = 41;
+  string service_description = 42;
+  uint64 host_id = 43;
+  uint64 service_id = 44;
   optional uint32 stalking_options =
-      46;                         // Optional - Default value: action_svc_none
-  optional string timezone = 47;  // Optional
-  optional uint64 severity_id = 48;  // Optional
-  optional uint64 icon_id = 49;      // Optional
-  repeated PairUint64_32 tags = 50;
+      45;                         // Optional - Default value: action_svc_none
+  optional string timezone = 46;  // Optional
+  optional uint64 severity_id = 47;  // Optional
+  optional uint64 icon_id = 48;      // Optional
+  repeated PairUint64_32 tags = 49;
 }
 
 message Servicedependency {

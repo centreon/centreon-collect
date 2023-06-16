@@ -120,7 +120,7 @@ TEST_F(ApplierServiceDependency, PbAddDependencyWithoutExpansion) {
   svc.set_host_id(12);
   svc_aply.add_object(svc);
 
-  svc.mutable_hosts()->mutable_data()->at(0) = "test_host2";
+  svc.set_host_name("test_host2");
   svc.set_service_description("test_svc2");
   svc.set_service_id(13);
   svc.set_host_id(13);
@@ -219,7 +219,7 @@ TEST_F(ApplierServiceDependency, PbAddDependency) {
   svc.set_host_id(12);
   svc_aply.add_object(svc);
 
-  svc.mutable_hosts()->mutable_data()->at(0) = "test_host2";
+  svc.set_host_name("test_host2");
   svc.set_service_description("test_svc2");
   svc.set_service_id(13);
   svc.set_host_id(13);

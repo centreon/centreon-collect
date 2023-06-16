@@ -119,7 +119,7 @@ TEST_F(ApplierAnomalydetection, PbNewADFromConfig) {
   configuration::applier::service svc_aply;
   configuration::Service svc;
   configuration::service_helper svc_hmlp(&svc);
-  fill_string_group(svc.mutable_hosts(), "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_description("test_description");
   svc.set_host_id(12);
   svc.set_service_id(13);

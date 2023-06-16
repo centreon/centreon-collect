@@ -190,7 +190,7 @@ void host_helper::_init() {
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);
   obj->set_notifications_enabled(true);
-  obj->set_notification_interval(30);
+  obj->set_notification_interval(0);
   obj->set_notification_options(action_hst_up | action_hst_down |
                                 action_hst_unreachable | action_hst_flapping |
                                 action_hst_downtime);
