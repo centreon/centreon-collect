@@ -3166,7 +3166,7 @@ set_service::const_iterator state::services_find(
     std::string const& service_desc) const {
   for (auto it = _services.begin(), end = _services.end(); it != end; ++it) {
     if (it->service_description() == service_desc &&
-        *it->hosts().begin() == host_name)
+        it->host_name() == host_name)
       return it;
   }
   return _services.end();
