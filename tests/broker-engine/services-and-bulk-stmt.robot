@@ -307,3 +307,80 @@ metric_mapping
 
     Stop Engine
     Kindly Stop Broker    True
+
+
+RLCode
+    [Documentation]    Test if reloading LUA code in a stream connector applies the changes
+    [Tags]    lua    stream connector
+    Clear Commands Status
+    Clear Retention
+
+    Remove File    /tmp/toto.lua
+    Config Engine    ${1}    ${1}    ${10}
+    Config Broker    central
+    Config Broker    module
+    Config Broker    rrd
+    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Broker Config Log    central    tcp    error
+    Broker Config Log    central    sql    error
+    Broker Config Log    central    lua    debug
+    Config Broker Sql Output    central    unified_sql
+
+    ${INITIAL_SCRIPT_CONTENT}=    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters('/tmp/toto.log', 2)
+    ...    end
+    ...
+    ...    function write(d)
+    ...        broker_log:info(0, "toto")
+    ...        return true
+    ...    end
+
+     # Create the initial LUA script file
+    Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
+
+    Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
+
+    # Start the engine/broker
+    ${start}=    Get Current Date
+
+    Start Broker
+    Start Engine
+
+
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+
+    ${content}=    Create List    lua: initializing the Lua virtual machine
+    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg="lua logs produced"
+
+    # Define the new content to take place of the second one
+    ${new_content}=    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters('/tmp/titi.log', 2)
+    ...    end
+    ...
+    ...    function write(d)
+    ...        broker_log:info(0, "titi")
+    ...        return true
+    ...    end
+
+
+    # Create the second LUA script file
+    Create File    /tmp/toto.lua    ${new_content}
+    ${start}=    Get Current Date
+
+    Reload Broker
+
+    ${content}=    Create List    lua: initializing the Lua virtual machine
+    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg=lua file not initialized
+
+
+    Stop Engine
+    Kindly Stop Broker
+
