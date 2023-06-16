@@ -53,54 +53,35 @@ jobs:
 
       - name: Compile sources
         run: |
-          # sudo pip3 install conan==1.57.0 --upgrade
-          # sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-
-          # #-DWITH_MODULE_SIMU=OFF \
-          # #-DWITH_CREATE_FILES=OFF \
-
-          # sudo cmake3 \
-          #         -G "Ninja" \
-          #         -DWITH_TESTING=0 \
-          #         -DWITH_BENCH=1 \
-          #         -DCMAKE_INSTALL_PREFIX=/usr \
-          #         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
-          #         -DWITH_STARTUP_DIR=/lib/systemd/system \
-          #         -DWITH_STARTUP_SCRIPT=systemd \
-          #         -DWITH_USER_BROKER=centreon-broker \
-          #         -DWITH_GROUP_BROKER=centreon-broker \
-          #         -DWITH_USER_ENGINE=centreon-engine \
-          #         -DWITH_GROUP_ENGINE=centreon-engine \
-          #         -DWITH_DAEMONS=y \
-          #         -DWITH_CONFIG_FILES=y \
-          #         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          #         .
-
-          # sudo ninja -j 8
-
           sudo pip3 install conan==1.57.0 --upgrade
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           sudo cmake3 \
                   -G "Ninja" \
-                  -DWITH_TESTING=0 \
-                  -DWITH_BENCH=1 \
+                  -DWITH_TESTING=OFF \
+                  -DWITH_BENCH=ON \
+                  -DWITH_MODULE_SIMU=OFF \
                   -DCMAKE_INSTALL_PREFIX=/usr \
-                  -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
-                  -DWITH_STARTUP_DIR=%{_unitdir} \
+                  -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+                  -DWITH_STARTUP_DIR=/usr/lib/systemd/system \
                   -DWITH_STARTUP_SCRIPT=systemd \
                   -DWITH_USER_BROKER=centreon-broker \
                   -DWITH_GROUP_BROKER=centreon-broker \
                   -DWITH_USER_ENGINE=centreon-engine \
                   -DWITH_GROUP_ENGINE=centreon-engine \
-                  -DWITH_DAEMONS=y \
-                  -DWITH_CONFIG_FILES=y \
+                  -DWITH_DAEMONS=ON \
+                  -DWITH_CREATE_FILES=OFF \
+                  -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   .
 
           sudo ninja -j 8
         shell: bash
 
+      - run: ls -Rlh bin
+      - run: ls -Rlh lib
+      - run: strip bin/*
+      - run: strip lib/*
       - run: ls -Rlh bin
       - run: ls -Rlh lib
       # - run: |

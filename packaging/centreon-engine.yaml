@@ -62,7 +62,7 @@ contents:
       owner: root
       group: root
 
-  - src: "../lib"
+  - src: "../lib/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
     file_info:
       owner: root
