@@ -1616,7 +1616,7 @@ void applier::state::_processing(configuration::State& new_cfg,
     _pb_apply<configuration::Hostgroup, applier::hostgroup>(diff_hostgroups);
 
     // Apply services.
-    _pb_apply<configuration::Service, applier::service>(diff_services);
+//    _pb_apply<configuration::Service, applier::service>(diff_services);
 
 //    // Apply anomalydetections.
 //    _apply<configuration::anomalydetection, applier::anomalydetection>(
