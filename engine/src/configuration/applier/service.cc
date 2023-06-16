@@ -403,7 +403,7 @@ void applier::service::expand_objects(configuration::State& s) {
 void applier::service::expand_objects(configuration::state& s) {
   // Browse all services.
   configuration::set_service expanded;
-  for (configuration::service& svc : s.services()) {
+  for (auto svc : s.services()) {
     // Should custom variables be sent to broker ?
     for (map_customvar::iterator
              it = const_cast<map_customvar&>(svc.customvariables()).begin(),
@@ -928,8 +928,7 @@ void applier::service::_inherits_special_vars(configuration::service& obj,
       !obj.contactgroups_defined() || !obj.notification_interval_defined() ||
       !obj.notification_period_defined() || !obj.timezone_defined()) {
     // Find host.
-    configuration::set_host::const_iterator it(
-        s.hosts_find(obj.hosts().begin()->c_str()));
+    configuration::set_host::const_iterator it = s.hosts_find(obj.host_name());
     if (it == s.hosts().end())
       throw engine_error()
           << "Could not inherit special variables for service '"

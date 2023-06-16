@@ -613,7 +613,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   /* Service */
   ASSERT_EQ(cfg.services().size(), SERVICES);
   auto sit = cfg.services().begin();
-  ASSERT_EQ(sit->hosts().size(), 1u);
+  ASSERT_EQ(sit->host_name(), absl::string_view("Centreon-central"));
   ASSERT_EQ(sit->service_id(), 196);
   ASSERT_TRUE(sit->should_register());
   ASSERT_TRUE(sit->checks_active());
@@ -626,9 +626,8 @@ TEST_F(ApplierState, StateLegacyParsing) {
     ++it;
     ASSERT_EQ(it, sit->contactgroups().end());
   }
-  ASSERT_EQ(*sit->hosts().begin(), std::string("Centreon-central"));
+  ASSERT_EQ(sit->host_name(), std::string("Centreon-central"));
   EXPECT_EQ(sit->service_description(), std::string("proc-sshd"));
-  EXPECT_EQ(sit->hostgroups().size(), 0u);
   EXPECT_EQ(sit->contacts().size(), 1u);
   EXPECT_EQ(*sit->contacts().begin(), std::string("John_Doe"));
   EXPECT_EQ(sit->notification_options(), 0x3f);
