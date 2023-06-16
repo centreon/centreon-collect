@@ -39,9 +39,9 @@ using namespace com::centreon::engine::logging;
   &object::setter<service, type, &service::method>::generic
 
 std::unordered_map<std::string, service::setter_func> const service::_setters{
-    {"host", SETTER(std::string const&, _set_hosts)},
-    {"hosts", SETTER(std::string const&, _set_hosts)},
-    {"host_name", SETTER(std::string const&, _set_hosts)},
+    {"host", SETTER(std::string const&, _set_host_name)},
+    {"hosts", SETTER(std::string const&, _set_host_name)},
+    {"host_name", SETTER(std::string const&, _set_host_name)},
     {"service_description",
      SETTER(std::string const&, _set_service_description)},
     {"service_id", SETTER(uint64_t, set_service_id)},
@@ -49,9 +49,6 @@ std::unordered_map<std::string, service::setter_func> const service::_setters{
     {"acknowledgement_timeout", SETTER(int, set_acknowledgement_timeout)},
     {"description", SETTER(std::string const&, _set_service_description)},
     {"display_name", SETTER(std::string const&, _set_display_name)},
-    {"hostgroup", SETTER(std::string const&, _set_hostgroups)},
-    {"hostgroups", SETTER(std::string const&, _set_hostgroups)},
-    {"hostgroup_name", SETTER(std::string const&, _set_hostgroups)},
     {"service_groups", SETTER(std::string const&, _set_servicegroups)},
     {"servicegroups", SETTER(std::string const&, _set_servicegroups)},
     {"check_command", SETTER(std::string const&, _set_check_command)},
@@ -205,8 +202,7 @@ service::service(service const& other)
       _flap_detection_options(other._flap_detection_options),
       _freshness_threshold(other._freshness_threshold),
       _high_flap_threshold(other._high_flap_threshold),
-      _hostgroups(other._hostgroups),
-      _hosts(other._hosts),
+      _host_name(other._host_name),
       _icon_image(other._icon_image),
       _icon_image_alt(other._icon_image_alt),
       _initial_state(other._initial_state),
@@ -265,8 +261,7 @@ service& service::operator=(service const& other) {
     _flap_detection_options = other._flap_detection_options;
     _freshness_threshold = other._freshness_threshold;
     _high_flap_threshold = other._high_flap_threshold;
-    _hostgroups = other._hostgroups;
-    _hosts = other._hosts;
+    _host_name = other._host_name;
     _icon_image = other._icon_image;
     _icon_image_alt = other._icon_image_alt;
     _initial_state = other._initial_state;
@@ -459,18 +454,11 @@ bool service::operator==(service const& other) const noexcept {
         "high_flap_threshold don't match");
     return false;
   }
-  if (_hostgroups != other._hostgroups) {
+  if (_host_name != other._host_name) {
     engine_logger(dbg_config, more)
-        << "configuration::service::equality => hostgroups don't match";
+        << "configuration::service::equality => _host_name don't match";
     log_v2::config()->debug(
-        "configuration::service::equality => hostgroups don't match");
-    return false;
-  }
-  if (_hosts != other._hosts) {
-    engine_logger(dbg_config, more)
-        << "configuration::service::equality => _hosts don't match";
-    log_v2::config()->debug(
-        "configuration::service::equality => _hosts don't match");
+        "configuration::service::equality => _host_name don't match");
     return false;
   }
   if (_icon_image != other._icon_image) {
@@ -697,14 +685,14 @@ bool service::operator!=(service const& other) const noexcept {
  *  @return True if this object is less than right.
  */
 bool service::operator<(service const& other) const noexcept {
-  // hosts and service_description have to be first in this operator.
+  // host_name and service_description have to be first in this operator.
   // The configuration diff mechanism relies on this.
   if (_host_id != other._host_id)
     return _host_id < other._host_id;
   else if (_service_id != other._service_id)
     return _service_id < other._service_id;
-  else if (_hosts != other._hosts)
-    return _hosts < other._hosts;
+  else if (_host_name != other._host_name)
+    return _host_name < other._host_name;
   else if (_service_description != other._service_description)
     return _service_description < other._service_description;
   else if (_acknowledgement_timeout != other._acknowledgement_timeout)
@@ -747,8 +735,6 @@ bool service::operator<(service const& other) const noexcept {
     return _freshness_threshold < other._freshness_threshold;
   else if (_high_flap_threshold != other._high_flap_threshold)
     return _high_flap_threshold < other._high_flap_threshold;
-  else if (_hostgroups != other._hostgroups)
-    return _hostgroups < other._hostgroups;
   else if (_icon_image != other._icon_image)
     return _icon_image < other._icon_image;
   else if (_icon_image_alt != other._icon_image_alt)
@@ -807,7 +793,7 @@ void service::check_validity() const {
   if (_service_description.empty())
     throw engine_error() << "Service has no description (property "
                          << "'service_description')";
-  if (_hosts->empty() && _hostgroups->empty())
+  if (_host_name.empty())
     throw engine_error()
         << "Service '" << _service_description
         << "' is not attached to any host or host group (properties "
@@ -856,8 +842,7 @@ void service::merge(object const& obj) {
   MRG_OPTION(_flap_detection_options);
   MRG_OPTION(_freshness_threshold);
   MRG_OPTION(_high_flap_threshold);
-  MRG_INHERIT(_hostgroups);
-  MRG_INHERIT(_hosts);
+  MRG_DEFAULT(_host_name);
   MRG_DEFAULT(_icon_image);
   MRG_DEFAULT(_icon_image_alt);
   MRG_OPTION(_initial_state);
@@ -1129,39 +1114,12 @@ unsigned int service::high_flap_threshold() const noexcept {
 }
 
 /**
- *  Get hostgroups.
- *
- *  @return The hostgroups.
- */
-set_string& service::hostgroups() noexcept {
-  return *_hostgroups;
-}
-
-/**
- *  Get hostgroups.
- *
- *  @return The hostgroups.
- */
-set_string const& service::hostgroups() const noexcept {
-  return *_hostgroups;
-}
-
-/**
  *  Get hosts.
  *
  *  @return The hosts.
  */
-set_string& service::hosts() noexcept {
-  return *_hosts;
-}
-
-/**
- *  Get hosts.
- *
- *  @return The hosts.
- */
-set_string const& service::hosts() const noexcept {
-  return *_hosts;
+const std::string& service::host_name() const noexcept {
+  return _host_name;
 }
 
 /**
@@ -1757,26 +1715,14 @@ bool service::_set_high_flap_threshold(unsigned int value) {
 }
 
 /**
- *  Set hostgroups value.
+ *  Set host_name value.
  *
- *  @param[in] value The new hostgroups value.
- *
- *  @return True on success, otherwise false.
- */
-bool service::_set_hostgroups(std::string const& value) {
-  _hostgroups = value;
-  return true;
-}
-
-/**
- *  Set hosts value.
- *
- *  @param[in] value The new hosts value.
+ *  @param[in] value The new host_name value.
  *
  *  @return True on success, otherwise false.
  */
-bool service::_set_hosts(std::string const& value) {
-  _hosts = value;
+bool service::_set_host_name(const std::string& value) {
+  _host_name = value;
   return true;
 }
 
