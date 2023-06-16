@@ -53,6 +53,11 @@ jobs:
 
       - name: Compile sources
         run: |
+          wget https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-linux.zip
+          unzip ninja-linux.zip
+          mv -f ninja /usr/bin/ninja
+
+
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
