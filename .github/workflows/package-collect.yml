@@ -53,11 +53,33 @@ jobs:
 
       - name: Compile sources
         run: |
+          # sudo pip3 install conan==1.57.0 --upgrade
+          # sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+          # #-DWITH_MODULE_SIMU=OFF \
+          # #-DWITH_CREATE_FILES=OFF \
+
+          # sudo cmake3 \
+          #         -G "Ninja" \
+          #         -DWITH_TESTING=0 \
+          #         -DWITH_BENCH=1 \
+          #         -DCMAKE_INSTALL_PREFIX=/usr \
+          #         -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
+          #         -DWITH_STARTUP_DIR=/lib/systemd/system \
+          #         -DWITH_STARTUP_SCRIPT=systemd \
+          #         -DWITH_USER_BROKER=centreon-broker \
+          #         -DWITH_GROUP_BROKER=centreon-broker \
+          #         -DWITH_USER_ENGINE=centreon-engine \
+          #         -DWITH_GROUP_ENGINE=centreon-engine \
+          #         -DWITH_DAEMONS=y \
+          #         -DWITH_CONFIG_FILES=y \
+          #         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          #         .
+
+          # sudo ninja -j 8
+
           sudo pip3 install conan==1.57.0 --upgrade
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-
-          #-DWITH_MODULE_SIMU=OFF \
-          #-DWITH_CREATE_FILES=OFF \
 
           sudo cmake3 \
                   -G "Ninja" \
@@ -65,7 +87,7 @@ jobs:
                   -DWITH_BENCH=1 \
                   -DCMAKE_INSTALL_PREFIX=/usr \
                   -DWITH_ENGINE_LOGROTATE_SCRIPT=1 \
-                  -DWITH_STARTUP_DIR=/lib/systemd/system \
+                  -DWITH_STARTUP_DIR=%{_unitdir} \
                   -DWITH_STARTUP_SCRIPT=systemd \
                   -DWITH_USER_BROKER=centreon-broker \
                   -DWITH_GROUP_BROKER=centreon-broker \
@@ -76,7 +98,7 @@ jobs:
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   .
 
-                  sudo sudo ninja -j 8
+          sudo ninja -j 8
         shell: bash
 
       - run: ls -Rlh bin
