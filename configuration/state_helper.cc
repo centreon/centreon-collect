@@ -200,7 +200,6 @@ void state_helper::check_validity() const {
  */
 void state_helper::_init() {
   State* obj = static_cast<State*>(mut_obj());
-  obj->set_rpc_listen_address("localhost");
   obj->set_accept_passive_service_checks(true);
   obj->set_additional_freshness_latency(15);
   obj->set_admin_email("");

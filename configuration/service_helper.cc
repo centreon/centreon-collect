@@ -37,12 +37,10 @@ service_helper::service_helper(Service* obj)
     : message_helper(object_type::service,
                      obj,
                      {
-                         {"host", "hosts"},
-                         {"host_name", "hosts"},
+                         {"host", "host_name"},
+                         {"hosts", "host_name"},
                          {"_SERVICE_ID", "service_id"},
                          {"description", "service_description"},
-                         {"hostgroup", "hostgroups"},
-                         {"hostgroup_name", "hostgroups"},
                          {"service_groups", "servicegroups"},
                          {"contact_groups", "contactgroups"},
                          {"normal_check_interval", "check_interval"},
@@ -51,7 +49,7 @@ service_helper::service_helper(Service* obj)
                          {"passive_checks_enabled", "checks_passive"},
                          {"severity", "severity_id"},
                      },
-                     51) {
+                     50) {
   _init();
 }
 
@@ -70,12 +68,6 @@ bool service_helper::hook(absl::string_view key,
     return true;
   } else if (key == "contacts") {
     fill_string_group(obj->mutable_contacts(), value);
-    return true;
-  } else if (key == "hostgroups") {
-    fill_string_group(obj->mutable_hostgroups(), value);
-    return true;
-  } else if (key == "hosts") {
-    fill_string_group(obj->mutable_hosts(), value);
     return true;
   } else if (key == "notification_options") {
     uint16_t options(action_svc_none);
@@ -172,7 +164,7 @@ void service_helper::check_validity() const {
     if (o->check_command().empty())
       throw msg_fmt("Service '{}' has an empty check command",
                     o->service_description());
-    if (o->hosts().data().empty() && o->hostgroups().data().empty())
+    if (o->host_name().empty())
       throw msg_fmt(
           "Service '{}' must contain at least one of the fields 'hosts' or "
           "'hostgroups' not empty",
@@ -203,7 +195,7 @@ void service_helper::_init() {
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);
   obj->set_notifications_enabled(true);
-  obj->set_notification_interval(30);
+  obj->set_notification_interval(0);
   obj->set_notification_options(action_svc_ok | action_svc_warning |
                                 action_svc_critical | action_svc_unknown |
                                 action_svc_flapping | action_svc_downtime);
