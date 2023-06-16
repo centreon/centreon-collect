@@ -2033,7 +2033,7 @@ set_host& state::hosts() noexcept {
  *
  *  @return Iterator to the host if found, hosts().end() if it was not.
  */
-set_host::const_iterator state::hosts_find(host::key_type const& k) const {
+set_host::const_iterator state::hosts_find(const host::key_type& k) const {
   configuration::host below_searched(k);
   set_host::const_iterator it(_hosts.upper_bound(below_searched));
   if ((it != _hosts.end()) && (it->host_id() == k))
@@ -2043,7 +2043,7 @@ set_host::const_iterator state::hosts_find(host::key_type const& k) const {
   return _hosts.end();
 }
 
-set_host::const_iterator state::hosts_find(std::string const& name) const {
+set_host::const_iterator state::hosts_find(const std::string& name) const {
   for (set_host::const_iterator it(_hosts.begin()), end(_hosts.end());
        it != end; ++it) {
     if (it->host_name() == name)
@@ -3077,6 +3077,10 @@ set_service const& state::services() const noexcept {
  *  @return All engine services.
  */
 set_service& state::services() noexcept {
+  return _services;
+}
+
+set_service& state::mut_services() noexcept {
   return _services;
 }
 
