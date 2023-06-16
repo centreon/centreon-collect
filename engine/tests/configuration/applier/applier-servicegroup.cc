@@ -25,12 +25,12 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "helper.hh"
-#include "configuration/state-generated.pb.h"
 #include "configuration/command_helper.hh"
 #include "configuration/host_helper.hh"
-#include "configuration/servicegroup_helper.hh"
 #include "configuration/service_helper.hh"
+#include "configuration/servicegroup_helper.hh"
+#include "configuration/state-generated.pb.h"
+#include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -247,7 +247,7 @@ TEST_F(ApplierServicegroup, PbResolveServicegroup) {
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
   svc.set_service_description("test");
-  fill_string_group(svc.mutable_hosts(), "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_id(18);
   cmd.set_command_line("echo 1");
   svc.set_check_command("cmd");
@@ -334,7 +334,7 @@ TEST_F(ApplierServicegroup, PbSetServicegroupMembers) {
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
   svc.set_service_description("test");
-  fill_string_group(svc.mutable_hosts(), "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_id(18);
   cmd.set_command_line("echo 1");
   svc.set_check_command("cmd");
@@ -439,7 +439,7 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
   svc.set_service_description("test");
-  fill_string_group(svc.mutable_hosts(), "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_id(18);
   cmd.set_command_line("echo 1");
   svc.set_check_command("cmd");
@@ -462,9 +462,11 @@ TEST_F(ApplierServicegroup, PbRemoveServicegroupFromConfig) {
   fill_string_group(grp1.mutable_servicegroup_members(), "test_group");
   aply_grp.add_object(grp1);
   aply_grp.expand_objects(pb_config);
-  auto found = std::find_if(pb_config.servicegroups().begin(), pb_config.servicegroups().end(), [](const configuration::Servicegroup& sg) {
-      return sg.servicegroup_name() == "big_group";
-      });
+  auto found = std::find_if(pb_config.servicegroups().begin(),
+                            pb_config.servicegroups().end(),
+                            [](const configuration::Servicegroup& sg) {
+                              return sg.servicegroup_name() == "big_group";
+                            });
   ASSERT_TRUE(found != pb_config.servicegroups().end());
   ASSERT_EQ(found->members().data().size(), 1);
 
