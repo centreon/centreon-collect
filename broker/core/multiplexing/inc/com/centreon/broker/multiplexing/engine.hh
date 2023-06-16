@@ -95,7 +95,7 @@ class engine : public std::enable_shared_from_this<engine> {
   std::string _cache_file_path() const;
   bool _send_to_subscribers(send_to_mux_callback_type&& callback);
 
-  // void (engine::*_write_func)(std::shared_ptr<io::data> const&);
+  friend class detail::callback_caller;
 
  public:
   static void load();

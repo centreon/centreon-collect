@@ -26,9 +26,9 @@
 #include <random>
 #include <string>
 
-#include <asio.hpp>
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+#include <asio.hpp>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>
@@ -178,9 +178,12 @@ int main(int argc, char* argv[]) {
 
     absl::string_view legacy = getenv("CENTENGINE_LEGACY");
     if (absl::SimpleAtob(legacy, &legacy_conf))
+      log_v2::config()->info("Configuration mechanism used: {}",
+                             legacy_conf ? "legacy" : "protobuf");
+    else {
       log_v2::config()->info("Legacy configuration mechanism used");
-    else
-      log_v2::config()->info("New Protobuf configuration mechanism used");
+      legacy_conf = true;
+    }
 
     // Reset umask.
     umask(S_IWGRP | S_IWOTH);
@@ -489,11 +492,9 @@ int main(int argc, char* argv[]) {
 
           // Load broker modules.
           for (auto& m : pb_config.broker_module()) {
-            std::string filename;
-            std::string args;
-            if (!string::split(m, filename, args, ' '))
-              filename = m;
-            broker::loader::instance().add_module(filename, args);
+            std::pair<std::string, std::string> p =
+                absl::StrSplit(m, absl::MaxSplits(' ', 1));
+            broker::loader::instance().add_module(p.first, p.second);
           }
           neb_init_callback_list();
 
