@@ -908,11 +908,10 @@ TEST_F(ApplierState, StateParsing) {
 
   /* Service */
   ASSERT_EQ(cfg.services().size(), SERVICES);
-  ASSERT_EQ(cfg.services()[0].hosts().data().size(), 1u);
   ASSERT_EQ(cfg.services()[0].service_id(), 196);
   ASSERT_TRUE(cfg.services()[0].obj().register_());
   ASSERT_TRUE(cfg.services()[0].checks_active());
-  ASSERT_EQ(cfg.services()[0].hosts().data()[0],
+  ASSERT_EQ(cfg.services()[0].host_name(),
             absl::string_view("Centreon-central"));
   ASSERT_EQ(cfg.services()[0].service_description(),
             absl::string_view("proc-sshd"));
@@ -922,7 +921,6 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(cfg.services()[0].contactgroups().data()[1],
             absl::string_view("Supervisors"));
 
-  EXPECT_EQ(cfg.services()[0].hostgroups().data().size(), 0u);
   EXPECT_EQ(cfg.services()[0].contacts().data().size(), 1u);
   EXPECT_EQ(cfg.services()[0].contacts().data()[0], std::string("John_Doe"));
   EXPECT_EQ(cfg.services()[0].notification_options(), 0x3f);
