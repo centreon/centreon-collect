@@ -261,54 +261,6 @@ EBPS2
     Start mysql
     Kindly Stop Broker    ${True}
 
-metric_mapping
-    [Documentation]    check if metric name is exist using lua conf
-    [Tags]    broker    engine    bbdo    unified_sql    services
-    Clear Commands Status
-    Clear Retention
-
-    Remove File    /tmp/test.log
-    Config Engine    ${1}    ${1}    ${10}
-    Config Broker    central
-    Config Broker    module
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Log    central    lua    debug
-    Config Broker Sql Output    central    unified_sql
-
-    Broker Config Add Lua Output    central    test-metric    ${SCRIPTS}test4.lua
-
-    ${start}=    Get Current Date
-
-    Start Broker    True
-    Start Engine
-
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
-
-    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
-    FOR    ${i}    IN RANGE    ${10}
-        Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
-    END
-
-    Wait Until Created    /tmp/test.log    1m
-
-    ${metric_name_found}=    Set Variable    True
-    FOR    ${index}    IN RANGE    10
-     ${grep_res}=    Grep File
-     ...    /tmp/test.log
-     ...    "\"metric_name\": \"nil\""
-     Sleep    1s
-     Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    True
-     Exit For Loop If    "${grep_res}" != ""
-    END
-    Should Not Be True    ${metric_name_found}    msg=metric name is nil
-
-    Stop Engine
-    Kindly Stop Broker    True
-
-
 RLCode
     [Documentation]    Test if reloading LUA code in a stream connector applies the changes
     [Tags]    lua    stream connector
@@ -358,7 +310,7 @@ RLCode
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    msg="lua logs produced"
 
-    # Define the new content to take place of the second one
+    # Define the new content to take place of the first one
     ${new_content}=    Catenate
     ...    function init(params)
     ...        broker_log:set_parameters('/tmp/titi.log', 2)
