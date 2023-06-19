@@ -92,6 +92,7 @@ jobs:
           mkdir -p /tmp/BUILDROOT/usr/lib64/nagios
           cp lib/cbmod.so /tmp/BUILDROOT/usr/lib64/nagios/
 
+          dnf install -y debugedit
           bash .github/scripts/find-debuginfo.sh
         shell: bash
 

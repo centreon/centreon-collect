@@ -391,7 +391,8 @@ do_file()
   if [ "$no_recompute_build_id" = "true" ]; then
     no_recompute="-n"
   fi
-  id=$(${lib_rpm_dir}/debugedit -b "$debug_base_name" -d "$debug_dest_name" \
+  #id=$(${lib_rpm_dir}/debugedit -b "$debug_base_name" -d "$debug_dest_name" \
+  id=$(debugedit -b "$debug_base_name" -d "$debug_dest_name" \
 			      $no_recompute -i \
 			      ${build_id_seed:+--build-id-seed="$build_id_seed"} \
 			      -l "$SOURCEFILE" "$f") || exit
@@ -549,7 +550,8 @@ if $run_dwz \
     # dwz invalidates .gnu_debuglink CRC32 in the main files.
     cat "$ELFBINSFILE" |
     (cd "$RPM_BUILD_ROOT"; \
-     tr '\n' '\0' | xargs -0 ${lib_rpm_dir}/sepdebugcrcfix usr/lib/debug)
+     tr '\n' '\0' | xargs -0 sepdebugcrcfix usr/lib/debug)
+     #tr '\n' '\0' | xargs -0 ${lib_rpm_dir}/sepdebugcrcfix usr/lib/debug)
   fi
 fi
 
