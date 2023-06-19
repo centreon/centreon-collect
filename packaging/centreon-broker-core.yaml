@@ -18,7 +18,7 @@ depends:
   - lua
 
 contents:
-  - src: "../lib/{10-neb,15-stats,20-bam,50-tcp,50-grpc,60-tls,70-lua,80-sql}.so"
+  - src: "../lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-lua,70-rrd,80-sql}.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
     file_info:
       owner: root
@@ -47,10 +47,13 @@ contents:
 
 conflicts:
   - centreon-broker
+  - centreon-broker-storage
 replaces:
   - centreon-broker
+  - centreon-broker-storage
 provides:
   - centreon-broker
+  - centreon-broker-storage
 
 scripts:
   preinstall: ./scripts/centreon-broker-core-preinstall.sh
