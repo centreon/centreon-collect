@@ -80,8 +80,8 @@ jobs:
 
       - run: ls -Rlh bin
       - run: ls -Rlh lib
-      - run: strip bin/*
-      - run: strip lib/*
+      #- run: strip bin/*
+      #- run: strip lib/*
       - run: ls -Rlh bin
       - run: ls -Rlh lib
       # - run: |
@@ -119,7 +119,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: packages-${{ matrix.distrib }}
-          path: ./*.rpm
+          path: ./*cbmod*.rpm
           retention-days: 1
 
   # package-deb:
