@@ -1,0 +1,200 @@
+[2023-10-04T11:10:57.931+00:00] [:] [process] [info] [9084] Centreon Engine 23.10.0 starting ... (PID=9084)
+[2023-10-04T11:10:57.931+00:00] [:] [process] [info] [9084] Local time is Wed Oct  4 11:10:57 2023
+[2023-10-04T11:10:57.931+00:00] [:] [process] [info] [9084] LOG VERSION: 2.0
+[2023-10-04T11:10:57.931+00:00] [:] [functions] [trace] [9084] process_macros_r()
+[2023-10-04T11:10:57.940+00:00] [:] [functions] [trace] [9084] process_macros_r()
+[2023-10-04T11:10:57.940+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'host_1' has no notification time period defined!
+[2023-10-04T11:10:57.940+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_1' has no notification time period defined!
+[2023-10-04T11:10:57.940+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_2' has no notification time period defined!
+[2023-10-04T11:10:57.940+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_3' has no notification time period defined!
+[2023-10-04T11:10:57.940+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_4' has no notification time period defined!
+[2023-10-04T11:10:57.940+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_5' has no notification time period defined!
+[2023-10-04T11:10:57.941+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_6' has no notification time period defined!
+[2023-10-04T11:10:57.941+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_7' has no notification time period defined!
+[2023-10-04T11:10:57.941+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_8' has no notification time period defined!
+[2023-10-04T11:10:57.941+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_9' has no notification time period defined!
+[2023-10-04T11:10:57.941+00:00] [notifier.cc:1519] [configuration] [warning] [9084] Warning: Notifier 'service_10' has no notification time period defined!
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417887
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417917
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417947
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417977
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696418007
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696418037
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696418067
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696418097
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696418127
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696418157
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.941+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:57.943+00:00] [:] [events] [info] [9084] Event broker module '/usr/lib64/centreon-engine/externalcmd.so' initialized successfully
+[2023-10-04T11:10:57.946+00:00] [:] [external_command] [info] [9084] start command_file_worker_thread
+[2023-10-04T11:10:57.964+00:00] [:] [events] [info] [9084] Event broker module '/usr/lib64/nagios/cbmod.so' initialized successfully
+[2023-10-04T11:10:57.964+00:00] [:] [events] [info] [9084] INITIAL HOST STATE: host_1;UP;HARD;1;
+[2023-10-04T11:10:57.964+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_1;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_2;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_3;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_4;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_5;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_6;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_7;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_8;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_9;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [:] [events] [info] [9084] INITIAL SERVICE STATE: host_1;service_10;OK;HARD;1;
+[2023-10-04T11:10:57.965+00:00] [downtime_manager.cc:366] [functions] [trace] [9084] downtime_manager::initialize_downtime_data()
+[2023-10-04T11:10:57.965+00:00] [:] [functions] [trace] [9084] save_status_data()
+[2023-10-04T11:10:57.971+00:00] [:] [configuration] [info] [9084] Event loop start at Wed Oct  4 11:10:57 2023
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] events::loop::run()
+[2023-10-04T11:10:57.971+00:00] [:] [process] [info] [9084] Configuration loaded, main loop starting.
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] handle_timed_event()
+[2023-10-04T11:10:57.971+00:00] [host.cc:1568] [functions] [trace] [9084] run_scheduled_host_check_3x()
+[2023-10-04T11:10:57.971+00:00] [host.cc:1681] [functions] [trace] [9084] host::run_async_check, check_options=0, latency=0.971, scheduled_check=true, reschedule_check=true
+[2023-10-04T11:10:57.971+00:00] [host.cc:2449] [functions] [trace] [9084] check_host_check_viability_3x()
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] check_time_against_period()
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696417857
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] check_time_against_period 24x7 ret=true
+[2023-10-04T11:10:57.971+00:00] [host.cc:3656] [functions] [trace] [9084] host::authorized_by_dependencies()
+[2023-10-04T11:10:57.971+00:00] [host.cc:1751] [functions] [trace] [9084] Checking host 'host_1'...
+[2023-10-04T11:10:57.971+00:00] [host.cc:3777] [functions] [trace] [9084] adjust_host_check_attempt_3x()
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] get_raw_command_line_r()
+[2023-10-04T11:10:57.971+00:00] [:] [functions] [trace] [9084] process_macros_r()
+[2023-10-04T11:10:58.174+00:00] [:] [functions] [trace] [9084] handle_timed_event()
+[2023-10-04T11:10:58.174+00:00] [:] [functions] [trace] [9084] check_for_external_commands()
+[2023-10-04T11:10:58.174+00:00] [:] [functions] [trace] [9084] reschedule_event()
+[2023-10-04T11:10:58.174+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:10:58.174+00:00] [checker.cc:374] [functions] [trace] [9084] checker::finished: res=0x7f236a160f90
+[2023-10-04T11:10:59.175+00:00] [:] [functions] [trace] [9084] handle_timed_event()
+[2023-10-04T11:10:59.175+00:00] [:] [functions] [trace] [9084] check_for_external_commands()
+[2023-10-04T11:10:59.175+00:00] [:] [functions] [trace] [9084] reschedule_event()
+[2023-10-04T11:10:59.175+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:11:00.176+00:00] [:] [functions] [trace] [9084] handle_timed_event()
+[2023-10-04T11:11:00.176+00:00] [:] [functions] [trace] [9084] check_for_external_commands()
+[2023-10-04T11:11:00.176+00:00] [:] [functions] [trace] [9084] reschedule_event()
+[2023-10-04T11:11:00.176+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:11:01.176+00:00] [:] [functions] [trace] [9084] handle_timed_event()
+[2023-10-04T11:11:01.176+00:00] [:] [functions] [trace] [9084] check_for_external_commands()
+[2023-10-04T11:11:01.176+00:00] [:] [functions] [trace] [9084] reschedule_event()
+[2023-10-04T11:11:01.176+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] handle_timed_event()
+[2023-10-04T11:11:02.177+00:00] [checker.cc:87] [functions] [trace] [9084] checker::reap()
+[2023-10-04T11:11:02.177+00:00] [host.cc:1219] [functions] [trace] [9084] handle_async_host_check_result_3x()
+[2023-10-04T11:11:02.177+00:00] [host.cc:3047] [functions] [trace] [9084] process_host_check_result_3x()
+[2023-10-04T11:11:02.177+00:00] [host.cc:2286] [functions] [trace] [9084] handle_host_state()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] obsessive_compulsive_host_check_processor()
+[2023-10-04T11:11:02.177+00:00] [notifier.cc:956] [functions] [trace] [9084] notifier::notify(1)
+[2023-10-04T11:11:02.177+00:00] [notifier.cc:432] [functions] [trace] [9084] notifier::is_notification_viable_recovery()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] check_time_against_period_for_notif()
+[2023-10-04T11:11:02.177+00:00] [host.cc:2024] [functions] [trace] [9084] host::check_for_flapping()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] get_next_valid_time()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] get_next_valid_time_per_timeperiod 24x7 valid_time=1696418157
+[2023-10-04T11:11:02.177+00:00] [host.cc:1857] [functions] [trace] [9084] schedule_host_check()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] resort_event_list()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] reschedule_event()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] reschedule_event()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] handle_timed_event()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] check_for_external_commands()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] reschedule_event()
+[2023-10-04T11:11:02.177+00:00] [:] [functions] [trace] [9084] add_event()
+[2023-10-04T11:11:03.179+00:00] [main.cc:461] [process] [info] [9084] Caught SIG TERM, shutting down ...
+[2023-10-04T11:11:03.179+00:00] [:] [functions] [trace] [9084] dump::comments()
+[2023-10-04T11:11:03.179+00:00] [:] [functions] [trace] [9084] dump::downtimes()
+[2023-10-04T11:11:03.179+00:00] [main.cc:480] [process] [info] [9084] Successfully shutdown ... (PID=9084)
+[2023-10-04T11:11:03.453+00:00] [:] [external_command] [info] [9084] end command_file_worker_thread
+[2023-10-04T11:11:03.453+00:00] [:] [events] [info] [9084] Event broker module '/usr/lib64/centreon-engine/externalcmd.so' deinitialized successfully
+[2023-10-04T11:11:03.883+00:00] [:] [events] [info] [9084] Event broker module '/usr/lib64/nagios/cbmod.so' deinitialized successfully
+[2023-10-04T11:11:03.981+00:00] [:] [runtime] [info] [9084] log finished

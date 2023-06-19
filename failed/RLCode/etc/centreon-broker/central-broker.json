@@ -1,0 +1,105 @@
+{
+  "centreonBroker": {
+    "broker_id": 1,
+    "broker_name": "central-broker-master",
+    "poller_id": 1,
+    "poller_name": "Central",
+    "module_directory": "/usr/share/centreon/lib/centreon-broker",
+    "log_timestamp": "yes",
+    "log_thread_id": "no",
+    "event_queue_max_size": 100000,
+    "command_file": "/tmp/var/lib/centreon-broker/command.sock",
+    "cache_directory": "/tmp/var/lib/centreon-broker",
+    "log": {
+      "log_pid": "yes",
+      "log_source": "no",
+      "flush_period": 0,
+      "directory": "/tmp/var/log/centreon-broker/",
+      "filename": "",
+      "max_size": 0,
+      "loggers": {
+        "core": "trace",
+        "config": "error",
+        "sql": "error",
+        "processing": "error",
+        "perfdata": "error",
+        "bbdo": "error",
+        "tcp": "error",
+        "tls": "error",
+        "lua": "debug",
+        "bam": "error",
+        "grpc": "debug"
+      }
+    },
+    "input": [
+      {
+        "name": "central-broker-master-input",
+        "port": "5669",
+        "buffering_timeout": "0",
+        "retry_interval": "5",
+        "protocol": "bbdo",
+        "tls": "no",
+        "negotiation": "yes",
+        "one_peer_retention_mode": "no",
+        "compression": "no",
+        "type": "ipv4"
+      }
+    ],
+    "output": [
+      {
+        "name": "centreon-broker-master-rrd",
+        "port": "5670",
+        "buffering_timeout": "0",
+        "host": "127.0.0.1",
+        "retry_interval": "5",
+        "protocol": "bbdo",
+        "tls": "no",
+        "negotiation": "yes",
+        "one_peer_retention_mode": "no",
+        "compression": "no",
+        "type": "ipv4"
+      },
+      {
+        "name": "central-broker-unified-sql",
+        "db_type": "mysql",
+        "db_host": "localhost",
+        "db_port": "3306",
+        "db_user": "centreon",
+        "db_password": "centreon",
+        "db_name": "centreon_storage",
+        "interval": "60",
+        "length": "15552000",
+        "queries_per_transaction": "20000",
+        "connections_count": "4",
+        "read_timeout": "60",
+        "buffering_timeout": "0",
+        "retry_interval": "60",
+        "check_replication": "no",
+        "type": "unified_sql",
+        "store_in_data_bin": "yes",
+        "insert_in_index_data": "1"
+      },
+      {
+        "name": "test-metric",
+        "path": "/root/centreon-collect/tests/resources/scripts/test-metric.lua",
+        "type": "lua"
+      },
+      {
+        "name": "test-toto",
+        "path": "/tmp/toto.lua",
+        "type": "lua"
+      }
+    ],
+    "stats": [
+      {
+        "type": "stats",
+        "name": "central-broker-master-stats",
+        "json_fifo": "/tmp/var/lib/centreon-broker/central-broker-master-stats.json"
+      }
+    ],
+    "grpc": {
+      "port": 51001
+    },
+    "bbdo_version": "3.0.0"
+  }
+}

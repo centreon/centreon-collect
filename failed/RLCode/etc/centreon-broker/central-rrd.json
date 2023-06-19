@@ -1,0 +1,73 @@
+{
+  "centreonBroker": {
+    "broker_id": 2,
+    "broker_name": "central-rrd-master",
+    "poller_id": 1,
+    "poller_name": "Central",
+    "module_directory": "/usr/share/centreon/lib/centreon-broker",
+    "log_timestamp": true,
+    "log_thread_id": false,
+    "event_queue_max_size": 100000,
+    "command_file": "",
+    "cache_directory": "/tmp/var/lib/centreon-broker",
+    "log": {
+      "log_pid": "yes",
+      "log_source": "no",
+      "flush_period": 0,
+      "directory": "/tmp/var/log/centreon-broker/",
+      "filename": "",
+      "max_size": 0,
+      "loggers": {
+        "core": "trace",
+        "config": "error",
+        "sql": "error",
+        "processing": "error",
+        "perfdata": "error",
+        "bbdo": "info",
+        "tcp": "info",
+        "tls": "trace",
+        "lua": "error",
+        "bam": "error"
+      }
+    },
+    "input": [
+      {
+        "name": "central-rrd-master-input",
+        "port": "5670",
+        "protocol": "bbdo",
+        "tls": "no",
+        "retry_interval": "60",
+        "negotiation": "yes",
+        "buffering_timeout": "0",
+        "one_peer_retention_mode": "no",
+        "compression": "auto",
+        "type": "ipv4"
+      }
+    ],
+    "output": [
+      {
+        "name": "central-rrd-master-output",
+        "metrics_path": "/tmp/var/lib/centreon/metrics/",
+        "status_path": "/tmp/var/lib/centreon/status/",
+        "write_metrics": "yes",
+        "store_in_data_bin": "yes",
+        "write_status": "yes",
+        "insert_in_index_data": "1",
+        "buffering_timeout": "0",
+        "retry_interval": "60",
+        "type": "rrd"
+      }
+    ],
+    "stats": [
+      {
+        "type": "stats",
+        "name": "central-rrd-master-stats",
+        "json_fifo": "/tmp/var/lib/centreon-broker/central-rrd-master-stats.json"
+      }
+    ],
+    "grpc": {
+      "port": 51002
+    },
+    "bbdo_version": "3.0.0"
+  }
+}

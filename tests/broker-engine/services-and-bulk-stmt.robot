@@ -296,13 +296,15 @@ RLCode
 
     ${INITIAL_SCRIPT_CONTENT}    Catenate
     ...    function init(params)
-    ...    broker_log:set_parameters('/tmp/toto.log', 2)
+    ...    broker_log:set_parameters('/tmp/test4.log', 2)
     ...    end
     ...
     ...    function write(d)
     ...    broker_log:info(0, "toto")
     ...    return true
     ...    end
+
+    Broker Config Add Lua Output    central    test-metric    ${SCRIPTS}test-metric.lua
 
     # Create the initial LUA script file
     Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
@@ -337,6 +339,18 @@ RLCode
     # Create the second LUA script file
     Create File    /tmp/toto.lua    ${new_content}
     ${start}    Get Current Date
+    Wait Until Created    /tmp/test4.log    1m
+
+    ${metric_name_found}=    Set Variable    True
+    FOR    ${index}    IN RANGE    10
+     ${grep_res}=    Grep File
+     ...    /tmp/test4.log
+     ...    "\"name\": \"metric_${index}\""
+     Sleep    1s
+     Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    True
+     Exit For Loop If    "${grep_res}" != ""
+    END
+    Should Be True    ${metric_name_found}    msg=metric name not found
 
     Reload Broker
 
