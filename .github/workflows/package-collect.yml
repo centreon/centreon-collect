@@ -84,6 +84,10 @@ jobs:
         run: |
           mkdir /tmp/BUILDROOT
 
+          # centreon-clib
+          mkdir -p /tmp/BUILDROOT/usr/lib64/
+          cp lib/libcentreon_clib.so /tmp/BUILDROOT/usr/lib64/
+
           # centreon-collect-client
           mkdir -p /tmp/BUILDROOT/usr/bin
           cp bin/ccc /tmp/BUILDROOT/usr/bin/
@@ -130,13 +134,6 @@ jobs:
       #     dnf install -y mlocate
       #     updatedb
       #     locate libcentreon_clib.so
-
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: centengine
-          path: ./bin/centengine
-          retention-days: 1
 
       - uses: ./.github/actions/package
         with:
