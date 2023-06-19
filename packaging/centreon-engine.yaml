@@ -51,18 +51,13 @@ contents:
   - src: "../engine/scripts/logrotate.conf"
     dst: "/etc/logrotate.d/centengine"
     type: config|noreplace
-    file_info:
-      owner: root
-      group: root
 
   - src: "../engine/scripts/centengine.service"
     dst: "/usr/lib/systemd/system/centengine.service"
     file_info:
       mode: 755
-      owner: root
-      group: root
 
-  - src: "../lib/externalcmd.so"
+  - src: "/tmp/BUILDROOT/usr/lib64/centreon-engine/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
     file_info:
       owner: root
@@ -75,24 +70,11 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "../bin/centengine"
+  - src: "/tmp/BUILDROOT/usr/sbin/centengine"
     dst: "/usr/sbin/centengine"
-    file_info:
-      owner: root
-      group: root
 
-  - src: "../bin/centenginestats"
+  - src: "/tmp/BUILDROOT/usr/sbin/centenginestats"
     dst: "/usr/sbin/centenginestats"
-    file_info:
-      owner: root
-      group: root
-
-  # - src: "./integrate_centreon_engine2centreon.sh"
-  #   dst: "/usr/share/centreon-engine/extra/integrate_centreon_engine2centreon.sh"
-  #   file_info:
-  #     mode: 0775
-  #     owner: root
-  #     group: root
 
   - dst: /var/log/centreon-engine
     type: dir

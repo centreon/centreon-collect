@@ -24,7 +24,7 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../lib/cbmod.so"
+  - src: "/tmp/BUILDROOT/usr/lib64/nagios/cbmod.so"
     dst: "/usr/lib64/nagios/cbmod.so"
     file_info:
       owner: root
@@ -42,8 +42,8 @@ overrides:
       - centreon-broker-core (= ${VERSION}-${RELEASE})
 
 rpm:
-  summary: Centreon Engine monitoring core.
-  #compression: zstd
+  summary: Centreon Broker as Centreon Engine 2 module.
+  compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
     key_id: ${RPM_SIGNING_KEY_ID}
