@@ -134,7 +134,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: packages-${{ matrix.distrib }}
-          path: ./*cbmod*.rpm
+          path: ./*.rpm
           retention-days: 1
 
   # package-deb:
