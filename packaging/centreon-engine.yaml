@@ -108,10 +108,10 @@ scripts:
 overrides:
   rpm:
     depends:
-      - centreon-clib = ${VERSION}-${RELEASE}
+      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-clib (= ${VERSION}-${RELEASE})
+      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Centreon Engine monitoring core.

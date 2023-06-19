@@ -18,18 +18,18 @@ license: "Apache-2.0"
 overrides:
   rpm:
     depends:
-      - centreon-clib = ${VERSION}-${RELEASE}
-      - centreon-broker-cbd = ${VERSION}-${RELEASE}
-      - centreon-broker-cbdmod = ${VERSION}-${RELEASE}
-      - centreon-engine = ${VERSION}-${RELEASE}
-      - centreon-connector = ${VERSION}-${RELEASE}
+      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-cbd = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-cbdmod = ${VERSION}-${RELEASE}${DIST}
+      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
+      - centreon-connector = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-clib (= ${VERSION}-${RELEASE})
-      - centreon-broker-cbd (= ${VERSION}-${RELEASE})
-      - centreon-broker-cbmod (= ${VERSION}-${RELEASE})
-      - centreon-engine (= ${VERSION}-${RELEASE})
-      - centreon-connector (= ${VERSION}-${RELEASE})
+      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-cbd (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-cbmod (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-connector (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Centreon collect's softwares collection.

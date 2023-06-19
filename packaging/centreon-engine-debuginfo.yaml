@@ -43,10 +43,10 @@ provides:
 overrides:
   rpm:
     depends:
-      - centreon-engine = ${VERSION}-${RELEASE}
+      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-engine (= ${VERSION}-${RELEASE})
+      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Debuginfo package for centreon-engine.

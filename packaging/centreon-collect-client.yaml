@@ -1,4 +1,4 @@
-name: "centreon-broker-stats-exporter"
+name: "centreon-collect-client"
 arch: "amd64"
 platform: "linux"
 version_schema: "none"
@@ -8,31 +8,29 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  This module of Centreon Broker allows you to send broker statistics to
-  an Opentelemetry Exporter. It can be configured to use gRPC or http
-  protocols.
+  This software is a gRPC client designed to easily send commands to cbd or
+  centengine.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/15-stats_exporter.so"
-    dst: "/usr/share/centreon/lib/centreon-broker/15-stats_exporter.so"
-    file_info:
-      owner: root
-      group: root
+  - src: "/tmp/BUILDROOT/usr/bin/ccc"
+    dst: "/usr/bin/ccc"
 
 overrides:
   rpm:
     depends:
+      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
       - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
+      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
-  summary: Export Centreon Statistics to an OpenTelemetry Exporter.
+  summary: Centreon Collect gRPC Client. It can be used to exchange with cbd or centengine
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}

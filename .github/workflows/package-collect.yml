@@ -82,6 +82,10 @@ jobs:
         run: |
           mkdir /tmp/BUILDROOT
 
+          # centreon-collect-client
+          mkdir -p /tmp/BUILDROOT/usr/bin
+          cp bin/ccc /tmp/BUILDROOT/usr/bin/
+
           # centreon-engine
           mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-engine /tmp/BUILDROOT/usr/sbin
           cp lib/externalcmd.so /tmp/BUILDROOT/usr/lib64/centreon-engine/

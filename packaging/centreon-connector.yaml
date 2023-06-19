@@ -18,12 +18,12 @@ license: "Apache-2.0"
 overrides:
   rpm:
     depends:
-      - centreon-connector-perl = ${VERSION}-${RELEASE}
-      - centreon-connector-ssh = ${VERSION}-${RELEASE}
+      - centreon-connector-perl = ${VERSION}-${RELEASE}${DIST}
+      - centreon-connector-ssh = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-connector-perl (= ${VERSION}-${RELEASE})
-      - centreon-connector-ssh (= ${VERSION}-${RELEASE})
+      - centreon-connector-perl (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-connector-ssh (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Centreon Connector provide some tools for Centreon Engine to monitoring and management system.
