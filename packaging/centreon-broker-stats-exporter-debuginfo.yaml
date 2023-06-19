@@ -1,0 +1,34 @@
+name: "centreon-broker-stats-exporter-debuginfo"
+arch: "amd64"
+platform: "linux"
+version_schema: "none"
+version: "${VERSION}"
+release: "${RELEASE}${DIST}"
+section: "default"
+priority: "optional"
+maintainer: "Centreon <contact@centreon.com>"
+description: |
+  Debuginfo package for centreon-broker-stats-exporter.
+  Commit: @COMMIT_HASH@
+vendor: "Centreon"
+homepage: "https://centreon.com"
+license: "Apache-2.0"
+
+contents:
+  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/share/centreon/lib/centreon-broker/15-stats_exporter.so.debug"
+    dst: "/usr/lib/debug/usr/share/centreon/lib/centreon-broker/"
+
+overrides:
+  rpm:
+    depends:
+      - centreon-broker-stats-exporter = ${VERSION}-${RELEASE}${DIST}
+  deb:
+    depends:
+      - centreon-broker-stats-exporter (= ${VERSION}-${RELEASE}${DIST})
+
+rpm:
+  summary: Debuginfo package for centreon-broker-stats-exporter.
+  compression: zstd
+  signature:
+    key_file: ${RPM_SIGNING_KEY_FILE}
+    key_id: ${RPM_SIGNING_KEY_ID}

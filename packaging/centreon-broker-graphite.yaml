@@ -17,11 +17,8 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/70-graphite.so"
-    dst: "/usr/share/centreon/lib/centreon-broker/70-graphite.so"
-    file_info:
-      owner: root
-      group: root
+  - src: "/tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/70-graphite.so"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
 
 overrides:
   rpm:

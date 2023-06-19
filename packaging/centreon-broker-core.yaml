@@ -18,18 +18,12 @@ depends:
   - lua
 
 contents:
-  - src: "../lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-lua,70-rrd,80-sql}.so"
+  - src: "/tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-lua,70-rrd,80-sql}.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
-    file_info:
-      owner: root
-      group: root
 
   - src: "../broker/script/centreon-broker.logrotate"
     dst: "/etc/logrotate.d/cbd"
     type: config|noreplace
-    file_info:
-      owner: root
-      group: root
 
   - dst: /usr/share/centreon-broker/lua
     type: dir

@@ -1,4 +1,4 @@
-name: "centreon-connector-perl"
+name: "centreon-broker-graphite-debuginfo"
 arch: "amd64"
 platform: "linux"
 version_schema: "none"
@@ -8,29 +8,26 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  Centreon Connector Perl provide embedded perl for Centreon Engine
-  a monitoring engine.
+  Debuginfo package for centreon-broker-graphite.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../bin/centreon_connector_perl"
-    dst: "/usr/lib64/centreon-connector/centreon_connector_perl"
-    file_info:
-      mode: 0775
+  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/share/centreon/lib/centreon-broker/70-graphite.so.debug"
+    dst: "/usr/share/centreon/lib/centreon-broker/"
 
 overrides:
   rpm:
     depends:
-      - perl
+      - centreon-broker-graphite = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - perl
+      - centreon-broker-graphite (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
-  summary: Centreon Connector Perl provide embedded perl for Centreon-Engine.
+  summary: Debuginfo package for centreon-broker-graphite.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}

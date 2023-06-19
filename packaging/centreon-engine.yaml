@@ -59,9 +59,6 @@ contents:
 
   - src: "/tmp/BUILDROOT/usr/lib64/centreon-engine/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
-    file_info:
-      owner: root
-      group: root
 
   - dst: "/var/lib/centreon-engine/rw"
     type: dir

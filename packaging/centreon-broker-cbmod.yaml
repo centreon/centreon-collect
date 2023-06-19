@@ -26,9 +26,6 @@ contents:
 
   - src: "/tmp/BUILDROOT/usr/lib64/nagios/cbmod.so"
     dst: "/usr/lib64/nagios/cbmod.so"
-    file_info:
-      owner: root
-      group: root
 
 scripts:
   postinstall: ./scripts/centreon-broker-cbmod-postinstall.sh

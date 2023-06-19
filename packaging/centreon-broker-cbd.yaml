@@ -42,22 +42,14 @@ contents:
 
   - src: "../bin/cbd"
     dst: "/usr/sbin/cbd"
-    file_info:
-      owner: root
-      group: root
 
   - src: "../bin/cbwd"
     dst: "/usr/sbin/cbwd"
-    file_info:
-      owner: root
-      group: root
 
   - src: "../broker/script/cbd.service"
     dst: "/usr/lib/systemd/system/cbd.service"
     file_info:
       mode: 755
-      owner: root
-      group: root
 
 scripts:
   postinstall: ./scripts/centreon-broker-cbd-postinstall.sh

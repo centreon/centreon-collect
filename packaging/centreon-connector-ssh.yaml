@@ -19,8 +19,6 @@ contents:
     dst: "/usr/lib64/centreon-connector/centreon_connector_ssh"
     file_info:
       mode: 0775
-      owner: root
-      group: root
 
 overrides:
   rpm:
