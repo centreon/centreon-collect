@@ -131,6 +131,13 @@ jobs:
       #     updatedb
       #     locate libcentreon_clib.so
 
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: centengine
+          path: ./bin/centengine
+          retention-days: 1
+
       - uses: ./.github/actions/package
         with:
           nfpm_file_pattern: "packaging/*.yaml"
