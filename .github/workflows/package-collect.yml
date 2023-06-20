@@ -70,9 +70,9 @@ jobs:
       - name: Cleaning not needed rpm packages
         shell: bash
         run: |
-          rm -rf *-devel*.rpm
-          rm -rf *-debuginfo*.rpm
-          rm -rf *-debugsource*.rpm
+          # rm -rf *-devel*.rpm
+          # rm -rf *-debuginfo*.rpm
+          # rm -rf *-debugsource*.rpm
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v3
@@ -81,39 +81,39 @@ jobs:
           path: ./*.rpm
           retention-days: 1
 
-  package-deb:
-    runs-on: [self-hosted, collect]
-    strategy:
-      matrix:
-        include:
-          - image: debian-bullseye
-            distrib: bullseye
-    name: package ${{ matrix.distrib }}
+  # package-deb:
+  #   runs-on: [self-hosted, collect]
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - image: debian-bullseye
+  #           distrib: bullseye
+  #   name: package ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          path: centreon-collect
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
+  #       with:
+  #         path: centreon-collect
 
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  #     - name: Login to Registry
+  #       uses: docker/login-action@v2
+  #       with:
+  #         registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         username: ${{ secrets.DOCKER_REGISTRY_ID }}
+  #         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: debmake ${{ matrix.image }}
-        uses: ./centreon-collect/.github/actions/runner-docker
-        with:
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: centreon-collect/.github/scripts/collect-deb-package
-          image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ inputs.img_version }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
+  #     - name: debmake ${{ matrix.image }}
+  #       uses: ./centreon-collect/.github/actions/runner-docker
+  #       with:
+  #         registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         script_name: centreon-collect/.github/scripts/collect-deb-package
+  #         image_name: centreon-collect-${{ matrix.image }}
+  #         image_version: ${{ inputs.img_version }}
+  #         env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
 
-      - name: Use cache DEB files
-        uses: actions/cache@v3
-        with:
-          path: ./*.deb
-          key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+  #     - name: Use cache DEB files
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: ./*.deb
+  #         key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
