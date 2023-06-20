@@ -72,8 +72,8 @@ void computable::add_parent(std::shared_ptr<computable> const& parent) {
 void computable::propagate_update(io::stream* visitor) {
   std::vector<bool> filter(_parents.size());
   uint32_t i = 0;
-  for (std::list<std::weak_ptr<computable> >::iterator it(_parents.begin()),
-       end(_parents.end());
+  for (std::list<std::weak_ptr<computable> >::iterator it = _parents.begin(),
+                                                       end = _parents.end();
        it != end; ++it) {
     std::shared_ptr<computable> ptr = it->lock();
     if (ptr)
@@ -82,8 +82,8 @@ void computable::propagate_update(io::stream* visitor) {
       ++i;
   }
   i = 0;
-  for (std::list<std::weak_ptr<computable> >::iterator it(_parents.begin()),
-       end(_parents.end());
+  for (std::list<std::weak_ptr<computable> >::iterator it = _parents.begin(),
+                                                       end = _parents.end();
        it != end; ++it)
     if (filter[i++]) {
       std::shared_ptr<computable> ptr = it->lock();

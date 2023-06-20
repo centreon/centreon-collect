@@ -99,7 +99,7 @@ double bool_operation::value_soft() {
 bool bool_operation::state_known() const {
   bool known = bool_binary_operator::state_known();
   if (known && (_type == division || _type == modulo) &&
-      ((std::fabs(_right_hard) < COMPARE_EPSILON) ||
+      (std::fabs(_right_hard) < COMPARE_EPSILON ||
        std::fabs(_right_soft) < COMPARE_EPSILON))
     return false;
   else

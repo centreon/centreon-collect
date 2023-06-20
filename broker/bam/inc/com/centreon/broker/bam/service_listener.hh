@@ -43,10 +43,10 @@ namespace bam {
  */
 class service_listener {
  public:
-  service_listener();
-  service_listener(service_listener const& other);
-  virtual ~service_listener();
-  service_listener& operator=(service_listener const& other);
+  service_listener() = default;
+  service_listener(const service_listener&) = delete;
+  virtual ~service_listener() noexcept = default;
+  service_listener& operator=(const service_listener&) = delete;
   virtual void service_update(std::shared_ptr<neb::pb_service> const& status,
                               io::stream* visitor = nullptr);
   virtual void service_update(
