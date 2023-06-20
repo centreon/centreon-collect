@@ -21,37 +21,6 @@
 using namespace com::centreon::broker::bam;
 
 /**
- *  Default constructor.
- */
-service_listener::service_listener() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-service_listener::service_listener(service_listener const& other) {
-  (void)other;
-}
-
-/**
- *  Destructor.
- */
-service_listener::~service_listener() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-service_listener& service_listener::operator=(service_listener const& other) {
-  (void)other;
-  return (*this);
-}
-
-/**
  *  Notify of a service status update.
  *
  *  @param[in]  status   Service status.

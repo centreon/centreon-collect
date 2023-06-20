@@ -40,11 +40,10 @@ class computable;
  *  bool_expression) as a KPI for a BA.
  */
 class kpi_boolexp : public kpi {
- private:
-  state _get_state() const;
   std::shared_ptr<bool_expression> _boolexp;
   double _impact;
 
+  state _get_state() const;
   void _fill_impact(impact_values& impact);
   void _open_new_event(io::stream* visitor, int impact, state state);
 

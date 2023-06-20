@@ -469,6 +469,7 @@ BA_BOOL_KPI
     add_boolean_kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK} {OR} ( {host_16 service_303} {IS} {OK} {AND} {host_16 service_314} {NOT} {UNKNOWN} )
+    ...    False
     ...    100
 
     Start Broker
@@ -704,7 +705,7 @@ BEPB_DIMENSION_KPI_EVENT
     @{svc}=    Set Variable    ${{ [("host_16", "service_314")] }}
     ${baid_svcid}=    create_ba_with_services    test    worst    ${svc}
 
-    add_boolean_kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    100
+    add_boolean_kpi    ${baid_svcid[0]}    {host_16 service_302} {IS} {OK}    False    100
 
     Start Broker    True
     Start Engine
