@@ -127,22 +127,6 @@ void bool_binary_operator::set_right(std::shared_ptr<bool_value> const& right) {
 }
 
 /**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void bool_binary_operator::_internal_copy(bool_binary_operator const& right) {
-  _left = right._left;
-  _left_hard = right._left_hard;
-  _left_soft = right._left_soft;
-  _right = right._right;
-  _right_hard = right._right_hard;
-  _right_soft = right._right_soft;
-  _state_known = right._state_known;
-  _in_downtime = right._in_downtime;
-}
-
-/**
  *  Get if the state is known, i.e has been computed at least once.
  *
  *  @return  True if the state is known.

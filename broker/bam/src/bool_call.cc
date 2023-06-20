@@ -28,32 +28,6 @@ using namespace com::centreon::broker::bam;
 bool_call::bool_call(std::string const& name) : _name(name) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-// bool_call::bool_call(bool_call const& right) : bool_value(right) {
-//   _name = right._name;
-//   _expression = right._expression;
-// }
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-// bool_call& bool_call::operator=(bool_call const& right) {
-//   bool_value::operator=(right);
-//   if (this != &right) {
-//     _name = right._name;
-//     _expression = right._expression;
-//   }
-//   return (*this);
-// }
-
-/**
  *  Get the hard value.
  *
  *  @return Evaluation of the expression with hard values.
@@ -95,7 +69,7 @@ bool bool_call::state_known() const {
  *  @return  The name of this boolean expression.
  */
 std::string const& bool_call::get_name() const {
-  return (_name);
+  return _name;
 }
 
 /**
