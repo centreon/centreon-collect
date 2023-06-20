@@ -16,7 +16,7 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "/tmp/BUILDROOT/usr/lib64/centreon-connector/centreon_connector_perl"
+  - src: "../bin/centreon_connector_perl"
     dst: "/usr/lib64/centreon-connector/"
     file_info:
       mode: 0775

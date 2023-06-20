@@ -64,7 +64,7 @@ contents:
       mode: 755
     packager: deb
 
-  - src: "/tmp/BUILDROOT/usr/lib64/centreon-engine/externalcmd.so"
+  - src: "../lib/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
 
   - dst: "/var/lib/centreon-engine/rw"
@@ -74,10 +74,10 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "/tmp/BUILDROOT/usr/sbin/centengine"
+  - src: "../bin/centengine"
     dst: "/usr/sbin/centengine"
 
-  - src: "/tmp/BUILDROOT/usr/sbin/centenginestats"
+  - src: "../bin/centenginestats"
     dst: "/usr/sbin/centenginestats"
 
   - dst: /var/log/centreon-engine

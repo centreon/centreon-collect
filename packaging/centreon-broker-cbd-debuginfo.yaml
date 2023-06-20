@@ -15,11 +15,11 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/sbin/cbd"
-    dst: "/usr/sbin/cbd"
+  - src: "../bin/cbd.debug"
+    dst: "/usr/sbin/"
 
-  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/sbin/cbwd"
-    dst: "/usr/lib/debug/usr/sbin/cbwd"
+  - src: "../bin/cbwd.debug"
+    dst: "/usr/lib/debug/usr/sbin/"
 
 overrides:
   rpm:

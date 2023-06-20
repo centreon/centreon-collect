@@ -15,7 +15,7 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/lib64/libcentreon_clib.so.debug"
+  - src: "../lib/libcentreon_clib.so.debug"
     dst: "/usr/lib/debug/usr/lib64/"
 
 overrides:

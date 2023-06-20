@@ -88,63 +88,69 @@ jobs:
 
       - name: generate debug files
         run: |
-          mkdir /tmp/BUILDROOT
+          # mkdir /tmp/BUILDROOT
 
-          # centreon-clib
-          mkdir -p /tmp/BUILDROOT/usr/lib64/
-          cp lib/libcentreon_clib.so /tmp/BUILDROOT/usr/lib64/
+          # # centreon-clib
+          # mkdir -p /tmp/BUILDROOT/usr/lib64/
+          # cp lib/libcentreon_clib.so /tmp/BUILDROOT/usr/lib64/
 
-          # centreon-collect-client
-          mkdir -p /tmp/BUILDROOT/usr/bin
-          cp bin/ccc /tmp/BUILDROOT/usr/bin/
+          # # centreon-collect-client
+          # mkdir -p /tmp/BUILDROOT/usr/bin
+          # cp bin/ccc /tmp/BUILDROOT/usr/bin/
 
-          # centreon-engine
-          mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-engine /tmp/BUILDROOT/usr/sbin
-          cp lib/externalcmd.so /tmp/BUILDROOT/usr/lib64/centreon-engine/
-          cp bin/centengine /tmp/BUILDROOT/usr/sbin/
-          cp bin/centenginestats /tmp/BUILDROOT/usr/sbin/
+          # # centreon-engine
+          # mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-engine /tmp/BUILDROOT/usr/sbin
+          # cp lib/externalcmd.so /tmp/BUILDROOT/usr/lib64/centreon-engine/
+          # cp bin/centengine /tmp/BUILDROOT/usr/sbin/
+          # cp bin/centenginestats /tmp/BUILDROOT/usr/sbin/
 
-          # centreon-broker-core
-          mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
-          cp lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-lua,70-rrd,80-sql}.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
+          # # centreon-broker-core
+          # mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
+          # cp lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-lua,70-rrd,80-sql}.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
 
-          # centreon-broker-cbd
-          mkdir -p /tmp/BUILDROOT/usr/sbin
-          cp bin/cbd /tmp/BUILDROOT/usr/sbin/
-          cp bin/cbwd /tmp/BUILDROOT/usr/sbin/
+          # # centreon-broker-cbd
+          # mkdir -p /tmp/BUILDROOT/usr/sbin
+          # cp bin/cbd /tmp/BUILDROOT/usr/sbin/
+          # cp bin/cbwd /tmp/BUILDROOT/usr/sbin/
 
-          # centreon-broker-cbmod
-          mkdir -p /tmp/BUILDROOT/usr/lib64/nagios
-          cp lib/cbmod.so /tmp/BUILDROOT/usr/lib64/nagios/
+          # # centreon-broker-cbmod
+          # mkdir -p /tmp/BUILDROOT/usr/lib64/nagios
+          # cp lib/cbmod.so /tmp/BUILDROOT/usr/lib64/nagios/
 
-          # centreon-broker-graphite
-          mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
-          cp lib/70-graphite.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
+          # # centreon-broker-graphite
+          # mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
+          # cp lib/70-graphite.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
 
-          # centreon-broker-influxdb
-          mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
-          cp lib/70-influxdb.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
+          # # centreon-broker-influxdb
+          # mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
+          # cp lib/70-influxdb.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
 
-          # centreon-broker-stats-exporter
-          mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
-          cp lib/15-stats_exporter.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
+          # # centreon-broker-stats-exporter
+          # mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
+          # cp lib/15-stats_exporter.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
 
-          # centreon-connector-perl
-          mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-connector
-          cp bin/centreon_connector_perl /tmp/BUILDROOT/usr/lib64/centreon-connector/
+          # # centreon-connector-perl
+          # mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-connector
+          # cp bin/centreon_connector_perl /tmp/BUILDROOT/usr/lib64/centreon-connector/
 
-          # centreon-connector-ssh
-          mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-connector
-          cp bin/centreon_connector_ssh /tmp/BUILDROOT/usr/lib64/centreon-connector/
+          # # centreon-connector-ssh
+          # mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-connector
+          # cp bin/centreon_connector_ssh /tmp/BUILDROOT/usr/lib64/centreon-connector/
 
-          INSTALLER="dnf"
-          if [ "${{ matrix.package_extension }}" = "deb" ]; then
-            CMAKE="apt-get"
-          fi
-          $INSTALLER install -y debugedit
-          bash .github/scripts/find-debuginfo.sh
+          # INSTALLER="dnf"
+          # if [ "${{ matrix.package_extension }}" = "deb" ]; then
+          #   CMAKE="apt-get"
+          # fi
+          # $INSTALLER install -y debugedit
+          # bash .github/scripts/find-debuginfo.sh
 
-          ls -lRh /tmp/BUILDROOT
+          for file in $(find ./{lib/*.so,bin} -type f); do
+            objcopy --only-keep-debug $file $file.debug
+            objcopy --strip-debug $file
+            objcopy --add-gnu-debuglink $file.debug $file
+          done
+
+          #ls -lRh /tmp/BUILDROOT
         shell: bash
 
       - uses: ./.github/actions/package

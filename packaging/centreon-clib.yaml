@@ -16,7 +16,7 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "/tmp/BUILDROOT/usr/lib64/libcentreon_clib.so"
+  - src: "../lib/libcentreon_clib.so"
     dst: "/usr/lib64/"
 
 rpm:

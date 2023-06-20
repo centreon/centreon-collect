@@ -15,7 +15,7 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/lib64/nagios/cbmod.so.debug"
+  - src: "../lib/cbmod.so.debug"
     dst: "/usr/lib/debug/usr/lib64/nagios/cbmod.so.debug"
     file_info:
       mode: 0644
