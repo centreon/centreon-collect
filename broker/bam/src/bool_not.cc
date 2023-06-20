@@ -35,9 +35,9 @@ bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
  *
  *  @param[in] right Object to copy.
  */
-bool_not::bool_not(bool_not const& right) : bool_value(right) {
-  _internal_copy(right);
-}
+// bool_not::bool_not(bool_not const& right) : bool_value(right) {
+//   _internal_copy(right);
+// }
 
 /**
  *  Destructor.
@@ -51,13 +51,13 @@ bool_not::~bool_not() {}
  *
  *  @return This object.
  */
-bool_not& bool_not::operator=(bool_not const& right) {
-  if (this != &right) {
-    bool_value::operator=(right);
-    _internal_copy(right);
-  }
-  return (*this);
-}
+// bool_not& bool_not::operator=(bool_not const& right) {
+//   if (this != &right) {
+//     bool_value::operator=(right);
+//     _internal_copy(right);
+//   }
+//   return (*this);
+// }
 
 /**
  *  @brief Notify of the change of value of the child.
