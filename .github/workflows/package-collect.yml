@@ -138,6 +138,8 @@ jobs:
 
           dnf install -y debugedit
           bash .github/scripts/find-debuginfo.sh
+
+          ls -lRh /tmp/BUILDROOT
         shell: bash
 
       - uses: ./.github/actions/package
