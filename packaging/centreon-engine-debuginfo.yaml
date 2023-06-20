@@ -15,7 +15,7 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/lib64/centreon-engine/externalcmd.so.debug"
+  - src: "../lib/externalcmd.so.debug"
     dst: "/usr/lib/debug/usr/lib64/centreon-engine/externalcmd.so.debug"
     file_info:
       mode: 0644
