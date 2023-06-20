@@ -22,6 +22,7 @@ jobs:
     #runs-on: ubuntu-22.04
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           # - image: centreon-collect-alma8
@@ -136,7 +137,11 @@ jobs:
           mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-connector
           cp bin/centreon_connector_ssh /tmp/BUILDROOT/usr/lib64/centreon-connector/
 
-          dnf install -y debugedit
+          INSTALLER="dnf"
+          if [ "${{ matrix.package_extension }}" = "deb" ]; then
+            CMAKE="apt-get"
+          fi
+          $INSTALLER install -y debugedit
           bash .github/scripts/find-debuginfo.sh
 
           ls -lRh /tmp/BUILDROOT
