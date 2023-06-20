@@ -35,16 +35,6 @@ bool_binary_operator::bool_binary_operator()
       _in_downtime(false) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-bool_binary_operator::bool_binary_operator(bool_binary_operator const& right)
-    : bool_value(right) {
-  _internal_copy(right);
-}
-
-/**
  *  Notification of child update.
  *
  *  @param[in] child     Child that got updated.

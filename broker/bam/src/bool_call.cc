@@ -32,10 +32,10 @@ bool_call::bool_call(std::string const& name) : _name(name) {}
  *
  *  @param[in] right Object to copy.
  */
-bool_call::bool_call(bool_call const& right) : bool_value(right) {
-  _name = right._name;
-  _expression = right._expression;
-}
+// bool_call::bool_call(bool_call const& right) : bool_value(right) {
+//   _name = right._name;
+//   _expression = right._expression;
+// }
 
 /**
  *  Assignment operator.
@@ -44,14 +44,14 @@ bool_call::bool_call(bool_call const& right) : bool_value(right) {
  *
  *  @return This object.
  */
-bool_call& bool_call::operator=(bool_call const& right) {
-  bool_value::operator=(right);
-  if (this != &right) {
-    _name = right._name;
-    _expression = right._expression;
-  }
-  return (*this);
-}
+// bool_call& bool_call::operator=(bool_call const& right) {
+//   bool_value::operator=(right);
+//   if (this != &right) {
+//     _name = right._name;
+//     _expression = right._expression;
+//   }
+//   return (*this);
+// }
 
 /**
  *  Get the hard value.
