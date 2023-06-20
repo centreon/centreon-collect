@@ -46,9 +46,9 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - run: |
-          dnf install -y sudo
-        shell: bash
+      # - run: |
+      #     dnf install -y sudo
+      #   shell: bash
 
       - name: Compile sources
         run: |
