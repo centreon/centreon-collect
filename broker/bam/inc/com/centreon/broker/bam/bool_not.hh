@@ -37,22 +37,19 @@ class bool_value;
  *  NOT on a bool_value.
  */
 class bool_not : public bool_value {
+  bool_value::ptr _value;
+
  public:
   bool_not(bool_value::ptr val = bool_value::ptr());
-  bool_not(const bool_not&);
+  bool_not(const bool_not&) = delete;
   ~bool_not();
-  bool_not& operator=(const bool_not&);
+  bool_not& operator=(const bool_not&) = delete;
   bool child_has_update(computable* child, io::stream* visitor = NULL);
   void set_value(std::shared_ptr<bool_value>& value);
   double value_hard();
   double value_soft();
   bool state_known() const;
   bool in_downtime() const;
-
- private:
-  void _internal_copy(bool_not const& right);
-
-  bool_value::ptr _value;
 };
 }  // namespace bam
 

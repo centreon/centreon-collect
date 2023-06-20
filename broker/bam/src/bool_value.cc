@@ -21,11 +21,6 @@
 using namespace com::centreon::broker::bam;
 
 /**
- *  Default constructor.
- */
-bool_value::bool_value() {}
-
-/**
  *  Is this boolean value in downtime?
  *
  *  @return  True if this boolean value is in downtime.
