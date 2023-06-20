@@ -39,9 +39,9 @@ class bool_value;
 class bool_not : public bool_value {
  public:
   bool_not(bool_value::ptr val = bool_value::ptr());
-  bool_not(bool_not const& right);
+  bool_not(const bool_not&);
   ~bool_not();
-  bool_not& operator=(bool_not const& right);
+  bool_not& operator=(const bool_not&);
   bool child_has_update(computable* child, io::stream* visitor = NULL);
   void set_value(std::shared_ptr<bool_value>& value);
   double value_hard();

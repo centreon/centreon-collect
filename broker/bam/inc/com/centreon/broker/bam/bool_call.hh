@@ -38,9 +38,9 @@ class bool_call : public bool_value {
   typedef std::shared_ptr<bool_call> ptr;
 
   bool_call(std::string const& name);
-  bool_call(bool_call const& right);
   ~bool_call() noexcept override = default;
-  bool_call& operator=(bool_call const& right);
+  bool_call(const bool_call&) = delete;
+  bool_call& operator=(const bool_call&) = delete;
   double value_hard() override;
   double value_soft() override;
   bool state_known() const override;

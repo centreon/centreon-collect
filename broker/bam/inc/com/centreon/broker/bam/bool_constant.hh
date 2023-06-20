@@ -33,13 +33,13 @@ namespace bam {
  *  value (i.e '42').
  */
 class bool_constant : public bool_value {
-  double _value;
+  const double _value;
 
  public:
   bool_constant(double value);
-  bool_constant(bool_constant const& right);
   ~bool_constant() noexcept override = default;
-  bool_constant& operator=(bool_constant const& right);
+  bool_constant(const bool_constant&) = delete;
+  bool_constant& operator=(const bool_constant&) = delete;
   bool child_has_update(computable* child, io::stream* visitor) override;
   double value_hard() override;
   double value_soft() override;
