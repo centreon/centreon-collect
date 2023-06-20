@@ -45,19 +45,18 @@ class bool_expression : public computable {
   bool _impact_if;
 
  public:
-  bool_expression();
-  bool_expression(bool_expression const& other) = delete;
+  bool_expression(uint32_t id, bool impact_if);
+  bool_expression(const bool_expression&) = delete;
   ~bool_expression() noexcept override = default;
-  bool_expression& operator=(bool_expression const& other) = delete;
+  bool_expression& operator=(const bool_expression&) = delete;
   bool child_has_update(computable* child,
                         io::stream* visitor = nullptr) override;
   state get_state() const;
   bool state_known() const;
   void set_expression(std::shared_ptr<bool_value> const& expression);
   std::shared_ptr<bool_value> get_expression() const;
-  void set_id(uint32_t id);
-  void set_impact_if(bool impact_if);
   bool in_downtime() const;
+  uint32_t get_id() const;
 };
 }  // namespace bam
 

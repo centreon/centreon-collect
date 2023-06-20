@@ -107,10 +107,15 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
                           io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{
       _book.equal_range(std::make_pair(t->host_id, t->service_id))};
+  size_t count = 0;
   while (range.first != range.second) {
+    count++;
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
+  log_v2::bam()->debug(
+      "service_book: {} listeners notified of service ({},{}) status", count,
+      t->host_id, t->service_id);
 }
 
 /**
@@ -124,10 +129,15 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
                           io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
+  size_t count = 0;
   while (range.first != range.second) {
+    ++count;
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
+  log_v2::bam()->debug(
+      "service_book: {} listeners notified of pb service ({},{})", count,
+      t->obj().host_id(), t->obj().service_id());
 }
 
 /**
@@ -141,8 +151,13 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
                           io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
+  size_t count = 0;
   while (range.first != range.second) {
+    ++count;
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
+  log_v2::bam()->debug(
+      "service_book: {} listeners notified of pb service ({},{}) status", count,
+      t->obj().host_id(), t->obj().service_id());
 }

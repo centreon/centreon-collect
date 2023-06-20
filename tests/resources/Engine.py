@@ -596,6 +596,8 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
+
+
 def engine_config_add_value(idx: int, key: str, value: str):
     filename = ETC_ROOT + \
         "/centreon-engine/config{}/centengine.cfg".format(idx)
@@ -919,8 +921,8 @@ def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt
     return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
-def add_boolean_kpi(id_ba: int, expression: str, critical_impact: int):
-    dbconf.add_boolean_kpi(id_ba, expression, critical_impact)
+def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
 
 def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):

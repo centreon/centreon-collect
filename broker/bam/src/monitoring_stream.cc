@@ -477,7 +477,7 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
       std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
       log_v2::bam()->info("opening {}", _ext_cmd_file);
       misc::fifo_client fc(_ext_cmd_file);
-      log_v2::bam()->trace("BAM: {} forced checks to schedule",
+      log_v2::bam()->debug("BAM: {} forced checks to schedule",
                            _timer_forced_svc_checks.size());
       for (auto& p : _timer_forced_svc_checks) {
         time_t now = time(nullptr);

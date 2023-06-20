@@ -44,22 +44,6 @@ bool_binary_operator::bool_binary_operator(bool_binary_operator const& right)
 }
 
 /**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-// bool_binary_operator& bool_binary_operator::operator=(
-//    bool_binary_operator const& right) {
-//  if (this != &right) {
-//    bool_value::operator=(right);
-//    _internal_copy(right);
-//  }
-//  return (*this);
-//}
-
-/**
  *  Notification of child update.
  *
  *  @param[in] child     Child that got updated.
@@ -70,7 +54,7 @@ bool_binary_operator::bool_binary_operator(bool_binary_operator const& right)
 bool bool_binary_operator::child_has_update(computable* child,
                                             io::stream* visitor) {
   (void)visitor;
-  bool retval(true);
+  bool retval = false;
 
   // Check operation members values.
   if (child) {
@@ -97,20 +81,20 @@ bool bool_binary_operator::child_has_update(computable* child,
   }
 
   // Check known flag.
-  bool known(state_known());
+  bool known = state_known();
   if (_state_known != known) {
     _state_known = known;
     retval = true;
   }
 
   // Check downtime flag.
-  bool in_dt(in_downtime());
+  bool in_dt = in_downtime();
   if (_in_downtime != in_dt) {
     _in_downtime = in_dt;
     retval = true;
   }
 
-  return (retval);
+  return retval;
 }
 
 /**
@@ -124,7 +108,6 @@ void bool_binary_operator::set_left(std::shared_ptr<bool_value> const& left) {
   _left_soft = _left->value_soft();
   _state_known = state_known();
   _in_downtime = in_downtime();
-  return;
 }
 
 /**
@@ -138,7 +121,6 @@ void bool_binary_operator::set_right(std::shared_ptr<bool_value> const& right) {
   _right_soft = _right->value_soft();
   _state_known = state_known();
   _in_downtime = in_downtime();
-  return;
 }
 
 /**
@@ -155,7 +137,6 @@ void bool_binary_operator::_internal_copy(bool_binary_operator const& right) {
   _right_soft = right._right_soft;
   _state_known = right._state_known;
   _in_downtime = right._in_downtime;
-  return;
 }
 
 /**
@@ -164,7 +145,10 @@ void bool_binary_operator::_internal_copy(bool_binary_operator const& right) {
  *  @return  True if the state is known.
  */
 bool bool_binary_operator::state_known() const {
-  return (_left && _right && _left->state_known() && _right->state_known());
+  bool retval =
+      _left && _right && _left->state_known() && _right->state_known();
+  log_v2::bam()->debug("BAM: bool binary operator: state known {}", retval);
+  return retval;
 }
 
 /**
@@ -173,5 +157,5 @@ bool bool_binary_operator::state_known() const {
  *  @return  True if this expression is in downtime.
  */
 bool bool_binary_operator::in_downtime() const {
-  return ((_left && _left->in_downtime()) || (_right && _right->in_downtime()));
+  return (_left && _left->in_downtime()) || (_right && _right->in_downtime());
 }
