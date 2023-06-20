@@ -56,6 +56,13 @@ contents:
     dst: "/usr/lib/systemd/system/centengine.service"
     file_info:
       mode: 755
+    packager: rpm
+
+  - src: "../engine/scripts/centengine.service"
+    dst: "/lib/systemd/system/centengine.service"
+    file_info:
+      mode: 755
+    packager: deb
 
   - src: "/tmp/BUILDROOT/usr/lib64/centreon-engine/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"

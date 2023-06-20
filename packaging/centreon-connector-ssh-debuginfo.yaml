@@ -1,4 +1,4 @@
-name: "centreon-engine-devel"
+name: "centreon-connector-ssh-debuginfo"
 arch: "amd64"
 platform: "linux"
 version_schema: "none"
@@ -8,27 +8,28 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  Centreon Engine devel provide include files to develop Centreon Engine
-  Modules or Centreon Engine Connector.
+  Debuginfo package for centreon-connector-perl.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../engine/inc/com"
-    dst: "/usr/include/centreon-engine"
+  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/lib64/centreon-connector/centreon_connector_ssh"
+    dst: "/usr/lib/debug/usr/lib64/centreon-connector/"
+    file_info:
+      mode: 0775
 
 overrides:
   rpm:
     depends:
-      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
+      - centreon-connector-ssh = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-connector-ssh (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
-  summary: Provide include files for Centreon Engine.
+  summary: Debuginfo package for centreon-connector-perl.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}

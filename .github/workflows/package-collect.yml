@@ -30,9 +30,9 @@ jobs:
           - image: centreon-collect-alma9
             distrib: el9
             package_extension: rpm
-          # - image: centreon-collect-debian-bullseye
-          #   distrib: bullseye
-          #   package_extension: deb
+          - image: centreon-collect-debian-bullseye
+            distrib: bullseye
+            package_extension: deb
 
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
@@ -47,25 +47,31 @@ jobs:
         uses: actions/checkout@v3
 
       - run: |
-          id
           dnf install -y sudo
         shell: bash
 
       - name: Compile sources
         run: |
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-          # -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          sudo CXXFLAGS="-Wall -Wextra -g" cmake3 \
+          CMAKE="cmake3"
+          if [ "${{ matrix.package_extension}}" = "bullseye" ]; then
+            CMAKE="cmake"
+          fi
+
+          # -DWITH_STARTUP_DIR=/usr/lib/systemd/system
+          # -DWITH_STARTUP_SCRIPT=systemd
+
+          sudo $CMAKE \
                   -G "Ninja" \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
                   -DCMAKE_INSTALL_PREFIX=/usr \
-                  -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
-                  -DWITH_STARTUP_DIR=/usr/lib/systemd/system \
                   -DWITH_STARTUP_SCRIPT=systemd \
+                  -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
                   -DWITH_USER_BROKER=centreon-broker \
                   -DWITH_GROUP_BROKER=centreon-broker \
                   -DWITH_USER_ENGINE=centreon-engine \
@@ -73,13 +79,11 @@ jobs:
                   -DWITH_DAEMONS=ON \
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
-                  -DCMAKE_BUILD_TYPE=Debug \
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
                   .
 
           sudo ninja -j 8
         shell: bash
-
-      - run: ls -Rlh
 
       - name: generate debug files
         run: |
@@ -103,6 +107,11 @@ jobs:
           mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
           cp lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-lua,70-rrd,80-sql}.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
 
+          # centreon-broker-cbd
+          mkdir -p /tmp/BUILDROOT/usr/sbin
+          cp bin/cbd /tmp/BUILDROOT/usr/sbin/
+          cp bin/cbwd /tmp/BUILDROOT/usr/sbin/
+
           # centreon-broker-cbmod
           mkdir -p /tmp/BUILDROOT/usr/lib64/nagios
           cp lib/cbmod.so /tmp/BUILDROOT/usr/lib64/nagios/
@@ -119,22 +128,17 @@ jobs:
           mkdir -p /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker
           cp lib/15-stats_exporter.so /tmp/BUILDROOT/usr/share/centreon/lib/centreon-broker/
 
+          # centreon-connector-perl
+          mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-connector
+          cp bin/centreon_connector_perl /tmp/BUILDROOT/usr/lib64/centreon-connector/
+
+          # centreon-connector-ssh
+          mkdir -p /tmp/BUILDROOT/usr/lib64/centreon-connector
+          cp bin/centreon_connector_ssh /tmp/BUILDROOT/usr/lib64/centreon-connector/
+
           dnf install -y debugedit
           bash .github/scripts/find-debuginfo.sh
         shell: bash
-
-      - run: ls -Rlh bin
-      - run: ls -Rlh lib
-      #- run: strip bin/*
-      #- run: strip lib/*
-      - run: ls -Rlh bin
-      - run: ls -Rlh lib
-
-      - run: ls -Rlh /tmp/BUILDROOT
-      # - run: |
-      #     dnf install -y mlocate
-      #     updatedb
-      #     locate libcentreon_clib.so
 
       - uses: ./.github/actions/package
         with:
@@ -144,16 +148,10 @@ jobs:
           version: ${{ inputs.version }}
           release: ${{ inputs.release }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: ${{ github.sha }}-${{ github.run_id }}-${{ matrix.package_extension }}-${{ matrix.distrib }}
+          cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}build-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
-
-      - name: Cache RPM files
-        uses: actions/cache@v3
-        with:
-          path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
       # - name: Cleaning not needed rpm packages
       #   shell: bash
@@ -166,7 +164,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: packages-${{ matrix.distrib }}
-          path: ./*.rpm
+          path: ./*.${{ matrix.package_extension}}
           retention-days: 1
 
   # package-deb:

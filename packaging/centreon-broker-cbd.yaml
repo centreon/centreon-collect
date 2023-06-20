@@ -40,14 +40,14 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - src: "../bin/cbd"
+  - src: "/tmp/BUILDROOT/usr/sbin/cbd"
     dst: "/usr/sbin/cbd"
 
-  - src: "../bin/cbwd"
+  - src: "/tmp/BUILDROOT/usr/sbin/cbwd"
     dst: "/usr/sbin/cbwd"
 
   - src: "../broker/script/cbd.service"
-    dst: "/usr/lib/systemd/system/cbd.service"
+    dst: "/lib/systemd/system/cbd.service"
     file_info:
       mode: 755
 

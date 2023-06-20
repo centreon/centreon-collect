@@ -1,4 +1,4 @@
-name: "centreon-connector-perl"
+name: "centreon-connector-perl-debuginfo"
 arch: "amd64"
 platform: "linux"
 version_schema: "none"
@@ -8,29 +8,28 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  Centreon Connector Perl provide embedded perl for Centreon Engine
-  a monitoring engine.
+  Debuginfo package for centreon-connector-perl.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "/tmp/BUILDROOT/usr/lib64/centreon-connector/centreon_connector_perl"
-    dst: "/usr/lib64/centreon-connector/"
+  - src: "/tmp/BUILDROOT/usr/lib/debug/usr/lib64/centreon-connector/centreon_connector_perl"
+    dst: "/usr/lib/debug/usr/lib64/centreon-connector/"
     file_info:
       mode: 0775
 
 overrides:
   rpm:
     depends:
-      - perl
+      - centreon-connector-perl = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - perl
+      - centreon-connector-perl (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
-  summary: Centreon Connector Perl provide embedded perl for Centreon-Engine.
+  summary: Debuginfo package for centreon-connector-perl.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
