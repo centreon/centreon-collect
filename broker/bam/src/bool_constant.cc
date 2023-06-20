@@ -28,31 +28,6 @@ using namespace com::centreon::broker::bam;
 bool_constant::bool_constant(double val) : _value(val) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-// bool_constant::bool_constant(const bool_constant& right) : bool_value(right)
-// {
-//   _value = right._value;
-// }
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-// bool_constant& bool_constant::operator=(bool_constant const& right) {
-//   bool_value::operator=(right);
-//   if (this != &right) {
-//     _value = right._value;
-//   }
-//   return *this;
-// }
-
-/**
  *  Get notified of child update.
  *
  *  @param[in] child    The child.

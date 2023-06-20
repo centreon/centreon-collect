@@ -59,9 +59,6 @@ class bool_binary_operator : public bool_value {
   void set_right(std::shared_ptr<bool_value> const& right);
   bool state_known() const override;
   bool in_downtime() const override;
-
- private:
-  void _internal_copy(bool_binary_operator const& right);
 };
 }  // namespace bam
 

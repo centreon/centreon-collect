@@ -53,6 +53,13 @@ double bool_or::value_soft() {
   return retval;
 }
 
+/**
+ * @brief Tell if this boolean value has a known state. Since it is a logical
+ * or, if one operand is known to be true, we can consider the state to be
+ * known because the result will be true.
+ *
+ * @return a boolean.
+ */
 bool bool_or::state_known() const {
   bool left_exists = _left && _left->state_known();
   bool right_exists = _right && _right->state_known();
