@@ -57,7 +57,7 @@ jobs:
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           CMAKE="cmake3"
-          if [ "${{ matrix.package_extension}}" = "bullseye" ]; then
+          if [ "${{ matrix.package_extension }}" = "deb" ]; then
             CMAKE="cmake"
           fi
 
