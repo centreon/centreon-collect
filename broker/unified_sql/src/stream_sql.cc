@@ -3639,6 +3639,8 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
  * @param ss A neb::pb_service.
  */
 void stream::_check_and_update_index_cache(const Service& ss) {
+  auto cache_ptr = cache::global_cache::instance_ptr();
+
   auto it_index_cache = _index_cache.find({ss.host_id(), ss.service_id()});
 
   fmt::string_view hv(misc::string::truncate(
@@ -3697,6 +3699,11 @@ void stream::_check_and_update_index_cache(const Service& ss) {
           log_v2::sql(), "sql: loaded index {} of ({}, {}) with rrd_len={}",
           index_id, ss.host_id(), ss.service_id(), info.rrd_retention);
       _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
+
+      if (cache_ptr) {
+        cache_ptr->set_index_mapping(index_id, ss.host_id(), ss.service_id());
+      }
+
       // Create the metric mapping.
       auto im{std::make_shared<storage::pb_index_mapping>()};
       auto& im_obj = im->mut_obj();
@@ -3752,6 +3759,11 @@ void stream::_check_and_update_index_cache(const Service& ss) {
               index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
               info.special, info.locked);
           _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
+          if (cache_ptr) {
+            cache_ptr->set_index_mapping(index_id, ss.host_id(),
+                                         ss.service_id());
+          }
+
           // Create the metric mapping.
           auto im{std::make_shared<storage::pb_index_mapping>()};
           auto& im_obj = im->mut_obj();

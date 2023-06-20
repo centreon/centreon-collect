@@ -139,7 +139,8 @@ https_connection::https_connection(
     const http_config::pointer& conf)
     : connection_base(io_context, logger, conf),
       _sslcontext(conf->get_ssl_method()),
-      _stream(beast::net::make_strand(*io_context), _sslcontext) {
+      _stream(std::make_unique<ssl_stream>(beast::net::make_strand(*io_context),
+                                           _sslcontext)) {
   if (!_conf->get_certificate_path().empty()) {
     std::shared_ptr<std::string> cert_content =
         detail::certificate_cache::get_mutable_instance().get_certificate(
@@ -191,8 +192,8 @@ void https_connection::connect(connect_callback_type&& callback) {
 
   SPDLOG_LOGGER_DEBUG(_logger, "connect to {}", *_conf);
   std::lock_guard<std::mutex> l(_socket_m);
-  beast::get_lowest_layer(_stream).expires_after(_conf->get_connect_timeout());
-  beast::get_lowest_layer(_stream).async_connect(
+  beast::get_lowest_layer(*_stream).expires_after(_conf->get_connect_timeout());
+  beast::get_lowest_layer(*_stream).async_connect(
       _conf->get_endpoint(),
       [me = shared_from_this(), cb = std::move(callback)](
           const beast::error_code& err) mutable { me->on_connect(err, cb); });
@@ -222,18 +223,18 @@ void https_connection::on_connect(const beast::error_code& err,
   std::lock_guard<std::mutex> l(_socket_m);
   boost::system::error_code err_keep_alive;
   asio::socket_base::keep_alive opt1(true);
-  beast::get_lowest_layer(_stream).socket().set_option(opt1, err_keep_alive);
+  beast::get_lowest_layer(*_stream).socket().set_option(opt1, err_keep_alive);
   if (err_keep_alive) {
     SPDLOG_LOGGER_ERROR(_logger, "fail to activate keep alive for {}", *_conf);
   } else {
     tcp_keep_alive_interval opt2(_conf->get_second_tcp_keep_alive_interval());
-    beast::get_lowest_layer(_stream).socket().set_option(opt2, err_keep_alive);
+    beast::get_lowest_layer(*_stream).socket().set_option(opt2, err_keep_alive);
     if (err_keep_alive) {
       SPDLOG_LOGGER_ERROR(_logger, "fail to modify keep alive interval for {}",
                           *_conf);
     }
     tcp_keep_alive_idle opt3(_conf->get_second_tcp_keep_alive_interval());
-    beast::get_lowest_layer(_stream).socket().set_option(opt3, err_keep_alive);
+    beast::get_lowest_layer(*_stream).socket().set_option(opt3, err_keep_alive);
     if (err_keep_alive) {
       SPDLOG_LOGGER_ERROR(
           _logger, "fail to modify first keep alive delay for {}", *_conf);
@@ -242,7 +243,7 @@ void https_connection::on_connect(const beast::error_code& err,
   SPDLOG_LOGGER_DEBUG(_logger, "connected to {}", _conf->get_endpoint());
 
   // Perform the SSL handshake
-  _stream.async_handshake(
+  _stream->async_handshake(
       asio::ssl::stream_base::client,
       [me = shared_from_this(), cb = std::move(callback)](
           const beast::error_code& err) { me->on_handshake(err, cb); });
@@ -305,9 +306,9 @@ void https_connection::send(request_ptr request,
   }
 
   std::lock_guard<std::mutex> l(_socket_m);
-  beast::get_lowest_layer(_stream).expires_after(_conf->get_send_timeout());
+  beast::get_lowest_layer(*_stream).expires_after(_conf->get_send_timeout());
   beast::http::async_write(
-      _stream, *request,
+      *_stream, *request,
       [me = shared_from_this(), request, cb = std::move(callback)](
           const beast::error_code& err, size_t bytes_transfered) mutable {
         me->on_sent(err, request, cb);
@@ -349,7 +350,7 @@ void https_connection::on_sent(const beast::error_code& err,
   std::lock_guard<std::mutex> l(_socket_m);
   response_ptr resp = std::make_shared<response_type>();
   beast::http::async_read(
-      _stream, _recv_buffer, *resp,
+      *_stream, _recv_buffer, *resp,
       [me = shared_from_this(), request, cb = std::move(callback), resp](
           const beast::error_code& ec, std::size_t) mutable {
         me->on_read(ec, request, cb, resp);
@@ -406,13 +407,20 @@ void https_connection::shutdown() {
     SPDLOG_LOGGER_DEBUG(_logger, "begin shutdown {}", *_conf);
     _state = e_shutdown;
     std::lock_guard<std::mutex> l(_socket_m);
-    _stream.async_shutdown(
-        [me = shared_from_this()](const beast::error_code& err) {
+    _stream->async_shutdown(
+        [me = shared_from_this(), this](const beast::error_code& err) {
           if (err) {
-            SPDLOG_LOGGER_ERROR(me->_logger, "fail shutdown to {}: {}",
-                                *me->_conf, err.message());
+            SPDLOG_LOGGER_ERROR(_logger, "fail shutdown to {}: {}", *_conf,
+                                err.message());
           }
-          me->_state = e_not_connected;
+          boost::system::error_code shutdown_err;
+          std::lock_guard<std::mutex> l(_socket_m);
+          beast::get_lowest_layer(*_stream).socket().shutdown(
+              asio::ip::tcp::socket::shutdown_both, shutdown_err);
+          beast::get_lowest_layer(*_stream).close();
+          _stream = std::make_unique<ssl_stream>(
+              beast::net::make_strand(*_io_context), _sslcontext);
+          _state = e_not_connected;
         });
   }
 }

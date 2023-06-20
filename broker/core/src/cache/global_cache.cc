@@ -26,8 +26,6 @@ using namespace com::centreon::broker::cache;
 
 global_cache::lock::lock() : _lock(&global_cache::_instance->_protect) {}
 
-constexpr absl::string_view checksum_extension = ".chk";
-
 inline std::string operator+(const std::string& left,
                              const absl::string_view& to_append) {
   std::string ret(left);
@@ -66,7 +64,8 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
         if (dirty && !*dirty) {
           // dirty will be erased by destructor
           *dirty = true;
-          SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache open file {}", _file_path);
+          SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache open file {}",
+                             _file_path);
           this->managed_map(false);
           return;
         } else {
@@ -77,8 +76,7 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
       }
     } catch (const std::exception& e) {
       std::string err_detail = fmt::format(
-          "corrupted cache file {} or checksum_file {} => recreate {}",
-          _file_path, _file_path + checksum_extension, e.what());
+          "corrupted cache file {} => recreate {}", _file_path, e.what());
 
       SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
       _file.reset();
@@ -86,10 +84,10 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
       ::remove(_file_path.c_str());
     }
 
-    SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache create file {}", _file_path);
+    SPDLOG_LOGGER_INFO(log_v2::core(), "global_cache create file {}",
+                       _file_path);
 
     ::remove(_file_path.c_str());
-    ::remove((_file_path + checksum_extension).c_str());
     grow(initial_size_on_create);
     *_file->find_or_construct<bool>("dirty")() = true;
     this->managed_map(true);

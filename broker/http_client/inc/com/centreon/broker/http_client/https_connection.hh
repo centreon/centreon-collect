@@ -35,7 +35,10 @@ namespace http_client {
 class https_connection : public connection_base {
  protected:
   asio::ssl::context _sslcontext;
-  boost::beast::ssl_stream<boost::beast::tcp_stream> _stream;
+  using ssl_stream = boost::beast::ssl_stream<boost::beast::tcp_stream>;
+  // when handshake fails, ssl_stream is in a dirty state so it's better to
+  // recreate another object
+  std::unique_ptr<ssl_stream> _stream;
 
   https_connection(const std::shared_ptr<asio::io_context>& io_context,
                    const std::shared_ptr<spdlog::logger>& logger,
