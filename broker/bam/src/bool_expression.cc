@@ -61,7 +61,6 @@ bool bool_expression::child_has_update(computable* child, io::stream* visitor) {
  *  @return Either OK (0) or CRITICAL (2).
  */
 state bool_expression::get_state() const {
-  log_v2::bam()->debug("BAM: bool_expression::get_state()");
   bool v = _expression->value_hard() > 0.5;
   state retval = v == _impact_if ? state_critical : state_ok;
   log_v2::bam()->debug(
