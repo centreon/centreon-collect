@@ -30,6 +30,8 @@ jobs:
         include:
           - platform: linux/amd64
           - distrib: debian-bullseye
+            platform: linux/amd64
+          - distrib: debian-bullseye
             platform: linux/arm64
           # - distrib: alma8
           #   platform: linux/amd64
