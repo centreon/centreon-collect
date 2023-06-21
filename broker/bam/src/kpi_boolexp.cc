@@ -224,20 +224,19 @@ state kpi_boolexp::_get_state() const {
   state retval;
   if (_boolexp->state_known()) {
     state retval = _boolexp->get_state();
-    log_v2::bam()->debug(
+    log_v2::bam()->trace(
         "BAM: kpi {} boolean expression: state (known) value: {}", id, retval);
     return retval;
   } else {
-    log_v2::bam()->debug("BAM: kpi {} boolean expression: state unknown", id);
     if (_event) {
       retval = static_cast<state>(_event->status());
-      log_v2::bam()->debug(
+      log_v2::bam()->trace(
           "BAM: kpi {} boolean expression: state from internal event: {}", id,
           retval);
       return retval;
     } else {
       retval = _boolexp->get_state();
-      log_v2::bam()->debug(
+      log_v2::bam()->trace(
           "BAM: kpi {} boolean expression: state value still taken from "
           "boolexp: {}",
           id, retval);
