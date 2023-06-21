@@ -34,7 +34,7 @@ jobs:
           - distrib: debian-bullseye
             runner: collect
           - distrib: debian-bullseye
-            runner: arm
+            runner: collect-arm64
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
