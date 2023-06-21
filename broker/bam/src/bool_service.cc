@@ -141,7 +141,7 @@ double bool_service::value_soft() {
  *  @return  True if the state is known.
  */
 bool bool_service::state_known() const {
-  log_v2::bam()->debug("BAM: bool_service::state_known: {}", _state_known);
+  log_v2::bam()->trace("BAM: bool_service::state_known: {}", _state_known);
   return _state_known;
 }
 
