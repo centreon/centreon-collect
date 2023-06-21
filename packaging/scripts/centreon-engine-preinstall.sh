@@ -25,4 +25,3 @@ else # rpm
     usermod -a -G centreon-engine apache
   fi
 fi
-

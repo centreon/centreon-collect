@@ -12,9 +12,9 @@ on:
       - dev-[2-9][0-9].[0-9][0-9].x
     paths:
       - '.github/docker/**'
-  # pull_request:
-  #   paths:
-  #     - '.github/docker/**'
+  pull_request:
+    paths:
+      - '.github/docker/**'
 
 jobs:
   get-version:
@@ -22,14 +22,17 @@ jobs:
 
   create-and-push-docker:
     needs: [get-version]
-    runs-on: [self-hosted, collect]
 
     strategy:
       fail-fast: false
       matrix:
         distrib: [alma8, alma9, debian-bullseye]
         include:
-          - project: collect
+          - runner: collect
+          - distrib: debian-bullseye
+            runner: arm
+
+    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
     steps:
       - name: Checkout sources
@@ -61,12 +64,12 @@ jobs:
 
       - uses: docker/build-push-action@v3
         with:
-          file: .github/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
+          file: .github/docker/Dockerfile.collect-${{ matrix.distrib }}
           context: .
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
 
   create-and-push-mysql-alma9-docker:
     needs: [get-version]
@@ -76,8 +79,6 @@ jobs:
       fail-fast: false
       matrix:
         distrib: [alma9]
-        include:
-          - project: collect
 
     steps:
       - name: Checkout sources
@@ -109,10 +110,10 @@ jobs:
 
       - uses: docker/build-push-action@v3
         with:
-          file: .github/docker/Dockerfile.${{ matrix.project }}-mysql-${{ matrix.distrib }}
+          file: .github/docker/Dockerfile.collect-mysql-${{ matrix.distrib }}
           context: .
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-mysql-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-mysql-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
 
