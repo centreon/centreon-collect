@@ -1,5 +1,5 @@
 name: "centreon-engine-debuginfo"
-arch: "arm64"
+arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
 version: "${VERSION}"

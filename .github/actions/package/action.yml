@@ -16,6 +16,9 @@ inputs:
   release:
     description: The package release number
     required: false
+  arch:
+    description: The package architecture
+    required: false
   commit_hash:
     description: The commit hash
     required: true
@@ -49,6 +52,7 @@ runs:
       run: |
         export VERSION="${{ inputs.version }}"
         export RELEASE="${{ inputs.release }}"
+        export ARCH="${{ inputs.arch }}"
 
         if  [ "${{ inputs.package_extension }}" = "rpm" ]; then
           export DIST=".${{ inputs.distrib }}"
