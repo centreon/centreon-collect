@@ -697,9 +697,6 @@ void monitoring_stream::_rebuild() {
  */
 void monitoring_stream::_explicitly_send_forced_svc_checks(
     const asio::error_code& ec) {
-  static int count = 0;
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                      "BAM: time to send forced service checks {}", count++);
   if (!ec) {
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
@@ -707,7 +704,7 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
     }
     if (!_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
-      log_v2::bam()->info("opening {}", _ext_cmd_file);
+      log_v2::bam()->trace("opening {}", _ext_cmd_file);
       misc::fifo_client fc(_ext_cmd_file);
       SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: {} forced checks to schedule",
                           _timer_forced_svc_checks.size());
@@ -715,20 +712,17 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
         time_t now = time(nullptr);
         std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
                                     now, p.first, p.second, now)};
-        log_v2::bam()->info("writing in {}", _ext_cmd_file);
+        log_v2::bam()->debug("writing '{}' into {}", cmd, _ext_cmd_file);
         if (fc.write(cmd) < 0) {
           log_v2::bam()->error(
-              "BAM: could not write forced service check to command file "
-              "'{}'",
+              "BAM: could not write forced service check to command file '{}'",
               _ext_cmd_file);
           _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
           _forced_svc_checks_timer.async_wait(
               std::bind(&monitoring_stream::_explicitly_send_forced_svc_checks,
                         this, std::placeholders::_1));
           break;
-        } else
-          SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: sent external command '{}'",
-                              cmd);
+        }
       }
     }
   }
