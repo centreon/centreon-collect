@@ -27,12 +27,10 @@ jobs:
       fail-fast: false
       matrix:
         distrib: [alma8, alma9, debian-bullseye]
+        runner: [collect, arm]
         include:
-          - runner: collect
-          - distrib: debian-bullseye
-            runner: collect
-          - distrib: debian-bullseye
-            runner: arm
+          - runner: arm
+            distrib: debian-bullseye
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
