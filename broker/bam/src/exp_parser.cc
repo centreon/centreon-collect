@@ -122,7 +122,7 @@ exp_parser::notation const& exp_parser::get_postfix() {
         while (!stack.empty() &&
                is_operator(stack.top())
                // And o1's precedence is less than or equal to that of o2
-               && (_precedence[token] <= (_precedence[stack.top()]))) {
+               && _precedence[token] <= _precedence[stack.top()]) {
           // Pop o2 off the operator stack, onto the output queue.
           _postfix.push_back(stack.top());
           stack.pop();
