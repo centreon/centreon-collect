@@ -53,12 +53,13 @@ static std::string string_filter(const string_class& to_filter) {
 }
 
 request::request(boost::beast::http::verb method,
+                 const std::string& server_name,
                  boost::beast::string_view target,
                  unsigned size_to_reserve,
                  const http_tsdb::line_protocol_query& metric_formatter,
                  const http_tsdb::line_protocol_query& status_formatter,
                  const std::string& authorization)
-    : http_tsdb::request(method, target),
+    : http_tsdb::request(method, server_name, target),
       _metric_formatter(metric_formatter),
       _status_formatter(status_formatter) {
   body().reserve(size_to_reserve);

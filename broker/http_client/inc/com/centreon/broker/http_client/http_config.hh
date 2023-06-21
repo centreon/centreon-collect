@@ -29,6 +29,7 @@ namespace http_client {
 class http_config {
   // destination address
   asio::ip::tcp::endpoint _endpoint;
+  std::string _server_name;
   bool _crypted;
   duration _connect_timeout;
   duration _send_timeout;
@@ -46,6 +47,7 @@ class http_config {
   using pointer = std::shared_ptr<http_config>;
 
   http_config(const asio::ip::tcp::endpoint& endpoint,
+              const std::string& server_name,
               bool crypted = false,
               duration connect_timeout = std::chrono::seconds(10),
               duration send_timeout = std::chrono::seconds(30),
@@ -59,6 +61,7 @@ class http_config {
                   asio::ssl::context_base::tlsv13_client,
               const std::string& certificate_path = "")
       : _endpoint(endpoint),
+        _server_name(server_name),
         _crypted(crypted),
         _connect_timeout(connect_timeout),
         _send_timeout(send_timeout),
@@ -78,6 +81,7 @@ class http_config {
         _max_connections(0) {}
 
   const asio::ip::tcp::endpoint& get_endpoint() const { return _endpoint; }
+  const std::string& get_server_name() const { return _server_name; }
   bool is_crypted() const { return _crypted; }
   const duration& get_connect_timeout() const { return _connect_timeout; }
   const duration& get_send_timeout() const { return _send_timeout; }

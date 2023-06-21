@@ -245,7 +245,7 @@ void factory::create_conf(const config::endpoint& cfg,
   }
 
   http_client::http_config http_cfg(
-      res_it->endpoint(), encryption, connect_timeout, send_timeout,
+      res_it->endpoint(), addr, encryption, connect_timeout, send_timeout,
       receive_timeout, second_tcp_keep_alive_interval, std::chrono::seconds(1),
       0, default_http_keepalive_duration, max_connections, ssl_method,
       certificate_path);

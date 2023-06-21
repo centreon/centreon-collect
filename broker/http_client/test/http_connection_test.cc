@@ -204,8 +204,9 @@ class dummy_connection : public connection_base {
 };
 
 TEST(http_keepalive_test, ConnectionClose) {
-  dummy_connection conn(g_io_context, log_v2::tcp(),
-                        std::make_shared<http_config>(test_endpoint));
+  dummy_connection conn(
+      g_io_context, log_v2::tcp(),
+      std::make_shared<http_config>(test_endpoint, "localhost"));
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(false);
   conn.set_state(connection_base::e_receive);
@@ -214,7 +215,7 @@ TEST(http_keepalive_test, ConnectionClose) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
-  auto conf = std::make_shared<http_config>(test_endpoint);
+  auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, log_v2::tcp(), conf);
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(true);
@@ -230,7 +231,7 @@ TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithTimeout) {
-  auto conf = std::make_shared<http_config>(test_endpoint);
+  auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, log_v2::tcp(), conf);
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(true);
@@ -460,13 +461,13 @@ class http_test : public ::testing::TestWithParam<bool> {
   http_config::pointer create_conf() {
     if (GetParam()) {
       return std::make_shared<http_config>(
-          test_endpoint, true, std::chrono::seconds(10),
+          test_endpoint, "localhost", true, std::chrono::seconds(10),
           std::chrono::seconds(10), std::chrono::seconds(10), 30,
           std::chrono::seconds(10), 5, std::chrono::hours(1), 10,
           asio::ssl::context_base::sslv23_client, client_cert_path);
 
     } else {
-      return std::make_shared<http_config>(test_endpoint, false);
+      return std::make_shared<http_config>(test_endpoint, "localhost", false);
     }
   }
 };

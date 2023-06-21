@@ -299,7 +299,8 @@ void https_connection::send(request_ptr request,
 
   request->_send = system_clock::now();
   if (_logger->level() == spdlog::level::trace) {
-    SPDLOG_LOGGER_TRACE(_logger, "send request {} to {}", *request,
+    SPDLOG_LOGGER_TRACE(_logger, "send request {} to {}",
+                        static_cast<request_type>(*request),
                         _conf->get_endpoint());
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "send request to {}", _conf->get_endpoint());
@@ -386,8 +387,8 @@ void https_connection::on_read(const beast::error_code& err,
   request->_receive = system_clock::now();
 
   if (resp->result_int() >= 400) {
-    SPDLOG_LOGGER_ERROR(_logger, "err response for {} \n\n {}", *request,
-                        *resp);
+    SPDLOG_LOGGER_ERROR(_logger, "err response for {} \n\n {}",
+                        static_cast<request_type>(*request), *resp);
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "recv response from {} {}", *_conf, *resp);
   }

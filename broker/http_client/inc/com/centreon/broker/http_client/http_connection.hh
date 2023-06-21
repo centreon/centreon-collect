@@ -77,6 +77,7 @@ class request_base : public request_type {
  public:
   request_base();
   request_base(boost::beast::http::verb method,
+               const std::string& server_name,
                boost::beast::string_view target);
 
   virtual ~request_base() {}
@@ -211,6 +212,10 @@ class http_connection : public connection_base {
 CCB_END()
 
 namespace fmt {
+
+template <>
+struct formatter<com::centreon::broker::http_client::request_type>
+    : ostream_formatter {};
 
 template <>
 struct formatter<com::centreon::broker::http_client::request_base>

@@ -164,8 +164,8 @@ std::condition_variable connection_send_bagot::success_cond;
 
 TEST_F(http_tsdb_stream_test, all_event_sent) {
   http_client::http_config conf(
-      asio::ip::tcp::endpoint(asio::ip::address_v4::loopback(), 80), false,
-      std::chrono::seconds(10), std::chrono::seconds(10),
+      asio::ip::tcp::endpoint(asio::ip::address_v4::loopback(), 80),
+      "localhost", false, std::chrono::seconds(10), std::chrono::seconds(10),
       std::chrono::seconds(10), 30, std::chrono::seconds(1), 100,
       std::chrono::seconds(1), 5);
 

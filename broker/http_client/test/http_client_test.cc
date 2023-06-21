@@ -94,16 +94,17 @@ class connection_ok : public connection_base {
 
 TEST_F(http_client_test, many_request_use_all_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
-  client::pointer clt = client::load(
-      g_io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
-      [&conns](const std::shared_ptr<asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
-               const http_config::pointer& conf) {
-        auto dummy_conn =
-            std::make_shared<connection_ok>(io_context, logger, conf);
-        conns.push_back(dummy_conn);
-        return dummy_conn;
-      });
+  client::pointer clt =
+      client::load(g_io_context, log_v2::tcp(),
+                   std::make_shared<http_config>(test_endpoint, "localhost"),
+                   [&conns](const std::shared_ptr<asio::io_context>& io_context,
+                            const std::shared_ptr<spdlog::logger>& logger,
+                            const http_config::pointer& conf) {
+                     auto dummy_conn = std::make_shared<connection_ok>(
+                         io_context, logger, conf);
+                     conns.push_back(dummy_conn);
+                     return dummy_conn;
+                   });
 
   request_ptr request(std::make_shared<request_base>());
 
@@ -137,7 +138,7 @@ TEST_F(http_client_test, many_request_use_all_connection) {
 
 TEST_F(http_client_test, recycle_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
-  auto conf = std::make_shared<http_config>(test_endpoint);
+  auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   client::pointer clt =
       client::load(g_io_context, log_v2::tcp(), conf,
                    [&conns](const std::shared_ptr<asio::io_context>& io_context,
@@ -270,7 +271,8 @@ class client_test : public http_client::client {
 
 TEST_F(http_client_test, all_handler_called) {
   client::pointer clt = std::make_shared<client_test>(
-      g_io_context, log_v2::tcp(), std::make_shared<http_config>(test_endpoint),
+      g_io_context, log_v2::tcp(),
+      std::make_shared<http_config>(test_endpoint, "localhost"),
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf) {
@@ -360,7 +362,7 @@ unsigned connection_retry::failed_before_success;
 
 TEST_F(http_client_test, retry_until_success) {
   connection_retry::nb_failed_per_request.clear();
-  auto conf = std::make_shared<http_config>(test_endpoint);
+  auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   client::pointer clt = std::make_shared<client_test>(
       g_io_context, log_v2::tcp(), conf,
       [](const std::shared_ptr<asio::io_context>& io_context,

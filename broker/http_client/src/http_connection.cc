@@ -47,8 +47,10 @@ request_base::request_base() {
 }
 
 request_base::request_base(boost::beast::http::verb method,
+                           const std::string& server_name,
                            boost::beast::string_view target)
     : request_type(method, target, 11) {
+  set(boost::beast::http::field::host, server_name);
   _connect = _send = _sent = _receive = system_clock::from_time_t(0);
 }
 
@@ -246,9 +248,9 @@ void http_connection::send(request_ptr request, send_callback_type&& callback) {
 
   request->_send = system_clock::now();
   if (_logger->level() == spdlog::level::trace) {
-    SPDLOG_LOGGER_TRACE(_logger, "{:p} send request {} to {}",
-                        static_cast<void*>(this), *request,
-                        _conf->get_endpoint());
+    SPDLOG_LOGGER_TRACE(
+        _logger, "{:p} send request {} to {}", static_cast<void*>(this),
+        static_cast<request_type>(*request), _conf->get_endpoint());
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "{:p} send request to {}",
                         static_cast<void*>(this), _conf->get_endpoint());
@@ -339,7 +341,8 @@ void http_connection::on_read(const boost::beast::error_code& err,
   // everything is fine at the transport level
   if (resp->result_int() >= 400) {
     SPDLOG_LOGGER_ERROR(_logger, "{:p} err response for {} \n\n {}",
-                        static_cast<void*>(this), *request, *resp);
+                        static_cast<void*>(this),
+                        static_cast<request_type>(*request), *resp);
   } else {
     SPDLOG_LOGGER_DEBUG(_logger, "{:p} recv response from {} {}",
                         static_cast<void*>(this), *_conf, *resp);

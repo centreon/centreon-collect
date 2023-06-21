@@ -43,9 +43,10 @@ class request : public http_client::request_base {
 
   request() : _nb_metric(0), _nb_status(0) {}
   request(boost::beast::http::verb method,
+          const std::string& server_name,
           boost::beast::string_view target,
           unsigned version = 11)
-      : http_client::request_base(method, target),
+      : http_client::request_base(method, server_name, target),
         _nb_metric(0),
         _nb_status(0) {}
 

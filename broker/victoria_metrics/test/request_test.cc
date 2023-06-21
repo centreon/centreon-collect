@@ -96,8 +96,8 @@ TEST_F(victoria_request_test, request_body_test) {
   cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
 
   http_tsdb::line_protocol_query dummy;
-  victoria_metrics::request req(boost::beast::http::verb::post, "/", 0, dummy,
-                                dummy, "toto");
+  victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
+                                "/", 0, dummy, dummy, "toto");
 
   Metric metric;
   metric.set_metric_id(123);
@@ -177,8 +177,8 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
       http_tsdb::line_protocol_query::data_type::status,
       log_v2::victoria_metrics());
 
-  victoria_metrics::request req(boost::beast::http::verb::post, "/", 0,
-                                metric_columns, status_columns, "toto");
+  victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
+                                "/", 0, metric_columns, status_columns, "toto");
 
   Metric metric;
   metric.set_metric_id(123);
@@ -277,8 +277,8 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
       http_tsdb::line_protocol_query::data_type::status,
       log_v2::victoria_metrics());
 
-  victoria_metrics::request req(boost::beast::http::verb::post, "/", 0,
-                                metric_columns, status_columns, "toto");
+  victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
+                                "/", 0, metric_columns, status_columns, "toto");
 
   Metric metric;
   metric.set_metric_id(123);

@@ -35,8 +35,6 @@ class stream : public http_tsdb::stream {
   http_tsdb::line_protocol_query _metric_formatter;
   http_tsdb::line_protocol_query _status_formatter;
 
-  std::string _hostname;
-
   std::string _authorization;
   std::string _account_id;
 

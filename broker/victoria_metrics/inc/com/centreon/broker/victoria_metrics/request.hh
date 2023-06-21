@@ -36,6 +36,7 @@ class request : public http_tsdb::request {
 
  public:
   request(boost::beast::http::verb method,
+          const std::string& server_name,
           boost::beast::string_view target,
           unsigned size_to_reserve,
           const http_tsdb::line_protocol_query& metric_formatter,

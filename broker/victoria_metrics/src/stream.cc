@@ -58,11 +58,6 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                                           conf->get_status_columns().size()) *
                                      20);
 
-  char hostname[1024];
-  hostname[sizeof(hostname) - 1] = 0;
-  gethostname(hostname, sizeof(hostname) - 1);
-  _hostname = hostname;
-
   _authorization = "Basic ";
   _authorization +=
       misc::string::base64_encode(conf->get_user() + ':' + conf->get_pwd());
@@ -78,12 +73,11 @@ std::shared_ptr<stream> stream::load(
 }
 
 http_tsdb::request::pointer stream::create_request() const {
-  auto ret = std::make_shared<request>(boost::beast::http::verb::post,
-                                       _conf->get_http_target(),
-                                       _body_size_to_reserve, _metric_formatter,
-                                       _status_formatter, _authorization);
+  auto ret = std::make_shared<request>(
+      boost::beast::http::verb::post, _conf->get_server_name(),
+      _conf->get_http_target(), _body_size_to_reserve, _metric_formatter,
+      _status_formatter, _authorization);
 
-  ret->set(boost::beast::http::field::host, _hostname);
   ret->set(boost::beast::http::field::content_type, "text/plain");
   ret->set(boost::beast::http::field::accept, "application/json");
   ret->set(boost::beast::http::field::accept_encoding, "gzip");
