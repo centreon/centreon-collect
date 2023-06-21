@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - ditrib: alma8
+          - distrib: alma8
             runner: collect
           - distrib: alma9
             runner: collect
