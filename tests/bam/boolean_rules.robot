@@ -87,6 +87,112 @@ BABOO
     Stop Engine
     Kindly Stop Broker
 
+BABOOOR
+    [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
+    [Tags]    broker    engine    bam    boolean_expression
+    Clear Commands Status
+    Clear Retention
+    Config Broker    module
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Log    central    core    error
+    Broker Config Log    central    bam    trace
+    Broker Config Log    central    sql    error
+    Broker Config Flush Log    central    0
+    Broker Config Source Log    central    1
+    Config BBDO3    ${1}
+    Config Engine    ${1}
+
+    Clone Engine Config To DB
+    Add Bam Config To Engine
+    Add Bam Config To Broker    central
+    Set Services Passive    ${0}    service_302
+    Set Services Passive    ${0}    service_303
+
+    ${id_ba__sid}=    create_ba    boolean-ba    impact    70    80
+    add_boolean_kpi
+    ...    ${id_ba__sid[0]}
+    ...    {host_16 service_302} {IS} {CRITICAL} {OR} {host_16 service_303} {IS} {CRITICAL}
+    ...    True
+    ...    100
+
+    Start Broker
+    ${start}=    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    # 303 is unknown but since the boolean operator is OR, if 302 result is true, we should have already a result.
+
+    # 302 is set to critical => the two ba become critical
+    Repeat Keyword
+    ...    3 times
+    ...    Process Service Check Result
+    ...    host_16
+    ...    service_302
+    ...    2
+    ...    output critical for service_302
+
+    ${result}=    check_ba_status_with_timeout    boolean-ba    2    30
+    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+
+    Stop Engine
+    Kindly Stop Broker
+
+BABOOAND
+    [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
+    [Tags]    broker    engine    bam    boolean_expression
+    Clear Commands Status
+    Clear Retention
+    Config Broker    module
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Log    central    core    error
+    Broker Config Log    central    bam    trace
+    Broker Config Log    central    sql    error
+    Broker Config Flush Log    central    0
+    Broker Config Source Log    central    1
+    Config BBDO3    ${1}
+    Config Engine    ${1}
+
+    Clone Engine Config To DB
+    Add Bam Config To Engine
+    Add Bam Config To Broker    central
+    Set Services Passive    ${0}    service_302
+    Set Services Passive    ${0}    service_303
+
+    ${id_ba__sid}=    create_ba    boolean-ba    impact    70    80
+    add_boolean_kpi
+    ...    ${id_ba__sid[0]}
+    ...    {host_16 service_302} {IS} {OK} {AND} {host_16 service_303} {IS} {OK}
+    ...    False
+    ...    100
+
+    Start Broker
+    ${start}=    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    # 303 is unknown but since the boolean operator is AND, if 302 result is false, we should have already a result.
+
+    # 302 is set to critical => the two ba become critical
+    Repeat Keyword
+    ...    3 times
+    ...    Process Service Check Result
+    ...    host_16
+    ...    service_302
+    ...    2
+    ...    output critical for service_302
+
+    ${result}=    check_ba_status_with_timeout    boolean-ba    2    30
+    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+
+    Stop Engine
+    Kindly Stop Broker
+
 
 *** Keywords ***
 BAM Setup
