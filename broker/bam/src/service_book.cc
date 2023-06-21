@@ -170,7 +170,7 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
-  log_v2::bam()->debug(
+  log_v2::bam()->trace(
       "service_book: {} listeners notified of pb service ({},{})", count,
       t->obj().host_id(), t->obj().service_id());
 }
