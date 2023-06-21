@@ -1,5 +1,5 @@
 name: "centreon-clib"
-arch: "amd64"
+arch: "arm64"
 platform: "linux"
 version_schema: "none"
 version: "${VERSION}"
@@ -18,6 +18,22 @@ license: "Apache-2.0"
 contents:
   - src: "../lib/libcentreon_clib.so"
     dst: "/usr/lib64/"
+
+overrides:
+  rpm:
+    conflicts:
+      - centreon-clib-devel
+    replaces:
+      - centreon-clib-devel
+    provides:
+      - centreon-clib-devel
+  deb:
+    conflicts:
+      - centreon-clib-dev
+    replaces:
+      - centreon-clib-dev
+    provides:
+      - centreon-clib-dev
 
 rpm:
   summary: Centreon core library.

@@ -1,5 +1,5 @@
 name: "centreon-broker-stats-exporter"
-arch: "amd64"
+arch: "arm64"
 platform: "linux"
 version_schema: "none"
 version: "${VERSION}"

@@ -1,5 +1,5 @@
 name: "centreon-broker-core-debuginfo"
-arch: "amd64"
+arch: "arm64"
 platform: "linux"
 version_schema: "none"
 version: "${VERSION}"

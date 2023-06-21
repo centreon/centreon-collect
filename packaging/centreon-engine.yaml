@@ -1,5 +1,5 @@
 name: "centreon-engine"
-arch: "amd64"
+arch: "arm64"
 platform: "linux"
 version_schema: "none"
 version: "${VERSION}"
@@ -113,9 +113,21 @@ overrides:
   rpm:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
+    conflicts:
+      - centreon-engine-devel
+    replaces:
+      - centreon-engine-devel
+    provides:
+      - centreon-engine-devel
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-engine-dev
+    replaces:
+      - centreon-engine-dev
+    provides:
+      - centreon-engine-dev
 
 rpm:
   summary: Centreon Engine monitoring core.

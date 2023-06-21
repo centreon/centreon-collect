@@ -1,5 +1,5 @@
 name: "centreon-broker-core"
-arch: "amd64"
+arch: "arm64"
 platform: "linux"
 version_schema: "none"
 version: "${VERSION}"
@@ -58,11 +58,23 @@ overrides:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-common
       - gnutls >= 3.3.29
+    conflicts:
+      - centreon-broker-devel
+    replaces:
+      - centreon-broker-devel
+    provides:
+      - centreon-broker-devel
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-common
       - gnutls (>= 3.3.29)
+    conflicts:
+      - centreon-broker-dev
+    replaces:
+      - centreon-broker-dev
+    provides:
+      - centreon-broker-dev
 
 rpm:
   summary: Centreon Broker's shared library.

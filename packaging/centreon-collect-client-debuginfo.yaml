@@ -1,5 +1,5 @@
 name: "centreon-collect-client-debuginfo"
-arch: "amd64"
+arch: "arm64"
 platform: "linux"
 version_schema: "none"
 version: "${VERSION}"
