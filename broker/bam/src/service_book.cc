@@ -192,7 +192,7 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
-  log_v2::bam()->debug(
+  log_v2::bam()->trace(
       "service_book: {} listeners notified of pb service ({},{}) status", count,
       t->obj().host_id(), t->obj().service_id());
 }
