@@ -26,19 +26,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        distrib: [alma8, alma9, debian-bullseye]
         include:
-          - distrib: alma8
-            platform: linux/amd64
-            #runner: collect
-          - distrib: alma9
-            platform: linux/amd64
-            #runner: collect
-          - distrib: debian-bullseye
-            platform: linux/amd64
-            #runner: collect
+          - platform: linux/amd64
           - distrib: debian-bullseye
             platform: linux/arm64
-            #runner: collect-arm64
+          # - distrib: alma8
+          #   platform: linux/amd64
+          #   #runner: collect
+          # - distrib: alma9
+          #   platform: linux/amd64
+          #   #runner: collect
+          # - distrib: debian-bullseye
+          #   platform: linux/amd64
+          #   #runner: collect
+          # - distrib: debian-bullseye
+          #   platform: linux/arm64
+          #   #runner: collect-arm64
 
     runs-on: [self-hosted, collect]
     #runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
