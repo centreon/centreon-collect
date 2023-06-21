@@ -83,14 +83,14 @@ std::string exp_tokenizer::next() {
     if (_current < _size) {
       // Special char. Most of them are single-charaters token.
       if (_is_special_char()) {
-        if ((_current + 1 < _size)
+        if (_current + 1 < _size
             // Double character exceptions: ==, !=, >=, <=.
-            && ((((_text[_current] == '=') || (_text[_current] == '!') ||
-                  (_text[_current] == '<') || (_text[_current] == '>')) &&
-                 (_text[_current + 1] == '='))
+            && (((_text[_current] == '=' || _text[_current] == '!' ||
+                  _text[_current] == '<' || _text[_current] == '>') &&
+                 _text[_current + 1] == '=')
                 // Double character exceptions: ||, &&.
-                || (((_text[_current] == '|') || (_text[_current] == '&')) &&
-                    (_text[_current] == _text[_current + 1])))) {
+                || ((_text[_current] == '|' || _text[_current] == '&') &&
+                    _text[_current] == _text[_current + 1]))) {
           retval.push_back(_text[_current]);
           retval.push_back(_text[_current + 1]);
           _next = _current + 2;
@@ -105,7 +105,7 @@ std::string exp_tokenizer::next() {
       }
     }
   }
-  return (retval);
+  return retval;
 }
 
 /**
@@ -159,20 +159,18 @@ std::string exp_tokenizer::_extract_token() {
     }
 
     // Assert that ending brace was found.
-    if ((_next < _size) && (_text[_next] == '}')) {
+    if (_next < _size && _text[_next] == '}') {
       ++_next;
     } else
-      throw msg_fmt(
-          "opening brace at position {}"
-          " has no ending brace ",
-          _current);
+      throw msg_fmt("opening brace at position {} has no ending brace ",
+                    _current);
   }
   // Extract classical token.
   else {
     retval = _extract_until(&exp_tokenizer::_is_delimiter);
   }
 
-  return (retval);
+  return retval;
 }
 
 /**
@@ -234,7 +232,6 @@ void exp_tokenizer::_internal_copy(exp_tokenizer const& other) {
   _queue = other._queue;
   _size = other._size;
   _text = other._text;
-  return;
 }
 
 /**
