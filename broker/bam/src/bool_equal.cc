@@ -30,7 +30,7 @@ using namespace com::centreon::broker::bam;
  */
 double bool_equal::value_hard() {
   bool retval = std::fabs(_left_hard - _right_hard) < COMPARE_EPSILON;
-  log_v2::bam()->debug("BAM: bool_equal: {}", retval);
+  log_v2::bam()->trace("BAM: bool_equal: {}", retval);
   return retval;
 }
 
