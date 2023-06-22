@@ -179,16 +179,14 @@ jobs:
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
 
-      # - name: Cleaning not needed rpm packages
-      #   shell: bash
-      #   run: |
-      #     rm -rf *-devel*.rpm
-      #     rm -rf *-debuginfo*.rpm
-      #     rm -rf *-debugsource*.rpm
+      - name: Cleaning not needed packages
+        shell: bash
+        run: |
+          rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
       - name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: packages-${{ matrix.distrib }}
+          name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
           path: ./*.${{ matrix.package_extension}}
           retention-days: 1
