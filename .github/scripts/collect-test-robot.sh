@@ -83,12 +83,6 @@ fi
 
 pip3 install grpcio grpcio_tools
 
-echo "##### site-packages #####"
-find / -name site-packages
-
-echo "##### grpc #####"
-find / -name grpc
-
 echo "########################## Install centreon collect ###########################"
 cd ..
 echo "Installation..."
