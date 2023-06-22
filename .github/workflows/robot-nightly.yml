@@ -83,48 +83,48 @@ jobs:
   #     registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
   #     registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-  deliver-rpm:
-    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [robot-test-mariadb, robot-test-mysql, get-version]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [el8, el9]
-    name: deliver ${{ matrix.distrib }}
+  # deliver-rpm:
+  #   if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [robot-test-mariadb, robot-test-mysql, get-version]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
+  #   name: deliver ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
 
-      - name: Publish RPM packages
-        uses: ./.github/actions/delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
+  #     - name: Publish RPM packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         module_name: collect
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+  #         stability: ${{ needs.get-version.outputs.stability }}
 
-  deliver-deb:
-    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [robot-test-mariadb, robot-test-mysql, get-version]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [bullseye]
-    name: deliver ${{ matrix.distrib }}
+  # deliver-deb:
+  #   if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [robot-test-mariadb, robot-test-mysql, get-version]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [bullseye]
+  #   name: deliver ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
 
-      - name: Publish DEB packages
-        uses: ./.github/actions/delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
+  #     - name: Publish DEB packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         module_name: collect
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+  #         stability: ${{ needs.get-version.outputs.stability }}
