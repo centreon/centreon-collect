@@ -40,6 +40,7 @@ class bool_and : public bool_binary_operator {
   bool_and& operator=(const bool_and&) = delete;
   double value_hard() override;
   double value_soft() override;
+  bool state_known() const;
 };
 }  // namespace bam
 

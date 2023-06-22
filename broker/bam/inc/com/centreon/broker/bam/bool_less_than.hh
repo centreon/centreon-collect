@@ -39,8 +39,8 @@ class bool_less_than : public bool_binary_operator {
  public:
   bool_less_than(bool strict = false);
   ~bool_less_than() noexcept = default;
-  bool_less_than(bool_less_than const&) = delete;
-  bool_less_than& operator=(bool_less_than const&) = delete;
+  bool_less_than(const bool_less_than&) = delete;
+  bool_less_than& operator=(const bool_less_than&) = delete;
   double value_hard();
   double value_soft();
 };

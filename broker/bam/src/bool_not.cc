@@ -31,33 +31,9 @@ constexpr double eps = 0.000001;
 bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-bool_not::bool_not(bool_not const& right) : bool_value(right) {
-  _internal_copy(right);
-}
-
-/**
  *  Destructor.
  */
 bool_not::~bool_not() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-bool_not& bool_not::operator=(bool_not const& right) {
-  if (this != &right) {
-    bool_value::operator=(right);
-    _internal_copy(right);
-  }
-  return (*this);
-}
 
 /**
  *  @brief Notify of the change of value of the child.
@@ -101,15 +77,6 @@ double bool_not::value_hard() {
  */
 double bool_not::value_soft() {
   return std::abs(_value->value_soft()) < ::eps;
-}
-
-/**
- *  Copy the internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void bool_not::_internal_copy(bool_not const& right) {
-  _value = right._value;
 }
 
 /**
