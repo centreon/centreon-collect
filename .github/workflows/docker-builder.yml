@@ -69,7 +69,7 @@ jobs:
 
       - uses: docker/build-push-action@v3
         with:
-          file: .github/docker/Dockerfile.${{ matrix.image }}
+          file: .github/docker/Dockerfile.${{ matrix.dockerfile }}
           context: .
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
           platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
