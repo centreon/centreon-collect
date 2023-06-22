@@ -64,5 +64,29 @@ runs:
     - name: Promote DEB packages to stable
       if: ${{ startsWith(inputs.distrib, 'bullseye') }}
       run: |
+        echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
+        echo "[DEBUG] - Minor version: ${{ inputs.minor_version }}"
+        echo "[DEBUG] - Distrib: ${{ inputs.distrib }}"
 
+        echo "[DEBUG] - Get path of testing DEB packages to promote to stable."
+        SRC_PATHS=$(jf rt s --include-dirs apt-standard-${{ inputs.major_version }}-testing/pool/${{ inputs.module_name }}/*.deb | jq -r '.[].path')
+
+        if [[ ${SRC_PATHS[@]} ]]; then
+          for SRC_PATH in ${SRC_PATHS[@]}; do
+            echo "[DEBUG] - Source path found: $SRC_PATH"
+          done
+        else
+          echo "[DEBUG] - No source path found."
+          continue
+        fi
+
+        echo "[DEBUG] - Build target path."
+        TARGET_PATH="apt-standard-${{ inputs.major_version }}-${{ inputs.stability }}/pool/"
+        echo "[DEBUG] - Target path: $TARGET_PATH"
+
+        echo "[DEBUG] - Promoting DEB testing artifacts to stable."
+        for ARTIFACT in ${SRC_PATHS[@]}; do
+          echo "[DEBUG] - Promoting $ARTIFACT to stable."
+          #jf rt cp $ARTIFACT $TARGET_PATH --flat=true
+        done
       shell: bash
