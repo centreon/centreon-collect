@@ -68,15 +68,6 @@ cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
 mysql -u root_centreon -pcentreon < resources/centreon_storage.sql
 mysql -u root_centreon -pcentreon < /tmp/centreon.sql
 
-echo "########################## Install centreon collect ###########################"
-
-echo "Installation..."
-if [ "$distrib" = "ALMALINUX" ]; then
-  /usr/bin/rpm -Uvvh --force --nodeps *.rpm
-else
-  dpkg --force-all -i ./*.deb
-fi
-
 echo "########################### Install Robot Framework ###########################"
 cd tests
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
@@ -98,7 +89,17 @@ find / -name site-packages
 echo "##### grpc #####"
 find / -name grpc
 
+echo "########################## Install centreon collect ###########################"
+cd ..
+echo "Installation..."
+if [ "$distrib" = "ALMALINUX" ]; then
+  /usr/bin/rpm -Uvvh --force --nodeps *.rpm
+else
+  dpkg --force-all -i ./*.deb
+fi
+
 echo "##### Starting tests #####"
+cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
