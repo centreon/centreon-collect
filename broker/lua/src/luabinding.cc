@@ -323,11 +323,11 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     if (lua_pcall(_L, 2, 1, 0) != 0) {
       const char* ret = lua_tostring(_L, -1);
       if (ret)
-        spdlog_logger_error(log_v2::lua(),
+        SPDLOG_LOGGER_ERROR(log_v2::lua(),
                             "lua: error while running function `filter()': {}",
                             ret);
       else
-        spdlog_logger_error(
+        SPDLOG_LOGGER_ERROR(
             log_v2::lua(),
             "lua: unknown error while running function `filter()'");
       return 0;
