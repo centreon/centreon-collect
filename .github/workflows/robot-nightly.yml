@@ -49,13 +49,13 @@ jobs:
       matrix:
         include:
           # - distrib: el9
-          #   image: alma9
+          #   image: centreon-collect-alma9
           #   package_extension: rpm
           # - distrib: el9
-          #   image: alma9-mysql
+          #   image: centreon-collect-alma9-mysql
           #   package_extension: rpm
           - distrib: debian-bullseye
-            image: debian-bullseye-arm64
+            image: centreon-collect-debian-bullseye-arm64
             package_extension: deb
             arch: arm64
     name: robot test ${{ matrix.image }}
