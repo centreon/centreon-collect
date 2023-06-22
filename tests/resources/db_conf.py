@@ -285,7 +285,7 @@ class DbConf:
 
             connection.commit()
 
-    def add_boolean_kpi(self, id_ba: int, expression: str, critical_impact: int):
+    def add_boolean_kpi(self, id_ba: int, expression: str, impact_if: bool, critical_impact: int):
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
                                      password=DB_PASS,
@@ -296,10 +296,10 @@ class DbConf:
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "INSERT INTO mod_bam_boolean (name, expression, bool_state, activate) VALUES('bool test','{}', 0, 1)".format(expression))
+                    f"INSERT INTO mod_bam_boolean (name, expression, bool_state, activate) VALUES('bool test','{expression}', {int(impact_if)}, 1)")
                 boolean_id = cursor.lastrowid
-                cursor.execute("INSERT INTO mod_bam_kpi (boolean_id,id_ba,drop_warning,drop_critical,drop_unknown,config_type) VALUES ({},{},50,{},75,'1')".format(
-                    boolean_id, id_ba, critical_impact))
+                cursor.execute(
+                    f"INSERT INTO mod_bam_kpi (boolean_id,id_ba,drop_warning,drop_critical,drop_unknown,config_type) VALUES ({boolean_id},{id_ba},50,{critical_impact},75,'1')")
 
             connection.commit()
 

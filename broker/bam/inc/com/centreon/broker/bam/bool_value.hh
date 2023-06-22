@@ -35,10 +35,10 @@ class bool_value : public computable {
  public:
   typedef std::shared_ptr<bool_value> ptr;
 
-  bool_value();
-  bool_value(bool_value const& right);
+  bool_value() = default;
   ~bool_value() noexcept override = default;
-  bool_value& operator=(bool_value const& right);
+  bool_value(const bool_value&) = delete;
+  bool_value& operator=(const bool_value&) = delete;
   virtual double value_hard() = 0;
   virtual double value_soft() = 0;
   virtual bool state_known() const = 0;
