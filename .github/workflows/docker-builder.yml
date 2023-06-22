@@ -67,6 +67,7 @@ jobs:
           file: .github/docker/Dockerfile.${{ matrix.image }}
           context: .
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
