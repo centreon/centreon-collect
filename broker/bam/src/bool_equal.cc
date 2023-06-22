@@ -40,5 +40,7 @@ double bool_equal::value_hard() {
  *  @return Evaluation of the expression with soft values.
  */
 double bool_equal::value_soft() {
-  return std::fabs(_left_soft - _right_soft) < COMPARE_EPSILON ? 1.0 : 0.0;
+  bool retval = std::fabs(_left_soft - _right_soft) < COMPARE_EPSILON;
+  log_v2::bam()->trace("BAM: soft bool_equal: {}", retval);
+  return retval;
 }

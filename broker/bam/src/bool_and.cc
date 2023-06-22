@@ -51,7 +51,7 @@ double bool_and::value_soft() {
 bool bool_and::state_known() const {
   bool left_exists = _left && _left->state_known();
   bool right_exists = _right && _right->state_known();
-  bool retval = (right_exists && right_exists) ||
+  bool retval = (left_exists && right_exists) ||
                 (left_exists && std::abs(_left_hard) < ::eps) ||
                 (right_exists && std::abs(_right_hard) < ::eps);
   log_v2::bam()->debug("BAM: bool and: state known {}", retval);
