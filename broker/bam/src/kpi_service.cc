@@ -188,8 +188,9 @@ void kpi_service::service_update(
     // Log message.
     log_v2::bam()->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
-        "{})",
-        _id, _host_id, _service_id, status->current_state);
+        "{} hard state: {})",
+        _id, _host_id, _service_id, status->current_state,
+        status->last_hard_state);
 
     // Update information.
     if (status->last_check.is_null()) {

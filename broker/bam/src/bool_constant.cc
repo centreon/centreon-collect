@@ -28,30 +28,6 @@ using namespace com::centreon::broker::bam;
 bool_constant::bool_constant(double val) : _value(val) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-bool_constant::bool_constant(bool_constant const& right) : bool_value(right) {
-  _value = right._value;
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-bool_constant& bool_constant::operator=(bool_constant const& right) {
-  bool_value::operator=(right);
-  if (this != &right) {
-    _value = right._value;
-  }
-  return (*this);
-}
-
-/**
  *  Get notified of child update.
  *
  *  @param[in] child    The child.
@@ -62,7 +38,7 @@ bool_constant& bool_constant::operator=(bool_constant const& right) {
 bool bool_constant::child_has_update(computable* child, io::stream* visitor) {
   (void)child;
   (void)visitor;
-  return (true);
+  return true;
 }
 
 /**
@@ -71,7 +47,7 @@ bool bool_constant::child_has_update(computable* child, io::stream* visitor) {
  *  @return Evaluation of the expression with hard values.
  */
 double bool_constant::value_hard() {
-  return (_value);
+  return _value;
 }
 
 /**
@@ -80,7 +56,7 @@ double bool_constant::value_hard() {
  *  @return Evaluation of the expression with soft values.
  */
 double bool_constant::value_soft() {
-  return (_value);
+  return _value;
 }
 
 /**
@@ -89,5 +65,5 @@ double bool_constant::value_soft() {
  *  @return  True if the state is known.
  */
 bool bool_constant::state_known() const {
-  return (true);
+  return true;
 }

@@ -216,13 +216,28 @@ void kpi_boolexp::_open_new_event(io::stream* visitor,
  *  @return  The current state of the boolexp.
  */
 state kpi_boolexp::_get_state() const {
-  if (_boolexp->state_known())
-    return _boolexp->get_state();
-  else {
-    if (_event)
-      return static_cast<state>(_event->status);
-    else
-      return _boolexp->get_state();
+  uint32_t id = _boolexp->get_id();
+  state retval;
+  if (_boolexp->state_known()) {
+    state retval = _boolexp->get_state();
+    log_v2::bam()->trace(
+        "BAM: kpi {} boolean expression: state (known) value: {}", id, retval);
+    return retval;
+  } else {
+    if (_event) {
+      retval = static_cast<state>(_event->status());
+      log_v2::bam()->trace(
+          "BAM: kpi {} boolean expression: state from internal event: {}", id,
+          retval);
+      return retval;
+    } else {
+      retval = _boolexp->get_state();
+      log_v2::bam()->trace(
+          "BAM: kpi {} boolean expression: state value still taken from "
+          "boolexp: {}",
+          id, retval);
+      return retval;
+    }
   }
 }
 

@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/bam/bool_or.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -28,7 +29,13 @@ constexpr double eps = 0.000001;
  *  @return Evaluation of the expression with hard values.
  */
 double bool_or::value_hard() {
-  return std::abs(_left_hard) >= ::eps || std::abs(_right_hard) >= ::eps;
+  bool left = std::abs(_left_hard) >= ::eps;
+  bool right = std::abs(_right_hard) >= ::eps;
+  double retval = left || right;
+  log_v2::bam()->debug(
+      "bool_or: (hard) left: {} | (hard) right: {} = (hard) result: {}", left,
+      right, retval);
+  return retval;
 }
 
 /**
@@ -37,5 +44,28 @@ double bool_or::value_hard() {
  *  @return Evaluation of the expression with soft values.
  */
 double bool_or::value_soft() {
-  return std::abs(_left_soft) >= ::eps || std::abs(_right_soft) >= ::eps;
+  bool left = std::abs(_left_soft) >= ::eps;
+  bool right = std::abs(_right_soft) >= ::eps;
+  double retval = left || right;
+  log_v2::bam()->debug(
+      "bool_or: (soft) left: {} | (soft) right: {} = (soft) result: {}", left,
+      right, retval);
+  return retval;
+}
+
+/**
+ * @brief Tell if this boolean value has a known state. Since it is a logical
+ * or, if one operand is known to be true, we can consider the state to be
+ * known because the result will be true.
+ *
+ * @return a boolean.
+ */
+bool bool_or::state_known() const {
+  bool left_exists = _left && _left->state_known();
+  bool right_exists = _right && _right->state_known();
+  bool retval = (left_exists && right_exists) ||
+                (left_exists && std::abs(_left_hard) >= ::eps) ||
+                (right_exists && std::abs(_right_hard) >= ::eps);
+  log_v2::bam()->debug("BAM: bool or: state known {}", retval);
+  return retval;
 }
