@@ -19,6 +19,12 @@ on:
       environment:
         description: "branch stability (stable, testing, unstable, canary)"
         value: ${{ jobs.get-version.outputs.environment }}
+      major_version:
+        description: "major version"
+        value: ${{ jobs.get-version.outputs.major_version }}
+      minor_version:
+        description: "minor version"
+        value: ${{ jobs.get-version.outputs.minor_version }}
 
 jobs:
   get-version:
@@ -67,7 +73,7 @@ jobs:
               STABILITY="testing"
               ENV="testing"
               ;;
-            master | [2-9][0-9].[0-9][0-9].x)
+            master | [2-9][0-9].[0-9][0-9].x| MON-16968-update-workflows-to-make-release-to-stable-faster)
               STABILITY="stable"
               ENV="production"
               ;;
