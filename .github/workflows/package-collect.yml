@@ -35,12 +35,12 @@ jobs:
           #   package_extension: rpm
           #   arch: amd64
           - image: centreon-collect-debian-bullseye
-            distrib: bullseye
+            distrib: debian-bullseye
             package_extension: deb
             runner: collect
             arch: amd64
           - image: centreon-collect-debian-bullseye-arm64
-            distrib: bullseye
+            distrib: debian-bullseye
             package_extension: deb
             runner: collect-arm64
             arch: arm64
@@ -174,7 +174,7 @@ jobs:
           release: ${{ inputs.release }}
           arch: ${{ matrix.arch }}
           commit_hash: ${{ inputs.commit_hash }}
-          cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}build-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
           rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
           rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
           rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}

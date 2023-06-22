@@ -64,7 +64,7 @@ jobs:
     with:
       image: ${{ matrix.image }}
       image_version: ${{ needs.get-version.outputs.img_version }}
-      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}build-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
       database_type: ${{ contains(matrix.image, 'mysql') && '-mysql' || '' }}
     secrets:
