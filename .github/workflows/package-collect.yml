@@ -184,7 +184,8 @@ jobs:
         run: |
           rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
-      - name: Upload package artifacts
+      - if: ${{ matrix.distrib == 'el9' }}
+        name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
           name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
