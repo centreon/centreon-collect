@@ -48,20 +48,25 @@ jobs:
     strategy:
       matrix:
         include:
+          # - distrib: el9
+          #   image: alma9
+          #   package_extension: rpm
+          # - distrib: el9
+          #   image: alma9-mysql
+          #   package_extension: rpm
           - distrib: debian-bullseye
             image: debian-bullseye-arm64
             package_extension: deb
-          # - distrib: el9
-          #   os: alma9
-    name: robot test ${{ matrix.distrib }} mariadb
+            arch: arm64
+    name: robot test ${{ matrix.image }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
       image: ${{ matrix.image }}
       image_version: ${{ needs.get-version.outputs.img_version }}
-      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}build-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}build-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
-      database_type: ''
+      database_type: ${{ contains(matrix.image, 'mysql') && '-mysql' || '' }}
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
@@ -105,7 +110,7 @@ jobs:
   #         distrib: ${{ matrix.distrib }}
   #         version: ${{ needs.get-version.outputs.version }}
   #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-  #         cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+  #         cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
   #         stability: ${{ needs.get-version.outputs.stability }}
 
   # deliver-deb:
@@ -128,5 +133,5 @@ jobs:
   #         distrib: ${{ matrix.distrib }}
   #         version: ${{ needs.get-version.outputs.version }}
   #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-  #         cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+  #         cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
   #         stability: ${{ needs.get-version.outputs.stability }}
