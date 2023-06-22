@@ -16,16 +16,16 @@ if [ o${database_type} == 'o-mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
 fi
 
 echo "########################### Configure and start sshd ###########################"
-ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
-ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
-ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
+ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P "" <<<y
+ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P "" <<<y
+ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P "" <<<y
 /usr/sbin/sshd -D  &
 
 if [ $database_type == '-mysql' ]; then
     echo "########################### Start MySQL ######################################"
     #workaround of forbidden execution of mysqld
     cp /usr/libexec/mysqld /usr/libexec/mysqldtoto
-    /usr/libexec/mysqldtoto --user=root --initialize-insecure 
+    /usr/libexec/mysqldtoto --user=root --initialize-insecure
     /usr/libexec/mysqldtoto --user=root &
 
     while [ ! -S /var/lib/mysql/mysql.sock ] && [ ! -S /var/run/mysqld/mysqld.sock ]; do

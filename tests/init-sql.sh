@@ -26,7 +26,7 @@ if [ $DBStorage != 'centreon_storage' ]
 then
     \rm /tmp/centreon_storage.sql
     cat ../resources/centreon_storage.sql | sed "s/centreon_storage/${DBStorage}/g" > /tmp/centreon_storage.sql
-    mysql --user="$DBUserRoot" --password="$DBPassRoot" < /tmp/centreon_storage.sql    
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" < /tmp/centreon_storage.sql
 else
     mysql --user="$DBUserRoot" --password="$DBPassRoot" < ../resources/centreon_storage.sql
 fi

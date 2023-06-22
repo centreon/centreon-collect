@@ -11,12 +11,12 @@ DBConf=$(awk '($1=="${DBNameConf}") {print $2}' /scripts/tests/resources/db_vari
 cd /scripts
 
 #create users
-if [ $database_type == 'mysql' ]; then 
+if [ $database_type == 'mysql' ]; then
     echo "create users mysql"
     mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
     mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 -e "CREATE USER IF NOT EXISTS 'root_centreon'@'%' IDENTIFIED WITH mysql_native_password BY 'centreon'"
-else 
-    #mariadb case 
+else
+    #mariadb case
     ss -plant | grep -w 3306
     while [ $? -ne 0 ]
     do
@@ -47,7 +47,7 @@ if [ $DBStorage != 'centreon_storage' ]
 then
     \rm /tmp/centreon_storage.sql
     cat /scripts/resources/centreon_storage.sql | sed "s/centreon_storage/${DBStorage}/g" > /tmp/centreon_storage.sql
-    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 < /tmp/centreon_storage.sql    
+    mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 < /tmp/centreon_storage.sql
 else
     mysql --user="$DBUserRoot" --password="$DBPassRoot" -h 127.0.0.1 < /scripts/resources/centreon_storage.sql
 fi

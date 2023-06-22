@@ -43,7 +43,7 @@ jobs:
       commit_hash: ${{ github.sha }}
     secrets: inherit
 
-  robot-test-mariadb:
+  robot-test:
     needs: [get-version, package]
     strategy:
       matrix:
