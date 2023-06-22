@@ -47,9 +47,16 @@ contents:
     dst: "/usr/sbin/cbwd"
 
   - src: "../broker/script/cbd.service"
+    dst: "/usr/lib/systemd/system/cbd.service"
+    file_info:
+      mode: 644
+    packager: rpm
+
+  - src: "../broker/script/cbd.service"
     dst: "/lib/systemd/system/cbd.service"
     file_info:
-      mode: 755
+      mode: 644
+    packager: deb
 
 scripts:
   postinstall: ./scripts/centreon-broker-cbd-postinstall.sh

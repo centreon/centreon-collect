@@ -55,13 +55,13 @@ contents:
   - src: "../engine/scripts/centengine.service"
     dst: "/usr/lib/systemd/system/centengine.service"
     file_info:
-      mode: 755
+      mode: 644
     packager: rpm
 
   - src: "../engine/scripts/centengine.service"
     dst: "/lib/systemd/system/centengine.service"
     file_info:
-      mode: 755
+      mode: 644
     packager: deb
 
   - src: "../lib/externalcmd.so"
