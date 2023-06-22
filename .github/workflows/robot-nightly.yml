@@ -49,16 +49,18 @@ jobs:
       matrix:
         include:
           - distrib: debian-bullseye
-            os: debian-bullseye
+            image: debian-bullseye-arm64
+            package_extension: deb
           # - distrib: el9
           #   os: alma9
     name: robot test ${{ matrix.distrib }} mariadb
 
     uses: ./.github/workflows/robot-test.yml
     with:
+      image: ${{ matrix.image }}
       image_version: ${{ needs.get-version.outputs.img_version }}
-      distrib: ${{ matrix.distrib }}
-      os: ${{ matrix.os }}
+      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}build-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+      package_cache_path: ./*.${{ matrix.package_extension}}
       database_type: ''
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}

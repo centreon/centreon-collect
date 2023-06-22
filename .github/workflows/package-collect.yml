@@ -36,7 +36,7 @@ jobs:
             distrib: bullseye
             package_extension: deb
             runner: collect
-          - image: centreon-collect-debian-bullseye
+          - image: centreon-collect-debian-bullseye-arm64
             distrib: bullseye
             package_extension: deb
             runner: collect-arm64

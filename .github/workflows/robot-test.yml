@@ -1,13 +1,16 @@
 on:
   workflow_call:
     inputs:
+      image:
+        required: true
+        type: string
       image_version:
         required: true
         type: string
-      distrib:
+      package_cache_key:
         required: true
         type: string
-      os:
+      package_cache_path:
         required: true
         type: string
       database_type:
@@ -40,7 +43,7 @@ jobs:
     #runs-on: ubuntu-22.04
     runs-on: [self-hosted, collect-arm64]
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect${{inputs.database_type}}-${{inputs.os}}:${{ inputs.image_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
@@ -58,8 +61,8 @@ jobs:
       - name: Install RPM packages
         uses: actions/cache@v3
         with:
-          path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
+          path: ${{ inputs.package_cache_path }}
+          key: ${{ inputs.package_cache_key }}
 
       - name: Test ${{ matrix.feature }}
         run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}
