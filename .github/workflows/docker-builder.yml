@@ -27,23 +27,20 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - distrib: alma8
-            runner: collect
+          - runner: collect
             image: collect-alma8
-          - distrib: alma9
-            runner: collect
+          - runner: collect
             image: collect-alma9
-          - distrib: alma9
-            runner: collect
+          - runner: collect
             image: collect-mysql-alma9
-          - distrib: debian-bullseye
-            runner: collect
+          - runner: collect
             image: collect-debian-bullseye
-          - distrib: debian-bullseye
-            runner: collect-arm64
+          - runner: collect-arm64
             image: collect-debian-bullseye
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+
+    name: build container ${{ matrix.image }}
 
     steps:
       - name: Checkout sources
@@ -67,9 +64,9 @@ jobs:
 
       - uses: docker/build-push-action@v3
         with:
-          file: .github/docker/Dockerfile.collect-${{ matrix.distrib }}
+          file: .github/docker/Dockerfile.${{ matrix.image }}
           context: .
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
