@@ -31,6 +31,7 @@
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/spdlog.h>
 
+#include "com/centreon/common/process_stat.hh"
 #include "com/centreon/engine/host.hh"
 
 #include "com/centreon/engine/anomalydetection.hh"
@@ -3335,6 +3336,32 @@ grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
 
   for (log_v2_base* to_update : loggers) {
     to_update->set_flush_interval(request->period());
+  }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief get stats of the process (cpu, memory...)
+ *
+ * @param context
+ * @param request
+ * @param response
+ * @return grpc::Status
+ */
+grpc::Status engine_impl::GetProcessStats(
+    grpc::ServerContext* context,
+    const google::protobuf::Empty*,
+    com::centreon::common::pb_process_stat* response) {
+  try {
+    com::centreon::common::process_stat stat(getpid());
+    stat.to_protobuff(*response);
+  } catch (const boost::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "fail to get process info: {}",
+                        boost::diagnostic_information(e));
+
+    return grpc::Status(grpc::StatusCode::INTERNAL,
+                        boost::diagnostic_information(e));
   }
   return grpc::Status::OK;
 }

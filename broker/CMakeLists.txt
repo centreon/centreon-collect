@@ -97,17 +97,21 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS
     --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
-    --proto_path=${SRC_DIR} --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
+    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
+    --grpc_out="${SRC_DIR}" ${SRC_DIR}/broker.proto
   DEPENDS ${SRC_DIR}/broker.proto
   COMMENT "Generating interface files of the proto file (protobuf)"
   OUTPUT ${SRC_DIR}/broker.pb.cc ${SRC_DIR}/broker.pb.h
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
-          --proto_path=${SRC_DIR} ${SRC_DIR}/broker.proto)
+  COMMAND
+    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out="${SRC_DIR}"
+    --proto_path=${SRC_DIR} --proto_path=${CMAKE_SOURCE_DIR}/common/src
+    ${SRC_DIR}/broker.proto)
 
 add_custom_target("target_broker_message" DEPENDS "${SRC_DIR}/broker.pb.cc"
                                                   "${SRC_DIR}/broker.pb.h")
 
-include_directories(${SRC_DIR})
+include_directories(${SRC_DIR} ${CMAKE_SOURCE_DIR}/common/src
+                    ${CMAKE_SOURCE_DIR}/common/inc)
 
 add_library(berpc STATIC ${SRC_DIR}/broker.grpc.pb.cc ${SRC_DIR}/broker.pb.cc
                          ${SRC_DIR}/broker.grpc.pb.h ${SRC_DIR}/broker.pb.h)
@@ -462,7 +466,7 @@ target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing)
+add_dependencies(cbd multiplexing centreon_common)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
@@ -474,6 +478,7 @@ target_link_libraries(
   rokerbase
   roker
   multiplexing
+  centreon_common
   "-Wl,--no-whole-archive"
   CONAN_PKG::nlohmann_json
   CONAN_PKG::fmt

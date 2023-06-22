@@ -1,6 +1,7 @@
 syntax = "proto3";
 
 import "google/protobuf/empty.proto";
+import "process_stat.proto";
 
 package com.centreon.broker;
 
@@ -8,6 +9,7 @@ service Broker {
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
 
   // stats
+  rpc GetProcessStats(google.protobuf.Empty) returns (com.centreon.common.pb_process_stat) {}
   rpc GetGenericStats(google.protobuf.Empty) returns (GenericString) {}
   rpc SetSqlManagerStats(SqlManagerStatsOptions)
       returns (google.protobuf.Empty) {}

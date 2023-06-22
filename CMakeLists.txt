@@ -176,6 +176,7 @@ include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
                     ${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(bbdo)
+add_subdirectory(common)
 add_subdirectory(broker)
 add_subdirectory(clib)
 add_subdirectory(engine)
@@ -186,8 +187,10 @@ add_custom_target(test-broker COMMAND tests/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)
 add_custom_target(test-clib COMMAND tests/ut_clib)
 add_custom_target(test-connector COMMAND tests/ut_connector)
+add_custom_target(test-common COMMAND tests/ut_common)
 
-add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector)
+add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector
+                               test_comon)
 
 add_custom_target(test-coverage DEPENDS broker-test-coverage
                                         engine-test-coverage clib-test-coverage)
