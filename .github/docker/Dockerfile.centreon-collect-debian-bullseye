@@ -12,6 +12,7 @@ apt-get -y install cmake \
     g++ \
     pkg-config \
     ninja-build \
+    mariadb-server \
     openssh-server \
     libmariadb3 \
     librrd-dev \

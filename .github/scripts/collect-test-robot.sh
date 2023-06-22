@@ -23,6 +23,7 @@ echo "########################### Configure and start sshd #####################
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P "" <<<y
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P "" <<<y
 ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P "" <<<y
+mkdir -p /run/sshd
 /usr/sbin/sshd -D  &
 
 if [ $database_type == '-mysql' ]; then
@@ -43,8 +44,14 @@ if [ $database_type == '-mysql' ]; then
     mysql -e "CREATE USER IF NOT EXISTS 'root_centreon'@'localhost' IDENTIFIED WITH mysql_native_password BY 'centreon';"
 else
     echo "########################### Start MariaDB ######################################"
-    mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
-    mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
+    if [ "$distrib" = "ALMALINUX" ]; then
+      mysql_install_db --user=root --basedir=/usr --datadir=/var/lib/mysql
+      mariadbd --socket=/var/lib/mysql/mysql.sock --user=root > /dev/null 2>&1 &
+    else
+      mkdir -p /run/mysqld
+      chown mysql:mysql /run/mysqld
+      mariadbd --socket=/run/mysqld/mysqld.sock --user=root > /dev/null 2>&1 &
+    fi
     sleep 5
 
     echo "########################### Init centreon database ############################"
@@ -98,4 +105,3 @@ echo "##### Starting tests #####"
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
 robot $test_file
-
