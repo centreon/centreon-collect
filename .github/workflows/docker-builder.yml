@@ -28,15 +28,15 @@ jobs:
       matrix:
         include:
           - runner: collect
-            image: collect-alma8
+            image: centreon-collect-alma8
           - runner: collect
-            image: collect-alma9
+            image: centreon-collect-alma9
           - runner: collect
-            image: collect-mysql-alma9
+            image: centreon-collect-mysql-alma9
           - runner: collect
-            image: collect-debian-bullseye
+            image: centreon-collect-debian-bullseye
           - runner: collect-arm64
-            image: collect-debian-bullseye
+            image: centreon-collect-debian-bullseye
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
