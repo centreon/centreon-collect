@@ -34,11 +34,11 @@ jobs:
           #   distrib: el9
           #   package_extension: rpm
           #   arch: amd64
-          - image: centreon-collect-debian-bullseye
-            distrib: debian-bullseye
-            package_extension: deb
-            runner: collect
-            arch: amd64
+          # - image: centreon-collect-debian-bullseye
+          #   distrib: debian-bullseye
+          #   package_extension: deb
+          #   runner: collect
+          #   arch: amd64
           - image: centreon-collect-debian-bullseye-arm64
             distrib: debian-bullseye
             package_extension: deb
