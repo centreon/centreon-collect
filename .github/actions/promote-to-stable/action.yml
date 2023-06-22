@@ -61,4 +61,6 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
+      run: |
 
+      shell: bash
