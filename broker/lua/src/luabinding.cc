@@ -271,9 +271,13 @@ void luabinding::_init_script(
         assert(1 == 0);
     }
   }
-  if (lua_pcall(_L, 1, 0, 0) != 0)
-    throw msg_fmt("lua: error running function `init' {}",
-                  lua_tostring(_L, -1));
+  if (lua_pcall(_L, 1, 0, 0) != 0) {
+    const char* ret = lua_tostring(_L, -1);
+    if (ret)
+      throw msg_fmt("lua: error running function `init' {}", ret);
+    else
+      throw msg_fmt("lua: unknown error running function `init'");
+  }
 }
 
 /**
@@ -307,8 +311,13 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
     lua_pushinteger(_L, elem);
 
     if (lua_pcall(_L, 2, 1, 0) != 0) {
-      log_v2::lua()->error("lua: error while running function `filter()': {}",
-                           lua_tostring(_L, -1));
+      const char* ret = lua_tostring(_L, -1);
+      if (ret)
+        log_v2::lua()->error("lua: error while running function `filter()': {}",
+                             ret);
+      else
+        log_v2::lua()->error(
+            "lua: unknown error while running function `filter()'");
       return 0;
     }
 
@@ -343,8 +352,11 @@ int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   }
 
   if (lua_pcall(_L, 1, 1, 0) != 0) {
-    log_v2::lua()->error("lua: error running function `write' {}",
-                         lua_tostring(_L, -1));
+    const char* ret = lua_tostring(_L, -1);
+    if (ret)
+      log_v2::lua()->error("lua: error running function `write' {}", ret);
+    else
+      log_v2::lua()->error("lua: unknown error running function `write'");
     return 0;
   }
 
@@ -384,8 +396,11 @@ int32_t luabinding::flush() noexcept {
   // Let's get the function to call
   lua_getglobal(_L, "flush");
   if (lua_pcall(_L, 0, 1, 0) != 0) {
-    log_v2::lua()->error("lua: error running function `flush' {}",
-                         lua_tostring(_L, -1));
+    const char* ret = lua_tostring(_L, -1);
+    if (ret)
+      log_v2::lua()->error("lua: error running function `flush' {}", ret);
+    else
+      log_v2::lua()->error("lua: unknown error running function `flush'");
     return 0;
   }
   if (!lua_isboolean(_L, -1)) {
