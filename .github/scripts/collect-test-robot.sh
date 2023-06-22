@@ -7,6 +7,10 @@ export RUN_ENV=docker
 test_file=$1
 database_type=$2
 
+. /etc/os-release
+distrib=${ID}
+distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
+
 if [ o${database_type} == 'o-mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo > tests/log.html
     echo '<?xml version="1.0" encoding="UTF-8"?>' > tests/output.xml
@@ -60,14 +64,26 @@ mysql -u root_centreon -pcentreon < /tmp/centreon.sql
 echo "########################## Install centreon collect ###########################"
 
 echo "Installation..."
-/usr/bin/rpm -Uvvh --force --nodeps *.rpm
+if [ "$distrib" = "ALMALINUX" ]; then
+  #/usr/bin/rpm -Uvvh --force --nodeps *.rpm
+  dnf install -y ./*.rpm
+else
+  apt-get update
+  apt-get install -y ./*.deb
+fi
 
 echo "########################### Install Robot Framework ###########################"
 cd tests
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
 
-yum groupinstall "Development Tools" -y
-yum install python3-devel -y
+if [ "$distrib" = "ALMALINUX" ]; then
+  dnf groupinstall -y "Development Tools"
+  dnf install -y python3-devel
+else
+  apt-get update
+  apt-get install -y build-essential
+  apt-get install -y python3-dev
+fi
 
 pip3 install grpcio grpcio_tools
 
