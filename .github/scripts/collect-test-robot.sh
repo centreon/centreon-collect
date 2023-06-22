@@ -72,11 +72,9 @@ echo "########################## Install centreon collect ######################
 
 echo "Installation..."
 if [ "$distrib" = "ALMALINUX" ]; then
-  #/usr/bin/rpm -Uvvh --force --nodeps *.rpm
-  dnf install -y ./*.rpm
+  /usr/bin/rpm -Uvvh --force --nodeps *.rpm
 else
-  apt-get update
-  apt-get install -y ./*.deb
+  dpkg --force-all -i ./*.deb
 fi
 
 echo "########################### Install Robot Framework ###########################"

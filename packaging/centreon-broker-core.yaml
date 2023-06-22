@@ -68,7 +68,7 @@ overrides:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-common
-      - gnutls (>= 3.3.29)
+      - libgnutls30
     conflicts:
       - centreon-broker-dev
     replaces:
