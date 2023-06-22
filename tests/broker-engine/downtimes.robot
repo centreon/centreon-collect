@@ -237,6 +237,82 @@ BEDTHOSTFIXED
     Stop Engine
     Kindly Stop Broker
 
+dtp
+    [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 5250 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 3.0.0
+    [Tags]    broker    engine    services    protobuf
+    Config Engine    ${5}    ${250}    ${20}
+    Engine Config Set Value    ${0}    log_level_functions    trace
+    Engine Config Set Value    ${1}    log_level_functions    trace
+    Engine Config Set Value    ${2}    log_level_functions    trace
+    Engine Config Set Value    ${3}    log_level_functions    trace
+    Engine Config Set Value    ${4}    log_level_functions    trace
+    Config Broker    rrd
+    Config Broker    central
+    Config Broker    module    ${5}
+    Broker Config Log    central    sql    debug
+    Broker Config Log    module0    neb    debug
+    Broker Config Log    module1    neb    debug
+    Broker Config Log    module2    neb    debug
+    Broker Config Log    module3    neb    debug
+    Broker Config Log    module4    neb    debug
+    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Broker Config Add Item    module1    bbdo_version    3.0.0
+    Broker Config Add Item    module2    bbdo_version    3.0.0
+    Broker Config Add Item    module3    bbdo_version    3.0.0
+    Broker Config Add Item    module4    bbdo_version    3.0.0
+    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Broker Config Log    central    sql    debug
+    Config Broker Sql Output    central    unified_sql
+    Clear Retention
+    ${start}=    Get Current Date
+    Start Broker
+    Start Engine
+    # Let's wait for the initial service states.
+    ${content}=    Create List    INITIAL SERVICE STATE: host_250;service_5000;
+    ${result}=    Find In Log with Timeout    ${engineLog4}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    msg=An Initial service state on service (250, 5000) should be raised before we can start external commands.
+
+    # It's time to schedule downtimes
+    FOR    ${i}    IN RANGE    ${50}
+        ${host0}=    Catenate    SEPARATOR=    host_    ${i + 1}
+        ${host1}=    Catenate    SEPARATOR=    host_    ${i + 51}
+        ${host2}=    Catenate    SEPARATOR=    host_    ${i + 101}
+        ${host3}=    Catenate    SEPARATOR=    host_    ${i + 151}
+        ${host4}=    Catenate    SEPARATOR=    host_    ${i + 201}
+        Schedule host downtime    ${0}    ${host0}    ${3600}
+        Schedule host downtime    ${1}    ${host1}    ${3600}
+        Schedule host downtime    ${2}    ${host2}    ${3600}
+        Schedule host downtime    ${3}    ${host3}    ${3600}
+        Schedule host downtime    ${4}    ${host4}    ${3600}
+
+    END
+
+    ${result}=    check number of downtimes    ${5250}    ${start}    ${60}
+    Should be true    ${result}    msg=We should have 5250 downtimes enabled.
+
+    # It's time to delete downtimes
+    FOR    ${i}    IN RANGE    ${50}
+        ${host0}=    Catenate    SEPARATOR=    host_    ${i + 1}
+        ${host1}=    Catenate    SEPARATOR=    host_    ${i + 51}
+        ${host2}=    Catenate    SEPARATOR=    host_    ${i + 101}
+        ${host3}=    Catenate    SEPARATOR=    host_    ${i + 151}
+        ${host4}=    Catenate    SEPARATOR=    host_    ${i + 201}
+        Delete host downtimes    ${0}    ${host0}
+        Delete host downtimes    ${1}    ${host1}
+        Delete host downtimes    ${2}    ${host2}
+        Delete host downtimes    ${3}    ${host3}
+        Delete host downtimes    ${4}    ${host4}
+    END
+
+    ${result}=    check number of downtimes    ${0}    ${start}    ${60}
+    Should be true    ${result}    msg=We should have no downtime enabled.
+
+    Stop Engine
+    Kindly Stop Broker
+
 
 *** Keywords ***
 Clean Downtimes Before Suite
