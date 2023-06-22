@@ -19,12 +19,6 @@ on:
       environment:
         description: "branch stability (stable, testing, unstable, canary)"
         value: ${{ jobs.get-version.outputs.environment }}
-      major_version:
-        description: "major version"
-        value: ${{ jobs.get-version.outputs.major_version }}
-      minor_version:
-        description: "minor version"
-        value: ${{ jobs.get-version.outputs.minor_version }}
 
 jobs:
   get-version:
