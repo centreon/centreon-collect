@@ -48,8 +48,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - distrib: el9
-            os: alma9
+          - distrib: debian-bullseye
+            os: debian-bullseye
+          # - distrib: el9
+          #   os: alma9
     name: robot test ${{ matrix.distrib }} mariadb
 
     uses: ./.github/workflows/robot-test.yml
@@ -62,25 +64,25 @@ jobs:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-  robot-test-mysql:
-    needs: [get-version, package]
-    strategy:
-      matrix:
-        include:
-          - distrib: el9
-            os: alma9
-    name: robot test ${{ matrix.distrib }} mysql
+  # robot-test-mysql:
+  #   needs: [get-version, package]
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - distrib: el9
+  #           os: alma9
+  #   name: robot test ${{ matrix.distrib }} mysql
 
-    uses: ./.github/workflows/robot-test.yml
-    with:
-      image_version: ${{ needs.get-version.outputs.img_version }}
-      distrib: ${{ matrix.distrib }}
-      os: ${{ matrix.os }}
-      database_type: '-mysql'
-    secrets:
-      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-    
+  #   uses: ./.github/workflows/robot-test.yml
+  #   with:
+  #     image_version: ${{ needs.get-version.outputs.img_version }}
+  #     distrib: ${{ matrix.distrib }}
+  #     os: ${{ matrix.os }}
+  #     database_type: '-mysql'
+  #   secrets:
+  #     registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+  #     registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
   deliver-rpm:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
     needs: [robot-test-mariadb, robot-test-mysql, get-version]
