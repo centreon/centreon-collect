@@ -32,6 +32,7 @@ runs:
         JF_ACCESS_TOKEN: ${{ inputs.artifactory_token }}
 
     - name: Promote RPM packages to stable
+      if: ${{ startsWith(inputs.distrib, 'el') }}
       run: |
         set -x
         echo "[DEBUG] - Major version: ${{ inputs.major_version }}"
@@ -61,6 +62,7 @@ runs:
       shell: bash
 
     - name: Promote DEB packages to stable
+      if: ${{ startsWith(inputs.distrib, 'bullseye') }}
       run: |
 
       shell: bash
