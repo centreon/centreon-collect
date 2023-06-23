@@ -54,15 +54,15 @@ overrides:
       - centreon-common
       - gnutls >= 3.3.29
     conflicts:
-      - centreon-broker
+      - centreon-broker-core
       - centreon-broker-storage
       - centreon-broker-devel
     replaces:
-      - centreon-broker
+      - centreon-broker-core
       - centreon-broker-storage
       - centreon-broker-devel
     provides:
-      - centreon-broker
+      - centreon-broker-core
       - centreon-broker-storage
       - centreon-broker-devel
   deb:

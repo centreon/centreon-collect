@@ -70,9 +70,6 @@ jobs:
             CMAKE="cmake"
           fi
 
-          # -DWITH_STARTUP_DIR=/usr/lib/systemd/system
-          # -DWITH_STARTUP_SCRIPT=systemd
-
           sudo $CMAKE \
                   -G "Ninja" \
                   -DWITH_TESTING=OFF \
@@ -97,6 +94,8 @@ jobs:
 
       - name: Generate debug files
         run: |
+          ls -l lib
+          ls -l bin
           for file in $(find ./{lib/*.so,bin} -type f); do
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file
