@@ -56,6 +56,7 @@ jobs:
 
   centreon-collect-test:
     needs: create-version
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ needs.create-version.outputs.imgversion }}
