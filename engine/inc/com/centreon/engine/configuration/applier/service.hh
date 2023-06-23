@@ -39,6 +39,8 @@ class service {
   void add_object(configuration::service const& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Service* old_obj,
+                     const configuration::Service& new_obj);
   void modify_object(configuration::service const& obj);
   void remove_object(ssize_t idx);
   void remove_object(configuration::service const& obj);
