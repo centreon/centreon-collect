@@ -85,7 +85,7 @@ jobs:
                   -DWITH_GROUP_BROKER=centreon-broker \
                   -DWITH_USER_ENGINE=centreon-engine \
                   -DWITH_GROUP_ENGINE=centreon-engine \
-                  -DWITH_VAR_DIR=/var/log/centreon-engine
+                  -DWITH_VAR_DIR=/var/log/centreon-engine \
                   -DWITH_DAEMONS=ON \
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
