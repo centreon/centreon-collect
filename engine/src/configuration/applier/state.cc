@@ -1,21 +1,21 @@
 /*
-** Copyright 2011-2023 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
@@ -58,6 +58,7 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
+#include "configuration/state-generated.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -1509,43 +1510,63 @@ void applier::state::_processing(configuration::State& new_cfg,
       &configuration::Hostgroup::hostgroup_name);
 
   // Build difference for services.
-  //  pb_difference<configuration::Service> diff_services;
-  //  diff_services.parse(pb_config.services().begin(),
-  //  pb_config.services().end(),
-  //                      new_cfg.services().begin(), new_cfg.services().end(),
-  //                      &configuration::Service::host_name,
-  //                      &configuration::Service::service_description);
-  //
-  //  // Build difference for anomalydetections.
-  //  difference<set_anomalydetection> diff_anomalydetections;
-  //  diff_anomalydetections.parse(config->anomalydetections(),
-  //                               new_cfg.anomalydetections());
-  //
-  //  // Build difference for servicegroups.
-  //  difference<set_servicegroup> diff_servicegroups;
-  //  diff_servicegroups.parse(config->servicegroups(),
-  //  new_cfg.servicegroups());
-  //
-  //  // Build difference for hostdependencies.
-  //  difference<set_hostdependency> diff_hostdependencies;
-  //  diff_hostdependencies.parse(config->hostdependencies(),
-  //                              new_cfg.hostdependencies());
-  //
-  //  // Build difference for servicedependencies.
-  //  difference<set_servicedependency> diff_servicedependencies;
-  //  diff_servicedependencies.parse(config->servicedependencies(),
-  //                                 new_cfg.servicedependencies());
-  //
-  //  // Build difference for hostescalations.
-  //  difference<set_hostescalation> diff_hostescalations;
-  //  diff_hostescalations.parse(config->hostescalations(),
-  //                             new_cfg.hostescalations());
-  //
-  //  // Build difference for serviceescalations.
-  //  difference<set_serviceescalation> diff_serviceescalations;
-  //  diff_serviceescalations.parse(config->serviceescalations(),
-  //                                new_cfg.serviceescalations());
-  //
+  pb_difference<configuration::Service> diff_services;
+  diff_services.parse(pb_config.services().begin(), pb_config.services().end(),
+                      new_cfg.services().begin(), new_cfg.services().end(),
+                      &configuration::Service::host_name,
+                      &configuration::Service::service_description);
+
+  // Build difference for anomalydetections.
+  pb_difference<configuration::Anomalydetection> diff_anomalydetections;
+  diff_anomalydetections.parse(
+      pb_config.anomalydetections().begin(),
+      pb_config.anomalydetections().end(), new_cfg.anomalydetections().begin(),
+      new_cfg.anomalydetections().end(),
+      &configuration::Anomalydetection::host_name,
+      &configuration::Anomalydetection::service_description);
+
+  // Build difference for servicegroups.
+  pb_difference<configuration::Servicegroup> diff_servicegroups;
+  diff_servicegroups.parse(
+      pb_config.servicegroups().begin(), pb_config.servicegroups().end(),
+      new_cfg.servicegroups().begin(), new_cfg.servicegroups().end(),
+      &configuration::Servicegroup::servicegroup_name);
+
+  // Build difference for hostdependencies.
+  pb_difference<configuration::Hostdependency> diff_hostdependencies;
+  typedef size_t (*key_func)(const configuration::Hostdependency&);
+  diff_hostdependencies.parse<size_t, key_func>(
+      pb_config.hostdependencies().begin(), pb_config.hostdependencies().end(),
+      new_cfg.hostdependencies().begin(), new_cfg.hostdependencies().end(),
+      configuration::hostdependency_key);
+
+  // Build difference for servicedependencies.
+  pb_difference<configuration::Servicedependency> diff_servicedependencies;
+  typedef size_t (*key_func_sd)(const configuration::Servicedependency&);
+  diff_servicedependencies.parse<size_t, key_func_sd>(
+      pb_config.servicedependencies().begin(),
+      pb_config.servicedependencies().end(),
+      new_cfg.servicedependencies().begin(),
+      new_cfg.servicedependencies().end(),
+      configuration::servicedependency_key);
+
+  // Build difference for hostdependencies.
+  pb_difference<configuration::Hostescalation> diff_hostescalations;
+  typedef size_t (*key_func_he)(const configuration::Hostescalation&);
+  diff_hostescalations.parse<size_t, key_func_he>(
+      pb_config.hostescalations().begin(), pb_config.hostescalations().end(),
+      new_cfg.hostescalations().begin(), new_cfg.hostescalations().end(),
+      configuration::hostescalation_key);
+
+  // Build difference for servicedependencies.
+  pb_difference<configuration::Serviceescalation> diff_serviceescalations;
+  typedef size_t (*key_func_se)(const configuration::Serviceescalation&);
+  diff_serviceescalations.parse<size_t, key_func_se>(
+      pb_config.serviceescalations().begin(),
+      pb_config.serviceescalations().end(),
+      new_cfg.serviceescalations().begin(), new_cfg.serviceescalations().end(),
+      configuration::serviceescalation_key);
+
   // Timing.
   gettimeofday(tv + 1, nullptr);
 
@@ -1606,17 +1627,18 @@ void applier::state::_processing(configuration::State& new_cfg,
     _pb_resolve<configuration::Contact, applier::contact>(pb_config.contacts());
 
     // Apply severities.
-    _pb_apply<configuration::Severity, applier::severity>(diff_severities);
+    //    _pb_apply<configuration::Severity,
+    //    applier::severity>(diff_severities);
 
     // Apply tags.
-    _pb_apply<configuration::Tag, applier::tag>(diff_tags);
+    //    _pb_apply<configuration::Tag, applier::tag>(diff_tags);
 
     // Apply hosts and hostgroups.
     _pb_apply<configuration::Host, applier::host>(diff_hosts);
     _pb_apply<configuration::Hostgroup, applier::hostgroup>(diff_hostgroups);
 
     // Apply services.
-//    _pb_apply<configuration::Service, applier::service>(diff_services);
+    _pb_apply<configuration::Service, applier::service>(diff_services);
 
 //    // Apply anomalydetections.
 //    _apply<configuration::anomalydetection, applier::anomalydetection>(
