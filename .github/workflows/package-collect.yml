@@ -26,14 +26,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - image: centreon-collect-alma8
-          #   distrib: el8
-          #   package_extension: rpm
-          #   arch: amd64
-          # - image: centreon-collect-alma9
-          #   distrib: el9
-          #   package_extension: rpm
-          #   arch: amd64
+          - image: centreon-collect-alma8
+            distrib: el8
+            package_extension: rpm
+            arch: amd64
+          - image: centreon-collect-alma9
+            distrib: el9
+            package_extension: rpm
+            arch: amd64
           - image: centreon-collect-debian-bullseye
             distrib: debian-bullseye
             package_extension: deb
