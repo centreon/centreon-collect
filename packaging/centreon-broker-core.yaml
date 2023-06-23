@@ -1,4 +1,4 @@
-name: "centreon-broker"
+name: "centreon-broker-core"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
@@ -51,7 +51,7 @@ contents:
       group: centreon-broker
 
 scripts:
-  preinstall: ./scripts/centreon-broker-preinstall.sh
+  preinstall: ./scripts/centreon-broker-core-preinstall.sh
 
 overrides:
   rpm:
@@ -61,15 +61,15 @@ overrides:
       - centreon-common
       - gnutls >= 3.3.29
     conflicts:
-      - centreon-broker-core
+      - centreon-broker
       - centreon-broker-storage
       - centreon-broker-devel
     replaces:
-      - centreon-broker-core
+      - centreon-broker
       - centreon-broker-storage
       - centreon-broker-devel
     provides:
-      - centreon-broker-core
+      - centreon-broker
       - centreon-broker-storage
       - centreon-broker-devel
   deb:
@@ -79,15 +79,15 @@ overrides:
       - centreon-common
       - libgnutls30
     conflicts:
-      - centreon-broker-core
+      - centreon-broker
       - centreon-broker-storage
       - centreon-broker-dev
     replaces:
-      - centreon-broker-core
+      - centreon-broker
       - centreon-broker-storage
       - centreon-broker-dev
     provides:
-      - centreon-broker-core
+      - centreon-broker
       - centreon-broker-storage
       - centreon-broker-dev
 

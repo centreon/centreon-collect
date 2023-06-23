@@ -1,4 +1,4 @@
-name: "centreon-broker-debuginfo"
+name: "centreon-broker-core-debuginfo"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
@@ -23,10 +23,10 @@ contents:
 overrides:
   rpm:
     depends:
-      - centreon-broker = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Debuginfo package for centreon-broker.

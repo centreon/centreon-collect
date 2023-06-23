@@ -33,10 +33,10 @@ scripts:
 overrides:
   rpm:
     depends:
-      - centreon-broker = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
-      - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Centreon Broker as Centreon Engine 2 module.
