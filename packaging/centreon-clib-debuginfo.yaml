@@ -17,6 +17,11 @@ license: "Apache-2.0"
 contents:
   - src: "../lib/libcentreon_clib.so.debug"
     dst: "/usr/lib/debug/usr/lib64/"
+    packager: rpm
+
+  - src: "../lib/libcentreon_clib.so.debug"
+    dst: "/usr/lib/debug/usr/lib/"
+    packager: deb
 
 overrides:
   rpm:
