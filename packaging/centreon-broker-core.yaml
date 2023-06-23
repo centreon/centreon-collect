@@ -39,6 +39,13 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
+  - dst: /var/log/centreon-broker
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-broker
+      group: centreon-broker
+
 conflicts:
   - centreon-broker
   - centreon-broker-storage
