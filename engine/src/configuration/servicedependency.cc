@@ -152,20 +152,20 @@ servicedependency& servicedependency::operator=(
  */
 bool servicedependency::operator==(servicedependency const& right) const
     throw() {
-  return (
-      object::operator==(right) &&
-      _dependency_period == right._dependency_period &&
-      _dependency_type == right._dependency_type &&
-      _dependent_hostgroups == right._dependent_hostgroups &&
-      _dependent_hosts == right._dependent_hosts &&
-      _dependent_servicegroups == right._dependent_servicegroups &&
-      _dependent_service_description == right._dependent_service_description &&
-      _execution_failure_options == right._execution_failure_options &&
-      _inherits_parent == right._inherits_parent &&
-      _hostgroups == right._hostgroups && _hosts == right._hosts &&
-      _notification_failure_options == right._notification_failure_options &&
-      _servicegroups == right._servicegroups &&
-      _service_description == right._service_description);
+  return object::operator==(right) &&
+         _dependency_period == right._dependency_period &&
+         _dependency_type == right._dependency_type &&
+         _dependent_hostgroups == right._dependent_hostgroups &&
+         _dependent_hosts == right._dependent_hosts &&
+         _dependent_servicegroups == right._dependent_servicegroups &&
+         _dependent_service_description ==
+             right._dependent_service_description &&
+         _execution_failure_options == right._execution_failure_options &&
+         _inherits_parent == right._inherits_parent &&
+         _hostgroups == right._hostgroups && _hosts == right._hosts &&
+         _notification_failure_options == right._notification_failure_options &&
+         _servicegroups == right._servicegroups &&
+         _service_description == right._service_description;
 }
 
 /**

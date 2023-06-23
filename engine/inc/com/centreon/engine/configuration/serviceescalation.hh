@@ -29,6 +29,9 @@
 CCE_BEGIN()
 
 namespace configuration {
+
+class Serviceescalation;
+
 class serviceescalation : public object {
  public:
   enum action_on {
@@ -105,6 +108,9 @@ class serviceescalation : public object {
   static std::unordered_map<std::string, setter_func> const _setters;
   boost::uuids::uuid _uuid;
 };
+
+size_t serviceescalation_key(const Serviceescalation& he);
+size_t serviceescalation_key(const serviceescalation& he);
 
 typedef std::shared_ptr<serviceescalation> serviceescalation_ptr;
 typedef std::set<serviceescalation> set_serviceescalation;

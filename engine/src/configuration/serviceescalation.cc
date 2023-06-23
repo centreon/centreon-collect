@@ -30,6 +30,29 @@ using namespace com::centreon::engine::logging;
 #define SETTER(type, method) \
   &object::setter<serviceescalation, type, &serviceescalation::method>::generic
 
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
+size_t serviceescalation_key(const Serviceescalation& se) {
+  return absl::HashOf(se.hosts().data(0), se.service_description().data(0),
+                      // se.contactgroups(),
+                      se.escalation_options(), se.escalation_period(),
+                      se.first_notification(), se.last_notification(),
+                      se.notification_interval());
+}
+
+size_t serviceescalation_key(const serviceescalation& se) {
+  return absl::HashOf(*se.hosts().begin(), *se.service_description().begin(),
+                      se.contactgroups(), se.escalation_options(),
+                      se.escalation_period(), se.first_notification(),
+                      se.last_notification(), se.notification_interval());
+}
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
+}  // namespace com
+
 std::unordered_map<std::string, serviceescalation::setter_func> const
     serviceescalation::_setters{
         {"host", SETTER(std::string const&, _set_hosts)},

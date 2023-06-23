@@ -29,16 +29,6 @@
 using namespace com::centreon::engine::configuration;
 
 /**
- *  Default constructor.
- */
-applier::hostescalation::hostescalation() {}
-
-/**
- *  Destructor.
- */
-applier::hostescalation::~hostescalation() throw() {}
-
-/**
  *  Add new host escalation.
  *
  *  @param[in] obj  The new host escalation to add into the monitoring

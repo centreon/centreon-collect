@@ -374,12 +374,16 @@ void applier::host::expand_objects(configuration::state& s) {
 void applier::host::modify_object(configuration::Host* old_obj,
                                   const configuration::Host& new_obj) {
   // Logging.
-  log_v2::config()->debug("Modifying host '{}' (id {}).", new_obj.host_name(), new_obj.host_id());
+  log_v2::config()->debug("Modifying host '{}' (id {}).", new_obj.host_name(),
+                          new_obj.host_id());
 
   // Find host object.
-  host_id_map::iterator it_obj = engine::host::hosts_by_id.find(new_obj.host_id());
+  host_id_map::iterator it_obj =
+      engine::host::hosts_by_id.find(new_obj.host_id());
   if (it_obj == engine::host::hosts_by_id.end())
-    throw engine_error() << fmt::format("Could not modify non-existing host object '{}' (id {})", new_obj.host_name(), new_obj.host_id());
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing host object '{}' (id {})",
+        new_obj.host_name(), new_obj.host_id());
 
   // Modify properties.
   if (it_obj->second->name() != new_obj.host_name()) {
@@ -398,12 +402,16 @@ void applier::host::modify_object(configuration::Host* old_obj,
     it_obj->second->set_check_period(new_obj.check_period());
   it_obj->second->set_initial_state(
       static_cast<engine::host::host_state>(new_obj.initial_state()));
-  it_obj->second->set_check_interval(static_cast<double>(new_obj.check_interval()));
-  it_obj->second->set_retry_interval(static_cast<double>(new_obj.retry_interval()));
-  it_obj->second->set_max_attempts(static_cast<int>(new_obj.max_check_attempts()));
+  it_obj->second->set_check_interval(
+      static_cast<double>(new_obj.check_interval()));
+  it_obj->second->set_retry_interval(
+      static_cast<double>(new_obj.retry_interval()));
+  it_obj->second->set_max_attempts(
+      static_cast<int>(new_obj.max_check_attempts()));
   it_obj->second->set_notify_on(
-      (new_obj.notification_options() & configuration::host::up ? notifier::up
-                                                            : notifier::none) |
+      (new_obj.notification_options() & configuration::host::up
+           ? notifier::up
+           : notifier::none) |
       (new_obj.notification_options() & configuration::host::down
            ? notifier::down
            : notifier::none) |
@@ -435,9 +443,10 @@ void applier::host::modify_object(configuration::Host* old_obj,
   it_obj->second->set_low_flap_threshold(new_obj.low_flap_threshold());
   it_obj->second->set_high_flap_threshold(new_obj.high_flap_threshold());
   it_obj->second->set_flap_detection_on(notifier::none);
-  it_obj->second->add_flap_detection_on(
-      new_obj.flap_detection_options() & configuration::host::up ? notifier::up
-                                                             : notifier::none);
+  it_obj->second->add_flap_detection_on(new_obj.flap_detection_options() &
+                                                configuration::host::up
+                                            ? notifier::up
+                                            : notifier::none);
   it_obj->second->add_flap_detection_on(new_obj.flap_detection_options() &
                                                 configuration::host::down
                                             ? notifier::down
@@ -446,19 +455,20 @@ void applier::host::modify_object(configuration::Host* old_obj,
                                                 configuration::host::unreachable
                                             ? notifier::unreachable
                                             : notifier::none);
-  it_obj->second->add_stalk_on(new_obj.stalking_options() & configuration::host::up
-                                   ? notifier::up
-                                   : notifier::none);
+  it_obj->second->add_stalk_on(
+      new_obj.stalking_options() & configuration::host::up ? notifier::up
+                                                           : notifier::none);
   it_obj->second->add_stalk_on(
       new_obj.stalking_options() & configuration::host::down ? notifier::down
-                                                         : notifier::none);
+                                                             : notifier::none);
   it_obj->second->add_stalk_on(new_obj.stalking_options() &
                                        configuration::host::unreachable
                                    ? notifier::unreachable
                                    : notifier::none);
   it_obj->second->set_process_performance_data(
       static_cast<int>(new_obj.process_perf_data()));
-  it_obj->second->set_check_freshness(static_cast<int>(new_obj.check_freshness()));
+  it_obj->second->set_check_freshness(
+      static_cast<int>(new_obj.check_freshness()));
   it_obj->second->set_freshness_threshold(
       static_cast<int>(new_obj.freshness_threshold()));
   it_obj->second->set_notes(new_obj.notes());
@@ -482,8 +492,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
   it_obj->second->set_obsess_over(new_obj.obsess_over_host());
   it_obj->second->set_timezone(new_obj.timezone());
   it_obj->second->set_host_id(new_obj.host_id());
-  it_obj->second->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                              config->interval_length());
+  it_obj->second->set_acknowledgement_timeout(
+      new_obj.acknowledgement_timeout() * config->interval_length());
   it_obj->second->set_recovery_notification_delay(
       new_obj.recovery_notification_delay());
 
@@ -498,7 +508,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
   }
 
   // Contact groups.
-  if (!MessageDifferencer::Equals(new_obj.contactgroups(), old_obj->contactgroups())) {
+  if (!MessageDifferencer::Equals(new_obj.contactgroups(),
+                                  old_obj->contactgroups())) {
     // Delete old contact groups.
     it_obj->second->get_contactgroups().clear();
 
@@ -508,7 +519,9 @@ void applier::host::modify_object(configuration::Host* old_obj,
   }
 
   // Custom variables.
-  if (!std::equal(new_obj.customvariables().begin(), new_obj.customvariables().end(), old_obj->customvariables().begin(), MessageDifferencer::Equals)) {
+  if (!std::equal(
+          new_obj.customvariables().begin(), new_obj.customvariables().end(),
+          old_obj->customvariables().begin(), MessageDifferencer::Equals)) {
     for (auto& cv : it_obj->second->custom_variables) {
       if (cv.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
@@ -525,66 +538,66 @@ void applier::host::modify_object(configuration::Host* old_obj,
       if (c.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_HOSTCUSTOMVARIABLE_ADD,
-                               it_obj->second.get(), c.name(),
-                               c.value(), &tv);
+                               it_obj->second.get(), c.name(), c.value(), &tv);
       }
     }
   }
 
   // add tags
-//  if (new_obj.tags() != old_obj->tags()) {
-//    it_obj->second->mut_tags().clear();
-//    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
-//             it = new_obj.tags().begin(),
-//             end = new_obj.tags().end();
-//         it != end; ++it) {
-//      tag_map::iterator it_tag{engine::tag::tags.find(*it)};
-//      if (it_tag == engine::tag::tags.end())
-//        throw engine_error()
-//            << "Could not find tag '" << it->first
-//            << "' on which to apply host (" << new_obj.host_id() << ")";
-//      else
-//        it_obj->second->mut_tags().emplace_front(it_tag->second);
-//    }
-//  }
+  //  if (new_obj.tags() != old_obj->tags()) {
+  //    it_obj->second->mut_tags().clear();
+  //    for (std::set<std::pair<uint64_t, uint16_t>>::iterator
+  //             it = new_obj.tags().begin(),
+  //             end = new_obj.tags().end();
+  //         it != end; ++it) {
+  //      tag_map::iterator it_tag{engine::tag::tags.find(*it)};
+  //      if (it_tag == engine::tag::tags.end())
+  //        throw engine_error()
+  //            << "Could not find tag '" << it->first
+  //            << "' on which to apply host (" << new_obj.host_id() << ")";
+  //      else
+  //        it_obj->second->mut_tags().emplace_front(it_tag->second);
+  //    }
+  //  }
 
-//  // Parents.
-//  if (new_obj.parents() != old_obj->parents()) {
-//    // Delete old parents.
-//    {
-//      for (host_map_unsafe::iterator it(it_obj->second->parent_hosts.begin()),
-//           end(it_obj->second->parent_hosts.end());
-//           it != end; it++)
-//        broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr,
-//                             it_obj->second.get(), nullptr);
-//    }
-//    it_obj->second->parent_hosts.clear();
-//
-//    // Create parents.
-//    for (set_string::const_iterator it(new_obj.parents().begin()),
-//         end(new_obj.parents().end());
-//         it != end; ++it)
-//      it_obj->second->add_parent_host(*it);
-//  }
-//
-//  // Severity.
-//  if (new_obj.severity_id()) {
-//    configuration::severity::key_type k = {new_obj.severity_id(),
-//                                           configuration::severity::host};
-//    auto sv = engine::severity::severities.find(k);
-//    if (sv == engine::severity::severities.end())
-//      throw engine_error() << "Could not update the severity (" << k.first
-//                           << ", " << k.second << ") to the host '"
-//                           << new_obj.host_name() << "'";
-//    it_obj->second->set_severity(sv->second);
-//  } else
-//    it_obj->second->set_severity(nullptr);
-//
-//  old_obj->CopyFrom(new_obj);
-//
-//  // Notify event broker.
-//  broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-//                            it_obj->second.get(), MODATTR_ALL);
+  //  // Parents.
+  //  if (new_obj.parents() != old_obj->parents()) {
+  //    // Delete old parents.
+  //    {
+  //      for (host_map_unsafe::iterator
+  //      it(it_obj->second->parent_hosts.begin()),
+  //           end(it_obj->second->parent_hosts.end());
+  //           it != end; it++)
+  //        broker_relation_data(NEBTYPE_PARENT_DELETE, it->second, nullptr,
+  //                             it_obj->second.get(), nullptr);
+  //    }
+  //    it_obj->second->parent_hosts.clear();
+  //
+  //    // Create parents.
+  //    for (set_string::const_iterator it(new_obj.parents().begin()),
+  //         end(new_obj.parents().end());
+  //         it != end; ++it)
+  //      it_obj->second->add_parent_host(*it);
+  //  }
+  //
+  //  // Severity.
+  //  if (new_obj.severity_id()) {
+  //    configuration::severity::key_type k = {new_obj.severity_id(),
+  //                                           configuration::severity::host};
+  //    auto sv = engine::severity::severities.find(k);
+  //    if (sv == engine::severity::severities.end())
+  //      throw engine_error() << "Could not update the severity (" << k.first
+  //                           << ", " << k.second << ") to the host '"
+  //                           << new_obj.host_name() << "'";
+  //    it_obj->second->set_severity(sv->second);
+  //  } else
+  //    it_obj->second->set_severity(nullptr);
+  //
+  //  old_obj->CopyFrom(new_obj);
+  //
+  // Notify event broker.
+  broker_adaptive_host_data(NEBTYPE_HOST_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
+                            it_obj->second.get(), MODATTR_ALL);
 }
 
 /**
