@@ -39,10 +39,10 @@ class hostescalation {
                               configuration::state& s);
 
  public:
-  hostescalation();
-  hostescalation(hostescalation const& right) = delete;
-  ~hostescalation() throw();
-  hostescalation& operator=(hostescalation const& right) = delete;
+  hostescalation() = default;
+  ~hostescalation() noexcept = default;
+  hostescalation(hostescalation const&) = delete;
+  hostescalation& operator=(hostescalation const&) = delete;
   void add_object(const configuration::Hostescalation& obj);
   void add_object(const configuration::hostescalation& obj);
   void expand_objects(configuration::State& s);
