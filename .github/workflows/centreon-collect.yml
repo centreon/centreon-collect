@@ -87,7 +87,8 @@ jobs:
           image_version: ${{ env.imgversion }}
 
   rpm-packaging:
-    needs: create-version
+    needs: [create-version, get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
@@ -140,7 +141,8 @@ jobs:
           key: ${{ env.cache-name-rpmbuild }}
 
   debian-packaging:
-    needs: create-version
+    needs: [create-version, get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ needs.create-version.outputs.imgversion }}
@@ -203,7 +205,8 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   delivery-debian:
-    needs: [debian-packaging, create-version]
+    needs: [debian-packaging, create-version,get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
     environment: ${{ needs.get-version.outputs.environment }}
@@ -228,7 +231,8 @@ jobs:
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
 
   delivery-centos:
-    needs: [rpm-packaging, create-version]
+    needs: [rpm-packaging, create-version,get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
     environment: ${{ needs.get-version.outputs.environment }}
@@ -252,6 +256,37 @@ jobs:
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
+          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+
+  promote:
+    needs: [get-version]
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, el9, bullseye]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
+
+      - name: Promote ${{ matrix.distrib }} to stable
+        uses: ./.github/actions/promote-to-stable
+        with:
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-version.outputs.version }}
+          minor_version: ${{ needs.get-version.outputs.patch }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          repository_name: standard
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
           update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
           cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
