@@ -30,6 +30,37 @@
 
 using namespace com::centreon::engine::configuration;
 
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
+size_t servicedependency_key(const Servicedependency& sd) {
+  return absl::HashOf(
+      sd.dependency_period(), sd.dependency_type(),
+      sd.dependent_hostgroups().data(0), sd.dependent_hosts().data(0),
+      sd.dependent_servicegroups().data(0), sd.service_description().data(0),
+      sd.dependent_service_description().data(0),
+      sd.execution_failure_options(), sd.inherits_parent(),
+      sd.hostgroups().data(0), sd.notification_failure_options(),
+      sd.servicegroups().data(0));
+}
+
+size_t servicedependency_key_l(const servicedependency& sd) {
+  return absl::HashOf(
+      sd.dependency_period(), sd.dependency_type(),
+      *sd.dependent_hostgroups().begin(), *sd.dependent_hosts().begin(),
+      *sd.dependent_servicegroups().begin(), *sd.service_description().begin(),
+      *sd.dependent_service_description().begin(),
+      sd.execution_failure_options(), sd.inherits_parent(),
+      *sd.hostgroups().begin(), sd.notification_failure_options(),
+      *sd.servicegroups().begin());
+}
+
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
+}  // namespace com
+
 /**
  *  Add new service dependency.
  *
@@ -490,11 +521,14 @@ void applier::servicedependency::_expand_services(
   // Service groups.
   for (auto& sgn : sg) {
     // Find service group.
-    auto found = std::find_if(
-        s.servicegroups().begin(), s.servicegroups().end(),
-        [&sgn](const Servicegroup& sgg) { return sgg.servicegroup_name() == sgn; });
+    auto found =
+        std::find_if(s.servicegroups().begin(), s.servicegroups().end(),
+                     [&sgn](const Servicegroup& sgg) {
+                       return sgg.servicegroup_name() == sgn;
+                     });
     if (found == s.servicegroups().end())
-      throw engine_error() << fmt::format("Coulx not resolve service group '{}'", sgn);
+      throw engine_error() << fmt::format(
+          "Coulx not resolve service group '{}'", sgn);
 
     // Add service group members.
     for (auto& m : found->members().data())

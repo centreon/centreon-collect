@@ -29,7 +29,11 @@ namespace configuration {
 class hostdependency;
 class state;
 
+size_t hostdependency_key(const configuration::Hostdependency& hd);
+size_t hostdependency_key_l(const configuration::hostdependency& hd);
+
 namespace applier {
+
 class hostdependency {
   void _expand_hosts(std::set<std::string> const& hosts,
                      std::set<std::string> const& hostgroups,

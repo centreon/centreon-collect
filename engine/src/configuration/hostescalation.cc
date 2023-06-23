@@ -17,15 +17,43 @@
 * <http://www.gnu.org/licenses/>.
 */
 
+#include <absl/hash/hash.h>
+
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
+#include "configuration/hostescalation_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
   &object::setter<hostescalation, type, &hostescalation::method>::generic
+
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
+
+size_t hostescalation_key(const Hostescalation& he) {
+  return absl::HashOf(he.hosts().data(0),
+                      // he.contactgroups().data(),
+                      he.escalation_options(), he.escalation_period(),
+                      he.first_notification(), he.last_notification(),
+                      he.notification_interval());
+}
+
+size_t hostescalation_key(const hostescalation& he) {
+  return absl::HashOf(*he.hosts().begin(), he.contactgroups(),
+                      he.escalation_options(), he.escalation_period(),
+                      he.first_notification(), he.last_notification(),
+                      he.notification_interval());
+}
+
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
+}  // namespace com
 
 std::unordered_map<std::string,
                    hostescalation::setter_func> const hostescalation::_setters{

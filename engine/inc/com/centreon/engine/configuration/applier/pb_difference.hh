@@ -59,15 +59,17 @@ class pb_difference {
     return _modified;
   }
 
-  template <typename TF>
+  template <typename TF, typename Function>
   void parse(typename Container::iterator old_first,
              typename Container::iterator old_last,
              typename Container::iterator new_first,
              typename Container::iterator new_last,
-             const std::function<TF(const T&)>& f) {
+             Function f) {
     absl::flat_hash_map<TF, T*> keys_values;
     for (auto it = old_first; it != old_last; ++it) {
       const T& item = *it;
+      //      static_assert(std::is_same_v<decltype(f(item)), TF>,
+      //                    "Invalid key function");
       keys_values[f(item)] = const_cast<T*>(&(*it));
     }
 
@@ -96,79 +98,31 @@ class pb_difference {
     }
   }
 
+  template <typename TF>
   void parse(typename Container::iterator old_first,
              typename Container::iterator old_last,
              typename Container::iterator new_first,
              typename Container::iterator new_last,
-             const std::string& (T::*key)() const) {
-    absl::flat_hash_map<std::string, T*> keys_values;
-    for (auto it = old_first; it != old_last; ++it) {
-      const T& item = *it;
-      keys_values[(item.*key)()] = const_cast<T*>(&(*it));
-    }
-
-    absl::flat_hash_set<std::string> new_keys;
-    for (auto it = new_first; it != new_last; ++it) {
-      const T& item = *it;
-      new_keys.insert((item.*key)());
-      if (!keys_values.contains((item.*key)())) {
-        // New object to add
-        _added.push_back(item);
-      } else {
-        // Object to modify or equal
-        if (!MessageDifferencer::Equals(item, *keys_values[(item.*key)()])) {
-          // There are changes in this object
-          _modified.push_back(std::make_pair(keys_values[(item.*key)()], *it));
-        }
-      }
-    }
-
-    ssize_t i = 0;
-    for (auto it = old_first; it != old_last; ++it) {
-      const T& item = *it;
-      if (!new_keys.contains((item.*key)()))
-        _deleted.push_back(i);
-      ++i;
-    }
+             const TF& (T::*key)() const) {
+    std::function<const TF&(const T&)> f = key;
+    parse<TF, std::function<const TF&(const T&)>>(old_first, old_last,
+                                                  new_first, new_last, f);
   }
 
+  template <typename TF1, typename TF2>
   void parse(typename Container::iterator old_first,
              typename Container::iterator old_last,
              typename Container::iterator new_first,
              typename Container::iterator new_last,
-             const std::string& (T::*key1)() const,
-             const std::string& (T::*key2)() const) {
-    absl::flat_hash_map<std::pair<std::string, std::string>, T*> keys_values;
-    for (auto it = old_first; it != old_last; ++it) {
-      const T& item = *it;
-      keys_values[{(item.*key1)(), (item.*key2)()}] = const_cast<T*>(&(*it));
-    }
-
-    absl::flat_hash_set<std::string> new_keys;
-    for (auto it = new_first; it != new_last; ++it) {
-      const T& item = *it;
-      new_keys.insert({(item.*key1)(), (item.*key2)()});
-      if (!keys_values.contains({(item.*key1)(), (item.*key2)()})) {
-        // New object to add
-        _added.push_back(item);
-      } else {
-        // Object to modify or equal
-        if (!MessageDifferencer::Equals(
-                item, *keys_values[{(item.*key1)(), (item.*key2)()}])) {
-          // There are changes in this object
-          _modified.push_back(std::make_pair(
-              keys_values[{(item.*key1)(), (item.*key2)()}], *it));
-        }
-      }
-    }
-
-    ssize_t i = 0;
-    for (auto it = old_first; it != old_last; ++it) {
-      const T& item = *it;
-      if (!new_keys.contains({(item.*key1)(), (item.*key2)()}))
-        _deleted.push_back(i);
-      ++i;
-    }
+             const TF1& (T::*key1)() const,
+             const TF2& (T::*key2)() const) {
+    std::function<const std::pair<TF1, TF2>(const T&)> f = [&key1,
+                                                            &key2](const T& t) {
+      return std::make_pair((t.*key1)(), (t.*key2)());
+    };
+    parse<std::pair<TF1, TF2>,
+          std::function<const std::pair<TF1, TF2>(const T&)>>(
+        old_first, old_last, new_first, new_last, f);
   }
 };
 }  // namespace applier
