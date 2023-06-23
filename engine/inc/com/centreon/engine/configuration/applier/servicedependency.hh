@@ -31,6 +31,9 @@ namespace configuration {
 class servicedependency;
 class state;
 
+size_t servicedependency_key(const Servicedependency& sd);
+size_t servicedependency_key_l(const servicedependency& sd);
+
 namespace applier {
 class servicedependency {
   void _expand_services(
@@ -39,7 +42,7 @@ class servicedependency {
       std::list<std::string> const& svc,
       std::list<std::string> const& sg,
       configuration::state& s,
-      std::set<std::pair<std::string, std::string> >& expanded);
+      std::set<std::pair<std::string, std::string>>& expanded);
 
   void _expand_services(
       const ::google::protobuf::RepeatedPtrField<std::string>& hst,
@@ -61,7 +64,6 @@ class servicedependency {
   void modify_object(configuration::servicedependency const& obj);
   void remove_object(configuration::servicedependency const& obj);
   void resolve_object(configuration::servicedependency const& obj);
-
 };
 }  // namespace applier
 }  // namespace configuration

@@ -30,6 +30,9 @@
 CCE_BEGIN()
 
 namespace configuration {
+
+class Hostescalation;
+
 class hostescalation : public object {
  public:
   enum action_on {
@@ -96,6 +99,9 @@ class hostescalation : public object {
   static std::unordered_map<std::string, setter_func> const _setters;
   boost::uuids::uuid _uuid;
 };
+
+size_t hostescalation_key(const Hostescalation& he);
+size_t hostescalation_key(const hostescalation& he);
 
 typedef std::shared_ptr<hostescalation> hostescalation_ptr;
 typedef std::set<hostescalation> set_hostescalation;

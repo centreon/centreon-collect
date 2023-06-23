@@ -31,17 +31,25 @@
 
 using namespace com::centreon::engine::configuration;
 
+namespace com {
+namespace centreon {
+namespace engine {
+namespace configuration {
 size_t hostdependency_key(const Hostdependency& hd) {
   return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
                       hd.dependent_hosts().data(0), hd.hosts().data(0),
                       hd.inherits_parent(), hd.notification_failure_options());
 }
 
-size_t hostdependency_key(const hostdependency& hd) {
+size_t hostdependency_key_l(const hostdependency& hd) {
   return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
                       *hd.dependent_hosts().begin(), *hd.hosts().begin(),
                       hd.inherits_parent(), hd.notification_failure_options());
 }
+}  // namespace configuration
+}  // namespace engine
+}  // namespace centreon
+}  // namespace com
 
 // bool operator==(const Hostdependency& a, const Hostdependency& b) {
 //  return a.dependency_period() == b.dependency_period() &&
@@ -93,7 +101,7 @@ void applier::hostdependency::add_object(
       configuration::hostdependency::execution_dependency)
     // Create executon dependency.
     hd = std::make_shared<engine::hostdependency>(
-        hostdependency_key(obj), *obj.dependent_hosts().begin(),
+        hostdependency_key_l(obj), *obj.dependent_hosts().begin(),
         *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),
@@ -109,7 +117,7 @@ void applier::hostdependency::add_object(
   else
     // Create notification dependency.
     hd = std::make_shared<engine::hostdependency>(
-        hostdependency_key(obj), *obj.dependent_hosts().begin(),
+        hostdependency_key_l(obj), *obj.dependent_hosts().begin(),
         *obj.hosts().begin(),
         static_cast<engine::hostdependency::types>(obj.dependency_type()),
         obj.inherits_parent(),

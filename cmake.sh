@@ -263,7 +263,7 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-pip3 install conan==1.57.0 --upgrade
+pip3 install conan==1.57.0 --upgrade --break-system-packages
 
 if which conan ; then
   conan=$(which conan)
