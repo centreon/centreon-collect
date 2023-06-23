@@ -29,10 +29,12 @@ jobs:
           - image: centreon-collect-alma8
             distrib: el8
             package_extension: rpm
+            runner: collect
             arch: amd64
           - image: centreon-collect-alma9
             distrib: el9
             package_extension: rpm
+            runner: collect
             arch: amd64
           - image: centreon-collect-debian-bullseye
             distrib: debian-bullseye
