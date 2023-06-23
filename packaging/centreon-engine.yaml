@@ -94,16 +94,6 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-conflicts:
-  - centreon-engine-daemon
-  - centreon-engine-extcommands
-replaces:
-  - centreon-engine-daemon
-  - centreon-engine-extcommands
-provides:
-  - centreon-engine-daemon
-  - centreon-engine-extcommands
-
 scripts:
   preinstall: ./scripts/centreon-engine-preinstall.sh
   postinstall: ./scripts/centreon-engine-postinstall.sh
@@ -114,19 +104,31 @@ overrides:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
     conflicts:
+      - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-devel
     replaces:
+      - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-devel
     provides:
+      - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-devel
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
+      - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-dev
     replaces:
+      - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-dev
     provides:
+      - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-dev
 
 rpm:
