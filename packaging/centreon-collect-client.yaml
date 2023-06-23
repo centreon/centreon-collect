@@ -23,11 +23,11 @@ overrides:
   rpm:
     depends:
       - centreon-engine = ${VERSION}-${RELEASE}${DIST}
-      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
       - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Centreon Collect gRPC Client. It can be used to exchange with cbd or centengine

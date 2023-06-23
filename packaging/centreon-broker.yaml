@@ -1,4 +1,4 @@
-name: "centreon-broker-core"
+name: "centreon-broker"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
@@ -44,7 +44,7 @@ contents:
       group: centreon-broker
 
 scripts:
-  preinstall: ./scripts/centreon-broker-core-preinstall.sh
+  preinstall: ./scripts/centreon-broker-preinstall.sh
 
 overrides:
   rpm:
