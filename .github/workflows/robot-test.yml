@@ -40,8 +40,7 @@ jobs:
 
   robot-test:
     needs: [robot-test-list]
-    #runs-on: ubuntu-22.04
-    runs-on: [self-hosted, collect-arm64]
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
       credentials:

@@ -46,6 +46,7 @@ jobs:
   robot-test:
     needs: [get-version, package]
     strategy:
+      fail-fast: false
       matrix:
         include:
           # - distrib: el9
