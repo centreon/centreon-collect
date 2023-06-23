@@ -22,6 +22,13 @@ contents:
     dst: "/etc/logrotate.d/cbd"
     type: config|noreplace
 
+  - dst: /usr/share/centreon-broker
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-broker
+      group: centreon-broker
+
   - dst: /usr/share/centreon-broker/lua
     type: dir
     file_info:
@@ -72,15 +79,15 @@ overrides:
       - centreon-common
       - libgnutls30
     conflicts:
-      - centreon-broker
+      - centreon-broker-core
       - centreon-broker-storage
       - centreon-broker-dev
     replaces:
-      - centreon-broker
+      - centreon-broker-core
       - centreon-broker-storage
       - centreon-broker-dev
     provides:
-      - centreon-broker
+      - centreon-broker-core
       - centreon-broker-storage
       - centreon-broker-dev
 
