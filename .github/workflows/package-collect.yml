@@ -85,6 +85,12 @@ jobs:
                   -DWITH_GROUP_BROKER=centreon-broker \
                   -DWITH_USER_ENGINE=centreon-engine \
                   -DWITH_GROUP_ENGINE=centreon-engine \
+                  -DWITH_PREFIX_MODULES=/usr/share/centreon/lib/centreon-broker \
+                  -DWITH_PREFIX_CONF_ENGINE=/etc/centreon-engine \
+                  -DWITH_PREFIX_CONF_BROKER=/etc/centreon-broker \
+                  -DWITH_PREFIX_LIB_ENGINE=/usr/lib64/centreon-engine
+                  -DWITH_RW_DIR=/var/lib/centreon-engine/rw
+                  -DWITH_VAR_DIR=/var/log/centreon-engine
                   -DWITH_DAEMONS=ON \
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
