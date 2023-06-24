@@ -1,4 +1,4 @@
-name: "centreon-broker-stats-exporter"
+name: "centreon-broker-storage"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
@@ -8,28 +8,34 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  This module of Centreon Broker allows you to send broker statistics to
-  an Opentelemetry Exporter. It can be configured to use gRPC or http
-  protocols.
+  Centreon Broker's storage modules.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/15-stats_exporter.so"
+  - src: "../lib/{20-storage,20-unified_sql,70-rrd}.so"
     dst: "/usr/share/centreon/lib/centreon-broker/"
 
 overrides:
   rpm:
     depends:
+      - lua
+      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
+      - centreon-common
+      - gnutls >= 3.3.29
   deb:
     depends:
+      - lua5.3
+      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-common
+      - libgnutls30
 
 rpm:
-  summary: Export Centreon Statistics to an OpenTelemetry Exporter.
+  summary: Centreon Broker's storage library.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}
