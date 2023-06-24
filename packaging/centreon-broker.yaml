@@ -16,6 +16,7 @@ license: "Apache-2.0"
 
 scripts:
   preinstall: ./scripts/centreon-broker-preinstall.sh
+  postremove: ./scripts/centreon-broker-postremove.sh
 
 overrides:
   rpm:
