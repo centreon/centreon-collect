@@ -1,5 +1,10 @@
 #!/bin/sh
 
-deluser centreon centreon-broker || true
-deluser centreon-broker || true
-delgroup centreon-broker || true
+case "$1" in
+    remove)
+        deluser centreon centreon-broker || true
+        deluser centreon-broker || true
+        delgroup centreon-broker || true
+    ;;
+esac
+
