@@ -20,10 +20,7 @@ scripts:
 overrides:
   rpm:
     depends:
-      - lua
-      - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-common
-      - gnutls >= 3.3.29
     conflicts:
       - centreon-broker-devel
     replaces:
@@ -32,21 +29,12 @@ overrides:
       - centreon-broker-devel
   deb:
     depends:
-      - lua5.3
-      - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-common
-      - libgnutls30
     conflicts:
-      - centreon-broker-core
-      - centreon-broker-storage
       - centreon-broker-dev
     replaces:
-      - centreon-broker-core
-      - centreon-broker-storage
       - centreon-broker-dev
     provides:
-      - centreon-broker-core
-      - centreon-broker-storage
       - centreon-broker-dev
 
 rpm:
