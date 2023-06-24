@@ -64,16 +64,6 @@ contents:
       mode: 644
     packager: deb
 
-  - src: "../lib/externalcmd.so"
-    dst: "/usr/lib64/centreon-engine/externalcmd.so"
-
-  - dst: "/var/lib/centreon-engine/rw"
-    type: dir
-    file_info:
-      mode: 0775
-      owner: centreon-engine
-      group: centreon-engine
-
   - src: "../bin/centengine"
     dst: "/usr/sbin/centengine"
 
@@ -105,30 +95,24 @@ overrides:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-daemon
-      - centreon-engine-extcommands
       - centreon-engine-devel
     replaces:
       - centreon-engine-daemon
-      - centreon-engine-extcommands
       - centreon-engine-devel
     provides:
       - centreon-engine-daemon
-      - centreon-engine-extcommands
       - centreon-engine-devel
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-daemon
-      - centreon-engine-extcommands
       - centreon-engine-dev
     replaces:
       - centreon-engine-daemon
-      - centreon-engine-extcommands
       - centreon-engine-dev
     provides:
       - centreon-engine-daemon
-      - centreon-engine-extcommands
       - centreon-engine-dev
 
 rpm:
