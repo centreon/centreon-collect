@@ -19,15 +19,13 @@ overrides:
   rpm:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
-      - centreon-broker-cbd = ${VERSION}-${RELEASE}${DIST}
-      - centreon-broker-cbmod = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine = ${VERSION}-${RELEASE}${DIST}
       - centreon-connector = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-broker-cbd (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-broker-cbmod (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
       - centreon-connector (= ${VERSION}-${RELEASE}${DIST})
 
