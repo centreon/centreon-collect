@@ -77,24 +77,21 @@ bool host_helper::hook(absl::string_view key, const absl::string_view& value) {
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
       absl::string_view v = absl::StripAsciiWhitespace(*it);
-      if (v == "u" || v == "unknown")
-        options |= action_svc_unknown;
-      else if (v == "w" || v == "warning")
-        options |= action_svc_warning;
-      else if (v == "c" || v == "critical")
-        options |= action_svc_critical;
+      if (v == "d" || v == "down")
+        options |= action_hst_down;
+      else if (v == "u" || v == "unreachable")
+        options |= action_hst_unreachable;
       else if (v == "r" || v == "recovery")
-        options |= action_svc_ok;
+        options |= action_hst_up;
       else if (v == "f" || v == "flapping")
-        options |= action_svc_flapping;
+        options |= action_hst_flapping;
       else if (v == "s" || v == "downtime")
-        options |= action_svc_downtime;
+        options |= action_hst_downtime;
       else if (v == "n" || v == "none")
-        options = action_svc_none;
+        options = action_hst_none;
       else if (v == "a" || v == "all")
-        options = action_svc_unknown | action_svc_warning |
-                  action_svc_critical | action_svc_ok | action_svc_flapping |
-                  action_svc_downtime;
+        options = action_hst_down | action_hst_unreachable | action_hst_up |
+                  action_hst_flapping | action_hst_downtime;
       else
         return false;
     }
