@@ -43,14 +43,13 @@ namespace applier {
  */
 class scheduler {
  public:
-  void apply(
-      configuration::State& config,
-      const pb_difference<configuration::Host, std::string>& diff_hosts,
-      const pb_difference<configuration::Service,
-                          std::pair<std::string, std::string>>& diff_services,
-      const pb_difference<configuration::Anomalydetection,
-                          std::pair<std::string, std::string>>&
-          diff_anomalydetections);
+  void apply(configuration::State& config,
+             const pb_difference<configuration::Host, uint64_t>& diff_hosts,
+             const pb_difference<configuration::Service,
+                                 std::pair<uint64_t, uint64_t>>& diff_services,
+             const pb_difference<configuration::Anomalydetection,
+                                 std::pair<uint64_t, uint64_t>>&
+                 diff_anomalydetections);
   void apply(configuration::state& config,
              difference<set_host> const& diff_hosts,
              difference<set_service> const& diff_services,
@@ -79,10 +78,19 @@ class scheduler {
                                   unsigned long interval,
                                   void* data = nullptr);
   std::vector<com::centreon::engine::host*> _get_hosts(
+      const std::vector<uint64_t>& hst_ids,
+      bool throw_if_not_found = true);
+  std::vector<com::centreon::engine::host*> _get_hosts(
       set_host const& hst_added,
       bool throw_if_not_found = true);
   std::vector<com::centreon::engine::service*> _get_anomalydetections(
+      const std::vector<std::pair<uint64_t, uint64_t>>& ad_ids,
+      bool throw_if_not_found = true);
+  std::vector<com::centreon::engine::service*> _get_anomalydetections(
       set_anomalydetection const& svc_cfg,
+      bool throw_if_not_found = true);
+  std::vector<com::centreon::engine::service*> _get_services(
+      const std::vector<std::pair<uint64_t, uint64_t>>& svc_ids,
       bool throw_if_not_found = true);
   std::vector<com::centreon::engine::service*> _get_services(
       set_service const& svc_cfg,
