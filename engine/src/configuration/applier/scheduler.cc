@@ -60,7 +60,7 @@ void applier::scheduler::apply(
   _pb_config = &config;
 
   // Remove and create misc event.
-  _apply_misc_event();
+  _pb_apply_misc_event();
 
   // Objects set.
   std::vector<uint64_t> hst_to_unschedule;
@@ -488,9 +488,121 @@ applier::scheduler::scheduler()
       _old_status_update_interval(0) {}
 
 /**
- *  Default destructor.
+ *  Remove and create misc event if necessary.
  */
-applier::scheduler::~scheduler() noexcept {}
+void applier::scheduler::_pb_apply_misc_event() {
+  // Get current time.
+  time_t const now(time(nullptr));
+
+  // Remove and add check result reaper event.
+  if (!_evt_check_reaper ||
+      _old_check_reaper_interval != _pb_config->check_reaper_interval()) {
+    _remove_misc_event(_evt_check_reaper);
+    _evt_check_reaper =
+        _create_misc_event(timed_event::EVENT_CHECK_REAPER,
+                           now + _pb_config->check_reaper_interval(),
+                           _pb_config->check_reaper_interval());
+    _old_check_reaper_interval = _pb_config->check_reaper_interval();
+  }
+
+  // Remove and add an external command check event.
+  if ((!_evt_command_check && _pb_config->check_external_commands()) ||
+      (_evt_command_check && !_pb_config->check_external_commands()) ||
+      (_old_command_check_interval != _pb_config->command_check_interval())) {
+    _remove_misc_event(_evt_command_check);
+    if (_pb_config->check_external_commands()) {
+      unsigned long interval(5);
+      if (_pb_config->command_check_interval() != -1)
+        interval = (unsigned long)_pb_config->command_check_interval();
+      _evt_command_check = _create_misc_event(timed_event::EVENT_COMMAND_CHECK,
+                                              now + interval, interval);
+    }
+    _old_command_check_interval = _pb_config->command_check_interval();
+  }
+
+  // Remove and add a host result "freshness" check event.
+  if ((!_evt_hfreshness_check && _pb_config->check_host_freshness()) ||
+      (_evt_hfreshness_check && !_pb_config->check_host_freshness()) ||
+      (_old_host_freshness_check_interval !=
+       _pb_config->host_freshness_check_interval())) {
+    _remove_misc_event(_evt_hfreshness_check);
+    if (_pb_config->check_host_freshness())
+      _evt_hfreshness_check =
+          _create_misc_event(timed_event::EVENT_HFRESHNESS_CHECK,
+                             now + _pb_config->host_freshness_check_interval(),
+                             _pb_config->host_freshness_check_interval());
+    _old_host_freshness_check_interval =
+        _pb_config->host_freshness_check_interval();
+  }
+
+  // Remove and add an orphaned check event.
+  if ((!_evt_orphan_check && _pb_config->check_orphaned_services()) ||
+      (!_evt_orphan_check && _pb_config->check_orphaned_hosts()) ||
+      (_evt_orphan_check && !_pb_config->check_orphaned_services() &&
+       !_pb_config->check_orphaned_hosts())) {
+    _remove_misc_event(_evt_orphan_check);
+    if (_pb_config->check_orphaned_services() ||
+        _pb_config->check_orphaned_hosts())
+      _evt_orphan_check = _create_misc_event(
+          timed_event::EVENT_ORPHAN_CHECK, now + DEFAULT_ORPHAN_CHECK_INTERVAL,
+          DEFAULT_ORPHAN_CHECK_INTERVAL);
+  }
+
+  // Remove and add a host and service check rescheduling event.
+  if ((!_evt_reschedule_checks && _pb_config->auto_reschedule_checks()) ||
+      (_evt_reschedule_checks && !_pb_config->auto_reschedule_checks()) ||
+      (_old_auto_rescheduling_interval !=
+       _pb_config->auto_rescheduling_interval())) {
+    _remove_misc_event(_evt_reschedule_checks);
+    if (_pb_config->auto_reschedule_checks())
+      _evt_reschedule_checks =
+          _create_misc_event(timed_event::EVENT_RESCHEDULE_CHECKS,
+                             now + _pb_config->auto_rescheduling_interval(),
+                             _pb_config->auto_rescheduling_interval());
+    _old_auto_rescheduling_interval = _pb_config->auto_rescheduling_interval();
+  }
+
+  // Remove and add a retention data save event if needed.
+  if ((!_evt_retention_save && _pb_config->retain_state_information()) ||
+      (_evt_retention_save && !_pb_config->retain_state_information()) ||
+      (_old_retention_update_interval !=
+       _pb_config->retention_update_interval())) {
+    _remove_misc_event(_evt_retention_save);
+    if (_pb_config->retain_state_information() &&
+        _pb_config->retention_update_interval() > 0) {
+      unsigned long interval(_pb_config->retention_update_interval() * 60);
+      _evt_retention_save = _create_misc_event(
+          timed_event::EVENT_RETENTION_SAVE, now + interval, interval);
+    }
+    _old_retention_update_interval = _pb_config->retention_update_interval();
+  }
+
+  // Remove add a service result "freshness" check event.
+  if ((!_evt_sfreshness_check && _pb_config->check_service_freshness()) ||
+      (!_evt_sfreshness_check && !_pb_config->check_service_freshness()) ||
+      _old_service_freshness_check_interval !=
+          _pb_config->service_freshness_check_interval()) {
+    _remove_misc_event(_evt_sfreshness_check);
+    if (_pb_config->check_service_freshness())
+      _evt_sfreshness_check = _create_misc_event(
+          timed_event::EVENT_SFRESHNESS_CHECK,
+          now + _pb_config->service_freshness_check_interval(),
+          _pb_config->service_freshness_check_interval());
+    _old_service_freshness_check_interval =
+        _pb_config->service_freshness_check_interval();
+  }
+
+  // Remove and add a status save event.
+  if (!_evt_status_save ||
+      (_old_status_update_interval != _pb_config->status_update_interval())) {
+    _remove_misc_event(_evt_status_save);
+    _evt_status_save =
+        _create_misc_event(timed_event::EVENT_STATUS_SAVE,
+                           now + _pb_config->status_update_interval(),
+                           _pb_config->status_update_interval());
+    _old_status_update_interval = _pb_config->status_update_interval();
+  }
+}
 
 /**
  *  Remove and create misc event if necessary.
