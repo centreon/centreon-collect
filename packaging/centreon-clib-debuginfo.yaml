@@ -30,6 +30,12 @@ overrides:
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-clib-dbgsym
+    replaces:
+      - centreon-clib-dbgsym
+    provides:
+      - centreon-clib-dbgsym
 
 rpm:
   summary: Centreon core library.

@@ -25,6 +25,12 @@ overrides:
   deb:
     depends:
       - centreon-broker-stats-exporter (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-broker-stats-exporter-dbgsym
+    replaces:
+      - centreon-broker-stats-exporter-dbgsym
+    provides:
+      - centreon-broker-stats-exporter-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-broker-stats-exporter.

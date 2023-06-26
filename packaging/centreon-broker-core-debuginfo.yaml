@@ -20,23 +20,34 @@ contents:
     file_info:
       mode: 0644
 
-conflicts:
-  - centreon-broker-debuginfo
-  - centreon-broker-storage-debuginfo
-replaces:
-  - centreon-broker-debuginfo
-  - centreon-broker-storage-debuginfo
-provides:
-  - centreon-broker-debuginfo
-  - centreon-broker-storage-debuginfo
-
 overrides:
   rpm:
     depends:
       - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
+    conflicts:
+      - centreon-broker-debuginfo
+      - centreon-broker-storage-debuginfo
+    replaces:
+      - centreon-broker-debuginfo
+      - centreon-broker-storage-debuginfo
+    provides:
+      - centreon-broker-debuginfo
+      - centreon-broker-storage-debuginfo
   deb:
     depends:
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-broker-dbgsym
+      - centreon-broker-core-dbgsym
+      - centreon-broker-storage-dbgsym
+    replaces:
+      - centreon-broker-dbgsym
+      - centreon-broker-core-dbgsym
+      - centreon-broker-storage-dbgsym
+    provides:
+      - centreon-broker-dbgsym
+      - centreon-broker-core-dbgsym
+      - centreon-broker-storage-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-broker.

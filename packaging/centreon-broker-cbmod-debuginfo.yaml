@@ -27,6 +27,12 @@ overrides:
   deb:
     depends:
       - centreon-broker-cbmod (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-broker-cbmod-dbgsym
+    replaces:
+      - centreon-broker-cbmod-dbgsym
+    provides:
+      - centreon-broker-cbmod-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-broker-cbmod.

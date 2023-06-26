@@ -27,6 +27,12 @@ overrides:
   deb:
     depends:
       - centreon-connector-ssh (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-connector-ssh-dbgsym
+    replaces:
+      - centreon-connector-ssh-dbgsym
+    provides:
+      - centreon-connector-ssh-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-connector-perl.

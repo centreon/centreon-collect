@@ -25,6 +25,12 @@ overrides:
   deb:
     depends:
       - centreon-broker-influxdb (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-broker-influxdb-dbgsym
+    replaces:
+      - centreon-broker-influxdb-dbgsym
+    provides:
+      - centreon-broker-influxdb-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-broker-influxdb.

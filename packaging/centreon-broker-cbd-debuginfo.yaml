@@ -28,6 +28,12 @@ overrides:
   deb:
     depends:
       - centreon-broker-cbd (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-broker-cbd-dbgsym
+    replaces:
+      - centreon-broker-cbd-dbgsym
+    provides:
+      - centreon-broker-cbd-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-broker-cbd.

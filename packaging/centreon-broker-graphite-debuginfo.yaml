@@ -25,6 +25,12 @@ overrides:
   deb:
     depends:
       - centreon-broker-graphite (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-broker-graphite-dbgsym
+    replaces:
+      - centreon-broker-graphite-dbgsym
+    provides:
+      - centreon-broker-graphite-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-broker-graphite.

@@ -47,6 +47,12 @@ overrides:
   deb:
     depends:
       - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-engine-dbgsym
+    replaces:
+      - centreon-engine-dbgsym
+    provides:
+      - centreon-engine-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-engine.

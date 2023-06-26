@@ -27,6 +27,12 @@ overrides:
   deb:
     depends:
       - centreon-collect-client (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-collect-client-dbgsym
+    replaces:
+      - centreon-collect-client-dbgsym
+    provides:
+      - centreon-collect-client-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-collect-client.

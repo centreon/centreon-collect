@@ -27,6 +27,12 @@ overrides:
   deb:
     depends:
       - centreon-connector-perl (= ${VERSION}-${RELEASE}${DIST})
+    conflicts:
+      - centreon-connector-perl-dbgsym
+    replaces:
+      - centreon-connector-perl-dbgsym
+    provides:
+      - centreon-connector-perl-dbgsym
 
 rpm:
   summary: Debuginfo package for centreon-connector-perl.
