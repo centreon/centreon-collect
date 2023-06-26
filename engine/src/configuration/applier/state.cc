@@ -649,8 +649,9 @@ void applier::state::_apply(configuration::state const& new_cfg) {
  *  @param[in] cur_cfg Current configuration set.
  *  @param[in] new_cfg New configuration set.
  */
-template <typename ConfigurationType, typename ApplierType>
-void applier::state::_pb_apply(const pb_difference<ConfigurationType>& diff) {
+template <typename ConfigurationType, typename Key, typename ApplierType>
+void applier::state::_pb_apply(
+    const pb_difference<ConfigurationType, Key>& diff) {
   // Applier.
   ApplierType aplyr;
 
@@ -670,7 +671,7 @@ void applier::state::_pb_apply(const pb_difference<ConfigurationType>& diff) {
 
   // Erase objects.
   for (auto it = diff.deleted().rbegin(); it != diff.deleted().rend(); ++it) {
-    ssize_t idx = *it;
+    ssize_t idx = it->first;
     if (!verify_config)
       aplyr.remove_object(idx);
     else {
@@ -1417,28 +1418,29 @@ void applier::state::_processing(configuration::State& new_cfg,
   //
 
   // Build difference for timeperiods.
-  pb_difference<configuration::Timeperiod> diff_timeperiods;
+  pb_difference<configuration::Timeperiod, std::string> diff_timeperiods;
   diff_timeperiods.parse(
       pb_config.timeperiods().begin(), pb_config.timeperiods().end(),
       new_cfg.timeperiods().begin(), new_cfg.timeperiods().end(),
       &configuration::Timeperiod::timeperiod_name);
 
   // Build difference for connectors.
-  pb_difference<configuration::Connector> diff_connectors;
+  pb_difference<configuration::Connector, std::string> diff_connectors;
   diff_connectors.parse(
       pb_config.connectors().begin(), pb_config.connectors().end(),
       new_cfg.connectors().begin(), new_cfg.connectors().end(),
       &configuration::Connector::connector_name);
 
   // Build difference for commands.
-  pb_difference<configuration::Command> diff_commands;
+  pb_difference<configuration::Command, std::string> diff_commands;
   diff_commands.parse(pb_config.commands().begin(), pb_config.commands().end(),
                       new_cfg.commands().begin(), new_cfg.commands().end(),
                       &configuration::Command::command_name);
 
   // Build difference for severities.
-  pb_difference<configuration::Severity> diff_severities;
-  diff_severities.parse<std::pair<uint64_t, uint32_t>>(
+  pb_difference<configuration::Severity, std::pair<uint64_t, uint32_t>>
+      diff_severities;
+  diff_severities.parse(
       pb_config.severities().begin(), pb_config.severities().end(),
       new_cfg.severities().begin(), new_cfg.severities().end(),
       [](const configuration::Severity& sev) -> std::pair<uint64_t, uint32_t> {
@@ -1446,8 +1448,8 @@ void applier::state::_processing(configuration::State& new_cfg,
       });
 
   // Build difference for tags.
-  pb_difference<configuration::Tag> diff_tags;
-  diff_tags.parse<std::pair<uint64_t, uint32_t>>(
+  pb_difference<configuration::Tag, std::pair<uint64_t, uint32_t>> diff_tags;
+  diff_tags.parse(
       pb_config.tags().begin(), pb_config.tags().end(), new_cfg.tags().begin(),
       new_cfg.tags().end(),
       [](const configuration::Tag& tg) -> std::pair<uint64_t, uint32_t> {
@@ -1455,40 +1457,43 @@ void applier::state::_processing(configuration::State& new_cfg,
       });
 
   // Build difference for contacts.
-  pb_difference<configuration::Contact> diff_contacts;
+  pb_difference<configuration::Contact, std::string> diff_contacts;
   diff_contacts.parse(pb_config.contacts().begin(), pb_config.contacts().end(),
                       new_cfg.contacts().begin(), new_cfg.contacts().end(),
                       &configuration::Contact::contact_name);
 
   // Build difference for contactgroups.
-  pb_difference<configuration::Contactgroup> diff_contactgroups;
+  pb_difference<configuration::Contactgroup, std::string> diff_contactgroups;
   diff_contactgroups.parse(
       pb_config.contactgroups().begin(), pb_config.contactgroups().end(),
       new_cfg.contactgroups().begin(), new_cfg.contactgroups().end(),
       &configuration::Contactgroup::contactgroup_name);
 
   // Build difference for hosts.
-  pb_difference<configuration::Host> diff_hosts;
+  pb_difference<configuration::Host, std::string> diff_hosts;
   diff_hosts.parse(pb_config.hosts().begin(), pb_config.hosts().end(),
                    new_cfg.hosts().begin(), new_cfg.hosts().end(),
                    &configuration::Host::host_name);
 
   // Build difference for hostgroups.
-  pb_difference<configuration::Hostgroup> diff_hostgroups;
+  pb_difference<configuration::Hostgroup, std::string> diff_hostgroups;
   diff_hostgroups.parse(
       pb_config.hostgroups().begin(), pb_config.hostgroups().end(),
       new_cfg.hostgroups().begin(), new_cfg.hostgroups().end(),
       &configuration::Hostgroup::hostgroup_name);
 
   // Build difference for services.
-  pb_difference<configuration::Service> diff_services;
+  pb_difference<configuration::Service, std::pair<std::string, std::string>>
+      diff_services;
   diff_services.parse(pb_config.services().begin(), pb_config.services().end(),
                       new_cfg.services().begin(), new_cfg.services().end(),
                       &configuration::Service::host_name,
                       &configuration::Service::service_description);
 
   // Build difference for anomalydetections.
-  pb_difference<configuration::Anomalydetection> diff_anomalydetections;
+  pb_difference<configuration::Anomalydetection,
+                std::pair<std::string, std::string>>
+      diff_anomalydetections;
   diff_anomalydetections.parse(
       pb_config.anomalydetections().begin(),
       pb_config.anomalydetections().end(), new_cfg.anomalydetections().begin(),
@@ -1497,24 +1502,25 @@ void applier::state::_processing(configuration::State& new_cfg,
       &configuration::Anomalydetection::service_description);
 
   // Build difference for servicegroups.
-  pb_difference<configuration::Servicegroup> diff_servicegroups;
+  pb_difference<configuration::Servicegroup, std::string> diff_servicegroups;
   diff_servicegroups.parse(
       pb_config.servicegroups().begin(), pb_config.servicegroups().end(),
       new_cfg.servicegroups().begin(), new_cfg.servicegroups().end(),
       &configuration::Servicegroup::servicegroup_name);
 
   // Build difference for hostdependencies.
-  pb_difference<configuration::Hostdependency> diff_hostdependencies;
+  pb_difference<configuration::Hostdependency, size_t> diff_hostdependencies;
   typedef size_t (*key_func)(const configuration::Hostdependency&);
-  diff_hostdependencies.parse<size_t, key_func>(
+  diff_hostdependencies.parse<key_func>(
       pb_config.hostdependencies().begin(), pb_config.hostdependencies().end(),
       new_cfg.hostdependencies().begin(), new_cfg.hostdependencies().end(),
       configuration::hostdependency_key);
 
   // Build difference for servicedependencies.
-  pb_difference<configuration::Servicedependency> diff_servicedependencies;
+  pb_difference<configuration::Servicedependency, size_t>
+      diff_servicedependencies;
   typedef size_t (*key_func_sd)(const configuration::Servicedependency&);
-  diff_servicedependencies.parse<size_t, key_func_sd>(
+  diff_servicedependencies.parse<key_func_sd>(
       pb_config.servicedependencies().begin(),
       pb_config.servicedependencies().end(),
       new_cfg.servicedependencies().begin(),
@@ -1522,17 +1528,18 @@ void applier::state::_processing(configuration::State& new_cfg,
       configuration::servicedependency_key);
 
   // Build difference for hostdependencies.
-  pb_difference<configuration::Hostescalation> diff_hostescalations;
+  pb_difference<configuration::Hostescalation, size_t> diff_hostescalations;
   typedef size_t (*key_func_he)(const configuration::Hostescalation&);
-  diff_hostescalations.parse<size_t, key_func_he>(
+  diff_hostescalations.parse<key_func_he>(
       pb_config.hostescalations().begin(), pb_config.hostescalations().end(),
       new_cfg.hostescalations().begin(), new_cfg.hostescalations().end(),
       configuration::hostescalation_key);
 
   // Build difference for servicedependencies.
-  pb_difference<configuration::Serviceescalation> diff_serviceescalations;
+  pb_difference<configuration::Serviceescalation, size_t>
+      diff_serviceescalations;
   typedef size_t (*key_func_se)(const configuration::Serviceescalation&);
-  diff_serviceescalations.parse<size_t, key_func_se>(
+  diff_serviceescalations.parse<key_func_se>(
       pb_config.serviceescalations().begin(),
       pb_config.serviceescalations().end(),
       new_cfg.serviceescalations().begin(), new_cfg.serviceescalations().end(),
@@ -1576,46 +1583,55 @@ void applier::state::_processing(configuration::State& new_cfg,
     //
 
     // Apply timeperiods.
-    _pb_apply<configuration::Timeperiod, applier::timeperiod>(diff_timeperiods);
+    _pb_apply<configuration::Timeperiod, std::string, applier::timeperiod>(
+        diff_timeperiods);
     _pb_resolve<configuration::Timeperiod, applier::timeperiod>(
         pb_config.timeperiods());
 
     // Apply connectors.
-    _pb_apply<configuration::Connector, applier::connector>(diff_connectors);
+    _pb_apply<configuration::Connector, std::string, applier::connector>(
+        diff_connectors);
     _pb_resolve<configuration::Connector, applier::connector>(
         pb_config.connectors());
 
     // Apply commands.
-    _pb_apply<configuration::Command, applier::command>(diff_commands);
+    _pb_apply<configuration::Command, std::string, applier::command>(
+        diff_commands);
     _pb_resolve<configuration::Command, applier::command>(pb_config.commands());
 
     // Apply contacts and contactgroups.
-    _pb_apply<configuration::Contact, applier::contact>(diff_contacts);
-    _pb_apply<configuration::Contactgroup, applier::contactgroup>(
+    _pb_apply<configuration::Contact, std::string, applier::contact>(
+        diff_contacts);
+    _pb_apply<configuration::Contactgroup, std::string, applier::contactgroup>(
         diff_contactgroups);
     _pb_resolve<configuration::Contactgroup, applier::contactgroup>(
         pb_config.contactgroups());
     _pb_resolve<configuration::Contact, applier::contact>(pb_config.contacts());
 
     // Apply severities.
-    _pb_apply<configuration::Severity, applier::severity>(diff_severities);
+    _pb_apply<configuration::Severity, std::pair<uint64_t, uint32_t>,
+              applier::severity>(diff_severities);
 
     // Apply tags.
-    _pb_apply<configuration::Tag, applier::tag>(diff_tags);
+    _pb_apply<configuration::Tag, std::pair<uint64_t, uint32_t>, applier::tag>(
+        diff_tags);
 
     // Apply hosts and hostgroups.
-    _pb_apply<configuration::Host, applier::host>(diff_hosts);
-    _pb_apply<configuration::Hostgroup, applier::hostgroup>(diff_hostgroups);
+    _pb_apply<configuration::Host, std::string, applier::host>(diff_hosts);
+    _pb_apply<configuration::Hostgroup, std::string, applier::hostgroup>(
+        diff_hostgroups);
 
     // Apply services.
-    _pb_apply<configuration::Service, applier::service>(diff_services);
+    _pb_apply<configuration::Service, std::pair<std::string, std::string>,
+              applier::service>(diff_services);
 
     // Apply anomalydetections.
-    _pb_apply<configuration::Anomalydetection, applier::anomalydetection>(
+    _pb_apply<configuration::Anomalydetection,
+              std::pair<std::string, std::string>, applier::anomalydetection>(
         diff_anomalydetections);
 
     // Apply servicegroups.
-    _pb_apply<configuration::Servicegroup, applier::servicegroup>(
+    _pb_apply<configuration::Servicegroup, std::string, applier::servicegroup>(
         diff_servicegroups);
 
     // Resolve hosts, services, host groups.
