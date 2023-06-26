@@ -407,6 +407,7 @@ applier::scheduler& applier::scheduler::instance() {
 
 void applier::scheduler::clear() {
   _config = nullptr;
+  _pb_config = nullptr;
   _evt_check_reaper = nullptr;
   _evt_command_check = nullptr;
   _evt_hfreshness_check = nullptr;
@@ -467,6 +468,7 @@ void applier::scheduler::remove_service(uint64_t host_id, uint64_t service_id) {
  */
 applier::scheduler::scheduler()
     : _config(nullptr),
+      _pb_config(nullptr),
       _evt_check_reaper(nullptr),
       _evt_command_check(nullptr),
       _evt_hfreshness_check(nullptr),
@@ -492,7 +494,7 @@ applier::scheduler::scheduler()
  */
 void applier::scheduler::_pb_apply_misc_event() {
   // Get current time.
-  time_t const now(time(nullptr));
+  time_t const now = time(nullptr);
 
   // Remove and add check result reaper event.
   if (!_evt_check_reaper ||
@@ -770,6 +772,68 @@ void applier::scheduler::_apply_misc_event() {
  *
  *  @param[in] method The method to use to calculate inter check delay.
  */
+void applier::scheduler::_pb_calculate_host_inter_check_delay(
+    const configuration::InterCheckDelay& method) {
+  switch (method.type()) {
+    case configuration::InterCheckDelay::none:
+      scheduling_info.host_inter_check_delay = 0.0;
+      break;
+
+    case configuration::InterCheckDelay::dumb:
+      scheduling_info.host_inter_check_delay = 1.0;
+      break;
+
+    case configuration::InterCheckDelay::user:
+      // the user specified a delay, so don't try to calculate one.
+      break;
+
+    case configuration::InterCheckDelay::smart:
+    default:
+      // be smart and calculate the best delay to use
+      // to minimize local load...
+      if (scheduling_info.total_scheduled_hosts > 0 &&
+          scheduling_info.host_check_interval_total > 0) {
+        // calculate the average check interval for hosts.
+        scheduling_info.average_host_check_interval =
+            scheduling_info.host_check_interval_total /
+            (double)scheduling_info.total_scheduled_hosts;
+
+        // calculate the average inter check delay (in seconds)
+        // needed to evenly space the host checks out.
+        scheduling_info.average_host_inter_check_delay =
+            scheduling_info.average_host_check_interval /
+            (double)scheduling_info.total_scheduled_hosts;
+
+        // set the global inter check delay value.
+        scheduling_info.host_inter_check_delay =
+            scheduling_info.average_host_inter_check_delay;
+
+        // calculate max inter check delay and see if we should use that
+        // instead.
+        double const max_inter_check_delay(
+            (scheduling_info.max_host_check_spread * 60) /
+            (double)scheduling_info.total_scheduled_hosts);
+        if (scheduling_info.host_inter_check_delay > max_inter_check_delay)
+          scheduling_info.host_inter_check_delay = max_inter_check_delay;
+      } else
+        scheduling_info.host_inter_check_delay = 0.0;
+
+      log_v2::events()->debug("Total scheduled host checks:  {}",
+                              scheduling_info.total_scheduled_hosts);
+      log_v2::events()->debug("Host check interval total:    {}",
+                              scheduling_info.host_check_interval_total);
+      log_v2::events()->debug("Average host check interval:  {:.2f} sec",
+                              scheduling_info.average_host_check_interval);
+      log_v2::events()->debug("Host inter-check delay:       {:.2f} sec",
+                              scheduling_info.host_inter_check_delay);
+  }
+}
+
+/**
+ *  How should we determine the host inter-check delay to use.
+ *
+ *  @param[in] method The method to use to calculate inter check delay.
+ */
 void applier::scheduler::_calculate_host_inter_check_delay(
     configuration::state::inter_check_delay method) {
   switch (method) {
@@ -841,6 +905,63 @@ void applier::scheduler::_calculate_host_inter_check_delay(
 /**
  *  Calculate host scheduling params.
  */
+void applier::scheduler::_pb_calculate_host_scheduling_params() {
+  engine_logger(dbg_events, most)
+      << "Determining host scheduling parameters...";
+  log_v2::events()->debug("Determining host scheduling parameters...");
+
+  // get current time.
+  time_t const now(time(nullptr));
+
+  // get total hosts and total scheduled hosts.
+  for (host_map::const_iterator it(engine::host::hosts.begin()),
+       end(engine::host::hosts.end());
+       it != end; ++it) {
+    com::centreon::engine::host& hst(*it->second);
+
+    bool schedule_check(true);
+    if (!hst.check_interval() || !hst.active_checks_enabled())
+      schedule_check = false;
+    else {
+      timezone_locker lock(hst.get_timezone());
+      if (!check_time_against_period(now, hst.check_period_ptr)) {
+        time_t next_valid_time(0);
+        get_next_valid_time(now, &next_valid_time, hst.check_period_ptr);
+        if (now == next_valid_time)
+          schedule_check = false;
+      }
+    }
+
+    if (schedule_check) {
+      hst.set_should_be_scheduled(true);
+      ++scheduling_info.total_scheduled_hosts;
+      scheduling_info.host_check_interval_total +=
+          static_cast<unsigned long>(hst.check_interval());
+    } else {
+      hst.set_should_be_scheduled(false);
+      engine_logger(dbg_events, more)
+          << "Host " << hst.name() << " should not be scheduled.";
+      log_v2::events()->debug("Host {} should not be scheduled.", hst.name());
+    }
+
+    ++scheduling_info.total_hosts;
+  }
+
+  // Default max host check spread (in minutes).
+  scheduling_info.max_host_check_spread = _pb_config->max_host_check_spread();
+
+  // Adjust the check interval total to correspond to
+  // the interval length.
+  scheduling_info.host_check_interval_total =
+      scheduling_info.host_check_interval_total * _pb_config->interval_length();
+
+  _pb_calculate_host_inter_check_delay(
+      _pb_config->host_inter_check_delay_method());
+}
+
+/**
+ *  Calculate host scheduling params.
+ */
 void applier::scheduler::_calculate_host_scheduling_params() {
   engine_logger(dbg_events, most)
       << "Determining host scheduling parameters...";
@@ -892,6 +1013,62 @@ void applier::scheduler::_calculate_host_scheduling_params() {
       scheduling_info.host_check_interval_total * _config->interval_length();
 
   _calculate_host_inter_check_delay(_config->host_inter_check_delay_method());
+}
+
+/**
+ *  How should we determine the service inter-check delay
+ *  to use (in seconds).
+ *
+ *  @param[in] method The method to use to calculate inter check delay.
+ */
+void applier::scheduler::_pb_calculate_service_inter_check_delay(
+    const configuration::InterCheckDelay& method) {
+  switch (method.type()) {
+    case configuration::InterCheckDelay::none:
+      scheduling_info.service_inter_check_delay = 0.0;
+      break;
+
+    case configuration::InterCheckDelay::dumb:
+      scheduling_info.service_inter_check_delay = 1.0;
+      break;
+
+    case configuration::InterCheckDelay::user:
+      // the user specified a delay, so don't try to calculate one.
+      break;
+
+    case configuration::InterCheckDelay::smart:
+    default:
+      // be smart and calculate the best delay to use to
+      // minimize local load...
+      if (scheduling_info.total_scheduled_services > 0 &&
+          scheduling_info.service_check_interval_total > 0) {
+        // calculate the average inter check delay (in seconds) needed
+        // to evenly space the service checks out.
+        scheduling_info.average_service_inter_check_delay =
+            scheduling_info.average_service_check_interval /
+            (double)scheduling_info.total_scheduled_services;
+
+        // set the global inter check delay value.
+        scheduling_info.service_inter_check_delay =
+            scheduling_info.average_service_inter_check_delay;
+
+        // calculate max inter check delay and see if we should use that
+        // instead.
+        double const max_inter_check_delay(
+            (scheduling_info.max_service_check_spread * 60) /
+            (double)scheduling_info.total_scheduled_services);
+        if (scheduling_info.service_inter_check_delay > max_inter_check_delay)
+          scheduling_info.service_inter_check_delay = max_inter_check_delay;
+      } else
+        scheduling_info.service_inter_check_delay = 0.0;
+
+      log_v2::events()->debug("Total scheduled service checks:  {}",
+                              scheduling_info.total_scheduled_services);
+      log_v2::events()->debug("Average service check interval:  {:.2f} sec",
+                              scheduling_info.average_service_check_interval);
+      log_v2::events()->debug("Service inter-check delay:       {:.2f} sec",
+                              scheduling_info.service_inter_check_delay);
+  }
 }
 
 /**
@@ -964,6 +1141,32 @@ void applier::scheduler::_calculate_service_inter_check_delay(
  *
  *  @param[in] method The method to use to calculate interleave factor.
  */
+void applier::scheduler::_pb_calculate_service_interleave_factor(
+    const configuration::InterleaveFactor& method) {
+  switch (method) {
+    case configuration::InterleaveFactor::ilf_user:
+      // the user supplied a value, so don't do any calculation.
+      break;
+
+    case configuration::InterleaveFactor::ilf_smart:
+    default:
+      scheduling_info.service_interleave_factor =
+          (int)(ceil(scheduling_info.average_scheduled_services_per_host));
+
+      log_v2::events()->debug("Total scheduled service checks: {}",
+                              scheduling_info.total_scheduled_services);
+      log_v2::events()->debug("Total hosts:                    {}",
+                              scheduling_info.total_hosts);
+      log_v2::events()->debug("Service Interleave factor:      {}",
+                              scheduling_info.service_interleave_factor);
+  }
+}
+
+/**
+ *  How should we determine the service interleave factor.
+ *
+ *  @param[in] method The method to use to calculate interleave factor.
+ */
 void applier::scheduler::_calculate_service_interleave_factor(
     configuration::state::interleave_factor method) {
   switch (method) {
@@ -991,6 +1194,79 @@ void applier::scheduler::_calculate_service_interleave_factor(
       log_v2::events()->debug("Service Interleave factor:      {}",
                               scheduling_info.service_interleave_factor);
   }
+}
+
+/**
+ *  Calculate service scheduling params.
+ */
+void applier::scheduler::_pb_calculate_service_scheduling_params() {
+  log_v2::events()->debug("Determining service scheduling parameters...");
+
+  // get current time.
+  time_t const now(time(nullptr));
+
+  // get total services and total scheduled services.
+  for (service_id_map::const_iterator
+           it(engine::service::services_by_id.begin()),
+       end(engine::service::services_by_id.end());
+       it != end; ++it) {
+    engine::service& svc(*it->second);
+
+    bool schedule_check(true);
+    if (!svc.check_interval() || !svc.active_checks_enabled())
+      schedule_check = false;
+
+    {
+      timezone_locker lock(svc.get_timezone());
+      if (!check_time_against_period(now, svc.check_period_ptr)) {
+        time_t next_valid_time(0);
+        get_next_valid_time(now, &next_valid_time, svc.check_period_ptr);
+        if (now == next_valid_time)
+          schedule_check = false;
+      }
+    }
+
+    if (schedule_check) {
+      svc.set_should_be_scheduled(true);
+      ++scheduling_info.total_scheduled_services;
+      scheduling_info.service_check_interval_total +=
+          static_cast<unsigned long>(svc.check_interval());
+    } else {
+      svc.set_should_be_scheduled(false);
+      log_v2::events()->debug("Service {} on host {} should not be scheduled.",
+                              svc.description(), svc.get_hostname());
+    }
+    ++scheduling_info.total_services;
+  }
+
+  // default max service check spread (in minutes).
+  scheduling_info.max_service_check_spread =
+      _pb_config->max_service_check_spread();
+
+  // used later in inter-check delay calculations.
+  scheduling_info.service_check_interval_total =
+      scheduling_info.service_check_interval_total *
+      _pb_config->interval_length();
+
+  if (scheduling_info.total_hosts) {
+    scheduling_info.average_services_per_host =
+        scheduling_info.total_services / (double)scheduling_info.total_hosts;
+    scheduling_info.average_scheduled_services_per_host =
+        scheduling_info.total_scheduled_services /
+        (double)scheduling_info.total_hosts;
+  }
+
+  // calculate rolling average execution time (available
+  // from retained state information).
+  if (scheduling_info.total_scheduled_services)
+    scheduling_info.average_service_check_interval =
+        scheduling_info.service_check_interval_total /
+        (double)scheduling_info.total_scheduled_services;
+
+  _pb_calculate_service_inter_check_delay(
+      _pb_config->service_inter_check_delay_method());
+  _pb_calculate_service_interleave_factor(
+      _pb_config->service_interleave_factor_method());
 }
 
 /**
