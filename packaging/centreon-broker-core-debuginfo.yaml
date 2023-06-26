@@ -8,7 +8,7 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  Debuginfo package for centreon-broker.
+  Debuginfo package for centreon-broker-core.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://centreon.com"

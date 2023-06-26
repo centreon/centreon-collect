@@ -8,7 +8,8 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  The Centreon Broker core package.
+  The Centreon Broker daemon can aggregates output of multiple cbmod and store
+  events in a DB from a single point.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
 homepage: "https://centreon.com"
@@ -70,7 +71,7 @@ overrides:
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
-  summary: Centreon Broker Core.
+  summary: Centreon Broker daemon.
   compression: zstd
   signature:
     key_file: ${RPM_SIGNING_KEY_FILE}

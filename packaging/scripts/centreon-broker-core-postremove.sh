@@ -1,7 +1,7 @@
 #!/bin/sh
 
 case "$1" in
-  remove)
+  purge)
     deluser centreon centreon-broker || :
     deluser centreon-broker || :
     delgroup centreon-broker || :

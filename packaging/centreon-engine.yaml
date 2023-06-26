@@ -98,6 +98,7 @@ scripts:
   preinstall: ./scripts/centreon-engine-preinstall.sh
   postinstall: ./scripts/centreon-engine-postinstall.sh
   preremove: ./scripts/centreon-engine-preremove.sh
+  postremove: ./scripts/centreon-engine-postremove.sh
 
 overrides:
   rpm:
