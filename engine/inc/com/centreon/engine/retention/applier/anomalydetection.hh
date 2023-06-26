@@ -30,21 +30,28 @@ class anomalydetection;
 // Forward declaration.
 namespace configuration {
 class state;
-}
+class State;
+}  // namespace configuration
 
 namespace retention {
 namespace applier {
 class anomalydetection {
+  static void _update(const configuration::State& config,
+                      const retention::anomalydetection& state,
+                      com::centreon::engine::anomalydetection& obj,
+                      bool scheduling_info_is_ok);
+  static void _update(const configuration::state& config,
+                      const retention::anomalydetection& state,
+                      com::centreon::engine::anomalydetection& obj,
+                      bool scheduling_info_is_ok);
+
  public:
+  static void apply(configuration::State const& config,
+                    list_anomalydetection const& lst,
+                    bool scheduling_info_is_ok);
   static void apply(configuration::state const& config,
                     list_anomalydetection const& lst,
                     bool scheduling_info_is_ok);
-
- private:
-  static void _update(configuration::state const& config,
-                      retention::anomalydetection const& state,
-                      com::centreon::engine::anomalydetection& obj,
-                      bool scheduling_info_is_ok);
 };
 }  // namespace applier
 }  // namespace retention
