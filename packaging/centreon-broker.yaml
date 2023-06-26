@@ -1,4 +1,4 @@
-name: "centreon-broker-core"
+name: "centreon-broker"
 arch: "${ARCH}"
 platform: "linux"
 version_schema: "none"
@@ -15,35 +15,38 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-rrd,70-lua,80-sql}.so"
-    dst: "/usr/share/centreon/lib/centreon-broker/"
-
-  - src: "../broker/script/centreon-broker.logrotate"
-    dst: "/etc/logrotate.d/cbd"
-    type: config|noreplace
-
-  - dst: /usr/share/centreon-broker
+  - dst: /etc/centreon-broker
     type: dir
     file_info:
       mode: 0775
       owner: centreon-broker
       group: centreon-broker
 
-  - dst: /usr/share/centreon-broker/lua
+  - dst: /var/lib/centreon-broker
     type: dir
     file_info:
       mode: 0775
       owner: centreon-broker
       group: centreon-broker
+
+  - dst: /var/log/centreon-broker
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-broker
+      group: centreon-broker
+
+scripts:
+  preinstall: ./scripts/centreon-broker-preinstall.sh
+  postinstall: ./scripts/centreon-broker-postinstall.sh
+  postremove: ./scripts/centreon-broker-postremove.sh
 
 overrides:
   rpm:
     depends:
-      - lua
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
-      - centreon-broker = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
       - centreon-common
-      - gnutls >= 3.3.29
     conflicts:
       - centreon-broker-storage
       - centreon-broker-devel
@@ -55,11 +58,9 @@ overrides:
       - centreon-broker-devel
   deb:
     depends:
-      - lua5.3
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
       - centreon-common
-      - libgnutls30
     conflicts:
       - centreon-broker-storage
       - centreon-broker-dev

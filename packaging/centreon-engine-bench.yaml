@@ -25,11 +25,11 @@ overrides:
   rpm:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
-      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
+      - centreon-engine-daemon = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-engine-daemon (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Centreon Engine benchmarking tools.
