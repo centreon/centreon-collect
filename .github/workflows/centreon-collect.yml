@@ -270,7 +270,7 @@ jobs:
     runs-on: [self-hosted, common]
     strategy:
       matrix:
-        distrib: [el8, el9, bullseye]
+        distrib: [el8, bullseye]
 
     steps:
       - name: Checkout sources
