@@ -266,6 +266,7 @@ void state_helper::_init() {
   obj->set_ocsp_timeout(15);
   obj->set_perfdata_timeout(5);
   obj->set_poller_name("unknown");
+  obj->set_rpc_listen_address("localhost");
   obj->set_process_performance_data(false);
   obj->set_retained_host_attribute_mask(0L);
   obj->set_retain_state_information(true);
