@@ -96,8 +96,6 @@ jobs:
 
       - name: Generate debug files
         run: |
-          ls -l lib
-          ls -l bin
           for file in $(find ./{lib/*.so,bin} -type f); do
             objcopy --only-keep-debug $file $file.debug
             objcopy --strip-debug $file

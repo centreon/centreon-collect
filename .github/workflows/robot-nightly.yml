@@ -78,67 +78,48 @@ jobs:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-  # robot-test-mysql:
-  #   needs: [get-version, package]
-  #   strategy:
-  #     matrix:
-  #       include:
-  #         - distrib: el9
-  #           os: alma9
-  #   name: robot test ${{ matrix.distrib }} mysql
+  deliver-rpm:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, el9]
+    name: deliver ${{ matrix.distrib }}
 
-  #   uses: ./.github/workflows/robot-test.yml
-  #   with:
-  #     image_version: ${{ needs.get-version.outputs.img_version }}
-  #     distrib: ${{ matrix.distrib }}
-  #     os: ${{ matrix.os }}
-  #     database_type: '-mysql'
-  #   secrets:
-  #     registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-  #     registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
 
-  # deliver-rpm:
-  #   if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-  #   needs: [robot-test-mariadb, robot-test-mysql, get-version]
-  #   runs-on: [self-hosted, common]
-  #   strategy:
-  #     matrix:
-  #       distrib: [el8, el9]
-  #   name: deliver ${{ matrix.distrib }}
+      - name: Publish RPM packages
+        uses: ./.github/actions/delivery
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}
 
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@v3
+  deliver-deb:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [bullseye]
+    name: deliver ${{ matrix.distrib }}
 
-  #     - name: Publish RPM packages
-  #       uses: ./.github/actions/delivery
-  #       with:
-  #         module_name: collect
-  #         distrib: ${{ matrix.distrib }}
-  #         version: ${{ needs.get-version.outputs.version }}
-  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-  #         cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
-  #         stability: ${{ needs.get-version.outputs.stability }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v3
 
-  # deliver-deb:
-  #   if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-  #   needs: [robot-test-mariadb, robot-test-mysql, get-version]
-  #   runs-on: [self-hosted, common]
-  #   strategy:
-  #     matrix:
-  #       distrib: [bullseye]
-  #   name: deliver ${{ matrix.distrib }}
-
-  #   steps:
-  #     - name: Checkout sources
-  #       uses: actions/checkout@v3
-
-  #     - name: Publish DEB packages
-  #       uses: ./.github/actions/delivery
-  #       with:
-  #         module_name: collect
-  #         distrib: ${{ matrix.distrib }}
-  #         version: ${{ needs.get-version.outputs.version }}
-  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-  #         cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
-  #         stability: ${{ needs.get-version.outputs.stability }}
+      - name: Publish DEB packages
+        uses: ./.github/actions/delivery
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}
