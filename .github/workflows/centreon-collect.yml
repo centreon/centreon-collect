@@ -55,8 +55,8 @@ jobs:
       release: ${{ steps.version.outputs.release }}
 
   centreon-collect-test:
-    needs: create-version
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [create-version, get-version]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ needs.create-version.outputs.imgversion }}
@@ -89,7 +89,7 @@ jobs:
 
   rpm-packaging:
     needs: [create-version, get-version]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
@@ -143,7 +143,7 @@ jobs:
 
   debian-packaging:
     needs: [create-version, get-version]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ needs.create-version.outputs.imgversion }}
