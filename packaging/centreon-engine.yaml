@@ -16,7 +16,7 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../engine/conf/centengine.cfg.in"
+  - src: "../engine/conf/centengine.cfg"
     dst: "/etc/centreon-engine/centengine.cfg"
     type: config|noreplace
     file_info:
