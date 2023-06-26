@@ -80,9 +80,6 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - dst: "/var/log/centreon-engine/*"
-    type: ghost
-
   - dst: "/var/lib/centreon-engine"
     type: dir
     file_info:
@@ -90,18 +87,12 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - dst: "/var/lib/centreon-engine/*"
-    type: ghost
-
   - dst: "/var/lib/centreon-engine/rw"
     type: dir
     file_info:
       mode: 0775
       owner: centreon-engine
       group: centreon-engine
-
-  - dst: "/var/lib/centreon-engine/rw/*"
-    type: ghost
 
 scripts:
   preinstall: ./scripts/centreon-engine-daemon-preinstall.sh

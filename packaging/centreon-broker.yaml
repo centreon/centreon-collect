@@ -22,9 +22,6 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - dst: "/etc/centreon-broker/*"
-    type: ghost
-
   - dst: "/var/lib/centreon-broker"
     type: dir
     file_info:
@@ -32,18 +29,12 @@ contents:
       owner: centreon-broker
       group: centreon-broker
 
-  - dst: "/var/lib/centreon-broker/*"
-    type: ghost
-
   - dst: "/var/log/centreon-broker"
     type: dir
     file_info:
       mode: 0775
       owner: centreon-broker
       group: centreon-broker
-
-  - dst: "/var/log/centreon-broker/*"
-    type: ghost
 
 scripts:
   preinstall: ./scripts/centreon-broker-preinstall.sh

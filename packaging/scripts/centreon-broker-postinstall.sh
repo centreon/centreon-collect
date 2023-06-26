@@ -9,12 +9,13 @@ if [ "$1" = "configure" ] ; then
     usermod -a -G centreon-broker centreon
     usermod -a -G centreon centreon-broker
   fi
-  chown -R centreon-broker:centreon-broker \
-    /etc/centreon-broker \
-    /var/lib/centreon-broker \
-    /var/log/centreon-broker
-  chmod -R g+w \
-    /etc/centreon-broker \
-    /var/lib/centreon-broker \
-    /var/log/centreon-broker
 fi
+
+chown -R centreon-broker:centreon-broker \
+  /etc/centreon-broker \
+  /var/lib/centreon-broker \
+  /var/log/centreon-broker
+chmod -R g+w \
+  /etc/centreon-broker \
+  /var/lib/centreon-broker \
+  /var/log/centreon-broker
