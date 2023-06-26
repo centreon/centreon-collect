@@ -22,6 +22,13 @@ contents:
     dst: "/etc/logrotate.d/cbd"
     type: config|noreplace
 
+  - dst: /etc/centreon-broker
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-broker
+      group: centreon-broker
+
   - dst: /usr/share/centreon-broker
     type: dir
     file_info:
@@ -46,7 +53,7 @@ contents:
   - dst: /var/log/centreon-broker
     type: dir
     file_info:
-      mode: 0755
+      mode: 0775
       owner: centreon-broker
       group: centreon-broker
 
