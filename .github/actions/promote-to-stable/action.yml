@@ -167,7 +167,6 @@ runs:
 
           METADATAS="METADATAS /srv/centreon-yum/yum.centreon.com/$ROOT_REPO_PATH/${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH"
           INVALIDATION_PATHS="$INVALIDATION_PATHS /$ROOT_REPO_PATH/${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH/*"
-
         done
 
         # Update repository metadata
