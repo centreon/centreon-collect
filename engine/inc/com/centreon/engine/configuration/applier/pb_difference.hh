@@ -32,12 +32,13 @@ using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
 namespace configuration {
 namespace applier {
 template <typename T,
+          typename Key,
           typename Container = ::google::protobuf::RepeatedPtrField<const T>>
 class pb_difference {
   // What are the new objects
   std::vector<T> _added;
   // What index to delete
-  std::vector<ssize_t> _deleted;
+  std::vector<std::pair<ssize_t, Key>> _deleted;
   // A vector of pairs, the pointer to the old one and the new one.
   std::vector<std::pair<T*, T>> _modified;
 
@@ -54,28 +55,30 @@ class pb_difference {
   pb_difference(const pb_difference&) = delete;
   pb_difference& operator=(const pb_difference&) = delete;
   const std::vector<T>& added() const noexcept { return _added; }
-  const std::vector<ssize_t>& deleted() const noexcept { return _deleted; }
+  const std::vector<std::pair<ssize_t, Key>>& deleted() const noexcept {
+    return _deleted;
+  }
   const std::vector<std::pair<T*, T>>& modified() const noexcept {
     return _modified;
   }
 
-  template <typename TF, typename Function>
+  template <typename Function>
   void parse(typename Container::iterator old_first,
              typename Container::iterator old_last,
              typename Container::iterator new_first,
              typename Container::iterator new_last,
              Function f) {
-    absl::flat_hash_map<TF, T*> keys_values;
+    absl::flat_hash_map<Key, T*> keys_values;
     for (auto it = old_first; it != old_last; ++it) {
       const T& item = *it;
-      static_assert(std::is_same<decltype(f(item)), const TF&>::value ||
-                        std::is_same<decltype(f(item)), const TF>::value ||
-                        std::is_same<decltype(f(item)), TF>::value,
-                    "Invalid key function: it must match TF");
+      static_assert(std::is_same<decltype(f(item)), const Key&>::value ||
+                        std::is_same<decltype(f(item)), const Key>::value ||
+                        std::is_same<decltype(f(item)), Key>::value,
+                    "Invalid key function: it must match Key");
       keys_values[f(item)] = const_cast<T*>(&(item));
     }
 
-    absl::flat_hash_set<TF> new_keys;
+    absl::flat_hash_set<Key> new_keys;
     for (auto it = new_first; it != new_last; ++it) {
       const T& item = *it;
       new_keys.insert(f(item));
@@ -95,20 +98,19 @@ class pb_difference {
     for (auto it = old_first; it != old_last; ++it) {
       const T& item = *it;
       if (!new_keys.contains(f(item)))
-        _deleted.push_back(i);
+        _deleted.push_back({i, f(item)});
       ++i;
     }
   }
 
-  template <typename TF>
   void parse(typename Container::iterator old_first,
              typename Container::iterator old_last,
              typename Container::iterator new_first,
              typename Container::iterator new_last,
-             const TF& (T::*key)() const) {
-    std::function<const TF&(const T&)> f = key;
-    parse<TF, std::function<const TF&(const T&)>>(old_first, old_last,
-                                                  new_first, new_last, f);
+             const Key& (T::*key)() const) {
+    std::function<const Key&(const T&)> f = key;
+    parse<std::function<const Key&(const T&)>>(old_first, old_last, new_first,
+                                               new_last, f);
   }
 
   template <typename TF1, typename TF2>
@@ -122,8 +124,7 @@ class pb_difference {
                                                             &key2](const T& t) {
       return std::make_pair((t.*key1)(), (t.*key2)());
     };
-    parse<std::pair<TF1, TF2>,
-          std::function<const std::pair<TF1, TF2>(const T&)>>(
+    parse<std::function<const std::pair<TF1, TF2>(const T&)>>(
         old_first, old_last, new_first, new_last, f);
   }
 };
