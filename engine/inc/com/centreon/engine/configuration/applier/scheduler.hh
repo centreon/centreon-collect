@@ -43,11 +43,14 @@ namespace applier {
  */
 class scheduler {
  public:
-  void apply(configuration::State& config,
-             const pb_difference<configuration::Host>& diff_hosts,
-             const pb_difference<configuration::Service>& diff_services,
-             const pb_difference<configuration::Anomalydetection>&
-                 diff_anomalydetections);
+  void apply(
+      configuration::State& config,
+      const pb_difference<configuration::Host, std::string>& diff_hosts,
+      const pb_difference<configuration::Service,
+                          std::pair<std::string, std::string>>& diff_services,
+      const pb_difference<configuration::Anomalydetection,
+                          std::pair<std::string, std::string>>&
+          diff_anomalydetections);
   void apply(configuration::state& config,
              difference<set_host> const& diff_hosts,
              difference<set_service> const& diff_services,

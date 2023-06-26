@@ -49,9 +49,11 @@ using namespace com::centreon::logging;
  */
 void applier::scheduler::apply(
     configuration::State& config,
-    const pb_difference<configuration::Host>& diff_hosts,
-    const pb_difference<configuration::Service>& diff_services,
-    const pb_difference<configuration::Anomalydetection>&
+    const pb_difference<configuration::Host, std::string>& diff_hosts,
+    const pb_difference<configuration::Service,
+                        std::pair<std::string, std::string>>& diff_services,
+    const pb_difference<configuration::Anomalydetection,
+                        std::pair<std::string, std::string>>&
         diff_anomalydetections) {
   // Internal pointer will be used in private methods.
   _pb_config = &config;
@@ -60,34 +62,41 @@ void applier::scheduler::apply(
   _apply_misc_event();
 
   // Objects set.
-  //  auto hst_to_unschedule = diff_hosts.deleted();
-  //  auto svc_to_unschedule = diff_services.deleted();
-  //  auto ad_to_unschedule = diff_anomalydetections.deleted();
-  //  auto hst_to_schedule = diff_hosts.added();
-  //  auto svc_to_schedule = diff_services.added();
-  //  auto ad_to_schedule = diff_anomalydetections.added();
-  //
-  //  for (set_host::iterator it(diff_hosts.modified().begin()),
-  //       end(diff_hosts.modified().end());
-  //       it != end; ++it) {
-  //    host_map const& hosts{engine::host::hosts};
-  //    host_map::const_iterator hst(hosts.find(it->host_name().c_str()));
-  //    if (hst != hosts.end()) {
-  //      bool has_event(events::loop::instance().find_event(
-  //                         events::loop::low, timed_event::EVENT_HOST_CHECK,
-  //                         hst->second.get()) !=
-  //                     events::loop::instance().list_end(events::loop::low));
-  //      bool should_schedule(it->checks_active() && it->check_interval() > 0);
-  //      if (has_event && should_schedule) {
-  //        hst_to_unschedule.insert(*it);
-  //        hst_to_schedule.insert(*it);
-  //      } else if (!has_event && should_schedule)
-  //        hst_to_schedule.insert(*it);
-  //      else if (has_event && !should_schedule)
-  //        hst_to_unschedule.insert(*it);
-  //      // Else it has no event and should not be scheduled, so do nothing.
-  //    }
-  //  }
+  std::vector<absl::string_view> hst_to_unschedule;
+  for (auto& d : diff_hosts.deleted())
+    hst_to_unschedule.emplace_back(d.second);
+
+  auto svc_to_unschedule = diff_services.deleted();
+  auto ad_to_unschedule = diff_anomalydetections.deleted();
+  std::vector<absl::string_view> hst_to_schedule;
+  for (auto& a : diff_hosts.added())
+    hst_to_schedule.emplace_back(a.host_name());
+
+  auto svc_to_schedule = diff_services.added();
+  auto ad_to_schedule = diff_anomalydetections.added();
+
+  for (auto& m : diff_hosts.modified()) {
+    auto it_hst = engine::host::hosts.find(m.second.host_name());
+    if (it_hst != engine::host::hosts.end()) {
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_HOST_CHECK,
+                         it_hst->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule(m.second.checks_active() &&
+                           m.second.check_interval() > 0);
+      if (has_event && should_schedule) {
+        hst_to_unschedule.emplace_back(m.second.host_name());
+        hst_to_schedule.emplace_back(m.second.host_name());
+      } else if (!has_event && should_schedule)
+        hst_to_schedule.emplace_back(m.second.host_name());
+      else if (has_event && !should_schedule)
+        hst_to_unschedule.emplace_back(m.second.host_name());
+      // Else it has no event and should not be scheduled, so do nothing.
+    }
+  }
+
+  for (auto& m : diff_services.modified()) {
+  }
   //  for (set_service::iterator it(diff_services.modified().begin()),
   //       end(diff_services.modified().end());
   //       it != end; ++it) {

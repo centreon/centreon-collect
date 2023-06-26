@@ -94,8 +94,8 @@ class state {
   state& operator=(state const&);
   void _apply(configuration::state const& new_cfg);
 
-  template <typename ConfigurationType, typename ApplierType>
-  void _pb_apply(const pb_difference<ConfigurationType>& diff);
+  template <typename ConfigurationType, typename Key, typename ApplierType>
+  void _pb_apply(const pb_difference<ConfigurationType, Key>& diff);
 
   template <typename ConfigurationType, typename ApplierType>
   void _apply(difference<std::set<ConfigurationType>> const& diff);
