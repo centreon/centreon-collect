@@ -73,26 +73,25 @@ contents:
   - src: "../lib/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
 
-  - dst: /var/log/centreon-engine
+  - dst: "/var/log/centreon-engine"
     type: dir
     file_info:
       mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
-  - dst: /var/log/centreon-engine/archives
+  - dst: "/var/log/centreon-engine/*"
+    type: ghost
+
+  - dst: "/var/lib/centreon-engine"
     type: dir
     file_info:
       mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
-  - dst: /var/lib/centreon-engine
-    type: dir
-    file_info:
-      mode: 0755
-      owner: centreon-engine
-      group: centreon-engine
+  - dst: "/var/lib/centreon-engine/*"
+    type: ghost
 
   - dst: "/var/lib/centreon-engine/rw"
     type: dir
@@ -100,6 +99,9 @@ contents:
       mode: 0775
       owner: centreon-engine
       group: centreon-engine
+
+  - dst: "/var/lib/centreon-engine/rw/*"
+    type: ghost
 
 scripts:
   preinstall: ./scripts/centreon-engine-daemon-preinstall.sh
