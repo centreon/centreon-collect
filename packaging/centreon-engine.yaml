@@ -70,6 +70,9 @@ contents:
   - src: "../bin/centenginestats"
     dst: "/usr/sbin/centenginestats"
 
+  - src: "../lib/externalcmd.so"
+    dst: "/usr/lib64/centreon-engine/externalcmd.so"
+
   - dst: /var/log/centreon-engine
     type: dir
     file_info:
@@ -84,6 +87,13 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - dst: "/var/lib/centreon-engine/rw"
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-engine
+      group: centreon-engine
+
 scripts:
   preinstall: ./scripts/centreon-engine-preinstall.sh
   postinstall: ./scripts/centreon-engine-postinstall.sh
@@ -95,24 +105,30 @@ overrides:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-devel
     replaces:
       - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-devel
     provides:
       - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-devel
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-dev
     replaces:
       - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-dev
     provides:
       - centreon-engine-daemon
+      - centreon-engine-extcommands
       - centreon-engine-dev
 
 rpm:

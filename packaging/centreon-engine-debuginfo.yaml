@@ -25,12 +25,20 @@ contents:
     file_info:
       mode: 0644
 
+  - src: "../lib/externalcmd.so.debug"
+    dst: "/usr/lib/debug/usr/lib64/centreon-engine/externalcmd.so.debug"
+    file_info:
+      mode: 0644
+
 conflicts:
   - centreon-engine-daemon-debuginfo
+  - centreon-engine-extcommands-debuginfo
 replaces:
   - centreon-engine-daemon-debuginfo
+  - centreon-engine-extcommands-debuginfo
 provides:
   - centreon-engine-daemon-debuginfo
+  - centreon-engine-extcommands-debuginfo
 
 overrides:
   rpm:

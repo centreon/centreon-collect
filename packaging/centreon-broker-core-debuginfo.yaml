@@ -15,10 +15,20 @@ homepage: "https://centreon.com"
 license: "Apache-2.0"
 
 contents:
-  - src: "../lib/{10-neb,15-stats,20-bam,50-tcp,50-grpc,60-tls,70-lua,80-sql}.so.debug"
+  - src: "../lib/{10-neb,15-stats,20-bam,20-storage,20-unified_sql,50-tcp,50-grpc,60-tls,70-rrd,70-lua,80-sql}.so.debug"
     dst: "/usr/lib/debug/usr/share/centreon/lib/centreon-broker/"
     file_info:
       mode: 0644
+
+conflicts:
+  - centreon-broker-debuginfo
+  - centreon-broker-storage-debuginfo
+replaces:
+  - centreon-broker-debuginfo
+  - centreon-broker-storage-debuginfo
+provides:
+  - centreon-broker-debuginfo
+  - centreon-broker-storage-debuginfo
 
 overrides:
   rpm:
