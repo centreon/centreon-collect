@@ -28,22 +28,29 @@ CCE_BEGIN()
 
 // Forward declaration.
 namespace configuration {
+class State;
 class state;
-}
+}  // namespace configuration
 
 namespace retention {
 namespace applier {
 class host {
- public:
-  void apply(configuration::state const& config,
-             list_host const& lst,
-             bool scheduling_info_is_ok);
-
- private:
+  void _update(const configuration::State& config,
+               const retention::host& state,
+               engine::host& obj,
+               bool scheduling_info_is_ok);
   void _update(configuration::state const& config,
                retention::host const& state,
                engine::host& obj,
                bool scheduling_info_is_ok);
+
+ public:
+  void apply(const configuration::State& config,
+             const list_host& lst,
+             bool scheduling_info_is_ok);
+  void apply(configuration::state const& config,
+             list_host const& lst,
+             bool scheduling_info_is_ok);
 };
 }  // namespace applier
 }  // namespace retention
