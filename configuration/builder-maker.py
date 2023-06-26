@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.9
+#!/usr/bin/env python3
 #
 # Copyright 2022-2023 Centreon (https://www.centreon.com/)
 #
@@ -893,7 +893,36 @@ def build_hook_content(cname: str, msg):
   else if (key == "saturday")
     return get_timerange(value, obj->mutable_timeranges()->mutable_saturday());
 """)
-        elif m['proto_name'] == 'notification_options':
+        elif cname == 'Host' and m['proto_name'] == 'notification_options':
+            retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
+    uint16_t options(action_svc_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {{
+     absl::string_view v = absl::StripAsciiWhitespace(*it);
+      if (v == "d" || v == "down")
+        options |= action_hst_down;
+      else if (v == "u" || v == "unreachable")
+        options |= action_hst_unreachable;
+      else if (v == "r" || v == "recovery")
+        options |= action_hst_up;
+      else if (v == "f" || v == "flapping")
+        options |= action_hst_flapping;
+      else if (v == "s" || v == "downtime")
+        options |= action_hst_downtime;
+      else if (v == "n" || v == "none")
+        options = action_hst_none;
+      else if (v == "a" || v == "all")
+        options = action_hst_down | action_hst_unreachable |
+                  action_hst_up |
+                  action_hst_flapping | action_hst_downtime;
+      else
+        return false;
+    }}
+    obj->set_notification_options(options);
+    return true;
+  }}
+""")
+        elif (cname == 'Service' or cname == 'Anomalydetection') and m['proto_name'] == 'notification_options':
             retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
@@ -1012,8 +1041,8 @@ def build_check_validity(cname: str, msg):
           throw msg_fmt("Services must have a non-empty description");
         if (o->check_command().empty())
           throw msg_fmt("Service '{}' has an empty check command", o->service_description());
-        if (o->hosts().data().empty() && o->hostgroups().data().empty())
-          throw msg_fmt("Service '{}' must contain at least one of the fields 'hosts' or 'hostgroups' not empty", o->service_description());
+        if (o->host_name().empty())
+          throw msg_fmt("Service '{}' must contain one host name", o->service_description());
       }
 """)
     elif cname == "Servicedependency":
