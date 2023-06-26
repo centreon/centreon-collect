@@ -193,6 +193,7 @@ ANO_DT1
 	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
 	Clear Retention
 	Clear Db  services
+	Clear Db    downtimes
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
@@ -229,6 +230,7 @@ ANO_DT2
 	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
 	Clear Retention
 	Clear Db  services
+	Clear Db    downtimes
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
@@ -270,6 +272,7 @@ ANO_DT3
 	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
 	Clear Retention
 	Clear Db  services
+	Clear Db    downtimes
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
@@ -313,6 +316,7 @@ ANO_DT4
 	Create Anomaly Threshold File  /tmp/anomaly_threshold.json  ${1}  ${serv_id}  metric  ${predict_data}
 	Clear Retention
 	Clear Db  services
+	Clear Db    downtimes
 	Start Broker
 	${start}=	Get Current Date
 	Start Engine
