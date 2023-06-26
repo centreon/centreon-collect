@@ -111,6 +111,7 @@ overrides:
   rpm:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
+      - centreon-engine = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-devel
@@ -123,6 +124,7 @@ overrides:
   deb:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev
