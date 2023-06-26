@@ -68,9 +68,11 @@ class pb_difference {
     absl::flat_hash_map<TF, T*> keys_values;
     for (auto it = old_first; it != old_last; ++it) {
       const T& item = *it;
-      //      static_assert(std::is_same_v<decltype(f(item)), TF>,
-      //                    "Invalid key function");
-      keys_values[f(item)] = const_cast<T*>(&(*it));
+      static_assert(std::is_same<decltype(f(item)), const TF&>::value ||
+                        std::is_same<decltype(f(item)), const TF>::value ||
+                        std::is_same<decltype(f(item)), TF>::value,
+                    "Invalid key function: it must match TF");
+      keys_values[f(item)] = const_cast<T*>(&(item));
     }
 
     absl::flat_hash_set<TF> new_keys;

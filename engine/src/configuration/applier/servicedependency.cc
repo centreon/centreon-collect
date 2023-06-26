@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
+#include "absl/numeric/int128.h"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -34,26 +35,31 @@ namespace com {
 namespace centreon {
 namespace engine {
 namespace configuration {
+// template<typename H>
+// H AbslHashValue(H h, const Servicedependency& sd) {
+//   h = H::combine(std::move(h),
+//       sd.dependency_period(), sd.dependency_type(),
+//       sd.execution_failure_options(), sd.inherits_parent(),
+//       sd.notification_failure_options());
+//   h = H::combine_contiguous(std::move(h),
+// }
+
 size_t servicedependency_key(const Servicedependency& sd) {
-  return absl::HashOf(
-      sd.dependency_period(), sd.dependency_type(),
-      sd.dependent_hostgroups().data(0), sd.dependent_hosts().data(0),
-      sd.dependent_servicegroups().data(0), sd.service_description().data(0),
-      sd.dependent_service_description().data(0),
-      sd.execution_failure_options(), sd.inherits_parent(),
-      sd.hostgroups().data(0), sd.notification_failure_options(),
-      sd.servicegroups().data(0));
+  return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
+                      sd.hosts().data(0), sd.service_description().data(0),
+                      sd.dependent_hosts().data(0),
+                      sd.dependent_service_description().data(0),
+                      sd.execution_failure_options(), sd.inherits_parent(),
+                      sd.notification_failure_options());
 }
 
 size_t servicedependency_key_l(const servicedependency& sd) {
-  return absl::HashOf(
-      sd.dependency_period(), sd.dependency_type(),
-      *sd.dependent_hostgroups().begin(), *sd.dependent_hosts().begin(),
-      *sd.dependent_servicegroups().begin(), *sd.service_description().begin(),
-      *sd.dependent_service_description().begin(),
-      sd.execution_failure_options(), sd.inherits_parent(),
-      *sd.hostgroups().begin(), sd.notification_failure_options(),
-      *sd.servicegroups().begin());
+  return absl::HashOf(sd.dependency_period(), sd.dependency_type(),
+                      *sd.hosts().begin(), *sd.service_description().begin(),
+                      *sd.dependent_hosts().begin(),
+                      *sd.dependent_service_description().begin(),
+                      sd.execution_failure_options(), sd.inherits_parent(),
+                      sd.notification_failure_options());
 }
 
 }  // namespace configuration
