@@ -66,13 +66,21 @@ class scheduler {
   scheduler& operator=(scheduler const&) = delete;
   void _pb_apply_misc_event();
   void _apply_misc_event();
+  void _pb_calculate_host_inter_check_delay(
+      const configuration::InterCheckDelay& method);
   void _calculate_host_inter_check_delay(
       configuration::state::inter_check_delay method);
+  void _pb_calculate_host_scheduling_params();
   void _calculate_host_scheduling_params();
+  void _pb_calculate_service_inter_check_delay(
+      const configuration::InterCheckDelay& method);
   void _calculate_service_inter_check_delay(
       configuration::state::inter_check_delay method);
+  void _pb_calculate_service_interleave_factor(
+      const configuration::InterleaveFactor& method);
   void _calculate_service_interleave_factor(
       configuration::state::interleave_factor method);
+  void _pb_calculate_service_scheduling_params();
   void _calculate_service_scheduling_params();
   timed_event* _create_misc_event(int type,
                                   time_t start,
