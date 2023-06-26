@@ -62,8 +62,9 @@ class scheduler {
  private:
   scheduler();
   scheduler(scheduler const&) = delete;
-  ~scheduler() noexcept;
+  ~scheduler() noexcept = default;
   scheduler& operator=(scheduler const&) = delete;
+  void _pb_apply_misc_event();
   void _apply_misc_event();
   void _calculate_host_inter_check_delay(
       configuration::state::inter_check_delay method);
