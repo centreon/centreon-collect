@@ -161,6 +161,7 @@ runs:
           echo "[DEBUG] - Promoting $ARCH testing artifacts to stable."
           ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" mkdir -p "$TARGET_PATH"
           for ARTIFACT in ${SRC_PATHS[@]}; do
+            echo "[DEBUG] - Promoting $ARTIFACT to $TARGET_PATH."
             #ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" cp $ARTIFACT $TARGET_PATH/
           done
 
