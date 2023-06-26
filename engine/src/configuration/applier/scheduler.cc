@@ -30,6 +30,7 @@
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/logging/logger.hh"
 #include "configuration/state-generated.pb.h"
+#include "configuration/state.pb.h"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
@@ -49,11 +50,11 @@ using namespace com::centreon::logging;
  */
 void applier::scheduler::apply(
     configuration::State& config,
-    const pb_difference<configuration::Host, std::string>& diff_hosts,
-    const pb_difference<configuration::Service,
-                        std::pair<std::string, std::string>>& diff_services,
+    const pb_difference<configuration::Host, uint64_t>& diff_hosts,
+    const pb_difference<configuration::Service, std::pair<uint64_t, uint64_t>>&
+        diff_services,
     const pb_difference<configuration::Anomalydetection,
-                        std::pair<std::string, std::string>>&
+                        std::pair<uint64_t, uint64_t>>&
         diff_anomalydetections) {
   // Internal pointer will be used in private methods.
   _pb_config = &config;
@@ -62,18 +63,29 @@ void applier::scheduler::apply(
   _apply_misc_event();
 
   // Objects set.
-  std::vector<absl::string_view> hst_to_unschedule;
+  std::vector<uint64_t> hst_to_unschedule;
   for (auto& d : diff_hosts.deleted())
     hst_to_unschedule.emplace_back(d.second);
 
-  auto svc_to_unschedule = diff_services.deleted();
-  auto ad_to_unschedule = diff_anomalydetections.deleted();
-  std::vector<absl::string_view> hst_to_schedule;
-  for (auto& a : diff_hosts.added())
-    hst_to_schedule.emplace_back(a.host_name());
+  std::vector<std::pair<uint64_t, uint64_t>> svc_to_unschedule;
+  for (auto& d : diff_services.deleted())
+    svc_to_unschedule.emplace_back(d.second);
 
-  auto svc_to_schedule = diff_services.added();
-  auto ad_to_schedule = diff_anomalydetections.added();
+  std::vector<std::pair<uint64_t, uint64_t>> ad_to_unschedule;
+  for (auto& d : diff_anomalydetections.deleted())
+    ad_to_unschedule.emplace_back(d.second);
+
+  std::vector<uint64_t> hst_to_schedule;
+  for (auto& a : diff_hosts.added())
+    hst_to_schedule.emplace_back(a.host_id());
+
+  std::vector<std::pair<uint64_t, uint64_t>> svc_to_schedule;
+  for (auto& a : diff_services.added())
+    svc_to_schedule.emplace_back(a.host_id(), a.service_id());
+
+  std::vector<std::pair<uint64_t, uint64_t>> ad_to_schedule;
+  for (auto& a : diff_anomalydetections.added())
+    ad_to_schedule.emplace_back(a.host_id(), a.service_id());
 
   for (auto& m : diff_hosts.modified()) {
     auto it_hst = engine::host::hosts.find(m.second.host_name());
@@ -85,136 +97,129 @@ void applier::scheduler::apply(
       bool should_schedule(m.second.checks_active() &&
                            m.second.check_interval() > 0);
       if (has_event && should_schedule) {
-        hst_to_unschedule.emplace_back(m.second.host_name());
-        hst_to_schedule.emplace_back(m.second.host_name());
+        hst_to_unschedule.emplace_back(m.second.host_id());
+        hst_to_schedule.emplace_back(m.second.host_id());
       } else if (!has_event && should_schedule)
-        hst_to_schedule.emplace_back(m.second.host_name());
+        hst_to_schedule.emplace_back(m.second.host_id());
       else if (has_event && !should_schedule)
-        hst_to_unschedule.emplace_back(m.second.host_name());
+        hst_to_unschedule.emplace_back(m.second.host_id());
       // Else it has no event and should not be scheduled, so do nothing.
     }
   }
 
   for (auto& m : diff_services.modified()) {
+    auto it_svc = engine::service::services_by_id.find(
+        {m.second.host_id(), m.second.service_id()});
+    if (it_svc != engine::service::services_by_id.end()) {
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         it_svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule(m.second.checks_active() &&
+                           (m.second.check_interval() > 0));
+      if (has_event && should_schedule) {
+        svc_to_unschedule.emplace_back(m.second.host_id(),
+                                       m.second.service_id());
+        svc_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      } else if (!has_event && should_schedule)
+        svc_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      else if (has_event && !should_schedule)
+        svc_to_unschedule.emplace_back(m.second.host_id(),
+                                       m.second.service_id());
+      // Else it has no event and should not be scheduled, so do nothing.
+    }
   }
-  //  for (set_service::iterator it(diff_services.modified().begin()),
-  //       end(diff_services.modified().end());
-  //       it != end; ++it) {
-  //    service_id_map const& services(engine::service::services_by_id);
-  //    service_id_map::const_iterator svc(engine::service::services_by_id.find(
-  //        {it->host_id(), it->service_id()}));
-  //    if (svc != services.end()) {
-  //      bool has_event(events::loop::instance().find_event(
-  //                         events::loop::low,
-  //                         timed_event::EVENT_SERVICE_CHECK,
-  //                         svc->second.get()) !=
-  //                     events::loop::instance().list_end(events::loop::low));
-  //      bool should_schedule(it->checks_active() && (it->check_interval() >
-  //      0)); if (has_event && should_schedule) {
-  //        svc_to_unschedule.insert(*it);
-  //        svc_to_schedule.insert(*it);
-  //      } else if (!has_event && should_schedule)
-  //        svc_to_schedule.insert(*it);
-  //      else if (has_event && !should_schedule)
-  //        svc_to_unschedule.insert(*it);
-  //      // Else it has no event and should not be scheduled, so do nothing.
-  //    }
-  //  }
-  //
-  //  for (set_anomalydetection::iterator
-  //           it(diff_anomalydetections.modified().begin()),
-  //       end(diff_anomalydetections.modified().end());
-  //       it != end; ++it) {
-  //    service_id_map const& services(engine::service::services_by_id);
-  //    service_id_map::const_iterator svc(engine::service::services_by_id.find(
-  //        {it->host_id(), it->service_id()}));
-  //    if (svc != services.end()) {
-  //      bool has_event(events::loop::instance().find_event(
-  //                         events::loop::low,
-  //                         timed_event::EVENT_SERVICE_CHECK,
-  //                         svc->second.get()) !=
-  //                     events::loop::instance().list_end(events::loop::low));
-  //      bool should_schedule(it->checks_active() && (it->check_interval() >
-  //      0)); if (has_event && should_schedule) {
-  //        ad_to_unschedule.insert(*it);
-  //        ad_to_schedule.insert(*it);
-  //      } else if (!has_event && should_schedule)
-  //        ad_to_schedule.insert(*it);
-  //      else if (has_event && !should_schedule)
-  //        ad_to_unschedule.insert(*it);
-  //      // Else it has no event and should not be scheduled, so do nothing.
-  //    }
-  //  }
-  //
-  //  // Remove deleted host check from the scheduler.
-  //  {
-  //    std::vector<com::centreon::engine::host*> old_hosts =
-  //        _get_hosts(hst_to_unschedule, false);
-  //    _unschedule_host_events(old_hosts);
-  //  }
-  //
-  //  // Remove deleted service check from the scheduler.
-  //  {
-  //    std::vector<engine::service*> old_services =
-  //        _get_services(svc_to_unschedule, false);
-  //    _unschedule_service_events(old_services);
-  //  }
-  //
-  //  // Remove deleted anomalydetection check from the scheduler.
-  //  {
-  //    std::vector<engine::service*> old_anomalydetections =
-  //        _get_anomalydetections(ad_to_unschedule, false);
-  //    _unschedule_service_events(old_anomalydetections);
-  //  }
-  //  // Check if we need to add or modify objects into the scheduler.
-  //  if (!hst_to_schedule.empty() || !svc_to_schedule.empty() ||
-  //      !ad_to_schedule.empty()) {
-  //    // Reset scheduling info.
-  //    // Keep data that has been set manually by the user
-  //    // (service interleave and intercheck delays).
-  //    int old_service_leave_factor =
-  //    scheduling_info.service_interleave_factor; double
-  //    old_service_inter_check_delay =
-  //        scheduling_info.service_inter_check_delay;
-  //    double old_host_inter_check_delay_method =
-  //        scheduling_info.host_inter_check_delay;
-  //    memset(&scheduling_info, 0, sizeof(scheduling_info));
-  //    if (config.service_interleave_factor_method() ==
-  //        configuration::state::ilf_user)
-  //      scheduling_info.service_interleave_factor = old_service_leave_factor;
-  //    if (config.service_inter_check_delay_method() ==
-  //        configuration::state::icd_user)
-  //      scheduling_info.service_inter_check_delay =
-  //      old_service_inter_check_delay;
-  //    if (config.host_inter_check_delay_method() ==
-  //        configuration::state::icd_user)
-  //      scheduling_info.host_inter_check_delay =
-  //          old_host_inter_check_delay_method;
-  //
-  //    // Calculate scheduling parameters.
-  //    _calculate_host_scheduling_params();
-  //    _calculate_service_scheduling_params();
-  //
-  //    // Get and schedule new hosts.
-  //    {
-  //      std::vector<com::centreon::engine::host*> new_hosts =
-  //          _get_hosts(hst_to_schedule, true);
-  //      _schedule_host_events(new_hosts);
-  //    }
-  //
-  //    // Get and schedule new services and anomalydetections.
-  //    {
-  //      std::vector<engine::service*> new_services =
-  //          _get_services(svc_to_schedule, true);
-  //      std::vector<engine::service*> new_anomalydetections =
-  //          _get_anomalydetections(ad_to_schedule, true);
-  //      new_services.insert(
-  //          new_services.end(),
-  //          std::make_move_iterator(new_anomalydetections.begin()),
-  //          std::make_move_iterator(new_anomalydetections.end()));
-  //      _schedule_service_events(new_services);
-  //    }
-  //  }
+
+  for (auto& m : diff_anomalydetections.modified()) {
+    auto it_svc = engine::service::services_by_id.find(
+        {m.second.host_id(), m.second.service_id()});
+    if (it_svc != engine::service::services_by_id.end()) {
+      bool has_event(events::loop::instance().find_event(
+                         events::loop::low, timed_event::EVENT_SERVICE_CHECK,
+                         it_svc->second.get()) !=
+                     events::loop::instance().list_end(events::loop::low));
+      bool should_schedule =
+          m.second.checks_active() && m.second.check_interval() > 0;
+      if (has_event && should_schedule) {
+        ad_to_unschedule.emplace_back(m.second.host_id(),
+                                      m.second.service_id());
+        ad_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      } else if (!has_event && should_schedule)
+        ad_to_schedule.emplace_back(m.second.host_id(), m.second.service_id());
+      else if (has_event && !should_schedule)
+        ad_to_unschedule.emplace_back(m.second.host_id(),
+                                      m.second.service_id());
+      // Else it has no event and should not be scheduled, so do nothing.
+    }
+  }
+
+  // Remove deleted host check from the scheduler.
+  {
+    std::vector<com::centreon::engine::host*> old_hosts =
+        _get_hosts(hst_to_unschedule, false);
+    _unschedule_host_events(old_hosts);
+  }
+
+  // Remove deleted service check from the scheduler.
+  {
+    std::vector<engine::service*> old_services =
+        _get_services(svc_to_unschedule, false);
+    _unschedule_service_events(old_services);
+  }
+
+  // Remove deleted anomalydetection check from the scheduler.
+  {
+    std::vector<engine::service*> old_anomalydetections =
+        _get_anomalydetections(ad_to_unschedule, false);
+    _unschedule_service_events(old_anomalydetections);
+  }
+  // Check if we need to add or modify objects into the scheduler.
+  if (!hst_to_schedule.empty() || !svc_to_schedule.empty() ||
+      !ad_to_schedule.empty()) {
+    // Reset scheduling info.
+    // Keep data that has been set manually by the user
+    // (service interleave and intercheck delays).
+    int old_service_leave_factor = scheduling_info.service_interleave_factor;
+    double old_service_inter_check_delay =
+        scheduling_info.service_inter_check_delay;
+    double old_host_inter_check_delay_method =
+        scheduling_info.host_inter_check_delay;
+    memset(&scheduling_info, 0, sizeof(scheduling_info));
+    if (config.service_interleave_factor_method() ==
+        configuration::InterleaveFactor::ilf_user)
+      scheduling_info.service_interleave_factor = old_service_leave_factor;
+    if (config.service_inter_check_delay_method().type() ==
+        configuration::InterCheckDelay::user)
+      scheduling_info.service_inter_check_delay = old_service_inter_check_delay;
+    if (config.host_inter_check_delay_method().type() ==
+        configuration::InterCheckDelay::user)
+      scheduling_info.host_inter_check_delay =
+          old_host_inter_check_delay_method;
+
+    // Calculate scheduling parameters.
+    _calculate_host_scheduling_params();
+    _calculate_service_scheduling_params();
+
+    // Get and schedule new hosts.
+    {
+      std::vector<com::centreon::engine::host*> new_hosts =
+          _get_hosts(hst_to_schedule, true);
+      _schedule_host_events(new_hosts);
+    }
+
+    // Get and schedule new services and anomalydetections.
+    {
+      std::vector<engine::service*> new_services =
+          _get_services(svc_to_schedule, true);
+      std::vector<engine::service*> new_anomalydetections =
+          _get_anomalydetections(ad_to_schedule, true);
+      new_services.insert(
+          new_services.end(),
+          std::make_move_iterator(new_anomalydetections.begin()),
+          std::make_move_iterator(new_anomalydetections.end()));
+      _schedule_service_events(new_services);
+    }
+  }
 }
 
 /**
@@ -977,6 +982,29 @@ timed_event* applier::scheduler::_create_misc_event(int type,
 /**
  *  Get engine hosts struct with configuration hosts objects.
  *
+ *  @param[in]  hst_ids             The list of host IDs to get.
+ *  @param[in]  throw_if_not_found  Flag to throw if an host is not
+ *                                  found.
+ */
+std::vector<com::centreon::engine::host*> applier::scheduler::_get_hosts(
+    const std::vector<uint64_t>& hst_ids,
+    bool throw_if_not_found) {
+  std::vector<engine::host*> retval;
+  for (auto host_id : hst_ids) {
+    auto it_hst = engine::host::hosts_by_id.find(host_id);
+    if (it_hst == engine::host::hosts_by_id.end()) {
+      if (throw_if_not_found)
+        throw engine_error()
+            << "Could not schedule non-existing host with ID " << host_id;
+    } else
+      retval.push_back(it_hst->second.get());
+  }
+  return retval;
+}
+
+/**
+ *  Get engine hosts struct with configuration hosts objects.
+ *
  *  @param[in]  hst_cfg             The list of configuration hosts objects.
  *  @param[out] hst_obj             The list of engine hosts to fill.
  *  @param[in]  throw_if_not_found  Flag to throw if an host is not
@@ -999,6 +1027,32 @@ std::vector<com::centreon::engine::host*> applier::scheduler::_get_hosts(
             << "Could not schedule non-existing host '" << host_name << "'";
     } else
       retval.push_back(&*hst->second);
+  }
+  return retval;
+}
+
+/**
+ *  Get engine services struct with configuration services objects.
+ *
+ *  @param[in]  svc_ids             The list of configuration service IDs
+ * objects.
+ *  @param[in]  throw_if_not_found  Flag to throw if an host is not
+ *                                  found.
+ *  @return a vector of services.
+ */
+std::vector<com::centreon::engine::service*> applier::scheduler::_get_services(
+    const std::vector<std::pair<uint64_t, uint64_t>>& svc_ids,
+    bool throw_if_not_found) {
+  std::vector<com::centreon::engine::service*> retval;
+  for (auto& p : svc_ids) {
+    service_id_map::const_iterator it_svc =
+        engine::service::services_by_id.find({p.first, p.second});
+    if (it_svc == engine::service::services_by_id.end()) {
+      if (throw_if_not_found)
+        throw engine_error() << fmt::format(
+            "Cannot schedule non-existing service ({},{})", p.first, p.second);
+    } else
+      retval.push_back(it_svc->second.get());
   }
   return retval;
 }
@@ -1029,6 +1083,33 @@ std::vector<com::centreon::engine::service*> applier::scheduler::_get_services(
             << "' on host '" << host_name << "'";
     } else
       retval.push_back(svc->second.get());
+  }
+  return retval;
+}
+
+/**
+ *  Get engine services struct with configuration services objects.
+ *
+ *  @param[in]  svc_cfg             The list of configuration services objects.
+ *  @param[in]  throw_if_not_found  Flag to throw if an host is not
+ *                                  found.
+ *  @return a vector of services.
+ */
+std::vector<com::centreon::engine::service*>
+applier::scheduler::_get_anomalydetections(
+    const std::vector<std::pair<uint64_t, uint64_t>>& ad_ids,
+    bool throw_if_not_found) {
+  std::vector<engine::service*> retval;
+  for (auto& p : ad_ids) {
+    service_id_map::const_iterator it_svc =
+        engine::service::services_by_id.find({p.first, p.second});
+    if (it_svc == engine::service::services_by_id.end()) {
+      if (throw_if_not_found)
+        throw engine_error() << fmt::format(
+            "Cannot schedule non-existing anomalydetection ({},{})", p.first,
+            p.second);
+    } else
+      retval.push_back(it_svc->second.get());
   }
   return retval;
 }
