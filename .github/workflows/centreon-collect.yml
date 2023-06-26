@@ -286,11 +286,10 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
-          cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
           update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
           cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
           yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
           yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
           yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
