@@ -1470,10 +1470,10 @@ void applier::state::_processing(configuration::State& new_cfg,
       &configuration::Contactgroup::contactgroup_name);
 
   // Build difference for hosts.
-  pb_difference<configuration::Host, std::string> diff_hosts;
+  pb_difference<configuration::Host, uint64_t> diff_hosts;
   diff_hosts.parse(pb_config.hosts().begin(), pb_config.hosts().end(),
                    new_cfg.hosts().begin(), new_cfg.hosts().end(),
-                   &configuration::Host::host_name);
+                   &configuration::Host::host_id);
 
   // Build difference for hostgroups.
   pb_difference<configuration::Hostgroup, std::string> diff_hostgroups;
@@ -1483,23 +1483,24 @@ void applier::state::_processing(configuration::State& new_cfg,
       &configuration::Hostgroup::hostgroup_name);
 
   // Build difference for services.
-  pb_difference<configuration::Service, std::pair<std::string, std::string>>
+  pb_difference<configuration::Service, std::pair<uint64_t, uint64_t>>
       diff_services;
   diff_services.parse(pb_config.services().begin(), pb_config.services().end(),
                       new_cfg.services().begin(), new_cfg.services().end(),
-                      &configuration::Service::host_name,
-                      &configuration::Service::service_description);
+                      [](const configuration::Service& s) {
+                        return std::make_pair(s.host_id(), s.service_id());
+                      });
 
   // Build difference for anomalydetections.
-  pb_difference<configuration::Anomalydetection,
-                std::pair<std::string, std::string>>
+  pb_difference<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>>
       diff_anomalydetections;
   diff_anomalydetections.parse(
       pb_config.anomalydetections().begin(),
       pb_config.anomalydetections().end(), new_cfg.anomalydetections().begin(),
       new_cfg.anomalydetections().end(),
-      &configuration::Anomalydetection::host_name,
-      &configuration::Anomalydetection::service_description);
+      [](const configuration::Anomalydetection& ad) {
+        return std::make_pair(ad.host_id(), ad.service_id());
+      });
 
   // Build difference for servicegroups.
   pb_difference<configuration::Servicegroup, std::string> diff_servicegroups;
@@ -1617,18 +1618,17 @@ void applier::state::_processing(configuration::State& new_cfg,
         diff_tags);
 
     // Apply hosts and hostgroups.
-    _pb_apply<configuration::Host, std::string, applier::host>(diff_hosts);
+    _pb_apply<configuration::Host, uint64_t, applier::host>(diff_hosts);
     _pb_apply<configuration::Hostgroup, std::string, applier::hostgroup>(
         diff_hostgroups);
 
     // Apply services.
-    _pb_apply<configuration::Service, std::pair<std::string, std::string>,
+    _pb_apply<configuration::Service, std::pair<uint64_t, uint64_t>,
               applier::service>(diff_services);
 
     // Apply anomalydetections.
-    _pb_apply<configuration::Anomalydetection,
-              std::pair<std::string, std::string>, applier::anomalydetection>(
-        diff_anomalydetections);
+    _pb_apply<configuration::Anomalydetection, std::pair<uint64_t, uint64_t>,
+              applier::anomalydetection>(diff_anomalydetections);
 
     // Apply servicegroups.
     _pb_apply<configuration::Servicegroup, std::string, applier::servicegroup>(
