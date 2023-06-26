@@ -197,8 +197,8 @@ void applier::scheduler::apply(
           old_host_inter_check_delay_method;
 
     // Calculate scheduling parameters.
-    _calculate_host_scheduling_params();
-    _calculate_service_scheduling_params();
+    _pb_calculate_host_scheduling_params();
+    _pb_calculate_service_scheduling_params();
 
     // Get and schedule new hosts.
     {

@@ -465,7 +465,7 @@ state::state()
       _poller_name(default_poller_name),
       _poller_id{0},
       _grpc_port{0},
-      _rpc_listen_address{default_rpc_listen_address},
+      _rpc_listen_address(default_rpc_listen_address),
       _process_performance_data(default_process_performance_data),
       _retained_contact_host_attribute_mask(
           default_retained_contact_host_attribute_mask),
