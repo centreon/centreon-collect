@@ -107,26 +107,37 @@ class pb_difference {
              typename Container::iterator old_last,
              typename Container::iterator new_first,
              typename Container::iterator new_last,
+             Key (T::*key)() const) {
+    std::function<Key(const T&)> f = key;
+    parse<std::function<Key(const T&)>>(old_first, old_last, new_first,
+                                        new_last, f);
+  }
+
+  void parse(typename Container::iterator old_first,
+             typename Container::iterator old_last,
+             typename Container::iterator new_first,
+             typename Container::iterator new_last,
              const Key& (T::*key)() const) {
     std::function<const Key&(const T&)> f = key;
     parse<std::function<const Key&(const T&)>>(old_first, old_last, new_first,
                                                new_last, f);
   }
 
-  template <typename TF1, typename TF2>
-  void parse(typename Container::iterator old_first,
-             typename Container::iterator old_last,
-             typename Container::iterator new_first,
-             typename Container::iterator new_last,
-             const TF1& (T::*key1)() const,
-             const TF2& (T::*key2)() const) {
-    std::function<const std::pair<TF1, TF2>(const T&)> f = [&key1,
-                                                            &key2](const T& t) {
-      return std::make_pair((t.*key1)(), (t.*key2)());
-    };
-    parse<std::function<const std::pair<TF1, TF2>(const T&)>>(
-        old_first, old_last, new_first, new_last, f);
-  }
+  //  template <typename TF1, typename TF2>
+  //  void parse(typename Container::iterator old_first,
+  //             typename Container::iterator old_last,
+  //             typename Container::iterator new_first,
+  //             typename Container::iterator new_last,
+  //             TF1 (T::*key1)() const,
+  //             TF2 (T::*key2)() const) {
+  //    std::function<const std::pair<TF1, TF2>(const T&)> f = [&key1,
+  //                                                            &key2](const T&
+  //                                                            t) {
+  //      return std::make_pair((t.*key1)(), (t.*key2)());
+  //    };
+  //    parse<std::function<const std::pair<TF1, TF2>(const T&)>>(
+  //        old_first, old_last, new_first, new_last, f);
+  //  }
 };
 }  // namespace applier
 }  // namespace configuration
