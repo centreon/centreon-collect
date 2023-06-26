@@ -17,69 +17,69 @@ on:
         type: string
 
 jobs:
-  package-rpm:
-    runs-on: [self-hosted, collect]
+  # package-rpm:
+  #   runs-on: [self-hosted, collect]
 
-    strategy:
-      matrix:
-        include:
-          - image: alma8
-            distrib: el8
-          - image: alma9
-            distrib: el9
-    name: package ${{ matrix.distrib }}
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - image: alma8
+  #           distrib: el8
+  #         - image: alma9
+  #           distrib: el9
+  #   name: package ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v3
 
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  #     - name: Login to Registry
+  #       uses: docker/login-action@v2
+  #       with:
+  #         registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         username: ${{ secrets.DOCKER_REGISTRY_ID }}
+  #         password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: package rpm ${{ matrix.image }}
-        run: |
-          docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \
-            -v "$PWD:/src" \
-            -e DISTRIB="${{ matrix.distrib }}" \
-            -e VERSION="${{ inputs.version }}" \
-            -e RELEASE="${{ inputs.release }}" \
-            -e COMMIT_HASH="${{ inputs.commit_hash }}" \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.image }}:${{ inputs.img_version }}
-        shell: bash
+  #     - name: package rpm ${{ matrix.image }}
+  #       run: |
+  #         docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \
+  #           -v "$PWD:/src" \
+  #           -e DISTRIB="${{ matrix.distrib }}" \
+  #           -e VERSION="${{ inputs.version }}" \
+  #           -e RELEASE="${{ inputs.release }}" \
+  #           -e COMMIT_HASH="${{ inputs.commit_hash }}" \
+  #           ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.image }}:${{ inputs.img_version }}
+  #       shell: bash
 
-      - name: sign rpm ${{ matrix.image }}
-        uses: ./.github/actions/package-sign
-        with:
-          script_name: rpm-signing
-          image_name: rpm-signing
-          image_version: ubuntu
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  #     - name: sign rpm ${{ matrix.image }}
+  #       uses: ./.github/actions/package-sign
+  #       with:
+  #         script_name: rpm-signing
+  #         image_name: rpm-signing
+  #         image_version: ubuntu
+  #         registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+  #         registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+  #         registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: Cache RPM files
-        uses: actions/cache@v3
-        with:
-          path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+  #     - name: Cache RPM files
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: ./*.rpm
+  #         key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
-      - name: Cleaning not needed rpm packages
-        shell: bash
-        run: |
-          rm -rf *-devel*.rpm
-          rm -rf *-debuginfo*.rpm
-          rm -rf *-debugsource*.rpm
+  #     - name: Cleaning not needed rpm packages
+  #       shell: bash
+  #       run: |
+  #         rm -rf *-devel*.rpm
+  #         rm -rf *-debuginfo*.rpm
+  #         rm -rf *-debugsource*.rpm
 
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: packages-rpm-${{ matrix.distrib }}
-          path: ./*.rpm
-          retention-days: 1
+  #     - name: Upload package artifacts
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: packages-rpm-${{ matrix.distrib }}
+  #         path: ./*.rpm
+  #         retention-days: 1
 
   package-deb:
     runs-on: [self-hosted, collect]
@@ -117,3 +117,10 @@ jobs:
         with:
           path: ./*.deb
           key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-deb-${{ matrix.distrib }}
+          path: ./*.deb
+          retention-days: 1
