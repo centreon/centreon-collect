@@ -53,10 +53,10 @@ jobs:
             image: centreon-collect-alma9
             package_extension: rpm
             arch: amd64
-          # - distrib: el9
-          #   image: centreon-collect-alma9-mysql
-          #   package_extension: rpm
-          #   arch: amd64
+          - distrib: el9
+            image: centreon-collect-alma9-mysql
+            package_extension: rpm
+            arch: amd64
           - distrib: debian-bullseye
             image: centreon-collect-debian-bullseye
             package_extension: deb
