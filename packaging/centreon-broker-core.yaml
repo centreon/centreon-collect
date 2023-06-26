@@ -46,13 +46,13 @@ overrides:
       - gnutls >= 3.3.29
     conflicts:
       - centreon-broker-storage
-      - centreon-broker-devel
+      - centreon-broker-core-devel
     replaces:
       - centreon-broker-storage
-      - centreon-broker-devel
+      - centreon-broker-core-devel
     provides:
       - centreon-broker-storage
-      - centreon-broker-devel
+      - centreon-broker-core-devel
   deb:
     depends:
       - lua5.3
@@ -62,13 +62,13 @@ overrides:
       - libgnutls30
     conflicts:
       - centreon-broker-storage
-      - centreon-broker-dev
+      - centreon-broker-core-dev
     replaces:
       - centreon-broker-storage
-      - centreon-broker-dev
+      - centreon-broker-core-dev
     provides:
       - centreon-broker-storage
-      - centreon-broker-dev
+      - centreon-broker-core-dev
 
 rpm:
   summary: Centreon Broker's shared library.

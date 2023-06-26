@@ -48,13 +48,10 @@ overrides:
       - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
       - centreon-common
     conflicts:
-      - centreon-broker-storage
       - centreon-broker-devel
     replaces:
-      - centreon-broker-storage
       - centreon-broker-devel
     provides:
-      - centreon-broker-storage
       - centreon-broker-devel
   deb:
     depends:
@@ -62,13 +59,10 @@ overrides:
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
       - centreon-common
     conflicts:
-      - centreon-broker-storage
       - centreon-broker-dev
     replaces:
-      - centreon-broker-storage
       - centreon-broker-dev
     provides:
-      - centreon-broker-storage
       - centreon-broker-dev
 
 rpm:

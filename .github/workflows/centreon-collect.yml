@@ -48,6 +48,7 @@ jobs:
     runs-on: [self-hosted, collect]
 
     strategy:
+      fail-fast: false
       matrix:
         image: [alma8, alma9, debian-bullseye]
     name: unit test ${{ matrix.image }}
