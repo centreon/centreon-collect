@@ -165,10 +165,8 @@ void service_helper::check_validity() const {
       throw msg_fmt("Service '{}' has an empty check command",
                     o->service_description());
     if (o->host_name().empty())
-      throw msg_fmt(
-          "Service '{}' must contain at least one of the fields 'hosts' or "
-          "'hostgroups' not empty",
-          o->service_description());
+      throw msg_fmt("Service '{}' must contain one host name",
+                    o->service_description());
   }
 }
 
