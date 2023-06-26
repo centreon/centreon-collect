@@ -29,18 +29,22 @@ class contact;
 // Forward declaration.
 namespace configuration {
 class state;
-}
+class State;
+}  // namespace configuration
 
 namespace retention {
 namespace applier {
 class contact {
- public:
-  void apply(configuration::state const& config, list_contact const& lst);
-
- private:
+  void _update(const configuration::State& config,
+               retention::contact const& state,
+               com::centreon::engine::contact* obj);
   void _update(configuration::state const& config,
                retention::contact const& state,
                com::centreon::engine::contact* obj);
+
+ public:
+  void apply(const configuration::State& config, const list_contact& lst);
+  void apply(configuration::state const& config, list_contact const& lst);
 };
 }  // namespace applier
 }  // namespace retention

@@ -120,10 +120,6 @@ void applier::host::add_object(const configuration::Host& obj) {
 
   // add tags
   for (auto& t : obj.tags()) {
-    //  for (std::set<std::pair<uint64_t, uint16_t>>::iterator
-    //           it = obj.tags().begin(),
-    //           end = obj.tags().end();
-    //       it != end; ++it) {
     auto p = std::make_pair(t.first(), t.second());
     tag_map::iterator it_tag{engine::tag::tags.find(p)};
     if (it_tag == engine::tag::tags.end())

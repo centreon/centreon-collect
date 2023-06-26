@@ -30,6 +30,15 @@ class state;
 
 namespace applier {
 class service {
+  void _expand_service_memberships(configuration::service& obj,
+                                   configuration::state& s);
+  void _expand_service_memberships(configuration::Service& obj,
+                                   configuration::State& s);
+  void _inherits_special_vars(configuration::Service& obj,
+                              const configuration::State& s);
+  void _inherits_special_vars(configuration::service& obj,
+                              configuration::state const& s);
+
  public:
   service() = default;
   service(const service&) = delete;
@@ -46,16 +55,6 @@ class service {
   void remove_object(configuration::service const& obj);
   void resolve_object(const configuration::Service& obj);
   void resolve_object(configuration::service const& obj);
-
- private:
-  void _expand_service_memberships(configuration::service& obj,
-                                   configuration::state& s);
-  void _expand_service_memberships(configuration::Service& obj,
-                                   configuration::State& s);
-  void _inherits_special_vars(configuration::Service& obj,
-                              const configuration::State& s);
-  void _inherits_special_vars(configuration::service& obj,
-                              configuration::state const& s);
 };
 }  // namespace applier
 }  // namespace configuration

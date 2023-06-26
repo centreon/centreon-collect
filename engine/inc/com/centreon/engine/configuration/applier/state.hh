@@ -99,6 +99,7 @@ class state {
 
   template <typename ConfigurationType, typename ApplierType>
   void _apply(difference<std::set<ConfigurationType>> const& diff);
+  void _pb_apply(configuration::State& new_cfg, retention::state& state);
   void _apply(configuration::state& new_cfg, retention::state& state);
 
   template <typename ConfigurationType, typename ApplierType>
