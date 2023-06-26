@@ -27,12 +27,14 @@ namespace com::centreon::engine {
 // Forward declaration.
 namespace configuration {
 class state;
-}
+class State;
+}  // namespace configuration
 
 namespace retention {
 namespace applier {
 class program {
  public:
+  void apply(configuration::State& config, retention::program const& obj);
   void apply(configuration::state& config, retention::program const& obj);
 
  private:

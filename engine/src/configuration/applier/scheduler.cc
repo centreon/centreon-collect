@@ -29,11 +29,184 @@
 #include "com/centreon/engine/timezone_locker.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/logging/logger.hh"
+#include "configuration/state-generated.pb.h"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::logging;
+
+/**
+ *  Apply new configuration.
+ *
+ *  @param[in] config        The new configuration.
+ *  @param[in] diff_hosts    The difference between old and the
+ *                           new host configuration.
+ *  @param[in] diff_services The difference between old and the
+ *                           new service configuration.
+ *  @param[in] diff_anomalydetections The difference between old and the
+ *                           new cwanomalydetectionservice configuration.
+ */
+void applier::scheduler::apply(
+    configuration::State& config,
+    const pb_difference<configuration::Host>& diff_hosts,
+    const pb_difference<configuration::Service>& diff_services,
+    const pb_difference<configuration::Anomalydetection>&
+        diff_anomalydetections) {
+  // Internal pointer will be used in private methods.
+  _pb_config = &config;
+
+  // Remove and create misc event.
+  _apply_misc_event();
+
+  // Objects set.
+  //  auto hst_to_unschedule = diff_hosts.deleted();
+  //  auto svc_to_unschedule = diff_services.deleted();
+  //  auto ad_to_unschedule = diff_anomalydetections.deleted();
+  //  auto hst_to_schedule = diff_hosts.added();
+  //  auto svc_to_schedule = diff_services.added();
+  //  auto ad_to_schedule = diff_anomalydetections.added();
+  //
+  //  for (set_host::iterator it(diff_hosts.modified().begin()),
+  //       end(diff_hosts.modified().end());
+  //       it != end; ++it) {
+  //    host_map const& hosts{engine::host::hosts};
+  //    host_map::const_iterator hst(hosts.find(it->host_name().c_str()));
+  //    if (hst != hosts.end()) {
+  //      bool has_event(events::loop::instance().find_event(
+  //                         events::loop::low, timed_event::EVENT_HOST_CHECK,
+  //                         hst->second.get()) !=
+  //                     events::loop::instance().list_end(events::loop::low));
+  //      bool should_schedule(it->checks_active() && it->check_interval() > 0);
+  //      if (has_event && should_schedule) {
+  //        hst_to_unschedule.insert(*it);
+  //        hst_to_schedule.insert(*it);
+  //      } else if (!has_event && should_schedule)
+  //        hst_to_schedule.insert(*it);
+  //      else if (has_event && !should_schedule)
+  //        hst_to_unschedule.insert(*it);
+  //      // Else it has no event and should not be scheduled, so do nothing.
+  //    }
+  //  }
+  //  for (set_service::iterator it(diff_services.modified().begin()),
+  //       end(diff_services.modified().end());
+  //       it != end; ++it) {
+  //    service_id_map const& services(engine::service::services_by_id);
+  //    service_id_map::const_iterator svc(engine::service::services_by_id.find(
+  //        {it->host_id(), it->service_id()}));
+  //    if (svc != services.end()) {
+  //      bool has_event(events::loop::instance().find_event(
+  //                         events::loop::low,
+  //                         timed_event::EVENT_SERVICE_CHECK,
+  //                         svc->second.get()) !=
+  //                     events::loop::instance().list_end(events::loop::low));
+  //      bool should_schedule(it->checks_active() && (it->check_interval() >
+  //      0)); if (has_event && should_schedule) {
+  //        svc_to_unschedule.insert(*it);
+  //        svc_to_schedule.insert(*it);
+  //      } else if (!has_event && should_schedule)
+  //        svc_to_schedule.insert(*it);
+  //      else if (has_event && !should_schedule)
+  //        svc_to_unschedule.insert(*it);
+  //      // Else it has no event and should not be scheduled, so do nothing.
+  //    }
+  //  }
+  //
+  //  for (set_anomalydetection::iterator
+  //           it(diff_anomalydetections.modified().begin()),
+  //       end(diff_anomalydetections.modified().end());
+  //       it != end; ++it) {
+  //    service_id_map const& services(engine::service::services_by_id);
+  //    service_id_map::const_iterator svc(engine::service::services_by_id.find(
+  //        {it->host_id(), it->service_id()}));
+  //    if (svc != services.end()) {
+  //      bool has_event(events::loop::instance().find_event(
+  //                         events::loop::low,
+  //                         timed_event::EVENT_SERVICE_CHECK,
+  //                         svc->second.get()) !=
+  //                     events::loop::instance().list_end(events::loop::low));
+  //      bool should_schedule(it->checks_active() && (it->check_interval() >
+  //      0)); if (has_event && should_schedule) {
+  //        ad_to_unschedule.insert(*it);
+  //        ad_to_schedule.insert(*it);
+  //      } else if (!has_event && should_schedule)
+  //        ad_to_schedule.insert(*it);
+  //      else if (has_event && !should_schedule)
+  //        ad_to_unschedule.insert(*it);
+  //      // Else it has no event and should not be scheduled, so do nothing.
+  //    }
+  //  }
+  //
+  //  // Remove deleted host check from the scheduler.
+  //  {
+  //    std::vector<com::centreon::engine::host*> old_hosts =
+  //        _get_hosts(hst_to_unschedule, false);
+  //    _unschedule_host_events(old_hosts);
+  //  }
+  //
+  //  // Remove deleted service check from the scheduler.
+  //  {
+  //    std::vector<engine::service*> old_services =
+  //        _get_services(svc_to_unschedule, false);
+  //    _unschedule_service_events(old_services);
+  //  }
+  //
+  //  // Remove deleted anomalydetection check from the scheduler.
+  //  {
+  //    std::vector<engine::service*> old_anomalydetections =
+  //        _get_anomalydetections(ad_to_unschedule, false);
+  //    _unschedule_service_events(old_anomalydetections);
+  //  }
+  //  // Check if we need to add or modify objects into the scheduler.
+  //  if (!hst_to_schedule.empty() || !svc_to_schedule.empty() ||
+  //      !ad_to_schedule.empty()) {
+  //    // Reset scheduling info.
+  //    // Keep data that has been set manually by the user
+  //    // (service interleave and intercheck delays).
+  //    int old_service_leave_factor =
+  //    scheduling_info.service_interleave_factor; double
+  //    old_service_inter_check_delay =
+  //        scheduling_info.service_inter_check_delay;
+  //    double old_host_inter_check_delay_method =
+  //        scheduling_info.host_inter_check_delay;
+  //    memset(&scheduling_info, 0, sizeof(scheduling_info));
+  //    if (config.service_interleave_factor_method() ==
+  //        configuration::state::ilf_user)
+  //      scheduling_info.service_interleave_factor = old_service_leave_factor;
+  //    if (config.service_inter_check_delay_method() ==
+  //        configuration::state::icd_user)
+  //      scheduling_info.service_inter_check_delay =
+  //      old_service_inter_check_delay;
+  //    if (config.host_inter_check_delay_method() ==
+  //        configuration::state::icd_user)
+  //      scheduling_info.host_inter_check_delay =
+  //          old_host_inter_check_delay_method;
+  //
+  //    // Calculate scheduling parameters.
+  //    _calculate_host_scheduling_params();
+  //    _calculate_service_scheduling_params();
+  //
+  //    // Get and schedule new hosts.
+  //    {
+  //      std::vector<com::centreon::engine::host*> new_hosts =
+  //          _get_hosts(hst_to_schedule, true);
+  //      _schedule_host_events(new_hosts);
+  //    }
+  //
+  //    // Get and schedule new services and anomalydetections.
+  //    {
+  //      std::vector<engine::service*> new_services =
+  //          _get_services(svc_to_schedule, true);
+  //      std::vector<engine::service*> new_anomalydetections =
+  //          _get_anomalydetections(ad_to_schedule, true);
+  //      new_services.insert(
+  //          new_services.end(),
+  //          std::make_move_iterator(new_anomalydetections.begin()),
+  //          std::make_move_iterator(new_anomalydetections.end()));
+  //      _schedule_service_events(new_services);
+  //    }
+  //  }
+}
 
 /**
  *  Apply new configuration.

@@ -21,8 +21,11 @@
 #define CCE_CONFIGURATION_APPLIER_SCHEDULER_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
+#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "configuration/state-generated.pb.h"
+#include "configuration/state.pb.h"
 
 // Forward declaration.
 namespace com::centreon::engine {
@@ -40,6 +43,11 @@ namespace applier {
  */
 class scheduler {
  public:
+  void apply(configuration::State& config,
+             const pb_difference<configuration::Host>& diff_hosts,
+             const pb_difference<configuration::Service>& diff_services,
+             const pb_difference<configuration::Anomalydetection>&
+                 diff_anomalydetections);
   void apply(configuration::state& config,
              difference<set_host> const& diff_hosts,
              difference<set_service> const& diff_services,
@@ -87,6 +95,7 @@ class scheduler {
       std::vector<engine::service*> const& services);
 
   configuration::state* _config;
+  configuration::State* _pb_config;
   timed_event* _evt_check_reaper;
   timed_event* _evt_command_check;
   timed_event* _evt_hfreshness_check;

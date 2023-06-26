@@ -18,12 +18,14 @@
 */
 
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
+#include "absl/strings/string_view.h"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "configuration/message_helper.hh"
 
 using namespace com::centreon::engine::configuration;
 
@@ -52,18 +54,20 @@ void applier::serviceescalation::add_object(
   se_cfg->CopyFrom(obj);
 
   if (obj.uuid().value().size() != 16)
-    throw engine_error() << "The service escalation uuid field must contain an array of bytes of size 16";
+    throw engine_error() << "The service escalation uuid field must contain an "
+                            "array of bytes of size 16";
 
   const auto& bytes = obj.uuid().value();
 
-  boost::uuids::uuid u{static_cast<uint8_t>(bytes[0]), static_cast<uint8_t>(bytes[1]),
-       static_cast<uint8_t>(bytes[2]), static_cast<uint8_t>(bytes[3]),
-       static_cast<uint8_t>(bytes[4]), static_cast<uint8_t>(bytes[5]),
-       static_cast<uint8_t>(bytes[6]), static_cast<uint8_t>(bytes[7]),
-       static_cast<uint8_t>(bytes[8]), static_cast<uint8_t>(bytes[9]),
-       static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
-       static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
-       static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
+  boost::uuids::uuid u{
+      static_cast<uint8_t>(bytes[0]),  static_cast<uint8_t>(bytes[1]),
+      static_cast<uint8_t>(bytes[2]),  static_cast<uint8_t>(bytes[3]),
+      static_cast<uint8_t>(bytes[4]),  static_cast<uint8_t>(bytes[5]),
+      static_cast<uint8_t>(bytes[6]),  static_cast<uint8_t>(bytes[7]),
+      static_cast<uint8_t>(bytes[8]),  static_cast<uint8_t>(bytes[9]),
+      static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
+      static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
+      static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
   // Create service escalation.
   auto se = std::make_shared<engine::serviceescalation>(
       obj.hosts().data()[0], obj.service_description().data()[0],
@@ -170,6 +174,72 @@ void applier::serviceescalation::add_object(
  *
  *  @param[in,out] s  Configuration being applied.
  */
+void applier::serviceescalation::expand_objects(configuration::State& s) {
+  std::list<std::unique_ptr<Serviceescalation>> resolved;
+  // Browse all escalations.
+  log_v2::config()->debug("Expanding service escalations");
+
+  for (auto& se : *s.mutable_serviceescalations()) {
+    if (se.hostgroups().data().size() > 0) {
+      absl::flat_hash_set<absl::string_view> host_names;
+      for (auto& hname : se.hosts().data())
+        host_names.emplace(hname);
+      for (auto& hg_name : se.hostgroups().data()) {
+        auto found_hg =
+            std::find_if(s.hostgroups().begin(), s.hostgroups().end(),
+                         [&hg_name](const Hostgroup& hg) {
+                           return hg.hostgroup_name() == hg_name;
+                         });
+        if (found_hg != s.hostgroups().end()) {
+          for (auto& h : found_hg->members().data())
+            host_names.emplace(h);
+        } else
+          throw engine_error() << fmt::format(
+              "Could not expand non-existing host group '{}'", hg_name);
+      }
+
+      absl::flat_hash_set<std::pair<absl::string_view, absl::string_view>>
+          expanded;
+      for (auto& hn : host_names) {
+        for (auto& sn : se.service_description().data())
+          expanded.emplace(hn, sn);
+      }
+
+      for (auto& sg_name : se.servicegroups().data()) {
+        auto found =
+            std::find_if(s.servicegroups().begin(), s.servicegroups().end(),
+                         [&sg_name](const Servicegroup& sg) {
+                           return sg.servicegroup_name() == sg_name;
+                         });
+        if (found == s.servicegroups().end())
+          throw engine_error()
+              << fmt::format("Could not resolve service group '{}'", sg_name);
+
+        for (auto& m : found->members().data())
+          expanded.emplace(m.first(), m.second());
+      }
+      se.mutable_hostgroups()->clear_data();
+      se.mutable_hosts()->clear_data();
+      se.mutable_servicegroups()->clear_data();
+      for (auto& p : expanded) {
+        resolved.emplace_back(std::make_unique<Serviceescalation>());
+        auto& e = resolved.back();
+        e->CopyFrom(se);
+        fill_string_group(e->mutable_hosts(), p.first);
+        fill_string_group(e->mutable_service_description(), p.second);
+      }
+    }
+  }
+  s.clear_serviceescalations();
+  for (auto& e : resolved)
+    s.mutable_serviceescalations()->AddAllocated(e.release());
+}
+
+/**
+ *  Expand all service escalations.
+ *
+ *  @param[in,out] s  Configuration being applied.
+ */
 void applier::serviceescalation::expand_objects(configuration::state& s) {
   // Browse all escalations.
   engine_logger(logging::dbg_config, logging::more)
@@ -234,12 +304,12 @@ void applier::serviceescalation::modify_object(
  *  @param[in] obj  The service escalation to remove from the monitoring
  *                  engine.
  */
-void applier::serviceescalation::remove_object(
-    ssize_t idx) {
+void applier::serviceescalation::remove_object(ssize_t idx) {
   // Logging.
   log_v2::config()->debug("Removing a service escalation.");
 
-  configuration::Serviceescalation& obj = pb_config.mutable_serviceescalations()->at(idx);
+  configuration::Serviceescalation& obj =
+      pb_config.mutable_serviceescalations()->at(idx);
   // Find service escalation.
   const std::string& host_name{obj.hosts().data()[0]};
   const std::string& description{obj.service_description().data()[0]};
@@ -260,14 +330,15 @@ void applier::serviceescalation::remove_object(
     service_exists = true;
 
   const auto& bytes = obj.uuid().value();
-  boost::uuids::uuid u{static_cast<uint8_t>(bytes[0]), static_cast<uint8_t>(bytes[1]),
-       static_cast<uint8_t>(bytes[2]), static_cast<uint8_t>(bytes[3]),
-       static_cast<uint8_t>(bytes[4]), static_cast<uint8_t>(bytes[5]),
-       static_cast<uint8_t>(bytes[6]), static_cast<uint8_t>(bytes[7]),
-       static_cast<uint8_t>(bytes[8]), static_cast<uint8_t>(bytes[9]),
-       static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
-       static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
-       static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
+  boost::uuids::uuid u{
+      static_cast<uint8_t>(bytes[0]),  static_cast<uint8_t>(bytes[1]),
+      static_cast<uint8_t>(bytes[2]),  static_cast<uint8_t>(bytes[3]),
+      static_cast<uint8_t>(bytes[4]),  static_cast<uint8_t>(bytes[5]),
+      static_cast<uint8_t>(bytes[6]),  static_cast<uint8_t>(bytes[7]),
+      static_cast<uint8_t>(bytes[8]),  static_cast<uint8_t>(bytes[9]),
+      static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
+      static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
+      static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
   for (serviceescalation_mmap::iterator it = range.first, end = range.second;
        it != end; ++it) {
     if (it->second->uuid() == u) {
@@ -286,8 +357,10 @@ void applier::serviceescalation::remove_object(
         std::list<escalation*>& srv_escalations =
             sit->second->get_escalations();
         /* We need also to remove the escalation from the service */
-        srv_escalations.remove_if([my_escal=it->second.get()](const escalation* e) {
-          return e == my_escal; });
+        srv_escalations.remove_if(
+            [my_escal = it->second.get()](const escalation* e) {
+              return e == my_escal;
+            });
       }
 
       // Remove escalation from the global configuration set.

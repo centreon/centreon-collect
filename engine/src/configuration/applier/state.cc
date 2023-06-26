@@ -68,56 +68,6 @@ using namespace com::centreon::engine::logging;
 
 static bool has_already_been_loaded(false);
 
-void applier::state::apply_ng(const configuration::State& new_cfg) {
-  //  configuration::DiffState dstate = build_difference(pb_config, new_cfg);
-  //  configuration::applier::timeperiod tp_aply;
-  //  configuration::applier::connector cn_aply;
-  //  configuration::applier::command cmd_aply;
-  //  configuration::applier::contact ct_aply;
-  //
-  //  for (const PathWithValue& pv : dstate.to_add()) {
-  //    switch (pv.val().value_case()) {
-  //      case Value::kValueB:
-  //        break;
-  //      case Value::kValueI32:
-  //        break;
-  //      case Value::kValueTr:
-  //        // A Timerange is added.
-  //        assert(8716 == 10129);
-  //        // tr_aply.add_object(pv.val().value_tr());
-  //        break;
-  //      case Value::kValueDr:
-  //        // A Daterange is added.
-  //        assert(8717 == 10130);
-  //        // dr_aply.add_object(pv.val().value_dr());
-  //        break;
-  //      case Value::kValueTp:
-  //        // A Timeperiod is added.
-  //        // tp_aply.add_object(pv.path(), pv.val().value_tp());
-  //        break;
-  //      case Value::kValueCn:
-  //        // A Connector is added.
-  //        cn_aply.add_object(pv.val().value_cn());
-  //        break;
-  //      case Value::kValueCo:
-  //        // A Command is added.
-  //        cmd_aply.add_object(pv.val().value_co());
-  //        break;
-  //      case Value::kValueCv:
-  //        // A CustomVariable is added.
-  //        assert(71 == 109);
-  //        // cv_aply.add_object(pv.val().value_cv());
-  //        break;
-  //      case Value::kValueCt:
-  //        // A Contact is added.
-  //        ct_aply.add_object(pv.val().value_ct());
-  //        break;
-  //      default:
-  //        assert(12 == 1111);
-  //    }
-  //  }
-}
-
 /**
  *  Apply new configuration.
  *
@@ -1323,6 +1273,27 @@ void applier::state::_check_hosts() const {
  *  @param[in] new_cfg New configuration set.
  *  @param[in] state   The retention state to use.
  */
+void applier::state::_pb_apply(configuration::State& new_cfg,
+                               retention::state& state) {
+  retention::applier::state app_state;
+  if (!verify_config)
+    app_state.apply(new_cfg, state);
+  else {
+    try {
+      app_state.apply(new_cfg, state);
+    } catch (std::exception const& e) {
+      ++config_errors;
+      std::cout << e.what();
+    }
+  }
+}
+
+/**
+ *  Apply retention.
+ *
+ *  @param[in] new_cfg New configuration set.
+ *  @param[in] state   The retention state to use.
+ */
 void applier::state::_apply(configuration::state& new_cfg,
                             retention::state& state) {
   retention::applier::state app_state;
@@ -1385,7 +1356,7 @@ void applier::state::_expand(configuration::state& new_state) {
  *  @param[in] state          The retention to use.
  */
 void applier::state::_processing(configuration::State& new_cfg,
-                                 retention::state* /*state*/) {
+                                 retention::state* state) {
   // Timing.
   struct timeval tv[5];
 
@@ -1439,8 +1410,8 @@ void applier::state::_processing(configuration::State& new_cfg,
   _expand<configuration::Hostescalation, applier::hostescalation>(new_cfg);
 
   // Expand serviceescalations.
-  //  _expand<configuration::Serviceescalation, applier::serviceescalation>(
-  //      new_cfg);
+  _expand<configuration::Serviceescalation, applier::serviceescalation>(
+      new_cfg);
 
   //
   //  Build difference for all objects.
@@ -1628,11 +1599,10 @@ void applier::state::_processing(configuration::State& new_cfg,
     _pb_resolve<configuration::Contact, applier::contact>(pb_config.contacts());
 
     // Apply severities.
-    //    _pb_apply<configuration::Severity,
-    //    applier::severity>(diff_severities);
+    _pb_apply<configuration::Severity, applier::severity>(diff_severities);
 
     // Apply tags.
-    //    _pb_apply<configuration::Tag, applier::tag>(diff_tags);
+    _pb_apply<configuration::Tag, applier::tag>(diff_tags);
 
     // Apply hosts and hostgroups.
     _pb_apply<configuration::Host, applier::host>(diff_hosts);
@@ -1641,33 +1611,32 @@ void applier::state::_processing(configuration::State& new_cfg,
     // Apply services.
     _pb_apply<configuration::Service, applier::service>(diff_services);
 
-//    // Apply anomalydetections.
-//    _apply<configuration::anomalydetection, applier::anomalydetection>(
-//        diff_anomalydetections);
-//
-//    // Apply servicegroups.
-//    _apply<configuration::servicegroup, applier::servicegroup>(
-//        diff_servicegroups);
-//
-//    // Resolve hosts, services, host groups.
-//    _resolve<configuration::host, applier::host>(config->hosts());
-//    _resolve<configuration::hostgroup, applier::hostgroup>(
-//        config->hostgroups());
-//
-//    // Resolve services.
-//    _resolve<configuration::service,
-//    applier::service>(config->services());
-//
-//    // Resolve anomalydetections.
-//    _resolve<configuration::anomalydetection, applier::anomalydetection>(
-//        config->anomalydetections());
-//
-//    // Resolve service groups.
-//    _resolve<configuration::servicegroup, applier::servicegroup>(
-//        config->servicegroups());
-//
-//    // Apply host dependencies.
-//    _apply<configuration::hostdependency, applier::hostdependency>(
+    // Apply anomalydetections.
+    _pb_apply<configuration::Anomalydetection, applier::anomalydetection>(
+        diff_anomalydetections);
+
+    // Apply servicegroups.
+    _pb_apply<configuration::Servicegroup, applier::servicegroup>(
+        diff_servicegroups);
+
+    // Resolve hosts, services, host groups.
+    _pb_resolve<configuration::Host, applier::host>(pb_config.hosts());
+    _pb_resolve<configuration::Hostgroup, applier::hostgroup>(
+        pb_config.hostgroups());
+
+    // Resolve services.
+    _pb_resolve<configuration::Service, applier::service>(pb_config.services());
+
+    // Resolve anomalydetections.
+    _pb_resolve<configuration::Anomalydetection, applier::anomalydetection>(
+        pb_config.anomalydetections());
+
+    // Resolve service groups.
+    _pb_resolve<configuration::Servicegroup, applier::servicegroup>(
+        pb_config.servicegroups());
+
+    // Apply host dependencies.
+//    _pb_apply<configuration::Hostdependency, applier::hostdependency>(
 //        diff_hostdependencies);
 //    _resolve<configuration::hostdependency, applier::hostdependency>(
 //        config->hostdependencies());
@@ -1693,9 +1662,8 @@ void applier::state::_processing(configuration::State& new_cfg,
 //        config->serviceescalations());
 //
 #ifdef DEBUG_CONFIG
-    std::cout << "WARNING!! You are using a version of "
-                 "centreon engine for developers!!!"
-                 " This is not a production version.";
+    std::cout << "WARNING!! You are using a version of Centreon Engine for "
+                 "developers!!! This is not a production version.";
     // Checks on configuration
     _check_serviceescalations();
     _check_hostescalations();
@@ -1704,17 +1672,16 @@ void applier::state::_processing(configuration::State& new_cfg,
     _check_services();
     _check_hosts();
 #endif
-    //
-    //    // Load retention.
-    //    if (state)
-    //      _apply(new_cfg, *state);
-    //
-    //    // Apply scheduler.
-    //    if (!verify_config)
-    //      applier::scheduler::instance().apply(new_cfg, diff_hosts,
-    //      diff_services,
-    //                                           diff_anomalydetections);
-    //
+
+    // Load retention.
+    if (state)
+      _pb_apply(new_cfg, *state);
+
+    // Apply scheduler.
+    if (!verify_config)
+      applier::scheduler::instance().apply(new_cfg, diff_hosts, diff_services,
+                                           diff_anomalydetections);
+
     //    // Apply new global on the current state.
     //    if (!verify_config)
     //      _apply(new_cfg);

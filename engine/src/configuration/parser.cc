@@ -318,47 +318,6 @@ void parser::_parse_directory_configuration(std::string const& path) {
     _parse_object_definitions(it->path());
 }
 
-static bool fill_pair_string_group(PairStringSet* grp,
-                                   const absl::string_view& value) {
-  auto arr = absl::StrSplit(value, ',');
-
-  bool first = true;
-  auto itfirst = arr.begin();
-  if (itfirst == arr.end())
-    return true;
-
-  do {
-    auto itsecond = itfirst;
-    ++itsecond;
-    if (itsecond == arr.end())
-      return false;
-    absl::string_view v1 = absl::StripAsciiWhitespace(*itfirst);
-    absl::string_view v2 = absl::StripAsciiWhitespace(*itsecond);
-    if (first) {
-      if (v1[0] == '+') {
-        grp->set_additive(true);
-        v1 = v1.substr(1);
-      }
-      first = false;
-    }
-    bool found = false;
-    for (auto& m : grp->data()) {
-      if (*itfirst == m.first() && *itsecond == m.second()) {
-        found = true;
-        break;
-      }
-    }
-    if (!found) {
-      auto* p = grp->mutable_data()->Add();
-      p->set_first(v1.data(), v1.size());
-      p->set_second(v2.data(), v2.size());
-    }
-    itfirst = itsecond;
-    ++itfirst;
-  } while (itfirst != arr.end());
-  return true;
-}
-
 bool set_global(std::unique_ptr<message_helper>& helper,
                 const absl::string_view& key,
                 const absl::string_view& value) {

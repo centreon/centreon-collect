@@ -413,8 +413,8 @@ void applier::service::modify_object(configuration::Service* old_obj,
 
   s->set_hostname(new_obj.host_name());
   s->set_description(new_obj.service_description());
-  s->set_display_name(new_obj.display_name()),
-      s->set_check_command(new_obj.check_command());
+  s->set_display_name(new_obj.display_name());
+  s->set_check_command(new_obj.check_command());
   s->set_event_handler(new_obj.event_handler());
   s->set_event_handler_enabled(new_obj.event_handler_enabled());
   s->set_initial_state(

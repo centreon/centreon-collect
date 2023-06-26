@@ -20,7 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH
 #define CCE_CONFIGURATION_APPLIER_SERVICEESCALATION_HH
 
-#include "configuration/state-generated.pb.h"
+#include "configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -48,6 +48,7 @@ class serviceescalation {
   serviceescalation& operator=(const serviceescalation&) = delete;
   void add_object(const configuration::serviceescalation& obj);
   void add_object(const configuration::Serviceescalation& obj);
+  void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
   void modify_object(const configuration::serviceescalation& obj);
   void remove_object(const configuration::serviceescalation& obj);
