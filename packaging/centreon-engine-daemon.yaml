@@ -73,10 +73,45 @@ contents:
   - src: "../lib/externalcmd.so"
     dst: "/usr/lib64/centreon-engine/externalcmd.so"
 
-  - src: "./files/centengine.debug"
-    dst: "/var/log/centreon-engine/centengine.debug"
+  - dst: "/etc/centreon-engine"
+    type: dir
     file_info:
-      mode: 664
+      mode: 0775
+      owner: centreon-engine
+      group: centreon-engine
+
+  - dst: "/etc/centreon-engine/conf.d"
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-engine
+      group: centreon-engine
+
+  - dst: "/var/log/centreon-engine"
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
+  - dst: "/var/lib/centreon-engine"
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
+  - dst: "/var/lib/centreon-engine/rw"
+    type: dir
+    file_info:
+      mode: 0775
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "./files/empty"
+    dst: "/var/lib/centreon-engine/rw/empty"
+    file_info:
+      mode: 644
       owner: centreon-engine
       group: centreon-engine
 
