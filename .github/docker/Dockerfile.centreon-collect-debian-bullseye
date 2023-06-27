@@ -34,6 +34,7 @@ apt-get -y install cmake \
     strace \
     locales \
     rrdtool \
+    rrdcached \
     zstd \
     sudo
 

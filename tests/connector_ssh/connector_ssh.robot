@@ -69,7 +69,7 @@ Test6Hosts
 *** Keywords ***
 Prepare ssh and start engine
     [Documentation]    in order to test ssh connector, we need to create a user, his password and his Keyword
-    Run    useradd testconnssh
+    Run    useradd -m -d /home/testconnssh testconnssh
     Remove File    ~testconnssh/.ssh/authorized_keys
     Run    echo testconnssh:passwd | chpasswd
     Run    su testconnssh -c "ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y"
