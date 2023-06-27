@@ -18,7 +18,6 @@ license: "Apache-2.0"
 contents:
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/centengine.debug"
-    type: config|noreplace
     file_info:
       mode: 755
       owner: centreon-engine
@@ -26,7 +25,6 @@ contents:
 
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/centengine.log"
-    type: config|noreplace
     file_info:
       mode: 755
       owner: centreon-engine
@@ -34,7 +32,6 @@ contents:
 
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/retention.dat"
-    type: config|noreplace
     file_info:
       mode: 755
       owner: centreon-engine
@@ -42,7 +39,6 @@ contents:
 
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/status.dat"
-    type: config|noreplace
     file_info:
       mode: 755
       owner: centreon-engine
