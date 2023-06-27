@@ -1951,78 +1951,74 @@ void applier::state::_processing(configuration::State& new_cfg,
       }
     }
 
-    //    // Timing.
-    //    gettimeofday(tv + 3, nullptr);
-    //
-    //    // Check for circular paths between hosts.
-    //    pre_flight_circular_check(&config_warnings, &config_errors);
-    //
-    //    // Call start broker event the first time to run applier state.
-    //    if (!has_already_been_loaded) {
-    //      neb_load_all_modules();
-    //
-    //      broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
-    //    } else
-    //      neb_reload_all_modules();
-    //
-    //    // Print initial states of new hosts and services.
-    //    if (!verify_config && !test_scheduling) {
-    //      for (set_host::iterator it(diff_hosts.added().begin()),
-    //           end(diff_hosts.added().end());
-    //           it != end; ++it) {
-    //        host_id_map::const_iterator hst(
-    //            engine::host::hosts_by_id.find(it->host_id()));
-    //        if (hst != engine::host::hosts_by_id.end())
-    //          log_host_state(INITIAL_STATES, hst->second.get());
-    //      }
-    //      for (set_service::iterator it(diff_services.added().begin()),
-    //           end(diff_services.added().end());
-    //           it != end; ++it) {
-    //        service_id_map::const_iterator
-    //        svc(engine::service::services_by_id.find(
-    //            {it->host_id(), it->service_id()}));
-    //        if (svc != engine::service::services_by_id.end())
-    //          log_service_state(INITIAL_STATES, svc->second.get());
-    //      }
-    //    }
-    //
-    //    // Timing.
-    //    gettimeofday(tv + 4, nullptr);
-    //    if (test_scheduling) {
-    //      double runtimes[5];
-    //      runtimes[4] = 0.0;
-    //      for (unsigned int i(0); i < (sizeof(runtimes) / sizeof(*runtimes) -
-    //      1);
-    //           ++i) {
-    //        runtimes[i] = tv[i + 1].tv_sec - tv[i].tv_sec +
-    //                      (tv[i + 1].tv_usec - tv[i].tv_usec) / 1000000.0;
-    //        runtimes[4] += runtimes[i];
-    //      }
-    //      std::cout
-    //          << "\nTiming information on configuration verification is listed
-    //          "
-    //             "below.\n\n"
-    //             "CONFIG VERIFICATION TIMES          (* = Potential for
-    //             speedup " "with -x option)\n"
-    //             "----------------------------------\n"
-    //             "Template Resolutions: "
-    //          << runtimes[0]
-    //          << " sec\n"
-    //             "Object Relationships: "
-    //          << runtimes[2]
-    //          << " sec\n"
-    //             "Circular Paths:       "
-    //          << runtimes[3]
-    //          << " sec  *\n"
-    //             "Misc:                 "
-    //          << runtimes[1]
-    //          << " sec\n"
-    //             "                      ============\n"
-    //             "TOTAL:                "
-    //          << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
-    //          << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated
-    //          savings\n";
-    //    }
+    // Timing.
+    gettimeofday(tv + 3, nullptr);
+
+    // Check for circular paths between hosts.
+    pre_flight_circular_check(&config_warnings, &config_errors);
+
+    // Call start broker event the first time to run applier state.
+    if (!has_already_been_loaded) {
+      neb_load_all_modules();
+
+      broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
+    } else
+      neb_reload_all_modules();
+
+    // Print initial states of new hosts and services.
+    if (!verify_config && !test_scheduling) {
+//      for (set_host::iterator it(diff_hosts.added().begin()),
+//           end(diff_hosts.added().end());
+//           it != end; ++it) {
+//        host_id_map::const_iterator hst(
+//            engine::host::hosts_by_id.find(it->host_id()));
+//        if (hst != engine::host::hosts_by_id.end())
+//          log_host_state(INITIAL_STATES, hst->second.get());
+      }
+//      for (set_service::iterator it(diff_services.added().begin()),
+//           end(diff_services.added().end());
+//           it != end; ++it) {
+//        service_id_map::const_iterator svc(engine::service::services_by_id.find(
+//            {it->host_id(), it->service_id()}));
+//        if (svc != engine::service::services_by_id.end())
+//          log_service_state(INITIAL_STATES, svc->second.get());
+//      }
+//    }
+
+    // Timing.
+    gettimeofday(tv + 4, nullptr);
+    if (test_scheduling) {
+      double runtimes[5];
+      runtimes[4] = 0.0;
+      for (unsigned int i(0); i < (sizeof(runtimes) / sizeof(*runtimes) - 1);
+           ++i) {
+        runtimes[i] = tv[i + 1].tv_sec - tv[i].tv_sec +
+                      (tv[i + 1].tv_usec - tv[i].tv_usec) / 1000000.0;
+        runtimes[4] += runtimes[i];
+      }
+          std::cout
+              << "\nTiming information on configuration verification is listed "
+                 "below.\n\n"
+                 "CONFIG VERIFICATION TIMES          (* = Potential for speedup "
+		 "with -x option)\n"
+                 "----------------------------------\n"
+                 "Template Resolutions: "
+              << runtimes[0]
+              << " sec\n"
+                 "Object Relationships: "
+              << runtimes[2]
+              << " sec\n"
+                 "Circular Paths:       "
+              << runtimes[3]
+              << " sec  *\n"
+                 "Misc:                 "
+              << runtimes[1]
+              << " sec\n"
+                 "                      ============\n"
+                 "TOTAL:                "
+              << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
+              << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
+    }
   } catch (...) {
     _processing_state = state_error;
     throw;
