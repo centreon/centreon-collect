@@ -72,8 +72,8 @@ Prepare ssh and start engine
     Run    useradd -m -d /home/testconnssh testconnssh
     Remove File    ~testconnssh/.ssh/authorized_keys
     Run    echo testconnssh:passwd | chpasswd
-    Run    su testconnssh -c "ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y"
-    Run    ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa <<<y
+    Run    su testconnssh -c "ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa"
+    Run    ssh-keygen -q -t rsa -N '' -f ~/.ssh/id_rsa
     Create Directory    /tmp/test_connector_ssh/log/
     Create Directory    /tmp/test_connector_ssh/rw/
     Copy Files    connector_ssh/conf_engine/*.cfg    /tmp/test_connector_ssh/
