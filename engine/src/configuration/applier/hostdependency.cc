@@ -348,6 +348,23 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
  *  @param[in] obj  Unused.
  */
 void applier::hostdependency::modify_object(
+    configuration::Hostdependency* old_obj [[_may_be_unused]],
+    const configuration::Hostdependency& new_obj [[_may_be_unused]]) {
+  throw engine_error()
+      << "Could not modify a host dependency: Host dependency objects can only "
+         "be added or removed, this is likely a software bug that you should "
+         "report to Centreon Engine developers";
+}
+
+/**
+ *  @brief Modify host dependency.
+ *
+ *  Host dependencies cannot be defined with anything else than their
+ *  full content. Therefore no modification can occur.
+ *
+ *  @param[in] obj  Unused.
+ */
+void applier::hostdependency::modify_object(
     configuration::hostdependency const& obj) {
   (void)obj;
   throw engine_error()
