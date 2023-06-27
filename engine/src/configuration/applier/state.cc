@@ -441,58 +441,61 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
   pb_config.set_perfdata_timeout(new_cfg.perfdata_timeout());
   pb_config.set_process_performance_data(new_cfg.process_performance_data());
   pb_config.clear_resource_file();
-  pb_config.set_resource_file(new_cfg.resource_file());
+  pb_config.mutable_resource_file()->CopyFrom(new_cfg.resource_file());
   pb_config.set_retain_state_information(new_cfg.retain_state_information());
   pb_config.set_retained_contact_host_attribute_mask(
       new_cfg.retained_contact_host_attribute_mask());
-  pb_config.retained_contact_service_attribute_mask(
+  pb_config.set_retained_contact_service_attribute_mask(
       new_cfg.retained_contact_service_attribute_mask());
-  pb_config.retained_host_attribute_mask(
+  pb_config.set_retained_host_attribute_mask(
       new_cfg.retained_host_attribute_mask());
-  pb_config.retained_process_host_attribute_mask(
+  pb_config.set_retained_process_host_attribute_mask(
       new_cfg.retained_process_host_attribute_mask());
-  pb_config.retention_scheduling_horizon(
+  pb_config.set_retention_scheduling_horizon(
       new_cfg.retention_scheduling_horizon());
-  pb_config.retention_update_interval(new_cfg.retention_update_interval());
-  pb_config.service_check_timeout(new_cfg.service_check_timeout());
-  pb_config.service_freshness_check_interval(
+  pb_config.set_retention_update_interval(new_cfg.retention_update_interval());
+  pb_config.set_service_check_timeout(new_cfg.service_check_timeout());
+  pb_config.set_service_freshness_check_interval(
       new_cfg.service_freshness_check_interval());
-  pb_config.service_inter_check_delay_method(
+  pb_config.mutable_service_inter_check_delay_method()->CopyFrom(
       new_cfg.service_inter_check_delay_method());
-  pb_config.service_interleave_factor_method(
+  pb_config.set_service_interleave_factor_method(
       new_cfg.service_interleave_factor_method());
-  pb_config.service_perfdata_command(new_cfg.service_perfdata_command());
-  pb_config.sleep_time(new_cfg.sleep_time());
-  pb_config.soft_state_dependencies(new_cfg.soft_state_dependencies());
-  pb_config.state_retention_file(new_cfg.state_retention_file());
-  pb_config.status_file(new_cfg.status_file());
-  pb_config.status_update_interval(new_cfg.status_update_interval());
-  pb_config.time_change_threshold(new_cfg.time_change_threshold());
-  pb_config.use_large_installation_tweaks(
+  pb_config.set_service_perfdata_command(new_cfg.service_perfdata_command());
+  pb_config.set_sleep_time(new_cfg.sleep_time());
+  pb_config.set_soft_state_dependencies(new_cfg.soft_state_dependencies());
+  pb_config.set_state_retention_file(new_cfg.state_retention_file());
+  pb_config.set_status_file(new_cfg.status_file());
+  pb_config.set_status_update_interval(new_cfg.status_update_interval());
+  pb_config.set_time_change_threshold(new_cfg.time_change_threshold());
+  pb_config.set_use_large_installation_tweaks(
       new_cfg.use_large_installation_tweaks());
-  pb_config.instance_heartbeat_interval(new_cfg.instance_heartbeat_interval());
+  pb_config.set_instance_heartbeat_interval(
+      new_cfg.instance_heartbeat_interval());
   pb_config.set_use_regexp_matches(new_cfg.use_regexp_matches());
-  pb_config.use_retained_program_state(new_cfg.use_retained_program_state());
-  pb_config.use_retained_scheduling_info(
+  pb_config.set_use_retained_program_state(
+      new_cfg.use_retained_program_state());
+  pb_config.set_use_retained_scheduling_info(
       new_cfg.use_retained_scheduling_info());
-  pb_config.use_setpgid(new_cfg.use_setpgid());
-  pb_config.use_syslog(new_cfg.use_syslog());
-  pb_config.log_v2_enabled(new_cfg.log_v2_enabled());
-  pb_config.log_legacy_enabled(new_cfg.log_legacy_enabled());
-  pb_config.log_v2_logger(new_cfg.log_v2_logger());
-  pb_config.log_level_functions(new_cfg.log_level_functions());
-  pb_config.log_level_config(new_cfg.log_level_config());
-  pb_config.log_level_events(new_cfg.log_level_events());
-  pb_config.log_level_checks(new_cfg.log_level_checks());
-  pb_config.log_level_notifications(new_cfg.log_level_notifications());
-  pb_config.log_level_eventbroker(new_cfg.log_level_eventbroker());
-  pb_config.log_level_external_command(new_cfg.log_level_external_command());
-  pb_config.log_level_commands(new_cfg.log_level_commands());
-  pb_config.log_level_downtimes(new_cfg.log_level_downtimes());
-  pb_config.log_level_comments(new_cfg.log_level_comments());
-  pb_config.log_level_macros(new_cfg.log_level_macros());
-  pb_config.use_true_regexp_matching(new_cfg.use_true_regexp_matching());
-  pb_config.user(new_cfg.user());
+  pb_config.set_use_setpgid(new_cfg.use_setpgid());
+  pb_config.set_use_syslog(new_cfg.use_syslog());
+  pb_config.set_log_v2_enabled(new_cfg.log_v2_enabled());
+  pb_config.set_log_legacy_enabled(new_cfg.log_legacy_enabled());
+  pb_config.set_log_v2_logger(new_cfg.log_v2_logger());
+  pb_config.set_log_level_functions(new_cfg.log_level_functions());
+  pb_config.set_log_level_config(new_cfg.log_level_config());
+  pb_config.set_log_level_events(new_cfg.log_level_events());
+  pb_config.set_log_level_checks(new_cfg.log_level_checks());
+  pb_config.set_log_level_notifications(new_cfg.log_level_notifications());
+  pb_config.set_log_level_eventbroker(new_cfg.log_level_eventbroker());
+  pb_config.set_log_level_external_command(
+      new_cfg.log_level_external_command());
+  pb_config.set_log_level_commands(new_cfg.log_level_commands());
+  pb_config.set_log_level_downtimes(new_cfg.log_level_downtimes());
+  pb_config.set_log_level_comments(new_cfg.log_level_comments());
+  pb_config.set_log_level_macros(new_cfg.log_level_macros());
+  pb_config.set_use_true_regexp_matching(new_cfg.use_true_regexp_matching());
+  pb_config.set_user(new_cfg.user());
 
   // Set this variable just the first time.
   if (!has_already_been_loaded) {
