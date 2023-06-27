@@ -22,7 +22,7 @@
 
 #include <absl/container/flat_hash_set.h>
 #include "configuration/state.pb.h"
-//#include "configuration/state-generated.pb.h"
+// #include "configuration/state-generated.pb.h"
 
 CCE_BEGIN()
 
@@ -61,6 +61,8 @@ class servicedependency {
   void add_object(configuration::servicedependency const& obj);
   void expand_objects(configuration::state& s);
   void expand_objects(configuration::State& s);
+  void modify_object(configuration::Servicedependency* old_obj,
+                     const configuration::Servicedependency& new_obj);
   void modify_object(configuration::servicedependency const& obj);
   void remove_object(configuration::servicedependency const& obj);
   void resolve_object(configuration::servicedependency const& obj);

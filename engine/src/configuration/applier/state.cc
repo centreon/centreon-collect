@@ -1893,14 +1893,14 @@ void applier::state::_processing(configuration::State& new_cfg,
         pb_config.servicegroups());
 
     // Apply host dependencies.
-//    _pb_apply<configuration::Hostdependency, applier::hostdependency>(
-//        diff_hostdependencies);
-//    _resolve<configuration::hostdependency, applier::hostdependency>(
-//        config->hostdependencies());
-//
-//    // Apply service dependencies.
-//    _apply<configuration::servicedependency, applier::servicedependency>(
-//        diff_servicedependencies);
+    _pb_apply<configuration::Hostdependency, size_t, applier::hostdependency>(
+        diff_hostdependencies);
+    _pb_resolve<configuration::Hostdependency, applier::hostdependency>(
+        pb_config.hostdependencies());
+
+    // Apply service dependencies.
+    _pb_apply<configuration::Servicedependency, size_t,
+              applier::servicedependency>(diff_servicedependencies);
 //    _resolve<configuration::servicedependency,
 //    applier::servicedependency>(
 //        config->servicedependencies());
