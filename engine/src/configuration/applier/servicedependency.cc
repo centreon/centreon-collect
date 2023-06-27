@@ -421,6 +421,23 @@ void applier::servicedependency::expand_objects(configuration::state& s) {
  *  @param[in] obj  Unused.
  */
 void applier::servicedependency::modify_object(
+    configuration::Servicedependency* old_obj [[maybe_unused]],
+    const configuration::Servicedependency& new_obj [[maybe_unused]]) {
+  throw engine_error()
+      << "Could not modify a service dependency: service dependency objects "
+         "can only be added or removed, this is likely a software bug that "
+         "you should report to Centreon Engine developers";
+}
+
+/**
+ *  @brief Modify service dependency.
+ *
+ *  Service dependencies cannot be defined with anything else than their
+ *  full content. Therefore no modification can occur.
+ *
+ *  @param[in] obj  Unused.
+ */
+void applier::servicedependency::modify_object(
     configuration::servicedependency const& obj) {
   (void)obj;
   throw engine_error()
@@ -428,6 +445,36 @@ void applier::servicedependency::modify_object(
       << "dependency: service dependency objects can only be added "
       << "or removed, this is likely a software bug that you should "
       << "report to Centreon Engine developers";
+}
+
+/**
+ *  Remove old service dependency.
+ *
+ *  @param[in] obj  The service dependency to remove from the monitoring
+ *                  engine.
+ */
+void applier::servicedependency::remove_object(ssize_t idx) {
+  // Logging.
+  log_v2::config()->debug("Removing a service dependency.");
+
+  // Find service dependency.
+  auto& obj = pb_config.servicedependencies(idx);
+  size_t key = servicedependency_key(obj);
+
+  servicedependency_mmap::iterator it =
+      engine::servicedependency::servicedependencies_find(obj.key()));
+  if (it != engine::servicedependency::servicedependencies.end()) {
+    // Notify event broker.
+    timeval tv(get_broker_timestamp(nullptr));
+    broker_adaptive_dependency_data(NEBTYPE_SERVICEDEPENDENCY_DELETE,
+                                    it->second.get());
+
+    // Remove service dependency from its list.
+    engine::servicedependency::servicedependencies.erase(it);
+  }
+
+  // Remove dependency from the global configuration set.
+  config->servicedependencies().erase(obj);
 }
 
 /**
