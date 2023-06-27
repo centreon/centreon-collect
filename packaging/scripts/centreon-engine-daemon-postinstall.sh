@@ -30,16 +30,15 @@ if [ "$1" = "configure" ] ; then
   if [ "$(getent passwd nagios)" ]; then
     usermod -a -G centreon-engine nagios
   fi
+  chown -R centreon-engine:centreon-engine \
+    /etc/centreon-engine \
+    /var/lib/centreon-engine \
+    /var/log/centreon-engine
+  chmod -R g+w \
+    /etc/centreon-engine \
+    /var/lib/centreon-engine \
+    /var/log/centreon-engine
 fi
-
-chown -R centreon-engine:centreon-engine \
-  /etc/centreon-engine \
-  /var/lib/centreon-engine \
-  /var/log/centreon-engine
-chmod -R g+w \
-  /etc/centreon-engine \
-  /var/lib/centreon-engine \
-  /var/log/centreon-engine
 
 action="$1"
 if  [ "$1" = "configure" ] && [ -z "$2" ]; then

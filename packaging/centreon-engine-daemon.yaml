@@ -80,6 +80,13 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - src: "./files/empty"
+    dst: "/var/log/centreon-engine/empty"
+    file_info:
+      mode: 644
+      owner: centreon-engine
+      group: centreon-engine
+
   - dst: "/var/lib/centreon-engine"
     type: dir
     file_info:
@@ -87,10 +94,24 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - src: "./files/empty"
+    dst: "/var/lib/centreon-engine/empty"
+    file_info:
+      mode: 644
+      owner: centreon-engine
+      group: centreon-engine
+
   - dst: "/var/lib/centreon-engine/rw"
     type: dir
     file_info:
       mode: 0775
+      owner: centreon-engine
+      group: centreon-engine
+
+  - src: "./files/empty"
+    dst: "/var/lib/centreon-engine/rw/empty"
+    file_info:
+      mode: 644
       owner: centreon-engine
       group: centreon-engine
 
