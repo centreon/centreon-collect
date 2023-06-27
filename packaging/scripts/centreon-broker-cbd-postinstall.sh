@@ -1,11 +1,11 @@
 #!/bin/sh
 
 startCbd() {
-#  systemctl daemon-reload ||:
-#  systemctl unmask cbd.service ||:
-#  systemctl preset cbd.service ||:
-#  systemctl enable cbd.service ||:
-#  systemctl restart cbd.service ||:
+  systemctl daemon-reload ||:
+  systemctl unmask cbd.service ||:
+  systemctl preset cbd.service ||:
+  systemctl enable cbd.service ||:
+  systemctl restart cbd.service ||:
 }
 
 action="$1"

@@ -79,6 +79,7 @@ contents:
       mode: 0755
       owner: centreon-engine
       group: centreon-engine
+      mtime: 2008-01-02T15:04:05Z
 
   - src: "./files/empty"
     dst: "/var/log/centreon-engine/empty"
