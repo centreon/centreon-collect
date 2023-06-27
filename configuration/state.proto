@@ -175,23 +175,25 @@ message State {
   bool enable_predictive_host_dependency_checks = 125;
   bool enable_predictive_service_dependency_checks = 126;
   string host_perfdata_command = 127;
+  string service_perfdata_command = 128;
 
-  repeated Command commands = 128;
-  repeated Connector connectors = 129;
-  repeated Contact contacts = 130;
-  repeated Contactgroup contactgroups = 131;
-  repeated Hostdependency hostdependencies = 132;
-  repeated Hostescalation hostescalations = 133;
-  repeated Hostgroup hostgroups = 134;
-  repeated Host hosts = 135;
-  repeated Servicedependency servicedependencies = 136;
-  repeated Serviceescalation serviceescalations = 137;
-  repeated Servicegroup servicegroups = 138;
-  repeated Service services = 139;
-  repeated Anomalydetection anomalydetections = 140;
-  repeated Timeperiod timeperiods = 141;
-  repeated Severity severities = 142;
-  repeated Tag tags = 143;
+  repeated Command commands = 129;
+  repeated Connector connectors = 130;
+  repeated Contact contacts = 131;
+  repeated Contactgroup contactgroups = 132;
+  repeated Hostdependency hostdependencies = 133;
+  repeated Hostescalation hostescalations = 134;
+  repeated Hostgroup hostgroups = 135;
+  repeated Host hosts = 136;
+  repeated Servicedependency servicedependencies = 137;
+  repeated Serviceescalation serviceescalations = 138;
+  repeated Servicegroup servicegroups = 139;
+  repeated Service services = 140;
+  repeated Anomalydetection anomalydetections = 141;
+  repeated Timeperiod timeperiods = 142;
+  repeated Severity severities = 143;
+  repeated Tag tags = 144;
+  map<string, string> user = 145;
 }
 
 message Value {
