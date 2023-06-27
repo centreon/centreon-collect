@@ -33,6 +33,7 @@ apt-get -y install cmake \
     fakeroot \
     strace \
     locales \
+    rrdtool \
     zstd \
     sudo
 
