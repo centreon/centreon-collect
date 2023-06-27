@@ -51,14 +51,14 @@ fi
 
 case "$action" in
   "1" | "install")
-    startCentengine
+    #startCentengine
     ;;
   "2" | "upgrade")
-    startCentengine
+    #startCentengine
     ;;
   *)
     # $1 == version being installed
-    startCentengine
+    #startCentengine
     ;;
 esac
 
