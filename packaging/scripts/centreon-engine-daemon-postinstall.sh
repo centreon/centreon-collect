@@ -1,13 +1,5 @@
 #!/bin/sh
 
-startCentengine() {
-  systemctl daemon-reload ||:
-  systemctl unmask centengine.service ||:
-  systemctl preset centengine.service ||:
-  systemctl enable centengine.service ||:
-  systemctl restart centengine.service ||:
-}
-
 # on debian, it is needed to recreate centreon-engine user at each upgrade because it is removed on postrm step on versions < 23.10
 if [ "$1" = "configure" ] ; then
   if [ ! "$(getent passwd centreon-engine)" ]; then
@@ -30,15 +22,31 @@ if [ "$1" = "configure" ] ; then
   if [ "$(getent passwd nagios)" ]; then
     usermod -a -G centreon-engine nagios
   fi
-  chown -R centreon-engine:centreon-engine \
-    /etc/centreon-engine \
-    /var/lib/centreon-engine \
-    /var/log/centreon-engine
-  chmod -R g+w \
-    /etc/centreon-engine \
-    /var/lib/centreon-engine \
-    /var/log/centreon-engine
 fi
+
+mkdir -p \
+  /etc/centreon-engine \
+  /var/lib/centreon-engine/rw \
+  /var/log/centreon-engine
+
+chown -R centreon-engine:centreon-engine \
+  /etc/centreon-engine \
+  /var/lib/centreon-engine \
+  /var/lib/centreon-engine/rw \
+  /var/log/centreon-engine
+
+chmod 0775 /etc/centreon-engine
+chmod 0755 /var/lib/centreon-engine
+chmod 0775 /var/lib/centreon-engine/rw
+chmod 0755 /var/log/centreon-engine
+
+startCentengine() {
+  systemctl daemon-reload ||:
+  systemctl unmask centengine.service ||:
+  systemctl preset centengine.service ||:
+  systemctl enable centengine.service ||:
+  systemctl restart centengine.service ||:
+}
 
 action="$1"
 if  [ "$1" = "configure" ] && [ -z "$2" ]; then

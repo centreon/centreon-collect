@@ -14,42 +14,6 @@ vendor: "Centreon"
 homepage: "https://centreon.com"
 license: "Apache-2.0"
 
-contents:
-  - dst: "/etc/centreon-broker"
-    type: dir
-    file_info:
-      mode: 0775
-      owner: centreon-broker
-      group: centreon-broker
-
-  - dst: "/var/lib/centreon-broker"
-    type: dir
-    file_info:
-      mode: 0775
-      owner: centreon-broker
-      group: centreon-broker
-
-  - src: "./files/empty"
-    dst: "/var/lib/centreon-broker/empty"
-    file_info:
-      mode: 644
-      owner: centreon-broker
-      group: centreon-broker
-
-  - dst: "/var/log/centreon-broker"
-    type: dir
-    file_info:
-      mode: 0775
-      owner: centreon-broker
-      group: centreon-broker
-
-  - src: "./files/empty"
-    dst: "/var/log/centreon-broker/empty"
-    file_info:
-      mode: 644
-      owner: centreon-broker
-      group: centreon-broker
-
 scripts:
   preinstall: ./scripts/centreon-broker-preinstall.sh
   postinstall: ./scripts/centreon-broker-postinstall.sh
