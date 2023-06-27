@@ -94,6 +94,13 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
+  - dst: "/var/log/centreon-engine/archives"
+    type: dir
+    file_info:
+      mode: 0755
+      owner: centreon-engine
+      group: centreon-engine
+
   - dst: "/var/lib/centreon-engine"
     type: dir
     file_info:
