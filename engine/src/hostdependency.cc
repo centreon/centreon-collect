@@ -317,9 +317,9 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
   std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
 
   size_t key =
-   absl::HashOf(k.dependency_period(), k.dependency_type(),
-                      *k.dependent_hosts().begin(), *k.hosts().begin(),
-                      k.inherits_parent(), k.notification_failure_options());
+      absl::HashOf(k.dependency_period(), k.dependency_type(),
+                   *k.dependent_hosts().begin(), *k.hosts().begin(),
+                   k.inherits_parent(), k.notification_failure_options());
 
   p = hostdependencies.equal_range(*k.dependent_hosts().begin());
   while (p.first != p.second) {
@@ -339,7 +339,7 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
  *          servicedependencies().end() otherwise.
  */
 hostdependency_mmap::iterator hostdependency::hostdependencies_find(
-    const std::pair<absl::string_view, size_t> key) {
+    const std::pair<absl::string_view, size_t>& key) {
   std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
 
   p = hostdependencies.equal_range(key.first);
