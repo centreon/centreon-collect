@@ -108,13 +108,6 @@ contents:
       owner: centreon-engine
       group: centreon-engine
 
-  - src: "./files/empty"
-    dst: "/var/lib/centreon-engine/rw/empty"
-    file_info:
-      mode: 644
-      owner: centreon-engine
-      group: centreon-engine
-
 scripts:
   preinstall: ./scripts/centreon-engine-daemon-preinstall.sh
   postinstall: ./scripts/centreon-engine-daemon-postinstall.sh
