@@ -1,11 +1,11 @@
 #!/bin/sh
 
 startCentengine() {
-  systemctl daemon-reload ||:
-  systemctl unmask centengine.service ||:
-  systemctl preset centengine.service ||:
-  systemctl enable centengine.service ||:
-  systemctl restart centengine.service ||:
+#  systemctl daemon-reload ||:
+#  systemctl unmask centengine.service ||:
+#  systemctl preset centengine.service ||:
+#  systemctl enable centengine.service ||:
+#  systemctl restart centengine.service ||:
 }
 
 # on debian, it is needed to recreate centreon-engine user at each upgrade because it is removed on postrm step on versions < 23.10
