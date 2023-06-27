@@ -1968,23 +1968,18 @@ void applier::state::_processing(configuration::State& new_cfg,
 
     // Print initial states of new hosts and services.
     if (!verify_config && !test_scheduling) {
-//      for (set_host::iterator it(diff_hosts.added().begin()),
-//           end(diff_hosts.added().end());
-//           it != end; ++it) {
-//        host_id_map::const_iterator hst(
-//            engine::host::hosts_by_id.find(it->host_id()));
-//        if (hst != engine::host::hosts_by_id.end())
-//          log_host_state(INITIAL_STATES, hst->second.get());
+      for (auto a : diff_hosts.added()) {
+        auto it_hst = engine::host::hosts_by_id.find(a.host_id());
+        if (it_hst != engine::host::hosts_by_id.end())
+          log_host_state(INITIAL_STATES, it_hst->second.get());
       }
-//      for (set_service::iterator it(diff_services.added().begin()),
-//           end(diff_services.added().end());
-//           it != end; ++it) {
-//        service_id_map::const_iterator svc(engine::service::services_by_id.find(
-//            {it->host_id(), it->service_id()}));
-//        if (svc != engine::service::services_by_id.end())
-//          log_service_state(INITIAL_STATES, svc->second.get());
-//      }
-//    }
+      for (auto a : diff_services.added()) {
+        auto it_svc =
+            engine::service::services_by_id.find({a.host_id(), a.service_id()});
+        if (it_svc != engine::service::services_by_id.end())
+          log_service_state(INITIAL_STATES, it_svc->second.get());
+      }
+    }
 
     // Timing.
     gettimeofday(tv + 4, nullptr);
@@ -1997,28 +1992,28 @@ void applier::state::_processing(configuration::State& new_cfg,
                       (tv[i + 1].tv_usec - tv[i].tv_usec) / 1000000.0;
         runtimes[4] += runtimes[i];
       }
-          std::cout
-              << "\nTiming information on configuration verification is listed "
-                 "below.\n\n"
-                 "CONFIG VERIFICATION TIMES          (* = Potential for speedup "
-		 "with -x option)\n"
-                 "----------------------------------\n"
-                 "Template Resolutions: "
-              << runtimes[0]
-              << " sec\n"
-                 "Object Relationships: "
-              << runtimes[2]
-              << " sec\n"
-                 "Circular Paths:       "
-              << runtimes[3]
-              << " sec  *\n"
-                 "Misc:                 "
-              << runtimes[1]
-              << " sec\n"
-                 "                      ============\n"
-                 "TOTAL:                "
-              << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
-              << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
+      std::cout
+          << "\nTiming information on configuration verification is listed "
+             "below.\n\n"
+             "CONFIG VERIFICATION TIMES          (* = Potential for speedup "
+             "with -x option)\n"
+             "----------------------------------\n"
+             "Template Resolutions: "
+          << runtimes[0]
+          << " sec\n"
+             "Object Relationships: "
+          << runtimes[2]
+          << " sec\n"
+             "Circular Paths:       "
+          << runtimes[3]
+          << " sec  *\n"
+             "Misc:                 "
+          << runtimes[1]
+          << " sec\n"
+             "                      ============\n"
+             "TOTAL:                "
+          << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
+          << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
     }
   } catch (...) {
     _processing_state = state_error;
