@@ -19,28 +19,28 @@ contents:
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/centengine.debug"
     file_info:
-      mode: 755
+      mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/centengine.log"
     file_info:
-      mode: 755
+      mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/retention.dat"
     file_info:
-      mode: 755
+      mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
   - src: "./files/empty_file"
     dst: "/var/log/centreon-engine/status.dat"
     file_info:
-      mode: 755
+      mode: 0755
       owner: centreon-engine
       group: centreon-engine
 
