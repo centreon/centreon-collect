@@ -28,7 +28,7 @@ namespace com::centreon::engine {
 class service;
 class servicedependency;
 class timeperiod;
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,
@@ -79,9 +79,10 @@ class servicedependency : public dependency {
   static servicedependency_mmap servicedependencies;
   static servicedependency_mmap::iterator servicedependencies_find(
       configuration::servicedependency const& k);
+  static servicedependency_mmap::iterator servicedependencies_find(
+      const std::tuple<absl::string_view, absl::string_view, size_t>& key)
 
- private:
-  std::string _dependent_service_description;
+      private : std::string _dependent_service_description;
   std::string _service_description;
   bool _fail_on_ok;
   bool _fail_on_warning;
@@ -89,7 +90,7 @@ class servicedependency : public dependency {
   bool _fail_on_critical;
 };
 
-};
+};  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::servicedependency const& obj);

@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/hostdependency.hh"
 #include "com/centreon/engine/broker.hh"
@@ -317,9 +317,9 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
   std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
 
   size_t key =
-   absl::HashOf(k.dependency_period(), k.dependency_type(),
-                      *k.dependent_hosts().begin(), *k.hosts().begin(),
-                      k.inherits_parent(), k.notification_failure_options());
+      absl::HashOf(k.dependency_period(), k.dependency_type(),
+                   *k.dependent_hosts().begin(), *k.hosts().begin(),
+                   k.inherits_parent(), k.notification_failure_options());
 
   p = hostdependencies.equal_range(*k.dependent_hosts().begin());
   while (p.first != p.second) {
@@ -339,7 +339,7 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
  *          servicedependencies().end() otherwise.
  */
 hostdependency_mmap::iterator hostdependency::hostdependencies_find(
-    const std::pair<absl::string_view, size_t> key) {
+    const std::pair<absl::string_view, size_t>& key) {
   std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
 
   p = hostdependencies.equal_range(key.first);

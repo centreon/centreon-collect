@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/broker.hh"
@@ -372,6 +372,70 @@ void servicedependency::resolve(int& w, int& e) {
     e += errors;
     throw engine_error() << "Cannot resolve service dependency";
   }
+}
+
+/**
+ * @brief Find a service dependency from the given key.
+ *
+ * @param key A tuple containing a host name, a service description and a hash
+ * matching the service dependency.
+ *
+ * @return Iterator to the element if found, servicedependencies().end()
+ * otherwise.
+ */
+static servicedependency_mmap::iterator
+servicedependency::servicedependencies_find(
+    const std::tuple<absl::string_view, absl::string_view, size_t>& key) {
+  std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
+      p = servicedependencies.equal_range(
+          std::make_pair(std::get<1>(key), std::get<2>(key)));
+  while (p.first != p.second) {
+    if (p.first->second->_internal_key == std::get<3>(key))
+      break;
+    ++p.first;
+  }
+  return p.first == p.second ? servicedependencies.end() : p.first;
+  //    configuration::servicedependency current;
+  //    current.configuration::object::operator=(k);
+  //    current.dependent_hosts().push_back(
+  //        p.first->second->get_dependent_hostname());
+  //    current.dependent_service_description().push_back(
+  //        p.first->second->get_dependent_service_description());
+  //    current.hosts().push_back(p.first->second->get_hostname());
+  //    current.service_description().push_back(
+  //        p.first->second->get_service_description());
+  //    current.dependency_period(p.first->second->get_dependency_period());
+  //    current.inherits_parent(p.first->second->get_inherits_parent());
+  //    unsigned int options((p.first->second->get_fail_on_ok()
+  //                              ? configuration::servicedependency::ok
+  //                              : 0) |
+  //                         (p.first->second->get_fail_on_warning()
+  //                              ? configuration::servicedependency::warning
+  //                              : 0) |
+  //                         (p.first->second->get_fail_on_unknown()
+  //                              ? configuration::servicedependency::unknown
+  //                              : 0) |
+  //                         (p.first->second->get_fail_on_critical()
+  //                              ? configuration::servicedependency::critical
+  //                              : 0) |
+  //                         (p.first->second->get_fail_on_pending()
+  //                              ? configuration::servicedependency::pending
+  //                              : 0));
+  //    if (p.first->second->get_dependency_type() ==
+  //        engine::dependency::notification) {
+  //      current.dependency_type(
+  //          configuration::servicedependency::notification_dependency);
+  //      current.notification_failure_options(options);
+  //    } else {
+  //      current.dependency_type(
+  //          configuration::servicedependency::execution_dependency);
+  //      current.execution_failure_options(options);
+  //    }
+  //    if (current == k)
+  //      break;
+  //    ++p.first;
+  //  }
+  //  return (p.first == p.second) ? servicedependencies.end() : p.first;
 }
 
 /**

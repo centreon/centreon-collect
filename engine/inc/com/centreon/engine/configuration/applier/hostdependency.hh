@@ -49,7 +49,7 @@ class hostdependency {
   void add_object(const configuration::Hostdependency& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
-  void modify_object(configuration::hostdependency* to_modify,
+  void modify_object(configuration::Hostdependency* to_modify,
                      const configuration::Hostdependency& new_obj);
   void modify_object(configuration::hostdependency const& obj);
   void remove_object(ssize_t idx);
@@ -60,6 +60,6 @@ class hostdependency {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_HOSTDEPENDENCY_HH

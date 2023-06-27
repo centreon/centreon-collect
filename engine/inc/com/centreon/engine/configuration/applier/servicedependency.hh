@@ -60,6 +60,8 @@ class servicedependency {
   void add_object(configuration::servicedependency const& obj);
   void expand_objects(configuration::state& s);
   void expand_objects(configuration::State& s);
+  void modify_object(configuration::Servicedependency* old_obj,
+                     const configuration::Servicedependency& new_obj);
   void modify_object(configuration::servicedependency const& obj);
   void remove_object(configuration::servicedependency const& obj);
   void resolve_object(configuration::servicedependency const& obj);
@@ -67,6 +69,6 @@ class servicedependency {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH

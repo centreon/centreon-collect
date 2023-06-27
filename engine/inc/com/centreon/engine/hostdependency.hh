@@ -30,7 +30,7 @@ namespace com::centreon::engine {
 class host;
 class hostdependency;
 class timeperiod;
-}
+}  // namespace com::centreon::engine
 
 typedef absl::btree_multimap<
     std::string,
@@ -74,7 +74,7 @@ class hostdependency : public dependency {
   static hostdependency_mmap::iterator hostdependencies_find(
       configuration::hostdependency const& k);
   static hostdependency_mmap::iterator hostdependencies_find(
-      const std::pair<absl::string_view, size_t> key);
+      const std::pair<absl::string_view, size_t>& key);
 
   host* master_host_ptr;
   host* dependent_host_ptr;
@@ -85,7 +85,7 @@ class hostdependency : public dependency {
   bool _fail_on_unreachable;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::hostdependency const& obj);

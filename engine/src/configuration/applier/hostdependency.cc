@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2023 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include <absl/hash/hash.h>
 
@@ -337,6 +337,23 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
 
   // Set expanded host dependencies in configuration state.
   s.hostdependencies().swap(expanded);
+}
+
+/**
+ *  @brief Modify host dependency.
+ *
+ *  Host dependencies cannot be defined with anything else than their
+ *  full content. Therefore no modification can occur.
+ *
+ *  @param[in] obj  Unused.
+ */
+void applier::hostdependency::modify_object(
+    configuration::Hostdependency* old_obj [[_may_be_unused]],
+    const configuration::Hostdependency& new_obj [[_may_be_unused]]) {
+  throw engine_error()
+      << "Could not modify a host dependency: Host dependency objects can only "
+         "be added or removed, this is likely a software bug that you should "
+         "report to Centreon Engine developers";
 }
 
 /**
