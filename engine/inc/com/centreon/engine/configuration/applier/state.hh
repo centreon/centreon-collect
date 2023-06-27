@@ -92,6 +92,7 @@ class state {
 #endif
 
   state& operator=(state const&);
+  void _pb_apply(const configuration::State& new_cfg);
   void _apply(configuration::state const& new_cfg);
 
   template <typename ConfigurationType, typename Key, typename ApplierType>
