@@ -311,6 +311,299 @@ void applier::state::unlock() {
  *
  *  @param[in]  new_cfg The new configuration state.
  */
+void applier::state::_pb_apply(const configuration::State& new_cfg) {
+  // Check variables should not be change after the first execution.
+  if (has_already_been_loaded) {
+    if (!std::equal(
+            pb_config.broker_module().begin(), pb_config.broker_module().end(),
+            new_cfg.broker_module().begin(), new_cfg.broker_module().end(),
+            MessageDifferencer::Equals)) {
+      log_v2::config()->warn(
+          "Warning: Broker modules cannot be changed nor reloaded");
+      ++config_warnings;
+    }
+    if (pb_config.broker_module_directory() !=
+        new_cfg.broker_module_directory()) {
+      log_v2::config()->warn(
+          "Warning: Broker module directory cannot be changed");
+      ++config_warnings;
+    }
+    if (pb_config.command_file() != new_cfg.command_file()) {
+      log_v2::config()->warn("Warning: Command file cannot be changed");
+      ++config_warnings;
+    }
+    if (pb_config.external_command_buffer_slots() !=
+        new_cfg.external_command_buffer_slots()) {
+      log_v2::config()->warn(
+          "Warning: External command buffer slots cannot be changed");
+      ++config_warnings;
+    }
+    if (pb_config.use_timezone() != new_cfg.use_timezone()) {
+      log_v2::config()->warn("Warning: Timezone can not be changed");
+      ++config_warnings;
+    }
+  }
+
+  // Initialize status file.
+  bool modify_status(false);
+  if (!has_already_been_loaded ||
+      pb_config.status_file() != new_cfg.status_file())
+    modify_status = true;
+
+  // Cleanup.
+  //  if (modify_perfdata)
+  //    xpddefault_cleanup_performance_data();
+  if (modify_status)
+    xsddefault_cleanup_status_data(true);
+
+  // Set new values.
+  pb_config.set_accept_passive_host_checks(
+      new_cfg.accept_passive_host_checks());
+  pb_config.set_accept_passive_service_checks(
+      new_cfg.accept_passive_service_checks());
+  pb_config.set_additional_freshness_latency(
+      new_cfg.additional_freshness_latency());
+  pb_config.set_admin_email(new_cfg.admin_email());
+  pb_config.set_admin_pager(new_cfg.admin_pager());
+  pb_config.set_allow_empty_hostgroup_assignment(
+      new_cfg.allow_empty_hostgroup_assignment());
+  pb_config.set_auto_reschedule_checks(new_cfg.auto_reschedule_checks());
+  pb_config.set_auto_rescheduling_interval(
+      new_cfg.auto_rescheduling_interval());
+  pb_config.set_auto_rescheduling_window(new_cfg.auto_rescheduling_window());
+  pb_config.set_cached_host_check_horizon(new_cfg.cached_host_check_horizon());
+  pb_config.set_cached_service_check_horizon(
+      new_cfg.cached_service_check_horizon());
+  pb_config.set_cfg_main(new_cfg.cfg_main());
+  pb_config.set_check_external_commands(new_cfg.check_external_commands());
+  pb_config.set_check_host_freshness(new_cfg.check_host_freshness());
+  pb_config.set_check_orphaned_hosts(new_cfg.check_orphaned_hosts());
+  pb_config.set_check_orphaned_services(new_cfg.check_orphaned_services());
+  pb_config.set_check_reaper_interval(new_cfg.check_reaper_interval());
+  pb_config.set_check_service_freshness(new_cfg.check_service_freshness());
+  pb_config.set_command_check_interval(new_cfg.command_check_interval());
+  pb_config.set_command_check_interval_is_seconds(
+      new_cfg.command_check_interval_is_seconds());
+  pb_config.set_date_format(new_cfg.date_format());
+  pb_config.set_debug_file(new_cfg.debug_file());
+  pb_config.set_debug_level(new_cfg.debug_level());
+  pb_config.set_debug_verbosity(new_cfg.debug_verbosity());
+  pb_config.set_enable_environment_macros(new_cfg.enable_environment_macros());
+  pb_config.set_enable_event_handlers(new_cfg.enable_event_handlers());
+  pb_config.set_enable_flap_detection(new_cfg.enable_flap_detection());
+  pb_config.set_enable_notifications(new_cfg.enable_notifications());
+  pb_config.set_enable_predictive_host_dependency_checks(
+      new_cfg.enable_predictive_host_dependency_checks());
+  pb_config.set_enable_predictive_service_dependency_checks(
+      new_cfg.enable_predictive_service_dependency_checks());
+  pb_config.set_event_broker_options(new_cfg.event_broker_options());
+  pb_config.set_event_handler_timeout(new_cfg.event_handler_timeout());
+  pb_config.set_execute_host_checks(new_cfg.execute_host_checks());
+  pb_config.set_execute_service_checks(new_cfg.execute_service_checks());
+  pb_config.set_global_host_event_handler(new_cfg.global_host_event_handler());
+  pb_config.set_global_service_event_handler(
+      new_cfg.global_service_event_handler());
+  pb_config.set_high_host_flap_threshold(new_cfg.high_host_flap_threshold());
+  pb_config.set_high_service_flap_threshold(
+      new_cfg.high_service_flap_threshold());
+  pb_config.set_host_check_timeout(new_cfg.host_check_timeout());
+  pb_config.set_host_freshness_check_interval(
+      new_cfg.host_freshness_check_interval());
+  pb_config.mutable_host_inter_check_delay_method()->CopyFrom(
+      new_cfg.host_inter_check_delay_method());
+  pb_config.set_host_perfdata_command(new_cfg.host_perfdata_command());
+  pb_config.set_illegal_object_chars(new_cfg.illegal_object_chars());
+  pb_config.set_illegal_output_chars(new_cfg.illegal_output_chars());
+  pb_config.set_interval_length(new_cfg.interval_length());
+  pb_config.set_log_event_handlers(new_cfg.log_event_handlers());
+  pb_config.set_log_external_commands(new_cfg.log_external_commands());
+  pb_config.set_log_file(new_cfg.log_file());
+  pb_config.set_log_host_retries(new_cfg.log_host_retries());
+  pb_config.set_log_notifications(new_cfg.log_notifications());
+  pb_config.set_log_passive_checks(new_cfg.log_passive_checks());
+  pb_config.set_log_service_retries(new_cfg.log_service_retries());
+  pb_config.set_low_host_flap_threshold(new_cfg.low_host_flap_threshold());
+  pb_config.set_low_service_flap_threshold(
+      new_cfg.low_service_flap_threshold());
+  pb_config.set_max_debug_file_size(new_cfg.max_debug_file_size());
+  pb_config.set_max_host_check_spread(new_cfg.max_host_check_spread());
+  pb_config.set_max_log_file_size(new_cfg.max_log_file_size());
+  pb_config.set_max_parallel_service_checks(
+      new_cfg.max_parallel_service_checks());
+  pb_config.set_max_service_check_spread(new_cfg.max_service_check_spread());
+  pb_config.set_notification_timeout(new_cfg.notification_timeout());
+  pb_config.set_obsess_over_hosts(new_cfg.obsess_over_hosts());
+  pb_config.set_obsess_over_services(new_cfg.obsess_over_services());
+  pb_config.set_ochp_command(new_cfg.ochp_command());
+  pb_config.set_ochp_timeout(new_cfg.ochp_timeout());
+  pb_config.set_ocsp_command(new_cfg.ocsp_command());
+  pb_config.set_ocsp_timeout(new_cfg.ocsp_timeout());
+  pb_config.set_perfdata_timeout(new_cfg.perfdata_timeout());
+  pb_config.set_process_performance_data(new_cfg.process_performance_data());
+  pb_config.clear_resource_file();
+  pb_config.set_resource_file(new_cfg.resource_file());
+  pb_config.set_retain_state_information(new_cfg.retain_state_information());
+  pb_config.set_retained_contact_host_attribute_mask(
+      new_cfg.retained_contact_host_attribute_mask());
+  pb_config.retained_contact_service_attribute_mask(
+      new_cfg.retained_contact_service_attribute_mask());
+  pb_config.retained_host_attribute_mask(
+      new_cfg.retained_host_attribute_mask());
+  pb_config.retained_process_host_attribute_mask(
+      new_cfg.retained_process_host_attribute_mask());
+  pb_config.retention_scheduling_horizon(
+      new_cfg.retention_scheduling_horizon());
+  pb_config.retention_update_interval(new_cfg.retention_update_interval());
+  pb_config.service_check_timeout(new_cfg.service_check_timeout());
+  pb_config.service_freshness_check_interval(
+      new_cfg.service_freshness_check_interval());
+  pb_config.service_inter_check_delay_method(
+      new_cfg.service_inter_check_delay_method());
+  pb_config.service_interleave_factor_method(
+      new_cfg.service_interleave_factor_method());
+  pb_config.service_perfdata_command(new_cfg.service_perfdata_command());
+  pb_config.sleep_time(new_cfg.sleep_time());
+  pb_config.soft_state_dependencies(new_cfg.soft_state_dependencies());
+  pb_config.state_retention_file(new_cfg.state_retention_file());
+  pb_config.status_file(new_cfg.status_file());
+  pb_config.status_update_interval(new_cfg.status_update_interval());
+  pb_config.time_change_threshold(new_cfg.time_change_threshold());
+  pb_config.use_large_installation_tweaks(
+      new_cfg.use_large_installation_tweaks());
+  pb_config.instance_heartbeat_interval(new_cfg.instance_heartbeat_interval());
+  pb_config.set_use_regexp_matches(new_cfg.use_regexp_matches());
+  pb_config.use_retained_program_state(new_cfg.use_retained_program_state());
+  pb_config.use_retained_scheduling_info(
+      new_cfg.use_retained_scheduling_info());
+  pb_config.use_setpgid(new_cfg.use_setpgid());
+  pb_config.use_syslog(new_cfg.use_syslog());
+  pb_config.log_v2_enabled(new_cfg.log_v2_enabled());
+  pb_config.log_legacy_enabled(new_cfg.log_legacy_enabled());
+  pb_config.log_v2_logger(new_cfg.log_v2_logger());
+  pb_config.log_level_functions(new_cfg.log_level_functions());
+  pb_config.log_level_config(new_cfg.log_level_config());
+  pb_config.log_level_events(new_cfg.log_level_events());
+  pb_config.log_level_checks(new_cfg.log_level_checks());
+  pb_config.log_level_notifications(new_cfg.log_level_notifications());
+  pb_config.log_level_eventbroker(new_cfg.log_level_eventbroker());
+  pb_config.log_level_external_command(new_cfg.log_level_external_command());
+  pb_config.log_level_commands(new_cfg.log_level_commands());
+  pb_config.log_level_downtimes(new_cfg.log_level_downtimes());
+  pb_config.log_level_comments(new_cfg.log_level_comments());
+  pb_config.log_level_macros(new_cfg.log_level_macros());
+  pb_config.use_true_regexp_matching(new_cfg.use_true_regexp_matching());
+  pb_config.user(new_cfg.user());
+
+  // Set this variable just the first time.
+  if (!has_already_been_loaded) {
+    pb_config.broker_module(new_cfg.broker_module());
+    pb_config.broker_module_directory(new_cfg.broker_module_directory());
+    pb_config.command_file(new_cfg.command_file());
+    pb_config.external_command_buffer_slots(
+        new_cfg.external_command_buffer_slots());
+    pb_config.use_timezone(new_cfg.use_timezone());
+  }
+
+  // Initialize.
+  if (modify_status)
+    xsddefault_initialize_status_data();
+
+  // Check global event handler commands...
+  if (verify_config) {
+    engine_logger(log_info_message, basic)
+        << "Checking global event handlers...";
+    log_v2::events()->info("Checking global event handlers...");
+  }
+  if (!pb_config.global_host_event_handler().empty()) {
+    // Check the event handler command.
+    std::string temp_command_name(pb_config.global_host_event_handler().substr(
+        0, pb_config.global_host_event_handler().find_first_of('!')));
+    command_map::iterator found{
+        commands::command::commands.find(temp_command_name)};
+    if (found == commands::command::commands.end() || !found->second) {
+      engine_logger(log_verification_error, basic)
+          << "Error: Global host event handler command '" << temp_command_name
+          << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Global host event handler command '{}' is not defined "
+          "anywhere!",
+          temp_command_name);
+      ++config_errors;
+      global_host_event_handler_ptr = nullptr;
+    } else
+      global_host_event_handler_ptr = found->second.get();
+  }
+  if (!pb_config.global_service_event_handler().empty()) {
+    // Check the event handler command.
+    std::string temp_command_name(
+        pb_config.global_service_event_handler().substr(
+            0, pb_config.global_service_event_handler().find_first_of('!')));
+    command_map::iterator found{
+        commands::command::commands.find(temp_command_name)};
+    if (found == commands::command::commands.end() || !found->second) {
+      engine_logger(log_verification_error, basic)
+          << "Error: Global service event handler command '"
+          << temp_command_name << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Global service event handler command '{}' is not defined "
+          "anywhere!",
+          temp_command_name);
+      ++config_errors;
+      global_service_event_handler_ptr = nullptr;
+    } else
+      global_service_event_handler_ptr = found->second.get();
+  }
+
+  // Check obsessive processor commands...
+  if (verify_config) {
+    engine_logger(log_info_message, basic)
+        << "Checking obsessive compulsive processor commands...";
+    log_v2::events()->info(
+        "Checking obsessive compulsive processor commands...");
+  }
+  if (!pb_config.ocsp_command().empty()) {
+    std::string temp_command_name(pb_config.ocsp_command().substr(
+        0, pb_config.ocsp_command().find_first_of('!')));
+    command_map::iterator found{
+        commands::command::commands.find(temp_command_name)};
+    if (found == commands::command::commands.end() || !found->second) {
+      engine_logger(log_verification_error, basic)
+          << "Error: Obsessive compulsive service processor command '"
+          << temp_command_name << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Obsessive compulsive service processor command '{}' is not "
+          "defined anywhere!",
+          temp_command_name);
+      ++config_errors;
+      ocsp_command_ptr = nullptr;
+    } else
+      ocsp_command_ptr = found->second.get();
+  }
+  if (!pb_config.ochp_command().empty()) {
+    std::string temp_command_name(pb_config.ochp_command().substr(
+        0, pb_config.ochp_command().find_first_of('!')));
+    command_map::iterator found{
+        commands::command::commands.find(temp_command_name)};
+    if (found == commands::command::commands.end() || !found->second) {
+      engine_logger(log_verification_error, basic)
+          << "Error: Obsessive compulsive host processor command '"
+          << temp_command_name << "' is not defined anywhere!";
+      log_v2::config()->error(
+          "Error: Obsessive compulsive host processor command '{}' is not "
+          "defined anywhere!",
+          temp_command_name);
+      ++config_errors;
+      ochp_command_ptr = nullptr;
+    } else
+      ochp_command_ptr = found->second.get();
+  }
+}
+
+/*
+ *  Update all new globals.
+ *
+ *  @param[in]  new_cfg The new configuration state.
+ */
 void applier::state::_apply(configuration::state const& new_cfg) {
   // Check variables should not be change after the first execution.
   if (has_already_been_loaded) {
@@ -350,31 +643,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
       ++config_warnings;
     }
   }
-
-  // Initialize perfdata if necessary.
-  //  bool modify_perfdata(false);
-  //  if (!has_already_been_loaded ||
-  //      config->host_perfdata_command() != new_cfg.host_perfdata_command() ||
-  //      config->host_perfdata_file() != new_cfg.host_perfdata_file() ||
-  //      config->host_perfdata_file_mode() != new_cfg.host_perfdata_file_mode()
-  //      || config->host_perfdata_file_processing_command() !=
-  //          new_cfg.host_perfdata_file_processing_command() ||
-  //      config->host_perfdata_file_processing_interval() !=
-  //          new_cfg.host_perfdata_file_processing_interval() ||
-  //      config->host_perfdata_file_template() !=
-  //          new_cfg.host_perfdata_file_template() ||
-  //      config->service_perfdata_command() !=
-  //          new_cfg.service_perfdata_command() ||
-  //      config->service_perfdata_file() != new_cfg.service_perfdata_file())
-  //      config->service_perfdata_file_mode() !=
-  //          new_cfg.service_perfdata_file_mode() ||
-  //      config->service_perfdata_file_processing_command() !=
-  //          new_cfg.service_perfdata_file_processing_command() ||
-  //      config->service_perfdata_file_processing_interval() !=
-  //          new_cfg.service_perfdata_file_processing_interval() ||
-  //      config->service_perfdata_file_template() !=
-  //          new_cfg.service_perfdata_file_template())
-  //    modify_perfdata = true;
 
   // Initialize status file.
   bool modify_status(false);
@@ -437,13 +705,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->host_inter_check_delay_method(
       new_cfg.host_inter_check_delay_method());
   config->host_perfdata_command(new_cfg.host_perfdata_command());
-  //  config->host_perfdata_file(new_cfg.host_perfdata_file());
-  //  config->host_perfdata_file_mode(new_cfg.host_perfdata_file_mode());
-  //  config->host_perfdata_file_processing_command(
-  //      new_cfg.host_perfdata_file_processing_command());
-  //  config->host_perfdata_file_processing_interval(
-  //      new_cfg.host_perfdata_file_processing_interval());
-  //  config->host_perfdata_file_template(new_cfg.host_perfdata_file_template());
   config->set_illegal_object_chars(new_cfg.illegal_object_chars());
   config->set_illegal_output_chars(new_cfg.illegal_output_chars());
   config->interval_length(new_cfg.interval_length());
@@ -490,14 +751,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   config->service_interleave_factor_method(
       new_cfg.service_interleave_factor_method());
   config->service_perfdata_command(new_cfg.service_perfdata_command());
-  //  config->service_perfdata_file(new_cfg.service_perfdata_file());
-  //  config->service_perfdata_file_mode(new_cfg.service_perfdata_file_mode());
-  //  config->service_perfdata_file_processing_command(
-  //      new_cfg.service_perfdata_file_processing_command());
-  //  config->service_perfdata_file_processing_interval(
-  //      new_cfg.service_perfdata_file_processing_interval());
-  //  config->service_perfdata_file_template(
-  //      new_cfg.service_perfdata_file_template());
   config->sleep_time(new_cfg.sleep_time());
   config->soft_state_dependencies(new_cfg.soft_state_dependencies());
   config->state_retention_file(new_cfg.state_retention_file());
@@ -542,8 +795,6 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   // Initialize.
   if (modify_status)
     xsddefault_initialize_status_data();
-  //  if (modify_perfdata)
-  //    xpddefault_initialize_performance_data();
 
   // Check global event handler commands...
   if (verify_config) {
@@ -1697,19 +1948,18 @@ void applier::state::_processing(configuration::State& new_cfg,
       applier::scheduler::instance().apply(new_cfg, diff_hosts, diff_services,
                                            diff_anomalydetections);
 
-    //    // Apply new global on the current state.
-    //    if (!verify_config)
-    //      _apply(new_cfg);
-    //    else {
-    //      try {
-    //        _apply(new_cfg);
-    //      } catch (std::exception const& e) {
-    //        ++config_errors;
-    //        engine_logger(log_info_message, basic) << e.what();
-    //        log_v2::events()->info(e.what());
-    //      }
-    //    }
-    //
+    // Apply new global on the current state.
+    if (!verify_config)
+      _pb_apply(new_cfg);
+    else {
+      try {
+        _pb_apply(new_cfg);
+      } catch (std::exception const& e) {
+        ++config_errors;
+        log_v2::events()->info(e.what());
+      }
+    }
+
     //    // Timing.
     //    gettimeofday(tv + 3, nullptr);
     //
