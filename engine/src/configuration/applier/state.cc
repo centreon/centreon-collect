@@ -316,8 +316,7 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
   if (has_already_been_loaded) {
     if (!std::equal(
             pb_config.broker_module().begin(), pb_config.broker_module().end(),
-            new_cfg.broker_module().begin(), new_cfg.broker_module().end(),
-            MessageDifferencer::Equals)) {
+            new_cfg.broker_module().begin(), new_cfg.broker_module().end())) {
       log_v2::config()->warn(
           "Warning: Broker modules cannot be changed nor reloaded");
       ++config_warnings;
@@ -495,16 +494,18 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
   pb_config.set_log_level_comments(new_cfg.log_level_comments());
   pb_config.set_log_level_macros(new_cfg.log_level_macros());
   pb_config.set_use_true_regexp_matching(new_cfg.use_true_regexp_matching());
-  pb_config.set_user(new_cfg.user());
+  pb_config.clear_user();
+  for (auto& p : new_cfg.user())
+    pb_config.mutable_user()->at(p.first) = p.second;
 
   // Set this variable just the first time.
   if (!has_already_been_loaded) {
-    pb_config.broker_module(new_cfg.broker_module());
-    pb_config.broker_module_directory(new_cfg.broker_module_directory());
-    pb_config.command_file(new_cfg.command_file());
-    pb_config.external_command_buffer_slots(
+    pb_config.mutable_broker_module()->CopyFrom(new_cfg.broker_module());
+    pb_config.set_broker_module_directory(new_cfg.broker_module_directory());
+    pb_config.set_command_file(new_cfg.command_file());
+    pb_config.set_external_command_buffer_slots(
         new_cfg.external_command_buffer_slots());
-    pb_config.use_timezone(new_cfg.use_timezone());
+    pb_config.set_use_timezone(new_cfg.use_timezone());
   }
 
   // Initialize.
@@ -513,8 +514,6 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
 
   // Check global event handler commands...
   if (verify_config) {
-    engine_logger(log_info_message, basic)
-        << "Checking global event handlers...";
     log_v2::events()->info("Checking global event handlers...");
   }
   if (!pb_config.global_host_event_handler().empty()) {
@@ -524,9 +523,6 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Global host event handler command '" << temp_command_name
-          << "' is not defined anywhere!";
       log_v2::config()->error(
           "Error: Global host event handler command '{}' is not defined "
           "anywhere!",
@@ -544,9 +540,6 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Global service event handler command '"
-          << temp_command_name << "' is not defined anywhere!";
       log_v2::config()->error(
           "Error: Global service event handler command '{}' is not defined "
           "anywhere!",
@@ -559,8 +552,6 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
 
   // Check obsessive processor commands...
   if (verify_config) {
-    engine_logger(log_info_message, basic)
-        << "Checking obsessive compulsive processor commands...";
     log_v2::events()->info(
         "Checking obsessive compulsive processor commands...");
   }
@@ -588,9 +579,6 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
     command_map::iterator found{
         commands::command::commands.find(temp_command_name)};
     if (found == commands::command::commands.end() || !found->second) {
-      engine_logger(log_verification_error, basic)
-          << "Error: Obsessive compulsive host processor command '"
-          << temp_command_name << "' is not defined anywhere!";
       log_v2::config()->error(
           "Error: Obsessive compulsive host processor command '{}' is not "
           "defined anywhere!",
