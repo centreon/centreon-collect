@@ -16,6 +16,7 @@
 ** For more information : contact@centreon.com
 */
 
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
 using namespace com::centreon::broker::bam;

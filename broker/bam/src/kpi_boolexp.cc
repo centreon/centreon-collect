@@ -225,7 +225,7 @@ state kpi_boolexp::_get_state() const {
     return retval;
   } else {
     if (_event) {
-      retval = static_cast<state>(_event->status());
+      retval = static_cast<state>(_event->status);
       log_v2::bam()->trace(
           "BAM: kpi {} boolean expression: state from internal event: {}", id,
           retval);
