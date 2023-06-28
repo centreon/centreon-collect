@@ -8,7 +8,7 @@ section: "default"
 priority: "optional"
 maintainer: "Centreon <contact@centreon.com>"
 description: |
-  The Centreon Broker daemon can aggregates output of multiple cbmod and store
+  The Centreon Broker daemon can aggregate the outputs of multiple cbmod and store
   events in a DB from a single point.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
