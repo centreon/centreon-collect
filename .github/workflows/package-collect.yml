@@ -18,9 +18,6 @@ on:
 
 jobs:
   package:
-    #runs-on: [self-hosted, collect]
-    #runs-on: [self-hosted, collect, arm64]
-    #runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
@@ -122,8 +119,9 @@ jobs:
         run: |
           rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
-      #- if: ${{ matrix.distrib == 'debian-bullseye' }}
-      - name: Upload package artifacts
+      # set condition to true if artifacts are needed
+      - if: ${{ false }}
+        name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
           name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
