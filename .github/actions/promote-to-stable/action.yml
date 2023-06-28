@@ -83,7 +83,7 @@ runs:
           echo "[DEBUG] - Promoting $ARCH testing artifacts to stable."
           for ARTIFACT in ${SRC_PATHS[@]}; do
             echo "[DEBUG] - Promoting $ARTIFACT to stable on artifactory."
-            #jf rt cp $ARTIFACT $TARGET_PATH --flat=true
+            jf rt cp $ARTIFACT $TARGET_PATH --flat=true
           done
         done
       shell: bash
@@ -119,7 +119,7 @@ runs:
         echo "[DEBUG] - Promoting DEB testing artifacts to stable."
         for ARTIFACT in ${SRC_PATHS[@]}; do
           echo "[DEBUG] - Promoting $ARTIFACT to stable."
-          #jf rt cp $ARTIFACT $TARGET_PATH --flat=true
+          jf rt cp $ARTIFACT $TARGET_PATH --flat=true
         done
       shell: bash
 
@@ -171,7 +171,7 @@ runs:
           ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" mkdir -p "$TARGET_PATH"
           for ARTIFACT in ${SRC_PATHS[@]}; do
             echo "[DEBUG] - Promoting $ARTIFACT to $TARGET_PATH."
-            #ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" cp $ARTIFACT $TARGET_PATH/
+            ssh -o StrictHostKeyChecking=no "${{ inputs.yum_repo_address }}" cp $ARTIFACT $TARGET_PATH/
           done
 
           METADATAS="METADATAS /srv/centreon-yum/yum.centreon.com/$ROOT_REPO_PATH/${{ inputs.major_version }}/${{ inputs.distrib }}/${{ inputs.stability }}/$ARCH"
@@ -241,7 +241,7 @@ runs:
             curl -JOs $SRC_PATH
             FILENAME=$(basename $SRC_PATH)
             echo "[DEBUG] - Promoting testing artifact $FILENAME to stable."
-            #curl --fail -s -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILENAME" $TARGET_PATH
+            curl --fail -s -u "${{ inputs.nexus_username }}":"${{ inputs.nexus_password }}" -H "Content-Type: multipart/form-data" --data-binary "@./$FILENAME" $TARGET_PATH
             rm -f $FILENAME
             sleep 2
           done
