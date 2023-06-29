@@ -17,103 +17,113 @@ on:
         type: string
 
 jobs:
-  package-rpm:
-    runs-on: [self-hosted, collect]
+  package:
 
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - image: alma8
+          - image: centreon-collect-alma8
             distrib: el8
-          - image: alma9
+            package_extension: rpm
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-alma9
             distrib: el9
-    name: package ${{ matrix.distrib }}
+            package_extension: rpm
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bullseye
+            distrib: debian-bullseye
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bullseye-arm64
+            distrib: debian-bullseye
+            package_extension: deb
+            runner: collect-arm64
+            arch: arm64
+
+    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ inputs.img_version }}
+      credentials:
+        username: ${{ secrets.DOCKER_REGISTRY_ID }}
+        password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+    name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-
-      - name: package rpm ${{ matrix.image }}
+      - name: Compile sources
         run: |
-          docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \
-            -v "$PWD:/src" \
-            -e DISTRIB="${{ matrix.distrib }}" \
-            -e VERSION="${{ inputs.version }}" \
-            -e RELEASE="${{ inputs.release }}" \
-            -e COMMIT_HASH="${{ inputs.commit_hash }}" \
-            ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-${{ matrix.image }}:${{ inputs.img_version }}
+          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+
+          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+          CMAKE="cmake3"
+          if [ "${{ matrix.package_extension }}" = "deb" ]; then
+            CMAKE="cmake"
+          fi
+
+          sudo $CMAKE \
+                  -G "Ninja" \
+                  -DWITH_TESTING=OFF \
+                  -DWITH_BENCH=ON \
+                  -DWITH_MODULE_SIMU=OFF \
+                  -DCMAKE_INSTALL_PREFIX=/usr \
+                  -DWITH_STARTUP_SCRIPT=systemd \
+                  -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+                  -DWITH_USER_BROKER=centreon-broker \
+                  -DWITH_GROUP_BROKER=centreon-broker \
+                  -DWITH_USER_ENGINE=centreon-engine \
+                  -DWITH_GROUP_ENGINE=centreon-engine \
+                  -DWITH_VAR_DIR=/var/log/centreon-engine \
+                  -DWITH_DAEMONS=ON \
+                  -DWITH_CREATE_FILES=OFF \
+                  -DWITH_CONFIG_FILES=ON \
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+                  .
+
+          sudo ninja
         shell: bash
 
-      - name: sign rpm ${{ matrix.image }}
-        uses: ./.github/actions/package-sign
-        with:
-          script_name: rpm-signing
-          image_name: rpm-signing
-          image_version: ubuntu
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      - name: Generate debug files
+        run: |
+          for file in $(find ./{lib/*.so,bin} -type f); do
+            objcopy --only-keep-debug $file $file.debug
+            objcopy --strip-debug $file
+            objcopy --add-gnu-debuglink $file.debug $file
+          done
+        shell: bash
 
-      - name: Cache RPM files
-        uses: actions/cache@v3
+      - uses: ./.github/actions/package
         with:
-          path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          nfpm_file_pattern: "packaging/*.yaml"
+          distrib: ${{ matrix.distrib }}
+          package_extension: ${{ matrix.package_extension }}
+          version: ${{ inputs.version }}
+          release: ${{ inputs.release }}
+          arch: ${{ matrix.arch }}
+          commit_hash: ${{ inputs.commit_hash }}
+          cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          rpm_gpg_key: ${{ secrets.RPM_GPG_SIGNING_KEY }}
+          rpm_gpg_signing_key_id: ${{ secrets.RPM_GPG_SIGNING_KEY_ID }}
+          rpm_gpg_signing_passphrase: ${{ secrets.RPM_GPG_SIGNING_PASSPHRASE }}
 
-      - name: Cleaning not needed rpm packages
+      - name: Cleaning not needed packages
         shell: bash
         run: |
-          rm -rf *-devel*.rpm
-          rm -rf *-debuginfo*.rpm
-          rm -rf *-debugsource*.rpm
+          rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
-      - name: Upload package artifacts
+      # set condition to true if artifacts are needed
+      - if: ${{ false }}
+        name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: packages-rpm-${{ matrix.distrib }}
-          path: ./*.rpm
+          name: packages-${{ matrix.distrib }}-${{ matrix.arch }}
+          path: ./*.${{ matrix.package_extension}}
           retention-days: 1
-
-  package-deb:
-    runs-on: [self-hosted, collect]
-    strategy:
-      matrix:
-        include:
-          - image: debian-bullseye
-            distrib: bullseye
-    name: package ${{ matrix.distrib }}
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-        with:
-          path: centreon-collect
-
-      - name: Login to Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          username: ${{ secrets.DOCKER_REGISTRY_ID }}
-          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-
-      - name: debmake ${{ matrix.image }}
-        uses: ./centreon-collect/.github/actions/runner-docker
-        with:
-          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
-          script_name: centreon-collect/.github/scripts/collect-deb-package
-          image_name: centreon-collect-${{ matrix.image }}
-          image_version: ${{ inputs.img_version }}
-          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ inputs.version }}" -e RELEASE="${{ inputs.release }}"
-
-      - name: Use cache DEB files
-        uses: actions/cache@v3
-        with:
-          path: ./*.deb
-          key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}

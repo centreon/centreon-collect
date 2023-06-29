@@ -1,13 +1,16 @@
 on:
   workflow_call:
     inputs:
+      image:
+        required: true
+        type: string
       image_version:
         required: true
         type: string
-      distrib:
+      package_cache_key:
         required: true
         type: string
-      os:
+      package_cache_path:
         required: true
         type: string
       database_type:
@@ -37,28 +40,30 @@ jobs:
 
   robot-test:
     needs: [robot-test-list]
-    runs-on: ubuntu-22.04
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect${{inputs.database_type}}-${{inputs.os}}:${{ inputs.image_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
+
     strategy:
       fail-fast: false
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
-    name: ${{ matrix.feature }}${{inputs.database_type}}
 
+    name: ${{ matrix.feature }}${{inputs.database_type}}
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v3
 
-      - name: Install RPM packages
+      - name: Restore packages
         uses: actions/cache@v3
         with:
-          path: ./*.rpm
-          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
+          path: ${{ inputs.package_cache_path }}
+          key: ${{ inputs.package_cache_key }}
+          fail-on-cache-miss: true
 
       - name: Test ${{ matrix.feature }}
         run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}

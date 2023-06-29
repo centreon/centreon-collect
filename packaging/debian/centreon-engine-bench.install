@@ -1,2 +1,0 @@
-debian/tmp-centreon-collect/usr/lib64/centreon-engine/bench_passive_module.so   usr/lib64/centreon-engine
-debian/tmp-centreon-collect/usr/sbin/centengine_bench_passive                   usr/sbin

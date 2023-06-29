@@ -1,0 +1,65 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/almalinux:9
+
+RUN <<EOF
+
+# Base dnf configuration.
+echo 'http_caching=none' >> /etc/yum.conf
+echo 'assumeyes=1' >> /etc/yum.conf
+sed -i 's/best=True/best=False/g' /etc/dnf/dnf.conf
+dnf install -y dnf-plugins-core
+dnf config-manager --set-enabled crb
+
+dnf install -y epel-release
+
+echo '[goreleaser]
+name=GoReleaser
+baseurl=https://repo.goreleaser.com/yum/
+enabled=1
+gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
+
+dnf install -y cmake \
+    gcc \
+    gcc-c++ \
+    gettext \
+    git \
+    ninja-build \
+    openssh-server \
+    mysql-server \
+    mysql \
+    gnutls-devel \
+    iproute \
+    libgcrypt-devel \
+    libssh2-devel \
+    lua-devel \
+    make \
+    perl-ExtUtils-Embed.noarch \
+    python3 \
+    python3-pip \
+    perl-Thread-Queue \
+    rpm-build \
+    rrdtool-devel \
+    yum-utils \
+    perl \
+    rpm-build \
+    procps-ng \
+    zstd \
+    nfpm \
+    sudo
+
+pip3 install conan==1.57.0 --prefix=/usr --upgrade
+rm -rf ~/.conan/profiles/default
+
+EOF
+
+COPY conanfile.txt .
+
+RUN <<EOF
+
+cat conanfile.txt
+conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+EOF
+
+WORKDIR /src
