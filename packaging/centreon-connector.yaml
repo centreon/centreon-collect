@@ -12,7 +12,7 @@ description: |
   Centreon-Engine configuration, designed to monitor and manage system.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
-homepage: "https://centreon.com"
+homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 overrides:

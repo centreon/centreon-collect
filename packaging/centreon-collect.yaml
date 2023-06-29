@@ -12,7 +12,7 @@ description: |
   centreon-engine, centreon-clib and centreon-connectors.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
-homepage: "https://centreon.com"
+homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 contents:

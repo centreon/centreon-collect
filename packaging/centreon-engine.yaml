@@ -12,7 +12,7 @@ description: |
   configuration, designed to monitor hosts and services on your network.
   Commit: @COMMIT_HASH@
 vendor: "Centreon"
-homepage: "https://centreon.com"
+homepage: "https://www.centreon.com"
 license: "Apache-2.0"
 
 overrides:
