@@ -42,7 +42,6 @@ overrides:
       - lua
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-broker = ${VERSION}-${RELEASE}${DIST}
-      - centreon-common
       - gnutls >= 3.3.29
     conflicts:
       - centreon-broker-storage
@@ -58,7 +57,6 @@ overrides:
       - lua5.3
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-common
       - libgnutls30
     conflicts:
       - centreon-broker-storage

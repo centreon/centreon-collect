@@ -46,7 +46,6 @@ overrides:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
-      - centreon-common
     conflicts:
       - centreon-broker-devel
     replaces:
@@ -57,7 +56,6 @@ overrides:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-common
     conflicts:
       - centreon-broker-dev
     replaces:
