@@ -1,6 +1,12 @@
 on:
   workflow_call:
     inputs:
+      distrib:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
       image:
         required: true
         type: string
@@ -52,7 +58,7 @@ jobs:
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }}${{inputs.database_type}}
+    name: ${{ matrix.feature }} ${{inputs.database_type}}
 
     steps:
       - name: Checkout sources
@@ -73,7 +79,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`${{inputs.database_type}}
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
           mv tests/log.html reports/$FILE_PREFIX-log.html
           mv tests/output.xml reports/$FILE_PREFIX-output.xml
           mv tests/report.html reports/$FILE_PREFIX-report.html
@@ -85,7 +91,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
-          name: robot-test-reports
+          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
           path: reports
           retention-days: 1
 
@@ -100,7 +106,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: robot-test-reports
+          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
           path: reports
 
       - uses: actions/setup-python@v4
