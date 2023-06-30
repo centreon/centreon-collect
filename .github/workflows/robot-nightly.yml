@@ -29,7 +29,7 @@ jobs:
 
   deliver-rpm:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version]
+    needs: [get-version, package]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -52,7 +52,7 @@ jobs:
 
   deliver-deb:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [get-version]
+    needs: [get-version, package]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
