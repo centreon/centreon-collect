@@ -91,7 +91,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v3
         with:
-          name: robot-test-reports-${{ inputs.distrib }}-${{ inputs.arch }}
+          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
           path: reports
           retention-days: 1
 
@@ -106,7 +106,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: robot-test-reports-${{ inputs.distrib }}-${{ inputs.arch }}
+          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
           path: reports
 
       - uses: actions/setup-python@v4
