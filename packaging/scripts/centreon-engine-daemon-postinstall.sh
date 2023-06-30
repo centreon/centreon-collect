@@ -13,10 +13,6 @@ if [ "$1" = "configure" ] ; then
   if [ ! "$(getent passwd centreon-engine)" ]; then
     adduser --system --group --home /var/lib/centreon-engine --shell /bin/bash --no-create-home centreon-engine
   fi
-  if [ "$(getent passwd centreon)" ]; then
-    usermod -a -G centreon-engine centreon
-    usermod -a -G centreon centreon-engine
-  fi
   if [ "$(getent passwd centreon-broker)" ]; then
     usermod -a -G centreon-engine centreon-broker
   fi

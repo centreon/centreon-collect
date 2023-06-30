@@ -5,10 +5,6 @@ if [ "$1" = "configure" ] ; then
   if [ ! "$(getent passwd centreon-broker)" ]; then
     adduser --system --group --home /var/lib/centreon-broker --no-create-home centreon-broker
   fi
-  if [ "$(getent passwd centreon)" ]; then
-    usermod -a -G centreon-broker centreon
-    usermod -a -G centreon centreon-broker
-  fi
   chown -R centreon-broker:centreon-broker \
     /etc/centreon-broker \
     /var/lib/centreon-broker \

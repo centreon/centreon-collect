@@ -143,6 +143,8 @@ jobs:
         include:
           - distrib: bullseye
             arch: amd64
+          - distrib: bullseye
+            arch: arm64
 
     name: deliver ${{ matrix.distrib }}
 
