@@ -65,11 +65,13 @@ jobs:
 
     uses: ./.github/workflows/robot-test.yml
     with:
+      distrib: ${{ matrix.distrib }}
+      arch: ${{ matrix.arch }}
       image: ${{ matrix.image }}
       image_version: ${{ needs.get-version.outputs.img_version }}
       package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
-      database_type: ${{ contains(matrix.image, 'mysql') && '-mysql' || '' }}
+      database_type: ${{ contains(matrix.image, 'mysql') && 'mysql' || 'mariadb' }}
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
