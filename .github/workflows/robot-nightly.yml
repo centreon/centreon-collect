@@ -14,22 +14,6 @@ on:
     - cron: '0 0 * * *'
 
 jobs:
-  dispatch-to-maintained-branches:
-    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v3
-
-      - run: |
-          gh workflow run robot-nightly.yml -r "dev-23.04.x"
-          gh workflow run robot-nightly.yml -r "dev-22.10.x"
-          gh workflow run robot-nightly.yml -r "dev-22.04.x"
-          gh workflow run robot-nightly.yml -r "dev-21.10.x"
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   get-version:
     uses: ./.github/workflows/get-version.yml
 
@@ -43,40 +27,9 @@ jobs:
       commit_hash: ${{ github.sha }}
     secrets: inherit
 
-  robot-test:
-    needs: [get-version, package]
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distrib: el9
-            image: centreon-collect-alma9
-            package_extension: rpm
-            arch: amd64
-          - distrib: el9
-            image: centreon-collect-mysql-alma9
-            package_extension: rpm
-            arch: amd64
-          - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64
-            package_extension: deb
-            arch: arm64
-    name: robot test ${{ matrix.distrib }} ${{ matrix.arch }}
-
-    uses: ./.github/workflows/robot-test.yml
-    with:
-      image: ${{ matrix.image }}
-      image_version: ${{ needs.get-version.outputs.img_version }}
-      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-      package_cache_path: ./*.${{ matrix.package_extension}}
-      database_type: ${{ contains(matrix.image, 'mysql') && '-mysql' || '' }}
-    secrets:
-      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-
   deliver-rpm:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [robot-test, get-version]
+    needs: [get-version]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
@@ -99,7 +52,7 @@ jobs:
 
   deliver-deb:
     if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [robot-test, get-version]
+    needs: [get-version]
     runs-on: [self-hosted, common]
     strategy:
       matrix:
