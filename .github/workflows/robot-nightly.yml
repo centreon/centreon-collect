@@ -53,15 +53,18 @@ jobs:
             image: centreon-collect-alma9
             package_extension: rpm
             arch: amd64
+            database_type: mariadb
           - distrib: el9
             image: centreon-collect-mysql-alma9
             package_extension: rpm
             arch: amd64
+            database_type: mysql
           - distrib: bullseye
             image: centreon-collect-debian-bullseye-arm64
             package_extension: deb
             arch: arm64
-    name: robot test ${{ matrix.distrib }} ${{ matrix.arch }}
+            database_type: mariadb
+    name: robot test ${{ matrix.database_type }} ${{ matrix.distrib }} ${{ matrix.arch }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
@@ -71,7 +74,7 @@ jobs:
       image_version: ${{ needs.get-version.outputs.img_version }}
       package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
-      database_type: ${{ contains(matrix.image, 'mysql') && 'mysql' || 'mariadb' }}
+      database_type: ${{ matrix.database_type }}
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
