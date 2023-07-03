@@ -34,9 +34,7 @@ bool_service::bool_service(uint32_t host_id, uint32_t service_id)
       _state_hard(0),
       _state_soft(0),
       _state_known(false),
-      _in_downtime(false) {
-  assert(_host_id);
-}
+      _in_downtime(false) {}
 
 /**
  *  @brief Notification of child update.
@@ -102,10 +100,13 @@ void bool_service::service_update(
 void bool_service::service_update(
     const std::shared_ptr<neb::pb_service_status>& status,
     io::stream* visitor) {
-  log_v2::bam()->trace(
-      "bool_service: service update with neb::pb_service_status");
   auto& o = status->obj();
-  if (status && o.host_id() == _host_id && o.service_id() == _service_id) {
+  log_v2::bam()->trace(
+                      "bool_service: service ({},{}) updated with "
+                      "neb::pb_service_status hard state: {}, downtime: {}",
+                      o.host_id(), o.service_id(), o.last_hard_state(),
+                      o.scheduled_downtime_depth());
+  if (o.host_id() == _host_id && o.service_id() == _service_id) {
     _state_hard = o.last_hard_state();
     _state_soft = o.state();
     _state_known = true;
@@ -138,6 +139,7 @@ double bool_service::value_soft() {
  *  @return  True if the state is known.
  */
 bool bool_service::state_known() const {
+  log_v2::bam()->trace("BAM: bool_service::state_known: {}", _state_known);
   return _state_known;
 }
 

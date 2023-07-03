@@ -65,7 +65,7 @@ bool_expression& bool_expression::operator=(bool_expression const& other) {
     _expression = other._expression;
     _impact_if = other._impact_if;
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -76,9 +76,8 @@ bool_expression& bool_expression::operator=(bool_expression const& other) {
  *  @return True if this and other objects are equal.
  */
 bool bool_expression::operator==(bool_expression const& other) const {
-  return ((_id == other._id) && (_name == other._name) &&
-          (_expression == other._expression) &&
-          (_impact_if == other._impact_if));
+  return _id == other._id && _name == other._name &&
+         _expression == other._expression && _impact_if == other._impact_if;
 }
 
 /**
@@ -89,7 +88,7 @@ bool bool_expression::operator==(bool_expression const& other) const {
  *  @return True if this and other objects are equal.
  */
 bool bool_expression::operator!=(bool_expression const& other) const {
-  return (!operator==(other));
+  return !operator==(other);
 }
 
 /**
@@ -98,7 +97,7 @@ bool bool_expression::operator!=(bool_expression const& other) const {
  *  @return The id.
  */
 uint32_t bool_expression::get_id() const {
-  return (_id);
+  return _id;
 }
 
 /**
@@ -107,7 +106,7 @@ uint32_t bool_expression::get_id() const {
  *  @return The name of this expression..
  */
 std::string const& bool_expression::get_name() const {
-  return (_name);
+  return _name;
 }
 
 /**
@@ -116,7 +115,7 @@ std::string const& bool_expression::get_name() const {
  *  @return The textual representation of the expression.
  */
 std::string const& bool_expression::get_expression() const {
-  return (_expression);
+  return _expression;
 }
 
 /**
@@ -126,7 +125,7 @@ std::string const& bool_expression::get_expression() const {
  *          for a true or false statement.
  */
 bool bool_expression::get_impact_if() const {
-  return (_impact_if);
+  return _impact_if;
 }
 
 /**
@@ -154,7 +153,6 @@ void bool_expression::set_expression(std::string const& expr) {
  */
 void bool_expression::set_id(uint32_t id) {
   _id = id;
-  return;
 }
 
 /**

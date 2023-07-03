@@ -415,7 +415,7 @@ passive_checks_enabled 1
 
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
-            f = open(config_dir + "/centengine.cfg", "w+")
+            f = open(config_dir + "/centengine.cfg", "w")
             bb = self.create_centengine(inst, debug_level=debug_level)
             f.write(bb)
             f.close()
@@ -495,6 +495,22 @@ define timeperiod {
             f.close()
             f = open(config_dir + "/hostgroups.cfg", "w")
             f.close()
+            f = open(config_dir + "/contacts.cfg", "w")
+            f.write("""define contact {
+    contact_name                   John_Doe
+    alias                          admin
+    email                          admin@admin.tld
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      n
+    service_notification_options   w,c,r
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+}
+            """)
+            f.close()
+
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "notif.pl"]:
@@ -573,6 +589,22 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     f.writelines(lines)
     f.close()
 
+##
+# @brief Function to add a value in the centengine.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+
+
+def engine_config_add_value(idx: int, key: str, value: str):
+    filename = ETC_ROOT + \
+        "/centreon-engine/config{}/centengine.cfg".format(idx)
+    f = open(filename, "a")
+    f.write(f"{key}={value}")
+    f.close()
+
 
 ##
 # @brief Function to change a value in the services.cfg for the config idx.
@@ -616,6 +648,137 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+##
+# @brief Function to change a value in the commands.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param command_index  index of the command (may be a regex)
+# @param new_command
+#
+def engine_config_change_command(idx: int, command_index: str, new_command: str):
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
+    lines = f.readlines()
+    f.close
+    new_lines = []
+    r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
+    found = 0
+    for line in lines:
+        if found == 1:
+            found = 0
+            new_lines.append(
+                f"    command_line                    {new_command}\n")
+        else:
+            new_lines.append(line)
+        if r.match(line) is not None:
+            found = 1
+    f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
+    f.writelines(new_lines)
+    f.close
+
+
+##
+# @brief Function to add a new command in the commands.cfg for the config idx
+#
+# @param idx index of the configuration (from 0)
+# @param command_name
+# @param new_command
+#
+def engine_config_add_command(idx: int, command_name: str, new_command: str):
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
+    f.write("""define command {{
+    command_name                   {} 
+    command_line                   {}
+}}
+    """.format(command_name, new_command))
+    f.close()
+
+
+#
+# @param idx index of the configuration (from 0)
+# @param desc contact_name
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, f"    {key}              {value}\n")
+            break
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+def engine_config_remove_service_host(idx: int, host: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    serv_begin = re.compile(r"^define service {$")
+    serv_end = re.compile(r"^}$")
+    serv_begin_idx = 0
+    while True:
+        if (serv_begin_idx >= len(lines)):
+            break
+        if (serv_begin.match(lines[serv_begin_idx])):
+            for serv_line_idx in range(serv_begin_idx, len(lines)):
+                if (host_name.match(lines[serv_line_idx])):
+                    for end_serv_line in range(serv_line_idx, len(lines)):
+                        if serv_end.match(lines[end_serv_line]):
+                            del lines[serv_begin_idx:end_serv_line + 1]
+                            break
+                    break
+                elif serv_end.match(lines[serv_line_idx]):
+                    serv_begin_idx = serv_line_idx
+                    break
+        else:
+            serv_begin_idx = serv_begin_idx + 1
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+def engine_config_remove_host(idx: int, host: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
+    host_begin = re.compile(r"^define host {$")
+    host_end = re.compile(r"^}$")
+    host_begin_idx = 0
+    while True:
+        if (host_begin_idx >= len(lines)):
+            break
+        if (host_begin.match(lines[host_begin_idx])):
+            for host_line_idx in range(host_begin_idx, len(lines)):
+                if (host_name.match(lines[host_line_idx])):
+                    for end_serv_line in range(host_line_idx, len(lines)):
+                        if host_end.match(lines[end_serv_line]):
+                            del lines[host_begin_idx:end_serv_line + 1]
+                            break
+                    break
+                elif host_end.match(lines[host_line_idx]):
+                    host_begin_idx = host_line_idx
+                    break
+        else:
+            host_begin_idx = host_begin_idx + 1
 
     f = open(filename, "w")
     f.writelines(lines)
@@ -758,8 +921,8 @@ def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt
     return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
-def add_boolean_kpi(id_ba: int, expression: str, critical_impact: int):
-    dbconf.add_boolean_kpi(id_ba, expression, critical_impact)
+def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
 
 def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
@@ -1710,6 +1873,43 @@ def modify_retention_dat(poller, host, service, key, value):
                     lines[i] = f"{key}={value}\n"
                     hst = ""
                     svc = ""
+
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        ff.writelines(lines)
+        ff.close()
+
+
+def modify_retention_dat_host(poller, host, key, value):
+    if host != "" and host != "":
+        # We want a host
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+        lines = ff.readlines()
+        ff.close()
+
+        r_hst = re.compile(r"^\s*host_name=(.*)$")
+        in_block = False
+        hst = ""
+        for i in range(len(lines)):
+            l = lines[i]
+            if not in_block:
+                if l == "host {\n":
+                    in_block = True
+                    continue
+            else:
+                if l == "}\n":
+                    in_block = False
+                    hst = ""
+                    continue
+                m = r_hst.match(l)
+                if m:
+                    hst = m.group(1)
+                    continue
+                if l.startswith(f"{key}=") and host == hst:
+                    logger.console(f"key '{key}' found !")
+                    lines[i] = f"{key}={value}\n"
+                    hst = ""
 
         ff = open(
             f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")

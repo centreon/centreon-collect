@@ -28,22 +28,12 @@ using namespace com::centreon::broker::bam;
 bool_more_than::bool_more_than(bool strict) : _strict(strict) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-// bool_more_than::bool_more_than(bool_more_than const& right)
-//    : bool_binary_operator(right) {
-//  _strict = right._strict;
-//}
-
-/**
  *  Get the hard value.
  *
  *  @return Evaluation of the expression with hard values.
  */
 double bool_more_than::value_hard() {
-  return (_strict ? _left_hard > _right_hard : _left_hard >= _right_hard);
+  return _strict ? _left_hard > _right_hard : _left_hard >= _right_hard;
 }
 
 /**
@@ -52,5 +42,5 @@ double bool_more_than::value_hard() {
  *  @return Evaluation of the expression with soft values.
  */
 double bool_more_than::value_soft() {
-  return (_strict ? _left_soft > _right_soft : _left_soft >= _right_soft);
+  return _strict ? _left_soft > _right_soft : _left_soft >= _right_soft;
 }

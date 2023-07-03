@@ -260,6 +260,7 @@ BA_BOOL_KPI
     add_boolean_kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK} {OR} ( {host_16 service_303} {IS} {OK} {AND} {host_16 service_314} {NOT} {UNKNOWN} )
+    ...    False
     ...    100
 
     Start Broker

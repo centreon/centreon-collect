@@ -26,9 +26,14 @@ using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker;
 
 /**
- *  Default constructor.
+ * @brief Constructor of a boolean expression.
+ *
+ * @param id Id of the boolean expression
+ * @param impact_if True if impact is applied if the expression is true.False
+ * otherwise.
  */
-bool_expression::bool_expression() : _id(0), _impact_if(true) {}
+bool_expression::bool_expression(uint32_t id, bool impact_if)
+    : _id(id), _impact_if(impact_if) {}
 
 /**
  *  Base boolean expression got updated.
@@ -57,7 +62,11 @@ bool bool_expression::child_has_update(computable* child, io::stream* visitor) {
  */
 state bool_expression::get_state() const {
   bool v = _expression->value_hard() > 0.5;
-  return v == _impact_if ? state_critical : state_ok;
+  state retval = v == _impact_if ? state_critical : state_ok;
+  log_v2::bam()->debug(
+      "BAM: boolean expression {} - impact if: {} - value: {} - state: {}", _id,
+      _impact_if, v, retval);
+  return retval;
 }
 
 /**
@@ -93,25 +102,10 @@ std::shared_ptr<bool_value> bool_expression::get_expression() const {
  *  @param[in] expression Boolean expression.
  */
 void bool_expression::set_expression(
-    std::shared_ptr<bool_value> const& expression) {
+    const std::shared_ptr<bool_value>& expression) {
   _expression = expression;
 }
 
-/**
- *  Set boolean expression ID.
- *
- *  @param[in] id  Boolean expression ID.
- */
-void bool_expression::set_id(uint32_t id) {
-  _id = id;
-}
-
-/**
- *  Set whether we should impact if the expression is true or false.
- *
- *  @param[in] impact_if True if impact is applied if the expression is
- *                       true. False otherwise.
- */
-void bool_expression::set_impact_if(bool impact_if) {
-  _impact_if = impact_if;
+uint32_t bool_expression::get_id() const {
+  return _id;
 }
