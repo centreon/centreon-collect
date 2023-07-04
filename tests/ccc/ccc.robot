@@ -205,36 +205,20 @@ BECCC6
     END
     ${version}=    Get Version
     ${vers}=    Split String    ${version}    .
-    IF    len(${vers}) == 3
-        ${mm}=    Evaluate    """${vers}[0]""".lstrip("0")
-        ${m}=    Evaluate    """${vers}[1]""".lstrip("0")
-        ${p}=    Evaluate    """${vers}[2]""".lstrip("0")
-        ${match}=    Catenate
-        ...    SEPARATOR=
-        ...    {\n \"major\":
-        ...    ${SPACE}
-        ...    ${mm}
-        ...    ,\n \"minor\":
-        ...    ${SPACE}
-        ...    ${m}
-        ...    ,\n \"patch\":
-        ...    ${SPACE}
-        ...    ${p}
-        ...    \n}\n
+    ${mm}=    Evaluate    """${vers}[0]""".lstrip("0")
+    ${m}=    Evaluate    """${vers}[1]""".lstrip("0")
+    ${p}=    Evaluate    """${vers}[2]""".lstrip("0")
+    IF    "${p}" == 0 or "${p}" == ""
+        Should Contain
+        ...    ${content}
+        ...    {\n \"major\": ${mm},\n \"minor\": ${m}\n}
+        ...    msg=A version as json string should be returned
     ELSE
-        ${mm}=    Evaluate    """${vers}[0]""".lstrip("0")
-        ${m}=    Evaluate    """${vers}[1]""".lstrip("0")
-        ${match}=    Catenate
-        ...    SEPARATOR=
-        ...    {\n \"major\":
-        ...    $${SPACE}
-        ...    {mm}
-        ...    ,\n \"minor\":
-        ...    ${SPACE}
-        ...    ${m}
-        ...    \n}
+        Should Contain
+        ...    ${content}
+        ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
+        ...    msg=A version as json string should be returned
     END
-    Should Contain    ${content}    ${match}    msg=A version as json string should be returned
     Stop Engine
     Kindly Stop Broker
     Remove File    /tmp/output.txt
