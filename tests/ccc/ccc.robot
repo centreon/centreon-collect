@@ -207,10 +207,18 @@ BECCC6
     ${vers}=    Split String    ${version}    .
     ${mm}=    Evaluate    """${vers}[0]""".lstrip("0")
     ${m}=    Evaluate    """${vers}[1]""".lstrip("0")
-    Should Contain
-    ...    ${content}
-    ...    {\n \"major\": ${mm},\n \"minor\": ${m}\n}
-    ...    msg=A version as json string should be returned
+    ${p}=    Evaluate    """${vers}[2]""".lstrip("0")
+    IF    "${p}" == 0 or "${p}" == ""
+        Should Contain
+        ...    ${content}
+        ...    {\n \"major\": ${mm},\n \"minor\": ${m}\n}
+        ...    msg=A version as json string should be returned
+    ELSE
+        Should Contain
+        ...    ${content}
+        ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
+        ...    msg=A version as json string should be returned
+    END
     Stop Engine
     Kindly Stop Broker
     Remove File    /tmp/output.txt
