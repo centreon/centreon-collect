@@ -256,6 +256,10 @@ class engine_impl final : public Engine::Service {
   grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
                                  const LogFlushPeriod* request,
                                  ::google::protobuf::Empty*) override;
+
+  grpc::Status SendBench(grpc::ServerContext* context,
+                         const com::centreon::engine::BenchParam* request,
+                         google::protobuf::Empty* response) override;
 };
 
 CCE_END()

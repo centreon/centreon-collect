@@ -1870,3 +1870,26 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
+
+
+##
+# @brief Call the GetGenericStats function by gRPC
+# it works with both engine and broker
+#
+# @param port of the grpc server
+#
+# @return process__stat__pb2.pb_process_stat
+def get_broker_process_stat(port, timeout=10):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            # same for engine and broker
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            try:
+                res = stub.GetProcessStats(empty_pb2.Empty())
+                return res
+            except:
+                logger.console("gRPC server not ready")
+    logger.console("unable to get process stats")
+    return None

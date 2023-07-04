@@ -32,6 +32,7 @@
 #include <spdlog/spdlog.h>
 
 #include "com/centreon/common/process_stat.hh"
+#include "com/centreon/common/time.hh"
 #include "com/centreon/engine/host.hh"
 
 #include "com/centreon/engine/anomalydetection.hh"
@@ -3363,5 +3364,28 @@ grpc::Status engine_impl::GetProcessStats(
     return grpc::Status(grpc::StatusCode::INTERNAL,
                         boost::diagnostic_information(e));
   }
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief send a bench event across brokers network
+ *
+ * @param context
+ * @param request
+ * @param response
+ * @return grpc::Status
+ */
+grpc::Status engine_impl::SendBench(
+    grpc::ServerContext* context,
+    const com::centreon::engine::BenchParam* request,
+    google::protobuf::Empty* response) {
+  std::chrono::system_clock::time_point client_ts =
+      std::chrono::system_clock::time_point::min();
+
+  if (request->ts().seconds() > 0) {
+    client_ts = common::google_ts_to_time_point(request->ts());
+  }
+
+  broker_bench(request->id(), client_ts);
   return grpc::Status::OK;
 }

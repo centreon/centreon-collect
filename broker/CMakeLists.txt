@@ -453,6 +453,7 @@ target_link_libraries(
   sql
   bbdo_bbdo
   pb_bbdo_lib
+  pb_extcmd_lib
   berpc
   CONAN_PKG::zlib
   CONAN_PKG::spdlog

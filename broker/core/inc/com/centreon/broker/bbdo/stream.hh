@@ -136,6 +136,8 @@ class stream : public io::stream {
   uint32_t _acknowledged_events;
   uint32_t _ack_limit;
   uint32_t _events_received_since_last_ack;
+  time_t _last_sent_ack;
+
   /**
    * It is possible to mix bbdo stream with others like tls or compression.
    * This list of extensions provides a simple access to others ones with

@@ -612,6 +612,7 @@ stream::stream(bool is_input,
       _acknowledged_events{0},
       _ack_limit(1000),
       _events_received_since_last_ack(0),
+      _last_sent_ack(time(nullptr)),
       _extensions{extensions},
       _bbdo_version(config::applier::state::instance().get_bbdo_version()) {}
 
@@ -1004,6 +1005,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   bool timed_out(!_read_any(d, deadline));
   uint32_t event_id(!d ? 0 : d->type());
 
+
   while (!timed_out && ((event_id >> 16) == io::bbdo)) {
     switch (event_id) {
       case version_response::static_type(): {
@@ -1105,10 +1107,17 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
    *  * we get an event d
    *  * an event has been returned but we could not unserialize it.
    */
-  if (!timed_out)
+  if (!timed_out) {
     ++_events_received_since_last_ack;
-  if (_events_received_since_last_ack >= _ack_limit)
+    SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "{} events to acknowledge",
+                        _events_received_since_last_ack);
+  }
+  time_t now = time(nullptr);
+  if (_events_received_since_last_ack >= _ack_limit ||
+      (_events_received_since_last_ack && _last_sent_ack + 2 < now)) {
+    _last_sent_ack = now;
     send_event_acknowledgement();
+  }
   return !timed_out;
 }
 

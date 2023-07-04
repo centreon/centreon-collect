@@ -138,6 +138,16 @@ service Engine {
    * @return nothing.
    */
   rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
+
+  
+  /**
+   * @brief Send a Bench Message.
+   *
+   * @param an arbitrary id and the time when the message was send (optional)
+   *
+   * @return nothing.
+   */
+   rpc SendBench(BenchParam) returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
@@ -595,4 +605,9 @@ message LogLevel {
     OFF = 6;
   }
   LogLevelEnum level = 2;
+}
+
+message BenchParam {
+  uint32 id = 1;
+  google.protobuf.Timestamp ts=2;
 }

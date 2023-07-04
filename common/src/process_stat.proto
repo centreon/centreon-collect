@@ -18,13 +18,16 @@
 
 syntax = "proto3";
 
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
 package com.centreon.common;
 
 message pb_process_stat {
     uint64 pid = 1;
     string cmdline = 2;
     uint32 nb_thread = 3;
-    uint64 start_time = 4;
+    google.protobuf.Timestamp start_time = 4;
     /**
    * The number of bytes which this task has caused to
    * be read from storage.  This is simply the sum of
@@ -34,29 +37,29 @@ message pb_process_stat {
    * actual physical disk I/O was required (the read
    * might have been satisfied from pagecache). *
    */
-    uint64 io_rchar = 5;
+    uint64 query_read_bytes = 5;
     /**
    * The number of bytes which this task has caused, or
    * shall cause to be written to disk.  Similar caveats
    * apply here as with rchar.
    */
-    uint64 io_wchar = 6;
+    uint64 query_write_bytes = 6;
   /**
    * The number of bytes which this
    * process really did cause to be fetched from the
    * storage layer.  This is accurate for block-backed
    * filesystems.
    */
-   uint64 io_read_bytes = 7;
+   uint64 real_read_bytes = 7;
    /**
    * The number of bytes which this
    * process caused to be sent to the storage layer.
    */
-    uint64 io_write_bytes = 8;
+    uint64 real_write_bytes = 8;
     //time consumed by process in user space
-    uint64 user_time = 9;
+    google.protobuf.Duration user_time = 9;
     //time consumed by process in kernel space
-    uint64 kernel_time = 10;
+    google.protobuf.Duration kernel_time = 10;
 
     //total memory size
     uint64 vm_size = 11;

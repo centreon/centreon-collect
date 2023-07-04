@@ -82,6 +82,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
         const muxer_filter& w_filter,
         bool persistent = false);
 
+
  public:
   static std::string queue_file(const std::string& name);
   static std::string memory_file(const std::string& name);

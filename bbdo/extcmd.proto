@@ -16,34 +16,28 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_NEB_PRECOMP_HH
-#define CCB_NEB_PRECOMP_HH
+syntax = "proto3";
 
-#include <chrono>
-#include <condition_variable>
-#include <ctime>
-#include <deque>
-#include <future>
-#include <limits>
-#include <list>
-#include <map>
-#include <stack>
-#include <string>
-#include <thread>
-#include <unordered_map>
+import "google/protobuf/timestamp.proto";
 
-#include <absl/container/flat_hash_map.h>
-#include <absl/container/flat_hash_set.h>
+package com.centreon.broker;
 
-#include <absl/strings/string_view.h>
 
-#include <boost/circular_buffer.hpp>
-#include <boost/container/flat_map.hpp>
-#include <boost/optional.hpp>
 
-#include <asio.hpp>
+message TimePoint {
+  string name = 1;
+  string function = 2;
+  google.protobuf.Timestamp time = 3;
+}
 
-#include <spdlog/fmt/ostr.h>
-#include <spdlog/spdlog.h>
 
-#endif
+/**
+  * @brief the goal of this event is to bench message propagation 
+  * from engine to dest with several timepoints (one per muxer)
+  *
+  */
+message Bench {
+  uint32 id = 1;
+  repeated TimePoint points = 2;
+}
+

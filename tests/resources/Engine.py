@@ -1,6 +1,8 @@
 import Common
 import grpc
 import math
+from google.protobuf import empty_pb2
+from google.protobuf.timestamp_pb2 import Timestamp
 import engine_pb2
 import engine_pb2_grpc
 from array import array
@@ -17,6 +19,7 @@ import time
 import re
 import stat
 import string
+
 
 sys.path.append('.')
 
@@ -1742,12 +1745,21 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
     process_service_check_result(hst, svc, state, full_output, config)
 
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
-    now = int(time.time())
-    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
-        logger.console(cmd)
-        f.write(cmd)
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            for i in range(nb_check):
+                stub.ProcessServiceCheckResult(engine_pb2.Check(
+                    host_name=hst, svc_desc=svc, output=output, code=state))
+
+    else:
+        now = int(time.time())
+        cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+            logger.console(cmd)
+            for i in range(nb_check):
+                f.write(cmd)
 
 
 @external_command
@@ -1961,3 +1973,41 @@ def modify_retention_dat_host(poller, host, key, value):
             f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
         ff.writelines(lines)
         ff.close()
+
+
+##
+# @brief Call the GetGenericStats function by gRPC
+# it works with both engine and broker
+#
+# @param port of the grpc server
+#
+# @return process__stat__pb2.pb_process_stat
+#
+def get_engine_process_stat(port, timeout=10):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            # same for engine and broker
+            stub = engine_pb2_grpc.EngineStub(channel)
+            try:
+                res = stub.GetProcessStats(empty_pb2.Empty())
+                return res
+            except:
+                logger.console("gRPC server not ready")
+    logger.console("unable to get process stats")
+    return None
+
+
+##
+# @brief make engine to send a bench event
+#
+# @param id field of the protobuf Bench message
+# @param port of the grpc server
+#
+def send_bench(id: int, port: int):
+    ts = Timestamp()
+    ts.GetCurrentTime()
+    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+        stub = engine_pb2_grpc.EngineStub(channel)
+        stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))

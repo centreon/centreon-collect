@@ -37,13 +37,13 @@ class process_stat {
   unsigned _num_threads;
 
   // io file
-  uint64_t _rchar;
-  uint64_t _wchar;
-  uint64_t _read_bytes;
-  uint64_t _write_bytes;
+  uint64_t _query_read_bytes;
+  uint64_t _query_write_bytes;
+  uint64_t _real_read_bytes;
+  uint64_t _real_write_bytes;
 
-  std::chrono::system_clock::duration _utime;
-  std::chrono::system_clock::duration _stime;
+  std::chrono::system_clock::duration _user_time;
+  std::chrono::system_clock::duration _kernel_time;
 
   std::chrono::system_clock::time_point _starttime;
 
@@ -84,7 +84,7 @@ class process_stat {
    * might have been satisfied from pagecache). *
    * @return uint64_t
    */
-  uint64_t rchar() const { return _rchar; }
+  uint64_t query_read_bytes() const { return _query_read_bytes; }
 
   /**
    * The number of bytes which this task has caused, or
@@ -93,7 +93,7 @@ class process_stat {
    *
    * @return uint64_t
    */
-  uint64_t wchar() const { return _wchar; }
+  uint64_t query_write_bytes() const { return _query_write_bytes; }
 
   /**
    * Attempt to count the number of bytes which this
@@ -103,7 +103,7 @@ class process_stat {
    *
    * @return uint64_t
    */
-  uint64_t read_bytes() const { return _read_bytes; }
+  uint64_t real_read_bytes() const { return _real_read_bytes; }
 
   /**
    * Attempt to count the number of bytes which this
@@ -111,7 +111,7 @@ class process_stat {
    *
    * @return uint64_t
    */
-  uint64_t write_bytes() const { return _write_bytes; }
+  uint64_t real_write_bytes() const { return _real_write_bytes; }
 
   /**
    * Amount of time that this process has been scheduled
@@ -123,7 +123,9 @@ class process_stat {
    *
    * @return std::chrono::system_clock::duration
    */
-  const std::chrono::system_clock::duration& utime() const { return _utime; }
+  const std::chrono::system_clock::duration& utime() const {
+    return _user_time;
+  }
 
   /**
    * Amount of time that this process has been scheduled
@@ -131,7 +133,9 @@ class process_stat {
    *
    * @return std::chrono::system_clock::duration
    */
-  const std::chrono::system_clock::duration& stime() const { return _stime; }
+  const std::chrono::system_clock::duration& stime() const {
+    return _kernel_time;
+  }
 
   /**
    * @brief The time the process started after system boot.
@@ -178,17 +182,25 @@ void process_stat::to_protobuff(protobuf_class& dest) const {
   dest.set_pid(_pid);
   dest.set_cmdline(_cmdline);
   dest.set_nb_thread(_num_threads);
-  dest.set_start_time(std::chrono::duration_cast<std::chrono::seconds>(
-                          _starttime.time_since_epoch())
-                          .count());
-  dest.set_io_rchar(_rchar);
-  dest.set_io_wchar(_wchar);
-  dest.set_io_read_bytes(_read_bytes);
-  dest.set_io_write_bytes(_write_bytes);
-  dest.set_user_time(
-      std::chrono::duration_cast<std::chrono::seconds>(_utime).count());
-  dest.set_kernel_time(
-      std::chrono::duration_cast<std::chrono::seconds>(_stime).count());
+  dest.mutable_start_time()->set_seconds(
+      std::chrono::duration_cast<std::chrono::seconds>(
+          _starttime.time_since_epoch())
+          .count());
+  dest.set_query_read_bytes(_query_read_bytes);
+  dest.set_query_write_bytes(_query_write_bytes);
+  dest.set_real_read_bytes(_real_read_bytes);
+  dest.set_real_write_bytes(_real_write_bytes);
+  dest.mutable_user_time()->set_seconds(
+      std::chrono::duration_cast<std::chrono::seconds>(_user_time).count());
+  dest.mutable_user_time()->set_nanos(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(_user_time).count() %
+      1000000000);
+  dest.mutable_kernel_time()->set_seconds(
+      std::chrono::duration_cast<std::chrono::seconds>(_kernel_time).count());
+  dest.mutable_kernel_time()->set_nanos(
+      std::chrono::duration_cast<std::chrono::nanoseconds>(_kernel_time)
+          .count() %
+      1000000000);
   dest.set_vm_size(_vm_size);
   dest.set_res_size(_res_size);
   dest.set_shared_size(_shared_size);

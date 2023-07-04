@@ -78,10 +78,10 @@ static auto extract_io_value = [](const absl::string_view& label_value,
 process_stat::process_stat(pid_t process_id)
     : _pid(process_id),
       _num_threads(0),
-      _rchar(0),
-      _wchar(0),
-      _read_bytes(0),
-      _write_bytes(0) {
+      _query_read_bytes(0),
+      _query_write_bytes(0),
+      _real_read_bytes(0),
+      _real_write_bytes(0) {
   std::string proc_path = fmt::format("/proc/{}/", process_id);
   std::string file_path(proc_path + "cmdline");
   _cmdline = read_file(file_path);
@@ -103,15 +103,15 @@ process_stat::process_stat(pid_t process_id)
     char first_char = line.at(0), second_char = line.at(1);
     if (first_char == 'r') {
       if (second_char == 'c') {  // rchar
-        _rchar = extract_io_value(line, file_path);
+        _query_read_bytes = extract_io_value(line, file_path);
       } else if (second_char = 'e') {  // read_bytes
-        _read_bytes = extract_io_value(line, file_path);
+        _real_read_bytes = extract_io_value(line, file_path);
       }
     } else if (first_char == 'w') {
       if (second_char == 'c') {  // wchar
-        _wchar = extract_io_value(line, file_path);
+        _query_write_bytes = extract_io_value(line, file_path);
       } else if (second_char = 'e') {  // write_bytes
-        _write_bytes = extract_io_value(line, file_path);
+        _real_write_bytes = extract_io_value(line, file_path);
       }
     }
   }
@@ -132,10 +132,10 @@ process_stat::process_stat(pid_t process_id)
       std::chrono::system_clock::now() -
       std::chrono::seconds(ts_boot_time.tv_sec);
 
-  _utime = std::chrono::milliseconds(value * 1000 / tick_per_second);
+  _user_time = std::chrono::milliseconds(value * 1000 / tick_per_second);
   std::advance(field_iter, 1);
   absl::SimpleAtoi(*field_iter, &value);
-  _stime = std::chrono::milliseconds(value * 1000 / tick_per_second);
+  _kernel_time = std::chrono::milliseconds(value * 1000 / tick_per_second);
   std::advance(field_iter, 5);
   absl::SimpleAtoi(*field_iter, &_num_threads);
   std::advance(field_iter, 2);

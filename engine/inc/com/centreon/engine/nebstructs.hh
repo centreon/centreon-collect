@@ -250,4 +250,9 @@ typedef struct nebstruct_service_status_struct {
   void* object_ptr;
 } nebstruct_service_status_data;
 
+typedef struct nebstruct_bench_struct {
+  unsigned id;
+  std::chrono::system_clock::time_point mess_create;
+} nebstruct_bench_data;
+
 #endif /* !CCE_NEBSTRUCTS_HH */

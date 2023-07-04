@@ -692,6 +692,7 @@ class unified_muxer_filter : public multiplexing::muxer_filter {
     _mask[io::bbdo] |= 1ULL << bbdo::de_rebuild_graphs;
     _mask[io::bbdo] |= 1ULL << bbdo::de_remove_graphs;
     _mask[io::bbdo] |= 1ULL << bbdo::de_remove_poller;
+    _mask[io::extcmd] |= 1ULL << extcmd::de_pb_bench;
   }
 };
 
