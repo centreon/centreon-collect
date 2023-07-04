@@ -90,6 +90,9 @@ apt-get install -y centreon-collect centreon-broker-cbd centreon-broker-cbmod rr
 
 systemctl restart cbd
 sleep 5
+systemctl stop cbd
+sleep 5
+systemctl start cbd
 systemctl restart centengine
 sleep 10
 cat /var/log/centreon-broker/*.log
