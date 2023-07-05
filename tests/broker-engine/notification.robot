@@ -28,7 +28,7 @@ not1
     Engine Config Set Value    0    log_notifications    1    True
     Engine Config Set Value    0    log_level_notifications    trace    True
     Config Broker    central
-    Config Broker    central
+    Config Broker    rrd
     Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
@@ -75,3 +75,11 @@ not1
 
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Sleep    1m
+
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical;
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling that notification is sent
+
+    Stop Engine
+    Kindly Stop Broker
+
