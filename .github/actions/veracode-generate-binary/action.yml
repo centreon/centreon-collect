@@ -1,9 +1,6 @@
 name: "veracode-generate-binary"
 description: "Prepare binary to be analyzed"
 inputs:
-  module_directory:
-    description: Path to the module
-    required: true
   cache_key:
     description: key used to identify the cache
     required: true
@@ -17,9 +14,8 @@ runs:
   steps:
     - name: Check common inputs validity
       run : |
-        if [[ -z "${{ inputs.module_directory }}" || -z "${{ inputs.cache_key }}" ]]; then
+        if [[ -z "${{ inputs.cache_key }}" ]]; then
           echo "[FATAL] - At least one mandatory argument is missing. killing process"
-          echo "[INFO] - module directory = ${{ inputs.module_directory }}"
           echo "[INFO] - cache key = ${{ inputs.cache_key }}"
           exit 1
         fi
@@ -27,7 +23,6 @@ runs:
 
     - name: Exclude development files
       run: |
-        cd ${{ inputs.module_directory }}
         if [[ -f ".veracode-exclusions" ]]; then
           for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
             if [[ -d "$LINE" ]]; then
@@ -50,7 +45,6 @@ runs:
     - name: Compile cpp sources
       if: inputs.is_cpp_project == 'yes'
       run: |
-        cd ${{ inputs.module_directory }}
         sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
         sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
@@ -81,11 +75,10 @@ runs:
 
     - name: Create ZIP file
       run: |
-        cd ${{ inputs.module_directory }}
         zip -rq "${{ inputs.cache_key }}.zip" *
       shell: bash
 
     - uses: actions/cache/save@v3
       with:
-        path: "${{ inputs.module_directory }}/${{ inputs.cache_key }}.zip"
+        path: "${{ inputs.module_name }}/${{ inputs.cache_key }}.zip"
         key: ${{ inputs.cache_key }}
