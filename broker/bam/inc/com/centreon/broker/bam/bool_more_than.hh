@@ -37,9 +37,9 @@ class bool_more_than : public bool_binary_operator {
 
  public:
   bool_more_than(bool strict = false);
-  bool_more_than(bool_more_than const& right) = delete;
+  bool_more_than(const bool_more_than&) = delete;
   ~bool_more_than() noexcept = default;
-  bool_more_than& operator=(bool_more_than const&) = delete;
+  bool_more_than& operator=(const bool_more_than&) = delete;
   double value_hard();
   double value_soft();
 };

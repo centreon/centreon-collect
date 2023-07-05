@@ -46,8 +46,8 @@ class bool_operation : public bool_binary_operator {
  public:
   bool_operation(std::string const& op);
   ~bool_operation() noexcept override = default;
-  bool_operation(bool_operation const&) = delete;
-  bool_operation& operator=(bool_operation const&) = delete;
+  bool_operation(const bool_operation&) = delete;
+  bool_operation& operator=(const bool_operation&) = delete;
   double value_hard() override;
   double value_soft() override;
   bool state_known() const override;

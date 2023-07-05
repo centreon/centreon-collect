@@ -5,10 +5,12 @@
   delaycompress
   missingok
   olddir /var/log/centreon-engine/archives
+  createolddir 755 centreon-engine centreon-engine
   rotate 365
   postrotate
     systemctl reload centengine
   endscript
+  su centreon-engine centreon-engine
 }
 
 /var/log/centreon-engine/centengine.debug {
@@ -17,9 +19,11 @@
   delaycompress
   missingok
   olddir /var/log/centreon-engine/archives
+  createolddir 755 centreon-engine centreon-engine
   rotate 5
   size   1G
   postrotate
     systemctl reload centengine
   endscript
+  su centreon-engine centreon-engine
 }

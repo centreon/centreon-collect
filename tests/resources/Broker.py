@@ -2,7 +2,9 @@ from os import makedirs
 from os.path import exists, dirname
 import pymysql.cursors
 import time
+import re
 import shutil
+import psutil
 import socket
 import sys
 import time
@@ -17,6 +19,7 @@ import grpc
 import broker_pb2
 import broker_pb2_grpc
 from google.protobuf import empty_pb2
+from google.protobuf.json_format import MessageToJson
 from robot.libraries.BuiltIn import BuiltIn
 
 TIMEOUT = 30
@@ -1221,13 +1224,97 @@ def run_reverse_bam(duration, interval):
     getoutput("kill -9 $(ps aux | grep map_client.py | awk '{print $2}')")
 
 
+def start_map():
+    global map_process
+    map_process = subp.Popen("broker/map_client_types.py",
+                             shell=True, stdout=subp.DEVNULL, stdin=subp.DEVNULL)
+
+
+def clear_map_logs():
+    with open('/tmp/map-output.log', 'w') as f:
+        f.write("")
+
+
+def check_map_output(categories_str, expected_events, timeout: int = TIMEOUT):
+    retval = False
+    limit = time.time() + timeout
+    while time.time() < limit:
+        output = ""
+        try:
+            with open('/tmp/map-output.log', 'r') as f:
+                output = f.readlines()
+        except FileNotFoundError:
+            time.sleep(5)
+            continue
+
+        categories = list(map(int, categories_str))
+        r = re.compile(r"^type: ([0-9]*)'?$")
+        cat = {}
+        expected = list(map(int, expected_events))
+        lines = list(filter(r.match, output))
+        retval = True
+        for o in lines:
+            m = r.match(o)
+            elem = int(m.group(1))
+            if elem in expected:
+                expected.remove(elem)
+            c = elem >> 16
+            if c in categories:
+                cat[c] = 1
+            elif c != 2:
+                logger.console(f"Category {c} not expected")
+                retval = False
+                break
+        if retval and len(categories) != len(cat):
+            logger.console(
+                f"There are {len(categories)} categories expected whereas {len(cat)} are sent to map")
+            retval = False
+
+        if retval and len(expected) > 0:
+            logger.console(f"Events of types {str(expected)} not sent")
+            retval = False
+
+        if retval:
+            break
+        time.sleep(5)
+
+    return retval
+
+
+def get_map_output():
+    global map_process
+    return map_process.communicate()[0]
+
+
+def stop_map():
+    for proc in psutil.process_iter():
+        if 'map_client_type' in proc.name():
+            logger.console(
+                f"process '{proc.name()}' containing map_client_type found: stopping it")
+            proc.terminate()
+            try:
+                logger.console("Waiting for 30s map_client_type to stop")
+                proc.wait(30)
+            except:
+                logger.console("map_client_type don't want to stop => kill")
+                proc.kill()
+
+    for proc in psutil.process_iter():
+        if 'map_client_type' in proc.name():
+            logger.console(f"process '{proc.name()}' still alive")
+            logger.console("map_client_type don't want to stop => kill")
+            proc.kill()
+
+    logger.console("map_client_type stopped")
+
+
 ##
 # @brief Get count indexes that are available to rebuild them.
 #
 # @param count is the number of indexes to get.
 #
 # @return a list of indexes
-def get_indexes_to_rebuild(count: int):
+def get_indexes_to_rebuild(count: int, nb_day=180):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
     ids = [int(f.split(".")[0]) for f in files]
@@ -1251,12 +1338,13 @@ def get_indexes_to_rebuild(count: int):
                     logger.console(
                         "building data for metric {}".format(r['metric_id']))
                     # We go back to 180 days with steps of 5 mn
-                    start = int(time.time()) - 24 * 60 * 60 * 180
+                    start = int(time.time()/86400)*86400 - \
+                        24 * 60 * 60 * nb_day
                     value = int(r['metric_id']) // 2
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
                     # We set the value to a constant on 180 days
-                    for i in range(0, 24 * 60 * 60 * 180, 60 * 5):
+                    for i in range(0, 24 * 60 * 60 * nb_day, 60 * 5):
                         cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
                             r['metric_id'], start + i, value))
                     connection.commit()
@@ -1268,6 +1356,59 @@ def get_indexes_to_rebuild(count: int):
     # if the loop is already and retval length is not sufficiently long, we
     # still return what we get.
     return retval
+
+
+##
+# @brief add a value at the mid of the first day of each metric
+#
+#
+# @return a list of indexes of pair <time of oldest value>, <metric id>
+def add_duplicate_metrics():
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_STORAGE,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+    retval = []
+    with connection:
+        with connection.cursor() as cursor:
+            sql = "SELECT * FROM(SELECT  min(ctime) AS ctime, count(*) AS nb, id_metric FROM data_bin GROUP BY id_metric) s WHERE nb > 100"
+            cursor.execute(sql)
+            result = cursor.fetchall()
+            for metric_info in result:
+                # insert a duplicate value at the mid of the day
+                low_limit = metric_info['ctime'] + 43200 - 60
+                upper_limit = metric_info['ctime'] + 43200 + 60
+                cursor.execute(
+                    f"INSERT INTO data_bin SELECT * FROM data_bin WHERE id_metric={metric_info['id_metric']} AND ctime BETWEEN {low_limit} AND {upper_limit}")
+                retval.append({metric_info['id_metric'], metric_info['ctime']})
+            connection.commit()
+    return retval
+
+
+##
+# @brief check that metrics are not a NaN during one day
+#
+# @param an array of pair <time of oldest value>, <metric id> returned by add_duplicate_metrics
+#
+# @return true or false
+def check_for_NaN_metric(add_duplicate_metrics_ret):
+    for min_timestamp, metric_id in add_duplicate_metrics_ret:
+        max_timestamp = min_timestamp + 86400
+        res = getoutput(
+            f"rrdtool dump {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
+        # we search a string like <!-- 2022-12-07 23: 00: 00 CET / 1670450400 - -> < row > <v > NaN < /v > </row >
+        row_search = re.compile(
+            r"(\d+)\s+\-\-\>\s+\<row\>\<v\>([0-9\.e+NaN]+)")
+        for line in res.splitlines():
+            extract = row_search.search(line)
+            if extract is not None:
+                ts = int(extract.group(1))
+                val = extract.group(2)
+                if ts > min_timestamp and ts < max_timestamp and val == "NaN":
+                    return False
+    return True
 
 
 ##
@@ -1316,6 +1457,49 @@ def remove_graphs(port, indexes, metrics, timeout=10):
                 break
             except:
                 logger.console("gRPC server not ready")
+
+
+def broker_set_sql_manager_stats(port: int, stmt: int, queries: int, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            opts = broker_pb2.SqlManagerStatsOptions()
+            opts.slowest_statements_count = stmt
+            opts.slowest_queries_count = queries
+            try:
+                stub.SetSqlManagerStats(opts)
+                break
+            except:
+                logger.console("gRPC server not ready")
+
+
+def broker_get_sql_manager_stats(port: int, query, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            stub = broker_pb2_grpc.BrokerStub(channel)
+            con = broker_pb2.SqlConnection()
+            try:
+                res = stub.GetSqlManagerStats(con)
+                logger.console(res)
+                res = MessageToJson(res)
+                logger.console(res)
+                res = json.loads(res)
+                for c in res["connections"]:
+                    if "slowestQueries" in c:
+                        for q in c["slowestQueries"]:
+                            if query in q["query"]:
+                                return q["duration"]
+                    if "slowestStatements" in c:
+                        for q in c["slowestStatements"]:
+                            if query in q["statementQuery"]:
+                                return q["duration"]
+            except:
+                logger.console("gRPC server not ready")
+    return -1
 
 
 ##
@@ -1667,3 +1851,25 @@ def set_broker_log_level(port, name, log, level, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
+
+
+def config_broker_remove_rrd_output(name):
+    if name == 'central':
+        filename = "central-broker.json"
+    elif name.startswith('module'):
+        filename = "central-{}.json".format(name)
+    else:
+        filename = "central-rrd.json"
+    conf = {}
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "r") as f:
+        buf = f.read()
+        conf = json.loads(buf)
+        output_dict = conf["centreonBroker"]["output"]
+        for i, v in enumerate(output_dict):
+            if "rrd" in v["name"] and v["type"] == "ipv4":
+                output_dict.pop(i)
+                break
+
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
+

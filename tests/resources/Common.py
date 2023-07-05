@@ -72,6 +72,18 @@ def get_date(d: str):
     return retval
 
 
+def extract_date_from_log(line: str):
+    p = re.compile(r"\[([^\]]*)\]")
+    m = p.match(line)
+    if m is None:
+        return None
+    try:
+        return get_date(m.group(1))
+    except parser.ParserError:
+        logger.console(f"Unable to parse the date from the line {line}")
+        return None
+
+
 #  When you use Get Current Date with exclude_millis=True
 #  it rounds result to nearest lower or upper second
 def get_round_current_date():
@@ -193,6 +205,16 @@ def start_mysql():
         logger.console("Mariadb directly started")
 
 
+def kill_mysql():
+    logger.console("Killing directly MariaDB")
+    for proc in psutil.process_iter():
+        if ('mariadbd' in proc.name()):
+            logger.console(
+                f"process '{proc.name()}' containing mariadbd found: stopping it")
+            proc.kill()
+    logger.console("Mariadb killed")
+
+
 def stop_mysql():
     if not run_env():
         logger.console("Stopping Mariadb with systemd")
@@ -271,7 +293,7 @@ def check_engine_logs_are_duplicated(log: str, date):
         logs_new = []
         old_log = re.compile(r"\[[^\]]*\] \[[^\]]*\] ([^\[].*)")
         new_log = re.compile(
-            r"\[[^\]]*\] \[[^\]]*\] \[[^\]]*\] \[[^\]]*\] (.*)")
+            r"\[[^\]]*\] \[[^\]]*\] \[.*\] \[[0-9]+\] (.*)")
         for l in lines[idx:]:
             mo = old_log.match(l)
             mn = new_log.match(l)
@@ -308,25 +330,22 @@ def find_line_from(lines, date):
     except:
         my_date = datetime.fromtimestamp(date)
 
-    p = re.compile(r"\[([^\]]*)\]")
-
     # Let's find my_date
     start = 0
     end = len(lines) - 1
     idx = start
     while end > start:
         idx = (start + end) // 2
-        m = p.match(lines[idx])
-        while m is None:
+        idx_d = extract_date_from_log(lines[idx])
+        while idx_d is None:
             logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
                 start, idx, end, lines[idx]))
             idx -= 1
             if idx >= 0:
-                m = p.match(lines[idx])
+                idx_d = extract_date_from_log(lines[idx])
             else:
                 logger.console("We are at the first line and no date found")
-
-        idx_d = get_date(m.group(1))
+                return 0
         if my_date <= idx_d and end != idx:
             end = idx
         elif my_date > idx_d and start != idx:
@@ -345,22 +364,28 @@ def check_reschedule(log: str, date, content: str):
 
         retry_check = False
         normal_check = False
+        r = re.compile(".* last check at (.*) and next check at (.*)$")
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
                 logger.console(
                     "\"{}\" found at line {} from {}".format(content, i, idx))
-                row = line.split()
-                delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
-                    datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
-                if delta == 60:
-                    retry_check = True
-                elif delta == 300:
-                    normal_check = True
+                m = r.match(line)
+                if m:
+                    delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
+                        datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
+                    if delta == 60:
+                        retry_check = True
+                    elif delta == 300:
+                        normal_check = True
+                else:
+                    logger.console(f"Unable to find last check and next check in the line '{line}'")
+                    return False, False
+        logger.console(f"loop finished with {retry_check}, {normal_check}")
         return retry_check, normal_check
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
-        return False
+        return False, False
 
 
 def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
@@ -371,7 +396,7 @@ def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
         if v1 and v2:
             return v1, v2
         time.sleep(5)
-    return False
+    return False, False
 
 
 def clear_commands_status():
@@ -462,9 +487,9 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT a.acknowledgement_id, a.state, a.type FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time}")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time}")
                 result = cursor.fetchall()
-                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None:
                     logger.console(
                         f"status={result[0]['state']} and state_type={result[0]['type']}")
                     if state_type == 'HARD' and int(result[0]['type']) == 1:
@@ -527,6 +552,33 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                         return True
                     elif state_type != 'HARD':
                         return True
+        time.sleep(1)
+    return False
+
+
+def check_service_status_enabled(hostname: str, service_desc: str, timeout: int):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT s.service_id, s.enabled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
+                result = cursor.fetchall()
+                if len(result) > 0 and result[0]['enabled'] is not None:
+                    logger.console(
+                        f"enabled {service_desc}is enabled")
+                else:
+                    logger.console(
+                        f"enabled {service_desc}is disabled")
+                return False
         time.sleep(1)
     return False
 
@@ -1192,8 +1244,8 @@ def get_version():
         m3 = rpatch.match(l)
         if m1:
             maj = m1.group(1)
-        elif m2:
+        if m2:
             mini = m2.group(1)
-        elif m3:
+        if m3:
             patch = m3.group(1)
     return f"{maj}.{mini}.{patch}"

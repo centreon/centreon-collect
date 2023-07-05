@@ -186,6 +186,54 @@ int32_t macro_cache::get_severity(uint64_t host_id, uint64_t service_id) const {
 }
 
 /**
+ * @brief Get the resource check command from the given host_id, service_id. If
+ * only the host_id is given then the service_id is considered to be 0 and we
+ * looke for a host check command. Otherwise we looke for a service check
+ * command.
+ *
+ * @param host_id An integer representing a host ID.
+ * @param service_id An service ID or 0 for a host.
+ *
+ * @return A string view pointing to the check command.
+ */
+absl::string_view macro_cache::get_check_command(uint64_t host_id,
+                                                 uint64_t service_id) const {
+  /* Case of services */
+  absl::string_view retval;
+  if (service_id) {
+    auto found = _services.find({host_id, service_id});
+    if (found == _services.end())
+      throw msg_fmt(
+          "lua: could not find the check command of the service (host_id: {}, "
+          "service_id: {})",
+          host_id, service_id);
+    if (found->second->type() == neb::service::static_type()) {
+      neb::service& s = static_cast<neb::service&>(*found->second);
+      retval = s.check_command;
+    } else {
+      neb::pb_service& s = static_cast<neb::pb_service&>(*found->second);
+      retval = s.obj().check_command();
+    }
+  }
+  /* Case of hosts */
+  else {
+    auto found = _hosts.find(host_id);
+    if (found == _hosts.end())
+      throw msg_fmt(
+          "lua: could not find the check command of the host (host_id: {})",
+          host_id);
+    if (found->second->type() == neb::host::static_type()) {
+      neb::host& s = static_cast<neb::host&>(*found->second);
+      retval = s.check_command;
+    } else {
+      neb::pb_host& s = static_cast<neb::pb_host&>(*found->second);
+      retval = s.obj().check_command();
+    }
+  }
+  return retval;
+}
+
+/**
  *  Get the notes url of a host (service_id=0) or a service.
  *
  *  @param[in] host_id     The id of the host.

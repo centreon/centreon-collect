@@ -152,10 +152,6 @@ stream::stream(const database_config& dbcfg,
            " ON DUPLICATE KEY UPDATE "
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
            "VALUES(value)"),
-      _perfdata(
-          queue_timer_duration,
-          _max_perfdata_queries,
-          "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES {}"),
       _logs(queue_timer_duration,
             _max_pending_queries,
             "INSERT INTO logs "
@@ -219,6 +215,7 @@ stream::stream(const database_config& dbcfg,
                         e.what());
     throw;
   }
+  std::lock_guard<std::mutex> l(_timer_m);
   _queues_timer.expires_after(std::chrono::seconds(queue_timer_duration));
   _queues_timer.async_wait(
       [this](const asio::error_code& err) { _check_queues(err); });
@@ -356,6 +353,9 @@ void stream::_load_caches() {
   try {
     database::mysql_result res(future_index_data.get());
 
+    auto bbdo = config::applier::state::instance().get_bbdo_version();
+    multiplexing::publisher pblshr;
+
     // Loop through result set.
     while (_mysql.fetch_row(res)) {
       index_info info{
@@ -389,10 +389,18 @@ void stream::_load_caches() {
         _index_cache[{host_id, service_id}] = std::move(info);
 
         // Create the metric mapping.
-        auto im{std::make_shared<storage::index_mapping>(info.index_id, host_id,
-                                                         service_id)};
-        multiplexing::publisher pblshr;
-        pblshr.write(im);
+        if (bbdo.major_v < 3) {
+          auto im{std::make_shared<storage::index_mapping>(
+              info.index_id, host_id, service_id)};
+          pblshr.write(im);
+        } else {
+          auto im{std::make_shared<storage::pb_index_mapping>()};
+          auto& im_obj = im->mut_obj();
+          im_obj.set_index_id(info.index_id);
+          im_obj.set_host_id(host_id);
+          im_obj.set_service_id(service_id);
+          pblshr.write(im);
+        }
       }
     }
   } catch (std::exception const& e) {
@@ -632,7 +640,8 @@ void stream::_add_action(int32_t conn, actions action) {
  * @return A nlohmann::json with the statistics.
  */
 void stream::statistics(nlohmann::json& tree) const {
-  size_t perfdata = _perfdata.size();
+  size_t perfdata =
+      _bulk_prepared_statement ? _perfdata_b->size() : _perfdata_q->size();
   size_t sz_metrics;
   size_t sz_logs = _logs.size();
   size_t sz_cv = _cv.size();
@@ -1073,6 +1082,19 @@ void stream::_start_loop_timer() {
  * bind or directly. It is the case for _hscr_update.
  */
 void stream::_init_statements() {
+  if (_bulk_prepared_statement) {
+    _perfdata_stmt = std::make_unique<database::mysql_bulk_stmt>(
+        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES (?,?,?,?)");
+    _mysql.prepare_statement(*_perfdata_stmt);
+    _perfdata_b = std::make_unique<bulk_bind>(
+        _dbcfg.get_connections_count(), queue_timer_duration,
+        _max_perfdata_queries, *_perfdata_stmt);
+  } else {
+    _perfdata_q = std::make_unique<bulk_queries>(
+        queue_timer_duration, _max_perfdata_queries,
+        "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES {}");
+  }
+
   const std::string hscr_query(
       "UPDATE hosts SET "
       "checked=?,"                   // 0: has_been_checked

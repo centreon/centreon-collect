@@ -251,11 +251,17 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
         if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+          SPDLOG_LOGGER_TRACE(
+              log_v2::core(),
+              "muxer {} event of type {:x} rejected by write filter", _name,
+              (*evt)->type());
           continue;
-        }
+        } else
+          SPDLOG_LOGGER_TRACE(log_v2::core(),
+                              "muxer {} event of type {:x} written", _name,
+                              (*evt)->type());
+
         at_least_one_push_to_queue = true;
-        log_v2::core()->trace("muxer::publish {} publish one event to queue",
-                              _name);
         _push_to_queue(*evt);
       }
     }
@@ -270,8 +276,15 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     std::lock_guard<std::mutex> lock(_mutex);
     for (; evt != event_queue.end(); ++evt) {
       if (_write_filters.find((*evt)->type()) == _write_filters.end()) {
+        SPDLOG_LOGGER_TRACE(
+            log_v2::core(),
+            "muxer {} event of type {:x} rejected by write filter", _name,
+            (*evt)->type());
         continue;
-      }
+      } else
+        SPDLOG_LOGGER_TRACE(log_v2::core(),
+                            "muxer {} event of type {:x} written", _name,
+                            (*evt)->type());
       if (!_file) {
         QueueFileStats* s =
             stats::center::instance().muxer_stats(_name)->mutable_queue_file();
@@ -335,6 +348,9 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   if (!timed_out) {
     SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {}", _name, *event);
   }
+  if (event)
+    SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer {} event of type {:x} read",
+                        _name, event->type());
   return !timed_out;
 }
 
@@ -438,6 +454,10 @@ void muxer::wake() {
 int muxer::write(std::shared_ptr<io::data> const& d) {
   if (d && _read_filters.find(d->type()) != _read_filters.end())
     engine::instance_ptr()->publish(d);
+  else
+    SPDLOG_LOGGER_TRACE(log_v2::core(),
+                        "muxer {} event of type {:x} rejected by read filter",
+                        _name, d->type());
   return 1;
 }
 
@@ -529,6 +549,8 @@ std::string muxer::queue_file(std::string const& name) {
  */
 void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
   bool pos_has_no_more_to_read(_pos == _events.end());
+  SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer {} event of type {:x} pushed",
+                      _name, event->type());
   _events.push_back(event);
   ++_events_size;
 

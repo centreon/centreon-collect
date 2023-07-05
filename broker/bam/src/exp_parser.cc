@@ -31,57 +31,15 @@ using namespace com::centreon::broker::bam;
  *
  *  @param[in] expression  Expression to parse.
  */
-exp_parser::exp_parser(std::string const& expression) : _exp(expression) {
-  _precedence["&&"] = 2;
-  _precedence["AND"] = 2;
-  _precedence["||"] = 2;
-  _precedence["OR"] = 2;
-  _precedence["IS"] = 3;
-  _precedence["^"] = 2;
-  _precedence["XOR"] = 2;
-  _precedence["NOT"] = 3;
-  _precedence[">"] = 3;
-  _precedence[">="] = 3;
-  _precedence["<"] = 3;
-  _precedence["<="] = 3;
-  _precedence["=="] = 3;
-  _precedence["!="] = 3;
-  _precedence["+"] = 4;
-  _precedence["-"] = 4;
-  _precedence["*"] = 5;
-  _precedence["/"] = 5;
-  _precedence["%"] = 5;
-  _precedence["-u"] = 6;
-  _precedence["!"] = 6;
-
+exp_parser::exp_parser(const std::string& expression)
+    : _exp(expression), _precedence{{"&&", 2},  {"AND", 2}, {"||", 2},
+                                    {"OR", 2},  {"IS", 3},  {"^", 2},
+                                    {"XOR", 2}, {"NOT", 3}, {">", 3},
+                                    {">=", 3},  {"<", 3},   {"<=", 3},
+                                    {"==", 3},  {"!=", 3},  {"+", 4},
+                                    {"-", 4},   {"*", 5},   {"/", 5},
+                                    {"%", 5},   {"-u", 6},  {"!", 6}} {
   log_v2::bam()->trace("exp_parser constructor '{}'", expression);
-}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-exp_parser::exp_parser(exp_parser const& other) {
-  _internal_copy(other);
-}
-
-/**
- *  Destructor.
- */
-exp_parser::~exp_parser() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-exp_parser& exp_parser::operator=(exp_parser const& other) {
-  if (this != &other)
-    _internal_copy(other);
-  return (*this);
 }
 
 /**
@@ -164,7 +122,7 @@ exp_parser::notation const& exp_parser::get_postfix() {
         while (!stack.empty() &&
                is_operator(stack.top())
                // And o1's precedence is less than or equal to that of o2
-               && (_precedence[token] <= (_precedence[stack.top()]))) {
+               && _precedence[token] <= _precedence[stack.top()]) {
           // Pop o2 off the operator stack, onto the output queue.
           _postfix.push_back(stack.top());
           stack.pop();
@@ -225,15 +183,15 @@ exp_parser::notation const& exp_parser::get_postfix() {
     stack.pop();
     if (token == "(") {
       throw msg_fmt(
-          "mismatched parentheses found while parsing "
-          "the following expression: {}",
+          "mismatched parentheses found while parsing the following "
+          "expression: {}",
           _exp);
     }
     // Or pop the operator onto the output queue.
     _postfix.push_back(token);
   }
 
-  return (_postfix);
+  return _postfix;
 }
 
 /**
@@ -242,10 +200,10 @@ exp_parser::notation const& exp_parser::get_postfix() {
  *  @return True if token is a valid function name.
  */
 bool exp_parser::is_function(std::string const& token) {
-  return ((token == "HOSTSTATUS") || (token == "SERVICESTATUS") ||
-          (token == "METRICS") || (token == "METRIC") || (token == "AVERAGE") ||
-          (token == "COUNT") || (token == "MAX") || (token == "MIN") ||
-          (token == "SUM") || (token == "CALL"));
+  return token == "HOSTSTATUS" || token == "SERVICESTATUS" ||
+         token == "METRICS" || token == "METRIC" || token == "AVERAGE" ||
+         token == "COUNT" || token == "MAX" || token == "MIN" ||
+         token == "SUM" || token == "CALL";
 }
 
 /**
@@ -254,23 +212,10 @@ bool exp_parser::is_function(std::string const& token) {
  *  @return True if token is a valid operator.
  */
 bool exp_parser::is_operator(std::string const& token) {
-  return ((token == "+") || (token == "-") || (token == "-u") ||
-          (token == "*") || (token == "/") || (token == "%") ||
-          (token == ">") || (token == ">=") || (token == "<") ||
-          (token == "<=") || (token == "==") || (token == "IS") ||
-          (token == "NOT") || (token == "!=") || (token == "!") ||
-          (token == "AND") || (token == "^") || (token == "XOR") ||
-          (token == "&&") || (token == "OR") || (token == "||"));
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] other  Object to copy.
- */
-void exp_parser::_internal_copy(exp_parser const& other) {
-  _exp = other._exp;
-  _postfix = other._postfix;
-  _precedence = other._precedence;
-  return;
+  return token == "+" || token == "-" || token == "-u" || token == "*" ||
+         token == "/" || token == "%" || token == ">" || token == ">=" ||
+         token == "<" || token == "<=" || token == "==" || token == "IS" ||
+         token == "NOT" || token == "!=" || token == "!" || token == "AND" ||
+         token == "^" || token == "XOR" || token == "&&" || token == "OR" ||
+         token == "||";
 }

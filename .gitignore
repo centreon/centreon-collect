@@ -37,10 +37,11 @@ apps/
 build/*
 tests/failed/*
 
-### vscode ###
+### ide ###
 **/.vscode/
 **/.idea
 .scannerwork
+**/.cache
 
 ### temp build files ###
 logs/*
@@ -67,7 +68,7 @@ report.html
 bbdo/*_accessor.hh
 
 # broker
-broker/core/inc/com/centreon/broker/database/table_max_size.hh
+broker/core/sql/inc/com/centreon/broker/sql/table_max_size.hh
 broker/core/inc/com/centreon/broker/vars.hh
 broker/core/inc/com/centreon/broker/version.hh
 broker/config/central-rrd.json

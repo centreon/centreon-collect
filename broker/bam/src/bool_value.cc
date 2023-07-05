@@ -21,31 +21,6 @@
 using namespace com::centreon::broker::bam;
 
 /**
- *  Default constructor.
- */
-bool_value::bool_value() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-bool_value::bool_value(bool_value const& right) : computable(right) {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-bool_value& bool_value::operator=(const bool_value& right) {
-  if (this != &right)
-    computable::operator=(right);
-  return *this;
-}
-
-/**
  *  Is this boolean value in downtime?
  *
  *  @return  True if this boolean value is in downtime.

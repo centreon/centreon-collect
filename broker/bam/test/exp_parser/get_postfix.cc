@@ -157,21 +157,6 @@ TEST(BamExpParserGetPostfix, UnaryMinus) {
 }
 
 // Given an exp_parser object
-// When it is constructed with a valid expression
-// Then get_postfix() return its postfix notation
-// Here we test copy constructor and operator=
-TEST(BamExpParserGetPostfix, Copy) {
-  bam::exp_parser p("HOSTSTATUS(Host, Service) IS OK");
-  bam::exp_parser p_copy(p);
-  bam::exp_parser p_assign("");
-  p_assign = p_copy;
-  char const* expected[] = {"Host", "Service", "HOSTSTATUS", "2",
-                            "OK",   "IS",      nullptr};
-  ASSERT_EQ(p_copy.get_postfix(), array_to_list(expected));
-  ASSERT_EQ(p_assign.get_postfix(), array_to_list(expected));
-}
-
-// Given an exp_parser object
 // When a parenthesis is missing
 // Then get_postfix() throw an exception
 TEST(BamExpParserGetPostfix, MissingParenthesis1) {

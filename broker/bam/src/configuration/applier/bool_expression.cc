@@ -98,12 +98,12 @@ void applier::bool_expression::apply(
   to_delete.clear();
 
   // Create new objects.
-  for (bam::configuration::state::bool_exps::iterator it(to_create.begin()),
-       end(to_create.end());
+  for (bam::configuration::state::bool_exps::iterator it = to_create.begin(),
+                                                      end = to_create.end();
        it != end; ++it) {
     log_v2::bam()->info("BAM: creating new boolean expression {}", it->first);
-    std::shared_ptr<bam::bool_expression> new_bool_exp(
-        new bam::bool_expression);
+    auto new_bool_exp = std::make_shared<bam::bool_expression>(
+        it->first, it->second.get_impact_if());
     try {
       bam::exp_parser p(it->second.get_expression());
       bam::exp_builder b(p.get_postfix(), mapping);
@@ -119,8 +119,8 @@ void applier::bool_expression::apply(
       content.call = b.get_calls();
       // Resolve boolean service.
       for (std::list<bool_service::ptr>::const_iterator
-               it2(content.svc.begin()),
-           end2(content.svc.end());
+               it2 = content.svc.begin(),
+               end2 = content.svc.end();
            it2 != end2; ++it2)
         book.listen((*it2)->get_host_id(), (*it2)->get_service_id(),
                     it2->get());
@@ -130,8 +130,6 @@ void applier::bool_expression::apply(
           "discarded: {}",
           it->first, e.what());
     }
-    new_bool_exp->set_id(it->first);
-    new_bool_exp->set_impact_if(it->second.get_impact_if());
   }
 
   _resolve_expression_calls();

@@ -37,22 +37,21 @@ namespace bam {
  */
 class exp_parser {
  public:
-  typedef std::list<std::string> notation;
+  using notation = std::list<std::string>;
 
+ private:
+  std::string _exp;
+  absl::flat_hash_map<std::string, int> _precedence;
+  notation _postfix;
+
+ public:
   exp_parser(std::string const& expression);
-  exp_parser(exp_parser const& other);
-  ~exp_parser();
-  exp_parser& operator=(exp_parser const& other);
+  exp_parser(exp_parser const&) = delete;
+  ~exp_parser() noexcept = default;
+  exp_parser& operator=(const exp_parser&) = delete;
   notation const& get_postfix();
   static bool is_function(std::string const& token);
   static bool is_operator(std::string const& token);
-
- private:
-  void _internal_copy(exp_parser const& other);
-
-  std::string _exp;
-  std::map<std::string, int> _precedence;
-  notation _postfix;
 };
 }  // namespace bam
 

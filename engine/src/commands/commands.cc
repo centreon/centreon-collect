@@ -1025,12 +1025,15 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   /* get the duration */
   if (ait == a.end())
     return ERROR;
-  if (!absl::SimpleAtoi(*ait, &duration)) {
-    log_v2::external_command()->error(
-        "Error: could not schedule downtime : duration '{}' must be an integer "
-        ">= 0",
-        *ait);
-    return ERROR;
+  if (!ait->empty()) {
+    if (!absl::SimpleAtoi(*ait, &duration)) {
+      log_v2::external_command()->error(
+          "Error: could not schedule downtime : duration '{}' must be an "
+          "integer "
+          ">= 0",
+          *ait);
+      return ERROR;
+    }
   }
   ++ait;
 
@@ -1051,8 +1054,11 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   ** strtoul converts a nullptr value to 0 so if set to 0, bail out as a
   ** duration>0 is needed.
   */
-  if (!fixed && !duration)
+  if (!fixed && !duration) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "no duration defined for a fixed downtime");
     return ERROR;
+  }
 
   /* duration should be auto-calculated, not user-specified */
   if (fixed)
@@ -2607,9 +2613,10 @@ void acknowledge_host_problem(host* hst,
   hst->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, HOST_ACKNOWLEDGEMENT,
-                              (void*)hst, ack_author.c_str(), ack_data.c_str(),
-                              type, notify, persistent);
+  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
+                              acknowledgement_resource_type::HOST, (void*)hst,
+                              ack_author.c_str(), ack_data.c_str(), type,
+                              notify, persistent);
 
   /* send out an acknowledgement notification */
   if (notify)
@@ -2647,9 +2654,10 @@ void acknowledge_service_problem(service* svc,
   svc->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(
-      NEBTYPE_ACKNOWLEDGEMENT_ADD, SERVICE_ACKNOWLEDGEMENT, (void*)svc,
-      ack_author.c_str(), ack_data.c_str(), type, notify, persistent);
+  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
+                              acknowledgement_resource_type::SERVICE,
+                              (void*)svc, ack_author.c_str(), ack_data.c_str(),
+                              type, notify, persistent);
 
   /* send out an acknowledgement notification */
   if (notify)

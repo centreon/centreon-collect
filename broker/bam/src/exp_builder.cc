@@ -107,9 +107,8 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
       std::string func(*it);
       if (++it == end)
         throw msg_fmt(
-            "internal expression parsing "
-            "error: no arity placed after function name in "
-            "postfix notation");
+            "internal expression parsing error: no arity placed after function "
+            "name in postfix notation");
       int arity(std::strtol(it->c_str(), nullptr, 0));
 
       // Host status.
@@ -130,10 +129,8 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
         // Find host and service IDs.
         std::pair<uint32_t, uint32_t> ids(_mapping.get_service_id(hst, svc));
         if (!ids.first || !ids.second)
-          throw msg_fmt(
-              "could not find ID of service '{}"
-              "' and/or of host '{}'",
-              svc, hst);
+          throw msg_fmt("could not find ID of service '{}' and/or of host '{}'",
+                        svc, hst);
 
         // Build object.
         bool_service::ptr obj{

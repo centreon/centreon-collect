@@ -63,7 +63,7 @@ TEST(Buffer, Brackets) {
   buf.push(v1);
   buf.push(v2);
   std::string str;
-  for (uint32_t i = 0 ; i < buf.size(); ++i)
+  for (uint32_t i = 0; i < buf.size(); ++i)
     str += buf[i];
 
   ASSERT_EQ(str, std::string("abcdefghij"));
@@ -78,7 +78,7 @@ TEST(Buffer, BracketsDelta) {
   buf.push(v2);
   buf.pop(2);
   std::string str;
-  for (uint32_t i = 0 ; i < buf.size(); ++i)
+  for (uint32_t i = 0; i < buf.size(); ++i)
     str += buf[i];
 
   ASSERT_EQ(str, std::string("cdefghij"));

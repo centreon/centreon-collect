@@ -97,8 +97,8 @@ void ba::add_impact(std::shared_ptr<kpi> const& impact) {
  *  @return True if the value of this ba was modified.
  */
 bool ba::child_has_update(computable* child, io::stream* visitor) {
-  std::unordered_map<kpi*, impact_info>::iterator it(
-      _impacts.find(static_cast<kpi*>(child)));
+  std::unordered_map<kpi*, impact_info>::iterator it =
+      _impacts.find(static_cast<kpi*>(child));
   if (it != _impacts.end()) {
     // Get impact.
     impact_values new_hard_impact;
@@ -119,8 +119,13 @@ bool ba::child_has_update(computable* child, io::stream* visitor) {
     if (it->second.hard_impact == new_hard_impact &&
         it->second.soft_impact == new_soft_impact &&
         it->second.in_downtime == kpi_in_downtime) {
-      SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                          "BAM: BA {} has no changes since last update", _id);
+      SPDLOG_LOGGER_DEBUG(
+          log_v2::bam(),
+          "BAM: BA {} has no changes since last update: hard impact: (ack: {}, "
+          "dwnt: {}, nominal: {}), downtime: {}",
+          _id, new_hard_impact.get_acknowledgement(),
+          new_hard_impact.get_nominal(), new_hard_impact.get_downtime(),
+          kpi_in_downtime);
       return false;
     }
     timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());

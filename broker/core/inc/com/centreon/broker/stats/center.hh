@@ -52,7 +52,7 @@ namespace stats {
 class center {
   static center* _instance;
   BrokerStats _stats;
-  std::mutex _stats_m;
+  mutable std::mutex _stats_m;
   int _json_stats_file_creation;
 
   center();
@@ -80,14 +80,18 @@ class center {
   void clear_muxer_queue_file(const std::string& name);
 
   bool get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
-  void get_sql_manager_stats(SqlManagerStats* response);
+  void get_conflict_manager_stats(ConflictManagerStats* response);
+  void get_sql_manager_stats(SqlManagerStats* response, int32_t id = -1);
+  SqlConnectionStats* connection(size_t idx);
   SqlConnectionStats* add_connection();
   void remove_connection(SqlConnectionStats* stats);
-  void get_conflict_manager_stats(ConflictManagerStats* response);
 
   int get_json_stats_file_creation(void);
   void get_sql_connection_size(GenericSize* response);
   void get_processing_stats(ProcessingStats* response);
+  const BrokerStats& stats() const;
+  void lock();
+  void unlock();
 
   /**
    * @brief Set the value pointed by ptr to the value value.
@@ -133,7 +137,7 @@ class center {
     (ptr->*f)(value);
   }
 
-  void execute(std::function<void()> f) {
+  void execute(std::function<void()>&& f) {
     std::lock_guard<std::mutex> lck(_stats_m);
     f();
   }

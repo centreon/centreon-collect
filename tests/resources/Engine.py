@@ -9,6 +9,7 @@ from xml.etree.ElementTree import Comment
 from robot.api import logger
 from robot.libraries.BuiltIn import BuiltIn
 import db_conf
+import math
 import random
 import shutil
 import sys
@@ -25,6 +26,7 @@ VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 CONF_DIR = ETC_ROOT + "/centreon-engine"
 ENGINE_HOME = VAR_ROOT + "/lib/centreon-engine"
+TIMEOUT = 30
 
 
 class EngineInstance:
@@ -121,6 +123,7 @@ class EngineInstance:
                 "log_external_commands=1\n"
                 "log_v2_enabled=1\n"
                 "log_legacy_enabled=0\n"
+                "log_file_line=1\n"
                 "log_v2_logger=file\n"
                 "log_level_functions=trace\n"
                 "log_level_config=info\n"
@@ -414,7 +417,7 @@ passive_checks_enabled 1
 
             config_dir = "{}/config{}".format(CONF_DIR, inst)
             makedirs(config_dir)
-            f = open(config_dir + "/centengine.cfg", "w+")
+            f = open(config_dir + "/centengine.cfg", "w")
             bb = self.create_centengine(inst, debug_level=debug_level)
             f.write(bb)
             f.close()
@@ -494,6 +497,22 @@ define timeperiod {
             f.close()
             f = open(config_dir + "/hostgroups.cfg", "w")
             f.close()
+            f = open(config_dir + "/contacts.cfg", "w")
+            f.write("""define contact {
+    contact_name                   John_Doe
+    alias                          admin
+    email                          admin@admin.tld
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      n
+    service_notification_options   w,c,r
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+}
+            """)
+            f.close()
+
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
             for file in ["check.pl", "notif.pl"]:
@@ -572,6 +591,22 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
     f.writelines(lines)
     f.close()
 
+##
+# @brief Function to add a value in the centengine.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+
+
+def engine_config_add_value(idx: int, key: str, value: str):
+    filename = ETC_ROOT + \
+        "/centreon-engine/config{}/centengine.cfg".format(idx)
+    f = open(filename, "a")
+    f.write(f"{key}={value}")
+    f.close()
+
 
 ##
 # @brief Function to change a value in the services.cfg for the config idx.
@@ -615,6 +650,74 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+##
+# @brief Function to change a value in the commands.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param command_index  index of the command (may be a regex)
+# @param new_command
+#
+def engine_config_change_command(idx: int, command_index: str, new_command: str):
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
+    lines = f.readlines()
+    f.close
+    new_lines = []
+    r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
+    found = 0
+    for line in lines:
+        if found == 1:
+            found = 0
+            new_lines.append(
+                f"    command_line                    {new_command}\n")
+        else:
+            new_lines.append(line)
+        if r.match(line) is not None:
+            found = 1
+    f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
+    f.writelines(new_lines)
+    f.close
+
+
+##
+# @brief Function to add a new command in the commands.cfg for the config idx
+#
+# @param idx index of the configuration (from 0)
+# @param command_name
+# @param new_command
+#
+def engine_config_add_command(idx: int, command_name: str, new_command: str):
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
+    f.write("""define command {{
+    command_name                   {} 
+    command_line                   {}
+}}
+    """.format(command_name, new_command))
+    f.close()
+
+
+#
+# @param idx index of the configuration (from 0)
+# @param desc contact_name
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, f"    {key}              {value}\n")
+            break
 
     f = open(filename, "w")
     f.writelines(lines)
@@ -820,8 +923,8 @@ def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt
     return dbconf.create_ba(name, typ, critical_impact, warning_impact, dt_policy)
 
 
-def add_boolean_kpi(id_ba: int, expression: str, critical_impact: int):
-    dbconf.add_boolean_kpi(id_ba, expression, critical_impact)
+def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
+    dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
 
 
 def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
@@ -1272,10 +1375,32 @@ def process_host_check_result(hst: str, state: int, output: str):
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
+    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};0;0;{4};admin;Downtime set by admin\n".format(
+        hst, svc, now, now+duration, duration)
+    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
+    f.write(cmd)
+    f.close()
+
+
+def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
+    now = int(time.time())
     cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin\n".format(
         hst, svc, now, now + duration, duration)
     f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
     f.write(cmd)
+    f.close()
+
+
+def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
+    now = int(time.time())
+    cmd1 = "[{1}] SCHEDULE_HOST_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
+        hst, now, now + duration)
+    cmd2 = "[{1}] SCHEDULE_HOST_SVC_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
+        hst, now, now + duration)
+    f = open(
+        VAR_ROOT + "/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
+    f.write(cmd1)
+    f.write(cmd2)
     f.close()
 
 
@@ -1483,28 +1608,35 @@ def remove_severities_from_hosts(poller: int):
 #
 
 
-def check_search(debug_file_path: str, str_to_search):
-    with open(debug_file_path, 'r') as f:
-        lines = f.readlines()
-        for first_ind in range(len(lines)):
-            find_index = lines[first_ind].find(str_to_search + ' ')
-            if (find_index > 0):
-                for second_ind in range(first_ind, len(lines)):
-                    # search cmd_id
-                    m = re.search(
-                        r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
-                    if m is not None:
-                        cmd_id = m.group(1)
-                        r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
-                            cmd_id + ",\s+(\S[\s\S]+)$"
-                        for third_ind in range(second_ind, len(lines)):
-                            m = re.match(
-                                r_query_execute, lines[third_ind])
-                            if m is not None:
-                                return m.group(1)
-                        return "_recv_query_execute not found" + r_query_execute
-                return "connector::run not found"
-        return "check_search don t find " + str_to_search
+def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        cmd_executed = False
+        with open(debug_file_path, 'r') as f:
+            lines = f.readlines()
+            for first_ind in range(len(lines)):
+                find_index = lines[first_ind].find(str_to_search + ' ')
+                if (find_index > 0):
+                    cmd_executed = True
+                    for second_ind in range(first_ind, len(lines)):
+                        # search cmd_id
+                        m = re.search(
+                            r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
+                        if m is not None:
+                            cmd_id = m.group(1)
+                            r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
+                                cmd_id + ",\s+(\S[\s\S]+)$"
+                            for third_ind in range(second_ind, len(lines)):
+                                m = re.match(
+                                    r_query_execute, lines[third_ind])
+                                if m is not None:
+                                    return m.group(1)
+        time.sleep(1)
+
+    if not cmd_executed:
+        return f"_recv_query_execute not found on '{r_query_execute}'"
+    else:
+        return f"check_search doesn't find '{str_to_search}'"
 
 
 def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
@@ -1598,6 +1730,16 @@ def external_command(func):
         f.close()
 
     return wrapper
+
+
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+    now = int(time.time())
+    pd = [output + " | "]
+    for m in range(metrics):
+        v = math.sin((now + m) / 1000) * 5
+        pd.append(f"metric{m}={v}")
+    full_output = " ".join(pd)
+    process_service_check_result(hst, svc, state, full_output, config)
 
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
@@ -1778,6 +1920,43 @@ def modify_retention_dat(poller, host, service, key, value):
                     lines[i] = f"{key}={value}\n"
                     hst = ""
                     svc = ""
+
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        ff.writelines(lines)
+        ff.close()
+
+
+def modify_retention_dat_host(poller, host, key, value):
+    if host != "" and host != "":
+        # We want a host
+        ff = open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+        lines = ff.readlines()
+        ff.close()
+
+        r_hst = re.compile(r"^\s*host_name=(.*)$")
+        in_block = False
+        hst = ""
+        for i in range(len(lines)):
+            l = lines[i]
+            if not in_block:
+                if l == "host {\n":
+                    in_block = True
+                    continue
+            else:
+                if l == "}\n":
+                    in_block = False
+                    hst = ""
+                    continue
+                m = r_hst.match(l)
+                if m:
+                    hst = m.group(1)
+                    continue
+                if l.startswith(f"{key}=") and host == hst:
+                    logger.console(f"key '{key}' found !")
+                    lines[i] = f"{key}={value}\n"
+                    hst = ""
 
         ff = open(
             f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
