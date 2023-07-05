@@ -47,17 +47,19 @@ apt-get install -y \
 # install perl dependencies #
 #############################
 
-apt-get install -y \
-  libdbi-perl \
-  libnet-curl-perl \
-  libnet-http-perl \
-  libwww-perl \
-  libxml-libxml-perl \
-  perl
+# apt-get install -y \
+#   libdbi-perl \
+#   libnet-curl-perl \
+#   libnet-http-perl \
+#   libwww-perl \
+#   libxml-libxml-perl \
+#   perl
 
 ################################
 # install collect dependencies #
 ################################
+
+apt-cache search "^centreon-plugin*"
 
 apt-get install -y \
   centreon-plugin-applications-databases-mysql \
