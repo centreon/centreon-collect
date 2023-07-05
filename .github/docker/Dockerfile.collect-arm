@@ -37,7 +37,7 @@ wget -O- https://packages.centreon.com/api/security/keypair/Debian/public | gpg 
 apt-get update
 
 echo "start search"
-apt-cache search "^net-curl*"
+apt-cache search "net-curl"
 echo "end search"
 
 #############################
