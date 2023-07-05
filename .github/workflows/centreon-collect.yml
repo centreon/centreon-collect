@@ -52,10 +52,14 @@ jobs:
       minor_version: ${{ needs.get-version.outputs.patch }}
       stability: ${{ needs.get-version.outputs.stability }}
       is_cpp_project: "yes"
+      img_version: ${{ needs.get-version.outputs.img_version }}
+      docker_registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
     secrets:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_REPORT }}
       veracode_api_key: ${{ secrets.VERACODE_API_KEY_REPORT }}
       veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
+      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
+      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
   unit-test:
     needs: [get-version]

@@ -20,6 +20,12 @@ on:
       is_cpp_project:
         required: false
         type: string
+      img_version:
+        required: true
+        type: string
+      docker_registry_url:
+        required: true
+        type: string
 
     secrets:
       veracode_api_id:
@@ -28,15 +34,28 @@ on:
         required: true
       veracode_srcclr_token:
         required: true
+      docker_registry_id:
+        required: true
+      docker_registry_passwd:
+        required: true
+
 
 jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, common]
+    env:
+      image: centreon-collect-alma8
     outputs:
       fail_build: ${{ steps.routing-mode.outputs.fail_build }}
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
       display_summary: ${{ steps.routing-mode.outputs.display_summary }}
+
+    container:
+      image: ${{ inputs.docker_registry_url }}/${{ env.image }}:${{ inputs.img_version }}
+      credentials:
+        username: ${{ secrets.docker_registry_id }}
+        password: ${{ secrets.docker_registry_passwd }}
 
     steps:
       - uses: actions/checkout@v3
