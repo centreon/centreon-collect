@@ -57,7 +57,7 @@ runs:
         sudo cmake \
           -G "Ninja" \
           #-gdwarf-2 -g3 -O0 -fno-builtin \
-          -gdwarf-2 -g3 -O0 \
+          #-gdwarf-2 -g3 -O0 \
           -DWITH_TESTING=OFF \
           -DWITH_BENCH=ON \
           -DWITH_MODULE_SIMU=OFF \
