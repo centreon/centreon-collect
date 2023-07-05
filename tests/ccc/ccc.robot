@@ -175,40 +175,51 @@ BECCC5
 	Remove File	/tmp/output.txt
 
 BECCC6
-	[Documentation]	ccc with -p 51001 GetVersion{} calls the GetVersion command
-	[Tags]	Broker	Engine	protobuf	bbdo	ccc
-	Config Engine	${1}
-	Config Broker	central
-	Config Broker	module
-	Config Broker	rrd
-        Broker Config Add Item	module0	bbdo_version	3.0.0
-        Broker Config Add Item	central	bbdo_version	3.0.0
-        Broker Config Add Item	rrd	bbdo_version	3.0.0
-	Broker Config Log	central	sql	trace
-	Config Broker Sql Output	central	unified_sql
-        Broker Config Output Set	central	central-broker-unified-sql	store_in_resources	yes
-        Broker Config Output Set	central	central-broker-unified-sql	store_in_hosts_services	no
-	Clear Retention
-	${start}=	Get Current Date
-        Sleep	1s
-	Start Broker
-	Start Engine
-	Sleep	3s
-	Start Process	/usr/bin/ccc	-p 51001	GetVersion{}	stdout=/tmp/output.txt
-	FOR	${i}	IN RANGE	10
-	 Wait Until Created	/tmp/output.txt
-	 ${content}=	Get File	/tmp/output.txt
-	 EXIT FOR LOOP IF	len("""${content.strip().split()}""") > 50
-	 Sleep	1s
-	END
-	${version}=	Get Version
-	${vers}=	Split String	${version}	.
-	${mm}=	Evaluate	"""${vers}[0]""".lstrip("0")
-	${m}=	Evaluate	"""${vers}[1]""".lstrip("0")
-	Should Contain	${content}	{\n \"major\": ${mm},\n \"minor\": ${m}\n}	msg=A version as json string should be returned
-	Stop Engine
-	Kindly Stop Broker
-	Remove File	/tmp/output.txt
+    [Documentation]    ccc with -p 51001 GetVersion{} calls the GetVersion command
+    [Tags]    broker    engine    protobuf    bbdo    ccc
+    Config Engine    ${1}
+    Config Broker    central
+    Config Broker    module
+    Config Broker    rrd
+    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Broker Config Log    central    sql    trace
+    Config Broker Sql Output    central    unified_sql
+    Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
+    Broker Config Output Set    central    central-broker-unified-sql    store_in_hosts_services    no
+    Clear Retention
+    ${start}=    Get Current Date
+    Sleep    1s
+    Start Broker
+    Start Engine
+    Sleep    3s
+    Start Process    /usr/bin/ccc    -p 51001    GetVersion{}    stdout=/tmp/output.txt
+    FOR    ${i}    IN RANGE    10
+        Wait Until Created    /tmp/output.txt
+        ${content}=    Get File    /tmp/output.txt
+        IF    len("""${content.strip().split()}""") > 50    BREAK
+        Sleep    1s
+    END
+    ${version}=    Get Version
+    ${vers}=    Split String    ${version}    .
+    ${mm}=    Evaluate    """${vers}[0]""".lstrip("0")
+    ${m}=    Evaluate    """${vers}[1]""".lstrip("0")
+    ${p}=    Evaluate    """${vers}[2]""".lstrip("0")
+    IF    "${p}" == 0 or "${p}" == ""
+        Should Contain
+        ...    ${content}
+        ...    {\n \"major\": ${mm},\n \"minor\": ${m}\n}
+        ...    msg=A version as json string should be returned
+    ELSE
+        Should Contain
+        ...    ${content}
+        ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
+        ...    msg=A version as json string should be returned
+    END
+    Stop Engine
+    Kindly Stop Broker
+    Remove File    /tmp/output.txt
 
 BECCC7
 	[Documentation]	ccc with -p 51001 GetVersion{"idx":1} returns an error because the input message is wrong.
