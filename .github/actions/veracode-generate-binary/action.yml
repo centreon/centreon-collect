@@ -21,27 +21,6 @@ runs:
         fi
       shell: bash
 
-    - name: Exclude development files
-      run: |
-        if [[ -f ".veracode-exclusions" ]]; then
-          for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
-            if [[ -d "$LINE" ]]; then
-              rm -rf "$LINE"
-              echo "[INFO] - folder removed from analysis = '$LINE'"
-            elif [[ -e "$LINE" ]]; then
-              rm -f "$LINE"
-              echo "[INFO] - file removed from analysis = '$LINE'"
-            elif [[ -z "$LINE" ]]; then
-              echo "[INFO] - empty directive. Skipping this line"
-            else
-              echo "[INFO] - target to exclude not found. Skipping = '$LINE'"
-            fi
-          done
-        else
-          echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
-        fi
-      shell: bash
-
     - name: Compile cpp sources
       if: inputs.is_cpp_project == 'yes'
       run: |
@@ -71,6 +50,27 @@ runs:
           .
 
           sudo ninja
+      shell: bash
+
+    - name: Exclude development files
+      run: |
+        if [[ -f ".veracode-exclusions" ]]; then
+          for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
+            if [[ -d "$LINE" ]]; then
+              rm -rf "$LINE"
+              echo "[INFO] - folder removed from analysis = '$LINE'"
+            elif [[ -e "$LINE" ]]; then
+              rm -f "$LINE"
+              echo "[INFO] - file removed from analysis = '$LINE'"
+            elif [[ -z "$LINE" ]]; then
+              echo "[INFO] - empty directive. Skipping this line"
+            else
+              echo "[INFO] - target to exclude not found. Skipping = '$LINE'"
+            fi
+          done
+        else
+          echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+        fi
       shell: bash
 
     - name: Create ZIP file
