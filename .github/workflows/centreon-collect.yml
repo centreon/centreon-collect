@@ -48,9 +48,10 @@ jobs:
     with:
       module_directory: "./"
       module_name: centreon-collect
-      major_version: ${{ needs.get-version.outputs.major_version }}
-      minor_version: ${{ needs.get-version.outputs.minor_version }}
+      major_version: ${{ needs.get-version.outputs.version }}
+      minor_version: ${{ needs.get-version.outputs.patch }}
       stability: ${{ needs.get-version.outputs.stability }}
+      is_cpp_project: "yes"
     secrets:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_REPORT }}
       veracode_api_key: ${{ secrets.VERACODE_API_KEY_REPORT }}
