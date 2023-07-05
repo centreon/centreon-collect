@@ -42,6 +42,20 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
+  veracode-analysis:
+    needs: [get-version]
+    uses: ./.github/workflows/veracode-analysis.yml
+    with:
+      module_directory: "./"
+      module_name: centreon-collect
+      major_version: ${{ needs.get-version.outputs.major_version }}
+      minor_version: ${{ needs.get-version.outputs.minor_version }}
+      stability: ${{ needs.get-version.outputs.stability }}
+    secrets:
+      veracode_api_id: ${{ secrets.VERACODE_API_ID_REPORT }}
+      veracode_api_key: ${{ secrets.VERACODE_API_KEY_REPORT }}
+      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
+
   unit-test:
     needs: [get-version]
     if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
