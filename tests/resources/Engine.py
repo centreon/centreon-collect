@@ -445,7 +445,7 @@ passive_checks_enabled 1
             for i in range(self.last_host_id):
                 f.write("""define command {{
     command_name                    checkh{1}
-    command_line                    {0}/check.pl 0 {1}
+    command_line                    {0}/check.pl 0
 }}
 """.format(ENGINE_HOME, i + 1))
             f.write("""define command {{
