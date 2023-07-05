@@ -34,9 +34,11 @@ echo "deb [ arch=all,arm64 ] https://packages.centreon.com/apt-plugins-testing/ 
 echo "deb [ arch=all,arm64 ] https://packages.centreon.com/apt-plugins-unstable/ \$VERSION_CODENAME main" | tee -a /etc/apt/sources.list.d/centreon-plugins-unstable.list
 wget -O- https://packages.centreon.com/api/security/keypair/Debian/public | gpg --dearmor | tee /etc/apt/trusted.gpg.d/centreon.gpg > /dev/null 2>&1
 
-cat /etc/apt/sources.list.d/*
-
 apt-get update
+
+echo "start search"
+apt-cache search "^net-curl*"
+echo "end search"
 
 #############################
 # install base dependencies #
