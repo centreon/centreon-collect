@@ -185,3 +185,36 @@ jobs:
           app-name: "${{ inputs.module_name }}"
           sandbox-name: "${{ github.ref_name }}"
           delete-on-promote: false
+
+  sca-scan:
+    needs: [build]
+    name: Run a SCA scan
+    # only latest unstable maintenance branches will produce a report
+    if: github.ref_name == 'develop'
+    runs-on: [self-hosted, common]
+    continue-on-error: true
+
+    steps:
+      - name: Get build binary
+        uses: actions/cache/restore@v3
+        with:
+          path: "${{ inputs.module_directory }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
+
+      - name: Prepare analysis
+        run: |
+          unzip ./
+      - name: SCA scan
+        env:
+          SRCCLR_API_TOKEN: ${{ secrets.veracode_srcclr_token }}
+          SRCCLR_REGION: "ER"
+
+        uses: veracode/veracode-sca@v1.09
+        # This action is based on the following command:
+        # curl -sSL https://download.sourceclear.com/ci.sh | sh -s -- scan "./${{ inputs.module_directory }}" --debug
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          create-issues: false
+          fail-on-cvss: 8
+          allow-dirty: true
+          path: "./${{ inputs.module_directory }}"
