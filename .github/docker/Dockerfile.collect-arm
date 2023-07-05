@@ -59,7 +59,9 @@ apt-get install -y \
 # install collect dependencies #
 ################################
 
+echo "start search"
 apt-cache search "^centreon-plugin*"
+echo "end search"
 
 apt-get install -y \
   centreon-plugin-applications-databases-mysql \
