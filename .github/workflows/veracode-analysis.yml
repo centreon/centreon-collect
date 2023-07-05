@@ -39,20 +39,17 @@ on:
       docker_registry_passwd:
         required: true
 
-
 jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, common]
-    env:
-      image: centreon-collect-alma8
     outputs:
       fail_build: ${{ steps.routing-mode.outputs.fail_build }}
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
       display_summary: ${{ steps.routing-mode.outputs.display_summary }}
 
     container:
-      image: ${{ inputs.docker_registry_url }}/${{ env.image }}:${{ inputs.img_version }}
+      image: ${{ inputs.docker_registry_url }}/centreon-collect-alma8:${{ inputs.img_version }}
       credentials:
         username: ${{ secrets.docker_registry_id }}
         password: ${{ secrets.docker_registry_passwd }}
