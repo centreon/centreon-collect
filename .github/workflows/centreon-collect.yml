@@ -46,7 +46,6 @@ jobs:
     needs: [get-version]
     uses: ./.github/workflows/veracode-analysis.yml
     with:
-      module_directory: "./"
       module_name: centreon-collect
       major_version: ${{ needs.get-version.outputs.version }}
       minor_version: ${{ needs.get-version.outputs.patch }}
