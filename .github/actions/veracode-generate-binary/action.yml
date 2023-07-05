@@ -47,6 +47,36 @@ runs:
         fi
       shell: bash
 
+    - name: Compile cpp sources
+      if: inputs.is_cpp_project == 'yes'
+      run: |
+        cd ${{ inputs.module_directory }}
+        sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+        sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+        sudo cmake \
+          -G "Ninja" \
+          -gdwarf-2 -g3 -O0 -fno-builtin \
+          -DWITH_TESTING=OFF \
+          -DWITH_BENCH=ON \
+          -DWITH_MODULE_SIMU=OFF \
+          -DCMAKE_INSTALL_PREFIX=/usr \
+          -DWITH_STARTUP_SCRIPT=systemd \
+          -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+          -DWITH_USER_BROKER=centreon-broker \
+          -DWITH_GROUP_BROKER=centreon-broker \
+          -DWITH_USER_ENGINE=centreon-engine \
+          -DWITH_GROUP_ENGINE=centreon-engine \
+          -DWITH_VAR_DIR=/var/log/centreon-engine \
+          -DWITH_DAEMONS=ON \
+          -DWITH_CREATE_FILES=OFF \
+          -DWITH_CONFIG_FILES=ON \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          .
+
+          sudo ninja
+      shell: bash
+
     - name: Create ZIP file
       run: |
         cd ${{ inputs.module_directory }}
