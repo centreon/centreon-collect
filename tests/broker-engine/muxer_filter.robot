@@ -311,6 +311,8 @@ CBD_RELOAD_AND_FILTERS
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
     Restart Engine
     Reload Broker
+    #let reload time to broker
+    Sleep  1
     ${start}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"

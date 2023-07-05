@@ -25,6 +25,7 @@ import matplotlib.pyplot as plt
 import mplcursors
 import itertools
 import datetime
+import time
 import boto3
 import os
 from unqlite import UnQLite
@@ -39,6 +40,7 @@ def download_from_s3(file_path: str, bucket: str):
         return True
     except Exception as e:
         print(f"upload to s3  exception:{e}\n")
+        print("Have you defined AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY env variables?")
         return False
 
 
@@ -104,9 +106,9 @@ def list_conf(collection_name: str, origin: str):
 
 parser = argparse.ArgumentParser(
     prog='bench_plot.py', description='Draw a summary on the benchs')
-parser.add_argument('-f', '--unqlite_file', required=True,
+parser.add_argument('-f', '--unqlite_file', default='bench.unqlite',
                     help='path of the unqlite database file')
-parser.add_argument('-b', '--bucket',
+parser.add_argument('-b', '--bucket', default='centreon-collect-robot-report',
                     help='s3 bucket')
 args = parser.parse_args()
 
@@ -122,6 +124,8 @@ test_list = list_test(collection_list)
 
 fig = plt.figure()
 ax = fig.subplots()
+lines = []
+tooltip_cursor = None
 plt.subplots_adjust(left=0.22, right=0.98, bottom=0.1, top=0.99)
 
 ax_origin_choice = None
@@ -172,10 +176,11 @@ def tooltip(sel):
     global values
     data_index = round(sel.index)
     tooltip_text = ""
-    for col_index in range(len(data_column)):
-        label = data_column[col_index]
-        tooltip_text += f"{label}: {values[data_index][label]}\n"
-    tooltip_text += f"commit: {values[data_index]['commit']}\n{datetime.datetime.fromtimestamp(values[data_index]['t'])}"
+    if data_index < len(values):
+        for col_index in range(len(data_column)):
+            label = data_column[col_index]
+            tooltip_text += f"{label}: {values[data_index][label]}\n"
+        tooltip_text += f"commit: {values[data_index]['commit']}\n{datetime.datetime.fromtimestamp(values[data_index]['t'])}"
 
     sel.annotation.set(text=tooltip_text)
 
@@ -189,9 +194,14 @@ def conf_choice_on_clicked(conf: str, origin: str):
     @param conf label of the selected configuration
     @param origin label of the selected origin (develop, dev....)
     """
-    global ax, values
-    ax.remove()
-    ax = fig.subplots()
+    global ax, values, lines, tooltip_cursor, fig
+    for line in lines:
+        line.remove()
+        line = None
+
+    if tooltip_cursor is not None:
+        tooltip_cursor.remove()
+        tooltip_cursor = None
     # there we have collection and origin so we can plot
     collection = db.collection(active_collection_name)
     points = collection.filter(
@@ -199,10 +209,13 @@ def conf_choice_on_clicked(conf: str, origin: str):
     sorted(points, key=lambda row: row['t'])
     values = points.copy()
     x = np.linspace(0, len(points) - 1, len(points))
+    ax.clear()
     lines = ax.plot(x, points_to_value_array(points))
-    cursor = mplcursors.cursor(lines, hover=mplcursors.HoverMode.Transient)
-    cursor.connect("add", tooltip)
+    tooltip_cursor = mplcursors.cursor(
+        lines, hover=mplcursors.HoverMode.Transient)
+    tooltip_cursor.connect("add", tooltip)
     ax.legend(lines, data_column)
+    fig.canvas.draw()
 
 
 def origin_choice_on_clicked(origin):

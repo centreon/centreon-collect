@@ -134,8 +134,6 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     @param bench_muxer_end_function name of the muxer function owned to the last time point
     """
 
-    logger.console(os.popen("git status").read())
-
     row = vars(resources_consumed).copy()
     row['user_time'] = row['user_time'].seconds + \
         row['user_time'].nanos / 1000000000.0
@@ -149,7 +147,10 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         bench_event_result, bench_muxer_begin, bench_muxer_begin_function, bench_muxer_end, bench_muxer_end_function).total_seconds()
 
     # rev_name is like <commit sha> <branch>~*
-    rev_name_dev_branch = re.compile(r'[0-9a-f]+\s(dev[\w\.]+).*')
+    rev_name_dev_branch = re.compile(
+        r'[0-9a-f]+\s(dev[\w\.]+).*')
+    remote_rev_name_dev_branch = re.compile(
+        r'[0-9a-f]+\sremotes/origin/(dev[\w\.]+).*')
     # git branch and commit
     try:
         repo = Repo(os.getcwd())
@@ -157,13 +158,28 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         # if we launch from tests directory => open ..directory
         repo = Repo(os.getcwd() + "/..")
     commit = repo.head.commit
+    origin_found = False
     while True:
         m = rev_name_dev_branch.match(commit.name_rev)
         if m is not None:
             row['origin'] = m.group(1)
+            origin_found = True
             break
-        commit = commit.parents[0]
+        m = remote_rev_name_dev_branch.match(commit.name_rev)
+        if m is not None:
+            row['origin'] = m.group(1)
+            origin_found = True
+            break
 
+        parents = commit.parents
+        if len(parents) == 0:
+            break
+        commit = parents[0]
+
+    if not origin_found:
+        logger.console(
+            f"origin not found for commit {repo.head.commit} your branch needs rebase?")
+        return False
     if repo.is_dirty():
         row['commit'] = f'uncommited files last_commit:{repo.head.commit.hexsha}'
     else:
@@ -176,6 +192,7 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     benchs.store(row)
     test = benchs.all()
     db.close()
+    return True
 
 
 def upload_database_to_s3(file_path: str):

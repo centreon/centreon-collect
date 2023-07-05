@@ -53,9 +53,11 @@ BENCH_1000STATUS
 
     download_database_from_s3  bench.unqlite
 
-    store_result_in_unqlite  bench.unqlite  BENCH_1000STATUS  broker  ${diff_broker}  ${bench_data}  central-broker-master-input-1  write  central-rrd-master-output  publish
+    ${success}=  store_result_in_unqlite  bench.unqlite  BENCH_1000STATUS  broker  ${diff_broker}  ${bench_data}  central-broker-master-input-1  write  central-rrd-master-output  publish
+    Should Be True    ${success}  msg="fail to save broker bench to database"
 
-    store_result_in_unqlite  bench.unqlite  BENCH_1000STATUS  engine  ${diff_engine}  ${bench_data}  client  callback_pb_bench  central-module-master-output  read
+    ${success}=  store_result_in_unqlite  bench.unqlite  BENCH_1000STATUS  engine  ${diff_engine}  ${bench_data}  client  callback_pb_bench  central-module-master-output  read
+    Should Be True    ${success}  msg="fail to save engine bench to database"
 
     upload_database_to_s3    bench.unqlite
 
@@ -96,9 +98,11 @@ BENCH_10000STATUS
 
     download_database_from_s3  bench.unqlite
 
-    store_result_in_unqlite  bench.unqlite  BENCH_10000STATUS  broker  ${diff_broker}  ${bench_data}  central-broker-master-input-1  write  central-rrd-master-output  publish
+    ${success}=  store_result_in_unqlite  bench.unqlite  BENCH_10000STATUS  broker  ${diff_broker}  ${bench_data}  central-broker-master-input-1  write  central-rrd-master-output  publish
+    Should Be True    ${success}  msg="fail to save broker bench to database"
 
-    store_result_in_unqlite  bench.unqlite  BENCH_10000STATUS  engine  ${diff_engine}  ${bench_data}  client  callback_pb_bench  central-module-master-output  read
+    ${success}=  store_result_in_unqlite  bench.unqlite  BENCH_10000STATUS  engine  ${diff_engine}  ${bench_data}  client  callback_pb_bench  central-module-master-output  read
+    Should Be True    ${success}  msg="fail to save engine bench to database"
 
     upload_database_to_s3    bench.unqlite
 
