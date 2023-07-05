@@ -27,6 +27,11 @@ on:
         required: true
       registry_password:
         required: true
+      collect_s3_access_key:
+        required: true
+      collect_s3_secret_key:
+        required: true
+
 
 jobs:
   robot-test-list:
@@ -74,6 +79,10 @@ jobs:
       - name: Test ${{ matrix.feature }}
         run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}
         shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+          AWS_BUCKET: centreon-collect-robot-report
 
       - name: Move reports
         if: ${{ !cancelled() }}

@@ -68,6 +68,9 @@ cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
 mysql -u root_centreon -pcentreon < resources/centreon_storage.sql
 mysql -u root_centreon -pcentreon < /tmp/centreon.sql
 
+#remove git dubious ownership
+git config --global --add safe.directory $PWD
+
 echo "########################### Install Robot Framework ###########################"
 cd tests
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
@@ -81,7 +84,7 @@ else
   apt-get install -y python3-dev
 fi
 
-pip3 install grpcio grpcio_tools
+pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3
 
 echo "########################## Install centreon collect ###########################"
 cd ..

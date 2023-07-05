@@ -34,7 +34,7 @@ STUPID_FILTER
     Start Engine
 
     ${content}=    Create List
-    ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo categories are mandatory.
+    ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo,extcmd categories are mandatory.
     ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling bad filter should be available.
 

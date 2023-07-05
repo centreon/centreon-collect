@@ -133,6 +133,9 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     @param bench_muxer_end name of the muxer owned to the last time point
     @param bench_muxer_end_function name of the muxer function owned to the last time point
     """
+
+    logger.console(os.popen("git status").read())
+
     row = vars(resources_consumed).copy()
     row['user_time'] = row['user_time'].seconds + \
         row['user_time'].nanos / 1000000000.0
