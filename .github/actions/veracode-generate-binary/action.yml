@@ -32,6 +32,7 @@ runs:
 
         sudo cmake \
           -G "Ninja" \
+          -DCMAKE_CXX_FLAGS=-gdwarf-2 -g3 -O0 -fno-builtin \
           -DWITH_TESTING=OFF \
           -DWITH_BENCH=ON \
           -DWITH_MODULE_SIMU=OFF \
