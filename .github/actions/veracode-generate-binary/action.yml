@@ -27,10 +27,11 @@ runs:
         sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
         sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
+        # -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+        
         sudo cmake \
           -G "Ninja" \
           -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
-          -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
           -DWITH_TESTING=OFF \
           -DWITH_BENCH=ON \
           -DWITH_MODULE_SIMU=OFF \
