@@ -28,7 +28,6 @@ runs:
         sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
         # -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-        
         sudo cmake \
           -G "Ninja" \
           -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
@@ -75,10 +74,13 @@ runs:
 
     - name: Create ZIP file
       run: |
-        pwd
+
+        ls -la
 
         zip -rq "${{ inputs.cache_key }}.zip" *
         ls -la
+        pwd
+
       shell: bash
 
     - uses: actions/cache/save@v3

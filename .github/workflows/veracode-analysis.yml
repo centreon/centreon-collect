@@ -212,6 +212,9 @@ jobs:
     continue-on-error: true
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
@@ -221,11 +224,13 @@ jobs:
       - name: Prepare analysis
         run: |
           ls -la
-          pwd
-          find ./ -name "*veracode-binary.zip"
 
           unzip "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+
           ls -la
+
+          pwd
+          find ./ -name "*veracode-binary.zip"
 
       - name: SCA scan
         env:
