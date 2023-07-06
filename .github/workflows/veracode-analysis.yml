@@ -137,23 +137,28 @@ jobs:
 
       - name: Save baseline files
         # only baseline files not generated from a development branch are saved
-        if: needs.build.outputs.development_stage != 'Development'
+        ## if: needs.build.outputs.development_stage != 'Development'
         run: |
-          BRANCHES=(develop master dev-${{ inputs.major_version }}.x ${{ inputs.major_version }}.x)
-          for BRANCH in "${BRANCHES[@]}"; do
-            if [[ "${{ github.ref_name }}" == "$BRANCH" ]]; then
-              mv *results.json /tmp
-              BUCKET="s3://centreon-veracode-reports/${{ inputs.module_name }}/${{ github.base_ref || github.ref_name }}"
-              aws s3 cp "/tmp/filtered_results.json" "$BUCKET/filtered_results.json"
-              aws s3 cp "/tmp/results.json" "$BUCKET/results.json"
-            fi
-          done
+          #BRANCHES=(develop master dev-${{ inputs.major_version }}.x ${{ inputs.major_version }}.x)
+          #for BRANCH in "${BRANCHES[@]}"; do
+          #  if [[ "${{ github.ref_name }}" == "$BRANCH" ]]; then
+          #    mv *results.json /tmp
+          #    BUCKET="s3://centreon-veracode-reports/${{ inputs.module_name }}/${{ github.base_ref || github.ref_name }}"
+          #    aws s3 cp "/tmp/filtered_results.json" "$BUCKET/filtered_results.json"
+          #    aws s3 cp "/tmp/results.json" "$BUCKET/results.json"
+          #  fi
+          #done
+
+          mv *results.json /tmp
+          BUCKET="s3://centreon-veracode-reports/${{ inputs.module_name }}/develop"
+          aws s3 cp "/tmp/filtered_results.json" "$BUCKET/filtered_results.json"
+          aws s3 cp "/tmp/results.json" "$BUCKET/results.json"
 
   policy-scan:
     needs: [build]
     name: Run a sandbox scan
     # only stable and unstable maintenances branches will produce a report
-    if: needs.build.outputs.development_stage != 'Development'
+    ## if: needs.build.outputs.development_stage != 'Development'
     runs-on: [self-hosted, common]
     continue-on-error: true
 
@@ -185,7 +190,7 @@ jobs:
 
       - name: Promote Scan
         # only develop will be promoted to policy scan
-        if: github.ref_name == 'develop'
+        ## if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
@@ -202,7 +207,7 @@ jobs:
     needs: [build]
     name: Run a SCA scan
     # only latest unstable maintenance branches will produce a report
-    if: github.ref_name == 'develop'
+    ## if: github.ref_name == 'develop'
     runs-on: [self-hosted, common]
     continue-on-error: true
 
