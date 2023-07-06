@@ -196,8 +196,8 @@ jobs:
           echo "[DEBUG] - repository: ${{ github.repository }}"
 
       - name: Cleanup
-        if: ${{ github.event.pull_request.number }} != ""
-        uses: ./.github/actions/promote-to-stable
+        if: github.event.pull_request.number != ''
+        uses: ./.github/actions/clean-cache
         with:
           repository_name: ${{ github.repository }}
           pull_request_number: ${{ github.event.pull_request.number }}
