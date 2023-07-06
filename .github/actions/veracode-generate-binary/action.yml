@@ -25,20 +25,21 @@ runs:
       if: inputs.is_cpp_project == 'yes'
       run: |
         echo "[DEBUG] - clean"
+        pwd
         ls -la
-        rm -rf /src/build
-        mkdir /src/build
-        cd /src/build/
+
+        rm -rf build
+        mkdir build
+        cd build
 
         echo "[DEBUG] - preparing compilation"
-        ls -la
+        echo "[DEBUG] - find preparing compilation"
         find ./ -name "conanfile.*"
-        
+
         sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
         sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
         echo "[DEBUG] - compilation step"
-        ls -la ..
         # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
         sudo cmake \
           -G "Ninja" \
@@ -66,6 +67,7 @@ runs:
         ls -la
 
         # clean useless files
+        cd ..
         mv build full_build
         mkdir build
         mv -f full_build/bin build
