@@ -348,8 +348,14 @@ EBDP5
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
+    ${remove_time}=  Get Current Date
     Remove Poller by id    51001    ${4}
-    Sleep    6s
+
+    #wait unified receive instance event
+    ${content}=    Create List    central-broker-unified-sql read neb:Instance
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
+
 
     Stop Engine
     Kindly Stop Broker
@@ -415,7 +421,13 @@ EBDP6
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
+    ${remove_time}=  Get Current Date
     Remove Poller by id    51001    ${3}
+
+    #wait unified receive instance event
+    ${content}=    Create List    central-broker-unified-sql read neb:Instance
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
     Kindly Stop Broker
@@ -480,7 +492,13 @@ EBDP7
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
+    ${remove_time}=  Get Current Date
     Remove Poller by id    51001    ${3}
+
+    #wait unified receive instance event
+    ${content}=    Create List    central-broker-unified-sql read neb:Instance
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
     Kindly Stop Broker

@@ -2,6 +2,7 @@
 Documentation       Centreon Broker and Engine anomaly detection
 
 Resource            ../resources/resources.robot
+Resource    ../broker-database/networkFailure.robot
 Library             DateTime
 Library             Process
 Library             OperatingSystem
@@ -221,8 +222,8 @@ UNIFIED_SQL_FILTER
     Config BBDO3    ${1}
     Config Engine    ${1}
 
-    Start Broker    True
     ${start}=    Get Current Date
+    Start Broker    True
     Start Engine
 
     # Let's wait for the external command check start
@@ -260,8 +261,8 @@ CBD_RELOAD_AND_FILTERS
     Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
-    Start Broker
     ${start}=    Get Current Date
+    Start Broker
     Start Engine
 
     # Let's wait for the external command check start
@@ -287,6 +288,9 @@ CBD_RELOAD_AND_FILTERS
     ${start}=    Get Current Date
     Restart Engine
     Reload Broker
+    #let reload time to broker
+    Sleep  0.1
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
     ${content}=    Create List
@@ -298,22 +302,23 @@ CBD_RELOAD_AND_FILTERS
 
     # Let's wait for storage data written into rrd files
     ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
     ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log with Timeout    ${centralLog}    ${start}    ${content}    120
+    ${result}=    Find Regex In Log with Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    msg=No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
     # New configuration
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    ${start}=    Get Current Date
     Restart Engine
     Reload Broker
     #let reload time to broker
-    Sleep  1
-    ${start}=    Get Current Date
+    Sleep  0.1
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"
     ${content}=    Create List
@@ -324,12 +329,12 @@ CBD_RELOAD_AND_FILTERS
 
     # Let's wait for storage data written into rrd files
     ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything
     ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
@@ -355,8 +360,8 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
-    Start Broker
     ${start}=    Get Current Date
+    Start Broker
     Start Engine
 
     # Let's wait for the external command check start
@@ -382,6 +387,9 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ${start}=    Get Current Date
     Restart Engine
     Reload Broker
+    #let reload time to broker
+    Sleep  0.1
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
     ${content}=    Create List
@@ -393,20 +401,23 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # Let's wait for storage data written into rrd files
     ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
     ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log with Timeout    ${centralLog}    ${start}    ${content}    120
+    ${result}=    Find Regex In Log with Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    msg=No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
     # New configuration
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    ${start}=    Get Current Date
     Restart Engine
     Reload Broker
-    ${start}=    Get Current Date
+    #let reload time to broker
+    Sleep  0.1
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"
     ${content}=    Create List
@@ -416,12 +427,12 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # Let's wait for storage data written into rrd files
     ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything
     ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
