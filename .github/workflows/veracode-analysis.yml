@@ -87,7 +87,7 @@ jobs:
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
-          path: "${{ inputs.module_name }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Get baseline file
@@ -125,7 +125,7 @@ jobs:
         with:
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
-          file: "${{ inputs.module_name }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          file: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           baseline_file: "${{ env.baseline_file }}"
           create_baseline_from: "${{ env.create_baseline_from }}"
           fail_build: '${{ needs.build.outputs.fail_build }}'
@@ -166,7 +166,7 @@ jobs:
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
-          path: "${{ inputs.module_name }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Sandbox scan
@@ -175,7 +175,7 @@ jobs:
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          filepath: "${{ inputs.module_name }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
@@ -215,7 +215,7 @@ jobs:
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
-          path: "${{ inputs.module_name }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Prepare analysis
@@ -224,7 +224,7 @@ jobs:
           pwd
           find ./ -name "*veracode-binary.zip"
 
-          unzip "${{ inputs.module_name }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          unzip "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
           ls -la
 
       - name: SCA scan
@@ -240,4 +240,3 @@ jobs:
           create-issues: false
           fail-on-cvss: 8
           allow-dirty: true
-          path: "./"

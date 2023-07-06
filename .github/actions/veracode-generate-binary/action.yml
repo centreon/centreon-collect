@@ -74,10 +74,13 @@ runs:
 
     - name: Create ZIP file
       run: |
+        pwd
+
         zip -rq "${{ inputs.cache_key }}.zip" *
+        ls -la
       shell: bash
 
     - uses: actions/cache/save@v3
       with:
-        path: "${{ inputs.module_name }}/${{ inputs.cache_key }}.zip"
+        path: "${{ inputs.cache_key }}.zip"
         key: ${{ inputs.cache_key }}
