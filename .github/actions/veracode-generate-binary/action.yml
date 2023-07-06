@@ -77,7 +77,8 @@ runs:
 
         ls -la
 
-        zip -rq "${{ inputs.cache_key }}.zip" *
+        zip -rq "${{ inputs.cache_key }}.zip" * .*
+
         ls -la
         pwd
 
