@@ -47,6 +47,7 @@ class bool_not : public bool_value {
   bool child_has_update(computable* child, io::stream* visitor = NULL);
   void set_value(std::shared_ptr<bool_value>& value);
   double value_hard();
+  bool boolean_value() const override;
   double value_soft();
   bool state_known() const;
   bool in_downtime() const;

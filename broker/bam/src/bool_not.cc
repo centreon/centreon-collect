@@ -71,12 +71,12 @@ double bool_not::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean
  *
- *  @return Soft value.
+ * @return True or false.
  */
-double bool_not::value_soft() {
-  return std::abs(_value->value_soft()) < ::eps;
+bool bool_not::boolean_value() const {
+  return std::abs(_value->value_hard()) < ::eps;
 }
 
 /**

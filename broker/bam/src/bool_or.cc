@@ -38,17 +38,12 @@ double bool_or::value_hard() {
   return retval;
 }
 
-/**
- *  Get the soft value.
- *
- *  @return Evaluation of the expression with soft values.
- */
-double bool_or::value_soft() {
-  bool left = std::abs(_left_soft) >= ::eps;
-  bool right = std::abs(_right_soft) >= ::eps;
-  double retval = left || right;
+bool bool_or::boolean_value() const {
+  bool left = std::abs(_left_hard) >= ::eps;
+  bool right = std::abs(_right_hard) >= ::eps;
+  bool retval = left || right;
   log_v2::bam()->debug(
-      "bool_or: (soft) left: {} | (soft) right: {} = (soft) result: {}", left,
+      "bool_or: (hard) left: {} | (hard) right: {} = (hard) result: {}", left,
       right, retval);
   return retval;
 }

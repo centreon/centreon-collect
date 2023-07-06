@@ -33,11 +33,11 @@ double bool_xor::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean
  *
- *  @return Evaluation of the expression with soft values.
+ * @return True or false.
  */
-double bool_xor::value_soft() {
-  return (std::abs(_left_soft) < ::eps && std::abs(_right_soft) >= ::eps) ||
-         (std::abs(_left_soft) >= ::eps && std::abs(_right_soft) < ::eps);
+bool bool_xor::boolean_value() const {
+  return (std::abs(_left_hard) < ::eps && std::abs(_right_hard) >= ::eps) ||
+         (std::abs(_left_hard) >= ::eps && std::abs(_right_hard) < ::eps);
 }

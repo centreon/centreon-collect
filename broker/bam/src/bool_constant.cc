@@ -20,12 +20,15 @@
 
 using namespace com::centreon::broker::bam;
 
+constexpr double eps = 0.000001;
+
 /**
  *  Constructor.
  *
  *  @param[in] val  The constant value to assign.
  */
-bool_constant::bool_constant(double val) : _value(val) {}
+bool_constant::bool_constant(double val)
+    : _value(val), _boolean_value{std::abs(val) > ::eps} {}
 
 /**
  *  Get notified of child update.
@@ -51,12 +54,12 @@ double bool_constant::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Returns the contant of bool_constant but as a boolean value.
  *
- *  @return Evaluation of the expression with soft values.
+ * @return true or false.
  */
-double bool_constant::value_soft() {
-  return _value;
+bool bool_constant::boolean_value() const {
+  return _boolean_value;
 }
 
 /**

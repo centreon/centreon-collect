@@ -33,12 +33,12 @@ double bool_and::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean.
  *
- *  @return Evaluation of the expression with soft values.
+ * @return True or False
  */
-double bool_and::value_soft() {
-  return std::abs(_left_soft) > ::eps && std::abs(_right_soft) > ::eps;
+bool bool_and::boolean_value() const {
+  return std::abs(_left_hard) > ::eps && std::abs(_right_hard) > ::eps;
 }
 
 /**
