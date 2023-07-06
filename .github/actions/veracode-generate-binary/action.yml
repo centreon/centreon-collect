@@ -24,22 +24,13 @@ runs:
     - name: Compile cpp sources
       if: inputs.is_cpp_project == 'yes'
       run: |
-        echo "[DEBUG] - clean"
-        pwd
-        ls -la
-
         rm -rf build
         mkdir build
         cd build
 
-        echo "[DEBUG] - preparing compilation"
-        echo "[DEBUG] - find preparing compilation"
-        find ./ -name "conanfile.*"
-
         sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
         sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-        echo "[DEBUG] - compilation step"
         # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
         sudo cmake \
           -G "Ninja" \
@@ -63,49 +54,30 @@ runs:
 
         sudo ninja
 
-        echo "[DEBUG] - clean"
-        ls -la
+        #echo "[DEBUG] - clean"
+        #ls -la
 
-        # clean useless files
-        cd ..
-        mv build full_build
-        mkdir build
-        mv -f full_build/bin build
-        mv -f full_build/lib build
-        for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" ); do
-          rm -f $file
-        done
-        rm -rf full_build
+        ## clean useless files
+        #cd ..
+        #mv build full_build
+        #mkdir build
+        #mv -f full_build/bin build
+        #mv -f full_build/lib build
 
-      shell: bash
 
-    - name: Exclude development files
-      run: |
-        if [[ -f ".veracode-exclusions" ]]; then
-          for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
-            if [[ -d "$LINE" ]]; then
-              rm -rf "$LINE"
-              echo "[INFO] - folder removed from analysis = '$LINE'"
-            elif [[ -e "$LINE" ]]; then
-              rm -f "$LINE"
-              echo "[INFO] - file removed from analysis = '$LINE'"
-            elif [[ -z "$LINE" ]]; then
-              echo "[INFO] - empty directive. Skipping this line"
-            else
-              echo "[INFO] - target to exclude not found. Skipping = '$LINE'"
-            fi
-          done
-        else
-          echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
-        fi
-      shell: bash
+        #for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" ); do
+        #  rm -f $file
+        #done
 
-    - name: Create ZIP file
-      run: |
-        tar -czvf "${{ inputs.cache_key }}.tar.gz" * .*
+        #echo "[DEBUG] - clean full_build"
+        #ls -la
+
+        #rm -rf full_build
+
+        tar -czf "${{ inputs.cache_key }}.tar.gz" ./
       shell: bash
 
     - uses: actions/cache/save@v3
       with:
-        path: "${{ inputs.cache_key }}.tar.gz"
+        path: "build/${{ inputs.cache_key }}.tar.gz"
         key: ${{ inputs.cache_key }}
