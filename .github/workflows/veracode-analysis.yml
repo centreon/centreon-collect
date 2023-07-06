@@ -39,7 +39,7 @@ on:
 jobs:
   build:
     name: Binary preparation
-    runs-on: [self-hosted, common]
+    runs-on: [self-hosted, collect]
     outputs:
       fail_build: ${{ steps.routing-mode.outputs.fail_build }}
       development_stage: ${{ steps.routing-mode.outputs.development_stage }}
@@ -159,7 +159,7 @@ jobs:
     name: Run a sandbox scan
     # only stable and unstable maintenances branches will produce a report
     ## if: needs.build.outputs.development_stage != 'Development'
-    runs-on: [self-hosted, common]
+    runs-on: ubuntu-22.04
     continue-on-error: true
 
     steps:
@@ -208,7 +208,7 @@ jobs:
     name: Run a SCA scan
     # only latest unstable maintenance branches will produce a report
     ## if: github.ref_name == 'develop'
-    runs-on: [self-hosted, common]
+    runs-on: ubuntu-latest
     continue-on-error: true
 
     steps:
