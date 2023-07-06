@@ -1,0 +1,37 @@
+name: "clean-cache"
+description: "Action used to delete cache after usage"
+inputs:
+  repository_name:
+    description: "The repository name"
+    required: true
+  pull_request_number:
+    description: "The branch name"
+    required: true
+  token:
+    description: "github token"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Cleanup
+      env:
+        GH_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+      run: |
+        gh extension install actions/gh-actions-cache
+
+        REPO=${{ inputs.repository }}
+        BRANCH="refs/pull/${{ inputs.pull_request_number }}/merge"
+
+        echo "Fetching list of cache key"
+        cacheKeysForPR=$(gh actions-cache list -R $REPO -B $BRANCH | cut -f 1 )
+
+        ## Setting this to not fail the workflow while deleting cache keys.
+        set +e
+        echo "Deleting caches..."
+        for cacheKey in $cacheKeysForPR
+        do
+            gh actions-cache delete $cacheKey -R $REPO -B $BRANCH --confirm
+        done
+        echo "Done"
+      shell: bash

@@ -184,3 +184,21 @@ jobs:
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
+
+  clean-cache:
+    needs: [deliver-deb, deliver-rpm]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: debug
+        run: |
+          echo "[DEBUG] - pull_request number: ${{ github.event.pull_request.number }}"
+          echo "[DEBUG] - repository: ${{ github.repository }}"
+
+      - name: Cleanup
+        if: ${{ github.event.pull_request.number }} != ""
+        uses: ./.github/actions/promote-to-stable
+        with:
+          repository_name: ${{ github.repository }}
+          pull_request_number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
