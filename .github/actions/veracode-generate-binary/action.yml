@@ -24,15 +24,19 @@ runs:
     - name: Compile cpp sources
       if: inputs.is_cpp_project == 'yes'
       run: |
-        sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-        sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+        rm -rf /src/build
+        mkdir /src/build
+        cd /src/build/
 
-        # -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+        sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+        sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+        # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
         sudo cmake \
           -G "Ninja" \
           -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
           -DWITH_TESTING=OFF \
-          -DWITH_BENCH=ON \
+          -DWITH_BENCH=OFF \
           -DWITH_MODULE_SIMU=OFF \
           -DCMAKE_INSTALL_PREFIX=/usr \
           -DWITH_STARTUP_SCRIPT=systemd \
@@ -46,9 +50,20 @@ runs:
           -DWITH_CREATE_FILES=OFF \
           -DWITH_CONFIG_FILES=ON \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          .
+          ..
 
-          sudo ninja
+        sudo ninja
+
+        # clean useless files
+        mv build full_build
+        mkdir build
+        mv -f full_build/bin build
+        mv -f full_build/lib build
+        for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" ); do
+          rm -f $file
+        done
+        rm -rf full_build
+
       shell: bash
 
     - name: Exclude development files
@@ -74,17 +89,10 @@ runs:
 
     - name: Create ZIP file
       run: |
-
-        ls -la
-
-        zip -rq "${{ inputs.cache_key }}.zip" * .*
-
-        ls -la
-        pwd
-
+        tar -czvf "${{ inputs.cache_key }}.tar.gz" * .*
       shell: bash
 
     - uses: actions/cache/save@v3
       with:
-        path: "${{ inputs.cache_key }}.zip"
+        path: "${{ inputs.cache_key }}.tar.gz"
         key: ${{ inputs.cache_key }}
