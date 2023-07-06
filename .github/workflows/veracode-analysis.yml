@@ -215,7 +215,13 @@ jobs:
 
       - name: Prepare analysis
         run: |
-          unzip ./
+          ls -la
+          pwd
+          find ./ -name "*veracode-binary.zip"
+
+          unzip "${{ inputs.module_name }}/${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.zip"
+          ls -la
+
       - name: SCA scan
         env:
           SRCCLR_API_TOKEN: ${{ secrets.veracode_srcclr_token }}
