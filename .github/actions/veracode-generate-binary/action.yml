@@ -24,13 +24,21 @@ runs:
     - name: Compile cpp sources
       if: inputs.is_cpp_project == 'yes'
       run: |
+        echo "[DEBUG] - clean"
+        ls -la
         rm -rf /src/build
         mkdir /src/build
         cd /src/build/
 
+        echo "[DEBUG] - preparing compilation"
+        ls -la
+        find ./ -name "conanfile.*"
+        
         sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
         sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
+        echo "[DEBUG] - compilation step"
+        ls -la ..
         # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
         sudo cmake \
           -G "Ninja" \
@@ -53,6 +61,9 @@ runs:
           ..
 
         sudo ninja
+
+        echo "[DEBUG] - clean"
+        ls -la
 
         # clean useless files
         mv build full_build
