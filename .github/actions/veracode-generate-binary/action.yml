@@ -74,7 +74,8 @@ runs:
 
         #rm -rf full_build
 
-        tar -czf "${{ inputs.cache_key }}.tar.gz" ./
+        cd ..
+        tar -czf "${{ inputs.cache_key }}.tar.gz" build
       shell: bash
 
     - uses: actions/cache/save@v3
