@@ -465,11 +465,13 @@ define command {{
 
 define connector {
     connector_name                 SSH Connector
-    connector_line                 /usr/lib64/centreon-connector/centreon_connector_ssh
+    connector_line                 /usr/lib64/centreon-connector/centreon_connector_ssh --debug --log-file=/tmp/var/log/centreon-engine/config0/connector_ssh.log 
 }
 """)
             f.close()
             f = open(config_dir + "/resource.cfg", "w")
+            f.write("""$USER1$=/usr/lib64/nagios/plugins
+$CENTREONPLUGINS$=/usr/lib/centreon/plugins""")
             f.close()
             f = open(config_dir + "/timeperiods.cfg", "w")
             f.write("""define timeperiod {
@@ -660,6 +662,35 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
 
 
 ##
+# @brief Function to change a value in the hosts.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param desc host name of the host to modify.
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
+    rkey = re.compile(r"^\s*"+key+"\s+[\w\.]+\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            while i < len(lines) and lines[i] != "}":
+                if rkey.match(lines[i]):
+                    lines[i] = "    {}              {}\n".format(key, value)
+                    break
+                i += 1
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+##
 # @brief Function to change a value in the commands.cfg for the config idx.
 #
 # @param idx index of the configuration (from 0)
@@ -694,13 +725,21 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
 # @param command_name
 # @param new_command
 #
-def engine_config_add_command(idx: int, command_name: str, new_command: str):
+def engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
-    f.write("""define command {{
+    if connector is None:
+        f.write("""define command {{
     command_name                   {} 
     command_line                   {}
 }}
     """.format(command_name, new_command))
+    else:
+        f.write("""define command {{
+    command_name                   {} 
+    command_line                   {}
+    connector                      {}
+}}
+    """.format(command_name, new_command, connector))
     f.close()
 
 

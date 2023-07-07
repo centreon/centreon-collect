@@ -2,7 +2,6 @@
 Documentation       Centreon Broker and Engine anomaly detection
 
 Resource            ../resources/resources.robot
-Resource    ../broker-database/networkFailure.robot
 Library             DateTime
 Library             Process
 Library             OperatingSystem
@@ -288,8 +287,10 @@ CBD_RELOAD_AND_FILTERS
     ${start}=    Get Current Date
     Restart Engine
     Reload Broker
-    #let reload time to broker
-    Sleep  0.1
+    #wait broker reload
+    ${content}=  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
     ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
@@ -316,8 +317,10 @@ CBD_RELOAD_AND_FILTERS
     ${start}=    Get Current Date
     Restart Engine
     Reload Broker
-    #let reload time to broker
-    Sleep  0.1
+    #wait broker reload
+    ${content}=  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
     ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"
@@ -387,8 +390,10 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ${start}=    Get Current Date
     Restart Engine
     Reload Broker
-    #let reload time to broker
-    Sleep  0.1
+    #wait broker reload
+    ${content}=  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
     ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
@@ -415,8 +420,10 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ${start}=    Get Current Date
     Restart Engine
     Reload Broker
-    #let reload time to broker
-    Sleep  0.1
+    #wait broker reload
+    ${content}=  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
     ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"
