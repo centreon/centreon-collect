@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/bam/computable.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -70,6 +71,7 @@ void computable::add_parent(std::shared_ptr<computable> const& parent) {
  *  @param[out] visitor  Object that will receive events.
  */
 void computable::propagate_update(io::stream* visitor) {
+  log_v2::bam()->trace("{}::propagate_update: ", typeid(*this).name());
   std::vector<bool> filter(_parents.size());
   uint32_t i = 0;
   for (std::list<std::weak_ptr<computable> >::iterator it = _parents.begin(),

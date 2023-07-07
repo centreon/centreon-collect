@@ -1,5 +1,5 @@
 /*
-** Copyright 2014 Centreon
+** Copyright 2014, 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -24,36 +24,43 @@ using namespace com::centreon::broker::bam;
 constexpr double eps = 0.000001;
 
 /**
+ * @brief Check that the children are known and in that case propagate their
+ * values to _left_hard and _right_hard. Otherwise these attributes have no
+ * meaning.
+ *
+ * After a call to this internal function, the _state_known attribute has the
+ * good value.
+ */
+void bool_and::_update_state() {
+  log_v2::bam()->trace("bool_and::update_state...");
+  if (_left && _left->state_known() && !_left->boolean_value()) {
+    log_v2::bam()->trace("bam: bool and left changed to true");
+    _left_hard = false;
+    _boolean_value = false;
+    _state_known = true;
+  } else if (_right && _right->state_known() && !_right->boolean_value()) {
+    log_v2::bam()->trace("bam: bool and right changed to true");
+    _right_hard = false;
+    _boolean_value = false;
+    _state_known = true;
+  } else {
+    bool_binary_operator::_update_state();
+    _boolean_value = _left->boolean_value() && _right->boolean_value();
+    log_v2::bam()->trace(
+        "bam: bool and generic rule applied: value: {} - known : {}",
+        _boolean_value, _state_known);
+  }
+}
+
+/**
  *  Get the hard value.
  *
  *  @return Evaluation of the expression with hard values.
  */
 double bool_and::value_hard() {
-  return std::abs(_left_hard) > ::eps && std::abs(_right_hard) > ::eps;
+  return _boolean_value;
 }
 
-/**
- * @brief Get the current value as a boolean.
- *
- * @return True or False
- */
 bool bool_and::boolean_value() const {
-  return std::abs(_left_hard) > ::eps && std::abs(_right_hard) > ::eps;
-}
-
-/**
- * @brief Tell if this boolean value has a known state. Since it is a logical
- * and, if one operand is known to be false, we can consider the state to be
- * known because the result will be false.
- *
- * @return a boolean.
- */
-bool bool_and::state_known() const {
-  bool left_exists = _left && _left->state_known();
-  bool right_exists = _right && _right->state_known();
-  bool retval = (left_exists && right_exists) ||
-                (left_exists && std::abs(_left_hard) < ::eps) ||
-                (right_exists && std::abs(_right_hard) < ::eps);
-  log_v2::bam()->debug("BAM: bool and: state known {}", retval);
-  return retval;
+  return _boolean_value;
 }

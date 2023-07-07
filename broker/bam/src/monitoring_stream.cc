@@ -1,20 +1,20 @@
-/*
-** Copyright 2014-2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <spdlog/fmt/ostr.h>
 
@@ -610,9 +610,8 @@ void monitoring_stream::_prepare() {
     _ba_query = std::make_unique<database::bulk_or_multi>(
         _mysql,
         "UPDATE mod_bam SET "
-        "current_level=?,acknowledged=?,downtime=?,last_state_"
-        "change=?,in_"
-        "downtime=?,current_status=? WHERE ba_id=?",
+        "current_level=?,acknowledged=?,downtime=?,last_state_change=?,"
+        "in_downtime=?,current_status=? WHERE ba_id=?",
         _conf_queries_per_transaction);
     _kpi_query = std::make_unique<database::bulk_or_multi>(
         _mysql,

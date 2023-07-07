@@ -36,9 +36,6 @@ namespace bam {
  *  Provides common methods to binary operators.
  */
 class bool_binary_operator : public bool_value {
- private:
-  void _update_state();
-
  protected:
   std::shared_ptr<bool_value> _left;
   std::shared_ptr<bool_value> _right;
@@ -46,6 +43,8 @@ class bool_binary_operator : public bool_value {
   double _right_hard = 0;
   bool _in_downtime = false;
   bool _state_known = false;
+
+  virtual void _update_state();
 
  public:
   typedef std::shared_ptr<bool_binary_operator> ptr;

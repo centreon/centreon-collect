@@ -1,42 +1,54 @@
-/*
-** Copyright 2016 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2016,2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/exp_builder.hh"
 #include <gtest/gtest.h>
+#include <memory>
+#include "bbdo/neb.pb.h"
+#include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
+#include "com/centreon/broker/bam/kpi_boolexp.hh"
+#include "com/centreon/broker/bam/service_book.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "bbdo/neb.pb.h"
+#include "com/centreon/broker/log_v2.hh"
+#include "test-visitor.hh"
 
 using namespace com::centreon::broker;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class BamExpBuilder : public ::testing::Test {
+ protected:
+  std::unique_ptr<test_visitor> _visitor;
+
  public:
   void SetUp() override {
     g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
+      log_v2::bam()->set_level(spdlog::level::trace);
+      log_v2::bam()->flush_on(spdlog::level::trace);
     } catch (std::exception const& e) {
       (void)e;
     }
+    _visitor = std::make_unique<test_visitor>("test-visitor");
   }
 
   void TearDown() override {
@@ -173,12 +185,326 @@ TEST_F(BamExpBuilder, OkService2) {
   mapping.set_service("host_1", "service_1", 1, 1, true);
   bam::exp_builder builder(p.get_postfix(), mapping);
   bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
   auto svc1 = std::make_shared<neb::pb_service_status>();
   svc1->mut_obj().set_host_id(1);
   svc1->mut_obj().set_service_id(1);
-  svc1->mut_obj().set_state(Service_State::Service_State_OK);
-  svc1->mut_obj().set_last_hard_state(Service_State::OK);
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, CritService2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p("{host_1 service_1} {IS} {CRITICAL}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, CritOkService1) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::OK);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
+
+  book.update(svc2);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, CritOkService2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc1);
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc2);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, CritOkService3) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} {OK}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::OK);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
+
+  book.update(svc2);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc2);
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, CritAndOkService1) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::OK);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
+
+  book.update(svc2);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, CritAndOkService2) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc1);
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc2);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, CritAndOkService3) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} {OK}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::WARNING);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::WARNING);
+
+  book.update(svc2);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  svc2->mut_obj().set_state(ServiceStatus::OK);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc2);
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+
+  book.update(svc1);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
 }
