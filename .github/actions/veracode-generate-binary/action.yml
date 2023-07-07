@@ -76,9 +76,10 @@ runs:
 
         cd ..
         tar -czf "${{ inputs.cache_key }}.tar.gz" build
+
       shell: bash
 
     - uses: actions/cache/save@v3
       with:
-        path: "build/${{ inputs.cache_key }}.tar.gz"
+        path: "${{ inputs.cache_key }}.tar.gz"
         key: ${{ inputs.cache_key }}

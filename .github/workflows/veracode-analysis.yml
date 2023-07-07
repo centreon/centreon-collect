@@ -90,6 +90,11 @@ jobs:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
+      - name: Prepare analysis
+        run: |
+          ls -la
+          tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+
       - name: Get baseline file
         run: |
           BUCKET="s3://centreon-veracode-reports/${{ inputs.module_name }}"
@@ -169,6 +174,11 @@ jobs:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
+      - name: Prepare analysis
+        run: |
+          ls -la
+          tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@master
         continue-on-error: true
@@ -222,11 +232,6 @@ jobs:
         run: |
           ls -la
           tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-
-          ls -la
-
-          pwd
-          find ./ -name "*veracode-binary.tar.gz"
 
       - name: SCA scan
         env:
