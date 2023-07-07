@@ -84,6 +84,8 @@ jobs:
     runs-on: [self-hosted, veracode]
 
     steps:
+      - uses: actions/checkout@v3
+
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
@@ -168,6 +170,8 @@ jobs:
     continue-on-error: true
 
     steps:
+      - uses: actions/checkout@v3
+
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
@@ -222,6 +226,8 @@ jobs:
     continue-on-error: true
 
     steps:
+      - uses: actions/checkout@v3
+
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
