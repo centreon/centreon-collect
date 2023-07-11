@@ -198,7 +198,7 @@ void options::parse(std::string const& cmdline) {
   optind = 0;  // Reset optind to parse arguments.
   opterr = 0;  // Disable output messages.
 
-  char c;
+  int c;
   while ((c = getopt_long(ac, av, optstr, optlong, nullptr)) > 0) {
     switch (c) {
       case 'H':  // Set host name or IP address.

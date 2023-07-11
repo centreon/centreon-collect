@@ -40,8 +40,8 @@ add_custom_command(
           --proto_path=${SRC_DIR} ${SRC_DIR}/process_stat.proto)
 
 # Set sources.
-set(SOURCES "${SRC_DIR}/process_stat.cc" "${SRC_DIR}/process_stat.pb.cc"
-            "${SRC_DIR}/process_stat.grpc.pb.cc")
+set(SOURCES ${SRC_DIR}/process_stat.cc ${SRC_DIR}/process_stat.pb.cc
+            ${SRC_DIR}/process_stat.grpc.pb.cc ${SRC_DIR}/hex_dump.cc)
 
 # Include directories.
 include_directories("${INCLUDE_DIR}")

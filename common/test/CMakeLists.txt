@@ -16,7 +16,7 @@
 # For more information : contact@centreon.com
 #
 
-add_executable(ut_common process_stat_test.cc)
+add_executable(ut_common process_stat_test.cc hex_dump_test.cc)
 
 # target_include_directories(ut_common ${CONAN_INCLUDE_DIRS_GTEST})
 
