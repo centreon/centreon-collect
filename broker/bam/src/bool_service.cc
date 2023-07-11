@@ -98,6 +98,30 @@ void bool_service::service_update(
  *  @param[out] visitor  Object that will receive events.
  */
 void bool_service::service_update(
+    const std::shared_ptr<neb::pb_service>& status,
+    io::stream* visitor) {
+  auto& o = status->obj();
+  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                      "bool_service: service ({},{}) updated with "
+                      "neb::pb_service_status hard state: {}, downtime: {}",
+                      o.host_id(), o.service_id(), o.last_hard_state(),
+                      o.scheduled_downtime_depth());
+  if (o.host_id() == _host_id && o.service_id() == _service_id) {
+    _state_hard = o.last_hard_state();
+    _state_known = true;
+    _in_downtime = o.scheduled_downtime_depth() > 0;
+    log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
+    propagate_update(visitor);
+  }
+}
+
+/**
+ *  Notify of service update.
+ *
+ *  @param[in]  status   Service status.
+ *  @param[out] visitor  Object that will receive events.
+ */
+void bool_service::service_update(
     const std::shared_ptr<neb::pb_service_status>& status,
     io::stream* visitor) {
   auto& o = status->obj();
