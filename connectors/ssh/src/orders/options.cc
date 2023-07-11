@@ -193,7 +193,7 @@ std::string options::help() {
 void options::parse(std::string const& cmdline) {
   misc::command_line cmd(cmdline);
   int ac(cmd.get_argc());
-  char** av(cmd.get_argv());
+  char* const* av(cmd.get_argv());
 
   optind = 0;  // Reset optind to parse arguments.
   opterr = 0;  // Disable output messages.
