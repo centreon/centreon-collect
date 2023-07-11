@@ -31,11 +31,6 @@ constexpr double eps = 0.000001;
 bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
 
 /**
- *  Destructor.
- */
-bool_not::~bool_not() {}
-
-/**
  *  @brief Notify of the change of value of the child.
  *
  *  This class does not cache values. This method is therefore useless

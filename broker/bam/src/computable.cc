@@ -22,38 +22,6 @@
 using namespace com::centreon::broker::bam;
 
 /**
- *  Default constructor.
- */
-computable::computable() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-computable::computable(computable const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Destructor.
- */
-computable::~computable() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-computable& computable::operator=(computable const& right) {
-  if (this != &right)
-    _internal_copy(right);
-  return *this;
-}
-
-/**
  *  Add a new parent.
  *
  *  @param[in] parent Parent node.
@@ -107,15 +75,4 @@ void computable::remove_parent(std::shared_ptr<computable> const& parent) {
       _parents.erase(it);
       break;
     }
-  return;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void computable::_internal_copy(computable const& right) {
-  _parents = right._parents;
-  return;
 }

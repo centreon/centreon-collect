@@ -4737,3 +4737,30 @@ TEST_F(LuaTest, BrokerApi2PbRemoveGraphMessageWithNext) {
   RemoveFile(filename);
   RemoveFile("/tmp/event_log");
 }
+
+// When a script is loaded, a new socket is created
+// And a call to connect is made with a good adress/port
+// Then it succeeds.
+TEST_F(LuaTest, JsonDecodeNull) {
+  std::map<std::string, misc::variant> conf;
+  std::string filename("/tmp/json_encode.lua");
+  CreateScript(filename,
+               "function init(conf)\n"
+               "  broker_log:set_parameters(3, '/tmp/log')\n"
+               "  broker_log:info('coucou')\n"
+               "  local json = '{ \"key\": null, \"v\": 12 }'\n"
+               "  local b = broker.json_decode(json)\n"
+               "  broker_log:info(1, \"key=>\" .. tostring(b.key))\n"
+               "  broker_log:info(1, \"v=>\" .. tostring(b.v))\n"
+               "end\n\n"
+               "function write(d)\n"
+               "  return true\n"
+               "end\n");
+  auto binding{std::make_unique<luabinding>(filename, conf, *_cache)};
+  std::string result(ReadFile("/tmp/log"));
+
+  ASSERT_NE(result.find("INFO: key=>nil"), std::string::npos);
+  ASSERT_NE(result.find("INFO: v=>12"), std::string::npos);
+  RemoveFile(filename);
+  RemoveFile("/tmp/log");
+}
