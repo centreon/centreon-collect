@@ -193,6 +193,170 @@ BABOOAND
     Stop Engine
     Kindly Stop Broker
 
+BABOOORREL
+    [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service used and reload cbd. So the rule is something like "False OR True" and then it's changed into "False OR False". And to pass from True to False, we change the service.
+    [Tags]    broker    engine    bam    boolean_expression
+    Clear Commands Status
+    Clear Retention
+    Config Broker    module
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Log    central    core    error
+    Broker Config Log    central    bam    trace
+    Broker Config Log    central    sql    error
+    Broker Config Flush Log    central    0
+    Broker Config Source Log    central    1
+    Config BBDO3    ${1}
+    Config Engine    ${1}
+
+    Clone Engine Config To DB
+    Add Bam Config To Engine
+    Add Bam Config To Broker    central
+    Set Services Passive    ${0}    service_302
+    Set Services Passive    ${0}    service_303
+    Set Services Passive    ${0}    service_304
+
+    ${id_ba__sid}=    create_ba    boolean-ba    impact    70    80
+    ${id_bool}=    add_boolean_kpi
+    ...    ${id_ba__sid[0]}
+    ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
+    ...    False
+    ...    100
+
+    Start Broker
+    ${start}=    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    # 302 is set to critical => {host_16 service_302} {IS} {OK} is then False
+    Repeat Keyword
+    ...    3 times
+    ...    Process Service Check Result
+    ...    host_16
+    ...    service_302
+    ...    2
+    ...    output critical for service_302
+
+    # 303 is set to critical => {host_16 service_303} {IS} {OK} is then False
+    Repeat Keyword
+    ...    3 times
+    ...    Process Service Check Result
+    ...    host_16
+    ...    service_303
+    ...    2
+    ...    output critical for service_303
+
+    # 304 is set to ok => {host_16 service_304} {IS} {OK} is then True
+    Repeat Keyword
+    ...    3 times
+    ...    Process Service Check Result
+    ...    host_16
+    ...    service_304
+    ...    0
+    ...    output ok for service_304
+
+    ${result}=    check_ba_status_with_timeout    boolean-ba    2    30
+    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+
+    Update Boolean Rule
+    ...    ${id_bool}
+    ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_304} {IS} {OK}
+
+    Restart Engine
+    Reload Broker
+
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    ${result}=    check_ba_status_with_timeout    boolean-ba    0    30
+    Should Be True    ${result}    msg=The 'boolean-ba' BA is not OK as expected
+
+    Update Boolean Rule
+    ...    ${id_bool}
+    ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
+
+    Restart Engine
+    Reload Broker
+
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    ${result}=    check_ba_status_with_timeout    boolean-ba    2    30
+    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+
+    Stop Engine
+    Kindly Stop Broker
+
+BABOOCOMPL
+    [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
+    [Tags]    broker    engine    bam    boolean_expression
+    Clear Commands Status
+    Clear Retention
+    Config Broker    module
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Log    central    core    error
+    Broker Config Log    central    bam    trace
+    Broker Config Log    central    sql    error
+    Broker Config Flush Log    central    0
+    Broker Config Source Log    central    1
+    Config BBDO3    ${1}
+    Config Engine    ${1}
+
+    Clone Engine Config To DB
+    Add Bam Config To Engine
+    Add Bam Config To Broker    central
+    # Services 1 to 21 are passive now.
+    FOR    ${i}    IN RANGE    ${1}    ${21}
+        Set Services Passive    ${0}    service_${i}
+    END
+
+    ${id_ba__sid}=    create_ba    boolean-ba    impact    70    80
+    ${id_bool}=    add_boolean_kpi
+    ...    ${id_ba__sid[0]}
+    ...    ({host_1 service_1} {IS} {OK} {OR} {host_1 service_2} {IS} {OK}) {AND} ({host_1 service_3} {IS} {OK} {OR} {host_1 service_4} {IS} {OK}) {AND} ({host_1 service_5} {IS} {OK} {OR} {host_1 service_6} {IS} {OK}) {AND} ({host_1 service_7} {IS} {OK} {OR} {host_1 service_8} {IS} {OK}) {AND} ({host_1 service_9} {IS} {OK} {OR} {host_1 service_10} {IS} {OK}) {AND} ({host_1 service_11} {IS} {OK} {OR} {host_1 service_12} {IS} {OK}) {AND} ({host_1 service_13} {IS} {OK} {OR} {host_1 service_14} {IS} {OK}) {AND} ({host_1 service_15} {IS} {OK} {OR} {host_1 service_16} {IS} {OK}) {AND} ({host_1 service_17} {IS} {OK} {OR} {host_1 service_18} {IS} {OK}) {AND} ({host_1 service_19} {IS} {OK} {OR} {host_1 service_20} {IS} {OK})
+    ...    False
+    ...    100
+
+    Start Broker
+    ${start}=    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    FOR    ${i}    IN RANGE    ${1}    ${21}
+        Repeat Keyword
+        ...    3 times
+        ...    Process Service Check Result
+        ...    host_1
+        ...    service_${i}
+        ...    2
+        ...    output critical for service_${i}
+    END
+
+    FOR    ${i}    IN RANGE    ${1}    ${21}    ${2}
+        ${result}=    check_ba_status_with_timeout    boolean-ba    2    30
+        Should Be True    ${result}    msg=Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
+        Repeat Keyword
+        ...    3 times
+        ...    Process Service Check Result
+        ...    host_1
+        ...    service_${i}
+        ...    0
+        ...    output ok for service_${i}
+    END
+
+    ${result}=    check_ba_status_with_timeout    boolean-ba    0    30
+    Should Be True    ${result}    msg=The 'boolean-ba' BA is not OK as expected
+
+    Stop Engine
+    Kindly Stop Broker
+
 
 *** Keywords ***
 BAM Setup
