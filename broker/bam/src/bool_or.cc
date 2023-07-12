@@ -44,6 +44,8 @@ void bool_or::_update_state() {
     _boolean_value = true;
     _state_known = true;
   } else {
+    log_v2::bam()->trace(
+        "bam: bool or: left false or unknown - right false or unknown");
     _boolean_value = false;
     bool_binary_operator::_update_state();
     log_v2::bam()->trace(

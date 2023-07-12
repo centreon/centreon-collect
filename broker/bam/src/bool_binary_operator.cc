@@ -113,6 +113,7 @@ void bool_binary_operator::_update_state() {
  *  @param[in] left Left member of the boolean operator.
  */
 void bool_binary_operator::set_left(std::shared_ptr<bool_value> const& left) {
+  log_v2::bam()->trace("{}::set_left", typeid(*this).name());
   _left = left;
   _update_state();
 }
@@ -123,6 +124,7 @@ void bool_binary_operator::set_left(std::shared_ptr<bool_value> const& left) {
  *  @param[in] right Right member of the boolean operator.
  */
 void bool_binary_operator::set_right(std::shared_ptr<bool_value> const& right) {
+  log_v2::bam()->trace("{}::set_right", typeid(*this).name());
   _right = right;
   _update_state();
 }
