@@ -9,8 +9,7 @@
 # information : contact@centreon.com #
 
 # Should the connector perform check against known_hosts file ?
-option(WITH_KNOWN_HOSTS_CHECK "Check hosts against user's known_hosts file."
-       OFF)
+option(WITH_KNOWN_HOSTS_CHECK "Check hosts against user's known_hosts file." OFF)
 
 if(WITH_KNOWN_HOSTS_CHECK)
   add_definitions(-DWITH_KNOWN_HOSTS_CHECK)
@@ -51,7 +50,6 @@ add_dependencies(centreon_connector_ssh centreon_clib)
 target_link_libraries(
   centreon_connector_ssh
   centreon_clib
-  centreon_common
   CONAN_PKG::spdlog
   CONAN_PKG::fmt
   CONAN_PKG::libssh2

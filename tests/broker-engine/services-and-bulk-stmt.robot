@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Test Clean
 
 
 *** Test Cases ***
@@ -92,8 +92,6 @@ EBBPS1
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
-    Stop Engine
-    Kindly Stop Broker
 
 EBBPS2
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
@@ -169,8 +167,6 @@ EBBPS2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
-    Stop Engine
-    Kindly Stop Broker
 
 EBMSSM
     [Documentation]    1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
@@ -180,6 +176,7 @@ EBMSSM
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services passive    ${0}    service_.*
     Config Broker    central
+    Config Broker    rrd
     Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
@@ -190,7 +187,7 @@ EBMSSM
     Config Broker Remove Rrd Output    central
     Clear Retention
     ${start}=    Get Current Date
-    Start Broker    ${True}
+    Start Broker
     Start Engine
     Broker Set Sql Manager Stats    51001    5    5
 
@@ -217,8 +214,6 @@ EBMSSM
         Sleep    1s
     END
     Should Be True    ${output[0][0]} >= 100000
-    Stop Engine
-    Kindly Stop Broker    True
 
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
@@ -228,6 +223,7 @@ EBPS2
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services passive    ${0}    service_.*
     Config Broker    central
+    Config Broker    rrd
     Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
@@ -241,7 +237,7 @@ EBPS2
     Clear Retention
 
     ${start}=    Get Current Date
-    Start Broker    ${True}
+    Start Broker    
     Start Engine
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
@@ -259,7 +255,6 @@ EBPS2
     Stop mysql
     Stop Engine
     Start mysql
-    Kindly Stop Broker    ${True}
 
 RLCode
     [Documentation]    Test if reloading LUA code in a stream connector applies the changes
@@ -333,6 +328,9 @@ RLCode
     Should Be True    ${result}    msg=lua file not initialized
 
 
+
+*** Keywords ***
+Test Clean
     Stop Engine
     Kindly Stop Broker
-
+    Save logs If Failed

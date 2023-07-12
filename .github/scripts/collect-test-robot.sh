@@ -95,6 +95,8 @@ else
   dpkg --force-all -i ./*.deb
 fi
 
+ulimit -c unlimited
+
 echo "##### Starting tests #####"
 cd tests
 ./init-proto.sh

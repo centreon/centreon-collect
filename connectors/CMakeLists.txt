@@ -36,8 +36,8 @@ if(WITH_ASAN)
 endif()
 
 # We will use pkg-config if available.
-include_directories(${PROJECT_SOURCE_DIR}/common/inc
-                    ${CMAKE_SOURCE_DIR}/clib/inc ${CMAKE_SOURCE_DIR}/common/inc)
+include_directories(${PROJECT_SOURCE_DIR}/common/inc)
+include_directories(${CMAKE_SOURCE_DIR}/clib/inc)
 
 add_subdirectory(perl)
 add_subdirectory(ssh)
@@ -91,7 +91,6 @@ if(WITH_TESTING)
     ut_connector
     CONAN_PKG::gtest
     centreon_clib
-    centreon_common
     ${PERL_LIBRARIES}
     CONAN_PKG::fmt
     CONAN_PKG::spdlog

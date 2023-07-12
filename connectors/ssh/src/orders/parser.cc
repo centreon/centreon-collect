@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/connector/ssh/orders/parser.hh"
-#include "com/centreon/common/hex_dump.hh"
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/ssh/policy.hh"
 #include "com/centreon/exceptions/basic.hh"
@@ -106,8 +105,7 @@ void parser::execute(const std::string& cmd) {
       throw basic_error() << "invalid execution request "
                              "received: timeout > to monitoring engine timeout";
   } catch (std::exception const& e) {
-    log::core()->error("fail to parse cmd line {} {}",
-                       common::hex_dump(cmd, 16), e.what());
+    log::core()->error("fail to parse cmd line {} {}", cmdline, e.what());
     _owner->on_error(cmd_id, e.what());
     return;
   }
