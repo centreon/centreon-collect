@@ -54,6 +54,7 @@ jobs:
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}

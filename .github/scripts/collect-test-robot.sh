@@ -96,6 +96,7 @@ else
 fi
 
 ulimit -c unlimited
+echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 
 echo "##### Starting tests #####"
 cd tests

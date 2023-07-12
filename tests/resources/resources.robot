@@ -89,7 +89,7 @@ Kindly Stop Broker
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
         IF  ${result.rc} != 0
-            Coredumpctl info    b1    broker_central
+            Coredump info    b1  /usr/sbin/cbd  broker_central
             Should Be Equal As Integers    ${result.rc}    0    msg=Central Broker not correctly stopped
         END
     END
@@ -103,7 +103,7 @@ Kindly Stop Broker
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
             IF  ${result.rc} != 0
-                Coredumpctl info    b2    broker_rrd
+                Coredump info    b2  /usr/sbin/cbd  broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    msg=RRD Broker not correctly stopped
             END
         END
@@ -239,14 +239,14 @@ Dump Process
     Run Process    gcore    -o    ${output}    ${pid}
     Log To Console    Done...
 
-Coredumpctl info
-    [Arguments]    ${process_name}    ${name}
+Coredump info
+    [Arguments]    ${process_name}  ${binary_path}   ${name}
     ${pid}=    Get Process Id    ${process_name}
     ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
     ${output}=    Catenate    SEPARATOR=    ${failDir}    /coreinfo-    ${name}  -${pid}  .txt
     Log To Console    info of core saved in ${output}
-    Run Process  coredumpctl  info  ${pid}  stdout=${output}
+    Run Process  gdb  -batch  -ex   thread apply all bt 20  ${binary_path}  /tmp/core.${pid}  stdout=${output}  stderr=${output}
 
 
 Wait Or Dump And Kill Process

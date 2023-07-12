@@ -10,6 +10,7 @@ apt-get -y install cmake \
     curl \
     gcc \
     g++ \
+    gdb \
     pkg-config \
     ninja-build \
     mariadb-server \
@@ -36,7 +37,6 @@ apt-get -y install cmake \
     rrdtool \
     rrdcached \
     zstd \
-    systemd-coredump \
     sudo
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
