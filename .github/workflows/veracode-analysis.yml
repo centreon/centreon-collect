@@ -56,8 +56,8 @@ jobs:
 
       - name: debug before compilation status
         run: |
+          gcc --version
           du -sh /src/* | sort -h
-          du -sh /src/build/lib/* | sort -h
           ls -la
 
       - name: Compile cpp sources
@@ -97,6 +97,7 @@ jobs:
 
       - name: debug after compilation status
         run: |
+          gcc --version
           du -sh /src/* | sort -h
           du -sh /src/build/lib/* | sort -h
           ls -la
