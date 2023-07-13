@@ -13,7 +13,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Test End
 
 
 *** Test Cases ***
@@ -29,6 +29,7 @@ EBNSG1
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
 
+    Clear Retention
     ${start}=    Get Current Date
     Start Broker
     Start Engine
@@ -46,8 +47,6 @@ EBNSG1
 
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    msg=One of the new service groups not found in logs.
-    Stop Engine
-    Kindly Stop Broker
 
 EBNSGU1
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
@@ -61,6 +60,7 @@ EBNSGU1
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
 
+    Clear Retention
     ${start}=    Get Current Date
     Start Broker
     Start Engine
@@ -78,8 +78,6 @@ EBNSGU1
 
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    msg=One of the new service groups not found in logs.
-    Stop Engine
-    Kindly Stop Broker
 
 EBNSGU2
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
@@ -100,6 +98,7 @@ EBNSGU2
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Broker Config Log    central    sql    debug
 
+    Clear Retention
     Start Broker
     Start Engine
     Add service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
@@ -123,5 +122,9 @@ EBNSGU2
 
     ${result}=    Check Number of relations between servicegroup and services    1    9    30
     Should Be True    ${result}    msg=We should get 9 relations between the servicegroup 1 and services.
+
+*** Keywords ***
+Test End
     Stop Engine
     Kindly Stop Broker
+    Save logs If Failed
