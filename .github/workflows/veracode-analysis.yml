@@ -46,7 +46,7 @@ jobs:
       display_summary: ${{ steps.routing-mode.outputs.display_summary }}
 
     container:
-      image: ${{ inputs.docker_registry_url }}/centreon-collect-alma8:${{ inputs.img_version }}
+      image: ${{ inputs.docker_registry_url }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
         username: ${{ secrets.docker_registry_id }}
         password: ${{ secrets.docker_registry_passwd }}
