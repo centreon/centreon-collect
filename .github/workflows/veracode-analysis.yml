@@ -141,7 +141,7 @@ jobs:
       - uses: actions/cache/save@v3
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-            key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
+          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
   policy-scan:
     needs: [build]
