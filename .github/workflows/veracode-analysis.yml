@@ -136,7 +136,8 @@ jobs:
 
           echo "[INFO] - Generating tarball"
           cd ..
-          tar -czf "${{ inputs.cache_key }}.tar.gz" centreon-collect
+          ls -la
+          #tar -czf "${{ inputs.cache_key }}.tar.gz" centreon-collect
 
       - uses: actions/cache/save@v3
         with:
