@@ -40,10 +40,6 @@ jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
-    outputs:
-      fail_build: ${{ steps.routing-mode.outputs.fail_build }}
-      development_stage: ${{ steps.routing-mode.outputs.development_stage }}
-      display_summary: ${{ steps.routing-mode.outputs.display_summary }}
 
     container:
       image: ${{ inputs.docker_registry_url }}/centreon-collect-alma9:${{ inputs.img_version }}
@@ -97,13 +93,21 @@ jobs:
 
       - name: debug after compilation status
         run: |
+          echo "[DEBUG] - current location ?"
           pwd
+          echo "[DEBUG] - gcc version ?"
           gcc --version
+          echo "[DEBUG] - Current folder size ?"
           du -sh ./* | sort -h
+          echo "[DEBUG] - Newly created build folder size ?"
           du -sh ./build/* | sort -h
+          echo "[DEBUG] - Build / Bin folder size ?"
           du -sh ./build/bin/* | sort -h
+          echo "[DEBUG] - Build / Lib folder size ?"
           du -sh ./build/lib/* | sort -h
+          echo "[DEBUG] - Build / Broker module folder size ?"
           du -sh ./build/broker/* | sort -h
+          echo "[DEBUG] - Current location files ?"
           ls -la
 
       - name: Create tarball
@@ -114,6 +118,11 @@ jobs:
           #for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "*.py" ); do
           #  rm -f $file
           #done
+
+          echo "[INFO] - Cleaning scripts used to mock datas"
+          for file in $( find ./ -name "*.py" ); do
+            rm -f $file
+          done
 
           echo "[INFO] - Keeping only bin and lib"
           echo "[DEBUG] - step skipped"
@@ -126,8 +135,13 @@ jobs:
           #rm -rf full_build
 
           echo "[INFO] - Generating tarball"
-          echo "[DEBUG] - step skipped"
-          #tar -czf "${{ inputs.cache_key }}.tar.gz" build
+          cd ..
+          tar -czf "${{ inputs.cache_key }}.tar.gz" centreon-collect
+
+      - uses: actions/cache/save@v3
+        with:
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+            key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
   policy-scan:
     needs: [build]
@@ -138,8 +152,6 @@ jobs:
     continue-on-error: true
 
     steps:
-      - uses: actions/checkout@v3
-
       - name: Get build binary
         uses: actions/cache/restore@v3
         with:
@@ -148,11 +160,16 @@ jobs:
 
       - name: Prepare analysis
         run: |
+          echo "[DEBUG] - Current location ?"
           pwd
-
           ls -la
-          
-          #tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+
+          echo "[DEBUG] - Decompressing tarball"
+          tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+
+          echo "[DEBUG] - Checking current folder size ?"
+          ls -la
+          du -sh ./* | sort -h
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@master
@@ -161,7 +178,7 @@ jobs:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
           #filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          filepath: "./"
+          filepath: "./centreon-collect"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
