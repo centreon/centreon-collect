@@ -121,6 +121,7 @@ jobs:
 
           echo "[INFO] - Cleaning scripts used to mock datas"
           for file in $( find ./ -name "*.py" ); do
+            echo "[INFO] - File deleted : $file"
             rm -f $file
           done
 
