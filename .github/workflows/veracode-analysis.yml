@@ -147,6 +147,8 @@ jobs:
 
           echo "[DEBUG] - Checking current folder size ?"
           du -sh ./* | sort -h
+          cd ..
+          pwd
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@master
