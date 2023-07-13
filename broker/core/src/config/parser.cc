@@ -315,6 +315,8 @@ state parser::parse(std::string const& file) {
             for (const json& node : it.value()) {
               try {
                 endpoint in(endpoint::io_type::input);
+                // in order to avoid event ping-pong of events
+                // read filter allows all and write filter deny all
                 in.read_filters.insert("all");
                 _parse_endpoint(node, in, module);
                 retval.add_module(std::move(module));

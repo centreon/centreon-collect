@@ -36,7 +36,8 @@ static constexpr multiplexing::muxer_filter _graphite_stream_filter = {
     storage::index_mapping::static_type(),
     storage::pb_index_mapping::static_type(),
     storage::metric_mapping::static_type(),
-    storage::pb_metric_mapping::static_type()};
+    storage::pb_metric_mapping::static_type(),
+    make_type(io::extcmd, extcmd::de_pb_bench)};
 
 /**
  *  Default constructor.

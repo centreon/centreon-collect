@@ -50,6 +50,10 @@ And it is also possible to execute a specific test, for example:
 robot broker/sql.robot
 ```
 
+In order to execute bench tests (broker-engine/bench.robot), you need also to install py-cpuinfo, cython, unqlite and boto3
+
+pip3 install py-cpuinfo cython unqlite gitpython boto3
+
 ## Implemented tests
 
 Here is the list of the currently implemented tests:

@@ -83,3 +83,10 @@ void data::dump(std::ostream& s) const {
 void data::dump_more_detail(std::ostream& s) const {
   dump(s);
 }
+
+/**
+ * @brief only protobuf events are dumped in json format
+ *
+ * @param s
+ */
+void data::dump_to_json(std::ostream& s) const {}

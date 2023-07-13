@@ -194,6 +194,11 @@ enum data_element {
   de_pb_dimension_truncate_table_signal = 30
 };
 }
+
+namespace extcmd {
+enum data_element { de_pb_bench = 1 };
+}
+
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {
   return (cat << 16) | elem;
 }

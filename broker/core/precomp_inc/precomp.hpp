@@ -64,5 +64,6 @@
 #include <spdlog/spdlog.h>
 
 #include <boost/algorithm/string.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #endif

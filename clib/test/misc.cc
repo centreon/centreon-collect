@@ -48,8 +48,8 @@ static bool check_argument(argument const& a1, argument const& a2) {
 static bool compare(command_line const& cmd1, command_line const& cmd2) {
   if (cmd1.get_argc() != cmd2.get_argc())
     return (false);
-  char** argv1(cmd1.get_argv());
-  char** argv2(cmd2.get_argv());
+  char* const* argv1(cmd1.get_argv());
+  char* const* argv2(cmd2.get_argv());
   for (int i(0), end(cmd1.get_argc()); i < end; ++i)
     if (strcmp(argv1[i], argv2[i]))
       return (false);
@@ -65,7 +65,7 @@ static bool check(std::string const& cmdline,
     cmd.parse(cmdline);
     if (cmd.get_argc() != static_cast<int>(res.size()))
       return (false);
-    char** argv(cmd.get_argv());
+    char* const* argv(cmd.get_argv());
     for (int i(0), end(cmd.get_argc()); i < end; ++i)
       if (argv[i] != res[i])
         return (false);

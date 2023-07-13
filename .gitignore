@@ -16,6 +16,7 @@ broker_pb2_grpc.pyc
 build
 build_my_host
 build_centos7
+build_alma9
 cbd
 cbwd
 cppcheck-build

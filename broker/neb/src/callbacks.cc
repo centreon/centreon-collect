@@ -21,6 +21,7 @@
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 
+#include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
@@ -31,6 +32,7 @@
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/set_log_data.hh"
+#include "com/centreon/common/time.hh"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"
@@ -120,7 +122,8 @@ static struct {
     {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_custom_variable},
     {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
-    {NEBCALLBACK_RELATION_DATA, &neb::callback_relation}};
+    {NEBCALLBACK_RELATION_DATA, &neb::callback_relation},
+    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench}};
 
 static struct {
   uint32_t macro;
@@ -132,7 +135,8 @@ static struct {
     {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_pb_custom_variable},
     {NEBCALLBACK_GROUP_DATA, &neb::callback_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_group_member},
-    {NEBCALLBACK_RELATION_DATA, &neb::callback_relation}};
+    {NEBCALLBACK_RELATION_DATA, &neb::callback_relation},
+    {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench}};
 
 // Registered callbacks.
 std::list<std::unique_ptr<neb::callback>> neb::gl_registered_callbacks;
@@ -3557,6 +3561,32 @@ int neb::callback_service_status(int callback_type, void* data) {
   // Avoid exception propagation in C code.
   catch (...) {
   }
+  return 0;
+}
+
+/**
+ * @brief generate a bench event that will collect timepoints at each muxer
+ * traversal
+ *
+ * @param data
+ * @return int
+ */
+int neb::callback_pb_bench(int, void* data) {
+  // Log message.
+  SPDLOG_LOGGER_DEBUG(log_v2::neb(), "callbacks: generating pb_bench event");
+  const nebstruct_bench_data* bench_data =
+      static_cast<nebstruct_bench_data*>(data);
+
+  std::shared_ptr<bbdo::pb_bench> event = std::make_shared<bbdo::pb_bench>();
+  event->mut_obj().set_id(bench_data->id);
+  if (bench_data->mess_create != std::chrono::system_clock::time_point::min()) {
+    TimePoint* caller_tp = event->mut_obj().add_points();
+    caller_tp->set_name("client");
+    caller_tp->set_function("callback_pb_bench");
+    common::time_point_to_google_ts(bench_data->mess_create,
+                                    *caller_tp->mutable_time());
+  }
+  gl_publisher.write(std::move(event));
   return 0;
 }
 

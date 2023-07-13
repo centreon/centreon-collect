@@ -29,13 +29,13 @@ STUPID_FILTER
     Config BBDO3    1
     Broker Config Output Set Json    central    central-broker-unified-sql    filters    {"category": ["bbdo"]}
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker    True
     Start Engine
 
-    ${content}=    Create List
-    ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo categories are mandatory.
-    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${content}    Create List
+    ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo,extcmd categories are mandatory.
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling bad filter should be available.
 
     Stop Engine
@@ -105,7 +105,7 @@ FILTER_ON_LUA_EVENT
         Sleep    1s
         IF    ${res} > 100    BREAK
     END
-    ${content}=    Get File    /tmp/all_lua_event.log
+    ${content}    Get File    /tmp/all_lua_event.log
     @{lines}=    Split To lines    ${content}
     FOR    ${line}    IN    @{lines}
         Should Contain
@@ -140,21 +140,21 @@ BAM_STREAM_FILTER
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
     Start Broker    True
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
     # KPI set to critical
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
 
-    ${result}=    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}=    Check Ba Status With Timeout    test    2    60
+    ${result}    Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    msg=The BA ba_1 is not CRITICAL as expected
 
     # monitoring
@@ -221,19 +221,19 @@ UNIFIED_SQL_FILTER
     Config BBDO3    ${1}
     Config Engine    ${1}
 
+    ${start}    Get Current Date
     Start Broker    True
-    ${start}=    Get Current Date
     Start Engine
 
     # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
     # one service set to critical in order to have some events
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
 
-    ${result}=    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
 
     # de_pb_service de_pb_service_status de_pb_host de_pb_custom_variable de_pb_log_entry de_pb_host_check
@@ -260,74 +260,84 @@ CBD_RELOAD_AND_FILTERS
     Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
+    ${start}    Get Current Date
     Start Broker
-    ${start}=    Get Current Date
     Start Engine
 
     # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
     # Let's wait for storage data written into rrd files
-    ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${content}    Create List    RRD: new pb status data for index
+    ${result}    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "all"
-    ${content}=    Create List
+    ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No message about the output filters to rrd broker.
 
     # New configuration
     Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
 
     Log To Console    Second configuration: only storage events are sent.
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Restart Engine
     Reload Broker
+    #wait broker reload
+    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
-    ${content}=    Create List
+    ${content}    Create List
     ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
-    ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${content}    Create List    RRD: new pb status data for index
+    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
-    ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log with Timeout    ${centralLog}    ${start}    ${content}    120
+    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${result}    Find Regex In Log with Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    msg=No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
     # New configuration
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    ${start}    Get Current Date
     Restart Engine
     Reload Broker
-    ${start}=    Get Current Date
+    # wait broker reload
+    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"
-    ${content}=    Create List
+    ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No message about the output filters to rrd broker.
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
 
     # Let's wait for storage data written into rrd files
-    ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${content}    Create List    RRD: new pb status data for index
+    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything
-    ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
@@ -353,73 +363,83 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Config Engine    ${1}
 
     Log To Console    First configuration: all events are sent to rrd.
+    ${start}    Get Current Date
     Start Broker
-    ${start}=    Get Current Date
     Start Engine
 
     # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
     # Let's wait for storage data written into rrd files
-    ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${content}    Create List    RRD: new pb status data for index
+    ${result}    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "all"
-    ${content}=    Create List
+    ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No message about the output filters to rrd broker.
 
     # New configuration
     Broker Config Output Set Json    central    centreon-broker-master-rrd    filters    {"category": [ "storage"]}
 
     Log To Console    Second configuration: only storage events are sent.
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Restart Engine
     Reload Broker
+    #wait broker reload
+    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "storage"
-    ${content}=    Create List
+    ${content}    Create List
     ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
-    ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${content}    Create List    RRD: new pb status data for index
+    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
-    ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log with Timeout    ${centralLog}    ${start}    ${content}    120
+    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${result}    Find Regex In Log with Timeout    ${centralLog}    ${start2}    ${content}    120
     Should Be True    ${result}    msg=No event rejected by the rrd output whereas only storage category is enabled.
 
     Log To Console    Third configuration: all events are sent.
     # New configuration
     Broker Config Output Remove    central    centreon-broker-master-rrd    filters
+    ${start}    Get Current Date
     Restart Engine
     Reload Broker
-    ${start}=    Get Current Date
+    #wait broker reload
+    ${content}  Create List  creating endpoint centreon-broker-master-rrd
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=No creating endpoint centreon-broker-master-rrd.
+    ${start2}=    Get Current Date
 
     # We check that output filters to rrd are set to "all"
-    ${content}=    Create List
+    ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
-    ${content}=    Create List    RRD: new pb status data for index
-    ${result}=    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${content}    Create List    RRD: new pb status data for index
+    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    msg=No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything
-    ${content}=    Create List    rrd event of type .* rejected by write filter
-    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${content}    Create List    rrd event of type .* rejected by write filter
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start2}    ${content}    30
     Should Be Equal As Strings
     ...    ${result[0]}
     ...    False
@@ -473,7 +493,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         Sleep    1s
         IF    ${res} > 100    BREAK
     END
-    ${content}=    Get File    /tmp/all_lua_event.log
+    ${content}    Get File    /tmp/all_lua_event.log
     @{lines}=    Split To lines    ${content}
     FOR    ${line}    IN    @{lines}
         Should Contain
@@ -489,7 +509,7 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         Sleep    1s
         IF    ${res} > 100    BREAK
     END
-    ${content}=    Get File    /tmp/all_lua_event-bis.log
+    ${content}    Get File    /tmp/all_lua_event-bis.log
     @{lines}=    Split To lines    ${content}
     FOR    ${line}    IN    @{lines}
         Should Contain

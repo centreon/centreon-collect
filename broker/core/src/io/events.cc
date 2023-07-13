@@ -231,6 +231,8 @@ events::events() {
                  &bbdo::pb_ack::operations);
   register_event(make_type(io::bbdo, bbdo::de_pb_stop), "Stop",
                  &bbdo::pb_stop::operations);
+  register_event(bbdo::pb_bench::static_type(), "Bench",
+                 &bbdo::pb_bench::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

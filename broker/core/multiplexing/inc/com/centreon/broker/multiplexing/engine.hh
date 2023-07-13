@@ -32,6 +32,7 @@ namespace detail {
 class callback_caller;
 }  // namespace detail
 
+
 /**
  *  @class engine engine.hh "com/centreon/broker/multiplexing/engine.hh"
  *  @brief Multiplexing engine.

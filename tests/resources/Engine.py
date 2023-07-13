@@ -1,6 +1,8 @@
 import Common
 import grpc
 import math
+from google.protobuf import empty_pb2
+from google.protobuf.timestamp_pb2 import Timestamp
 import engine_pb2
 import engine_pb2_grpc
 from array import array
@@ -17,6 +19,7 @@ import time
 import re
 import stat
 import string
+
 
 sys.path.append('.')
 
@@ -462,11 +465,13 @@ define command {{
 
 define connector {
     connector_name                 SSH Connector
-    connector_line                 /usr/lib64/centreon-connector/centreon_connector_ssh
+    connector_line                 /usr/lib64/centreon-connector/centreon_connector_ssh --debug --log-file=/tmp/var/log/centreon-engine/config0/connector_ssh.log 
 }
 """)
             f.close()
             f = open(config_dir + "/resource.cfg", "w")
+            f.write("""$USER1$=/usr/lib64/nagios/plugins
+$CENTREONPLUGINS$=/usr/lib/centreon/plugins""")
             f.close()
             f = open(config_dir + "/timeperiods.cfg", "w")
             f.write("""define timeperiod {
@@ -657,6 +662,35 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
 
 
 ##
+# @brief Function to change a value in the hosts.cfg for the config idx.
+#
+# @param idx index of the configuration (from 0)
+# @param desc host name of the host to modify.
+# @param key the key to change the value.
+# @param value the new value to set to the key variable.
+#
+def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
+    rkey = re.compile(r"^\s*"+key+"\s+[\w\.]+\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            while i < len(lines) and lines[i] != "}":
+                if rkey.match(lines[i]):
+                    lines[i] = "    {}              {}\n".format(key, value)
+                    break
+                i += 1
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+
+##
 # @brief Function to change a value in the commands.cfg for the config idx.
 #
 # @param idx index of the configuration (from 0)
@@ -691,13 +725,21 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
 # @param command_name
 # @param new_command
 #
-def engine_config_add_command(idx: int, command_name: str, new_command: str):
+def engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
     f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
-    f.write("""define command {{
+    if connector is None:
+        f.write("""define command {{
     command_name                   {} 
     command_line                   {}
 }}
     """.format(command_name, new_command))
+    else:
+        f.write("""define command {{
+    command_name                   {} 
+    command_line                   {}
+    connector                      {}
+}}
+    """.format(command_name, new_command, connector))
     f.close()
 
 
@@ -1742,12 +1784,21 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
     process_service_check_result(hst, svc, state, full_output, config)
 
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
-    now = int(time.time())
-    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
-        logger.console(cmd)
-        f.write(cmd)
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+    if use_grpc > 0:
+        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            for i in range(nb_check):
+                stub.ProcessServiceCheckResult(engine_pb2.Check(
+                    host_name=hst, svc_desc=svc, output=output, code=state))
+
+    else:
+        now = int(time.time())
+        cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+            logger.console(cmd)
+            for i in range(nb_check):
+                f.write(cmd)
 
 
 @external_command
@@ -1961,3 +2012,41 @@ def modify_retention_dat_host(poller, host, key, value):
             f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
         ff.writelines(lines)
         ff.close()
+
+
+##
+# @brief Call the GetGenericStats function by gRPC
+# it works with both engine and broker
+#
+# @param port of the grpc server
+#
+# @return process__stat__pb2.pb_process_stat
+#
+def get_engine_process_stat(port, timeout=10):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        time.sleep(1)
+        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+            # same for engine and broker
+            stub = engine_pb2_grpc.EngineStub(channel)
+            try:
+                res = stub.GetProcessStats(empty_pb2.Empty())
+                return res
+            except:
+                logger.console("gRPC server not ready")
+    logger.console("unable to get process stats")
+    return None
+
+
+##
+# @brief make engine to send a bench event
+#
+# @param id field of the protobuf Bench message
+# @param port of the grpc server
+#
+def send_bench(id: int, port: int):
+    ts = Timestamp()
+    ts.GetCurrentTime()
+    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+        stub = engine_pb2_grpc.EngineStub(channel)
+        stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))

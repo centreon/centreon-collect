@@ -131,7 +131,7 @@ def find_in_log(log: str, date, content, regex=False):
     res = []
 
     try:
-        f = open(log, "r")
+        f = open(log, "r", encoding="latin1")
         lines = f.readlines()
         f.close()
         idx = find_line_from(lines, date)

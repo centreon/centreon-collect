@@ -20,6 +20,7 @@
 #define CCB_IO_PROTOBUF_HH
 
 #include <google/protobuf/message.h>
+#include <google/protobuf/util/json_util.h>
 #include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
@@ -175,6 +176,7 @@ class protobuf : public protobuf_base {
 
   void dump(std::ostream& s) const override;
   void dump_more_detail(std::ostream& s) const override;
+  void dump_to_json(std::ostream& s) const override;
 
   /**
    * @brief An internal BBDO object used to access to the constructor,
@@ -205,8 +207,15 @@ void protobuf<T, Typ>::dump(std::ostream& s) const {
 
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump_more_detail(std::ostream& s) const {
-  data::dump_more_detail(s);
+  data::dump(s);
   s << " content:'" << _obj.ShortDebugString() << '\'';
+}
+
+template <typename T, uint32_t Typ>
+void protobuf<T, Typ>::dump_to_json(std::ostream& s) const {
+  std::string json_dump;
+  google::protobuf::util::MessageToJsonString(_obj, &json_dump);
+  s << " content:'" << json_dump << '\'';
 }
 
 }  // namespace io

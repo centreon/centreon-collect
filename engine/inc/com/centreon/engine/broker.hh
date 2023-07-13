@@ -514,6 +514,9 @@ void broker_timed_event(int type,
                         struct timeval const* timestamp);
 struct timeval get_broker_timestamp(struct timeval const* timestamp);
 
+void broker_bench(unsigned id,
+                  const std::chrono::system_clock::time_point& mess_create);
+
 #ifdef __cplusplus
 }
 #endif /* C++ */

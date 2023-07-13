@@ -160,13 +160,14 @@ class bulk_or_multi {
    *
    * @return a boolean.
    */
-  bool is_bulk() const { return _bulk_bind.get(); }
+  bool is_bulk() const { return _bulk_stmt.get(); }
 
   /**
    * @brief Add new data to the query. This method *must* be used only when
    * this bulk_or_multi class is based on a bulk prepared statement.
    *
-   * @tparam binder_functor This is a void function that takes an argument database::mysql_bulk_bind&. It is used to fill the bind given in parameter.
+   * @tparam binder_functor This is a void function that takes an argument
+   * database::mysql_bulk_bind&. It is used to fill the bind given in parameter.
    * @param filler A function of type binder_functor.
    */
   template <typename binder_functor>

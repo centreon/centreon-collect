@@ -20,6 +20,7 @@
 
 #include <cassert>
 
+#include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -27,9 +28,29 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/common/time.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
+
+static std::mutex _add_bench_point_m;
+/**
+ * @brief add a bench point to pb_bench event
+ * as several muxers can update it at the same time, it's protected by a mutex
+ *
+ * @param event
+ * @param tp_name
+ */
+void add_bench_point(bbdo::pb_bench& event,
+                     const std::string& muxer_name,
+                     const char* funct_name) {
+  std::lock_guard<std::mutex> l(_add_bench_point_m);
+  com::centreon::broker::TimePoint* muxer_tp = event.mut_obj().add_points();
+  muxer_tp->set_name(muxer_name);
+  muxer_tp->set_function(funct_name);
+  com::centreon::common::time_point_to_google_ts(
+      std::chrono::system_clock::now(), *muxer_tp->mutable_time());
+}
 
 uint32_t muxer::_event_queue_max_size = std::numeric_limits<uint32_t>::max();
 
@@ -259,19 +280,28 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       std::lock_guard<std::mutex> lock(_mutex);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
-        if (!_write_filter.allows((*evt)->type())) {
+        auto event = *evt;
+        if (!_write_filter.allows(event->type())) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
               "muxer {} event of type {:x} rejected by write filter", _name,
-              (*evt)->type());
+              event->type());
           continue;
         }
+
+        if (event->type() == bbdo::pb_bench::static_type()) {
+          add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
+                          _name, "publish");
+          SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench publish {}", _name,
+                             io::data::dump_json{*event});
+        }
+
         SPDLOG_LOGGER_TRACE(log_v2::core(),
                             "muxer {} event of type {:x} written", _name,
-                            (*evt)->type());
+                            event->type());
 
         at_least_one_push_to_queue = true;
-        _push_to_queue(*evt);
+        _push_to_queue(event);
       }
     }
     if (evt == event_queue.end()) {
@@ -284,16 +314,20 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     // nothing pushed => to file
     std::lock_guard<std::mutex> lock(_mutex);
     for (; evt != event_queue.end(); ++evt) {
-      if (!_write_filter.allows((*evt)->type())) {
+      auto event = *evt;
+      if (!_write_filter.allows(event->type())) {
         SPDLOG_LOGGER_TRACE(
             log_v2::core(),
             "muxer {} event of type {:x} rejected by write filter", _name,
-            (*evt)->type());
+            event->type());
         continue;
-      } else {
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "muxer {} event of type {:x} written", _name,
-                            (*evt)->type());
+      }
+      if (event->type() == bbdo::pb_bench::static_type()) {
+        add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
+                        "retention_publish");
+        SPDLOG_LOGGER_INFO(log_v2::core(),
+                           "muxer {} bench publish to file {} {}", _name,
+                           _queue_file_name, io::data::dump_json{*event});
       }
       if (!_file) {
         QueueFileStats* s =
@@ -301,13 +335,13 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         _file = std::make_unique<persistent_file>(_queue_file_name, s);
       }
       try {
-        _file->write(*evt);
+        _file->write(event);
         SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "muxer::publish {} publish one event to file {}",
-                            _name, _queue_file_name);
+                            "{} publish one event of type {:x} to file {}",
+                            _name, event->type(), _queue_file_name);
       } catch (const std::exception& ex) {
-        // in case of exception, we lost event. It's mandatory to avoid infinite
-        // loop in case of permanent disk problem
+        // in case of exception, we lost event. It's mandatory to avoid
+        // infinite loop in case of permanent disk problem
         SPDLOG_LOGGER_ERROR(log_v2::core(), "{} fail to write event to {}: {}",
                             _name, _queue_file_name, ex.what());
         _file.reset();
@@ -334,7 +368,9 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     // Wait a while if subscriber was not shutdown.
     if ((time_t)-1 == deadline)
       _cv.wait(lock);
-    else {
+    else if (!deadline) {
+      timed_out = true;
+    } else {
       time_t now(time(nullptr));
       timed_out = _cv.wait_for(lock, std::chrono::seconds(deadline - now)) ==
                   std::cv_status::timeout;
@@ -355,12 +391,15 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
 
   _update_stats();
 
-  if (!timed_out) {
+  if (event) {
     SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {}", _name, *event);
+    if (event->type() == bbdo::pb_bench::static_type()) {
+      add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
+                      "read");
+      SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench read {}", _name,
+                         io::data::dump_json{*event});
+    }
   }
-  if (event)
-    SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer {} event of type {:x} read",
-                        _name, event->type());
   return !timed_out;
 }
 
@@ -444,7 +483,16 @@ void muxer::wake() {
  *  @param[in] d  Event to multiplex.
  */
 int muxer::write(std::shared_ptr<io::data> const& d) {
-  if (d && _read_filter.allows(d->type())) {
+  if (!d) {
+    return 1;
+  }
+  if (_read_filter.allows(d->type())) {
+    if (d->type() == bbdo::pb_bench::static_type()) {
+      add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
+                      "write");
+      SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench write {}", _name,
+                         io::data::dump_json{*d});
+    }
     engine::instance_ptr()->publish(d);
   } else {
     SPDLOG_LOGGER_TRACE(log_v2::core(),

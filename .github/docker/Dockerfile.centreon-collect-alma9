@@ -22,6 +22,7 @@ gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
 dnf install -y cmake \
     gcc \
     gcc-c++ \
+    gdb \
     gettext \
     git \
     ninja-build \
