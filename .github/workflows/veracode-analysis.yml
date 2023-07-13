@@ -63,6 +63,8 @@ jobs:
       - name: Compile cpp sources
         if: inputs.is_cpp_project == 'yes'
         run: |
+          pwd
+          ls -la
           rm -rf build
           mkdir build
           cd build
@@ -93,10 +95,9 @@ jobs:
 
           sudo ninja
 
-          ls -la
-
       - name: debug after compilation status
         run: |
+          pwd
           gcc --version
           du -sh /src/* | sort -h
           du -sh /src/build/lib/* | sort -h
@@ -104,6 +105,7 @@ jobs:
 
       - name: Create tarball
         run: |
+          pwd
           echo "[INFO] - Cleaning useless files"
           echo "[DEBUG] - step skipped"
           #for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "*.py" ); do
