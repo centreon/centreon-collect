@@ -99,8 +99,11 @@ jobs:
         run: |
           pwd
           gcc --version
-          du -sh /src/* | sort -h
-          du -sh /src/build/lib/* | sort -h
+          du -sh ./* | sort -h
+          du -sh ./build/* | sort -h
+          du -sh ./build/bin/* | sort -h
+          du -sh ./build/lib/* | sort -h
+          du -sh ./build/broker/* | sort -h
           ls -la
 
       - name: Create tarball
@@ -145,8 +148,11 @@ jobs:
 
       - name: Prepare analysis
         run: |
+          pwd
+
           ls -la
-          tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          
+          #tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@master
@@ -154,7 +160,8 @@ jobs:
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          #filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          filepath: "./"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
