@@ -37,7 +37,8 @@ static constexpr multiplexing::muxer_filter _rrd_stream_filter = {
     storage::rebuild::static_type(),
     storage::pb_rebuild_message::static_type(),
     storage::remove_graph::static_type(),
-    storage::pb_remove_graph_message::static_type()};
+    storage::pb_remove_graph_message::static_type(),
+    make_type(io::extcmd, extcmd::de_pb_bench)};
 
 /**
  *  Default constructor.

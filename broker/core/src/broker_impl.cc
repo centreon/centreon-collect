@@ -26,6 +26,7 @@
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
+#include "com/centreon/common/process_stat.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
@@ -358,5 +359,30 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
       }
     }
   });
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief get stats of the process (cpu, memory...)
+ *
+ * @param context
+ * @param request
+ * @param response
+ * @return ::grpc::Status
+ */
+::grpc::Status broker_impl::GetProcessStats(
+    ::grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    ::com::centreon::common::pb_process_stat* response) {
+  try {
+    com::centreon::common::process_stat stat(getpid());
+    stat.to_protobuff(*response);
+  } catch (const boost::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::core(), "fail to get process info: {}",
+                        boost::diagnostic_information(e));
+
+    return grpc::Status(grpc::StatusCode::INTERNAL,
+                        boost::diagnostic_information(e));
+  }
   return grpc::Status::OK;
 }

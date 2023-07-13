@@ -23,10 +23,12 @@ import "google/protobuf/empty.proto";
 import "google/protobuf/duration.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
+import "process_stat.proto";
 
 package com.centreon.engine;
 
 service Engine {
+  rpc GetProcessStats(google.protobuf.Empty) returns (com.centreon.common.pb_process_stat) {}
   rpc GetVersion(google.protobuf.Empty) returns (Version) {}
   rpc GetStats(GenericString) returns (Stats) {}
   rpc GetHost(HostIdentifier) returns (EngineHost) {}
@@ -136,6 +138,16 @@ service Engine {
    * @return nothing.
    */
   rpc SetLogFlushPeriod(LogFlushPeriod) returns (google.protobuf.Empty) {}
+
+  
+  /**
+   * @brief Send a Bench Message.
+   *
+   * @param an arbitrary id and the time when the message was send (optional)
+   *
+   * @return nothing.
+   */
+   rpc SendBench(BenchParam) returns (google.protobuf.Empty) {}
 }
 
 message GenericString {
@@ -593,4 +605,9 @@ message LogLevel {
     OFF = 6;
   }
   LogLevelEnum level = 2;
+}
+
+message BenchParam {
+  uint32 id = 1;
+  google.protobuf.Timestamp ts=2;
 }

@@ -64,9 +64,12 @@ endif(WITH_SQL_TESTS)
 add_definitions(-DBROKERRPC_TESTS_PATH="${TESTS_DIR}/rpc")
 
 add_executable(rpc_client ${TESTS_DIR}/rpc/client.cc)
+add_dependencies(rpc_client centreon_common)
+
 target_link_libraries(
   rpc_client
   berpc
+  centreon_common
   CONAN_PKG::grpc
   CONAN_PKG::openssl
   CONAN_PKG::zlib
@@ -129,6 +132,7 @@ target_link_libraries(
   multiplexing
   ${TESTS_LIBRARIES}
   conflictmgr
+  centreon_common
   CONAN_PKG::nlohmann_json
   CONAN_PKG::asio
   CONAN_PKG::fmt
@@ -145,7 +149,8 @@ add_dependencies(
   rokerbase
   rokerlog
   multiplexing
-  conflictmgr)
+  conflictmgr
+  centreon_common)
 
 set_target_properties(ut_broker PROPERTIES COMPILE_FLAGS "-fPIC")
 

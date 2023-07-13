@@ -33,13 +33,13 @@ EBDP1
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -54,13 +54,13 @@ EBDP1
     Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait for the initial service states.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Remove Poller    51001    Poller3
@@ -90,13 +90,13 @@ EBDP2
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -119,15 +119,15 @@ EBDP2
     log to console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Kindly Stop Broker
     Clear Engine Logs
     Start Engine
     Start Broker
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Remove Poller    51001    Poller2
@@ -157,13 +157,13 @@ EBDP3
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -186,13 +186,13 @@ EBDP3
     log to console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Clear Engine Logs
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Remove Poller    51001    Poller2
@@ -226,13 +226,13 @@ EBDP4
     Broker Config Log    module3    neb    trace
     Broker Config Flush log    central    0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -244,8 +244,8 @@ EBDP4
     Should Be Equal As Strings    ${output}    ((4,),)
 
     # Let's brutally kill the poller
-    ${content}=    Create List    processing poller event (id: 4, name: Poller3, running:
-    ${result}=    Find In log with timeout    ${centralLog}    ${start}    ${content}    60
+    ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
+    ${result}    Find In log with timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=We want the poller 4 event before stopping broker
     Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
@@ -255,14 +255,14 @@ EBDP4
         Process Service Check result    host_40    service_781    2    service_781 should fail    config3
         Process Service Check result    host_40    service_782    1    service_782 should fail    config3
     END
-    ${content}=    Create List
+    ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
     ...    SERVICE ALERT: host_40;service_782;WARNING
-    ${result}=    Find In log with timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Find In log with timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=Service alerts about service 781 and 782 should be raised
 
-    ${content}=    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}=    Find In log with timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
+    ${result}    Find In log with timeout    ${moduleLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=pb service status on services (40, 781) and (40, 782) should be generated
     Stop Engine
 
@@ -278,8 +278,8 @@ EBDP4
     Start Broker
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Remove Poller    51001    Poller3
@@ -292,13 +292,13 @@ EBDP4
 
     Start Engine
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
-    ${content}=    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
+    ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
     log to console    date ${start}
-    ${result}=    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should be True    ${result}    msg=No message about these two wrong service status.
     Stop Engine
     Kindly Stop Broker
@@ -318,13 +318,13 @@ EBDP5
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -339,17 +339,23 @@ EBDP5
     Kindly Stop Broker
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
+    ${remove_time}  Get Current Date
     Remove Poller by id    51001    ${4}
-    Sleep    6s
+
+    #wait unified receive instance event
+    ${content}    Create List    central-broker-unified-sql read neb:Instance
+    ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
+
 
     Stop Engine
     Kindly Stop Broker
@@ -375,13 +381,13 @@ EBDP6
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -404,18 +410,24 @@ EBDP6
     log to console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Kindly Stop Broker
     Clear Engine Logs
     Start Engine
     Start Broker
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
+    ${remove_time}=  Get Current Date
     Remove Poller by id    51001    ${3}
+
+    #wait unified receive instance event
+    ${content}    Create List    central-broker-unified-sql read neb:Instance
+    ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
     Kindly Stop Broker
@@ -442,13 +454,13 @@ EBDP7
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -471,16 +483,22 @@ EBDP7
     log to console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Clear Engine Logs
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
+    ${remove_time}=  Get Current Date
     Remove Poller by id    51001    ${3}
+
+    #wait unified receive instance event
+    ${content}    Create List    central-broker-unified-sql read neb:Instance
+    ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
     Kindly Stop Broker
@@ -511,13 +529,13 @@ EBDP8
     Broker Config Log    module3    neb    trace
     Broker Config Flush log    central    0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -529,8 +547,8 @@ EBDP8
     Should Be Equal As Strings    ${output}    ((4,),)
 
     # Let's brutally kill the poller
-    ${content}=    Create List    processing poller event (id: 4, name: Poller3, running:
-    ${result}=    Find In log with timeout    ${centralLog}    ${start}    ${content}    60
+    ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
+    ${result}    Find In log with timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=We want the poller 4 event before stopping broker
     Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
@@ -540,14 +558,14 @@ EBDP8
         Process Service Check result    host_40    service_781    2    service_781 should fail    config3
         Process Service Check result    host_40    service_782    1    service_782 should fail    config3
     END
-    ${content}=    Create List
+    ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
     ...    SERVICE ALERT: host_40;service_782;WARNING
-    ${result}=    Find In log with timeout    ${engineLog3}    ${start}    ${content}    60
+    ${result}    Find In log with timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=Service alerts about service 781 and 782 should be raised
 
-    ${content}=    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}=    Find In log with timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
+    ${result}    Find In log with timeout    ${moduleLog3}    ${start}    ${content}    60
     Should Be True    ${result}    msg=pb service status on services (40, 781) and (40, 782) should be generated
     Stop Engine
 
@@ -571,13 +589,13 @@ EBDP8
 
     Start Engine
     # Let's wait until engine listens to external_commands.
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
-    ${content}=    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
+    ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
     log to console    date ${start}
-    ${result}=    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should be True    ${result}    msg=No message about these two wrong service status.
     Stop Engine
     Kindly Stop Broker

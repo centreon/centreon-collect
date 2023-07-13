@@ -58,7 +58,7 @@ class process {
 
   /* Almost never changed, we have two such functions, one with pgid and the
    * other without. */
-  pid_t (*_create_process)(char**, char**);
+  pid_t (*_create_process)(char* const*, char**);
 
  public:
   enum status { normal = 0, crash = 1, timeout = 2 };
@@ -88,8 +88,8 @@ class process {
   timestamp _start_time;
 
   static void _close(int& fd) noexcept;
-  static pid_t _create_process_with_setpgid(char** args, char** env);
-  static pid_t _create_process_without_setpgid(char** args, char** env);
+  static pid_t _create_process_with_setpgid(char* const* args, char** env);
+  static pid_t _create_process_without_setpgid(char* const* args, char** env);
   static void _dev_null(int fd, int flags);
   static int _dup(int oldfd);
   static void _dup2(int oldfd, int newfd);

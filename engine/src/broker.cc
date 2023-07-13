@@ -978,4 +978,18 @@ struct timeval get_broker_timestamp(struct timeval const* timestamp) {
     tv = *timestamp;
   return (tv);
 }
+
+/**
+ *  Sends bench message over network.
+ *
+ *  @param[in] id      id.
+ *  @param[in] time_create       message creation
+ */
+void broker_bench(unsigned id,
+                  const std::chrono::system_clock::time_point& mess_create) {
+  // Fill struct with relevant data.
+  nebstruct_bench_data ds = {id, mess_create};
+  // Make callbacks.
+  neb_make_callbacks(NEBCALLBACK_BENCH_DATA, &ds);
+}
 }

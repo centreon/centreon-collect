@@ -11,6 +11,10 @@ class engine_impl final : public Engine::Service {
   grpc::Status GetStats(grpc::ServerContext* context,
                         const GenericString* request,
                         Stats* response) override;
+  grpc::Status GetProcessStats(
+      grpc::ServerContext* context,
+      const google::protobuf::Empty* request,
+      com::centreon::common::pb_process_stat* response) override;
   grpc::Status ProcessServiceCheckResult(grpc::ServerContext* context,
                                          const Check* request,
                                          CommandSuccess* response) override;
@@ -252,6 +256,10 @@ class engine_impl final : public Engine::Service {
   grpc::Status SetLogFlushPeriod(grpc::ServerContext* context [[maybe_unused]],
                                  const LogFlushPeriod* request,
                                  ::google::protobuf::Empty*) override;
+
+  grpc::Status SendBench(grpc::ServerContext* context,
+                         const com::centreon::engine::BenchParam* request,
+                         google::protobuf::Empty* response) override;
 };
 
 CCE_END()

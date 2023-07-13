@@ -50,6 +50,15 @@ class data {
     const data& to_dump;
   };
 
+  /**
+   * @brief same as dump_detail
+   * dump in json format
+   *
+   */
+  struct dump_json {
+    const data& to_dump;
+  };
+
   data() = delete;
   data(uint32_t type = 0);
   data(data const& other);
@@ -59,6 +68,7 @@ class data {
 
   virtual void dump(std::ostream& s) const;
   virtual void dump_more_detail(std::ostream& s) const;
+  virtual void dump_to_json(std::ostream& s) const;
 
   uint32_t source_id;
   uint32_t destination_id;
@@ -76,6 +86,11 @@ inline std::ostream& operator<<(std::ostream& s, const data::dump_detail& d) {
   return s;
 }
 
+inline std::ostream& operator<<(std::ostream& s, const data::dump_json& d) {
+  d.to_dump.dump_to_json(s);
+  return s;
+}
+
 }  // namespace io
 
 CCB_END()
@@ -86,6 +101,10 @@ struct formatter<com::centreon::broker::io::data> : ostream_formatter {};
 
 template <>
 struct formatter<com::centreon::broker::io::data::dump_detail>
+    : ostream_formatter {};
+
+template <>
+struct formatter<com::centreon::broker::io::data::dump_json>
     : ostream_formatter {};
 
 }  // namespace fmt

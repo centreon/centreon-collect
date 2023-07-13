@@ -10,6 +10,7 @@ apt-get -y install cmake \
     curl \
     gcc \
     g++ \
+    gdb \
     pkg-config \
     ninja-build \
     mariadb-server \

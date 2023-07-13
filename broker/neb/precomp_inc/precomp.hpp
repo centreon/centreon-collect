@@ -19,6 +19,7 @@
 #ifndef CCB_NEB_PRECOMP_HH
 #define CCB_NEB_PRECOMP_HH
 
+#include <chrono>
 #include <condition_variable>
 #include <ctime>
 #include <deque>

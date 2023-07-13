@@ -21,6 +21,7 @@
 
 #include "bbdo/bbdo.pb.h"
 #include "bbdo/events.hh"
+#include "bbdo/extcmd.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/namespace.hh"
 
@@ -43,6 +44,9 @@ using pb_ack =
 using pb_stop =
     com::centreon::broker::io::protobuf<Stop,
                                         make_type(io::bbdo, bbdo::de_pb_stop)>;
+
+using pb_bench = com::centreon::broker::io::
+    protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 
 // Load/unload of BBDO protocol.
 void load();

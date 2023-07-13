@@ -230,7 +230,7 @@ void process::start() {
     close(out_pipe[1]);
 
     com::centreon::misc::command_line cmdline(_cmd_line);
-    char** args = cmdline.get_argv();
+    char* const* args = cmdline.get_argv();
 
     static char* env[] = {nullptr};
 

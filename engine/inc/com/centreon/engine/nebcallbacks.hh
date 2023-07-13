@@ -73,7 +73,8 @@
 #define NEBCALLBACK_ADAPTIVE_SEVERITY_DATA 43
 #define NEBCALLBACK_ADAPTIVE_TAG_DATA 44
 
-#define NEBCALLBACK_NUMITEMS 45 /* Total number of callback types we have. */
+#define NEBCALLBACK_BENCH_DATA 45
+#define NEBCALLBACK_NUMITEMS 46 /* Total number of callback types we have. */
 
 #ifdef __cplusplus
 extern "C" {

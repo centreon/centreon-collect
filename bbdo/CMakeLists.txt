@@ -25,7 +25,8 @@ set(protobuf_files
     bbdo
     neb
     storage
-    bam)
+    bam
+    extcmd)
 
 foreach(name IN LISTS protobuf_files)
   set(proto_file "${name}.proto")
@@ -72,6 +73,10 @@ set_target_properties(pb_tag_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_library(pb_bam_lib STATIC bam.pb.cc bam.pb.h)
 add_dependencies(pb_bam_lib target_bam target_header)
 set_target_properties(pb_bam_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(pb_extcmd_lib STATIC extcmd.pb.cc extcmd.pb.h)
+add_dependencies(pb_extcmd_lib target_extcmd target_header)
+set_target_properties(pb_extcmd_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"

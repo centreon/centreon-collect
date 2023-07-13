@@ -107,6 +107,10 @@ class broker_impl final : public Broker::Service {
   grpc::Status SetSqlManagerStats(grpc::ServerContext* context [[maybe_unused]],
                                   const SqlManagerStatsOptions* request,
                                   ::google::protobuf::Empty*) override;
+  ::grpc::Status GetProcessStats(
+      ::grpc::ServerContext* context,
+      const ::google::protobuf::Empty* request,
+      ::com::centreon::common::pb_process_stat* response) override;
 
  public:
   void set_broker_name(const std::string& s);

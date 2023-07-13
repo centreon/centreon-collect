@@ -20,6 +20,7 @@
 #define CC_MISC_COMMAND_LINE_HH
 
 #include <string>
+#include <vector>
 #include "com/centreon/namespace.hh"
 
 CC_BEGIN()
@@ -42,8 +43,8 @@ class command_line {
   command_line& operator=(command_line const& right);
   bool operator==(command_line const& right) const throw();
   bool operator!=(command_line const& right) const throw();
-  int get_argc() const throw();
-  char** get_argv() const throw();
+  int get_argc() const noexcept;
+  char* const* get_argv() const noexcept;
   void parse(char const* cmdline, unsigned int size = 0);
   void parse(std::string const& cmdline);
 
@@ -51,8 +52,8 @@ class command_line {
   void _internal_copy(command_line const& right);
   void _release();
 
-  int _argc;
-  char** _argv;
+  char* _buffer;
+  std::vector<char*> _argv;
   size_t _size;
 };
 }  // namespace misc

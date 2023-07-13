@@ -32,7 +32,7 @@ using namespace com::centreon::misc;
 /**
  *  Default constructor.
  */
-command_line::command_line() : _argc(0), _argv(NULL), _size(0) {}
+command_line::command_line() : _buffer(nullptr), _size(0) {}
 
 /**
  *  Parse command line.
@@ -42,7 +42,7 @@ command_line::command_line() : _argc(0), _argv(NULL), _size(0) {}
  *                      calculate the command line size.
  */
 command_line::command_line(char const* cmdline, unsigned int size)
-    : _argc(0), _argv(NULL), _size(0) {
+    : _buffer(nullptr), _size(0) {
   parse(cmdline, size);
 }
 
@@ -52,7 +52,7 @@ command_line::command_line(char const* cmdline, unsigned int size)
  *  @param[in] cmdline  The command line to parse.
  */
 command_line::command_line(std::string const& cmdline)
-    : _argc(0), _argv(NULL), _size(0) {
+    : _buffer(nullptr), _size(0) {
   parse(cmdline);
 }
 
@@ -61,7 +61,8 @@ command_line::command_line(std::string const& cmdline)
  *
  *  @param[in] right  The object to copy.
  */
-command_line::command_line(command_line const& right) : _argv(NULL) {
+command_line::command_line(command_line const& right)
+    : _buffer(nullptr), _size(0) {
   _internal_copy(right);
 }
 
@@ -92,8 +93,7 @@ command_line& command_line::operator=(command_line const& right) {
  *  @return True if objects are equal, otherwise false.
  */
 bool command_line::operator==(command_line const& right) const throw() {
-  return (_argc == right._argc && _size == right._size &&
-          !memcmp(_argv[0], right._argv[0], _size));
+  return (_size == right._size && !memcmp(_buffer, right._buffer, _size));
 }
 
 /**
@@ -112,8 +112,8 @@ bool command_line::operator!=(command_line const& right) const throw() {
  *
  *  @return Size.
  */
-int command_line::get_argc() const throw() {
-  return (_argc);
+int command_line::get_argc() const noexcept {
+  return _argv.empty() ? 0 : _argv.size() - 1;
 }
 
 /**
@@ -121,8 +121,8 @@ int command_line::get_argc() const throw() {
  *
  *  @return Array arguments.
  */
-char** command_line::get_argv() const throw() {
-  return (_argv);
+char* const* command_line::get_argv() const noexcept {
+  return _argv.empty() ? nullptr : _argv.data();
 }
 
 /**
@@ -143,97 +143,119 @@ void command_line::parse(char const* cmdline, unsigned int size) {
     size = strlen(cmdline);
 
   // Allocate buffer.
-  char* str(new char[size + 1]);
-  _size = 0;
-  str[_size] = 0;
+  _size = size + 1;
+  _buffer = new char[_size];
+  memset(_buffer, 0, _size);
 
   // Status variables.
   bool escap(false);
-  char sep(0);
-  char last(0);
-  for (unsigned int i(0); i < size; ++i) {
+  char quote(0);
+
+  char* begin = nullptr;
+  char* write = _buffer;
+
+  enum e_state { e_waiting_begin, e_decoding_field, e_decoding_in_quote };
+  e_state state = e_waiting_begin;
+
+  auto on_escape = [&](char c) {
+    switch (c) {
+      case 'n':
+        *(write++) = '\n';
+        break;
+      case 'r':
+        *(write++) = '\r';
+        break;
+      case 't':
+        *(write++) = '\t';
+        break;
+      case 'a':
+        *(write++) = '\a';
+        break;
+      case 'b':
+        *(write++) = '\b';
+        break;
+      case 'v':
+        *(write++) = '\v';
+        break;
+      case 'f':
+        *(write++) = '\f';
+        break;
+      default:
+        *(write++) = c;
+        break;
+    }
+    escap = false;
+  };
+
+  for (const char *current = cmdline, *end = cmdline + size; current < end;
+       ++current) {
     // Current processed char.
-    char c(cmdline[i]);
+    char c(*current);
 
-    // Is this an escaped character ?
-    escap = (last == '\\' ? !escap : false);
-    if (escap) {
-      switch (c) {
-        case 'n':
-          c = '\n';
-          break;
-        case 'r':
-          c = '\r';
-          break;
-        case 't':
-          c = '\t';
-          break;
-        case 'a':
-          c = '\a';
-          break;
-        case 'b':
-          c = '\b';
-          break;
-        case 'v':
-          c = '\v';
-          break;
-        case 'f':
-          c = '\f';
-          break;
-          // default:
-          //   if (c != '"' && c != '\'')
-          //     str[_size++] = '\\';
-          //   break ;
-      }
+    switch (state) {
+      case e_waiting_begin:
+        if (escap) {
+          begin = write;
+          on_escape(c);
+          state = e_decoding_field;
+        } else if (c == '\\') {
+          escap = true;
+        } else if (c == '"' || c == '\'') {
+          state = e_decoding_in_quote;
+          quote = c;
+        } else if (isspace(c)) {
+          continue;
+        } else {
+          state = e_decoding_field;
+          begin = write;
+          *(write++) = c;
+        }
+        break;
+      case e_decoding_field:
+        if (escap) {
+          on_escape(c);
+        } else if (c == '\\') {
+          escap = true;
+        } else if (isspace(c)) {  // field end
+          *(write++) = 0;
+          _argv.push_back(begin);
+          begin = nullptr;
+          state = e_waiting_begin;
+        } else if (c == '"' || c == '\'') {
+          state = e_decoding_in_quote;
+          quote = c;
+        } else {
+          *(write++) = c;
+        }
+        break;
+      case e_decoding_in_quote:
+        if (escap) {
+          on_escape(c);
+        } else if (c == '\\') {
+          escap = true;
+        } else if (c == quote) {
+          if (!begin) {  // empty string between quotes
+            begin = write;
+          }
+          state = e_decoding_field;
+        } else {
+          if (!begin)
+            begin = write;
+          *(write++) = c;
+        }
+        break;
     }
-
-    // End of token.
-    if (!sep && isspace(c) && !escap) {
-      if (_size && last != '\\' && !isspace(last)) {
-        str[_size++] = 0;
-        ++_argc;
-      }
-    }
-    // Quotes.
-    else if (!escap && (c == '\'' || c == '"')) {
-      if (!sep)
-        sep = c;
-      else if (sep == c)
-        sep = 0;
-      else if ((c != '\\') || escap)
-        str[_size++] = c;
-    }
-    // Normal char (backslashes are used for escaping).
-    else if ((c != '\\') || escap)
-      str[_size++] = c;
-    last = c;
   }
 
-  // Not-terminated quote.
-  if (sep) {
-    delete[] str;
-    throw(basic_error() << "missing separator '" << sep << "'");
+  if (state == e_decoding_in_quote)
+    throw(basic_error() << "missing separator '" << quote << "'");
+
+  // a last tokern
+  if (state == e_decoding_field) {
+    _argv.push_back(begin);
   }
 
-  // Terminate string if not already done so.
-  if (last && _size && str[_size - 1]) {
-    str[_size] = 0;
-    ++_argc;
-  }
-
-  // Put tokens in table.
-  _size = 0;
-  _argv = new char*[_argc + 1];
-  _argv[_argc] = NULL;
-  for (int i(0); i < _argc; ++i) {
-    _argv[i] = str + _size;
-    while (str[_size++])
-      ;
-  }
-
-  // If no token were found, avoid memory leak.
-  if (!_argv[0])
-    delete[] str;
+  _argv.push_back(nullptr);
 }
 
 /**
@@ -258,32 +280,27 @@ void command_line::parse(std::string const& cmdline) {
  */
 void command_line::_internal_copy(command_line const& right) {
   if (this != &right) {
-    _argc = right._argc;
-    _size = right._size;
     _release();
-    if (right._argv) {
-      _argv = new char*[_argc + 1];
-      _argv[0] = new char[_size];
-      _argv[_argc] = NULL;
-      memcpy(_argv[0], right._argv[0], _size);
-      unsigned int pos(0);
-      for (int i(0); i < _argc; ++i) {
-        _argv[i] = _argv[0] + pos;
-        while (_argv[0][pos++])
-          ;
+    _size = right._size;
+    if (right._buffer) {
+      _buffer = new char[_size];
+      memcpy(_buffer, right._buffer, _size);
+      for (const char* right_token : right._argv) {
+        if (right_token)
+          _argv.push_back(_buffer + (right_token - right._buffer));
+        else
+          _argv.push_back(nullptr);
       }
     }
   }
-  return;
 }
 
 /**
  *  Release memory used.
  */
 void command_line::_release() {
-  if (_argv)
-    delete[] _argv[0];
-  delete[] _argv;
-  _argv = NULL;
-  return;
+  _argv.clear();
+  delete[] _buffer;
+  _buffer = nullptr;
+  _size = 0;
 }
