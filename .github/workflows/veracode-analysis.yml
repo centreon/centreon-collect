@@ -137,7 +137,7 @@ jobs:
           echo "[INFO] - Generating tarball"
           cd ..
           ls -la
-          #tar -czf "${{ inputs.cache_key }}.tar.gz" centreon-collect
+          tar -czf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" centreon-collect
 
       - uses: actions/cache/save@v3
         with:
