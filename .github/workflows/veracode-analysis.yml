@@ -54,112 +54,74 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Generate binary file
-        uses: ./.github/actions/veracode-generate-binary
-        with:
-          cache_key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
-          is_cpp_project: "${{ inputs.is_cpp_project }}"
-
-      - name: Set routing mode
-        id: routing-mode
+      - name: debug before compilation status
         run: |
-          if [[ '${{ github.event_name }}' != 'pull_request' && '${{ inputs.stability }}' == 'stable' ]]; then
-            echo "fail_build=false" >> $GITHUB_OUTPUT
-            echo "development_stage=Release" >> $GITHUB_OUTPUT
-            echo "display_summary=false" >> $GITHUB_OUTPUT
-          elif [[ '${{ github.event_name }}' != 'pull_request' && '${{ inputs.stability }}' == 'unstable' ]]; then
-            echo "fail_build=false" >> $GITHUB_OUTPUT
-            echo "development_stage=Testing" >> $GITHUB_OUTPUT
-            echo "display_summary=false" >> $GITHUB_OUTPUT
-          else
-            echo "[DEBUG] - Grace period enabled"
-            echo "fail_build=false" >> $GITHUB_OUTPUT
-            echo "development_stage=Development" >> $GITHUB_OUTPUT
-            echo "display_summary=true" >> $GITHUB_OUTPUT
-          fi
-
-  pipeline-scan:
-    needs: [build]
-    name: Run a pipeline scan
-    runs-on: [self-hosted, veracode]
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Get build binary
-        uses: actions/cache/restore@v3
-        with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
-
-      - name: Prepare analysis
-        run: |
+          du -sh /src/* | sort -h
+          du -sh /src/build/lib/* | sort -h
           ls -la
-          tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
 
-      - name: Get baseline file
+      - name: Compile cpp sources
+        if: inputs.is_cpp_project == 'yes'
         run: |
-          BUCKET="s3://centreon-veracode-reports/${{ inputs.module_name }}"
-          aws s3 ls "$BUCKET/${{ github.base_ref || github.ref_name }}/results.json" || RESULT=$( echo $? )
-          if [[ $RESULT -eq 0 ]]; then
-            aws s3 cp "$BUCKET/${{ github.base_ref || github.ref_name }}/results.json" "/tmp/results.json"
-            echo "baseline_file=/tmp/results.json" >> $GITHUB_ENV
-            echo "create_baseline_from=standard" >> $GITHUB_ENV
-          else
-            RESULT=0
-            echo "[DEBUG] - Baseline file not found for branch ${{ github.base_ref || github.ref_name }}"
-            echo "[DEBUG] - Using develop's Baseline file"
-            aws s3 ls "$BUCKET/develop/results.json" || RESULT=$( echo $? )
-            if [[ $RESULT -eq 0 ]]; then
-              aws s3 cp "$BUCKET/develop/results.json" "/tmp/results.json"
-              echo "baseline_file=/tmp/results.json" >> $GITHUB_ENV
-              echo "create_baseline_from=standard" >> $GITHUB_ENV
-            else
-              echo "[DEBUG] - develop's baseline file not found in the bucket"
-              echo "baseline_file=" >> $GITHUB_ENV
-              echo "create_baseline_from=" >> $GITHUB_ENV
-            fi
-          fi
+          rm -rf build
+          mkdir build
+          cd build
 
-      - uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: 8
+          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-      - name: Pipeline scan
-        uses: veracode/Veracode-pipeline-scan-action@v1.0.8
-        continue-on-error: true
-        with:
-          vid: "vera01ei-${{ secrets.veracode_api_id }}"
-          vkey: "vera01es-${{ secrets.veracode_api_key }}"
-          file: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          baseline_file: "${{ env.baseline_file }}"
-          create_baseline_from: "${{ env.create_baseline_from }}"
-          fail_build: '${{ needs.build.outputs.fail_build }}'
-          fail_on_severity: "'Very High','High'"
-          timeout: 60
-          development_stage: '${{ needs.build.outputs.development_stage }}'
-          summary_display: '${{ needs.build.outputs.display_summary }}'
-          issue_details: '${{ needs.build.outputs.display_summary }}'
+          # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+          sudo cmake \
+            -G "Ninja" \
+            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+            -DWITH_TESTING=OFF \
+            -DWITH_BENCH=OFF \
+            -DWITH_MODULE_SIMU=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DWITH_STARTUP_SCRIPT=systemd \
+            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+            -DWITH_USER_BROKER=centreon-broker \
+            -DWITH_GROUP_BROKER=centreon-broker \
+            -DWITH_USER_ENGINE=centreon-engine \
+            -DWITH_GROUP_ENGINE=centreon-engine \
+            -DWITH_VAR_DIR=/var/log/centreon-engine \
+            -DWITH_DAEMONS=ON \
+            -DWITH_CREATE_FILES=OFF \
+            -DWITH_CONFIG_FILES=ON \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            ..
 
-      - name: Save baseline files
-        # only baseline files not generated from a development branch are saved
-        ## if: needs.build.outputs.development_stage != 'Development'
+          sudo ninja
+
+          ls -la
+
+      - name: debug after compilation status
         run: |
-          #BRANCHES=(develop master dev-${{ inputs.major_version }}.x ${{ inputs.major_version }}.x)
-          #for BRANCH in "${BRANCHES[@]}"; do
-          #  if [[ "${{ github.ref_name }}" == "$BRANCH" ]]; then
-          #    mv *results.json /tmp
-          #    BUCKET="s3://centreon-veracode-reports/${{ inputs.module_name }}/${{ github.base_ref || github.ref_name }}"
-          #    aws s3 cp "/tmp/filtered_results.json" "$BUCKET/filtered_results.json"
-          #    aws s3 cp "/tmp/results.json" "$BUCKET/results.json"
-          #  fi
+          du -sh /src/* | sort -h
+          du -sh /src/build/lib/* | sort -h
+          ls -la
+
+      - name: Create tarball
+        run: |
+          echo "[INFO] - Cleaning useless files"
+          echo "[DEBUG] - step skipped"
+          #for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "*.py" ); do
+          #  rm -f $file
           #done
 
-          mv *results.json /tmp
-          BUCKET="s3://centreon-veracode-reports/${{ inputs.module_name }}/develop"
-          aws s3 cp "/tmp/filtered_results.json" "$BUCKET/filtered_results.json"
-          aws s3 cp "/tmp/results.json" "$BUCKET/results.json"
+          echo "[INFO] - Keeping only bin and lib"
+          echo "[DEBUG] - step skipped"
+          #mv build full_build
+          #mkdir build
+          #mv -f full_build/bin build
+          #mv -f full_build/lib build
+          #ls -la
+
+          #rm -rf full_build
+
+          echo "[INFO] - Generating tarball"
+          echo "[DEBUG] - step skipped"
+          #tar -czf "${{ inputs.cache_key }}.tar.gz" build
 
   policy-scan:
     needs: [build]
@@ -216,39 +178,3 @@ jobs:
           app-name: "${{ inputs.module_name }}"
           sandbox-name: "${{ github.ref_name }}"
           delete-on-promote: false
-
-  sca-scan:
-    needs: [build]
-    name: Run a SCA scan
-    # only latest unstable maintenance branches will produce a report
-    ## if: github.ref_name == 'develop'
-    runs-on: ubuntu-latest
-    continue-on-error: true
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Get build binary
-        uses: actions/cache/restore@v3
-        with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
-
-      - name: Prepare analysis
-        run: |
-          ls -la
-          tar -xzvf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-
-      - name: SCA scan
-        env:
-          SRCCLR_API_TOKEN: ${{ secrets.veracode_srcclr_token }}
-          SRCCLR_REGION: "ER"
-
-        uses: veracode/veracode-sca@v1.09
-        # This action is based on the following command:
-        # curl -sSL https://download.sourceclear.com/ci.sh | sh -s -- scan "./${{ inputs.module_directory }}" --debug
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          create-issues: false
-          fail-on-cvss: 8
-          allow-dirty: true
