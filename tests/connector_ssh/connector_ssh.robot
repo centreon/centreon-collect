@@ -22,12 +22,13 @@ TestBadUser
     Clear Retention
     Config Broker    module    ${1}
     Config Engine    ${1}
-    engine_config_set_value  ${0}  log_level_commands  trace
-    engine_config_set_value_in_hosts  ${0}  host_1  _USER  toto
-    engine_config_replace_value_in_hosts  ${0}  host_1  check_command  ssh_linux_snmp
-    engine_config_replace_value_in_hosts  ${0}  host_1  address  127.0.0.10
-    engine_config_set_value_in_hosts  ${0}  host_1  _PASSWORD  titi
-    engine_config_add_command  ${0}  ssh_linux_snmp  $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"  SSH Connector
+    
+    Engine Config Set Value  ${0}  log_level_commands  trace
+    Engine Config Set Value In Hosts  ${0}  host_1  _USER  toto
+    Engine Config Replace Value In Hosts  ${0}  host_1  check_command  ssh_linux_snmp
+    Engine Config Replace Value In Hosts  ${0}  host_1  address  127.0.0.10
+    Engine Config Set Value In Hosts  ${0}  host_1  _PASSWORD  titi
+    Engine Config Add Command  ${0}  ssh_linux_snmp  $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"  SSH Connector
     Start Engine
 
     ${start}=  Get Current Date
@@ -51,12 +52,12 @@ TestBadPwd
     Clear Retention
     Config Broker    module    ${1}
     Config Engine    ${1}
-    engine_config_set_value  ${0}  log_level_commands  trace
-    engine_config_set_value_in_hosts  ${0}  host_1  _USER  testconnssh
-    engine_config_replace_value_in_hosts  ${0}  host_1  check_command  ssh_linux_snmp
-    engine_config_replace_value_in_hosts  ${0}  host_1  address  127.0.0.11
-    engine_config_set_value_in_hosts  ${0}  host_1  _PASSWORD  titi
-    engine_config_add_command  ${0}  ssh_linux_snmp  $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"  SSH Connector
+    Engine Config Set Value  ${0}  log_level_commands  trace
+    Engine Config Set Value In Hosts  ${0}  host_1  _USER  testconnssh
+    Engine Config Replace Value In Hosts  ${0}  host_1  check_command  ssh_linux_snmp
+    Engine Config Replace Value In Hosts  ${0}  host_1  address  127.0.0.11
+    Engine Config Set Value In Hosts  ${0}  host_1  _PASSWORD  titi
+    Engine Config Add Command  ${0}  ssh_linux_snmp  $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"  SSH Connector
     Start Engine
 
     ${start}=  Get Current Date
@@ -84,24 +85,24 @@ Test6Hosts
     Clear Retention
     Config Broker    module    ${1}
     Config Engine    ${1}
-    engine_config_set_value  ${0}  log_level_commands  trace
-    engine_config_add_command  ${0}  ssh_linux_snmp  $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"  SSH Connector
+    Engine Config Set Value  ${0}  log_level_commands  trace
+    Engine Config Add Command  ${0}  ssh_linux_snmp  $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"  SSH Connector
     ${run_env}=    Run Env
-    engine_config_set_value_in_hosts  ${0}  host_1  _USER  testconnssh
-    engine_config_replace_value_in_hosts  ${0}  host_1  check_command  ssh_linux_snmp
-    engine_config_set_value_in_hosts  ${0}  host_1  _IDENTITYFILE  /home/testconnssh/.ssh/id_rsa
-    engine_config_set_value_in_hosts  ${0}  host_1  _PASSWORD  passwd
+    Engine Config Set Value In Hosts  ${0}  host_1  _USER  testconnssh
+    Engine Config Replace Value In Hosts  ${0}  host_1  check_command  ssh_linux_snmp
+    Engine Config Set Value In Hosts  ${0}  host_1  _IDENTITYFILE  /home/testconnssh/.ssh/id_rsa
+    Engine Config Set Value In Hosts  ${0}  host_1  _PASSWORD  passwd
     IF    "${run_env}" == "docker"
-        engine_config_replace_value_in_hosts  ${0}  host_1  address  127.0.0.1
+        Engine Config Replace Value In Hosts  ${0}  host_1  address  127.0.0.1
     ELSE
-        engine_config_replace_value_in_hosts  ${0}  host_1  address  ::1
+        Engine Config Replace Value In Hosts  ${0}  host_1  address  ::1
     END
     FOR    ${idx}    IN RANGE    2    7
-        engine_config_set_value_in_hosts  ${0}  host_${idx}  _USER  testconnssh
-        engine_config_replace_value_in_hosts  ${0}  host_${idx}  check_command  ssh_linux_snmp
-        engine_config_replace_value_in_hosts  ${0}  host_${idx}  address  127.0.0.${idx}
-        engine_config_set_value_in_hosts  ${0}  host_${idx}  _IDENTITYFILE  /home/testconnssh/.ssh/id_rsa
-        engine_config_set_value_in_hosts  ${0}  host_${idx}  _PASSWORD  passwd
+        Engine Config Set Value In Hosts  ${0}  host_${idx}  _USER  testconnssh
+        Engine Config Replace Value In Hosts  ${0}  host_${idx}  check_command  ssh_linux_snmp
+        Engine Config Replace Value In Hosts  ${0}  host_${idx}  address  127.0.0.${idx}
+        Engine Config Set Value In Hosts  ${0}  host_${idx}  _IDENTITYFILE  /home/testconnssh/.ssh/id_rsa
+        Engine Config Set Value In Hosts  ${0}  host_${idx}  _PASSWORD  passwd
     END
     Start Engine
 

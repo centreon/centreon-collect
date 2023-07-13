@@ -1114,7 +1114,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   }
   time_t now = time(nullptr);
   if (_events_received_since_last_ack >= _ack_limit ||
-      (_events_received_since_last_ack && _last_sent_ack + 2 < now)) {
+      (_events_received_since_last_ack && _last_sent_ack + 5 < now)) {
     _last_sent_ack = now;
     send_event_acknowledgement();
   }

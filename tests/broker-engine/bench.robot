@@ -24,7 +24,7 @@ BENCH_1000STATUS
     [Tags]    broker    engine    bench
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -35,21 +35,21 @@ BENCH_1000STATUS
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker  
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    ${broker_stat_before}=  get_broker_process_stat  51001
-    ${engine_stat_before}=  get_engine_process_stat  50001
+    ${broker_stat_before}  get_broker_process_stat  51001
+    ${engine_stat_before}  get_engine_process_stat  50001
     Process Service Check result    host_1    service_1    1    warning  config0  1  1000
     send_bench  1  50001
-    ${bench_data}=  get_last_bench_result_with_timeout  ${rrdLog}  1  central-rrd-master-output  60 
-    ${broker_stat_after}=  get_broker_process_stat  51001
-    ${engine_stat_after}=  get_engine_process_stat  50001
-    ${diff_broker}=  diff_process_stat  ${broker_stat_after}  ${broker_stat_before}
-    ${diff_engine}=  diff_process_stat  ${engine_stat_after}  ${engine_stat_before}
+    ${bench_data}  get_last_bench_result_with_timeout  ${rrdLog}  1  central-rrd-master-output  60 
+    ${broker_stat_after}  get_broker_process_stat  51001
+    ${engine_stat_after}  get_engine_process_stat  50001
+    ${diff_broker}  diff_process_stat  ${broker_stat_after}  ${broker_stat_before}
+    ${diff_engine}  diff_process_stat  ${engine_stat_after}  ${engine_stat_before}
 
     download_database_from_s3  bench.unqlite
 
@@ -80,21 +80,21 @@ BENCH_10000STATUS
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker  
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No check for external commands executed for 1mn.
-    ${broker_stat_before}=  get_broker_process_stat  51001
-    ${engine_stat_before}=  get_engine_process_stat  50001
+    ${broker_stat_before}  get_broker_process_stat  51001
+    ${engine_stat_before}  get_engine_process_stat  50001
     Process Service Check result    host_1    service_1    1    warning  config0  1  10000
     send_bench  1  50001
-    ${bench_data}=  get_last_bench_result_with_timeout  ${rrdLog}  1  central-rrd-master-output  60 
-    ${broker_stat_after}=  get_broker_process_stat  51001
-    ${engine_stat_after}=  get_engine_process_stat  50001
-    ${diff_broker}=  diff_process_stat  ${broker_stat_after}  ${broker_stat_before}
-    ${diff_engine}=  diff_process_stat  ${engine_stat_after}  ${engine_stat_before}
+    ${bench_data}  get_last_bench_result_with_timeout  ${rrdLog}  1  central-rrd-master-output  60 
+    ${broker_stat_after}  get_broker_process_stat  51001
+    ${engine_stat_after}  get_engine_process_stat  50001
+    ${diff_broker}  diff_process_stat  ${broker_stat_after}  ${broker_stat_before}
+    ${diff_engine}  diff_process_stat  ${engine_stat_after}  ${engine_stat_before}
 
     download_database_from_s3  bench.unqlite
 

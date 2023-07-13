@@ -239,7 +239,7 @@ Dump Process
     Run Process    gcore    -o    ${output}    ${pid}
     Log To Console    Done...
 
-Coredump info
+Coredump Info
     [Arguments]    ${process_name}  ${binary_path}   ${name}
     ${pid}=    Get Process Id    ${process_name}
     ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}

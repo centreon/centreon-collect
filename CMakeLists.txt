@@ -190,7 +190,7 @@ add_custom_target(test-connector COMMAND tests/ut_connector)
 add_custom_target(test-common COMMAND tests/ut_common)
 
 add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector
-                               test_comon)
+                               test-common)
 
 add_custom_target(test-coverage DEPENDS broker-test-coverage
                                         engine-test-coverage clib-test-coverage)
