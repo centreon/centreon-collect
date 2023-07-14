@@ -31,6 +31,26 @@ namespace centreon {
 namespace engine {
 namespace configuration {
 
+class command_helper;
+class connector_helper;
+class contact_helper;
+class contactgroup_helper;
+class host_helper;
+class hostdependency_helper;
+class hostescalation_helper;
+class hostextinfo_helper;
+class hostgroup_helper;
+class service_helper;
+class servicedependency_helper;
+class serviceescalation_helper;
+class serviceextinfo_helper;
+class servicegroup_helper;
+class timeperiod_helper;
+class anomalydetection_helper;
+class severity_helper;
+class tag_helper;
+class state_helper;
+
 using Message = ::google::protobuf::Message;
 
 bool fill_pair_string_group(PairStringSet* grp, const absl::string_view& value);
@@ -86,6 +106,7 @@ class message_helper {
             std::forward<absl::flat_hash_map<std::string, std::string>>(
                 correspondence)},
         _modified_field(field_size, false) {}
+  message_helper(const message_helper& other);
   message_helper() = delete;
   message_helper& operator=(const message_helper&) = delete;
   virtual ~message_helper() noexcept = default;
@@ -109,6 +130,90 @@ class message_helper {
   absl::string_view validate_key(const absl::string_view& key) const;
   virtual bool insert_customvariable(absl::string_view key,
                                      absl::string_view value);
+  template <typename T>
+  static std::unique_ptr<T> clone(const T& other, Message* obj) {
+    std::unique_ptr<T> retval;
+    switch (other._otype) {
+      case command:
+        retval = std::make_unique<command_helper>(
+            static_cast<const command_helper&>(other));
+        break;
+      case connector:
+        retval = std::make_unique<connector_helper>(
+            static_cast<const connector_helper&>(other));
+        break;
+      case contact:
+        retval = std::make_unique<contact_helper>(
+            static_cast<const contact_helper&>(other));
+        break;
+      case contactgroup:
+        retval = std::make_unique<contactgroup_helper>(
+            static_cast<const contactgroup_helper&>(other));
+        break;
+      case host:
+        retval = std::make_unique<host_helper>(
+            static_cast<const host_helper&>(other));
+        break;
+      case hostdependency:
+        retval = std::make_unique<hostdependency_helper>(
+            static_cast<const hostdependency_helper&>(other));
+        break;
+      case hostescalation:
+        retval = std::make_unique<hostescalation_helper>(
+            static_cast<const hostescalation_helper&>(other));
+        break;
+      case hostextinfo:
+        //            retval = std::make_unique<hostextinfo_helper>(
+        //                static_cast<const hostextinfo_helper&>(other));
+        break;
+      case hostgroup:
+        retval = std::make_unique<hostgroup_helper>(
+            static_cast<const hostgroup_helper&>(other));
+        break;
+      case service:
+        retval = std::make_unique<service_helper>(
+            static_cast<const service_helper&>(other));
+        break;
+      case servicedependency:
+        retval = std::make_unique<servicedependency_helper>(
+            static_cast<const servicedependency_helper&>(other));
+        break;
+      case serviceescalation:
+        retval = std::make_unique<serviceescalation_helper>(
+            static_cast<const serviceescalation_helper&>(other));
+        break;
+      case serviceextinfo:
+        //            retval = std::make_unique<serviceextinfo_helper>(
+        //                static_cast<const serviceextinfo_helper&>(other));
+        break;
+      case servicegroup:
+        retval = std::make_unique<servicegroup_helper>(
+            static_cast<const servicegroup_helper&>(other));
+        break;
+      case timeperiod:
+        retval = std::make_unique<timeperiod_helper>(
+            static_cast<const timeperiod_helper&>(other));
+        break;
+      case anomalydetection:
+        retval = std::make_unique<anomalydetection_helper>(
+            static_cast<const anomalydetection_helper&>(other));
+        break;
+      case severity:
+        retval = std::make_unique<severity_helper>(
+            static_cast<const severity_helper&>(other));
+        break;
+      case tag:
+        retval =
+            std::make_unique<tag_helper>(static_cast<const tag_helper&>(other));
+        break;
+      case state:
+        retval = std::make_unique<state_helper>(
+            static_cast<const state_helper&>(other));
+        break;
+    }
+    retval->_obj = obj;
+    return retval;
+  }
 };
 }  // namespace configuration
 }  // namespace engine

@@ -669,15 +669,24 @@ void parser::_parse_object_definitions(const std::string& path,
               *static_cast<const Object*>(&refl->GetMessage(*msg, f));
           auto otype = msg_helper->otype();
           _pb_helper[msg.get()] = std::move(msg_helper);
-          if (!obj.register_() && !obj.name().empty()) {
+          if (!obj.name().empty()) {
             pb_map_object& tmpl = _pb_templates[otype];
             auto it = tmpl.find(obj.name());
             if (it != tmpl.end())
               throw engine_error() << fmt::format(
                   "Parsing of '{}' failed {}: {} already exists", type,
                   "file_info" /*_get_file_info(obj.get()) */, obj.name());
-            tmpl[obj.name()] = std::move(msg);
-          } else {
+            if (!obj.register_())
+              tmpl[obj.name()] = std::move(msg);
+            else {
+              auto copy = std::unique_ptr<Message>(msg->New());
+              copy->CopyFrom(*msg);
+              _pb_helper[copy.get()] =
+                  message_helper::clone(*_pb_helper[msg.get()], copy.get());
+              tmpl[obj.name()] = std::move(copy);
+            }
+          }
+          if (obj.register_()) {
             switch (otype) {
               case message_helper::contact:
                 pb_config->mutable_contacts()->AddAllocated(

@@ -235,6 +235,7 @@ void applier::state::clear() {
 
   _processing_state = state_ready;
   _config = nullptr;
+  has_already_been_loaded = false;
 }
 
 /**
@@ -1901,23 +1902,21 @@ void applier::state::_processing(configuration::State& new_cfg,
     // Apply service dependencies.
     _pb_apply<configuration::Servicedependency, size_t,
               applier::servicedependency>(diff_servicedependencies);
-//    _resolve<configuration::servicedependency,
-//    applier::servicedependency>(
-//        config->servicedependencies());
-//
-//    // Apply host escalations.
-//    _apply<configuration::hostescalation, applier::hostescalation>(
-//        diff_hostescalations);
-//    _resolve<configuration::hostescalation, applier::hostescalation>(
-//        config->hostescalations());
-//
-//    // Apply service escalations.
-//    _apply<configuration::serviceescalation, applier::serviceescalation>(
-//        diff_serviceescalations);
-//    _resolve<configuration::serviceescalation,
-//    applier::serviceescalation>(
-//        config->serviceescalations());
-//
+    _pb_resolve<configuration::Servicedependency, applier::servicedependency>(
+        pb_config.servicedependencies());
+
+    // Apply host escalations.
+    _pb_apply<configuration::Hostescalation, size_t, applier::hostescalation>(
+        diff_hostescalations);
+    _pb_resolve<configuration::Hostescalation, applier::hostescalation>(
+        pb_config.hostescalations());
+
+    // Apply service escalations.
+    _pb_apply<configuration::Serviceescalation, size_t,
+              applier::serviceescalation>(diff_serviceescalations);
+    _pb_resolve<configuration::Serviceescalation, applier::serviceescalation>(
+        pb_config.serviceescalations());
+
 #ifdef DEBUG_CONFIG
     std::cout << "WARNING!! You are using a version of Centreon Engine for "
                  "developers!!! This is not a production version.";

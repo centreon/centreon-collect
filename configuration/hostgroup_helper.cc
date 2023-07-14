@@ -66,7 +66,10 @@ void hostgroup_helper::check_validity() const {
       throw msg_fmt("Host group has no name (property 'hostgroup_name')");
   }
 }
-void hostgroup_helper::_init() {}
+void hostgroup_helper::_init() {
+  Hostgroup* obj = static_cast<Hostgroup*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
+}
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon

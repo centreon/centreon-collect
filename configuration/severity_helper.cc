@@ -99,6 +99,7 @@ void severity_helper::check_validity() const {
  */
 void severity_helper::_init() {
   Severity* obj = static_cast<Severity*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->mutable_key()->set_id(0);
   obj->mutable_key()->set_type(-1);
 }

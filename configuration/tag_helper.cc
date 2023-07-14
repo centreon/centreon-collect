@@ -96,6 +96,7 @@ void tag_helper::check_validity() const {
  */
 void tag_helper::_init() {
   Tag* obj = static_cast<Tag*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->mutable_key()->set_id(0);
   obj->mutable_key()->set_type(-1);
 }

@@ -41,8 +41,8 @@ class hostescalation : public escalation {
                  double notification_interval,
                  std::string const& escalation_period,
                  uint32_t escalate_on,
-                 const boost::uuids::uuid& uuid);
-  virtual ~hostescalation();
+                 const size_t key);
+  ~hostescalation() override;
 
   std::string const& get_hostname() const;
   bool is_viable(int state, uint32_t notification_number) const override;
