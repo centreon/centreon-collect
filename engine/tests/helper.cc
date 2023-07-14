@@ -34,6 +34,10 @@ using Reflection = ::google::protobuf::Reflection;
 using FieldDescriptor = ::google::protobuf::FieldDescriptor;
 
 void init_config_state(void) {
+  if (config) {
+    delete config;
+    config = nullptr;
+  }
   if (config == nullptr)
     config = new configuration::state;
 

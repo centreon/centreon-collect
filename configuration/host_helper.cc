@@ -172,6 +172,7 @@ void host_helper::check_validity() const {
  */
 void host_helper::_init() {
   Host* obj = static_cast<Host*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_checks_active(true);
   obj->set_checks_passive(true);
   obj->set_check_freshness(false);

@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
+#include "absl/strings/string_view.h"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -123,10 +124,10 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
  * @param s State being applied.
  */
 void applier::contactgroup::expand_objects(configuration::State& s) {
-  // Resolve groups.
-  _pb_resolved.clear();
+  absl::flat_hash_set<absl::string_view> resolved;
+
   for (auto& cg : *s.mutable_contactgroups())
-    _resolve_members(s, cg);
+    _resolve_members(s, cg, resolved);
 }
 
 /**
@@ -178,12 +179,12 @@ void applier::contactgroup::modify_object(
 
   if (!MessageDifferencer::Equals(new_object.members(), to_modify->members())) {
     // delete all old contact group members
-    to_modify->mutable_members()->CopyFrom(
-        new_object.members());
+    to_modify->mutable_members()->CopyFrom(new_object.members());
     it_obj->second->clear_members();
 
     for (auto& contact : new_object.members().data()) {
-      contact_map::const_iterator ct_it{engine::contact::contacts.find(contact)};
+      contact_map::const_iterator ct_it{
+          engine::contact::contacts.find(contact)};
       if (ct_it == engine::contact::contacts.end()) {
         log_v2::config()->error(
             "Error: Contact '{}' specified in contact group '{}' is not "
@@ -219,7 +220,8 @@ void applier::contactgroup::modify_object(
                           obj.contactgroup_name());
 
   // Find old configuration.
-  set_contactgroup::iterator it_cfg(config->contactgroups_find(obj.contactgroup_name()));
+  set_contactgroup::iterator it_cfg(
+      config->contactgroups_find(obj.contactgroup_name()));
   if (it_cfg == config->contactgroups().end())
     throw(engine_error() << "Error: Could not modify non-existing "
                          << "contact group '" << obj.contactgroup_name()
@@ -389,19 +391,27 @@ void applier::contactgroup::resolve_object(
  *
  * @param s  Configuration being applied.
  * @param obj Object that should be processed.
+ * @param resolved a reference to keep a trace of already expanded
+ * contactgroups.
  */
 void applier::contactgroup::_resolve_members(
     configuration::State& s,
-    configuration::Contactgroup& obj) {
+    configuration::Contactgroup& obj,
+    absl::flat_hash_set<absl::string_view>& resolved) {
+  if (resolved.contains(obj.contactgroup_name()))
+    return;
 
+  resolved.emplace(obj.contactgroup_name());
   if (!obj.contactgroup_members().data().empty()) {
     // Logging.
     log_v2::config()->debug("Resolving members of contact group '{}'",
                             obj.contactgroup_name());
     for (auto& cg_name : obj.contactgroup_members().data()) {
-      auto it = std::find_if(s.mutable_contactgroups()->begin(), s.mutable_contactgroups()->end(), [ &cg_name ] (const Contactgroup& cg) {
-          return cg.contactgroup_name() == cg_name;
-          });
+      auto it = std::find_if(s.mutable_contactgroups()->begin(),
+                             s.mutable_contactgroups()->end(),
+                             [&cg_name](const Contactgroup& cg) {
+                               return cg.contactgroup_name() == cg_name;
+                             });
 
       if (it == s.mutable_contactgroups()->end())
         throw engine_error() << fmt::format(
@@ -410,7 +420,7 @@ void applier::contactgroup::_resolve_members(
             cg_name, obj.contactgroup_name());
 
       Contactgroup& inner_cg = *it;
-      _resolve_members(s, inner_cg);
+      _resolve_members(s, inner_cg, resolved);
       for (auto& c_name : inner_cg.members().data())
         fill_string_group(obj.mutable_members(), c_name);
     }
@@ -437,7 +447,8 @@ void applier::contactgroup::_resolve_members(
                             obj.contactgroup_name());
 
     // Mark object as resolved.
-    configuration::contactgroup& resolved_obj(_resolved[obj.contactgroup_name()]);
+    configuration::contactgroup& resolved_obj(
+        _resolved[obj.contactgroup_name()]);
 
     // Insert base members.
     resolved_obj = obj;

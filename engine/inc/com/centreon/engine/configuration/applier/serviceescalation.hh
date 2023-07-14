@@ -50,9 +50,12 @@ class serviceescalation {
   void add_object(const configuration::Serviceescalation& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+  void modify_object(configuration::Serviceescalation* old_obj,
+                     const configuration::Serviceescalation& new_obj);
   void modify_object(const configuration::serviceescalation& obj);
   void remove_object(const configuration::serviceescalation& obj);
   void remove_object(ssize_t idx);
+  void resolve_object(const configuration::Serviceescalation& obj);
   void resolve_object(const configuration::serviceescalation& obj);
 };
 }  // namespace applier

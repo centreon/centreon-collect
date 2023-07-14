@@ -22,6 +22,7 @@
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
@@ -53,21 +54,8 @@ void applier::serviceescalation::add_object(
   auto* se_cfg = pb_config.add_serviceescalations();
   se_cfg->CopyFrom(obj);
 
-  if (obj.uuid().value().size() != 16)
-    throw engine_error() << "The service escalation uuid field must contain an "
-                            "array of bytes of size 16";
+  size_t key = configuration::serviceescalation_key(obj);
 
-  const auto& bytes = obj.uuid().value();
-
-  boost::uuids::uuid u{
-      static_cast<uint8_t>(bytes[0]),  static_cast<uint8_t>(bytes[1]),
-      static_cast<uint8_t>(bytes[2]),  static_cast<uint8_t>(bytes[3]),
-      static_cast<uint8_t>(bytes[4]),  static_cast<uint8_t>(bytes[5]),
-      static_cast<uint8_t>(bytes[6]),  static_cast<uint8_t>(bytes[7]),
-      static_cast<uint8_t>(bytes[8]),  static_cast<uint8_t>(bytes[9]),
-      static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
-      static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
-      static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
   // Create service escalation.
   auto se = std::make_shared<engine::serviceescalation>(
       obj.hosts().data()[0], obj.service_description().data()[0],
@@ -88,7 +76,7 @@ void applier::serviceescalation::add_object(
             configuration::serviceescalation::recovery)
                ? notifier::ok
                : notifier::none),
-      std::move(u));
+      key);
 
   // Add new items to the global list.
   engine::serviceescalation::serviceescalations.insert(
@@ -131,6 +119,8 @@ void applier::serviceescalation::add_object(
   // Add escalation to the global configuration set.
   config->serviceescalations().insert(obj);
 
+  size_t key = configuration::serviceescalation_key(obj);
+
   // Create service escalation.
   auto se = std::make_shared<engine::serviceescalation>(
       obj.hosts().front(), obj.service_description().front(),
@@ -151,7 +141,7 @@ void applier::serviceescalation::add_object(
             configuration::serviceescalation::recovery)
                ? notifier::ok
                : notifier::none),
-      obj.uuid());
+      key);
 
   // Add new items to the global list.
   engine::serviceescalation::serviceescalations.insert(
@@ -289,6 +279,23 @@ void applier::serviceescalation::expand_objects(configuration::state& s) {
  *  @param[in] obj  Unused.
  */
 void applier::serviceescalation::modify_object(
+    configuration::Serviceescalation* old_obj [[maybe_unused]],
+    const configuration::Serviceescalation& new_obj [[maybe_unused]]) {
+  throw engine_error()
+      << "Could not modify a service escalation: service escalation objects "
+         "can only be added or removed, this is likely a software bug that you "
+         "should report to Centreon Engine developers";
+}
+
+/**
+ *  @brief Modify service escalation.
+ *
+ *  Service escalations cannot be defined with anything else than their
+ *  full content. Therefore no modification can occur.
+ *
+ *  @param[in] obj  Unused.
+ */
+void applier::serviceescalation::modify_object(
     configuration::serviceescalation const& obj) {
   (void)obj;
   throw engine_error()
@@ -329,19 +336,10 @@ void applier::serviceescalation::remove_object(ssize_t idx) {
   } else
     service_exists = true;
 
-  const auto& bytes = obj.uuid().value();
-  boost::uuids::uuid u{
-      static_cast<uint8_t>(bytes[0]),  static_cast<uint8_t>(bytes[1]),
-      static_cast<uint8_t>(bytes[2]),  static_cast<uint8_t>(bytes[3]),
-      static_cast<uint8_t>(bytes[4]),  static_cast<uint8_t>(bytes[5]),
-      static_cast<uint8_t>(bytes[6]),  static_cast<uint8_t>(bytes[7]),
-      static_cast<uint8_t>(bytes[8]),  static_cast<uint8_t>(bytes[9]),
-      static_cast<uint8_t>(bytes[10]), static_cast<uint8_t>(bytes[11]),
-      static_cast<uint8_t>(bytes[12]), static_cast<uint8_t>(bytes[13]),
-      static_cast<uint8_t>(bytes[14]), static_cast<uint8_t>(bytes[15])};
+  size_t key = serviceescalation_key(obj);
   for (serviceescalation_mmap::iterator it = range.first, end = range.second;
        it != end; ++it) {
-    if (it->second->uuid() == u) {
+    if (it->second->internal_key() == key) {
       // We have the serviceescalation to remove.
 
       // Notify event broker.
@@ -409,9 +407,10 @@ void applier::serviceescalation::remove_object(
   } else
     service_exists = true;
 
+  size_t key = serviceescalation_key(obj);
   for (serviceescalation_mmap::iterator it{range.first}, end{range.second};
        it != end; ++it) {
-    if (it->second->uuid() == obj.uuid()) {
+    if (it->second->internal_key() == key) {
       // We have the serviceescalation to remove.
 
       // Notify event broker.
@@ -456,6 +455,38 @@ void applier::serviceescalation::remove_object(
  *  @param[in] obj  Serviceescalation object.
  */
 void applier::serviceescalation::resolve_object(
+    const configuration::Serviceescalation& obj) {
+  // Logging.
+  log_v2::config()->debug("Resolving a service escalation.");
+
+  // Find service escalation
+  bool found = false;
+  const std::string& hostname{obj.hosts().data(0)};
+  const std::string& desc{obj.service_description().data(0)};
+  auto p = engine::serviceescalation::serviceescalations.equal_range(
+      {hostname, desc});
+  if (p.first == p.second)
+    throw engine_error() << "Cannot find service escalations concerning host '"
+                         << hostname << "' and service '" << desc << "'";
+  size_t key = configuration::serviceescalation_key(obj);
+  for (serviceescalation_mmap::iterator it = p.first; it != p.second; ++it) {
+    if (it->second->internal_key() == key) {
+      found = true;
+      // Resolve service escalation.
+      it->second->resolve(config_warnings, config_errors);
+      break;
+    }
+  }
+  if (!found)
+    throw engine_error() << "Cannot resolve non-existing service escalation";
+}
+
+/**
+ *  Resolve a serviceescalation.
+ *
+ *  @param[in] obj  Serviceescalation object.
+ */
+void applier::serviceescalation::resolve_object(
     configuration::serviceescalation const& obj) {
   // Logging.
   engine_logger(logging::dbg_config, logging::more)
@@ -472,8 +503,9 @@ void applier::serviceescalation::resolve_object(
     throw engine_error() << "Cannot find service escalations "
                          << "concerning host '" << hostname << "' and service '"
                          << desc << "'";
+  size_t key = serviceescalation_key(obj);
   for (serviceescalation_mmap::iterator it{p.first}; it != p.second; ++it) {
-    if (it->second->uuid() == obj.uuid()) {
+    if (it->second->internal_key() == key) {
       found = true;
       // Resolve service escalation.
       it->second->resolve(config_warnings, config_errors);

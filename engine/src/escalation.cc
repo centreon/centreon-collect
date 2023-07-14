@@ -31,16 +31,16 @@ escalation::escalation(uint32_t first_notification,
                        double notification_interval,
                        std::string const& escalation_period,
                        uint32_t escalate_on,
-                       const boost::uuids::uuid& uuid)
-    : notifier_ptr{nullptr},
-      escalation_period_ptr{nullptr},
-      _first_notification{first_notification},
+                       const size_t key)
+    : _first_notification{first_notification},
       _last_notification{last_notification},
       _notification_interval{
           (notification_interval < 0) ? 0 : notification_interval},
       _escalation_period{escalation_period},
       _escalate_on{escalate_on},
-      _uuid{uuid} {}
+      _internal_key{key},
+      notifier_ptr{nullptr},
+      escalation_period_ptr{nullptr} {}
 
 std::string const& escalation::get_escalation_period() const {
   return _escalation_period;
@@ -167,6 +167,6 @@ void escalation::resolve(int& w __attribute__((unused)), int& e) {
   }
 }
 
-const boost::uuids::uuid& escalation::uuid() const {
-  return _uuid;
+size_t escalation::internal_key() const {
+  return _internal_key;
 }

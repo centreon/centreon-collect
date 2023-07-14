@@ -1,21 +1,21 @@
 /*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_OBJECTS_SERVICEDEPENDENCY_HH
 #define CCE_OBJECTS_SERVICEDEPENDENCY_HH
@@ -38,8 +38,16 @@ typedef std::unordered_multimap<
 
 namespace com::centreon::engine {
 class servicedependency : public dependency {
+  std::string _dependent_service_description;
+  std::string _service_description;
+  bool _fail_on_ok;
+  bool _fail_on_warning;
+  bool _fail_on_unknown;
+  bool _fail_on_critical;
+
  public:
-  servicedependency(std::string const& dependent_host_name,
+  servicedependency(size_t key,
+                    std::string const& dependent_host_name,
                     std::string const& dependent_service_description,
                     std::string const& host_name,
                     std::string const& service_description,
@@ -80,14 +88,7 @@ class servicedependency : public dependency {
   static servicedependency_mmap::iterator servicedependencies_find(
       configuration::servicedependency const& k);
   static servicedependency_mmap::iterator servicedependencies_find(
-      const std::tuple<absl::string_view, absl::string_view, size_t>& key)
-
-      private : std::string _dependent_service_description;
-  std::string _service_description;
-  bool _fail_on_ok;
-  bool _fail_on_warning;
-  bool _fail_on_unknown;
-  bool _fail_on_critical;
+      const std::tuple<std::string, std::string, size_t>& key);
 };
 
 };  // namespace com::centreon::engine

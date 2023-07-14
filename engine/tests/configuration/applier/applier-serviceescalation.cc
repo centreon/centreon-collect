@@ -29,7 +29,6 @@
 #include "configuration/host_helper.hh"
 #include "configuration/service_helper.hh"
 #include "configuration/serviceescalation_helper.hh"
-#include "configuration/command_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -99,7 +98,7 @@ TEST_F(ApplierServiceEscalation, PbAddEscalation) {
   configuration::applier::service svc_aply;
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
-  svc_hlp.hook("hosts", "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_description("test_svc");
   svc.set_service_id(12);
   svc.set_check_command("cmd");
@@ -184,7 +183,7 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalation) {
   configuration::applier::service svc_aply;
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
-  svc_hlp.hook("hosts", "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_description("test_svc");
   svc.set_service_id(12);
   svc.set_check_command("cmd");
@@ -279,7 +278,7 @@ TEST_F(ApplierServiceEscalation, PbRemoveEscalationFromRemovedService) {
   configuration::applier::service svc_aply;
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
-  svc_hlp.hook("hosts", "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_description("test_svc");
   svc.set_service_id(12);
   svc.set_check_command("cmd");

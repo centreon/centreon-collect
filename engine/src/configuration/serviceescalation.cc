@@ -90,8 +90,7 @@ serviceescalation::serviceescalation()
       _escalation_options(default_escalation_options),
       _first_notification(default_first_notification),
       _last_notification(default_last_notification),
-      _notification_interval(default_notification_interval),
-      _uuid{boost::uuids::random_generator()()} {}
+      _notification_interval(default_notification_interval) {}
 
 /**
  *  Copy constructor.
@@ -124,7 +123,6 @@ serviceescalation& serviceescalation::operator=(
     _notification_interval = right._notification_interval;
     _servicegroups = right._servicegroups;
     _service_description = right._service_description;
-    _uuid = right._uuid;
   }
   return *this;
 }
@@ -701,13 +699,4 @@ bool serviceescalation::_set_servicegroups(std::string const& value) {
 bool serviceescalation::_set_service_description(std::string const& value) {
   _service_description = value;
   return true;
-}
-
-/**
- *  Get uuid value.
- *
- *  @return uuid.
- */
-const boost::uuids::uuid& serviceescalation::uuid() const {
-  return _uuid;
 }

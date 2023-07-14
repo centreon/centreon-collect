@@ -117,7 +117,6 @@ hostescalation& hostescalation::operator=(hostescalation const& right) {
     _hosts = right._hosts;
     _last_notification = right._last_notification;
     _notification_interval = right._notification_interval;
-    _uuid = right._uuid;
   }
   return *this;
 }
@@ -522,13 +521,4 @@ bool hostescalation::_set_last_notification(unsigned int value) {
 bool hostescalation::_set_notification_interval(unsigned int value) {
   _notification_interval = value;
   return true;
-}
-
-/**
- *  Get uuid value.
- *
- *  @return uuid.
- */
-const boost::uuids::uuid& hostescalation::uuid() const {
-  return _uuid;
 }

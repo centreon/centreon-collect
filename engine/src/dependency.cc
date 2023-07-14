@@ -25,13 +25,15 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-dependency::dependency(std::string const& dependent_hostname,
-                       std::string const& hostname,
+dependency::dependency(size_t key,
+                       const std::string& dependent_hostname,
+                       const std::string& hostname,
                        types dependency_type,
                        bool inherits_parent,
                        bool fail_on_pending,
-                       std::string const& dependency_period)
-    : _dependency_type{dependency_type},
+                       const std::string& dependency_period)
+    : _internal_key{key},
+      _dependency_type{dependency_type},
       _dependent_hostname{dependent_hostname},
       _hostname{hostname},
       _dependency_period{dependency_period},
@@ -169,4 +171,8 @@ bool dependency::operator<(dependency const& obj) noexcept {
   else if (_circular_path_checked != obj.get_circular_path_checked())
     return _circular_path_checked < obj.get_circular_path_checked();
   return _contains_circular_path < obj.get_contains_circular_path();
+}
+
+size_t dependency::internal_key() const {
+  return _internal_key;
 }

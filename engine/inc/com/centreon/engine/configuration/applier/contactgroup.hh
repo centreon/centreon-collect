@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_CONTACTGROUP_HH
 
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include "com/centreon/engine/configuration/contactgroup.hh"
 #include "configuration/state.pb.h"
 
@@ -37,12 +38,12 @@ using resolved_set = std::map<configuration::contactgroup::key_type,
 namespace applier {
 class contactgroup {
   resolved_set _resolved;
-  pb_resolved_set _pb_resolved;
 
   void _resolve_members(configuration::state& s,
                         configuration::contactgroup const& obj);
   void _resolve_members(configuration::State& s,
-                        configuration::Contactgroup& obj);
+                        configuration::Contactgroup& obj,
+                        absl::flat_hash_set<absl::string_view>& resolved);
 
  public:
   /**

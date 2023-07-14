@@ -117,7 +117,7 @@ void applier::servicedependency::add_object(
       configuration::servicedependency::execution_dependency)
     // Create execution dependency.
     sd = std::make_shared<engine::servicedependency>(
-        obj.dependent_hosts().data()[0],
+        servicedependency_key(obj), obj.dependent_hosts().data()[0],
         obj.dependent_service_description().data()[0], obj.hosts().data()[0],
         obj.service_description().data()[0], dependency::execution,
         obj.inherits_parent(),
@@ -135,7 +135,7 @@ void applier::servicedependency::add_object(
   else
     // Create notification dependency.
     sd = std::make_shared<engine::servicedependency>(
-        obj.dependent_hosts().data()[0],
+        servicedependency_key(obj), obj.dependent_hosts().data()[0],
         obj.dependent_service_description().data()[0], obj.hosts().data()[0],
         obj.service_description().data()[0], dependency::notification,
         obj.inherits_parent(),
@@ -213,6 +213,7 @@ void applier::servicedependency::add_object(
       configuration::servicedependency::execution_dependency)
     // Create execution dependency.
     sd = std::make_shared<engine::servicedependency>(
+        configuration::servicedependency_key_l(obj),
         obj.dependent_hosts().front(),
         obj.dependent_service_description().front(), obj.hosts().front(),
         obj.service_description().front(), dependency::execution,
@@ -231,6 +232,7 @@ void applier::servicedependency::add_object(
   else
     // Create notification dependency.
     sd = std::make_shared<engine::servicedependency>(
+        configuration::servicedependency_key_l(obj),
         obj.dependent_hosts().front(),
         obj.dependent_service_description().front(), obj.hosts().front(),
         obj.service_description().front(), dependency::notification,
@@ -462,7 +464,9 @@ void applier::servicedependency::remove_object(ssize_t idx) {
   size_t key = servicedependency_key(obj);
 
   servicedependency_mmap::iterator it =
-      engine::servicedependency::servicedependencies_find(obj.key()));
+      engine::servicedependency::servicedependencies_find(
+          std::make_tuple(obj.dependent_hosts().data(0),
+                          obj.dependent_service_description().data(0), key));
   if (it != engine::servicedependency::servicedependencies.end()) {
     // Notify event broker.
     timeval tv(get_broker_timestamp(nullptr));
@@ -474,7 +478,7 @@ void applier::servicedependency::remove_object(ssize_t idx) {
   }
 
   // Remove dependency from the global configuration set.
-  config->servicedependencies().erase(obj);
+  pb_config.mutable_servicedependencies()->DeleteSubrange(idx, 1);
 }
 
 /**
@@ -505,6 +509,29 @@ void applier::servicedependency::remove_object(
 
   // Remove dependency from the global configuration set.
   config->servicedependencies().erase(obj);
+}
+
+/**
+ *  Resolve a servicedependency.
+ *
+ *  @param[in] obj  Servicedependency object.
+ */
+void applier::servicedependency::resolve_object(
+    const configuration::Servicedependency& obj) {
+  // Logging.
+  log_v2::config()->debug("Resolving a service dependency.");
+
+  // Find service dependency.
+  size_t key = configuration::servicedependency_key(obj);
+  servicedependency_mmap::iterator it =
+      engine::servicedependency::servicedependencies_find(
+          {obj.dependent_hosts().data(0),
+           obj.dependent_service_description().data(0), key});
+  if (engine::servicedependency::servicedependencies.end() == it)
+    throw engine_error() << "Cannot resolve non-existing service dependency";
+
+  // Resolve service dependency.
+  it->second->resolve(config_warnings, config_errors);
 }
 
 /**
