@@ -1395,6 +1395,8 @@ for i in range(len(class_files_hh)):
                 optional = ""
             if 'default' in l:
                 cmt += f" - Default value: {l['default']}"
+                optional = ""  # Since we assign a default value, by default
+                # the value is set to it so no need of optional
             if cmt != "":
                 cmt = "  // " + cmt
             proto.append(
