@@ -110,11 +110,9 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotification) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, u)};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -141,11 +139,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, u)};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
@@ -167,11 +163,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, u)};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
@@ -192,11 +186,9 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(43200, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -217,11 +209,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(43200, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -240,11 +230,9 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationForcedNotification) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(43200, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -264,11 +252,9 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithDowntime) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -288,11 +274,9 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithFlapping) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -312,11 +296,9 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithSoftState) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -336,11 +318,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NORMAL);
@@ -361,11 +341,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NORMAL);
@@ -387,11 +365,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NORMAL);
@@ -414,11 +390,9 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOnStateNotNotified) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NONE);
@@ -441,11 +415,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NONE);
@@ -470,11 +442,9 @@ TEST_F(ServiceNotification,
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NONE);
@@ -499,11 +469,9 @@ TEST_F(ServiceNotification,
   for (uint32_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, u)};
+                                    "tperiod", 7, 12345)};
 
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
@@ -967,11 +935,9 @@ TEST_F(ServiceNotification, WarnCritServiceNotification) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, u)};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -1006,11 +972,9 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, u)};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -1057,11 +1021,9 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, u)};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -1119,11 +1081,9 @@ TEST_F(ServiceNotification, SimpleVolatileServiceNotificationWithDowntime) {
   for (int i = 0; i < 7; ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    u)};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);

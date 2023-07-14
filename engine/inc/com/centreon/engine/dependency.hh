@@ -25,16 +25,21 @@
 CCE_BEGIN();
 
 class dependency {
+  /* This key is a hash of the configuration attributes of this hostdependency,
+   * essentially used when a new configuration is applied to engine. */
+  const size_t _internal_key;
+
  public:
   enum types { notification = 1, execution };
 
-  dependency(std::string const& dependent_hostname,
-             std::string const& hostname,
+  dependency(size_t key,
+             const std::string& dependent_hostname,
+             const std::string& hostname,
              types dependency_type,
              bool inherits_parent,
              bool fail_on_pending,
-             std::string const& dependency_period);
-  virtual ~dependency() {}
+             const std::string& dependency_period);
+  virtual ~dependency() noexcept = default;
 
   types get_dependency_type() const;
   void set_dependency_type(types dependency_type);
@@ -57,6 +62,7 @@ class dependency {
   virtual bool operator==(dependency const& obj) throw();
   bool operator!=(dependency const& obj) throw();
   virtual bool operator<(dependency const& obj) throw();
+  size_t internal_key() const;
 
   com::centreon::engine::timeperiod* dependency_period_ptr;
 

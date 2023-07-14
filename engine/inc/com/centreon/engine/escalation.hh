@@ -20,8 +20,6 @@
 #ifndef CCE_ESCALATION_HH
 #define CCE_ESCALATION_HH
 
-#include <boost/uuid/uuid.hpp>
-#include <boost/uuid/uuid_generators.hpp>
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/notifier.hh"
 #include "com/centreon/engine/shared.hh"
@@ -37,7 +35,7 @@ class escalation {
   std::string _escalation_period;
   uint32_t _escalate_on;
   contactgroup_map_unsafe _contact_groups;
-  boost::uuids::uuid _uuid;
+  const size_t _internal_key;
 
  public:
   escalation(uint32_t first_notification,
@@ -45,7 +43,8 @@ class escalation {
              double notification_interval,
              std::string const& escalation_period,
              uint32_t escalate_on,
-             const boost::uuids::uuid& uuid);
+             const size_t key);
+  virtual ~escalation() noexcept = default;
 
   std::string const& get_escalation_period() const;
   uint32_t get_first_notification() const;
@@ -58,7 +57,7 @@ class escalation {
   bool get_escalate_on(notifier::notification_flag type) const;
   void set_escalate_on(uint32_t escalate_on);
   virtual bool is_viable(int state, uint32_t notification_number) const;
-  const boost::uuids::uuid& uuid() const;
+  size_t internal_key() const;
 
   contactgroup_map_unsafe const& get_contactgroups() const;
   contactgroup_map_unsafe& get_contactgroups();

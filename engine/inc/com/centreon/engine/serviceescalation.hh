@@ -20,7 +20,6 @@
 #ifndef CCE_SERVICEESCALATION_HH
 #define CCE_SERVICEESCALATION_HH
 
-#include <boost/uuid/uuid.hpp>
 #include "com/centreon/engine/escalation.hh"
 #include "com/centreon/engine/hash.hh"
 
@@ -45,7 +44,7 @@ class serviceescalation : public escalation {
                     double notification_interval,
                     std::string const& escalation_period,
                     uint32_t escalate_on,
-                    const boost::uuids::uuid& uuid);
+                    const size_t key);
   virtual ~serviceescalation();
   std::string const& get_hostname() const;
   std::string const& get_description() const;

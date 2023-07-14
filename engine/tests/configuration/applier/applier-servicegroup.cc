@@ -564,7 +564,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
   configuration::service_helper svc_hlp(&svc);
   svc.set_service_description("test");
   svc_hlp.hook("service_description", "test");
-  svc_hlp.hook("hosts", "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_id(18);
   svc.set_check_command("cmd");
   // We fake here the expand_object on configuration::service
@@ -573,7 +573,7 @@ TEST_F(ApplierServicegroup, PbRemoveServiceFromGroup) {
   svc_hlp.hook("servicegroups", "test_group");
 
   svc.set_service_description("test2");
-  svc_hlp.hook("hosts", "test_host");
+  svc.set_host_name("test_host");
   svc.set_service_id(19);
   svc.set_check_command("cmd");
   // We fake here the expand_object on configuration::service

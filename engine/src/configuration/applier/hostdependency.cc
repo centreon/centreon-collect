@@ -36,12 +36,17 @@ namespace centreon {
 namespace engine {
 namespace configuration {
 size_t hostdependency_key(const Hostdependency& hd) {
+  assert(hd.hosts().data().size() == 1 && hd.hostgroups().data().empty() &&
+         hd.dependent_hosts().data().size() == 1 &&
+         hd.dependent_hostgroups().data().empty());
   return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
                       hd.dependent_hosts().data(0), hd.hosts().data(0),
                       hd.inherits_parent(), hd.notification_failure_options());
 }
 
 size_t hostdependency_key_l(const hostdependency& hd) {
+  assert(hd.hosts().size() == 1 && hd.hostgroups().empty() &&
+         hd.dependent_hosts().size() == 1 && hd.dependent_hostgroups().empty());
   return absl::HashOf(hd.dependency_period(), hd.dependency_type(),
                       *hd.dependent_hosts().begin(), *hd.hosts().begin(),
                       hd.inherits_parent(), hd.notification_failure_options());
@@ -50,15 +55,6 @@ size_t hostdependency_key_l(const hostdependency& hd) {
 }  // namespace engine
 }  // namespace centreon
 }  // namespace com
-
-// bool operator==(const Hostdependency& a, const Hostdependency& b) {
-//  return a.dependency_period() == b.dependency_period() &&
-//    a.dependency_type() == b.dependency_type() &&
-//    a.dependent_hosts().data(0) == b.dependent_hosts().data(0) &&
-//    a.hosts().data(0) == b.hosts().data(0) &&
-//    a.inherits_parent() == b.inherits_parent() &&
-//    a.notification_failure_options() == b.notification_failure_options();
-//}
 
 /**
  *  Add new hostdependency.
@@ -255,7 +251,7 @@ void applier::hostdependency::expand_objects(configuration::State& s) {
             lst.emplace_back();
             auto& new_hd = lst.back();
             fill_string_group(new_hd.mutable_hosts(), h);
-            fill_string_group(new_hd.mutable_dependent_hosts(), h);
+            fill_string_group(new_hd.mutable_dependent_hosts(), h_dep);
             new_hd.set_dependency_type(
                 i == 0 ? DependencyKind::execution_dependency
                        : DependencyKind::notification_dependency);

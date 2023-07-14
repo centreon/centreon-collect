@@ -26,6 +26,7 @@ CCE_BEGIN()
 
 namespace configuration {
 // Forward declarations.
+class Hostescalation;
 class hostescalation;
 class state;
 
@@ -48,7 +49,7 @@ class hostescalation {
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
   void modify_object(configuration::Hostescalation* to_modify,
-                     configuration::Hostescalation& new_object);
+                     const configuration::Hostescalation& new_object);
   void modify_object(configuration::hostescalation const& obj);
   void remove_object(ssize_t idx);
   void remove_object(configuration::hostescalation const& obj);

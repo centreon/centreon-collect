@@ -174,6 +174,7 @@ void servicedependency_helper::check_validity() const {
  */
 void servicedependency_helper::_init() {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_execution_failure_options(action_sd_none);
   obj->set_inherits_parent(false);
   obj->set_notification_failure_options(action_sd_none);
