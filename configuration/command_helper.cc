@@ -63,7 +63,10 @@ void command_helper::check_validity() const {
     throw msg_fmt("Command '{}' has no command line (property 'command_line')",
                   o->command_name());
 }
-void command_helper::_init() {}
+void command_helper::_init() {
+  Command* obj = static_cast<Command*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
+}
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon

@@ -67,7 +67,10 @@ void contactgroup_helper::check_validity() const {
   if (o->contactgroup_name().empty())
     throw msg_fmt("Contactgroup has no name (property 'contactgroup_name')");
 }
-void contactgroup_helper::_init() {}
+void contactgroup_helper::_init() {
+  Contactgroup* obj = static_cast<Contactgroup*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
+}
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon

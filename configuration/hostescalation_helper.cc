@@ -43,7 +43,7 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
                          {"host_name", "hosts"},
                          {"contact_groups", "contactgroups"},
                      },
-                     11) {
+                     10) {
   _init();
 }
 
@@ -109,6 +109,7 @@ void hostescalation_helper::check_validity() const {
  */
 void hostescalation_helper::_init() {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_escalation_options(action_he_none);
   obj->set_first_notification(-2);
   obj->set_last_notification(-2);
