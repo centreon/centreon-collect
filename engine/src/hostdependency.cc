@@ -62,13 +62,13 @@ hostdependency::hostdependency(size_t key,
                                bool fail_on_unreachable,
                                bool fail_on_pending,
                                std::string const& dependency_period)
-    : dependency(dependent_hostname,
+    : dependency(key,
+                 dependent_hostname,
                  hostname,
                  dependency_type,
                  inherits_parent,
                  fail_on_pending,
                  dependency_period),
-      _internal_key{key},
       master_host_ptr{nullptr},
       dependent_host_ptr{nullptr},
       _fail_on_up{fail_on_up},
@@ -235,12 +235,8 @@ void hostdependency::resolve(int& w, int& e) {
   int errors{0};
 
   // Find the dependent host.
-  host_map::const_iterator it{host::hosts.find(_dependent_hostname)};
+  host_map::const_iterator it = host::hosts.find(_dependent_hostname);
   if (it == host::hosts.end() || !it->second) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Dependent host specified in host dependency for "
-           "host '"
-        << _dependent_hostname << "' is not defined anywhere!";
     log_v2::config()->error(
         "Error: Dependent host specified in host dependency for "
         "host '{}' is not defined anywhere!",
@@ -253,9 +249,6 @@ void hostdependency::resolve(int& w, int& e) {
   // Find the host we're depending on.
   it = host::hosts.find(_hostname);
   if (it == host::hosts.end() || !it->second) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Host specified in host dependency for host '"
-        << _dependent_hostname << "' is not defined anywhere!";
     log_v2::config()->error(
         "Error: Host specified in host dependency for host '{}' is not defined "
         "anywhere!",
@@ -267,9 +260,6 @@ void hostdependency::resolve(int& w, int& e) {
 
   // Make sure they're not the same host.
   if (dependent_host_ptr == master_host_ptr && dependent_host_ptr != nullptr) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Host dependency definition for host '" << _dependent_hostname
-        << "' is circular (it depends on itself)!";
     log_v2::config()->error(
         "Error: Host dependency definition for host '{}' is circular (it "
         "depends on itself)!",
@@ -323,7 +313,7 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
 
   p = hostdependencies.equal_range(*k.dependent_hosts().begin());
   while (p.first != p.second) {
-    if (p.first->second->_internal_key == key)
+    if (p.first->second->internal_key() == key)
       break;
     ++p.first;
   }
@@ -344,7 +334,7 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
 
   p = hostdependencies.equal_range(key.first);
   while (p.first != p.second) {
-    if (p.first->second->_internal_key == key.second)
+    if (p.first->second->internal_key() == key.second)
       break;
     ++p.first;
   }

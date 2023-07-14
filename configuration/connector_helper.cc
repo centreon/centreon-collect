@@ -64,7 +64,10 @@ void connector_helper::check_validity() const {
         "Connector '{}' has no command line (property 'connector_line')",
         o->connector_name());
 }
-void connector_helper::_init() {}
+void connector_helper::_init() {
+  Connector* obj = static_cast<Connector*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
+}
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon

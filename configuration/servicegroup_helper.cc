@@ -67,7 +67,10 @@ void servicegroup_helper::check_validity() const {
   if (o->servicegroup_name().empty())
     throw msg_fmt("Service group has no name (property 'servicegroup_name')");
 }
-void servicegroup_helper::_init() {}
+void servicegroup_helper::_init() {
+  Servicegroup* obj = static_cast<Servicegroup*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
+}
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon

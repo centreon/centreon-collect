@@ -97,6 +97,7 @@ void contact_helper::check_validity() const {
  */
 void contact_helper::_init() {
   Contact* obj = static_cast<Contact*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_can_submit_commands(true);
   obj->set_host_notifications_enabled(true);
   obj->set_host_notification_options(action_hst_none);

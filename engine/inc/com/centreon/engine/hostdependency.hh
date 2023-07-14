@@ -39,10 +39,6 @@ typedef absl::btree_multimap<
 
 CCE_BEGIN()
 class hostdependency : public dependency {
-  /* This key is a hash of the configuration attributes of this hostdependency,
-   * essentially used when a new configuration is applied to engine. */
-  const size_t _internal_key;
-
  public:
   hostdependency(size_t key,
                  const std::string& dependent_hostname,

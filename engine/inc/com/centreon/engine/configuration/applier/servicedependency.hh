@@ -64,7 +64,9 @@ class servicedependency {
   void modify_object(configuration::Servicedependency* old_obj,
                      const configuration::Servicedependency& new_obj);
   void modify_object(configuration::servicedependency const& obj);
+  void remove_object(ssize_t idx);
   void remove_object(configuration::servicedependency const& obj);
+  void resolve_object(const configuration::Servicedependency& obj);
   void resolve_object(configuration::servicedependency const& obj);
 };
 }  // namespace applier

@@ -46,7 +46,7 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
                          {"hostgroup_name", "hostgroups"},
                          {"contact_groups", "contactgroups"},
                      },
-                     13) {
+                     12) {
   _init();
 }
 
@@ -130,16 +130,11 @@ void serviceescalation_helper::check_validity() const {
  */
 void serviceescalation_helper::_init() {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_escalation_options(action_se_none);
   obj->set_first_notification(-2);
   obj->set_last_notification(-2);
   obj->set_notification_interval(0);
-  boost::uuids::uuid u = boost::uuids::random_generator()();
-
-  auto* bytes = obj->mutable_uuid()->mutable_value();
-  for (const auto& b : u)
-    bytes->push_back(b);
-  // bytes->push_back(static_cast<char>(b));
 }
 }  // namespace configuration
 }  // namespace engine
