@@ -136,6 +136,7 @@ void hostdependency_helper::check_validity() const {
  */
 void hostdependency_helper::_init() {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_execution_failure_options(action_hd_none);
   obj->set_inherits_parent(false);
   obj->set_notification_failure_options(action_hd_none);

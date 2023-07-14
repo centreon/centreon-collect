@@ -183,6 +183,7 @@ void anomalydetection_helper::check_validity() const {
  */
 void anomalydetection_helper::_init() {
   Anomalydetection* obj = static_cast<Anomalydetection*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_acknowledgement_timeout(0);
   obj->set_status_change(false);
   obj->set_checks_active(true);

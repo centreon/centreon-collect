@@ -56,7 +56,8 @@ servicedependency_mmap servicedependency::servicedependencies;
  *  @param[in] dependency_period             Dependency timeperiod name.
  *
  */
-servicedependency::servicedependency(std::string const& dependent_hostname,
+servicedependency::servicedependency(size_t key,
+                                     std::string const& dependent_hostname,
                                      std::string const& dependent_svc_desc,
                                      std::string const& hostname,
                                      std::string const& service_description,
@@ -68,16 +69,21 @@ servicedependency::servicedependency(std::string const& dependent_hostname,
                                      bool fail_on_critical,
                                      bool fail_on_pending,
                                      std::string const& dependency_period)
-    : dependency{dependent_hostname, hostname,        dependency_type,
-                 inherits_parent,    fail_on_pending, dependency_period},
-      master_service_ptr{nullptr},
-      dependent_service_ptr{nullptr},
+    : dependency{key,
+                 dependent_hostname,
+                 hostname,
+                 dependency_type,
+                 inherits_parent,
+                 fail_on_pending,
+                 dependency_period},
       _dependent_service_description{dependent_svc_desc},
       _service_description{service_description},
       _fail_on_ok{fail_on_ok},
       _fail_on_warning{fail_on_warning},
       _fail_on_unknown{fail_on_unknown},
-      _fail_on_critical{fail_on_critical} {}
+      _fail_on_critical{fail_on_critical},
+      master_service_ptr{nullptr},
+      dependent_service_ptr{nullptr} {}
 
 std::string const& servicedependency::get_dependent_service_description()
     const {
@@ -383,14 +389,13 @@ void servicedependency::resolve(int& w, int& e) {
  * @return Iterator to the element if found, servicedependencies().end()
  * otherwise.
  */
-static servicedependency_mmap::iterator
-servicedependency::servicedependencies_find(
-    const std::tuple<absl::string_view, absl::string_view, size_t>& key) {
+servicedependency_mmap::iterator servicedependency::servicedependencies_find(
+    const std::tuple<std::string, std::string, size_t>& key) {
+  size_t k = std::get<2>(key);
   std::pair<servicedependency_mmap::iterator, servicedependency_mmap::iterator>
-      p = servicedependencies.equal_range(
-          std::make_pair(std::get<1>(key), std::get<2>(key)));
+      p = servicedependencies.equal_range({std::get<0>(key), std::get<1>(key)});
   while (p.first != p.second) {
-    if (p.first->second->_internal_key == std::get<3>(key))
+    if (p.first->second->internal_key() == k)
       break;
     ++p.first;
   }

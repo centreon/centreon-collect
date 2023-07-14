@@ -43,10 +43,10 @@ TEST_F(ConfigContact, NewContactWithNoName) {
   ASSERT_THROW(ctct.check_validity(), std::exception);
 }
 
-// When I create a configuration::contact with an empty name
+// When I create a configuration::Contact with an empty name
 // Then an exception is thrown.
-TEST_F(ConfigContact, PbNewContactWithNoName) {
+TEST_F(ConfigContact, NewPbContactWithNoName) {
   configuration::Contact ctct;
-  configuration::contact_helper hlp(&ctct);
-  ASSERT_THROW(hlp.check_validity(), std::exception);
+  configuration::contact_helper ctct_hlp(&ctct);
+  ASSERT_THROW(ctct_hlp.check_validity(), std::exception);
 }

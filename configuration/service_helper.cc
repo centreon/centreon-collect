@@ -176,6 +176,7 @@ void service_helper::check_validity() const {
  */
 void service_helper::_init() {
   Service* obj = static_cast<Service*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);
   obj->set_acknowledgement_timeout(0);
   obj->set_checks_active(true);
   obj->set_checks_passive(true);

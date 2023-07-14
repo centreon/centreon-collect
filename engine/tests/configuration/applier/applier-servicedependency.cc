@@ -113,7 +113,7 @@ TEST_F(ApplierServiceDependency, PbAddDependencyWithoutExpansion) {
   configuration::applier::service svc_aply;
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
-  svc_hlp.hook("hosts", "test_host1");
+  svc.set_host_name("test_host1");
   svc.set_service_description("test_svc1");
   svc.set_service_id(12);
   svc.set_check_command("cmd");
@@ -212,7 +212,7 @@ TEST_F(ApplierServiceDependency, PbAddDependency) {
   configuration::applier::service svc_aply;
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
-  svc_hlp.hook("hosts", "test_host1");
+  svc.set_host_name("test_host1");
   svc.set_service_description("test_svc1");
   svc.set_service_id(12);
   svc.set_check_command("cmd");

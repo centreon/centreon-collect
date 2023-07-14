@@ -617,9 +617,6 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
     double sensitivity) {
   // Make sure we have everything we need.
   if (!service_id) {
-    engine_logger(log_config_error, basic)
-        << "Error: Service comes from a database, therefore its service id "
-        << "must not be null";
     SPDLOG_LOGGER_ERROR(
         log_v2::config(),
         "Error: Service comes from a database, therefore its service id must "
@@ -634,12 +631,6 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   } else if (!host_name.empty()) {
     uint64_t hid = get_host_id(host_name);
     if (hid != host_id) {
-      engine_logger(log_config_error, basic)
-          << "Error: host id (" << host_id << ") of host ('" << host_name
-          << "') of anomaly detection service '" << description
-          << "' has a conflict between config does not match with the config "
-             "id ("
-          << hid << ")";
       SPDLOG_LOGGER_ERROR(
           log_v2::config(),
           "Error: host id ({}) of host ('{}') of anomaly detection service "
@@ -651,9 +642,6 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   }
 
   if (internal_id == 0) {
-    engine_logger(log_config_error, basic)
-        << "Error: The internal_id in the anomaly detection configuration is "
-           "mandatory";
     SPDLOG_LOGGER_ERROR(log_v2::config(),
                         "Error: The internal_id in the anomaly detection "
                         "configuration is mandatory");

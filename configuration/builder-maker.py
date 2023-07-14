@@ -145,17 +145,20 @@ void {cname}::check_validity() const {{
 void {cname}::_init() {{
   {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
 """]
+                if cname != "state_helper":
+                    cc_lines.append(
+                        "  obj->mutable_obj()->set_register_(true);\n")
                 header = True
-            if m['proto_type'] == 'UUID':
-                cc_lines.append(
-                    f"""  boost::uuids::uuid u = boost::uuids::random_generator()();
-
-  auto* bytes = obj->mutable_uuid()->mutable_value();
-  for (const auto& b : u)
-    bytes->push_back(b);
-    //bytes->push_back(static_cast<char>(b));
-""")
-            elif m['proto_type'] == 'KeyType':
+#            if m['proto_type'] == 'UUID':
+#                cc_lines.append(
+#                    f"""  boost::uuids::uuid u = boost::uuids::random_generator()();
+#
+#  auto* bytes = obj->mutable_uuid()->mutable_value();
+#  for (const auto& b : u)
+#    bytes->push_back(b);
+#    //bytes->push_back(static_cast<char>(b));
+# """)
+            if m['proto_type'] == 'KeyType':
                 values = m['default'].split(',')
                 cc_lines.append(
                     f"  obj->mutable_{m['proto_name']}()->set_id({values[0].strip()});\n")
@@ -184,13 +187,10 @@ void {cname}::_init() {{
 
     if not header:
         cc_lines = [f"""
-void {cname}::_init() {{\n"""]
+void {cname}::_init() {{
+  {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
+  obj->mutable_obj()->set_register_(true);\n"""]
         header = True
-
-    if name == "timeperiod":
-        cc_lines.append(
-            f"{cap_name} * obj = static_cast < {cap_name} * > (mut_obj());\n")
-        cc_lines.append("obj->mutable_obj()->set_register_(true);\n")
 
     cc_lines.append("}\n")
     if cap_name in ["Contact", "Service", "Host", "Anomalydetection"]:
@@ -368,7 +368,7 @@ def proto_type(t: str):
         "exception_array": "ExceptionArray",
         "group<set_pair_string>": "PairStringSet",
         "std::set<std::pair<uint64_t, uint16_t>>": "repeated PairUint64_32",
-        "boost::uuids::uuid": "UUID",
+        #        "boost::uuids::uuid": "UUID",
     }
     if t in typ:
         return typ[t]
@@ -1183,10 +1183,6 @@ message Object {
 message Point2d {
   int32 x = 1;
   int32 y = 2;
-}
-
-message UUID {
-  bytes value = 1;
 }
 
 message Point3d {

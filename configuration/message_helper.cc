@@ -27,6 +27,13 @@ namespace centreon {
 namespace engine {
 namespace configuration {
 
+message_helper::message_helper(const message_helper& other)
+    : _otype(other._otype),
+      _obj(other._obj),
+      _correspondence(other._correspondence),
+      _modified_field(other._modified_field),
+      _resolved(other._resolved) {}
+
 bool fill_pair_string_group(PairStringSet* grp,
                             const absl::string_view& value) {
   auto arr = absl::StrSplit(value, ',');
