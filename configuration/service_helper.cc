@@ -69,6 +69,43 @@ bool service_helper::hook(absl::string_view key,
   } else if (key == "contacts") {
     fill_string_group(obj->mutable_contacts(), value);
     return true;
+  } else if (key == "flap_detection_options") {
+    uint16_t options(action_svc_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {
+      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      if (v == "o" || v == "ok")
+        options |= action_svc_ok;
+      else if (v == "w" || v == "warning")
+        options |= action_svc_warning;
+      else if (v == "u" || v == "unknown")
+        options |= action_svc_unknown;
+      else if (v == "c" || v == "critical")
+        options |= action_svc_critical;
+      else if (v == "n" || v == "none")
+        options |= action_svc_none;
+      else if (v == "a" || v == "all")
+        options = action_svc_ok | action_svc_warning | action_svc_unknown |
+                  action_svc_critical;
+      else
+        return false;
+    }
+    obj->set_flap_detection_options(options);
+    return true;
+  } else if (key == "initial_state") {
+    uint16_t initial_state;
+    if (value == "o" || value == "ok")
+      initial_state = state_ok;
+    else if (value == "w" || value == "warning")
+      initial_state = state_warning;
+    else if (value == "u" || value == "unknown")
+      initial_state = state_unknown;
+    else if (value == "c" || value == "critical")
+      initial_state = state_critical;
+    else
+      return false;
+    obj->set_initial_state(initial_state);
+    return true;
   } else if (key == "notification_options") {
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
@@ -99,6 +136,29 @@ bool service_helper::hook(absl::string_view key,
     return true;
   } else if (key == "servicegroups") {
     fill_string_group(obj->mutable_servicegroups(), value);
+    return true;
+  } else if (key == "stalking_options") {
+    uint16_t options(action_svc_none);
+    auto values = absl::StrSplit(value, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {
+      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      if (v == "u" || v == "unknown")
+        options |= action_svc_unknown;
+      else if (v == "o" || v == "ok")
+        options |= action_svc_ok;
+      else if (v == "w" || v == "warning")
+        options |= action_svc_warning;
+      else if (v == "c" || v == "critical")
+        options |= action_svc_critical;
+      else if (v == "n" || v == "none")
+        options = action_svc_none;
+      else if (v == "a" || v == "all")
+        options = action_svc_ok | action_svc_unknown | action_svc_warning |
+                  action_svc_critical;
+      else
+        return false;
+    }
+    obj->set_stalking_options(options);
     return true;
   } else if (key == "category_tags") {
     auto tags{absl::StrSplit(value, ',')};
