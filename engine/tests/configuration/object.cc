@@ -17,10 +17,12 @@
 * <http://www.gnu.org/licenses/>.
 */
 
+#include <absl/container/flat_hash_map.h>
 #include <gtest/gtest.h>
 
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/configuration/service.hh"
+#include "configuration/service_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
