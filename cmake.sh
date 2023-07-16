@@ -9,7 +9,7 @@ This program build Centreon-broker
     -f|--force    : force rebuild
     -r|--release  : Build on release mode
     -fcr|--force-conan-rebuild : rebuild conan data
-    -ng           : C++17 standard
+    -og           : C++14 standard
     -clang        : Compilation with clang++
     -h|--help     : help
 EOF
@@ -26,7 +26,7 @@ for i in $(cat conanfile.txt) ; do
   fi
 done
 
-STD=gnu14
+STD=gnu++17
 COMPILER=gcc
 CC=gcc
 CXX=g++
@@ -42,9 +42,9 @@ do
       force=1
       shift
       ;;
-    -ng)
-      echo "C++17 applied on this compilation"
-      STD="gnu17"
+    -og)
+      echo "C++14 applied on this compilation"
+      STD="gnu++14"
       shift
       ;;
     -r|--release)
@@ -55,7 +55,6 @@ do
     -clang)
       COMPILER=clang
       WITH_CLANG=ON
-      STD=gnu14
       EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
       CC=clang
       CXX=clang++
@@ -314,7 +313,7 @@ cd build
 echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
-if [[ $STD -eq 17 ]] ; then
+if [[ "$STD" = "gnu++17" ]] ; then
   NG="-DNG=ON"
 else
   NG="-DNG=OFF"

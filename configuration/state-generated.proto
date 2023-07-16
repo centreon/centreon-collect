@@ -27,6 +27,13 @@ message CustomVariable {
   bool modified = 4;
 }
 
+enum ServiceStatus {
+  state_ok = 0;
+  state_warning = 1;
+  state_critical = 2;
+  state_unknown = 3;
+}
+
 message Object {
   string name = 1;
   bool register = 2;
