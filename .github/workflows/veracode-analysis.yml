@@ -132,6 +132,13 @@ jobs:
           echo "[DEBUG] - Current location ?"
           pwd
           ls -la
+          cd ..
+          mv centreon-collect collect-to-analyse
+          mkdir centreon-collect
+          mv collect-to-analyse centreon-collect
+
+          ls -la
+          ls -la centreon-collect
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@master
@@ -140,7 +147,7 @@ jobs:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
           #filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          filepath: "centreon-collect"
+          filepath: ".\/collect-to-analyse"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
