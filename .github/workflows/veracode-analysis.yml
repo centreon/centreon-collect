@@ -53,7 +53,7 @@ jobs:
       - name: debug before compilation status
         run: |
           gcc --version
-          du -sh /src/* | sort -h
+          du -sh ./* | sort -h
           ls -la
 
       - name: Compile cpp sources
@@ -61,12 +61,9 @@ jobs:
         run: |
           pwd
           ls -la
-          rm -rf build
-          mkdir build
-          cd build
 
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
           sudo cmake \
@@ -87,7 +84,7 @@ jobs:
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
             -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-            ..
+            .
 
           sudo ninja
 
@@ -95,8 +92,6 @@ jobs:
         run: |
           echo "[DEBUG] - current location ?"
           pwd
-          echo "[DEBUG] - gcc version ?"
-          gcc --version
           echo "[DEBUG] - Current folder size ?"
           du -sh ./* | sort -h
           echo "[DEBUG] - Newly created build folder size ?"
@@ -112,9 +107,8 @@ jobs:
 
       - name: Create tarball
         run: |
-          pwd
           echo "[INFO] - Cleaning useless files"
-          echo "[DEBUG] - step skipped"
+          echo "[DEBUG] - step Cancelled"
           #for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "*.py" ); do
           #  rm -f $file
           #done
@@ -126,29 +120,19 @@ jobs:
           done
 
           echo "[INFO] - Keeping only bin and lib"
-          echo "[DEBUG] - step skipped"
-          #mv build full_build
-          #mkdir build
-          #mv -f full_build/bin build
-          #mv -f full_build/lib build
-          #ls -la
+          echo "[DEBUG] - step Cancelled"
 
-          #rm -rf full_build
-
-          #echo "[INFO] - Generating tarball"
+          echo "[DEBUG] - Current folder size ?"
+          du -sh ./* | sort -h
           cd ..
-          ls -la
+          echo "[DEBUG] - Parent folder size ?"
+          du -sh ./* | sort -h
 
-      - name: Prepare analysis
+      - name: Debug analysis preparation
         run: |
           echo "[DEBUG] - Current location ?"
           pwd
           ls -la
-
-          echo "[DEBUG] - Checking current folder size ?"
-          du -sh ./* | sort -h
-          cd ..
-          pwd
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@master
