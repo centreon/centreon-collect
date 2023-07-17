@@ -135,7 +135,7 @@ jobs:
 
           #rm -rf full_build
 
-          echo "[INFO] - Generating tarball"
+          #echo "[INFO] - Generating tarball"
           cd ..
           ls -la
 
