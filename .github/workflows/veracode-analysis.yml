@@ -66,6 +66,8 @@ jobs:
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
+          # Removed to test : -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+
           sudo cmake \
             -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
@@ -83,7 +85,6 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
-            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
             .
 
           sudo ninja
@@ -94,14 +95,12 @@ jobs:
           pwd
           echo "[DEBUG] - Current folder size ?"
           du -sh ./* | sort -h
-          echo "[DEBUG] - Newly created build folder size ?"
-          du -sh ./build/* | sort -h
           echo "[DEBUG] - Build / Bin folder size ?"
-          du -sh ./build/bin/* | sort -h
+          du -sh ./bin/* | sort -h
           echo "[DEBUG] - Build / Lib folder size ?"
-          du -sh ./build/lib/* | sort -h
+          du -sh ./lib/* | sort -h
           echo "[DEBUG] - Build / Broker module folder size ?"
-          du -sh ./build/broker/* | sort -h
+          du -sh ./broker/* | sort -h
           echo "[DEBUG] - Current location files ?"
           ls -la
 
