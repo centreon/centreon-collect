@@ -216,8 +216,8 @@ BABOOORREL
     Set Services Passive    ${0}    service_303
     Set Services Passive    ${0}    service_304
 
-    ${id_ba__sid}=    create_ba    boolean-ba    impact    70    80
-    ${id_bool}=    add_boolean_kpi
+    ${id_ba__sid}    Create Ba    boolean-ba    impact    70    80
+    ${id_bool}    Add Boolean Kpi
     ...    ${id_ba__sid[0]}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
     ...    False
@@ -228,8 +228,8 @@ BABOOORREL
     Start Engine
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    ${result}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 302 is set to critical => {host_16 service_302} {IS} {OK} is then False
     Repeat Keyword
     ...    3 times
@@ -288,8 +288,7 @@ BABOOORREL
     ${result}=    check_ba_status_with_timeout    boolean-ba    2    30
     Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]  Run Keywords  Stop Engine  AND  Kindly Stop Broker
 
 BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
