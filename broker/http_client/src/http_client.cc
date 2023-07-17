@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/async/defer.hh"
+#include "com/centreon/common/defer.hh"
 
 #include "http_client.hh"
 
@@ -383,10 +383,10 @@ void client::retry(const boost::beast::error_code& error,
       SPDLOG_LOGGER_ERROR(
           _logger, "fail to send request => resent in {} s",
           std::chrono::duration_cast<std::chrono::seconds>(next_retry).count());
-      async::defer(_io_context, next_retry,
-                   [me = shared_from_this(), request]() {
-                     me->send_or_push(request, true);
-                   });
+      common::defer(_io_context, next_retry,
+                    [me = shared_from_this(), request]() {
+                      me->send_or_push(request, true);
+                    });
     } else {  // to many error => callback with error
       to_call = request;
     }
@@ -398,7 +398,7 @@ void client::retry(const boost::beast::error_code& error,
 
     // try to send the first enqueue request in 1s
     if (!_halt) {
-      async::defer(_io_context, _retry_unit, [me = shared_from_this()]() {
+      common::defer(_io_context, _retry_unit, [me = shared_from_this()]() {
         me->send_first_queue_request();
       });
     }

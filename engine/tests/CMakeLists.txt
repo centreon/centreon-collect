@@ -118,7 +118,6 @@ if(WITH_TESTING)
       "${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
-      "${TESTS_DIR}/timeperiod/utils.cc"
       # # Headers.
       "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/timeperiod/utils.hh")
