@@ -26,7 +26,7 @@ for i in $(cat conanfile.txt) ; do
   fi
 done
 
-STD=gnu++17
+STD=gnu17
 COMPILER=gcc
 CC=gcc
 CXX=g++
@@ -44,7 +44,7 @@ do
       ;;
     -og)
       echo "C++14 applied on this compilation"
-      STD="gnu++14"
+      STD="gnu14"
       shift
       ;;
     -r|--release)
@@ -313,7 +313,7 @@ cd build
 echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
-if [[ "$STD" = "gnu++17" ]] ; then
+if [[ "$STD" = "gnu17" ]] ; then
   NG="-DNG=ON"
 else
   NG="-DNG=OFF"
