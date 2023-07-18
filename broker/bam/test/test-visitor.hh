@@ -21,6 +21,7 @@
 
 #include <fmt/format.h>
 #include "bbdo/bam/ba_event.hh"
+#include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/stream.hh"
