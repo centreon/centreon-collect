@@ -209,7 +209,7 @@ void {cname}::_init() {{
 bool {cname}::insert_customvariable(absl::string_view key, absl::string_view value) {{
   if (key[0] != '_')
     return false;
-    
+
   key.remove_prefix(1);
   {cap_name}* obj = static_cast<{cap_name}*>(mut_obj());
   auto* cvs = obj->mutable_customvariables();
@@ -921,6 +921,35 @@ def build_hook_content(cname: str, msg):
     obj->set_notification_options(options);
     return true;
   }}
+""")
+        elif (cname == 'Service' or cname == 'Anomalydetection') and m['proto_name'] == 'group_tags':
+            retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
+      bool ret = true;
+      auto tags = absl::StrSplit(value, ',');
+      for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
+           end(_tags.end());
+           it != end;) {{
+        if (it->second == tag::servicegroup)
+          it = _tags.erase(it);
+        else
+          ++it;
+      }}
+
+      for (auto& tag : tags) {{
+        int64_t id;
+        bool parse_ok;
+        parse_ok = absl::SimpleAtoi(tag, &id);
+        if (parse_ok) {{
+          _tags.emplace(id, tag::servicegroup);
+        }} else {{
+          log_v2::config()->warn(
+              "Warning: service ({{}}, {{}}) error for parsing tag {{}}", _host_id,
+              _service_id, value);
+          ret = false;
+        }}
+      }}
+      return ret;
+    }}
 """)
         elif (cname == 'Service' or cname == 'Anomalydetection') and m['proto_name'] == 'initial_state':
             retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
