@@ -56,7 +56,7 @@ BABOO
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 393 is set to ok.
     Process Service Check Result    host_16    service_303    0    output ok for service_303
@@ -73,15 +73,15 @@ BABOO
         ...    output critical for service_302
 
         ${result}    Check Ba Status With Timeout    ba-worst    2    30
-        Should Be True    ${result}    msg=The 'ba-worst' BA is not CRITICAL as expected
+        Should Be True    ${result}    The 'ba-worst' BA is not CRITICAL as expected
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-        Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+        Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
         Process Service Check Result    host_16    service_302    0    output ok for service_302
         ${result}    Check Ba Status With Timeout    ba-worst    0    30
-        Should Be True    ${result}    msg=The 'ba-worst' BA is not OK as expected
+        Should Be True    ${result}    The 'ba-worst' BA is not OK as expected
         ${result}    Check Ba Status With Timeout    boolean-ba    0    30
-        Should Be True    ${result}    msg=The 'boolean-ba' BA is not OK as expected
+        Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
     Stop Engine
@@ -122,7 +122,7 @@ BABOOOR
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 303 is unknown but since the boolean operator is OR, if 302 result is true, we should have already a result.
 
     # 302 is set to critical => the two ba become critical
@@ -135,7 +135,7 @@ BABOOOR
     ...    output critical for service_302
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+    Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     Stop Engine
     Kindly Stop Broker
@@ -175,7 +175,7 @@ BABOOAND
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 303 is unknown but since the boolean operator is AND, if 302 result is false, we should have already a result.
 
     # 302 is set to critical => the two ba become critical
@@ -188,7 +188,7 @@ BABOOAND
     ...    output critical for service_302
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+    Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     Stop Engine
     Kindly Stop Broker
@@ -258,7 +258,7 @@ BABOOORREL
     ...    output ok for service_304
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+    Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     Update Boolean Rule
     ...    ${id_bool}
@@ -270,9 +270,9 @@ BABOOORREL
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30
-    Should Be True    ${result}    msg=The 'boolean-ba' BA is not OK as expected
+    Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
     Update Boolean Rule
     ...    ${id_bool}
@@ -284,9 +284,9 @@ BABOOORREL
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-    Should Be True    ${result}    msg=The 'boolean-ba' BA is not CRITICAL as expected
+    Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     [Teardown]  Run Keywords  Stop Engine  AND  Kindly Stop Broker
 
@@ -327,7 +327,7 @@ BABOOCOMPL
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     FOR    ${i}    IN RANGE    ${1}    ${21}
         Repeat Keyword
         ...    3 times
@@ -340,7 +340,7 @@ BABOOCOMPL
 
     FOR    ${i}    IN RANGE    ${1}    ${21}    ${2}
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
-        Should Be True    ${result}    msg=Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
+        Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         Repeat Keyword
         ...    3 times
         ...    Process Service Check Result
@@ -351,7 +351,7 @@ BABOOCOMPL
     END
 
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30
-    Should Be True    ${result}    msg=The 'boolean-ba' BA is not OK as expected
+    Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
     Stop Engine
     Kindly Stop Broker
