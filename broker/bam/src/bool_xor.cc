@@ -28,16 +28,18 @@ constexpr double eps = 0.000001;
  *  @return Evaluation of the expression with hard values.
  */
 double bool_xor::value_hard() {
-  return (std::abs(_left_hard) < ::eps && std::abs(_right_hard) >= ::eps) ||
-         (std::abs(_left_hard) >= ::eps && std::abs(_right_hard) < ::eps);
+  bool left = std::abs(_left_hard) > eps;
+  bool right = std::abs(_right_hard) > eps;
+  return left ^ right;
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean
  *
- *  @return Evaluation of the expression with soft values.
+ * @return True or false.
  */
-double bool_xor::value_soft() {
-  return (std::abs(_left_soft) < ::eps && std::abs(_right_soft) >= ::eps) ||
-         (std::abs(_left_soft) >= ::eps && std::abs(_right_soft) < ::eps);
+bool bool_xor::boolean_value() const {
+  bool left = std::abs(_left_hard) > eps;
+  bool right = std::abs(_right_hard) > eps;
+  return left ^ right;
 }

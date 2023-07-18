@@ -230,6 +230,51 @@ void kpi_service::service_update(
  *  @param[in]  status   Service status.
  *  @param[out] visitor  Object that will receive events.
  */
+void kpi_service::service_update(const std::shared_ptr<neb::pb_service>& status,
+                                 io::stream* visitor) {
+  if (status && status->obj().host_id() == _host_id &&
+      status->obj().service_id() == _service_id) {
+    auto& o = status->obj();
+    // Log message.
+    log_v2::bam()->debug(
+        "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
+        "{})",
+        _id, _host_id, _service_id, o.state());
+
+    // Update information.
+    if (o.last_check() == 0 || o.last_check() == -1) {
+      if (_last_check.is_null()) {
+        _last_check = std::time(nullptr);
+        log_v2::bam()->trace(
+            "service kpi {} last check updated with status last update {}", _id,
+            _last_check);
+      }
+    } else {
+      _last_check = o.last_check();
+      log_v2::bam()->trace(
+          "service kpi {} last check updated with status last check {}", _id,
+          o.last_check());
+    }
+    _output = o.output();
+    _perfdata = o.perfdata();
+    _state_hard = static_cast<state>(o.last_hard_state());
+    _state_soft = static_cast<state>(o.state());
+    _state_type = o.state_type();
+
+    // Generate status event.
+    visit(visitor);
+
+    // Propagate change.
+    propagate_update(visitor);
+  }
+}
+
+/**
+ *  Service got updated !
+ *
+ *  @param[in]  status   Service status.
+ *  @param[out] visitor  Object that will receive events.
+ */
 void kpi_service::service_update(
     const std::shared_ptr<neb::pb_service_status>& status,
     io::stream* visitor) {

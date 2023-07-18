@@ -37,11 +37,11 @@ class ba_svc_mapping {
 
  public:
   ba_svc_mapping() = default;
-  ba_svc_mapping(ba_svc_mapping const& other);
+  ba_svc_mapping(const ba_svc_mapping&) = delete;
   ~ba_svc_mapping() noexcept = default;
-  ba_svc_mapping& operator=(ba_svc_mapping const& other);
+  ba_svc_mapping& operator=(const ba_svc_mapping& other);
   std::pair<std::string, std::string> get_service(uint32_t ba_id);
-  void set(uint32_t ba_id, std::string const& hst, std::string const& svc);
+  void set(uint32_t ba_id, const std::string& hst, const std::string& svc);
 };
 }  // namespace bam
 

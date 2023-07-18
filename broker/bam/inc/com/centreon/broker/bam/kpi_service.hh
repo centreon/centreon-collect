@@ -81,6 +81,8 @@ class kpi_service : public service_listener, public kpi {
   bool is_acknowledged() const;
   void service_update(std::shared_ptr<neb::service_status> const& status,
                       io::stream* visitor = nullptr) override;
+  void service_update(const std::shared_ptr<neb::pb_service>& status,
+                      io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
                       io::stream* visitor = nullptr) override;
   void service_update(const std::shared_ptr<neb::pb_acknowledgement>& ack,
