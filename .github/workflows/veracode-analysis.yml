@@ -132,12 +132,15 @@ jobs:
           echo "[DEBUG] - Current location ?"
           pwd
           ls -la
+          echo "[DEBUG] - cd.."
           cd ..
+          echo "[DEBUG] - creating collect-to-analyse"
           mv centreon-collect collect-to-analyse
           mkdir centreon-collect
           mv collect-to-analyse centreon-collect
-
+          echo "[DEBUG] - New current location ?"
           ls -la
+          echo "[DEBUG] - New current location sub folder?"
           ls -la centreon-collect
 
       - name: Sandbox scan
@@ -147,7 +150,7 @@ jobs:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
           #filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          filepath: ".\/collect-to-analyse"
+          filepath: "collect-to-analyse\\"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
