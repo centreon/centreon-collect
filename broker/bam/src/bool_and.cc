@@ -45,8 +45,12 @@ void bool_and::_update_state() {
     _state_known = true;
   } else {
     bool_binary_operator::_update_state();
-    if (_left && _right)
-      _boolean_value = _left->boolean_value() && _right->boolean_value();
+    if (_state_known) {
+      bool left = std::abs(_left_hard) > eps;
+      bool right = std::abs(_right_hard) > eps;
+      _boolean_value = left && right;
+    } else
+      _boolean_value = false;
     log_v2::bam()->trace(
         "bam: bool and generic rule applied: value: {} - known : {}",
         _boolean_value, _state_known);
