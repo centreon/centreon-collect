@@ -35,16 +35,19 @@
 #include "configuration/contact_helper.hh"
 #include "configuration/contactgroup_helper.hh"
 #include "configuration/host_helper.hh"
-#include "configuration/service_helper.hh"
 #include "configuration/hostdependency_helper.hh"
+#include "configuration/service_helper.hh"
 
 using namespace com::centreon::engine;
 
 class TestEngine : public ::testing::Test {
  public:
-  void fill_pb_configuration_contact(
-      configuration::contact_helper* ctct_hlp,
-      std::string const& name,
+  void fill_pb_configuration_contact(configuration::contact_helper* ctct_hlp,
+                                     std::string const& name,
+                                     bool full,
+                                     const std::string& notif = "a") const;
+  configuration::Contact new_pb_configuration_contact(
+      const std::string& name,
       bool full,
       const std::string& notif = "a") const;
   configuration::contact new_configuration_contact(

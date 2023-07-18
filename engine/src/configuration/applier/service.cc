@@ -1,24 +1,25 @@
 /**
-* Copyright 2011-2019,2022-2023 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019,2022-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include <absl/container/flat_hash_set.h>
+#include "absl/hash/hash.h"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/config.hh"
@@ -572,19 +573,34 @@ void applier::service::modify_object(configuration::Service* old_obj,
     s->set_severity(nullptr);
 
   // add tags
-  //  if (new_obj.tags() != old_obj->tags()) {
-  //    s->mut_tags().clear();
-  //    for (auto& t : new_obj.tags()) {
-  //      tag_map::iterator it_tag{engine::tag::tags.find(t)};
-  //      if (it_tag == engine::tag::tags.end())
-  //        throw engine_error() << "Could not find tag '" << t.first
-  //                             << "' on which to apply service (" <<
-  //                             new_obj.host_id()
-  //                             << ", " << new_obj.service_id() << ")";
-  //      else
-  //        s->mut_tags().emplace_front(it_tag->second);
-  //    }
-  //  }
+  bool tags_changed = false;
+  if (old_obj->tags().size() == new_obj.tags().size()) {
+    for (auto new_it = new_obj.tags().begin(), old_it = old_obj->tags().begin();
+         old_it != old_obj->tags().end() && new_it != new_obj.tags().end();
+         ++old_it, ++new_it) {
+      if (new_it->first() != old_it->first() ||
+          new_it->second() != old_it->second()) {
+        tags_changed = true;
+        break;
+      }
+    }
+  } else
+    tags_changed = true;
+
+  if (tags_changed) {
+    s->mut_tags().clear();
+    old_obj->mutable_tags()->CopyFrom(new_obj.tags());
+    for (auto& t : new_obj.tags()) {
+      tag_map::iterator it_tag =
+          engine::tag::tags.find({t.first(), t.second()});
+      if (it_tag == engine::tag::tags.end())
+        throw engine_error() << fmt::format(
+            "Could not find tag '{}' on which to apply service ({}, {})",
+            t.first(), new_obj.host_id(), new_obj.service_id());
+      else
+        s->mut_tags().emplace_front(it_tag->second);
+    }
+  }
   // Notify event broker.
   broker_adaptive_service_data(NEBTYPE_SERVICE_UPDATE, NEBFLAG_NONE,
                                NEBATTR_NONE, s.get(), MODATTR_ALL);
