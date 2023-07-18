@@ -83,6 +83,67 @@ void TestEngine::fill_pb_configuration_contact(
   ctct->set_service_notifications_enabled(true);
 }
 
+configuration::Contact TestEngine::new_pb_configuration_contact(
+    const std::string& name,
+    bool full,
+    const std::string& notif) const {
+  if (full) {
+    // Add command.
+    {
+      configuration::Command cmd;
+      configuration::command_helper cmd_hlp(&cmd);
+      cmd.set_command_name("cmd");
+      cmd.set_command_line("true");
+      configuration::applier::command aplyr;
+      aplyr.add_object(cmd);
+    }
+    // Add timeperiod.
+    {
+      configuration::Timeperiod tperiod;
+      configuration::timeperiod_helper tperiod_hlp(&tperiod);
+      tperiod.set_timeperiod_name("24x7");
+      tperiod.set_alias("24x7");
+      auto* r = tperiod.mutable_timeranges()->add_monday();
+      r->set_range_start(0);
+      r->set_range_end(24);
+      r = tperiod.mutable_timeranges()->add_tuesday();
+      r->set_range_start(0);
+      r->set_range_end(24);
+      r = tperiod.mutable_timeranges()->add_wednesday();
+      r->set_range_start(0);
+      r->set_range_end(24);
+      r = tperiod.mutable_timeranges()->add_thursday();
+      r->set_range_start(0);
+      r->set_range_end(24);
+      r = tperiod.mutable_timeranges()->add_friday();
+      r->set_range_start(0);
+      r->set_range_end(24);
+      r = tperiod.mutable_timeranges()->add_saturday();
+      r->set_range_start(0);
+      r->set_range_end(24);
+      r = tperiod.mutable_timeranges()->add_sunday();
+      r->set_range_start(0);
+      r->set_range_end(24);
+      configuration::applier::timeperiod aplyr;
+      aplyr.add_object(tperiod);
+    }
+  }
+  // Valid contact configuration
+  // (will generate 0 warnings or 0 errors).
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ctct.set_contact_name(name);
+  ctct.set_host_notification_period("24x7");
+  ctct.set_service_notification_period("24x7");
+  fill_string_group(ctct.mutable_host_notification_commands(), "cmd");
+  fill_string_group(ctct.mutable_service_notification_commands(), "cmd");
+  ctct_hlp.hook("host_notification_options", "d,r,f,s");
+  ctct_hlp.hook("service_notification_options", notif);
+  ctct.set_host_notifications_enabled(true);
+  ctct.set_service_notifications_enabled(true);
+  return ctct;
+}
+
 configuration::contact TestEngine::new_configuration_contact(
     const std::string& name,
     bool full,
