@@ -38,7 +38,7 @@ on:
 
 jobs:
   build:
-    name: Binary preparation
+    name: Sandbox scan
     runs-on: [self-hosted, collect]
 
     container:
@@ -107,9 +107,9 @@ jobs:
       - name: Create tarball
         run: |
           echo "[INFO] - Cleaning useless files"
-          echo "[DEBUG] - step Cancelled"
-          #for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "*.py" ); do
-          #  rm -f $file
+          #echo "[DEBUG] - step Cancelled"
+          for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" ); do
+            rm -f $file
           #done
 
           echo "[INFO] - Cleaning scripts used to mock datas"
@@ -143,14 +143,16 @@ jobs:
           echo "[DEBUG] - New current location sub folder?"
           ls -la centreon-collect
 
+          cd ..
+          env GZIP=-9 tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" centreon-collect
+
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@0.2.6
         continue-on-error: true
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          #filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          filepath: "collect-to-analyse\\"
+          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
@@ -171,7 +173,7 @@ jobs:
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
 
         # Action forked as API call hardcode '.com' route
-        uses: sc979/veracode-sandboxes-helper@v0.1
+        uses: sc979/veracode-sandboxes-helper@v0.2
         with:
           activity: "promote-latest-scan"
           app-name: "${{ inputs.module_name }}"
