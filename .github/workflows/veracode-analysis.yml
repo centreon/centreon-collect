@@ -141,7 +141,7 @@ jobs:
           ls -la centreon-collect
 
       - name: Sandbox scan
-        uses: veracode/veracode-uploadandscan-action@master
+        uses: veracode/veracode-uploadandscan-action@0.2.6
         continue-on-error: true
         with:
           appname: "${{ inputs.module_name }}"
