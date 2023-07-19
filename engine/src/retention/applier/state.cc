@@ -83,6 +83,7 @@ void applier::state::apply(configuration::State& config,
   broker_retention_data(NEBTYPE_RETENTIONDATA_ENDLOAD, NEBFLAG_NONE,
                         NEBATTR_NONE, NULL);
 }
+
 /**
  *  Restore retention state.
  *

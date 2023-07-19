@@ -293,7 +293,7 @@ gcc)
   ;;
 esac
 
-if [ ! -r "$HOME/.conan/profiles/default" ] ; then
+if [ "$CONAN_REBUILD" -eq 1 -o ! -r "$HOME/.conan/profiles/default" ] ; then
   echo "Creating default profile"
   mkdir -p "$HOME/.conan/profiles"
   cat << EOF > "$HOME/.conan/profiles/default"
