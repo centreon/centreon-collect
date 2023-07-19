@@ -1,24 +1,24 @@
 /**
-* Copyright 1999-2009 Ethan Galstad
-* Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-* Copyright 2011-2013 Merethis
-* Copyright 2013-2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2013 Merethis
+ * Copyright 2013-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/events/loop.hh"
 #include <chrono>
@@ -170,7 +170,9 @@ void loop::_dispatching() {
     // Else if the time advanced over the specified threshold,
     // try and compensate...
     else if ((current_time - _last_time) >=
-             static_cast<time_t>(config->time_change_threshold()))
+             static_cast<time_t>(legacy_conf
+                                     ? config->time_change_threshold()
+                                     : pb_config.time_change_threshold()))
       compensate_for_system_time_change(
           static_cast<unsigned long>(_last_time),
           static_cast<unsigned long>(current_time));
@@ -203,12 +205,15 @@ void loop::_dispatching() {
           << "No low priority events are scheduled...";
       log_v2::events()->debug("No low priority events are scheduled...");
     }
+    uint32_t max_parallel_service_checks =
+        legacy_conf ? config->max_parallel_service_checks()
+                    : pb_config.max_parallel_service_checks();
     engine_logger(dbg_events, more)
         << "Current/Max Service Checks: " << currently_running_service_checks
-        << '/' << config->max_parallel_service_checks();
+        << '/' << max_parallel_service_checks;
     log_v2::events()->debug("Current/Max Service Checks: {}/{}",
                             currently_running_service_checks,
-                            config->max_parallel_service_checks());
+                            max_parallel_service_checks);
 
     // Update status information occassionally - NagVis watches the
     // NDOUtils DB to see if Engine is alive.
@@ -218,7 +223,7 @@ void loop::_dispatching() {
     }
 
     // Handle high priority events.
-    bool run_event(true);
+    bool run_event = true;
     if (!_event_list_high.empty() &&
         current_time >= _event_list_high.front()->run_time) {
       // Remove the first event from the timing loop.
@@ -249,41 +254,39 @@ void loop::_dispatching() {
 
         // Don't run a service check if we're already maxed out on the
         // number of parallel service checks...
-        if (config->max_parallel_service_checks() != 0 &&
-            currently_running_service_checks >=
-                config->max_parallel_service_checks()) {
+        if (max_parallel_service_checks != 0 &&
+            currently_running_service_checks >= max_parallel_service_checks) {
           // Move it at least 5 seconds (to overcome the current peak),
           // with a random 10 seconds (to spread the load).
           nudge_seconds = 5 + (rand() % 10);
           engine_logger(dbg_events | dbg_checks, basic)
               << "**WARNING** Max concurrent service checks ("
               << currently_running_service_checks << "/"
-              << config->max_parallel_service_checks()
-              << ") has been reached!  Nudging " << temp_service->get_hostname()
-              << ":" << temp_service->description() << " by " << nudge_seconds
+              << max_parallel_service_checks << ") has been reached!  Nudging "
+              << temp_service->get_hostname() << ":"
+              << temp_service->description() << " by " << nudge_seconds
               << " seconds...";
           log_v2::events()->trace(
               "**WARNING** Max concurrent service checks ({}/{}) has been "
               "reached!  Nudging {}:{} by {} seconds...",
-              currently_running_service_checks,
-              config->max_parallel_service_checks(),
+              currently_running_service_checks, max_parallel_service_checks,
               temp_service->get_hostname(), temp_service->description(),
               nudge_seconds);
 
           engine_logger(log_runtime_warning, basic)
               << "\tMax concurrent service checks ("
               << currently_running_service_checks << "/"
-              << config->max_parallel_service_checks()
-              << ") has been reached.  Nudging " << temp_service->get_hostname()
-              << ":" << temp_service->description() << " by " << nudge_seconds
+              << max_parallel_service_checks << ") has been reached.  Nudging "
+              << temp_service->get_hostname() << ":"
+              << temp_service->description() << " by " << nudge_seconds
               << " seconds...";
           log_v2::runtime()->warn(
               "\tMax concurrent service checks ({}/{}) has been reached.  "
               "Nudging {}:{} by {} seconds...",
-              currently_running_service_checks,
-              config->max_parallel_service_checks(),
+              currently_running_service_checks, max_parallel_service_checks,
               temp_service->get_hostname(), temp_service->description(),
               nudge_seconds);
+          log_v2::events()->debug("no event3");
           run_event = false;
         }
 
@@ -295,6 +298,7 @@ void loop::_dispatching() {
           log_v2::events()->debug(
               "We're not executing service checks right now, so we'll skip "
               "this event.");
+          log_v2::events()->debug("no event2");
           run_event = false;
         }
 
@@ -334,6 +338,7 @@ void loop::_dispatching() {
           temp_event->run_time = temp_service->get_next_check();
           reschedule_event(std::move(temp_event), events::loop::low);
           temp_service->update_status();
+          log_v2::events()->debug("no event5");
           run_event = false;
         }
       }
@@ -353,6 +358,7 @@ void loop::_dispatching() {
           log_v2::events()->debug(
               "We're not executing host checks right now, so we'll skip this "
               "event.");
+          log_v2::events()->debug("no event4");
           run_event = false;
         }
 
@@ -382,6 +388,7 @@ void loop::_dispatching() {
           temp_event->run_time = temp_host->get_next_check();
           reschedule_event(std::move(temp_event), events::loop::low);
           temp_host->update_status();
+          log_v2::events()->debug("no event1");
           run_event = false;
         }
       }

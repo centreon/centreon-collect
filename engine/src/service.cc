@@ -1055,6 +1055,24 @@ int service::handle_async_check_result(
   com::centreon::engine::service* master_service = nullptr;
   int run_async_check = true;
   int flapping_check_done = false;
+  uint32_t interval_length =
+      legacy_conf ? config->interval_length() : pb_config.interval_length();
+  bool accept_passive_service_checks =
+      legacy_conf ? config->accept_passive_service_checks()
+                  : pb_config.accept_passive_service_checks();
+  bool log_passive_checks = legacy_conf ? config->log_passive_checks()
+                                        : pb_config.log_passive_checks();
+  uint32_t cached_host_check_horizon =
+      legacy_conf ? config->cached_host_check_horizon()
+                  : pb_config.cached_host_check_horizon();
+  bool obsess_over_services = legacy_conf ? config->obsess_over_services()
+                                          : pb_config.obsess_over_services();
+  bool enable_predictive_service_dependency_checks =
+      legacy_conf ? config->enable_predictive_service_dependency_checks()
+                  : pb_config.enable_predictive_service_dependency_checks();
+  uint32_t cached_service_check_horizon =
+      legacy_conf ? config->cached_service_check_horizon()
+                  : pb_config.cached_service_check_horizon();
 
   engine_logger(dbg_functions, basic) << "handle_async_service_check_result()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(),
@@ -1112,7 +1130,7 @@ int service::handle_async_check_result(
    * skip this service check results if its passive and we aren't accepting
    * passive check results */
   if (queued_check_result.get_check_type() == check_passive) {
-    if (!config->accept_passive_service_checks()) {
+    if (!accept_passive_service_checks) {
       engine_logger(dbg_checks, basic)
           << "Discarding passive service check result because passive "
              "service checks are disabled globally.";
@@ -1327,7 +1345,7 @@ int service::handle_async_check_result(
    * commands by getting dropped in checkresults dir
    */
   if (get_check_type() == check_passive) {
-    if (config->log_passive_checks())
+    if (log_passive_checks)
       engine_logger(log_passive_check, basic)
           << "PASSIVE SERVICE CHECK: " << _hostname << ";" << name() << ";"
           << _current_state << ";" << get_plugin_output();
@@ -1518,7 +1536,7 @@ int service::handle_async_check_result(
         if ((!state_change || state_changes_use_cached_state) &&
             hst->has_been_checked() &&
             (static_cast<unsigned long>(current_time - hst->get_last_check()) <=
-             config->cached_host_check_horizon())) {
+             cached_host_check_horizon)) {
           engine_logger(dbg_checks, more)
               << "* Using cached host state: " << hst->get_current_state();
           SPDLOG_LOGGER_DEBUG(log_v2::checks(), "* Using cached host state: {}",
@@ -1592,7 +1610,7 @@ int service::handle_async_check_result(
     notify(reason_recovery, "", "", notification_option_none);
 
     /* should we obsessive over service checks? */
-    if (config->obsess_over_services())
+    if (obsess_over_services)
       obsessive_compulsive_service_check_processor();
 
     /* reset all service variables because its okay now... */
@@ -1605,8 +1623,8 @@ int service::handle_async_check_result(
     set_no_more_notifications(false);
 
     if (reschedule_check)
-      next_service_check = (time_t)(
-          get_last_check() + check_interval() * config->interval_length());
+      next_service_check =
+          (time_t)(get_last_check() + check_interval() * interval_length);
   }
 
   /*******************************************/
@@ -1632,8 +1650,8 @@ int service::handle_async_check_result(
       /* only use cached host state if no service state change has occurred */
       if ((!state_change || state_changes_use_cached_state) &&
           hst->has_been_checked() &&
-          (static_cast<unsigned long>(current_time - hst->get_last_check()) <=
-           config->cached_host_check_horizon())) {
+          static_cast<unsigned long>(current_time - hst->get_last_check()) <=
+              cached_host_check_horizon) {
         /* use current host state as route result */
         route_result = hst->get_current_state();
         engine_logger(dbg_checks, more)
@@ -1791,8 +1809,8 @@ int service::handle_async_check_result(
         /* the host is not up, so reschedule the next service check at regular
          * interval */
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + check_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() + check_interval() * interval_length);
 
         /* log the problem as a hard state if the host just went down */
         if (hard_state_change) {
@@ -1822,12 +1840,12 @@ int service::handle_async_check_result(
         handle_service_event();
 
         if (reschedule_check)
-          next_service_check = (time_t)(
-              get_last_check() + retry_interval() * config->interval_length());
+          next_service_check =
+              (time_t)(get_last_check() + retry_interval() * interval_length);
       }
 
       /* perform dependency checks on the second to last check of the service */
-      if (config->enable_predictive_service_dependency_checks() &&
+      if (enable_predictive_service_dependency_checks &&
           get_current_attempt() == max_check_attempts() - 1) {
         engine_logger(dbg_checks, more)
             << "Looking for services to check for predictive "
@@ -1922,12 +1940,12 @@ int service::handle_async_check_result(
 
       /* reschedule the next check at the regular interval */
       if (reschedule_check)
-        next_service_check = (time_t)(
-            get_last_check() + check_interval() * config->interval_length());
+        next_service_check =
+            (time_t)(get_last_check() + check_interval() * interval_length);
     }
 
     /* should we obsessive over service checks? */
-    if (config->obsess_over_services())
+    if (obsess_over_services)
       obsessive_compulsive_service_check_processor();
   }
 
@@ -2026,7 +2044,7 @@ int service::handle_async_check_result(
 
     /* we can get by with a cached state, so don't check the service */
     if (static_cast<unsigned long>(current_time - svc->get_last_check()) <=
-        config->cached_service_check_horizon()) {
+        cached_service_check_horizon) {
       run_async_check = false;
 
       /* update check statistics */
@@ -2090,6 +2108,20 @@ void service::check_for_flapping(bool update,
   double low_curve_value = 0.75;
   double high_curve_value = 1.25;
 
+  float low_service_flap_threshold;
+  float high_service_flap_threshold;
+  bool enable_flap_detection;
+
+  if (legacy_conf) {
+    low_service_flap_threshold = config->low_service_flap_threshold();
+    high_service_flap_threshold = config->high_service_flap_threshold();
+    enable_flap_detection = config->enable_flap_detection();
+  } else {
+    low_service_flap_threshold = pb_config.low_service_flap_threshold();
+    high_service_flap_threshold = pb_config.high_service_flap_threshold();
+    enable_flap_detection = pb_config.enable_flap_detection();
+  }
+
   /* large install tweaks skips all flap detection logic - including state
    * change calculation */
 
@@ -2104,11 +2136,10 @@ void service::check_for_flapping(bool update,
                       name(), _hostname);
 
   /* what threshold values should we use (global or service-specific)? */
-  low_threshold = (get_low_flap_threshold() <= 0.0)
-                      ? config->low_service_flap_threshold()
-                      : get_low_flap_threshold();
+  low_threshold = (get_low_flap_threshold() <= 0.0) ? low_service_flap_threshold
+                                                    : get_low_flap_threshold();
   high_threshold = (get_high_flap_threshold() <= 0.0)
-                       ? config->high_service_flap_threshold()
+                       ? high_service_flap_threshold
                        : get_high_flap_threshold();
 
   update_history = update;
@@ -2178,7 +2209,7 @@ void service::check_for_flapping(bool update,
 
   /* don't do anything if we don't have flap detection enabled on a program-wide
    * basis */
-  if (!config->enable_flap_detection())
+  if (!enable_flap_detection)
     return;
 
   /* don't do anything if we don't have flap detection enabled for this service
@@ -2277,7 +2308,7 @@ int service::obsessive_compulsive_service_check_processor() {
                       "obsessive_compulsive_service_check_processor()");
 
   /* bail out if we shouldn't be obsessing */
-  if (config->obsess_over_services() == false)
+  if (!config->obsess_over_services())
     return OK;
   if (!obsess_over())
     return OK;
@@ -3447,9 +3478,9 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
-    expiration_time = (time_t)(
-        event_start + freshness_threshold +
-        (config->max_service_check_spread() * config->interval_length()));
+    expiration_time = (time_t)(event_start + freshness_threshold +
+                               (config->max_service_check_spread() *
+                                config->interval_length()));
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 
@@ -3711,7 +3742,11 @@ void service::check_result_freshness() {
                       "Checking the freshness of service check results...");
 
   /* bail out if we're not supposed to be checking freshness */
-  if (!config->check_service_freshness()) {
+
+  bool check_service_freshness = legacy_conf
+                                     ? config->check_service_freshness()
+                                     : pb_config.check_service_freshness();
+  if (!check_service_freshness) {
     engine_logger(dbg_checks, more)
         << "Service freshness checking is disabled.";
     SPDLOG_LOGGER_DEBUG(log_v2::checks(),
@@ -3776,8 +3811,11 @@ const std::string& service::get_current_state_as_string() const {
 }
 
 bool service::get_notify_on_current_state() const {
+  bool soft_state_dependencies = legacy_conf
+                                     ? config->soft_state_dependencies()
+                                     : pb_config.soft_state_dependencies();
   if (_host_ptr->get_current_state() != host::state_up &&
-      (_host_ptr->get_state_type() || config->soft_state_dependencies()))
+      (_host_ptr->get_state_type() || soft_state_dependencies))
     return false;
   notification_flag type[]{ok, warning, critical, unknown};
   return get_notify_on(type[get_current_state()]);

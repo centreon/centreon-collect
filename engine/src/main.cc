@@ -1,23 +1,23 @@
 /**
-* Copyright 1999-2009 Ethan Galstad
-* Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-* Copyright 2011-2021 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2021 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifdef HAVE_GETOPT_H
 #include <getopt.h>
@@ -108,12 +108,23 @@ int main(int argc, char* argv[]) {
       {NULL, no_argument, NULL, '\0'}};
 #endif  // HAVE_GETOPT_H
 
-  // Load singletons and global variable.
-  config = new configuration::state;
-
   // Hack to instanciate the logger.
   log_v2::load(g_io_context);
   configuration::applier::logging::instance();
+
+  // Load singletons and global variable.
+  const char* legacy = getenv("CENTENGINE_LEGACY");
+  if (legacy && absl::SimpleAtob(legacy, &legacy_conf))
+    log_v2::config()->info("Configuration mechanism used: {}",
+                           legacy_conf ? "legacy" : "protobuf");
+  else {
+    log_v2::config()->info("Legacy configuration mechanism used");
+    legacy_conf = true;
+  }
+  if (legacy_conf)
+    config = new configuration::state;
+  else
+    config = nullptr;
 
   logging::broker backend_broker_log;
 
@@ -177,15 +188,6 @@ int main(int argc, char* argv[]) {
             config_file)};
         config_file = std::move(buffer);
       }
-    }
-
-    absl::string_view legacy = getenv("CENTENGINE_LEGACY");
-    if (absl::SimpleAtob(legacy, &legacy_conf))
-      log_v2::config()->info("Configuration mechanism used: {}",
-                             legacy_conf ? "legacy" : "protobuf");
-    else {
-      log_v2::config()->info("Legacy configuration mechanism used");
-      legacy_conf = true;
     }
 
     // Reset umask.
@@ -569,7 +571,10 @@ int main(int argc, char* argv[]) {
                                NEBFLAG_USER_INITIATED);
 
         // Save service and host state information.
-        retention::dump::save(::config->state_retention_file());
+        if (legacy_conf)
+          retention::dump::save(::config->state_retention_file());
+        else
+          retention::dump::save(::pb_config.state_retention_file());
 
         // Clean up the status data.
         cleanup_status_data(true);

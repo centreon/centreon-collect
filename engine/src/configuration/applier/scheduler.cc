@@ -1,21 +1,21 @@
 /**
-* Copyright 2011-2017 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/scheduler.hh"
 #include "com/centreon/engine/configuration/applier/difference.hh"
@@ -1561,10 +1561,9 @@ void applier::scheduler::_schedule_host_events(
 
   // determine check times for host checks.
   int mult_factor(0);
-  for (unsigned int i(0); i < end; ++i) {
-    com::centreon::engine::host& hst(*hosts[i]);
+  for (auto hst_ptr : hosts) {
+    com::centreon::engine::host& hst = *hst_ptr;
 
-    engine_logger(dbg_events, most) << "Host '" << hst.name() << "'";
     log_v2::events()->debug("Host '{}'", hst.name());
 
     // skip hosts that shouldn't be scheduled.

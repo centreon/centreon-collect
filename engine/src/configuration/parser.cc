@@ -585,8 +585,8 @@ void parser::_parse_global_configuration(const std::string& path,
     retval = cfg_helper->hook(p.first, p.second);
     if (!retval) {
       if (!set_global(cfg_helper, p.first, p.second))
-        throw engine_error() << fmt::format(
-            "Unable to parse '{}' key with value '{}'", p.first, p.second);
+        log_v2::config()->error("Unable to parse '{}' key with value '{}'",
+                                p.first, p.second);
     }
   }
 }
