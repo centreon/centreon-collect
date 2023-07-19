@@ -105,12 +105,23 @@ int main(int argc, char* argv[]) {
       {NULL, no_argument, NULL, '\0'}};
 #endif  // HAVE_GETOPT_H
 
-  // Load singletons and global variable.
-  config = new configuration::state;
-
   // Hack to instanciate the logger.
   log_v2::load(g_io_context);
   configuration::applier::logging::instance();
+
+  // Load singletons and global variable.
+  const char* legacy = getenv("CENTENGINE_LEGACY");
+  if (legacy && absl::SimpleAtob(legacy, &legacy_conf))
+    log_v2::config()->info("Configuration mechanism used: {}",
+                           legacy_conf ? "legacy" : "protobuf");
+  else {
+    log_v2::config()->info("Legacy configuration mechanism used");
+    legacy_conf = true;
+  }
+  if (legacy_conf)
+    config = new configuration::state;
+  else
+    config = nullptr;
 
   logging::broker backend_broker_log;
 
@@ -174,15 +185,6 @@ int main(int argc, char* argv[]) {
             config_file)};
         config_file = std::move(buffer);
       }
-    }
-
-    absl::string_view legacy = getenv("CENTENGINE_LEGACY");
-    if (absl::SimpleAtob(legacy, &legacy_conf))
-      log_v2::config()->info("Configuration mechanism used: {}",
-                             legacy_conf ? "legacy" : "protobuf");
-    else {
-      log_v2::config()->info("Legacy configuration mechanism used");
-      legacy_conf = true;
     }
 
     // Reset umask.
@@ -566,7 +568,10 @@ int main(int argc, char* argv[]) {
                                NEBFLAG_USER_INITIATED);
 
         // Save service and host state information.
-        retention::dump::save(::config->state_retention_file());
+        if (legacy_conf)
+          retention::dump::save(::config->state_retention_file());
+        else
+          retention::dump::save(::pb_config.state_retention_file());
 
         // Clean up the status data.
         cleanup_status_data(true);

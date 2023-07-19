@@ -1,23 +1,23 @@
-/*
-** Copyright 2002-2010      Ethan Galstad
-** Copyright 2010           Nagios Core Development Team
-** Copyright 2011-2013,2020 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2002-2010          Ethan Galstad
+ * Copyright 2010               Nagios Core Development Team
+ * Copyright 2011-2013,20202023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/broker.hh"
 #include <absl/strings/str_split.h>
@@ -54,8 +54,13 @@ void broker_acknowledgement_data(
     int notify_contacts,
     int persistent_comment) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_ACKNOWLEDGEMENT_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   host* temp_host(NULL);
@@ -122,8 +127,13 @@ void broker_adaptive_contact_data(
  */
 void broker_adaptive_severity_data(int type, void* data) {
   /* Config check. */
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  }
 
   /* Fill struct with relevant data. */
   nebstruct_adaptive_severity_data ds;
@@ -142,8 +152,13 @@ void broker_adaptive_severity_data(int type, void* data) {
  */
 void broker_adaptive_tag_data(int type, void* data) {
   /* Config check. */
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  }
 
   /* Fill struct with relevant data. */
   nebstruct_adaptive_tag_data ds;
@@ -162,8 +177,13 @@ void broker_adaptive_tag_data(int type, void* data) {
  */
 void broker_adaptive_dependency_data(int type, void* data) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_adaptive_dependency_data ds;
@@ -205,8 +225,13 @@ void broker_adaptive_host_data(int type,
                                host* hst,
                                unsigned long modattr) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_adaptive_host_data ds;
@@ -259,8 +284,13 @@ void broker_adaptive_service_data(int type,
                                   com::centreon::engine::service* svc,
                                   unsigned long modattr) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_ADAPTIVE_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_adaptive_service_data ds;
@@ -353,8 +383,13 @@ void broker_comment_data(int type,
                          time_t expire_time,
                          unsigned long comment_id) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_COMMENT_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_COMMENT_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_COMMENT_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_comment_data ds;
@@ -455,8 +490,13 @@ int broker_contact_notification_method_data(
  */
 void broker_contact_status(int type, contact* cntct) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_service_status_data ds;
@@ -482,8 +522,13 @@ void broker_custom_variable(int type,
                             const absl::string_view& varvalue,
                             struct timeval const* timestamp) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_CUSTOMVARIABLE_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_custom_variable_data ds;
@@ -532,8 +577,13 @@ void broker_downtime_data(int type,
                           unsigned long downtime_id,
                           struct timeval const* timestamp) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_DOWNTIME_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_DOWNTIME_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_DOWNTIME_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_downtime_data ds;
@@ -570,8 +620,13 @@ void broker_external_command(int type,
                              char* command_args,
                              struct timeval const* timestamp) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_EXTERNALCOMMAND_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_external_command_data ds;
@@ -593,8 +648,13 @@ void broker_external_command(int type,
  */
 void broker_group(int type, void* data) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_GROUP_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_GROUP_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_GROUP_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_group_data ds;
@@ -614,8 +674,13 @@ void broker_group(int type, void* data) {
  */
 void broker_group_member(int type, void* object, void* group) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_GROUP_MEMBER_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_GROUP_MEMBER_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_GROUP_MEMBER_DATA))
+      return;
+  }
 
   // Fill struct will relevant data.
   nebstruct_group_member_data ds;
@@ -644,8 +709,13 @@ int broker_host_check(int type,
                       char const* cmdline,
                       char* output) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_HOST_CHECKS))
-    return OK;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_HOST_CHECKS))
+      return OK;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_HOST_CHECKS))
+      return OK;
+  }
   if (!hst)
     return ERROR;
 
@@ -674,8 +744,13 @@ int broker_host_check(int type,
  */
 void broker_host_status(int type, host* hst) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_host_status_data ds;
@@ -694,9 +769,15 @@ void broker_host_status(int type, host* hst) {
  */
 void broker_log_data(char* data, time_t entry_time) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
-      !config->log_legacy_enabled())
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
+        !config->log_legacy_enabled())
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
+        !pb_config.log_legacy_enabled())
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_log_data ds;
@@ -750,8 +831,13 @@ int broker_notification_data(int type [[maybe_unused]],
  */
 void broker_program_state(int type, int flags) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_PROGRAM_STATE))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_PROGRAM_STATE))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_PROGRAM_STATE))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_process_data ds;
@@ -766,27 +852,52 @@ void broker_program_state(int type, int flags) {
  *  Sends program status updates to broker.
  */
 void broker_program_status() {
-  // Config check.
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
+  if (legacy_conf) {
+    // Config check.
+    if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+      return;
 
-  // Fill struct with relevant data.
-  nebstruct_program_status_data ds;
-  ds.last_command_check = last_command_check;
-  ds.notifications_enabled = config->enable_notifications();
-  ds.active_service_checks_enabled = config->execute_service_checks();
-  ds.passive_service_checks_enabled = config->accept_passive_service_checks();
-  ds.active_host_checks_enabled = config->execute_host_checks();
-  ds.passive_host_checks_enabled = config->accept_passive_host_checks();
-  ds.event_handlers_enabled = config->enable_event_handlers();
-  ds.flap_detection_enabled = config->enable_flap_detection();
-  ds.obsess_over_hosts = config->obsess_over_hosts();
-  ds.obsess_over_services = config->obsess_over_services();
-  ds.global_host_event_handler = config->global_host_event_handler();
-  ds.global_service_event_handler = config->global_service_event_handler();
+    // Fill struct with relevant data.
+    nebstruct_program_status_data ds;
+    ds.last_command_check = last_command_check;
+    ds.notifications_enabled = config->enable_notifications();
+    ds.active_service_checks_enabled = config->execute_service_checks();
+    ds.passive_service_checks_enabled = config->accept_passive_service_checks();
+    ds.active_host_checks_enabled = config->execute_host_checks();
+    ds.passive_host_checks_enabled = config->accept_passive_host_checks();
+    ds.event_handlers_enabled = config->enable_event_handlers();
+    ds.flap_detection_enabled = config->enable_flap_detection();
+    ds.obsess_over_hosts = config->obsess_over_hosts();
+    ds.obsess_over_services = config->obsess_over_services();
+    ds.global_host_event_handler = config->global_host_event_handler();
+    ds.global_service_event_handler = config->global_service_event_handler();
 
-  // Make callbacks.
-  neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
+    // Make callbacks.
+    neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
+  } else {
+    // Config check.
+    if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
+      return;
+
+    // Fill struct with relevant data.
+    nebstruct_program_status_data ds;
+    ds.last_command_check = last_command_check;
+    ds.notifications_enabled = pb_config.enable_notifications();
+    ds.active_service_checks_enabled = pb_config.execute_service_checks();
+    ds.passive_service_checks_enabled =
+        pb_config.accept_passive_service_checks();
+    ds.active_host_checks_enabled = pb_config.execute_host_checks();
+    ds.passive_host_checks_enabled = pb_config.accept_passive_host_checks();
+    ds.event_handlers_enabled = pb_config.enable_event_handlers();
+    ds.flap_detection_enabled = pb_config.enable_flap_detection();
+    ds.obsess_over_hosts = pb_config.obsess_over_hosts();
+    ds.obsess_over_services = pb_config.obsess_over_services();
+    ds.global_host_event_handler = pb_config.global_host_event_handler();
+    ds.global_service_event_handler = pb_config.global_service_event_handler();
+
+    // Make callbacks.
+    neb_make_callbacks(NEBCALLBACK_PROGRAM_STATUS_DATA, &ds);
+  }
 }
 
 /**
@@ -804,8 +915,13 @@ void broker_relation_data(int type,
                           host* dep_hst,
                           com::centreon::engine::service* dep_svc) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_RELATION_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_RELATION_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_RELATION_DATA))
+      return;
+  }
   if (!hst || !dep_hst)
     return;
 
@@ -850,8 +966,13 @@ int broker_service_check(int type,
                          int check_type,
                          const char* cmdline) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_SERVICE_CHECKS))
-    return OK;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_SERVICE_CHECKS))
+      return OK;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_SERVICE_CHECKS))
+      return OK;
+  }
   if (!svc)
     return ERROR;
 
@@ -880,8 +1001,13 @@ int broker_service_check(int type,
  */
 void broker_service_status(int type, com::centreon::engine::service* svc) {
   // Config check.
-  if (!(config->event_broker_options() & BROKER_STATUS_DATA))
-    return;
+  if (legacy_conf) {
+    if (!(config->event_broker_options() & BROKER_STATUS_DATA))
+      return;
+  } else {
+    if (!(pb_config.event_broker_options() & BROKER_STATUS_DATA))
+      return;
+  }
 
   // Fill struct with relevant data.
   nebstruct_service_status_data ds;

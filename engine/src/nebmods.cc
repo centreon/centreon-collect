@@ -100,7 +100,9 @@ int neb_load_all_modules() {
   try {
     loader& ldr(loader::instance());
 
-    const std::string& mod_dir(config->broker_module_directory());
+    const std::string& mod_dir(legacy_conf
+                                   ? config->broker_module_directory()
+                                   : pb_config.broker_module_directory());
     if (!mod_dir.empty())
       ldr.load_directory(mod_dir);
 
