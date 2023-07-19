@@ -411,7 +411,7 @@ def get_default_values(cap_name, cpp, msg: [str]):
         r"(?:static)?\s*([a-z0-9][a-z_0-9:\s]+[a-z0-9])\s*(?:const)?\s*default_")
     r = re.compile(
         r"(?:static)?\s*([a-z0-9][a-z_0-9:\s]+[a-z0-9])\s*(?:const)?\s*(default_[a-z0-9_]*)\((.*)\);")
-    rdecl = re.compile(r"^\s*(_[a-z][a-z0-9_]*)\((default_[a-z_0-9]*)\)")
+    rdecl = re.compile(r"^\s*:?\s(_[a-z][a-z0-9_]*)\((default_[a-z_0-9]*)\)")
 
     def_value = {}
     for i in range(len(cpp)):
