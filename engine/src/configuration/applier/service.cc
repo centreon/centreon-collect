@@ -117,7 +117,7 @@ void applier::service::add_object(const configuration::Service& obj) {
   engine::service::services[{obj.host_name(), obj.service_description()}]
       ->set_service_id(obj.service_id());
   svc->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                   config->interval_length());
+                                   pb_config.interval_length());
   svc->set_last_acknowledgement(0);
 
   // Add contacts.
@@ -510,7 +510,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
   s->set_host_id(new_obj.host_id());
   s->set_service_id(new_obj.service_id());
   s->set_acknowledgement_timeout(new_obj.acknowledgement_timeout() *
-                                 config->interval_length());
+                                 pb_config.interval_length());
   s->set_recovery_notification_delay(new_obj.recovery_notification_delay());
 
   // Contacts.

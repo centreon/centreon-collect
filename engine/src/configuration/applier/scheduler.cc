@@ -1561,10 +1561,9 @@ void applier::scheduler::_schedule_host_events(
 
   // determine check times for host checks.
   int mult_factor(0);
-  for (unsigned int i(0); i < end; ++i) {
-    com::centreon::engine::host& hst(*hosts[i]);
+  for (auto hst_ptr : hosts) {
+    com::centreon::engine::host& hst = *hst_ptr;
 
-    engine_logger(dbg_events, most) << "Host '" << hst.name() << "'";
     log_v2::events()->debug("Host '{}'", hst.name());
 
     // skip hosts that shouldn't be scheduled.

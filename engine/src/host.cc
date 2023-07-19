@@ -2020,6 +2020,23 @@ void host::check_for_flapping(bool update,
   double low_curve_value = 0.75;
   double high_curve_value = 1.25;
 
+  uint32_t interval_length;
+  float low_host_flap_threshold;
+  float high_host_flap_threshold;
+  bool enable_flap_detection;
+
+  if (legacy_conf) {
+    interval_length = config->interval_length();
+    low_host_flap_threshold = config->low_host_flap_threshold();
+    high_host_flap_threshold = config->high_host_flap_threshold();
+    enable_flap_detection = config->enable_flap_detection();
+  } else {
+    interval_length = pb_config.interval_length();
+    low_host_flap_threshold = pb_config.low_host_flap_threshold();
+    high_host_flap_threshold = pb_config.high_host_flap_threshold();
+    enable_flap_detection = pb_config.enable_flap_detection();
+  }
+
   engine_logger(dbg_functions, basic) << "host::check_for_flapping()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "host::check_for_flapping()");
 
@@ -2034,10 +2051,10 @@ void host::check_for_flapping(bool update,
    */
   if (get_total_services() == 0)
     wait_threshold = static_cast<unsigned long>(get_notification_interval() *
-                                                config->interval_length());
+                                                interval_length);
   else
     wait_threshold = static_cast<unsigned long>(
-        (get_total_service_check_interval() * config->interval_length()) /
+        (get_total_service_check_interval() * interval_length) /
         get_total_services());
 
   update_history = update;
@@ -2060,11 +2077,10 @@ void host::check_for_flapping(bool update,
   }
 
   /* what thresholds should we use (global or host-specific)? */
-  low_threshold = (get_low_flap_threshold() <= 0.0)
-                      ? config->low_host_flap_threshold()
-                      : get_low_flap_threshold();
+  low_threshold = (get_low_flap_threshold() <= 0.0) ? low_host_flap_threshold
+                                                    : get_low_flap_threshold();
   high_threshold = (get_high_flap_threshold() <= 0.0)
-                       ? config->high_host_flap_threshold()
+                       ? high_host_flap_threshold
                        : get_high_flap_threshold();
 
   /* record current host state */
@@ -2121,7 +2137,7 @@ void host::check_for_flapping(bool update,
 
   /* don't do anything if we don't have flap detection enabled on a program-wide
    * basis */
-  if (!config->enable_flap_detection())
+  if (!enable_flap_detection)
     return;
 
   /* don't do anything if we don't have flap detection enabled for this host */
@@ -2281,6 +2297,13 @@ void host::check_for_expired_acknowledgement() {
 int host::handle_state() {
   bool state_change = false;
   time_t current_time;
+  bool log_host_retries;
+
+  if (legacy_conf) {
+    log_host_retries = config->log_host_retries();
+  } else {
+    log_host_retries = pb_config.log_host_retries();
+  }
 
   engine_logger(dbg_functions, basic) << "handle_host_state()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "handle_host_state()");
@@ -2370,7 +2393,7 @@ int host::handle_state() {
 
     /* write the host state change to the main log file */
     if (get_state_type() == hard ||
-        (get_state_type() == soft && config->log_host_retries() == true))
+        (get_state_type() == soft && log_host_retries))
       log_event();
 
     /* check for start of flexible (non-fixed) scheduled downtime */
@@ -2400,7 +2423,7 @@ int host::handle_state() {
       notify(reason_recovery, "", "", notifier::notification_option_none);
 
     /* if we're in a soft state and we should log host retries, do so now... */
-    if (get_state_type() == soft && config->log_host_retries())
+    if (get_state_type() == soft && log_host_retries)
       log_event();
   }
 
@@ -3402,9 +3425,8 @@ int host::process_check_result_3x(enum host::host_state new_state,
               "Propagating predictive dependency checks to hosts this "
               "one depends on...");
 
-          for (auto
-                   it = hostdependency::hostdependencies.find(name()),
-               end = hostdependency::hostdependencies.end();
+          for (auto it = hostdependency::hostdependencies.find(name()),
+                    end = hostdependency::hostdependencies.end();
                it != end && it->first == name(); ++it) {
             hostdependency* temp_dependency(it->second.get());
             if (temp_dependency->dependent_host_ptr == this &&
