@@ -55,6 +55,7 @@ std::ostream& header(std::ostream& os);
 std::ostream& host(std::ostream& os, com::centreon::engine::host const& obj);
 std::ostream& hosts(std::ostream& os);
 std::ostream& info(std::ostream& os);
+std::ostream& pb_program(std::ostream& os);
 std::ostream& program(std::ostream& os);
 bool save(std::string const& path);
 std::ostream& service(std::ostream& os,

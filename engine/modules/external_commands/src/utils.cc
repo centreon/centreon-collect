@@ -43,8 +43,16 @@ int open_command_file(void) {
   struct stat st;
 
   /* if we're not checking external commands, don't do anything */
-  if (config->check_external_commands() == false)
-    return OK;
+  if (legacy_conf) {
+    if (!config->check_external_commands())
+      return OK;
+  } else {
+    if (!pb_config.check_external_commands())
+      return OK;
+  }
+
+  const std::string& command_file{legacy_conf ? config->command_file()
+                                              : pb_config.command_file()};
 
   /* the command file was already created */
   if (command_file_created)
@@ -54,15 +62,13 @@ int open_command_file(void) {
   umask(S_IWOTH);
 
   /* use existing FIFO if possible */
-  if (!(stat(config->command_file().c_str(), &st) != -1 &&
-        (st.st_mode & S_IFIFO))) {
+  if (!(stat(command_file.c_str(), &st) != -1 && (st.st_mode & S_IFIFO))) {
     /* create the external command file as a named pipe (FIFO) */
-    if (mkfifo(config->command_file().c_str(),
-               S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) != 0) {
+    if (mkfifo(command_file.c_str(), S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP) !=
+        0) {
       engine_logger(log_runtime_error, basic)
-          << "Error: Could not create external command file '"
-          << config->command_file() << "' as named pipe: (" << errno << ") -> "
-          << strerror(errno)
+          << "Error: Could not create external command file '" << command_file
+          << "' as named pipe: (" << errno << ") -> " << strerror(errno)
           << ".  If this file already exists and "
              "you are sure that another copy of Centreon Engine is not "
              "running, "
@@ -73,7 +79,7 @@ int open_command_file(void) {
           "you are sure that another copy of Centreon Engine is not "
           "running, "
           "you should delete this file.",
-          config->command_file(), errno, strerror(errno));
+          command_file, errno, strerror(errno));
       return ERROR;
     }
   }
@@ -81,8 +87,7 @@ int open_command_file(void) {
   /* open the command file for reading (non-blocked) - O_TRUNC flag cannot be
    * used due to errors on some systems */
   /* NOTE: file must be opened read-write for poll() to work */
-  if ((command_file_fd =
-           open(config->command_file().c_str(), O_RDWR | O_NONBLOCK)) < 0) {
+  if ((command_file_fd = open(command_file.c_str(), O_RDWR | O_NONBLOCK)) < 0) {
     engine_logger(log_runtime_error, basic)
         << "Error: Could not open external command file for reading "
            "via open(): ("
@@ -146,7 +151,7 @@ int open_command_file(void) {
     fclose(command_file_fp);
 
     /* delete the named pipe */
-    unlink(config->command_file().c_str());
+    unlink(command_file.c_str());
 
     return ERROR;
   }
@@ -160,8 +165,13 @@ int open_command_file(void) {
 /* closes the external command file FIFO and deletes it */
 int close_command_file(void) {
   /* if we're not checking external commands, don't do anything */
-  if (config->check_external_commands() == false)
-    return OK;
+  if (legacy_conf) {
+    if (!config->check_external_commands())
+      return OK;
+  } else {
+    if (!pb_config.check_external_commands())
+      return OK;
+  }
 
   /* the command file wasn't created or was already cleaned up */
   if (command_file_created == false)
@@ -256,8 +266,13 @@ static void command_file_worker_thread() {
       select(0, nullptr, nullptr, nullptr, &tv);
     }
 
-    external_command_buffer.set_capacity(
-        config->external_command_buffer_slots());
+    if (legacy_conf) {
+      external_command_buffer.set_capacity(
+          config->external_command_buffer_slots());
+    } else {
+      external_command_buffer.set_capacity(
+          pb_config.external_command_buffer_slots());
+    }
 
     /* process all commands in the file (named pipe) if there's some space in
      * the buffer */
