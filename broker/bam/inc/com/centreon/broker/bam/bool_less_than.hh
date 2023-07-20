@@ -42,7 +42,7 @@ class bool_less_than : public bool_binary_operator {
   bool_less_than(const bool_less_than&) = delete;
   bool_less_than& operator=(const bool_less_than&) = delete;
   double value_hard();
-  double value_soft();
+  bool boolean_value() const override;
 };
 }  // namespace bam
 

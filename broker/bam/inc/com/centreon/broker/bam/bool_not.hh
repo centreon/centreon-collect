@@ -42,14 +42,15 @@ class bool_not : public bool_value {
  public:
   bool_not(bool_value::ptr val = bool_value::ptr());
   bool_not(const bool_not&) = delete;
-  ~bool_not();
+  ~bool_not() noexcept = default;
   bool_not& operator=(const bool_not&) = delete;
   bool child_has_update(computable* child, io::stream* visitor = NULL);
   void set_value(std::shared_ptr<bool_value>& value);
-  double value_hard();
+  double value_hard() override;
+  bool boolean_value() const override;
   double value_soft();
-  bool state_known() const;
-  bool in_downtime() const;
+  bool state_known() const override;
+  bool in_downtime() const override;
 };
 }  // namespace bam
 
