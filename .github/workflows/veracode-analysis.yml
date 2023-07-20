@@ -110,7 +110,7 @@ jobs:
           #echo "[DEBUG] - step Cancelled"
           for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" ); do
             rm -f $file
-          #done
+          done
 
           echo "[INFO] - Cleaning scripts used to mock datas"
           for file in $( find ./ -name "*.py" ); do
