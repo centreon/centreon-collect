@@ -129,7 +129,6 @@ jobs:
           fi
 
           echo "[INFO] - Cleaning useless files"
-          #echo "[DEBUG] - step Cancelled"
           for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" ); do
             rm -f $file
           done
