@@ -147,11 +147,11 @@ jobs:
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@0.2.6
-        continue-on-error: true
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          #filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          filepath: collect-to-analyse
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
@@ -167,7 +167,6 @@ jobs:
       - name: Promote Scan
         # only develop will be promoted to policy scan
         ## if: github.ref_name == 'develop'
-        if: success()
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
