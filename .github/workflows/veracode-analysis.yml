@@ -128,8 +128,21 @@ jobs:
           fi
 
           echo "[INFO] - Cleaning useless files"
-          for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "CMakeDetermineCompilerABI_C.bin" ); do
-            rm -f $file
+          toClean=(
+          	*.o
+          	*.a
+          	*.h
+          	*.sql
+          	CMake*.*
+          	*.in
+            *.cfg
+            CMakeDetermineCompilerABI_C.bin
+          )
+
+          for toFind in ${toClean[@]}; do
+            for file in $( find ./ -name "$toFind" ); do
+              rm -f $file
+            done
           done
 
           echo "[INFO] - Checking for remaining scripts used to mock tests"
@@ -177,7 +190,6 @@ jobs:
           scanallnonfataltoplevelmodules: true
           deleteincompletescan: 1
           scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
-          exclude: VeracodeJavaAPI.jar
 
       - name: Promote Scan
         # only develop will be promoted to policy scan
