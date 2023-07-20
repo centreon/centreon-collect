@@ -128,6 +128,7 @@ jobs:
           fi
 
           echo "[INFO] - Cleaning useless files"
+          rm -rf .git
           toClean=(
           	*.o
           	*.a
@@ -141,6 +142,7 @@ jobs:
 
           for toFind in ${toClean[@]}; do
             for file in $( find ./ -name "$toFind" ); do
+              echo "Removing : $file"
               rm -f $file
             done
           done
@@ -168,6 +170,7 @@ jobs:
           mv "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" centreon-collect
 
       - name: Sandbox scan
+        continue-on-error: vars.VERACODE_CONTINUE_ON_ERROR
         uses: veracode/veracode-uploadandscan-action@0.2.6
 
         with:
