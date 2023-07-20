@@ -52,9 +52,11 @@ jobs:
 
       - name: debug before compilation status
         run: |
-          gcc --version
-          du -sh ./* | sort -h
+          echo "[DEBUG] - current location ?"
+          pwd
           ls -la
+          echo "[DEBUG] - Current folder size ?"
+          du -sh ./* | sort -h
 
       - name: Compile cpp sources
         if: inputs.is_cpp_project == 'yes'
@@ -108,18 +110,15 @@ jobs:
         run: |
           echo "[INFO] - Cleaning useless files"
           #echo "[DEBUG] - step Cancelled"
-          for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" ); do
+          for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" ); do
             rm -f $file
           done
 
           echo "[INFO] - Cleaning scripts used to mock datas"
-          for file in $( find ./ -name "*.py" ); do
+          for file in $( find ./ -name "*.py" -o -name "*.sql" ); do
             echo "[INFO] - File deleted : $file"
             rm -f $file
           done
-
-          echo "[INFO] - Keeping only bin and lib"
-          echo "[DEBUG] - step Cancelled"
 
           echo "[DEBUG] - Current folder size ?"
           du -sh ./* | sort -h
@@ -168,6 +167,7 @@ jobs:
       - name: Promote Scan
         # only develop will be promoted to policy scan
         ## if: github.ref_name == 'develop'
+        if: success()
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
