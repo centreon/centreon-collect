@@ -170,7 +170,7 @@ jobs:
           mv "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" centreon-collect
 
       - name: Sandbox scan
-        continue-on-error: vars.VERACODE_CONTINUE_ON_ERROR
+        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' && true || false }}
         uses: veracode/veracode-uploadandscan-action@0.2.6
 
         with:
