@@ -168,8 +168,7 @@ jobs:
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@0.2.6
-        if: vars.VERACODE_CONTINUE_ON_ERROR == 'true'
-          continue-on-error: true
+        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR }}
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
