@@ -38,7 +38,7 @@ on:
 
 jobs:
   build:
-    name: Binary preparation
+    name: Sandbox scan
     runs-on: [self-hosted, collect]
 
     container:
@@ -52,25 +52,23 @@ jobs:
 
       - name: debug before compilation status
         run: |
-          echo "[DEBUG] - before compilation size ?"
-          du -sh /src/* | sort -h
+          echo "[DEBUG] - current location ?"
+          pwd
+          ls -la
+          echo "[DEBUG] - Current folder size ?"
+          du -sh ./* | sort -h
 
       - name: Compile cpp sources
         if: inputs.is_cpp_project == 'yes'
         run: |
-          echo "[DEBUG] - current location ?"
           pwd
           ls -la
 
-          rm -rf build
-          mkdir build
-          cd build
-
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-          # Testing without : -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          # Removed to test : -DCMAKE_BUILD_TYPE=RelWithDebInfo \
 
           sudo cmake \
             -G "Ninja" \
@@ -89,7 +87,7 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
-            ..
+            .
 
           sudo ninja
 
@@ -99,26 +97,22 @@ jobs:
           pwd
           echo "[DEBUG] - Current folder size ?"
           du -sh ./* | sort -h
-          echo "[DEBUG] - Newly created build folder size ?"
-          du -sh ./build/* | sort -h
           echo "[DEBUG] - Build / Bin folder size ?"
-          du -sh ./build/bin/* | sort -h
+          du -sh ./bin/* | sort -h
           echo "[DEBUG] - Build / Lib folder size ?"
-          du -sh ./build/lib/* | sort -h
+          du -sh ./lib/* | sort -h
           echo "[DEBUG] - Build / Broker module folder size ?"
-          du -sh ./build/broker/* | sort -h
+          du -sh ./broker/* | sort -h
           echo "[DEBUG] - Current location files ?"
           ls -la
 
-      - name: Prepare analysis without using tarball
+      - name: Create tarball
         run: |
-          echo "[DEBUG] - Current location ?"
-          pwd
           echo "[INFO] - Cleaning useless files"
-          echo "[DEBUG] - step skipped"
-          #for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "*.py" ); do
-          #  rm -f $file
-          #done
+          #echo "[DEBUG] - step Cancelled"
+          for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" ); do
+            rm -f $file
+          done
 
           echo "[INFO] - Cleaning scripts used to mock datas"
           for file in $( find ./ -name "*.py" -o -name "*.sql" ); do
@@ -126,17 +120,34 @@ jobs:
             rm -f $file
           done
 
-          echo "[DEBUG] - Checking current folder size ?"
+          echo "[DEBUG] - Current folder size ?"
+          du -sh ./* | sort -h
+          cd ..
+          echo "[DEBUG] - Parent folder size ?"
           du -sh ./* | sort -h
 
+      - name: Debug analysis preparation
+        run: |
+          echo "[DEBUG] - Current location ?"
+          pwd
+          ls -la
+          echo "[DEBUG] - cd.."
+          cd ..
+          echo "[DEBUG] - creating collect-to-analyse"
+          mv centreon-collect collect-to-analyse
+          mkdir centreon-collect
+          mv collect-to-analyse centreon-collect
+          echo "[DEBUG] - New current location ?"
+          ls -la
+          echo "[DEBUG] - New current location sub folder?"
+          ls -la centreon-collect
+
       - name: Sandbox scan
-        uses: veracode/veracode-uploadandscan-action@master
-        continue-on-error: true
+        uses: veracode/veracode-uploadandscan-action@0.2.6
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          #filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          filepath: "./"
+          filepath: collect-to-analyse
           vid: "vera01ei-${{ secrets.veracode_api_id }}"
           vkey: "vera01es-${{ secrets.veracode_api_key }}"
           createprofile: true
@@ -152,13 +163,12 @@ jobs:
       - name: Promote Scan
         # only develop will be promoted to policy scan
         ## if: github.ref_name == 'develop'
-        if: success()
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
 
         # Action forked as API call hardcode '.com' route
-        uses: sc979/veracode-sandboxes-helper@v0.1
+        uses: sc979/veracode-sandboxes-helper@v0.2
         with:
           activity: "promote-latest-scan"
           app-name: "${{ inputs.module_name }}"
