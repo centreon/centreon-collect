@@ -40,7 +40,6 @@ jobs:
   build:
     name: Sandbox scan
     runs-on: [self-hosted, collect]
-    continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR }}
 
     container:
       image: ${{ inputs.docker_registry_url }}/centreon-collect-alma9:${{ inputs.img_version }}
@@ -156,6 +155,7 @@ jobs:
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@0.2.6
+        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR }}
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
