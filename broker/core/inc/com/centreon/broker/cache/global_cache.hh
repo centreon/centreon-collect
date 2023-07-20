@@ -77,12 +77,6 @@ struct metric_info {
   double max;
 };
 
-struct resource_tag {
-  TagType tag_type;
-  string name;
-  uint64_t poller_id;
-};
-
 struct resource_info {
   resource_info(const char_allocator& char_alloc) : name(char_alloc) {}
 
@@ -119,27 +113,40 @@ struct resource_info {
  *
  * When you insert data, you must catch interprocess::bad_allo and call
  * allocation_exception_handler to grow file outside any lock
+ * @code {.c++}
+ * void global_cache_data::add_service_group(uint64_t group,
+ *                                         uint64_t host,
+ *                                         uint64_t service) {
+ * try {
+ *   absl::WriterMutexLock l(&_protect);
+ *   _service_group->emplace(service_group_element{{host, service}, group});
+ * } catch (const interprocess::bad_alloc& e) {
+ *   SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
+ *   allocation_exception_handler();
+ *   add_service_group(group, host, service);
+ * }
+ *}
+ * @endcode
+ *
+ *
  * a flag _dirty indicates if the file has been closed gracefully
  */
 class global_cache : public std::enable_shared_from_this<global_cache> {
- protected:
-  std::string _file_path;
+ private:
+  static std::shared_ptr<global_cache> _instance;
   size_t _file_size;
+
+  void _open(size_t initial_size_on_create, const void* address = 0);
+  void _grow(size_t new_size, void* address = 0);
+
+ protected:
+  const std::string _file_path;
 
   std::unique_ptr<managed_mapped_file> _file;
 
-  std::shared_ptr<asio::io_context> _io_context;
-
   mutable absl::Mutex _protect;
 
-  static std::shared_ptr<global_cache> _instance;
-
-  global_cache(const std::string& file_path,
-               const std::shared_ptr<asio::io_context>& io_context);
-
-  void open(size_t initial_size_on_create, const void* address = 0);
-
-  void grow(size_t new_size, void* address = 0);
+  global_cache(const std::string& file_path);
 
   void allocation_exception_handler();
 
@@ -149,8 +156,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   using pointer = std::shared_ptr<global_cache>;
 
   static pointer load(const std::string& file_path,
-                      const std::shared_ptr<asio::io_context>& io_context,
-                      size_t initial_size = 0x1000000,
+                      size_t initial_size = 0x20000000,
                       const void* address = 0);
 
   static void unload();

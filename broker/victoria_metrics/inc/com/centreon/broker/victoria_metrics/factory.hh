@@ -25,10 +25,10 @@ CCB_BEGIN()
 
 namespace victoria_metrics {
 /**
- *  @class factory factory.hh "com/centreon/broker/influxdb/factory.hh"
- *  @brief Influxdb layer factory.
+ *  @class factory factory.hh "com/centreon/broker/victoria_metrics/factory.hh"
+ *  @brief Victoria Metrics layer factory.
  *
- *  Build Influxdb layer objects.
+ *  Build Victoria Metrics layer objects.
  */
 class factory : public http_tsdb::factory {
  public:

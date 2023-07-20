@@ -26,6 +26,7 @@
 #include <boost/multi_index/ordered_index.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/unordered/unordered_set.hpp>
+#include <com/centreon/common/node_allocator.hh>
 
 #include "global_cache.hh"
 
@@ -67,10 +68,14 @@ struct string_string_view_hash {
 class global_cache_data : public global_cache {
   using id_to_metric_info = interprocess::flat_map<
       uint64_t,
-      metric_info,
+      interprocess::offset_ptr<metric_info>,
       std::less<uint64_t>,
-      interprocess::allocator<std::pair<uint64_t, metric_info>,
-                              segment_manager>>;
+      interprocess::allocator<
+          std::pair<uint64_t, interprocess::offset_ptr<metric_info>>,
+          segment_manager>>;
+
+  using metric_info_allocator = com::centreon::common::
+      node_allocator<metric_info, char_allocator, 0x10000>;
 
   using index_id_mapping =
       interprocess::flat_map<uint64_t,
@@ -146,6 +151,12 @@ class global_cache_data : public global_cache {
       managed_mapped_file::allocator<service_group_element>::type>;
 
   // tags
+  struct resource_tag {
+    TagType tag_type;
+    string name;
+    uint64_t poller_id;
+  };
+
   using id_to_tag = interprocess::flat_map<
       uint64_t,
       resource_tag,
@@ -199,6 +210,7 @@ class global_cache_data : public global_cache {
       managed_mapped_file::allocator<service_tag_element>::type>;
 
   id_to_metric_info* _metric_info;
+  metric_info_allocator* _metric_info_allocator;
   index_id_mapping* _index_id_mapping;
 
   id_to_host* _id_to_host;
@@ -213,9 +225,7 @@ class global_cache_data : public global_cache {
   void managed_map(bool create) override;
 
  public:
-  global_cache_data(const std::string& file_path,
-                    const std::shared_ptr<asio::io_context>& io_context)
-      : global_cache(file_path, io_context) {}
+  global_cache_data(const std::string& file_path) : global_cache(file_path) {}
 
   void set_metric_info(uint64_t metric_id,
                        uint64_t index_id,

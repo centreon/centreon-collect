@@ -84,8 +84,8 @@ client::pointer client::load(
  * @return true if connection available
  * @return false if enqueue
  */
-bool client::send_or_push(const cb_request::pointer request,
-                          bool push_to_front) {
+bool client::_send_or_push(const cb_request::pointer request,
+                           bool push_to_front) {
   if (_halt) {
     return false;
   }
@@ -127,15 +127,15 @@ bool client::send_or_push(const cb_request::pointer request,
                                      const boost::beast::error_code& error,
                                      const std::string& detail,
                                      const response_ptr& response) mutable {
-      me->on_sent(error, detail, request, response, conn);
+      me->_on_sent(error, detail, request, response, conn);
     });
     return true;
   }
 
   // no idle keepalive connection => connect
-  if (!connect(request)) {  // no idle conn to connect => push to queue
-    if (push_to_front) {    // when retry, we push request to front instead of
-                            // back
+  if (!_connect(request)) {  // no idle conn to connect => push to queue
+    if (push_to_front) {     // when _retry, we push request to front instead of
+                             // back
       _queue.push_front(request);
     } else {
       _queue.push_back(request);
@@ -150,7 +150,7 @@ bool client::send_or_push(const cb_request::pointer request,
  * @return true if a connect is launched
  * @return false no idle connection
  */
-bool client::connect(const cb_request::pointer& request) {
+bool client::_connect(const cb_request::pointer& request) {
   if (_halt) {
     return false;
   }
@@ -165,7 +165,7 @@ bool client::connect(const cb_request::pointer& request) {
         conn->connect([me = shared_from_this(), conn, request](
                           const boost::beast::error_code& error,
                           const std::string& detail) mutable {
-          me->on_connect(error, detail, request, conn);
+          me->_on_connect(error, detail, request, conn);
         });
         return true;
       }
@@ -178,7 +178,7 @@ bool client::connect(const cb_request::pointer& request) {
  * @brief pop first queue element and try to send it
  *
  */
-void client::send_first_queue_request() {
+void client::_send_first_queue_request() {
   cb_request::pointer to_send;
   {
     std::lock_guard<std::mutex> l(_protect);
@@ -189,7 +189,7 @@ void client::send_first_queue_request() {
     _queue.pop_front();
   }
   if (to_send) {
-    send_or_push(to_send, false);
+    _send_or_push(to_send, false);
   }
 }
 
@@ -199,8 +199,8 @@ void client::send_first_queue_request() {
  * @param request
  * @param conn
  */
-void client::send(const cb_request::pointer& request,
-                  connection_base::pointer conn) {
+void client::_send(const cb_request::pointer& request,
+                   connection_base::pointer conn) {
   if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(_logger, "send {} on {:p}", *request->request,
                         static_cast<void*>(conn.get()));
@@ -212,7 +212,7 @@ void client::send(const cb_request::pointer& request,
                                    const boost::beast::error_code& error,
                                    const std::string& detail,
                                    const response_ptr& response) mutable {
-    me->on_sent(error, detail, request, response, conn);
+    me->_on_sent(error, detail, request, response, conn);
   });
 }
 
@@ -226,10 +226,10 @@ void client::send(const cb_request::pointer& request,
  * @param request
  * @param conn
  */
-void client::on_connect(const boost::beast::error_code& error,
-                        const std::string& detail,
-                        const cb_request::pointer& request,
-                        connection_base::pointer conn) {
+void client::_on_connect(const boost::beast::error_code& error,
+                         const std::string& detail,
+                         const cb_request::pointer& request,
+                         connection_base::pointer conn) {
   if (error) {  // error => shutdown and retry
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to connect {}: {}",
                         static_cast<void*>(conn.get()), error.message(),
@@ -240,7 +240,7 @@ void client::on_connect(const boost::beast::error_code& error,
       _busy_conns.erase(conn);
       _not_connected_conns.insert(conn);
     }
-    retry(error, detail, request, response_ptr());
+    _retry(error, detail, request, response_ptr());
     return;
   }
   lock_guard l(_protect);
@@ -250,13 +250,13 @@ void client::on_connect(const boost::beast::error_code& error,
   SPDLOG_LOGGER_DEBUG(_logger, "{:p} connected",
                       static_cast<void*>(conn.get()));
 
-  send(request, conn);
+  _send(request, conn);
 }
 
 /**
  * @brief this handler is called when we have receive a response to the request
- * if error is set conn is shutdown and available for a new connect and we retry
- * to send request if authorized
+ * if error is set conn is shutdown and available for a new connect and we
+ * _retry to send request if authorized
  *
  * @param error
  * @param detail
@@ -264,13 +264,13 @@ void client::on_connect(const boost::beast::error_code& error,
  * @param response
  * @param conn
  */
-void client::on_sent(const boost::beast::error_code& error,
-                     const std::string& detail,
-                     const cb_request::pointer& request,
-                     const response_ptr& response,
-                     connection_base::pointer conn) {
+void client::_on_sent(const boost::beast::error_code& error,
+                      const std::string& detail,
+                      const cb_request::pointer& request,
+                      const response_ptr& response,
+                      connection_base::pointer conn) {
   cb_request::pointer to_call;
-  if (error) {  // error => shutdown and retry
+  if (error) {  // error => shutdown and _retry
     SPDLOG_LOGGER_ERROR(_logger, "{:p} fail to send request",
                         static_cast<void*>(conn.get()));
     conn->shutdown();
@@ -279,7 +279,7 @@ void client::on_sent(const boost::beast::error_code& error,
       _busy_conns.erase(conn);
       _not_connected_conns.insert(conn);
     }
-    retry(error, detail, request, response);
+    _retry(error, detail, request, response);
     if (to_call) {
       SPDLOG_LOGGER_ERROR(_logger,
                           "too many send request error => callback with error");
@@ -312,7 +312,7 @@ void client::on_sent(const boost::beast::error_code& error,
                                 static_cast<void*>(conn.get()));
             cb_request::pointer first(std::move(_queue.front()));
             _queue.pop_front();
-            send(first, conn);
+            _send(first, conn);
           }
         } else {  // no keepalive => shutdown
           SPDLOG_LOGGER_DEBUG(_logger, "no keepalive {:p} shutdown",
@@ -325,7 +325,7 @@ void client::on_sent(const boost::beast::error_code& error,
       }
     }
     if (has_to_send_first_inqueue) {
-      send_first_queue_request();
+      _send_first_queue_request();
     }
     request->callback(error, detail, response);
   }
@@ -354,8 +354,8 @@ void client::shutdown() {
 
 /**
  * @brief when anything goes wrong, this method is called
- * cb_request contains a retry counter
- * if this counter is greater than the retry limit, callback is called with the
+ * cb_request contains a _retry counter
+ * if this counter is greater than the _retry limit, callback is called with the
  * error otherwise, we
  *
  * @param error
@@ -363,17 +363,17 @@ void client::shutdown() {
  * @param request
  * @param response
  */
-void client::retry(const boost::beast::error_code& error,
-                   const std::string& detail,
-                   const cb_request::pointer& request,
-                   const response_ptr& response) {
+void client::_retry(const boost::beast::error_code& error,
+                    const std::string& detail,
+                    const cb_request::pointer& request,
+                    const response_ptr& response) {
   cb_request::pointer to_call;
 
-  if (_halt) {  // object halted => callback without retry
+  if (_halt) {  // object halted => callback without _retry
     to_call = request;
   } else {
     if (request->retry_counter++ <
-        _conf->get_max_send_retry()) {  // retry in next_retry delay
+        _conf->get_max_send_retry()) {  // _retry in next_retry delay
       duration next_retry = _retry_unit * request->retry_counter;
 
       if (next_retry > _conf->get_max_retry_interval()) {
@@ -385,7 +385,7 @@ void client::retry(const boost::beast::error_code& error,
           std::chrono::duration_cast<std::chrono::seconds>(next_retry).count());
       common::defer(_io_context, next_retry,
                     [me = shared_from_this(), request]() {
-                      me->send_or_push(request, true);
+                      me->_send_or_push(request, true);
                     });
     } else {  // to many error => callback with error
       to_call = request;
@@ -399,7 +399,7 @@ void client::retry(const boost::beast::error_code& error,
     // try to send the first enqueue request in 1s
     if (!_halt) {
       common::defer(_io_context, _retry_unit, [me = shared_from_this()]() {
-        me->send_first_queue_request();
+        me->_send_first_queue_request();
       });
     }
   }

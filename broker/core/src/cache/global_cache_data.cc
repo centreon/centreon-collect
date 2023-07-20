@@ -25,6 +25,8 @@ void global_cache_data::managed_map(bool create) {
   global_cache::managed_map(create);
   _metric_info = _file->find_or_construct<id_to_metric_info>("metric_info")(
       _file->get_segment_manager());
+  _metric_info_allocator = _file->find_or_construct<metric_info_allocator>(
+      "metric_info_allocator")(_file->get_segment_manager());
   _index_id_mapping = _file->find_or_construct<index_id_mapping>(
       "index_id_mapping")(_file->get_segment_manager());
   _id_to_host = _file->find_or_construct<id_to_host>("id_to_host")(
@@ -69,7 +71,7 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
     absl::WriterMutexLock l(&_protect);
     auto exist = _metric_info->find(metric_id);
     if (exist != _metric_info->end()) {
-      metric_info& to_update = exist->second;
+      metric_info& to_update = *exist->second;
       if (to_update.name != name) {
         to_update.name.assign(name.data(), name.length());
       }
@@ -80,13 +82,14 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
       to_update.max = max;
       to_update.index_id = index_id;
     } else {
-      if (_metric_info->capacity() <= _metric_info->size()) {  // need to grow?
-        _metric_info->reserve(_metric_info->capacity() + 0x10000);
+      if (_metric_info->capacity() <= _metric_info->size()) {  // need to grow ?
+        _metric_info->reserve(_metric_info->capacity() + 0x80000);
       }
+      metric_info* to_add = _metric_info_allocator->allocate();
+      to_add = new (to_add) metric_info(index_id, name, unit, min, max,
+                                        _file->get_segment_manager());
 
-      _metric_info->emplace(metric_id,
-                            metric_info(index_id, name, unit, min, max,
-                                        _file->get_segment_manager()));
+      _metric_info->emplace(metric_id, to_add);
     }
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
@@ -183,7 +186,7 @@ void global_cache_data::store_service(
     if (exist == _id_to_service->end()) {
       if (_id_to_service->size() ==
           _id_to_service->capacity()) {  // need to grow?
-        _id_to_service->reserve(_id_to_service->capacity() + 0x1000);
+        _id_to_service->reserve(_id_to_service->capacity() + 0x10000);
       }
       _id_to_service->emplace(
           host_serv_pair(host_id, service_id),
@@ -419,7 +422,7 @@ const metric_info* global_cache_data::get_metric_info(
     uint32_t metric_id) const {
   auto search = _metric_info->find(metric_id);
   if (search != _metric_info->end()) {
-    return &search->second;
+    return search->second.get();
   }
   return nullptr;
 }

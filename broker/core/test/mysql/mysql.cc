@@ -2175,6 +2175,7 @@ struct bulk_event_binder {
     binder.set_value_as_str(3, "b");
     binder.set_value_as_i32(4, 678 + event_binder_index);
     binder.set_value_as_u32(5, 789 + event_binder_index);
+    binder.next_row();
     ++event_binder_index;
   }
 };

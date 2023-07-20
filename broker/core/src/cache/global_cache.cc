@@ -35,9 +35,8 @@ inline std::string operator+(const std::string& left,
 
 std::shared_ptr<global_cache> global_cache::_instance;
 
-global_cache::global_cache(const std::string& file_path,
-                           const std::shared_ptr<asio::io_context>& io_context)
-    : _file_path(file_path), _file_size(0), _io_context(io_context) {}
+global_cache::global_cache(const std::string& file_path)
+    : _file_path(file_path), _file_size(0) {}
 
 global_cache::~global_cache() {
   if (_file) {
@@ -49,9 +48,8 @@ global_cache::~global_cache() {
   }
 }
 
-void global_cache::open(size_t initial_size_on_create, const void* address) {
+void global_cache::_open(size_t initial_size_on_create, const void* address) {
   {
-    absl::WriterMutexLock l(&_protect);
     try {
       struct ::stat exist_info;
       // size must be a multiple of uint64_t size
@@ -74,6 +72,15 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
               "global_cache dirty flag not reset => erase file and recreate");
         }
       }
+    } catch (const boost::exception& e) {
+      std::string err_detail =
+          fmt::format("corrupted cache file {} => recreate {}", _file_path,
+                      boost::diagnostic_information(e));
+
+      SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+      _file.reset();
+      _file_size = 0;
+      ::remove(_file_path.c_str());
     } catch (const std::exception& e) {
       std::string err_detail = fmt::format(
           "corrupted cache file {} => recreate {}", _file_path, e.what());
@@ -88,9 +95,16 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
                        _file_path);
 
     ::remove(_file_path.c_str());
-    grow(initial_size_on_create);
+    _grow(initial_size_on_create);
     *_file->find_or_construct<bool>("dirty")() = true;
-    this->managed_map(true);
+    try {
+      this->managed_map(true);
+    } catch (const boost::interprocess::bad_alloc& e) {
+      SPDLOG_LOGGER_ERROR(log_v2::core(),
+                          "allocation error: {}, too small initial file size?",
+                          boost::diagnostic_information(e));
+      throw;
+    }
   }
 }
 
@@ -104,15 +118,17 @@ void global_cache::open(size_t initial_size_on_create, const void* address) {
  * @param new_size
  * @param address used only for tests
  */
-void global_cache::grow(size_t new_size, void* address) {
+void global_cache::_grow(size_t new_size, void* address) {
   if (new_size <= _file_size) {
     return;
   }
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "resize file {} from {} to {}",
                       _file_path, _file_size, new_size);
+  size_t old_size = 0;
   if (_file) {
     _file->flush();
     _file.reset();
+    old_size = _file_size;
     _file_size = 0;
   }
 
@@ -130,7 +146,7 @@ void global_cache::grow(size_t new_size, void* address) {
           interprocess::create_only, _file_path.c_str(), new_size, address);
       _file_size = new_size;
     } else {  // file exist
-      managed_mapped_file::grow(_file_path.c_str(), new_size);
+      managed_mapped_file::grow(_file_path.c_str(), new_size - old_size);
       _file = std::make_unique<managed_mapped_file>(
           interprocess::open_only, _file_path.c_str(), address);
       _file_size = new_size;
@@ -153,7 +169,7 @@ void global_cache::grow(size_t new_size, void* address) {
 void global_cache::allocation_exception_handler() {
   {
     absl::WriterMutexLock l(&_protect);
-    grow(_file_size + 0x1000000);
+    _grow(_file_size + 0x20000000);
     this->managed_map(false);
   }
 }
@@ -166,14 +182,12 @@ void global_cache::allocation_exception_handler() {
  * @param address where to map file in memory, 0 means system decides where
  * @return global_cache::pointer
  */
-global_cache::pointer global_cache::load(
-    const std::string& file_path,
-    const std::shared_ptr<asio::io_context>& io_context,
-    size_t initial_size,
-    const void* address) {
+global_cache::pointer global_cache::load(const std::string& file_path,
+                                         size_t initial_size,
+                                         const void* address) {
   if (!_instance) {
-    _instance = pointer(new global_cache_data(file_path, io_context));
-    _instance->open(initial_size, address);
+    _instance = pointer(new global_cache_data(file_path));
+    _instance->_open(initial_size, address);
   }
   return _instance;
 }

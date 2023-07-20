@@ -21,6 +21,8 @@
 
 #include "http_connection.hh"
 
+class client_test;
+
 CCB_BEGIN()
 
 namespace http_client {
@@ -51,10 +53,12 @@ class client : public std::enable_shared_from_this<client> {
       const std::shared_ptr<spdlog::logger>& logger,
       const http_config::pointer& conf)>;
 
- protected:
-  std::shared_ptr<asio::io_context> _io_context;
-  std::shared_ptr<spdlog::logger> _logger;
-  http_config::pointer _conf;
+  friend client_test;
+
+ private:
+  const std::shared_ptr<asio::io_context> _io_context;
+  const std::shared_ptr<spdlog::logger> _logger;
+  const http_config::pointer _conf;
 
   using connection_cont = boost::container::flat_set<connection_base::pointer>;
   connection_cont _not_connected_conns;
@@ -79,35 +83,36 @@ class client : public std::enable_shared_from_this<client> {
 
   mutable std::mutex _protect;
 
+  bool _connect(const cb_request::pointer& request);
+
+  void _on_connect(const boost::beast::error_code& error,
+                   const std::string& detail,
+                   const cb_request::pointer& request,
+                   connection_base::pointer conn);
+
+  void _on_sent(const boost::beast::error_code& error,
+                const std::string& detail,
+                const cb_request::pointer& request,
+                const response_ptr& response,
+                connection_base::pointer conn);
+
+  void _send_first_queue_request();
+
+  void _retry(const boost::beast::error_code& error,
+              const std::string& detail,
+              const cb_request::pointer& request,
+              const response_ptr& response);
+
+  bool _send_or_push(const cb_request::pointer request,
+                     bool push_to_front = false);
+
+  void _send(const cb_request::pointer& request, connection_base::pointer conn);
+
+ protected:
   client(const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf,
          connection_creator conn_creator);
-
-  bool connect(const cb_request::pointer& request);
-
-  void on_connect(const boost::beast::error_code& error,
-                  const std::string& detail,
-                  const cb_request::pointer& request,
-                  connection_base::pointer conn);
-
-  void on_sent(const boost::beast::error_code& error,
-               const std::string& detail,
-               const cb_request::pointer& request,
-               const response_ptr& response,
-               connection_base::pointer conn);
-
-  void send_first_queue_request();
-
-  void retry(const boost::beast::error_code& error,
-             const std::string& detail,
-             const cb_request::pointer& request,
-             const response_ptr& response);
-
-  bool send_or_push(const cb_request::pointer request,
-                    bool push_to_front = false);
-
-  void send(const cb_request::pointer& request, connection_base::pointer conn);
 
  public:
   using pointer = std::shared_ptr<client>;
@@ -119,7 +124,7 @@ class client : public std::enable_shared_from_this<client> {
 
   template <class callback_type>
   bool send(const request_ptr& request, callback_type&& callback) {
-    return send_or_push(std::make_shared<cb_request>(callback, request));
+    return _send_or_push(std::make_shared<cb_request>(callback, request));
   }
 
   void shutdown();

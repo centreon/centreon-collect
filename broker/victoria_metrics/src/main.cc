@@ -100,10 +100,8 @@ void broker_module_init(void const* arg) {
     io::protocols::instance().reg("VICTORIA_METRICS",
                                   std::make_shared<victoria_metrics::factory>(),
                                   1, 7);
-    cache::global_cache::load(
-        fmt::format("{}.cache.global",
-                    config::applier::state::instance().cache_dir()),
-        pool::io_context_ptr());
+    cache::global_cache::load(fmt::format(
+        "{}.cache.global", config::applier::state::instance().cache_dir()));
   }
 }
 }

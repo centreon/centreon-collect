@@ -46,8 +46,6 @@ using namespace com::centreon::broker::http_tsdb;
 ;
 using namespace nlohmann;
 
-extern std::shared_ptr<asio::io_context> g_io_context;
-
 class victoria_request_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
@@ -57,7 +55,7 @@ class victoria_request_test : public ::testing::Test {
     io::events::load();
     io::events& e(io::events::instance());
     ::remove("/tmp/cache_test.request_test");
-    cache::global_cache::load("/tmp/cache_test.request_test", g_io_context);
+    cache::global_cache::load("/tmp/cache_test.request_test");
 
     // Register events.
 

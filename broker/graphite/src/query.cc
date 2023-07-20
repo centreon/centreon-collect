@@ -323,7 +323,7 @@ void query::_get_host(io::data const& d, std::ostream& is) {
  */
 void query::_get_host_id(io::data const& d, std::ostream& is) {
   if (_type == status)
-    is << _cache->get_index_mapping(_get_index_id(d)).obj().host_id();
+    is << static_cast<storage::pb_status const&>(d).obj().host_id();
   else
     is << static_cast<storage::pb_metric const&>(d).obj().host_id();
 }
@@ -336,10 +336,9 @@ void query::_get_host_id(io::data const& d, std::ostream& is) {
  */
 void query::_get_service(io::data const& d, std::ostream& is) {
   if (_type == status) {
-    const storage::pb_index_mapping& stm =
-        _cache->get_index_mapping(_get_index_id(d));
-    is << _escape(_cache->get_service_description(stm.obj().host_id(),
-                                                  stm.obj().service_id()));
+    is << _escape(_cache->get_service_description(
+        static_cast<storage::pb_status const&>(d).obj().host_id(),
+        static_cast<storage::pb_status const&>(d).obj().service_id()));
   } else
     is << _escape(_cache->get_service_description(
         static_cast<storage::pb_metric const&>(d).obj().host_id(),
@@ -354,7 +353,7 @@ void query::_get_service(io::data const& d, std::ostream& is) {
  */
 void query::_get_service_id(io::data const& d, std::ostream& is) {
   if (_type == status)
-    is << _cache->get_index_mapping(_get_index_id(d)).obj().service_id();
+    is << static_cast<storage::pb_status const&>(d).obj().service_id();
   else
     is << static_cast<storage::pb_metric const&>(d).obj().service_id();
 }
