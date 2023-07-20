@@ -99,7 +99,7 @@ COPY --chmod=755 ./.github/docker/init/* /etc/init.d/
 RUN  <<EOF
 
 apt-get update
-apt-get install -y centreon-collect centreon-broker-cbd centreon-broker-cbmod rrdtool
+apt-get install -y centreon-collect centreon-broker-cbd centreon-broker-cbmod centreon-gorgone rrdtool
 
 systemctl restart cbd
 systemctl restart centengine
