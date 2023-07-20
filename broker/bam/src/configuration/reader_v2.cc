@@ -161,13 +161,12 @@ void reader_v2::_load(state::kpis& kpis) {
     for (state::kpis::iterator it = kpis.begin(), end = kpis.end(); it != end;
          ++it) {
       if (it->second.is_meta()) {
-        std::string query(
-            fmt::format("SELECT hsr.host_host_id, hsr.service_service_id"
-                        "  FROM service AS s"
-                        "  LEFT JOIN host_service_relation AS hsr"
-                        "    ON s.service_id=hsr.service_service_id"
-                        "  WHERE s.service_description='meta_{}'",
-                        it->second.get_meta_id()));
+        std::string query(fmt::format(
+            "SELECT DISTINCT hsr.host_host_id, hsr.service_service_id FROM "
+            "service AS s LEFT JOIN host_service_relation AS hsr ON "
+            "s.service_id=hsr.service_service_id WHERE "
+            "s.service_description='meta_{}'",
+            it->second.get_meta_id()));
         std::promise<database::mysql_result> promise;
         std::future<database::mysql_result> future = promise.get_future();
         _mysql.run_query_and_get_result(query, std::move(promise), 0);
@@ -264,14 +263,11 @@ void reader_v2::_load(state::bas& bas, bam::ba_svc_mapping& mapping) {
     std::promise<database::mysql_result> promise;
     std::future<database::mysql_result> future = promise.get_future();
     _mysql.run_query_and_get_result(
-        "SELECT h.host_name, s.service_description,"
-        "       hsr.host_host_id, hsr.service_service_id"
-        "  FROM service AS s"
-        "  INNER JOIN host_service_relation AS hsr"
-        "    ON s.service_id=hsr.service_service_id"
-        "  INNER JOIN host AS h"
-        "    ON hsr.host_host_id=h.host_id"
-        "  WHERE s.service_description LIKE 'ba\\_%'",
+        "SELECT DISTINCT h.host_name, s.service_description, hsr.host_host_id, "
+        "hsr.service_service_id FROM service AS s INNER JOIN "
+        "host_service_relation AS hsr ON s.service_id=hsr.service_service_id "
+        "INNER JOIN host AS h ON hsr.host_host_id=h.host_id WHERE "
+        "s.service_description LIKE 'ba\\_%'",
         std::move(promise), 0);
     database::mysql_result res(future.get());
     while (_mysql.fetch_row(res)) {
@@ -369,11 +365,10 @@ void reader_v2::_load(bam::hst_svc_mapping& mapping) {
     std::promise<database::mysql_result> promise;
     std::future<database::mysql_result> future = promise.get_future();
     _mysql.run_query_and_get_result(
-        "SELECT h.host_id, s.service_id, h.host_name, "
-        "s.service_description,service_activate FROM "
-        "service s LEFT JOIN host_service_relation hsr ON "
-        "s.service_id=hsr.service_service_id "
-        "LEFT JOIN host h ON hsr.host_host_id=h.host_id",
+        "SELECT DISTINCT h.host_id, s.service_id, h.host_name, "
+        "s.service_description,service_activate FROM service s LEFT JOIN "
+        "host_service_relation hsr ON s.service_id=hsr.service_service_id LEFT "
+        "JOIN host h ON hsr.host_host_id=h.host_id",
         std::move(promise), 0);
     database::mysql_result res(future.get());
     while (_mysql.fetch_row(res))

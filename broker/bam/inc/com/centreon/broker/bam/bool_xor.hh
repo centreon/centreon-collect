@@ -39,7 +39,7 @@ class bool_xor : public bool_binary_operator {
   bool_xor(const bool_xor&) = delete;
   bool_xor& operator=(const bool_xor&) = delete;
   double value_hard() override;
-  double value_soft() override;
+  bool boolean_value() const override;
 };
 }  // namespace bam
 

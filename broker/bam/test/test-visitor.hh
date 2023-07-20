@@ -20,6 +20,9 @@
 #define CCB_TEST_VISITOR_HH
 
 #include <fmt/format.h>
+#include "bbdo/bam/ba_event.hh"
+#include "bbdo/bam/inherited_downtime.hh"
+#include "bbdo/bam/kpi_event.hh"
 #include "com/centreon/broker/io/stream.hh"
 
 CCB_BEGIN()

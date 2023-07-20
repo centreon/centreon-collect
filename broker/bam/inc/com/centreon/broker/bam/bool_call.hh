@@ -42,7 +42,7 @@ class bool_call : public bool_value {
   bool_call(const bool_call&) = delete;
   bool_call& operator=(const bool_call&) = delete;
   double value_hard() override;
-  double value_soft() override;
+  bool boolean_value() const override;
   bool state_known() const override;
   std::string const& get_name() const;
   void set_expression(std::shared_ptr<bool_value> expression);

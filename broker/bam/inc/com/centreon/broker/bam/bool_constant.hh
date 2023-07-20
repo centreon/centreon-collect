@@ -34,6 +34,8 @@ namespace bam {
  */
 class bool_constant : public bool_value {
   const double _value;
+  /* Same value as _value but seen as boolean. */
+  const bool _boolean_value;
 
  public:
   bool_constant(double value);
@@ -42,7 +44,7 @@ class bool_constant : public bool_value {
   bool_constant& operator=(const bool_constant&) = delete;
   bool child_has_update(computable* child, io::stream* visitor) override;
   double value_hard() override;
-  double value_soft() override;
+  bool boolean_value() const override;
   bool state_known() const override;
 };
 }  // namespace bam

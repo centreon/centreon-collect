@@ -40,9 +40,9 @@ class bool_value;
  *  operations and evaluate them to match the kpi interface.
  */
 class bool_expression : public computable {
-  uint32_t _id;
+  const uint32_t _id;
+  const bool _impact_if;
   std::shared_ptr<bool_value> _expression;
-  bool _impact_if;
 
  public:
   bool_expression(uint32_t id, bool impact_if);
