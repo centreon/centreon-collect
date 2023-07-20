@@ -19,6 +19,7 @@ on:
       - cmake.sh
       - CMakeLists.txt
       - conanfile.txt
+      - "!.veracode-exclusions"
   push:
     branches:
       - develop
@@ -37,6 +38,7 @@ on:
       - cmake.sh
       - CMakeLists.txt
       - conanfile.txt
+      - "!.veracode-exclusions"
 
 jobs:
   get-version:
