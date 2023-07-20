@@ -40,6 +40,7 @@ jobs:
   build:
     name: Sandbox scan
     runs-on: [self-hosted, collect]
+    continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR }}
 
     container:
       image: ${{ inputs.docker_registry_url }}/centreon-collect-alma9:${{ inputs.img_version }}
@@ -128,8 +129,7 @@ jobs:
           fi
 
           echo "[INFO] - Cleaning useless files"
-          #echo "[DEBUG] - step Cancelled"
-          for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" ); do
+          for file in $( find ./ -name "*.o" -o -name "*.a" -o -name "*.h" -o -name "*.sql" -o -name "CMakeDetermineCompilerABI_C.bin" ); do
             rm -f $file
           done
 
