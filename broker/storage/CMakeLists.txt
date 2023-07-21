@@ -69,9 +69,7 @@ add_library(
   "${INC_DIR}/stream.hh")
 set_target_properties("${STORAGE}" PROPERTIES PREFIX "" COMPILE_FLAGS "-fPIC")
 add_dependencies("${STORAGE}" target_rebuild_message
-                 target_remove_graph_message
-		 table_max_size
-		 )
+                 target_remove_graph_message table_max_size)
 target_link_libraries(${STORAGE} conflictmgr rokerbase bbdo_storage)
 target_precompile_headers(${STORAGE} REUSE_FROM conflictmgr)
 
@@ -83,12 +81,8 @@ if(WITH_TESTING)
 
   # Testing.
   set(TESTS_SOURCES
-      ${TESTS_SOURCES}
-      ${TEST_DIR}/connector.cc
-      ${TEST_DIR}/metric.cc
-      ${TEST_DIR}/rebuild.cc
-      ${TEST_DIR}/remove_graph.cc
-      ${TEST_DIR}/status.cc
+      ${TESTS_SOURCES} ${TEST_DIR}/connector.cc ${TEST_DIR}/metric.cc
+      ${TEST_DIR}/remove_graph.cc ${TEST_DIR}/status.cc
       ${TEST_DIR}/status-entry.cc
       PARENT_SCOPE)
   set(TESTS_LIBRARIES

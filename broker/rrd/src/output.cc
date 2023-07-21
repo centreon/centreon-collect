@@ -26,7 +26,6 @@
 #include <iomanip>
 
 #include "bbdo/storage/metric.hh"
-#include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
@@ -430,10 +429,12 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
             _backend.remove(path);
             // creation of status caches
             path = fmt::format("{}{}.rrd", _status_path, m.second);
-            _status_rebuild[path];
-            _metrics_to_index_rebuild[m.first] = m.second;
-            /* File removed */
-            _backend.remove(path);
+            if (_status_rebuild.find(path) == _status_rebuild.end()) {
+              _status_rebuild[path];
+              _metrics_to_index_rebuild[m.first] = m.second;
+              /* File removed */
+              _backend.remove(path);
+            }
           }
           break;
         case RebuildMessage_State_DATA:
@@ -495,55 +496,6 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         _backend.remove(path);
       }
     } break;
-    case storage::rebuild::static_type(): {
-      log_v2::rrd()->info("storage::rebuild");
-      // Debug message.
-      std::shared_ptr<storage::rebuild> e(
-          std::static_pointer_cast<storage::rebuild>(d));
-      log_v2::rrd()->debug("RRD: rebuild request for {} {} {}",
-                           e->is_index ? "index" : "metric", e->id,
-                           e->end ? "(end)" : "(start)");
-
-      // Generate path.
-      std::string path(fmt::format(
-          "{}{}.rrd", e->is_index ? _status_path : _metrics_path, e->id));
-
-      // Rebuild is starting.
-      if (!e->end) {
-        if (e->is_index)
-          _status_rebuild[path];
-        else
-          _metrics_rebuild[path];
-        _backend.remove(path);
-      }
-      // Rebuild is ending.
-      else {
-        // Find cache.
-        std::list<std::shared_ptr<io::data>> l;
-        {
-          rebuild_cache::iterator it;
-          if (e->is_index) {
-            it = _status_rebuild.find(path);
-            if (it != _status_rebuild.end()) {
-              l = it->second;
-              _status_rebuild.erase(it);
-            }
-          } else {
-            it = _metrics_rebuild.find(path);
-            if (it != _metrics_rebuild.end()) {
-              l = it->second;
-              _metrics_rebuild.erase(it);
-            }
-          }
-        }
-
-        // Resend cache data.
-        while (!l.empty()) {
-          write(l.front());
-          l.pop_front();
-        }
-      }
-    } break;
     case storage::remove_graph::static_type(): {
       log_v2::rrd()->info("storage::remove_graph");
       // Debug message.
@@ -582,25 +534,38 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
  */
 template <typename T>
 void output<T>::_rebuild_data(const RebuildMessage& rm) {
-  int64_t status_start_time = 0;
-  std::deque<std::string> status_query;
+  // we can receive the same status indexed by index_id in several metrics, so
+  // whe have to reorder that in this container
+  struct status_data {
+    uint32_t check_interval = 60;
+    uint32_t rrd_retention = 0;
+    std::map<uint64_t /*time*/, const char* /* "{}:[100,75,0]" */>
+        time_to_value;
+  };
+  using index_id_to_status_values =
+      std::map<uint64_t /*index_id*/, status_data>;
 
-  auto fill_status_request = [&](const com::centreon::broker::Point& pt) {
+  index_id_to_status_values status_values;
+
+  auto fill_status_request = [&](uint64_t index_id, uint32_t check_interval,
+                                 uint32_t rrd_retention,
+                                 const com::centreon::broker::Point& pt) {
+    if (!index_id)
+      return;
+    status_data& to_update = status_values[index_id];
+    if (to_update.check_interval < check_interval)
+      to_update.check_interval = check_interval;
+    if (to_update.rrd_retention < rrd_retention)
+      to_update.rrd_retention = rrd_retention;
     switch (pt.status()) {
       case 0:
-        status_query.emplace_back(fmt::format("{}:100"), pt.ctime());
-        if (!status_start_time)
-          status_start_time = pt.ctime();
+        to_update.time_to_value[pt.ctime()] = "{}:100";
         break;
       case 1:
-        status_query.emplace_back(fmt::format("{}:75"), pt.ctime());
-        if (!status_start_time)
-          status_start_time = pt.ctime();
+        to_update.time_to_value[pt.ctime()] = "{}:75";
         break;
       case 2:
-        status_query.emplace_back(fmt::format("{}:0"), pt.ctime());
-        if (!status_start_time)
-          status_start_time = pt.ctime();
+        to_update.time_to_value[pt.ctime()] = "{}:0";
         break;
       default:
         break;
@@ -609,15 +574,12 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
 
   for (auto& p : rm.timeserie()) {
     std::deque<std::string> query;
-    status_start_time = 0;
-    status_query.clear();
     log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
     std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
-    std::string status_path;
     auto index_id_search = _metrics_to_index_rebuild.find(p.first);
+    uint64_t index_id = 0;
     if (index_id_search != _metrics_to_index_rebuild.end()) {
-      status_path =
-          fmt::format("{}{}.rrd", _status_path, index_id_search->second);
+      index_id = index_id_search->second;
     }
 
     int32_t data_source_type = p.second.data_source_type();
@@ -625,7 +587,8 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
       case misc::perfdata::gauge:
         for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{:f}", pt.ctime(), pt.value()));
-          fill_status_request(pt);
+          fill_status_request(index_id, p.second.check_interval(),
+                              p.second.rrd_retention(), pt);
         }
         break;
       case misc::perfdata::counter:
@@ -633,14 +596,16 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
         for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<uint64_t>(pt.value())));
-          fill_status_request(pt);
+          fill_status_request(index_id, p.second.check_interval(),
+                              p.second.rrd_retention(), pt);
         }
         break;
       case misc::perfdata::derive:
         for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<int64_t>(pt.value())));
-          fill_status_request(pt);
+          fill_status_request(index_id, p.second.check_interval(),
+                              p.second.rrd_retention(), pt);
         }
         break;
       default:
@@ -672,24 +637,34 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
 
     } else
       SPDLOG_LOGGER_TRACE(log_v2::rrd(), "Nothing to rebuild in '{}'", path);
+  }
 
-    if (!status_path.empty() && !status_query.empty()) {
-      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "'{}' start date set to {}",
-                          status_path, status_start_time);
-      try {
-        /* Here, the file is opened only if it exists. */
-        _backend.open(status_path);
-      } catch (const exceptions::open& b) {
-        /* Here, the file is created. */
-        _backend.open(status_path, p.second.rrd_retention(), status_start_time,
-                      interval);
-      }
-      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "{} points added to file '{}'",
-                          status_query.size(), status_path);
-      _backend.update(status_query);
-    } else if (!status_path.empty()) {
-      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "Nothing to rebuild in '{}'",
-                          status_path);
+  for (const auto& by_index_status_values : status_values) {
+    std::string status_path{
+        fmt::format("{}{}.rrd", _status_path, by_index_status_values.first)};
+
+    time_t start_time =
+        by_index_status_values.second.time_to_value.begin()->first;
+    SPDLOG_LOGGER_TRACE(log_v2::rrd(), "'{}' start date set to {}", status_path,
+                        start_time);
+    try {
+      /* Here, the file is opened only if it exists. */
+      _backend.open(status_path);
+    } catch (const exceptions::open& b) {
+      /* Here, the file is created. */
+      _backend.open(status_path, by_index_status_values.second.rrd_retention,
+                    start_time - 1 /*mandatory to insert first value*/,
+                    by_index_status_values.second.check_interval);
     }
+    SPDLOG_LOGGER_TRACE(log_v2::rrd(), "{} points added to file '{}'",
+                        by_index_status_values.second.time_to_value.size(),
+                        status_path);
+
+    std::deque<std::string> status_query;
+    for (const auto& time_val : by_index_status_values.second.time_to_value) {
+      status_query.emplace_back(fmt::format(time_val.second, time_val.first));
+    }
+
+    _backend.update(status_query);
   }
 }
