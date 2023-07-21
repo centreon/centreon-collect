@@ -450,6 +450,9 @@ def get_default_values(cap_name, cpp, msg: [str]):
                 if value.startswith("state::icd_"):
                     value = value.replace(
                         "state::icd_", "InterCheckDelay_IcdType_")
+                if value.startswith("state::ilf_"):
+                    value = value.replace(
+                        "state::ilf_", "InterleaveFactor::ilf_")
                 elif value.startswith("state::mode_"):
                     value = value.replace("state::mode_", "PerfdataFileMode::")
                 else:
