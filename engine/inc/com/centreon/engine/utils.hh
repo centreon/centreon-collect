@@ -47,7 +47,7 @@ char const* my_ctime(time_t const* t);
 // thread-safe version of get_raw_command_line_r()
 int get_raw_command_line_r(nagios_macros* mac,
                            com::centreon::engine::commands::command* cmd_ptr,
-                           std::string const& cmd,
+                           std::string_view cmd,
                            std::string& full_command,
                            int macro_options);
 

@@ -482,7 +482,10 @@ void raw::_build_custom_service_macro_environment(nagios_macros& macros,
  *  @param[out]    env     The environment to fill.
  */
 void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
-  if (config->enable_environment_macros()) {
+  bool enable_environment_macros = legacy_conf
+                                       ? config->enable_environment_macros()
+                                       : pb_config.enable_environment_macros();
+  if (enable_environment_macros) {
     _build_macrosx_environment(macros, env);
     _build_argv_macro_environment(macros, env);
     _build_custom_host_macro_environment(macros, env);
@@ -499,15 +502,17 @@ void raw::_build_environment_macros(nagios_macros& macros, environment& env) {
  *  @param[out]    env     The environment to fill.
  */
 void raw::_build_macrosx_environment(nagios_macros& macros, environment& env) {
-  for (uint32_t i(0); i < MACRO_X_COUNT; ++i) {
+  bool use_large_installation_tweaks =
+      legacy_conf ? config->use_large_installation_tweaks()
+                  : pb_config.use_large_installation_tweaks();
+  for (uint32_t i = 0; i < MACRO_X_COUNT; ++i) {
     int release_memory(0);
 
     // Need to grab macros?
     if (macros.x[i].empty()) {
       // Skip summary macro in lage instalation tweaks.
-      if ((i < MACRO_TOTALHOSTSUP) ||
-          (i > MACRO_TOTALSERVICEPROBLEMSUNHANDLED) ||
-          !config->use_large_installation_tweaks()) {
+      if (i < MACRO_TOTALHOSTSUP || i > MACRO_TOTALSERVICEPROBLEMSUNHANDLED ||
+          !use_large_installation_tweaks) {
         grab_macrox_value_r(&macros, i, "", "", macros.x[i], &release_memory);
       }
     }
@@ -539,11 +544,14 @@ process* raw::_get_free_process() {
   if (_processes_free.empty()) {
     /* Only the out stream is open */
     process* p = new process(this, false, true, false);
-    p->setpgid_on_exec(config->use_setpgid());
+    if (legacy_conf)
+      p->setpgid_on_exec(config->use_setpgid());
+    else
+      p->setpgid_on_exec(pb_config.use_setpgid());
     return p;
   }
   // Get a free process.
-  process* p(_processes_free.front());
+  process* p = _processes_free.front();
   _processes_free.pop_front();
   return p;
 }

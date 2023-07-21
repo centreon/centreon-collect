@@ -2068,7 +2068,9 @@ int service::handle_async_check_result(
  *  @return Return true on success.
  */
 int service::log_event() {
-  if (get_state_type() == soft && !config->log_service_retries())
+  bool log_service_retries = legacy_conf ? config->log_service_retries()
+                                         : pb_config.log_service_retries();
+  if (get_state_type() == soft && !log_service_retries)
     return OK;
 
   uint32_t log_options{NSLOG_SERVICE_UNKNOWN};
@@ -2262,7 +2264,9 @@ int service::handle_service_event() {
                           max_check_attempts(), nullptr);
 
   /* bail out if we shouldn't be running event handlers */
-  if (!config->enable_event_handlers())
+  bool enable_event_handlers = legacy_conf ? config->enable_event_handlers()
+                                           : pb_config.enable_event_handlers();
+  if (!enable_event_handlers)
     return OK;
   if (!event_handler_enabled())
     return OK;
@@ -2300,19 +2304,32 @@ int service::obsessive_compulsive_service_check_processor() {
   int macro_options = STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS;
   nagios_macros* mac(get_global_macros());
 
+  bool obsess_over_services;
+  std::string_view ocsp_command;
+  uint32_t ocsp_timeout;
+  if (legacy_conf) {
+    obsess_over_services = config->obsess_over_services();
+    ocsp_command = config->ocsp_command();
+    ocsp_timeout = config->ocsp_timeout();
+  } else {
+    obsess_over_services = pb_config.obsess_over_services();
+    ocsp_command = pb_config.ocsp_command();
+    ocsp_timeout = pb_config.ocsp_timeout();
+  }
+
   engine_logger(dbg_functions, basic)
       << "obsessive_compulsive_service_check_processor()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(),
                       "obsessive_compulsive_service_check_processor()");
 
   /* bail out if we shouldn't be obsessing */
-  if (!config->obsess_over_services())
+  if (!obsess_over_services)
     return OK;
   if (!obsess_over())
     return OK;
 
   /* if there is no valid command, exit */
-  if (config->ocsp_command().empty())
+  if (ocsp_command.empty())
     return ERROR;
 
   /* find the associated host */
@@ -2324,8 +2341,8 @@ int service::obsessive_compulsive_service_check_processor() {
   grab_service_macros_r(mac, this);
 
   /* get the raw command line */
-  get_raw_command_line_r(mac, ocsp_command_ptr, config->ocsp_command().c_str(),
-                         raw_command, macro_options);
+  get_raw_command_line_r(mac, ocsp_command_ptr, ocsp_command, raw_command,
+                         macro_options);
   if (raw_command.empty()) {
     clear_volatile_macros_r(mac);
     return ERROR;
@@ -2358,8 +2375,8 @@ int service::obsessive_compulsive_service_check_processor() {
   /* run the command */
   try {
     std::string tmp;
-    my_system_r(mac, processed_command, config->ocsp_timeout(), &early_timeout,
-                &exectime, tmp, 0);
+    my_system_r(mac, processed_command, ocsp_timeout, &early_timeout, &exectime,
+                tmp, 0);
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: can't execute compulsive service processor command line '"
@@ -2378,12 +2395,12 @@ int service::obsessive_compulsive_service_check_processor() {
     engine_logger(log_runtime_warning, basic)
         << "Warning: OCSP command '" << processed_command << "' for service '"
         << name() << "' on host '" << _hostname << "' timed out after "
-        << config->ocsp_timeout() << " seconds";
+        << ocsp_timeout << " seconds";
   SPDLOG_LOGGER_WARN(
       log_v2::runtime(),
       "Warning: OCSP command '{}' for service '{}' on host '{}' timed out "
       "after {} seconds",
-      processed_command, name(), _hostname, config->ocsp_timeout());
+      processed_command, name(), _hostname, ocsp_timeout);
 
   return OK;
 }
@@ -2391,7 +2408,9 @@ int service::obsessive_compulsive_service_check_processor() {
 /* updates service performance data */
 int service::update_service_performance_data() {
   /* should we be processing performance data for anything? */
-  if (!config->process_performance_data())
+  bool process_pd = legacy_conf ? config->process_performance_data()
+                                : pb_config.process_performance_data();
+  if (!process_pd)
     return OK;
 
   /* should we process performance data for this service? */
@@ -2444,13 +2463,15 @@ int service::run_scheduled_check(int check_options, double latency) {
        * if service has no check interval, schedule it again for 5
        * minutes from now
        * */
-      if (current_time >= preferred_time)
+      if (current_time >= preferred_time) {
+        uint32_t interval_length = legacy_conf ? config->interval_length()
+                                               : pb_config.interval_length();
         preferred_time =
             current_time +
             static_cast<time_t>(check_interval() <= 0
                                     ? 300
-                                    : check_interval() *
-                                          config->interval_length());
+                                    : check_interval() * interval_length);
+      }
 
       // Make sure we rescheduled the next service check at a valid time.
       {
@@ -2592,9 +2613,12 @@ int service::run_async_check_local(int check_options,
 
   // Service check was cancelled by NEB module. reschedule check later.
   if (NEBERROR_CALLBACKCANCEL == res) {
-    if (preferred_time != nullptr)
+    if (preferred_time != nullptr) {
+      uint32_t interval_length =
+          legacy_conf ? config->interval_length() : pb_config.interval_length();
       *preferred_time +=
-          static_cast<time_t>(check_interval() * config->interval_length());
+          static_cast<time_t>(check_interval() * interval_length);
+    }
     engine_logger(log_runtime_error, basic)
         << "Error: Some broker module cancelled check of service '"
         << description() << "' on host '" << get_hostname();
@@ -2687,9 +2711,11 @@ int service::run_async_check_local(int check_options,
     retry = false;
     try {
       // Run command.
-      uint64_t id =
-          cmd->run(processed_cmd, *macros, config->service_check_timeout(),
-                   check_result_info, this);
+      uint32_t service_check_timeout = legacy_conf
+                                           ? config->service_check_timeout()
+                                           : pb_config.service_check_timeout();
+      uint64_t id = cmd->run(processed_cmd, *macros, service_check_timeout,
+                             check_result_info, this);
       SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                           "run id={} {} for service {} host {}", id,
                           processed_cmd, _service_id, _hostname);
@@ -3081,12 +3107,12 @@ bool service::verify_check_viability(int check_options,
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "check_service_check_viability()");
 
   /* get the check interval to use if we need to reschedule the check */
+  uint32_t interval_length =
+      legacy_conf ? config->interval_length() : pb_config.interval_length();
   if (get_state_type() == soft && _current_state != service::state_ok)
-    check_interval =
-        static_cast<int>(retry_interval() * config->interval_length());
+    check_interval = static_cast<int>(retry_interval() * interval_length);
   else
-    check_interval =
-        static_cast<int>(this->check_interval() * config->interval_length());
+    check_interval = static_cast<int>(this->check_interval() * interval_length);
 
   /* get the current time */
   time(&current_time);
@@ -3235,7 +3261,9 @@ int service::notify_contact(nagios_macros* mac,
                                    processed_command);
 
     /* log the notification to program log file */
-    if (config->log_notifications()) {
+    bool log_notifications = legacy_conf ? config->log_notifications()
+                                         : pb_config.log_notifications();
+    if (log_notifications) {
       char const* service_state_str("UNKNOWN");
       if ((unsigned int)_current_state < tab_service_states.size())
         service_state_str = tab_service_states[_current_state].second.c_str();
@@ -3271,10 +3299,13 @@ int service::notify_contact(nagios_macros* mac,
     }
 
     /* run the notification command */
+    uint32_t notification_timeout = legacy_conf
+                                        ? config->notification_timeout()
+                                        : pb_config.notification_timeout();
     try {
       std::string tmp;
-      my_system_r(mac, processed_command, config->notification_timeout(),
-                  &early_timeout, &exectime, tmp, 0);
+      my_system_r(mac, processed_command, notification_timeout, &early_timeout,
+                  &exectime, tmp, 0);
     } catch (std::exception const& e) {
       engine_logger(log_runtime_error, basic)
           << "Error: can't execute service notification '" << cntct->get_name()
@@ -3289,12 +3320,11 @@ int service::notify_contact(nagios_macros* mac,
       engine_logger(log_service_notification | log_runtime_warning, basic)
           << "Warning: Contact '" << cntct->get_name()
           << "' service notification command '" << processed_command
-          << "' timed out after " << config->notification_timeout()
-          << " seconds";
+          << "' timed out after " << notification_timeout << " seconds";
       log_v2::notifications()->info(
           "Warning: Contact '{}' service notification command '{}' timed out "
           "after {} seconds",
-          cntct->get_name(), processed_command, config->notification_timeout());
+          cntct->get_name(), processed_command, notification_timeout);
     }
 
     /* get end time */
@@ -3420,17 +3450,30 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
                       "Checking freshness of service '{}' on host '{}'...",
                       this->description(), this->get_hostname());
 
+  uint32_t interval_length;
+  int32_t additional_freshness_latency;
+  uint32_t max_service_check_spread;
+  if (legacy_conf) {
+    interval_length = config->interval_length();
+    additional_freshness_latency = config->additional_freshness_latency();
+    max_service_check_spread = config->max_service_check_spread();
+  } else {
+    interval_length = pb_config.interval_length();
+    additional_freshness_latency = pb_config.additional_freshness_latency();
+    max_service_check_spread = pb_config.max_service_check_spread();
+  }
+
   /* use user-supplied freshness threshold or auto-calculate a freshness
    * threshold to use? */
   if (get_freshness_threshold() == 0) {
     if (get_state_type() == hard || this->_current_state == service::state_ok)
-      freshness_threshold = static_cast<int>(
-          check_interval() * config->interval_length() + get_latency() +
-          config->additional_freshness_latency());
+      freshness_threshold =
+          static_cast<int>(check_interval() * interval_length + get_latency() +
+                           additional_freshness_latency);
     else
-      freshness_threshold = static_cast<int>(
-          this->retry_interval() * config->interval_length() + get_latency() +
-          config->additional_freshness_latency());
+      freshness_threshold =
+          static_cast<int>(this->retry_interval() * interval_length +
+                           get_latency() + additional_freshness_latency);
   } else
     freshness_threshold = this->get_freshness_threshold();
 
@@ -3460,8 +3503,7 @@ bool service::is_result_fresh(time_t current_time, int log_this) {
   else if (this->active_checks_enabled() && event_start > get_last_check() &&
            this->get_freshness_threshold() == 0)
     expiration_time = (time_t)(event_start + freshness_threshold +
-                               (config->max_service_check_spread() *
-                                config->interval_length()));
+                               max_service_check_spread * interval_length);
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 
@@ -3620,9 +3662,12 @@ bool service::authorized_by_dependencies(
 
     /* Get the status to use (use last hard state if it's currently in a soft
      * state) */
+    bool soft_state_dependencies = legacy_conf
+                                       ? config->soft_state_dependencies()
+                                       : pb_config.soft_state_dependencies();
     service_state state =
         (dep->master_service_ptr->get_state_type() == notifier::soft &&
-         !config->soft_state_dependencies())
+         !soft_state_dependencies)
             ? dep->master_service_ptr->get_last_hard_state()
             : dep->master_service_ptr->get_current_state();
 
@@ -3656,6 +3701,15 @@ void service::check_for_orphaned() {
   /* get the current time */
   time(&current_time);
 
+  uint32_t service_check_timeout;
+  uint32_t check_reaper_interval;
+  if (legacy_conf) {
+    service_check_timeout = config->service_check_timeout();
+    check_reaper_interval = config->check_reaper_interval();
+  } else {
+    service_check_timeout = pb_config.service_check_timeout();
+    check_reaper_interval = pb_config.check_reaper_interval();
+  }
   /* check all services... */
   for (service_map::iterator it(service::services.begin()),
        end(service::services.end());
@@ -3668,8 +3722,7 @@ void service::check_for_orphaned() {
      * 10 minutes slack time) */
     expected_time =
         (time_t)(it->second->get_next_check() + it->second->get_latency() +
-                 config->service_check_timeout() +
-                 config->check_reaper_interval() + 600);
+                 service_check_timeout + check_reaper_interval + 600);
 
     /* this service was supposed to have executed a while ago, but for some
      * reason the results haven't come back in... */
