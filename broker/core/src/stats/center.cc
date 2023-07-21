@@ -53,8 +53,8 @@ void center::unload() {
 center::center() {
   *_stats.mutable_version() = version::string;
   *_stats.mutable_asio_version() =
-      fmt::format("{}.{}.{}", ASIO_VERSION / 100000, ASIO_VERSION / 100 % 1000,
-                  ASIO_VERSION % 100);
+      fmt::format("{}.{}.{}", BOOST_ASIO_VERSION / 100000,
+                  BOOST_ASIO_VERSION / 100 % 1000, BOOST_ASIO_VERSION % 100);
   _stats.set_pid(getpid());
 
   /* Bringing modules statistics */

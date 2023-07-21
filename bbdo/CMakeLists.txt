@@ -101,7 +101,7 @@ add_library(
   "bbdo/bbdo_version.hh")
 set_target_properties(bbdo_bbdo PROPERTIES POSITION_INDEPENDENT_CODE ON)
 target_precompile_headers(bbdo_bbdo PRIVATE precomp_inc/precomp.hpp)
-add_dependencies(bbdo_bbdo target_bbdo)
+add_dependencies(bbdo_bbdo target_bbdo target_extcmd)
 
 add_library(
   bbdo_storage STATIC

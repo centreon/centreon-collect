@@ -148,7 +148,7 @@ void exporter::init_metrics(
 
   _connections_watcher.expires_after(std::chrono::seconds(10));
   _connections_watcher.async_wait(
-      [this, provider](const asio::error_code& err) {
+      [this, provider](const boost::system::error_code& err) {
         _check_connections(provider, err);
       });
 }
@@ -157,13 +157,13 @@ void exporter::init_metrics(
  * @brief Destructor.
  */
 exporter::~exporter() noexcept {
-  std::error_code ec;
+  boost::system::error_code ec;
   _connections_watcher.cancel(ec);
 }
 
 void exporter::_check_connections(
     std::shared_ptr<metrics_api::MeterProvider> provider,
-    const asio::error_code& ec) {
+    const boost::system::error_code& ec) {
   if (ec)
     log_v2::sql()->error(
         "stats_exporter: Sql connections checker has been interrupted: {}",
@@ -264,7 +264,7 @@ void exporter::_check_connections(
 
     _connections_watcher.expires_after(std::chrono::seconds(10));
     _connections_watcher.async_wait(
-        [this, provider](const asio::error_code& err) {
+        [this, provider](const boost::system::error_code& err) {
           _check_connections(provider, err);
         });
   }

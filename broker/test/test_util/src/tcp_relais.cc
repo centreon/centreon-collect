@@ -21,16 +21,7 @@
 
 using namespace asio::ip;
 
-static std::atomic_bool _io_context_started;
-static asio::io_context _io_context;
-
-static void start_io_context() {
-  bool expected = false;
-  if (_io_context_started.compare_exchange_strong(expected, true)) {
-    std::thread t([]() { _io_context.run(); });
-    t.detach();
-  }
-}
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 namespace com {
 namespace centreon {
@@ -83,25 +74,25 @@ class incomming_outgoing
   using buff_array = std::array<unsigned char, buff_size>;
   using shared_array = std::shared_ptr<buff_array>;
 
-  void on_connect(const asio::error_code&);
+  void on_connect(const boost::system::error_code&);
 
   void start_relaying(tcp::socket& receiver, tcp::socket& sender);
 
-  void on_recv(const asio::error_code& err,
+  void on_recv(const boost::system::error_code& err,
                tcp::socket& receiver,
                tcp::socket& sender,
                const shared_array&,
                size_t nb_recv);
 
-  void on_sent(const asio::error_code& err, tcp::socket& sock);
+  void on_sent(const boost::system::error_code& err, tcp::socket& sock);
 
   void on_error();
 
  public:
   using pointer = std::shared_ptr<incomming_outgoing>;
   incomming_outgoing(const tcp::endpoint& dest, const relay_set_pointer& owner)
-      : _incomming(_io_context),
-        _outgoing(_io_context),
+      : _incomming(*g_io_context),
+        _outgoing(*g_io_context),
         _dest(dest),
         _owner(owner) {}
 
@@ -124,7 +115,7 @@ class tcp_relais_impl : public std::enable_shared_from_this<tcp_relais_impl> {
 
   void start_accept();
   void on_accept(const incomming_outgoing::pointer& incomming,
-                 const asio::error_code&);
+                 const boost::system::error_code&);
   tcp_relais_impl(const std::string& listen_interface,
                   unsigned listen_port,
                   const std::string& dest_host,
@@ -164,13 +155,9 @@ tcp_relais::tcp_relais(const std::string& listen_interface,
     : _impl(detail::tcp_relais_impl::create(listen_interface,
                                             listen_port,
                                             dest_host,
-                                            dest_port)) {
-  start_io_context();
-}
+                                            dest_port)) {}
 
-tcp_relais::~tcp_relais() {
-  _io_context.stop();
-}
+tcp_relais::~tcp_relais() {}
 
 void tcp_relais::shutdown_relays() {
   _impl->shutdown_relays();
@@ -182,12 +169,12 @@ void tcp_relais::shutdown_relays() {
 
 void incomming_outgoing::connect() {
   _outgoing.async_connect(
-      _dest, [me = shared_from_this()](const asio::error_code& err) {
+      _dest, [me = shared_from_this()](const boost::system::error_code& err) {
         me->on_connect(err);
       });
 }
 
-void incomming_outgoing::on_connect(const asio::error_code& err) {
+void incomming_outgoing::on_connect(const boost::system::error_code& err) {
   if (err) {
     std::cerr << __FUNCTION__ << " echec connect to " << _dest << " : "
               << err.message() << std::endl;
@@ -201,14 +188,14 @@ void incomming_outgoing::start_relaying(tcp::socket& receiver,
                                         tcp::socket& sender) {
   shared_array recvBuff(std::make_shared<buff_array>());
   receiver.async_receive(
-      asio::buffer(*recvBuff),
-      [me = shared_from_this(), recvBuff, &receiver, &sender](
-          const asio::error_code& error, std::size_t bytes_transferred) {
+      asio::buffer(*recvBuff), [me = shared_from_this(), recvBuff, &receiver,
+                                &sender](const boost::system::error_code& error,
+                                         std::size_t bytes_transferred) {
         me->on_recv(error, receiver, sender, recvBuff, bytes_transferred);
       });
 }
 
-void incomming_outgoing::on_recv(const asio::error_code& err,
+void incomming_outgoing::on_recv(const boost::system::error_code& err,
                                  tcp::socket& receiver,
                                  tcp::socket& sender,
                                  const shared_array& buff,
@@ -218,14 +205,15 @@ void incomming_outgoing::on_recv(const asio::error_code& err,
     return;
   }
 
-  asio::async_write(
-      sender, asio::buffer(*buff, nb_recv),
-      [me = shared_from_this(), buff, &sender](
-          const asio::error_code& err, size_t) { me->on_sent(err, sender); });
+  asio::async_write(sender, asio::buffer(*buff, nb_recv),
+                    [me = shared_from_this(), buff, &sender](
+                        const boost::system::error_code& err, size_t) {
+                      me->on_sent(err, sender);
+                    });
   start_relaying(receiver, sender);
 }
 
-void incomming_outgoing::on_sent(const asio::error_code& err,
+void incomming_outgoing::on_sent(const boost::system::error_code& err,
                                  tcp::socket& sock) {
   if (err) {
     on_error();
@@ -257,7 +245,7 @@ tcp_relais_impl::tcp_relais_impl(const std::string& listen_interface,
                                  const std::string& dest_host,
                                  unsigned dest_port)
     : _relays(std::make_shared<relay_cont>()) {
-  tcp::resolver r(_io_context);
+  tcp::resolver r(*g_io_context);
   tcp::resolver::results_type endpoints =
       r.resolve(listen_interface, std::to_string(listen_port));
   if (endpoints.empty()) {
@@ -276,7 +264,8 @@ tcp_relais_impl::tcp_relais_impl(const std::string& listen_interface,
                                 std::to_string(dest_port)));
   }
   _dest = *dest_endpoints.begin();
-  _acceptor = std::make_unique<tcp::acceptor>(_io_context, *endpoints.begin());
+  _acceptor =
+      std::make_unique<tcp::acceptor>(*g_io_context, *endpoints.begin());
 }
 
 tcp_relais_impl::pointer tcp_relais_impl::create(
@@ -293,15 +282,15 @@ tcp_relais_impl::pointer tcp_relais_impl::create(
 void tcp_relais_impl::start_accept() {
   incomming_outgoing::pointer to_accept(
       std::make_shared<incomming_outgoing>(_dest, _relays));
-  _acceptor->async_accept(
-      to_accept->_incomming, to_accept->_from,
-      [me = shared_from_this(), to_accept](const asio::error_code& err) {
-        me->on_accept(to_accept, err);
-      });
+  _acceptor->async_accept(to_accept->_incomming, to_accept->_from,
+                          [me = shared_from_this(),
+                           to_accept](const boost::system::error_code& err) {
+                            me->on_accept(to_accept, err);
+                          });
 }
 
 void tcp_relais_impl::on_accept(const incomming_outgoing::pointer& incomming,
-                                const asio::error_code& err) {
+                                const boost::system::error_code& err) {
   if (err) {
     std::cerr << __FUNCTION__ << " echec accept " << _acceptor->local_endpoint()
               << " : " << err.message() << std::endl;

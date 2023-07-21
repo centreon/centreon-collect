@@ -167,7 +167,7 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
     asio::ip::tcp::resolver::query query(conf->get_host(),
                                          std::to_string(conf->get_port()));
     asio::ip::tcp::resolver resolver(pool::io_context());
-    asio::error_code ec;
+    boost::system::error_code ec;
     asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
     if (ec) {
       log_v2::tcp()->error("TCP: error while resolving '{}' name: {}",
@@ -197,7 +197,7 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
  *
  * @param ec
  */
-void tcp_async::_clear_available_con(asio::error_code ec) {
+void tcp_async::_clear_available_con(boost::system::error_code ec) {
   if (ec)
     log_v2::core()->info("Available connections cleaning: {}", ec.message());
   else {
@@ -246,19 +246,20 @@ void tcp_async::start_acceptor(
 
   log_v2::tcp()->debug("Reschedule available connections cleaning in 10s");
   _timer->expires_after(std::chrono::seconds(10));
-  _timer->async_wait([me = shared_from_this()](const asio::error_code& err) {
-    me->_clear_available_con(err);
-  });
+  _timer->async_wait(
+      [me = shared_from_this()](const boost::system::error_code& err) {
+        me->_clear_available_con(err);
+      });
 
   tcp_connection::pointer new_connection =
       std::make_shared<tcp_connection>(pool::io_context());
 
   log_v2::tcp()->debug("Waiting for a connection");
-  acceptor->async_accept(
-      new_connection->socket(),
-      [this, acceptor, new_connection, conf](const asio::error_code& ec) {
-        handle_accept(acceptor, new_connection, ec, conf);
-      });
+  acceptor->async_accept(new_connection->socket(),
+                         [this, acceptor, new_connection,
+                          conf](const boost::system::error_code& ec) {
+                           handle_accept(acceptor, new_connection, ec, conf);
+                         });
 }
 
 /**
@@ -270,7 +271,7 @@ void tcp_async::stop_acceptor(
     std::shared_ptr<asio::ip::tcp::acceptor> acceptor) {
   log_v2::tcp()->debug("stop acceptor");
   std::lock_guard<std::mutex> l(_acceptor_available_con_m);
-  std::error_code ec;
+  boost::system::error_code ec;
   acceptor->cancel(ec);
   if (ec)
     log_v2::tcp()->warn("Error while cancelling acceptor: {}", ec.message());
@@ -288,11 +289,11 @@ void tcp_async::stop_acceptor(
  */
 void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
                               tcp_connection::pointer new_connection,
-                              const asio::error_code& ec,
+                              const boost::system::error_code& ec,
                               const tcp_config::pointer& conf) {
   /* If we got a connection, we store it */
   if (!ec) {
-    asio::error_code ecc;
+    boost::system::error_code ecc;
     new_connection->update_peer(ecc);
     if (ecc)
       log_v2::tcp()->error(
@@ -335,7 +336,7 @@ tcp_connection::pointer tcp_async::create_connection(
                                        std::to_string(conf->get_port()));
   asio::ip::tcp::resolver::iterator it = resolver.resolve(query), end;
 
-  std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+  boost::system::error_code err{make_error_code(asio::error::host_unreachable)};
 
   // it can resolve multiple addresses like ipv4 or ipv6
   // We need to try all to find the first available socket
@@ -369,7 +370,7 @@ void tcp_async::_set_sock_opt(asio::ip::tcp::socket& sock,
   tcp_keep_alive_interval option4(conf->get_second_keepalive_interval());
   tcp_user_timeout option5(1000 * (conf->get_second_keepalive_interval() *
                                    (conf->get_keepalive_count() + 1)));
-  asio::error_code err;
+  boost::system::error_code err;
   sock.set_option(option1, err);
   if (err) {
     SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail to set keepalive option {}",

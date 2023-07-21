@@ -118,7 +118,6 @@ if(WITH_TESTING)
       "${TESTS_DIR}/timeperiod/get_next_valid_time/precedence.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
-      "${TESTS_DIR}/timeperiod/utils.cc"
       # # Headers.
       "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/timeperiod/utils.hh")
@@ -134,6 +133,9 @@ if(WITH_TESTING)
         "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address"
     )
   endif()
+
+  # utils.cc can't be compiled with precomp headers so it's compiled apart
+  add_library(ut_engine_utils STATIC "${TESTS_DIR}/timeperiod/utils.cc")
 
   add_executable(ut_engine ${ut_sources})
   target_precompile_headers(ut_engine REUSE_FROM cce_core)
@@ -164,6 +166,7 @@ if(WITH_TESTING)
   target_link_libraries(
     ut_engine
     ${ENGINERPC}
+    ut_engine_utils
     cce_core
     enginelog
     pthread

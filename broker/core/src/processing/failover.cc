@@ -140,7 +140,8 @@ void failover::_run() {
 
   // Check endpoint.
   if (!_endpoint) {
-    log_v2::processing()->error(
+    SPDLOG_LOGGER_ERROR(
+        log_v2::processing(),
         "failover: thread of endpoint '{}' has no endpoint object, this is "
         "likely a software bug that should be reported to Centreon Broker "
         "developers",
@@ -206,12 +207,14 @@ void failover::_run() {
           if (s)
             secondaries.push_back(s);
           else
-            log_v2::processing()->error(
+            SPDLOG_LOGGER_ERROR(
+                log_v2::processing(),
                 "failover: could not open a secondary of endpoint {}: "
                 "secondary returned a null stream",
                 _name);
         } catch (std::exception const& e) {
-          log_v2::processing()->error(
+          SPDLOG_LOGGER_ERROR(
+              log_v2::processing(),
               "failover: error occured while opening a secondary of endpoint "
               "'{}': {}",
               _name, e.what());
@@ -344,7 +347,8 @@ void failover::_run() {
                 (*it)->write(d);
                 ++it;
               } catch (std::exception const& e) {
-                log_v2::processing()->error(
+                SPDLOG_LOGGER_ERROR(
+                    log_v2::processing(),
                     "failover: error occurred while writing to a secondary of "
                     "endpoint '{}' (secondary will be removed): {}",
                     _name, e.what());
@@ -377,15 +381,17 @@ void failover::_run() {
     }
     // Some real error occured.
     catch (const std::exception& e) {
-      log_v2::core()->error("failover: global error: {}", e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::core(), "failover: global error: {}",
+                          e.what());
       {
         if (_stream) {
           int32_t ack_events;
           try {
             ack_events = _stream->stop();
           } catch (const std::exception& e) {
-            log_v2::core()->error("Failed to send stop event to stream: {}",
-                                  e.what());
+            SPDLOG_LOGGER_ERROR(log_v2::core(),
+                                "Failed to send stop event to stream: {}",
+                                e.what());
           }
           _muxer->ack_events(ack_events);
           std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
@@ -398,7 +404,8 @@ void failover::_run() {
         _initialized = true;
       }
     } catch (...) {
-      log_v2::processing()->error(
+      SPDLOG_LOGGER_ERROR(
+          log_v2::processing(),
           "failover: endpoint '{}' encountered an unknown exception, this is "
           "likely a software bug that should be reported to Centreon Broker "
           "developers",
@@ -408,8 +415,9 @@ void failover::_run() {
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          log_v2::core()->error("Failed to send stop event to stream: {}",
-                                e.what());
+          SPDLOG_LOGGER_ERROR(log_v2::core(),
+                              "Failed to send stop event to stream: {}",
+                              e.what());
         }
         _muxer->ack_events(ack_events);
         std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
@@ -431,8 +439,9 @@ void failover::_run() {
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          log_v2::core()->error("Failed to send stop event to stream: {}",
-                                e.what());
+          SPDLOG_LOGGER_ERROR(log_v2::core(),
+                              "Failed to send stop event to stream: {}",
+                              e.what());
         }
         _muxer->ack_events(ack_events);
         _stream.reset();
@@ -460,7 +469,8 @@ void failover::_run() {
 
   // Exit failover thread if necessary.
   if (_failover) {
-    log_v2::processing()->info(
+    SPDLOG_LOGGER_INFO(
+        log_v2::processing(),
         "failover: requesting termination of failover of endpoint '{}'", _name);
     _failover->exit();
   }

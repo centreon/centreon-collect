@@ -198,6 +198,8 @@ TEST(InfluxDBLineProtoQuery, ComplexStatus) {
   obj_s.set_interval(60);
   obj_s.set_rrd_len(9);
   obj_s.set_state(2);
+  obj_s.set_host_id(1);
+  obj_s.set_service_id(1);
 
   std::shared_ptr<neb::host> host{std::make_shared<neb::host>()};
   std::shared_ptr<neb::service> svc{std::make_shared<neb::service>()};
@@ -320,6 +322,8 @@ TEST(InfluxDBLineProtoQuery, ComplexPBStatus) {
   obj_s.set_interval(60);
   obj_s.set_rrd_len(9);
   obj_s.set_state(2);
+  obj_s.set_host_id(1);
+  obj_s.set_service_id(1);
 
   auto host{std::make_shared<neb::pb_host>()};
   auto svc{std::make_shared<neb::pb_service>()};

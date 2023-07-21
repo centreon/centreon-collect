@@ -41,6 +41,9 @@ include_directories(${PROJECT_SOURCE_DIR}/tcp/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls/inc)
 include_directories(${PROJECT_SOURCE_DIR}/tls2/inc)
 include_directories(${PROJECT_SOURCE_DIR}/grpc/inc)
+include_directories(${PROJECT_SOURCE_DIR}/http_client/inc)
+include_directories(${PROJECT_SOURCE_DIR}/http_tsdb/inc)
+include_directories(${PROJECT_SOURCE_DIR}/victoria_metrics/inc)
 include_directories(${PROJECT_SOURCE_DIR}/test/test_util/inc)
 
 add_subdirectory(${PROJECT_SOURCE_DIR}/test/test_util)
@@ -90,6 +93,7 @@ add_executable(
   ${TESTS_DIR}/bbdo/category.cc
   ${TESTS_DIR}/bbdo/output.cc
   ${TESTS_DIR}/bbdo/read.cc
+  ${TESTS_DIR}/cache/global_cache_test.cc
   ${TESTS_DIR}/compression/stream/memory_stream.hh
   ${TESTS_DIR}/compression/stream/read.cc
   ${TESTS_DIR}/compression/stream/write.cc
@@ -134,7 +138,6 @@ target_link_libraries(
   conflictmgr
   centreon_common
   CONAN_PKG::nlohmann_json
-  CONAN_PKG::asio
   CONAN_PKG::fmt
   CONAN_PKG::spdlog
   CONAN_PKG::gtest

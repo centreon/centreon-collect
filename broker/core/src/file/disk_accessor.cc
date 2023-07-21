@@ -106,7 +106,7 @@ size_t disk_accessor::fwrite(const void* ptr,
  * @param nmemb
  * @param stream
  *
- * @return
+ * @return 
  */
 size_t disk_accessor::fread(void* ptr, size_t size, size_t nmemb, fd stream) {
   return ::fread(ptr, size, nmemb, stream);
@@ -140,7 +140,7 @@ size_t disk_accessor::current_size() const {
  * @param name
  * @param mode
  *
- * @return
+ * @return 
  */
 disk_accessor::fd disk_accessor::fopen(const std::string& name,
                                        const char* mode) {

@@ -166,7 +166,7 @@ class exporter {
   asio::steady_timer _connections_watcher;
 
   void _check_connections(std::shared_ptr<metrics_api::MeterProvider> provider,
-                          const asio::error_code& ec);
+                          const boost::system::error_code& ec);
 
  public:
   exporter();

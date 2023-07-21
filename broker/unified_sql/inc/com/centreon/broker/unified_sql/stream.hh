@@ -396,7 +396,7 @@ class stream : public io::stream {
   void _update_hosts_and_services_of_instance(uint32_t id, bool responsive);
   void _update_timestamp(uint32_t instance_id);
   bool _is_valid_poller(uint32_t instance_id);
-  void _check_queues(asio::error_code ec);
+  void _check_queues(boost::system::error_code ec);
   void _check_deleted_index();
   void _check_rebuild_index();
 

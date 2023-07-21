@@ -34,7 +34,9 @@
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
 
 #include <grpc/grpc.h>
 #include <grpcpp/alarm.h>

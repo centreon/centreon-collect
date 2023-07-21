@@ -63,6 +63,15 @@ asio::io_context& pool::io_context() {
 }
 
 /**
+ * @brief A static method to access the IO context.
+ *
+ * @return the IO context.
+ */
+std::shared_ptr<asio::io_context> pool::io_context_ptr() {
+  return instance()._io_context;
+}
+
+/**
  * @brief Constructor. Private, it is called through the static
  * instance() method. While this object gathers statistics for the statistics
  * engine, it is not initialized as others. This is because, the stats engine
@@ -163,7 +172,7 @@ void pool::_stop() {
  * computation every 10s.
  *
  */
-void pool::_check_latency(asio::error_code ec) {
+void pool::_check_latency(boost::system::error_code ec) {
   if (ec)
     log_v2::core()->info("pool: the latency check encountered an error: {}",
                          ec.message());

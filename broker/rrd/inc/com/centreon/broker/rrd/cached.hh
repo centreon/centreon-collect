@@ -131,7 +131,7 @@ class cached : public backend {
    *  @param[in] command Command to send.
    */
   void _send_to_cached(const std::string& command) {
-    std::error_code err;
+    boost::system::error_code err;
 
     asio::write(_socket, asio::buffer(command), asio::transfer_all(), err);
 
@@ -201,7 +201,7 @@ class cached : public backend {
 
     try {
       _socket.connect(ep);
-    } catch (std::system_error const& se) {
+    } catch (boost::system::system_error const& se) {
       throw msg_fmt("RRD: could not connect to local socket '{}: {}", name,
                     se.what());
     }
@@ -221,7 +221,8 @@ class cached : public backend {
       asio::ip::tcp::resolver::iterator it{resolver.resolve(query)};
       asio::ip::tcp::resolver::iterator end;
 
-      std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+      boost::system::error_code err{
+          make_error_code(asio::error::host_unreachable)};
 
       // it can resolve to multiple addresses like ipv4 and ipv6
       // we need to try all to find the first available socket
@@ -243,7 +244,7 @@ class cached : public backend {
 
       asio::socket_base::keep_alive option{true};
       _socket.set_option(option);
-    } catch (std::system_error const& se) {
+    } catch (boost::system::system_error const& se) {
       throw msg_fmt(
           "RRD: could not resolve remove server '{}"
           ":{} : {}",

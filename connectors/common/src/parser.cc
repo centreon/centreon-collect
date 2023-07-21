@@ -34,7 +34,7 @@ void parser::start_read() {
   log::core()->debug("reading data for parsing");
   _sin.async_read_some(
       asio::buffer(_recv_buff, parser_buff_size),
-      [me = shared_from_this()](const std::error_code& error,
+      [me = shared_from_this()](const boost::system::error_code& error,
                                 std::size_t bytes_transferred) {
         me->read_handler(error, bytes_transferred);
       });
@@ -48,10 +48,11 @@ void parser::read_file(const std::string& test_file_path) {
   read();
 }
 
-const std::error_code parser::eof_err(asio::error::eof,
-                                      asio::error::get_misc_category());
+const boost::system::error_code parser::eof_err(
+    asio::error::eof,
+    asio::error::get_misc_category());
 
-void parser::read_handler(const std::error_code& error,
+void parser::read_handler(const boost::system::error_code& error,
                           std::size_t bytes_transferred) {
   if (_dont_care_about_stdin_eof) {
     return;

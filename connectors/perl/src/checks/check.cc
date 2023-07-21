@@ -116,7 +116,7 @@ pid_t check::execute() {
 
     _timeout_timer.expires_at(_timeout);
     _timeout_timer.async_wait(
-        [me = shared_from_this()](const std::error_code& err) {
+        [me = shared_from_this()](const boost::system::error_code& err) {
           me->on_timeout(err, false);
         });
   } catch (const std::exception& e) {
@@ -133,7 +133,7 @@ pid_t check::execute() {
 void check::_start_read_out() {
   _out.async_read_some(
       asio::buffer(_out_buff),
-      [me = shared_from_this(), this](const std::error_code& err,
+      [me = shared_from_this(), this](const boost::system::error_code& err,
                                       std::size_t bytes_transferred) {
         if (err) {
           if (err.value() == asio::error::eof) {
@@ -158,7 +158,7 @@ void check::_start_read_out() {
 void check::_start_read_err() {
   _err.async_read_some(
       asio::buffer(_err_buff),
-      [me = shared_from_this(), this](const std::error_code& err,
+      [me = shared_from_this(), this](const boost::system::error_code& err,
                                       std::size_t bytes_transferred) {
         if (err) {
           if (err.value() == asio::error::eof) {
@@ -182,7 +182,7 @@ void check::_start_read_err() {
  *  @param[in] final if true child process will receive a sigkill instead of
  * sigterm
  */
-void check::on_timeout(const std::error_code& err, bool final) {
+void check::on_timeout(const boost::system::error_code& err, bool final) {
   if (err) {
     return;
   }
@@ -203,7 +203,7 @@ void check::on_timeout(const std::error_code& err, bool final) {
 
     _timeout_timer.expires_from_now(std::chrono::seconds(10));
     _timeout_timer.async_wait(
-        [me = shared_from_this()](const std::error_code& err) {
+        [me = shared_from_this()](const boost::system::error_code& err) {
           me->on_timeout(err, true);
         });
   }

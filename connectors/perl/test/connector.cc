@@ -257,14 +257,14 @@ void process::kill(int signal) {
 }
 
 void process::write(const std::string& data, const duration& time_out) {
-  using err_buff_pair = std::pair<std::error_code, std::string>;
+  using err_buff_pair = std::pair<boost::system::error_code, std::string>;
   std::shared_ptr<err_buff_pair> buff(
-      std::make_shared<err_buff_pair>(std::error_code(), data));
+      std::make_shared<err_buff_pair>(boost::system::error_code(), data));
 
   asio::async_write(_in,
                     asio::buffer(buff->second.c_str(), buff->second.length()),
                     [me = shared_from_this(), this, buff](
-                        const std::error_code& err, size_t) {
+                        const boost::system::error_code& err, size_t) {
                       buff->first = err;
                       std::unique_lock<std::mutex> l(_protect);
                       _wait_for_completion.notify_one();
@@ -278,16 +278,18 @@ void process::write(const std::string& data, const duration& time_out) {
 }
 
 std::string process::read_std_out(const duration& time_out) {
-  using recv_data = std::tuple<std::error_code, size_t, std::array<char, 4096>>;
+  using recv_data =
+      std::tuple<boost::system::error_code, size_t, std::array<char, 4096>>;
   std::shared_ptr<recv_data> data(std::make_shared<recv_data>());
-  _out.async_read_some(asio::buffer(std::get<2>(*data)),
-                       [me = shared_from_this(), this, data](
-                           const std::error_code& err, size_t nb_recv) {
-                         std::get<0>(*data) = err;
-                         std::get<1>(*data) = nb_recv;
-                         std::unique_lock<std::mutex> l(_protect);
-                         _wait_for_completion.notify_one();
-                       });
+  _out.async_read_some(
+      asio::buffer(std::get<2>(*data)),
+      [me = shared_from_this(), this, data](
+          const boost::system::error_code& err, size_t nb_recv) {
+        std::get<0>(*data) = err;
+        std::get<1>(*data) = nb_recv;
+        std::unique_lock<std::mutex> l(_protect);
+        _wait_for_completion.notify_one();
+      });
   std::unique_lock<std::mutex> l(_protect);
   _wait_for_completion.wait_for(l, time_out);
   if (std::get<0>(*data)) {
@@ -304,16 +306,18 @@ std::string process::read_std_out(const duration& time_out) {
 }
 
 std::string process::read_std_err(const duration& time_out) {
-  using recv_data = std::tuple<std::error_code, size_t, std::array<char, 4096>>;
+  using recv_data =
+      std::tuple<boost::system::error_code, size_t, std::array<char, 4096>>;
   std::shared_ptr<recv_data> data(std::make_shared<recv_data>());
-  _out.async_read_some(asio::buffer(std::get<2>(*data)),
-                       [me = shared_from_this(), this, data](
-                           const std::error_code& err, size_t nb_recv) {
-                         std::get<0>(*data) = err;
-                         std::get<1>(*data) = nb_recv;
-                         std::unique_lock<std::mutex> l(_protect);
-                         _wait_for_completion.notify_one();
-                       });
+  _out.async_read_some(
+      asio::buffer(std::get<2>(*data)),
+      [me = shared_from_this(), this, data](
+          const boost::system::error_code& err, size_t nb_recv) {
+        std::get<0>(*data) = err;
+        std::get<1>(*data) = nb_recv;
+        std::unique_lock<std::mutex> l(_protect);
+        _wait_for_completion.notify_one();
+      });
   std::unique_lock<std::mutex> l(_protect);
   _wait_for_completion.wait_for(l, time_out);
   if (std::get<0>(*data)) {

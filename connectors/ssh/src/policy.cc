@@ -134,7 +134,8 @@ void policy::on_execute(
     connecting.waiting_check.push({cmd_id, timeout, opt});
 
     sess->connect(
-        [me = shared_from_this(), sess, creds](const std::error_code& err) {
+        [me = shared_from_this(), sess,
+         creds](const boost::system::error_code& err) {
           me->on_connect(err, creds);
         },
         timeout);
@@ -143,7 +144,7 @@ void policy::on_execute(
   }
 }
 
-void policy::on_connect(const std::error_code& err,
+void policy::on_connect(const boost::system::error_code& err,
                         const sessions::credentials& creds) {
   connect_waiting_session& waiting_connect = _connect_waiting_session[creds];
   if (err) {

@@ -1,5 +1,4 @@
 #!/bin/bash
-
 DBUserRoot=$(awk '($1=="${DBUserRoot}") {print $2}' resources/db_variables.robot)
 DBPassRoot=$(awk '($1=="${DBPassRoot}") {print $2}' resources/db_variables.robot)
 DBStorage=$(awk '($1=="${DBName}") {print $2}' resources/db_variables.robot)

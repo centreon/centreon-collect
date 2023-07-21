@@ -33,6 +33,7 @@ pip3 install -U robotframework robotframework-databaselibrary pymysql
 yum install python3-devel -y
 
 pip3 install grpcio grpcio_tools
+pip3 install robotframework-httpctrl
 
 ./init-proto.sh
 ./init-sql.sh

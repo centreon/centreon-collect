@@ -46,7 +46,7 @@ option(WITH_DEBUG_ASIO "Add the Asio debugging flags." OFF)
 if(WITH_DEBUG_ASIO)
   set(CMAKE_BUILD_TYPE Debug)
   set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -DASIO_ENABLE_BUFFER_DEBUGGING -DASIO_ENABLE_HANDLER_TRACKING"
+      "${CMAKE_CXX_FLAGS_DEBUG} -DBOOST_ASIO_ENABLE_BUFFER_DEBUGGING -DBOOST_ASIO_ENABLE_HANDLER_TRACKING"
   )
 endif()
 
@@ -138,7 +138,6 @@ include(cmake/tool.cmake)
 # Check and/or find required components.
 #
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
-add_definitions("-DASIO_STANDALONE")
 
 #
 # Options.
@@ -308,6 +307,8 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/bbdo/stream.cc
     ${SRC_DIR}/broker_impl.cc
     ${SRC_DIR}/brokerrpc.cc
+    ${SRC_DIR}/cache/global_cache.cc
+    ${SRC_DIR}/cache/global_cache_data.cc
     ${SRC_DIR}/compression/factory.cc
     ${SRC_DIR}/compression/opener.cc
     ${SRC_DIR}/compression/stack_array.cc
@@ -522,6 +523,9 @@ add_broker_module(TLS ON)
 add_broker_module(TLS2 OFF)
 add_broker_module(DUMP OFF)
 add_broker_module(GRPC ON)
+add_broker_module(VICTORIA_METRICS ON)
+add_subdirectory(http_client)
+add_subdirectory(http_tsdb)
 
 # Lua module.
 option(WITH_MODULE_LUA "Build lua module." ON)

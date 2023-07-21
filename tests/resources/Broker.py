@@ -756,18 +756,39 @@ def broker_config_clear_outputs_except(name, ex: list):
     else:
         filename = "central-rrd.json"
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
-    buf = f.read()
-    f.close()
+    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
+        buf = f.read()
     conf = json.loads(buf)
     output_dict = conf["centreonBroker"]["output"]
     for i, v in enumerate(output_dict):
         if v["type"] not in ex:
             output_dict.pop(i)
 
-    f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w") as f:
+        f.write(json.dumps(conf, indent=2))
+
+
+def config_broker_victoria_output():
+    filename = "central-broker.json"
+
+    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r") as f:
+        buf = f.read()
+    conf = json.loads(buf)
+    output_dict = conf["centreonBroker"]["output"]
+    for i, v in enumerate(output_dict):
+        if v["type"] == "victoria_metrics":
+            output_dict.pop(i)
+    output_dict.append({
+        "name": "victoria_metrics",
+        "type": "victoria_metrics",
+        "db_host": "localhost",
+        "db_port": "8000",
+        "db_user": "toto",
+        "db_password": "titi",
+        "queries_per_transaction": "1",
+    })
+    with open(ETC_ROOT + "/centreon-broker/{}".format(filename), "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_add_item(name, key, value):
@@ -1893,3 +1914,45 @@ def get_broker_process_stat(port, timeout=10):
                 logger.console("gRPC server not ready")
     logger.console("unable to get process stats")
     return None
+
+
+def parse_victoria_body(request_body: str):
+    victoria_payload = {}
+    for field_val in request_body.split(','):
+        if field_val == "status" or field_val == "metric":
+            victoria_payload["type"] = field_val
+        elif " " in field_val:
+            last_data = field_val.split(' ')  # last tag
+            victoria_payload[key_val[0]] = key_val[1]
+            key_val = last_data[1].split('=')  # value
+            victoria_payload[key_val[0]] = key_val[1]
+            victoria_payload["time_stamp"] = int(last_data[2])
+        else:
+            key_val = field_val.split('=')
+            if (len(key_val) > 1):
+                victoria_payload[key_val[0]] = key_val[1]
+    return victoria_payload
+
+
+def check_victoria_data(request_body: str, data_type: str, min_timestamp: int,  **to_check):
+    for line in request_body.splitlines():
+        datas = parse_victoria_body(line)
+        if datas["type"] != data_type:
+            continue
+        if min_timestamp > datas["time_stamp"]:
+            continue
+        all_ok = True
+        for key in to_check.keys():
+            if to_check[key] != datas[key]:
+                all_ok = False
+        if all_ok:
+            return True
+    return False
+
+
+def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
+    return check_victoria_data(request_body, "metric", min_timestamp, **to_check)
+
+
+def check_victoria_status(request_body: str, min_timestamp: int,  **to_check):
+    return check_victoria_data(request_body, "status", min_timestamp, **to_check)

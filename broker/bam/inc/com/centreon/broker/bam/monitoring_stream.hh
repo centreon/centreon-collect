@@ -91,7 +91,7 @@ class monitoring_stream : public io::stream {
 
   void _write_forced_svc_check(const std::string& host,
                                const std::string& description);
-  void _explicitly_send_forced_svc_checks(const asio::error_code& ec);
+  void _explicitly_send_forced_svc_checks(const boost::system::error_code& ec);
 
   void _prepare();
   void _rebuild();

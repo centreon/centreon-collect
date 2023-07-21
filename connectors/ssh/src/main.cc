@@ -94,7 +94,7 @@ int main(int argc, char* argv[]) {
       asio::signal_set signal_handler(*io_context, SIGTERM, SIGINT, SIGPIPE);
 
       signal_handler.async_wait(
-          [io_context](const std::error_code&, int signal_number) {
+          [io_context](const boost::system::error_code&, int signal_number) {
             if (signal_number == SIGPIPE) {
               log::core()->info("SIGPIPE received");
               return;

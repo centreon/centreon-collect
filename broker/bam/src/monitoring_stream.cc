@@ -129,14 +129,15 @@ int32_t monitoring_stream::stop() {
         "done");
     std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
     _forced_svc_checks_timer.expires_after(std::chrono::seconds(0));
-    _forced_svc_checks_timer.async_wait([this, &p](const asio::error_code& ec) {
-      _explicitly_send_forced_svc_checks(ec);
-      {
-        std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
-        _forced_svc_checks_timer.cancel();
-      }
-      p.set_value();
-    });
+    _forced_svc_checks_timer.async_wait(
+        [this, &p](const boost::system::error_code& ec) {
+          _explicitly_send_forced_svc_checks(ec);
+          {
+            std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
+            _forced_svc_checks_timer.cancel();
+          }
+          p.set_value();
+        });
   }
   p.get_future().wait();
   /* Now, it is really cancelled. */
@@ -691,11 +692,14 @@ void monitoring_stream::_rebuild() {
  * to avoid getting stuck. If at a moment, it fails to send queries, the
  * function is rescheduled in 5s.
  *
- * @param ec asio::error_code to handle errors due to asio, not the files sent
- * to centengine. Usually, "operation aborted" when cbd stops.
+ * @param ec boost::system::error_code to handle errors due to asio, not the
+ * files sent to centengine. Usually, "operation aborted" when cbd stops.
  */
 void monitoring_stream::_explicitly_send_forced_svc_checks(
-    const asio::error_code& ec) {
+    const boost::system::error_code& ec) {
+  static int count = 0;
+  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+                      "BAM: time to send forced service checks {}", count++);
   if (!ec) {
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);

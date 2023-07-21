@@ -72,7 +72,7 @@ void test_server::run() {
   try {
     _acceptor->bind(ep);
     _bind_ok = true;
-  } catch (std::system_error const& se) {
+  } catch (boost::system::system_error const& se) {
     std::cout << "bind error: " << se.what() << std::endl;
     _bind_ok = false;
     std::unique_lock<std::mutex> lock(_m_init);
@@ -102,7 +102,7 @@ void test_server::start_accept() {
 
 void test_server::handle_accept(
     std::list<test_server_connection>::iterator con_handle,
-    std::error_code const& err) {
+    boost::system::error_code const& err) {
   if (!err) {
     ++_num_connections;
     std::cout << "Connection from: "
@@ -123,10 +123,10 @@ void test_server::start_read(std::list<test_server_connection>::iterator& con) {
 
 void test_server::handle_read(
     std::list<test_server_connection>::iterator con_handle,
-    std::error_code const& err,
+    boost::system::error_code const& err,
     size_t bytes_transfered) {
   if (bytes_transfered > 0) {
-    std::error_code err;
+    boost::system::error_code err;
 
     bool key_found{false};
     con_handle->buf[bytes_transfered] = 0;
@@ -178,7 +178,8 @@ bool test_server::add_client(asio::ip::tcp::socket& sock,
   try {
     asio::ip::tcp::resolver::iterator it{resolver.resolve(query)};
     asio::ip::tcp::resolver::iterator end;
-    std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+    boost::system::error_code err{
+        make_error_code(asio::error::host_unreachable)};
 
     // it can resolve to multiple addresses like ipv4 and ipv6
     // we need to try all to find the first available socket
@@ -193,7 +194,7 @@ bool test_server::add_client(asio::ip::tcp::socket& sock,
 
     if (err)
       return false;
-  } catch (std::system_error const& se) {
+  } catch (boost::system::system_error const& se) {
     return false;
   }
 
@@ -239,7 +240,7 @@ TEST_F(AsioTest, Ping) {
   wait_for_connections(_server, 2);
   ASSERT_EQ(_server.get_num_connections(), 2u);
 
-  std::error_code err;
+  boost::system::error_code err;
   asio::write(s1, asio::buffer(std::string{"PING\n"}), asio::transfer_all(),
               err);
   ASSERT_FALSE(err);

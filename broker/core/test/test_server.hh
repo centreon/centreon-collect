@@ -51,12 +51,12 @@ class test_server {
   void start_accept();
 
   void handle_accept(std::list<test_server_connection>::iterator con_handle,
-                     std::error_code const& err);
+                     boost::system::error_code const& err);
 
   void start_read(std::list<test_server_connection>::iterator& con);
 
   void handle_read(std::list<test_server_connection>::iterator con_handle,
-                   std::error_code const& err,
+                   boost::system::error_code const& err,
                    size_t bytes_transfered);
 
   std::mutex _m_init;

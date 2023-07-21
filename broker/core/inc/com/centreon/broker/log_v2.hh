@@ -25,7 +25,6 @@
 CCB_BEGIN()
 
 class log_v2 : public com::centreon::engine::log_v2_base {
-  std::array<std::shared_ptr<spdlog::logger>, 17> _log;
   std::atomic_bool _running;
   asio::system_timer _flush_timer;
   std::mutex _flush_timer_m;
@@ -52,7 +51,10 @@ class log_v2 : public com::centreon::engine::log_v2_base {
     log_stats,
     log_tcp,
     log_tls,
+    log_victoria_metrics,
+    log_max  // used only to size the array
   };
+  std::array<std::shared_ptr<spdlog::logger>, log_max> _log;
 
   std::mutex _load_m;
 
@@ -140,6 +142,10 @@ class log_v2 : public com::centreon::engine::log_v2_base {
 
   static inline std::shared_ptr<spdlog::logger> grpc() {
     return _instance->get_logger(log_grpc, "grpc");
+  }
+
+  static inline std::shared_ptr<spdlog::logger> victoria_metrics() {
+    return _instance->get_logger(log_victoria_metrics, "victoria_metrics");
   }
 
   static bool contains_logger(const std::string& logger);

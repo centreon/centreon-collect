@@ -28,6 +28,7 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
+#include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
@@ -93,6 +94,11 @@ void stream::_unified_sql_process_pb_service_status(
     return;
   }
 
+  auto cache_ptr = cache::global_cache::instance_ptr();
+  if (cache_ptr) {
+    cache_ptr->set_index_mapping(it_index_cache->second.index_id, host_id,
+                                 service_id);
+  }
   uint32_t rrd_len;
   int32_t conn =
       _mysql.choose_connection_by_instance(_cache_host_instance[host_id]);
@@ -122,6 +128,8 @@ void stream::_unified_sql_process_pb_service_status(
       s.set_rrd_len(rrd_len);
       s.set_time(ss.last_check());
       s.set_state(ss.last_hard_state());
+      s.set_host_id(host_id);
+      s.set_service_id(service_id);
       multiplexing::publisher().write(status);
     }
 
@@ -276,6 +284,10 @@ void stream::_unified_sql_process_pb_service_status(
             log_v2::perfdata()->debug("new metric with metric_id={}",
                                       it_index_cache->second.metric_id);
           }
+        }
+        if (cache_ptr) {
+          cache_ptr->set_metric_info(metric_id, index_id, pd.name(), pd.unit(),
+                                     pd.min(), pd.max());
         }
         if (need_metric_mapping) {
           auto mm{std::make_shared<storage::pb_metric_mapping>()};
@@ -534,6 +546,11 @@ void stream::_unified_sql_process_service_status(
   }
 
   if (index_id) {
+    auto cache_ptr = cache::global_cache::instance_ptr();
+    if (cache_ptr) {
+      cache_ptr->set_index_mapping(index_id, host_id, service_id);
+    }
+
     /* Generate status event */
     log_v2::perfdata()->debug(
         "unified sql: host_id:{}, service_id:{} - generating status event "
@@ -699,6 +716,12 @@ void stream::_unified_sql_process_service_status(
                                       it_index_cache->second.metric_id);
           }
         }
+
+        auto cache_ptr = cache::global_cache::instance_ptr();
+        if (cache_ptr) {
+          cache_ptr->set_metric_info(metric_id, index_id, pd.name(), pd.unit(),
+                                     pd.min(), pd.max());
+        }
         if (need_metric_mapping)
           to_publish.emplace_back(
               std::make_shared<storage::metric_mapping>(index_id, metric_id));
@@ -817,7 +840,7 @@ void stream::_update_metrics() {
   }
 }
 
-void stream::_check_queues(asio::error_code ec) {
+void stream::_check_queues(boost::system::error_code ec) {
   if (ec)
     log_v2::sql()->error(
         "unified_sql: the queues check encountered an error: {}", ec.message());
@@ -1023,7 +1046,7 @@ void stream::_check_queues(asio::error_code ec) {
       std::lock_guard<std::mutex> l(_timer_m);
       _queues_timer.expires_after(std::chrono::seconds(5));
       _queues_timer.async_wait(
-          [this](const asio::error_code& err) { _check_queues(err); });
+          [this](const boost::system::error_code& err) { _check_queues(err); });
     } else {
       SPDLOG_LOGGER_INFO(log_v2::sql(),
                          "SQL: check_queues correctly interrupted.");

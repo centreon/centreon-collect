@@ -94,7 +94,7 @@ session::~session() noexcept {
  *  Close session.
  */
 void session::close() {
-  std::error_code err;
+  boost::system::error_code err;
   _socket.shutdown(asio::ip::tcp::socket::shutdown_both, err);
   _socket.close(err);
   _second_timer.cancel();
@@ -136,7 +136,7 @@ void session::notify_listeners(bool force) {
 void session::start_second_timer() {
   _second_timer.expires_after(std::chrono::seconds(1));
   _second_timer.async_wait(
-      [me = shared_from_this()](const std::error_code& err) {
+      [me = shared_from_this()](const boost::system::error_code& err) {
         if (!err) {
           time_point now(system_clock::now());
           for (async_list::iterator notif_iter = me->_async_listeners.begin();
@@ -181,27 +181,28 @@ void session::connect(connect_callback callback, const time_point& timeout) {
   resolver->async_resolve(
       _creds.get_host(), std::to_string(_creds.get_port()),
       [me = shared_from_this(), callback, resolver, timeout](
-          const std::error_code& err,
+          const boost::system::error_code& err,
           const asio::ip::tcp::resolver::results_type& results) {
         me->on_resolve(err, results, callback, timeout);
       });
 
   _connect_timer.expires_at(timeout);
-  _connect_timer.async_wait(
-      [me = shared_from_this(), resolver](const std::error_code& err) {
-        if (!err) {
-          log::core()->error("time out connect {}", *me);
-          std::error_code e;
-          me->_socket.cancel(e);
-          resolver->cancel();
-        }
-      });
+  _connect_timer.async_wait([me = shared_from_this(),
+                             resolver](const boost::system::error_code& err) {
+    if (!err) {
+      log::core()->error("time out connect {}", *me);
+      boost::system::error_code e;
+      me->_socket.cancel(e);
+      resolver->cancel();
+    }
+  });
 }
 
-static const std::error_code host_not_found(asio::error::host_not_found,
-                                            asio::error::get_netdb_category());
+static const boost::system::error_code host_not_found(
+    asio::error::host_not_found,
+    asio::error::get_netdb_category());
 
-void session::on_resolve(const std::error_code& error,
+void session::on_resolve(const boost::system::error_code& error,
                          const asio::ip::tcp::resolver::results_type& results,
                          connect_callback callback,
                          const time_point& timeout) {
@@ -229,13 +230,13 @@ void session::on_resolve(const std::error_code& error,
   log::core()->debug("{} connect to {}", *this, current->endpoint());
   _socket.async_connect(
       current->endpoint(), [me = shared_from_this(), current, results, callback,
-                            timeout](const std::error_code& err) {
+                            timeout](const boost::system::error_code& err) {
         me->on_connect(err, current, results, callback, timeout);
       });
 }
 
 void session::on_connect(
-    const std::error_code& error,
+    const boost::system::error_code& error,
     asio::ip::tcp::resolver::results_type::const_iterator current_endpoint,
     const asio::ip::tcp::resolver::results_type& all_res,
     connect_callback callback,
@@ -252,12 +253,12 @@ void session::on_connect(
     if (current_endpoint != all_res.end()) {
       log::core()->debug("{} connect to {}", *this,
                          current_endpoint->endpoint());
-      _socket.async_connect(current_endpoint->endpoint(),
-                            [me = shared_from_this(), current_endpoint, all_res,
-                             callback, timeout](const std::error_code& err) {
-                              me->on_connect(err, current_endpoint, all_res,
-                                             callback, timeout);
-                            });
+      _socket.async_connect(
+          current_endpoint->endpoint(),
+          [me = shared_from_this(), current_endpoint, all_res, callback,
+           timeout](const boost::system::error_code& err) {
+            me->on_connect(err, current_endpoint, all_res, callback, timeout);
+          });
     } else {
       _connect_timer.cancel();
       callback(error);
@@ -277,19 +278,20 @@ void session::on_connect(
 void session::start_read() {
   try {
     recv_data::pointer recv_buff(std::make_shared<recv_data>());
-    _socket.async_receive(
-        asio::buffer(recv_buff->buff),
-        [me = shared_from_this(), recv_buff](const std::error_code& error,
-                                             std::size_t bytes_transferred) {
-          me->read_handler(error, recv_buff, bytes_transferred);
-        });
+    _socket.async_receive(asio::buffer(recv_buff->buff),
+                          [me = shared_from_this(), recv_buff](
+                              const boost::system::error_code& error,
+                              std::size_t bytes_transferred) {
+                            me->read_handler(error, recv_buff,
+                                             bytes_transferred);
+                          });
   } catch (const std::exception& e) {
     log::core()->error("fail to async_read from {} : {}", _creds, e.what());
     error();
   }
 }
 
-void session::read_handler(const std::error_code& err,
+void session::read_handler(const boost::system::error_code& err,
                            const recv_data::pointer& buff,
                            size_t nb_recv) {
   if (err) {
@@ -322,7 +324,7 @@ ssize_t session::socket_recv(libssh2_socket_t sockfd,
   if (!_socket.is_open()) {
     return -1;
   }
-  ASIO_ASSERT(sockfd == _socket.native_handle());
+  assert(sockfd == _socket.native_handle());
   size_t copied = 0;
   while (copied < length && !_recv_queue.empty()) {
     recv_data::pointer to_copy = _recv_queue.front();
@@ -368,7 +370,7 @@ ssize_t session::socket_send(libssh2_socket_t sockfd,
   if (!_socket.is_open()) {
     return -1;
   }
-  ASIO_ASSERT(sockfd == _socket.native_handle());
+  assert(sockfd == _socket.native_handle());
 
   log::core()->debug("{} want to send {} bytes ", *this, length);
 
@@ -388,9 +390,8 @@ void session::start_send() {
     asio::async_write(_socket,
                       asio::buffer(tosend->get_buff(), tosend->get_size()),
                       [me = shared_from_this(), tosend](
-                          const std::error_code& err, size_t nb_sent) {
-                        me->send_handler(err, nb_sent);
-                      });
+                          const boost::system::error_code& err,
+                          size_t nb_sent) { me->send_handler(err, nb_sent); });
   } catch (const std::exception& e) {
     log::core()->error("fail to async_write to {} : {}", _creds, e.what());
     close();
@@ -399,7 +400,8 @@ void session::start_send() {
   _writing = true;
 }
 
-void session::send_handler(const std::error_code& err, size_t nb_sent) {
+void session::send_handler(const boost::system::error_code& err,
+                           size_t nb_sent) {
   if (err) {
     log::core()->error("fail to send to {} : {}", _creds, err.message());
     close();

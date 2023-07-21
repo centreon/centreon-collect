@@ -78,7 +78,8 @@ stream::stream(std::string const& metric_naming,
     ip::tcp::resolver::iterator it{resolver.resolve(query)};
     ip::tcp::resolver::iterator end;
 
-    std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+    boost::system::error_code err{
+        make_error_code(asio::error::host_unreachable)};
 
     // it can resolve to multiple addresses like ipv4 and ipv6
     // we need to try all to find the first available socket
@@ -96,7 +97,7 @@ stream::stream(std::string const& metric_naming,
           "graphite: can't connect to graphite on host '{}', port '{}' : {}",
           _db_host, _db_port, err.message());
     }
-  } catch (std::system_error const& se) {
+  } catch (boost::system::system_error const& se) {
     throw msg_fmt(
         "graphite: can't connect to graphite on host '{}', port '{}' : {}",
         _db_host, _db_port, se.what());
@@ -258,7 +259,7 @@ bool stream::_process_status(storage::pb_status const& st) {
  */
 void stream::_commit() {
   if (!_query.empty()) {
-    std::error_code err;
+    boost::system::error_code err;
 
     asio::write(_socket, buffer(_query), asio::transfer_all(), err);
     if (err)

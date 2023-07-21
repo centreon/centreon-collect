@@ -74,7 +74,7 @@ class tcp_async : public std::enable_shared_from_this<tcp_async> {
 
   tcp_async();
 
-  void _clear_available_con(asio::error_code ec);
+  void _clear_available_con(boost::system::error_code ec);
 
   static void _set_sock_opt(asio::ip::tcp::socket& sock,
                             const tcp_config::pointer& conf);
@@ -98,7 +98,7 @@ class tcp_async : public std::enable_shared_from_this<tcp_async> {
   void remove_acceptor(std::shared_ptr<asio::ip::tcp::acceptor> acceptor);
   void handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
                      tcp_connection::pointer new_connection,
-                     const asio::error_code& error,
+                     const boost::system::error_code& error,
                      const tcp_config::pointer& conf);
   tcp_connection::pointer get_connection(
       const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
