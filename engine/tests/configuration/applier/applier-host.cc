@@ -27,9 +27,9 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "helper.hh"
 #include "configuration/host_helper.hh"
 #include "configuration/service_helper.hh"
+#include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -38,7 +38,7 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierHost : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { init_config_state(LEGACY); }
 
   void TearDown() override { deinit_config_state(); }
 };

@@ -48,7 +48,7 @@ using namespace com::centreon::engine::configuration::applier;
 class AnomalydetectionCheck : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    init_config_state(LEGACY);
 
     log_v2::checks()->set_level(spdlog::level::trace);
     log_v2::commands()->set_level(spdlog::level::trace);

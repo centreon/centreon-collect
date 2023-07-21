@@ -47,11 +47,13 @@ if(WITH_TESTING)
   target_precompile_headers(bin_connector_test_run REUSE_FROM cce_core)
 
   set(ut_sources
+      # Sources.
       "${TESTS_DIR}/checks/anomalydetection.cc"
       "${TESTS_DIR}/checks/service_check.cc"
       "${TESTS_DIR}/checks/service_retention.cc"
       "${TESTS_DIR}/commands/connector.cc"
       "${TESTS_DIR}/commands/environment.cc"
+      "${TESTS_DIR}/commands/pbsimple-command.cc"
       "${TESTS_DIR}/commands/simple-command.cc"
       "${TESTS_DIR}/configuration/applier/applier-anomalydetection.cc"
       "${TESTS_DIR}/configuration/applier/applier-command.cc"
@@ -64,6 +66,10 @@ if(WITH_TESTING)
       "${TESTS_DIR}/configuration/applier/applier-hostescalation.cc"
       "${TESTS_DIR}/configuration/applier/applier-hostgroup.cc"
       "${TESTS_DIR}/configuration/applier/applier-log.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbanomalydetection.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbcommand.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbconnector.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbcontactgroup.cc"
       "${TESTS_DIR}/configuration/applier/applier-service.cc"
       "${TESTS_DIR}/configuration/applier/applier-servicedependency.cc"
       "${TESTS_DIR}/configuration/applier/applier-serviceescalation.cc"
@@ -108,7 +114,6 @@ if(WITH_TESTING)
       "${TESTS_DIR}/retention/service.cc"
       "${TESTS_DIR}/string/string.cc"
       "${TESTS_DIR}/test_engine.cc"
-      "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/between_two_years.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/calendar_date.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/dst_backward.cc"
@@ -124,6 +129,10 @@ if(WITH_TESTING)
       "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
       "${TESTS_DIR}/timeperiod/utils.cc"
+
+      # Headers.
+      "${TESTS_DIR}/test_engine.hh"
+      "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/timeperiod/utils.hh"
       "${TESTS_DIR}/timeperiod/utils.hh")
 

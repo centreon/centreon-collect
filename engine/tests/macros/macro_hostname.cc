@@ -49,7 +49,7 @@ using namespace com::centreon::engine;
 class MacroHostname : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    init_config_state(LEGACY);
     _tp = _creator.new_timeperiod();
     for (int i(0); i < 7; ++i)
       _creator.new_timerange(0, 0, 24, 0, i);
