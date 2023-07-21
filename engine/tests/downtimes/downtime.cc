@@ -31,7 +31,7 @@ using namespace com::centreon::engine::downtimes;
 
 class DowntimeExternalCommand : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { init_config_state(LEGACY); }
 
   void TearDown() override {
     downtime_manager::instance().clear_scheduled_downtimes();

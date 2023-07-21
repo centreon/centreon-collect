@@ -46,7 +46,7 @@ class ApplierState : public ::testing::Test {
     config_errors = 0;
     config_warnings = 0;
 
-    init_config_state();
+    init_config_state(LEGACY);
     auto tps = pb_config.mutable_timeperiods();
     for (int i = 0; i < 10; i++) {
       auto* tp = tps->Add();

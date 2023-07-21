@@ -38,7 +38,7 @@ class timeperiod_exception : public ::testing::TestWithParam<test_param> {
  protected:
   static configuration::applier::timeperiod _applier;
   static void SetUpTestSuite() {
-    init_config_state();
+    init_config_state(LEGACY);
     com::centreon::engine::timeperiod::timeperiods.clear();
     parse_timeperiods_cfg_file("tests/timeperiods.cfg");
   }

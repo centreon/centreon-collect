@@ -36,7 +36,7 @@ using namespace com::centreon::engine;
 
 class ApplierServiceDependency : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { init_config_state(LEGACY); }
 
   void TearDown() override { deinit_config_state(); }
 };
