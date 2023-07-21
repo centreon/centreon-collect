@@ -412,6 +412,7 @@ def get_default_values(cap_name, cpp, msg: [str]):
     r = re.compile(
         r"(?:static)?\s*([a-z0-9][a-z_0-9:\s]+[a-z0-9])\s*(?:const)?\s*(default_[a-z0-9_]*)\((.*)\);")
     rdecl = re.compile(r"^\s*:?\s(_[a-z][a-z0-9_]*)\((default_[a-z_0-9]*)\)")
+    rdecl_partial = re.compile(r"^\s*:?\s(_[a-z][a-z0-9_]*)\($")
 
     def_value = {}
     for i in range(len(cpp)):
@@ -458,19 +459,42 @@ def get_default_values(cap_name, cpp, msg: [str]):
                 "value": value,
             }
     line = 1
+    decl_to_continue = False
+    l_to_continue = ""
     for l in cpp:
-        m = rdecl.match(l)
-        if m:
-            name = proto_name(m.group(1))
-            if m.group(2) in def_value:
-                value = def_value[m.group(2)]
-                for i in msg:
-                    if i['proto_name'] == name:
-                        i['default'] = value['value']
-                        break
+        if decl_to_continue:
+            l_to_continue = l_to_continue.rstrip() + l.lstrip()
+            decl_to_continue = False
+            m = rdecl.match(l_to_continue)
+            if m:
+                name = proto_name(m.group(1))
+                if m.group(2) in def_value:
+                    value = def_value[m.group(2)]
+                    for i in msg:
+                        if i['proto_name'] == name:
+                            i['default'] = value['value']
+                            break
+                else:
+                    print(
+                        f"Error: {m.group(2)} not found in list of default values from file {filename_cc}")
+        else:
+            m = rdecl.match(l)
+            if m:
+                name = proto_name(m.group(1))
+                if m.group(2) in def_value:
+                    value = def_value[m.group(2)]
+                    for i in msg:
+                        if i['proto_name'] == name:
+                            i['default'] = value['value']
+                            break
+                else:
+                    print(
+                        f"Error: {m.group(2)} not found in list of default values from file {filename_cc}")
             else:
-                print(
-                    f"Error: {m.group(2)} not found in list of default values from file {filename_cc}")
+                m = rdecl_partial.match(l)
+                if m:
+                    decl_to_continue = True
+                    l_to_continue = l
         line += 1
 
     if cap_name == "Tag" or cap_name == "Severity":
