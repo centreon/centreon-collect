@@ -103,9 +103,9 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   std::shared_ptr<storage::pb_rebuild_message> r(
       std::make_shared<storage::pb_rebuild_message>());
   r->mut_obj().set_state(RebuildMessage_State_START);
-  r->mut_obj().add_metric_id(1);
-  r->mut_obj().add_metric_id(2);
-  r->mut_obj().add_metric_id(5);
+  (*r->mut_obj().mutable_metric_to_index_id())[1] = 1;
+  (*r->mut_obj().mutable_metric_to_index_id())[2] = 1;
+  (*r->mut_obj().mutable_metric_to_index_id())[5] = 1;
 
   std::shared_ptr<into_memory> memory_stream(std::make_shared<into_memory>());
   bbdo::stream stm(true);

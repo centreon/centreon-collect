@@ -79,7 +79,8 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
     std::future<database::mysql_result> future = promise.get_future();
     std::string query{fmt::format(
         "SELECT m.metric_id, m.metric_name, m.data_source_type, "
-        "i.rrd_retention, s.check_interval FROM metrics m LEFT JOIN index_data "
+        "i.rrd_retention, s.check_interval, m.index_id FROM metrics m LEFT "
+        "JOIN index_data "
         "i ON m.index_id=i.id LEFT JOIN services s ON i.host_id=s.host_id AND "
         "i.service_id=s.service_id WHERE i.id IN ({})",
         ids_str)};
@@ -93,10 +94,12 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
       database::mysql_result res{future.get()};
       while (ms.fetch_row(res)) {
         uint64_t mid = res.value_as_u64(0);
+        uint64_t index_id = res.value_as_u64(5);
         mids.push_back(mid);
         log_v2::sql()->trace("Metric rebuild: metric {} is sent to rebuild",
                              mid);
-        start_rebuild->mut_obj().add_metric_id(mid);
+        (*start_rebuild->mut_obj().mutable_metric_to_index_id())[mid] =
+            index_id;
         auto ret = ret_inter.emplace(mid, metric_info());
         metric_info& v = ret.first->second;
         v.metric_name = res.value_as_str(1);
@@ -147,11 +150,11 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
             db_retention_day--;
             std::promise<database::mysql_result> promise;
             std::future<database::mysql_result> future = promise.get_future();
-            std::string query{
-                fmt::format("SELECT id_metric,ctime,value FROM data_bin WHERE "
-                            "ctime>={} AND "
-                            "ctime<{} AND id_metric IN ({}) ORDER BY ctime ASC",
-                            start, end, mids_str)};
+            std::string query{fmt::format(
+                "SELECT id_metric,ctime,value,status FROM data_bin WHERE "
+                "ctime>={} AND "
+                "ctime<{} AND id_metric IN ({}) ORDER BY ctime ASC",
+                start, end, mids_str)};
             log_v2::sql()->trace("Metrics rebuild: Query << {} >> executed",
                                  query);
             ms.run_query_and_get_result(query, std::move(promise), conn);
@@ -162,11 +165,13 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
               uint64_t id_metric = res.value_as_u64(0);
               time_t ctime = res.value_as_u64(1);
               double value = res.value_as_f64(2);
+              uint32_t status = res.value_as_u32(3);
               Point* pt =
                   (*data_rebuild->mut_obj().mutable_timeserie())[id_metric]
                       .add_pts();
               pt->set_ctime(ctime);
               pt->set_value(value);
+              pt->set_status(status);
             }
             for (auto it = ret_inter.begin(); it != ret_inter.end(); ++it) {
               auto i = it->second;

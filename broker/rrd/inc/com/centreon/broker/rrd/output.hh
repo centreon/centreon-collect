@@ -40,9 +40,13 @@ class output : public io::stream {
   using rebuild_cache =
       std::unordered_map<std::string, std::list<std::shared_ptr<io::data>>>;
 
+  using rebuild_metric_to_index =
+      boost::container::flat_map<uint64_t, uint64_t>;
+
   bool _ignore_update_errors;
   std::string _metrics_path;
   rebuild_cache _metrics_rebuild;
+  rebuild_metric_to_index _metrics_to_index_rebuild;
   std::string _status_path;
   rebuild_cache _status_rebuild;
   const bool _write_metrics;

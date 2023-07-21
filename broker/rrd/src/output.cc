@@ -19,6 +19,7 @@
 #include "com/centreon/broker/rrd/output.hh"
 #include "com/centreon/broker/rrd/internal.hh"
 
+#include <absl/strings/str_join.h>
 #include <fmt/format.h>
 #include <cassert>
 #include <cstdlib>
@@ -42,6 +43,25 @@ namespace com {
 namespace centreon {
 namespace broker {
 namespace rrd {
+
+template <class map_type>
+std::vector<typename map_type::key_type> keys_of_map(const map_type& data) {
+  std::vector<typename map_type::key_type> ret;
+  for (const auto& key_val : data) {
+    ret.push_back(key_val.first);
+  }
+  return ret;
+}
+
+template <class map_type>
+std::set<typename map_type::mapped_type> values_of_map(const map_type& data) {
+  std::set<typename map_type::mapped_type> ret;
+  for (const auto& key_val : data) {
+    ret.insert(key_val.second);
+  }
+  return ret;
+}
+
 /**
  *  Standard constructor.
  *
@@ -173,7 +193,7 @@ void output<T>::update() {
  */
 template <typename T>
 int output<T>::write(std::shared_ptr<io::data> const& d) {
-  log_v2::rrd()->trace("RRD: output::write.");
+  SPDLOG_LOGGER_TRACE(log_v2::rrd(), "RRD: output::write.");
   // Check that data exists.
   if (!validate(d, "RRD"))
     return 1;
@@ -208,32 +228,35 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           switch (m.value_type()) {
             case misc::perfdata::gauge:
               v = fmt::format("{:f}", m.value());
-              log_v2::rrd()->trace(
-                  "RRD: update metric {} of type GAUGE with {}", m.metric_id(),
-                  v);
+              SPDLOG_LOGGER_TRACE(log_v2::rrd(),
+                                  "RRD: update metric {} of type GAUGE with {}",
+                                  m.metric_id(), v);
               break;
             case misc::perfdata::counter:
               v = fmt::format("{}", static_cast<uint64_t>(m.value()));
-              log_v2::rrd()->trace(
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::rrd(),
                   "RRD: update metric {} of type COUNTER with {}",
                   m.metric_id(), v);
               break;
             case misc::perfdata::derive:
               v = fmt::format("{}", static_cast<int64_t>(m.value()));
-              log_v2::rrd()->trace(
-                  "RRD: update metric {} of type DERIVE with {}", m.metric_id(),
-                  v);
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::rrd(), "RRD: update metric {} of type DERIVE with {}",
+                  m.metric_id(), v);
               break;
             case misc::perfdata::absolute:
               v = fmt::format("{}", static_cast<uint64_t>(m.value()));
-              log_v2::rrd()->trace(
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::rrd(),
                   "RRD: update metric {} of type ABSOLUTE with {}",
                   m.metric_id(), v);
               break;
             default:
               v = fmt::format("{:f}", m.value());
-              log_v2::rrd()->trace("RRD: update metric {} of type {} with {}",
-                                   m.metric_id(), m.value_type(), v);
+              SPDLOG_LOGGER_TRACE(log_v2::rrd(),
+                                  "RRD: update metric {} of type {} with {}",
+                                  m.metric_id(), m.value_type(), v);
               break;
           }
           _backend.update(m.time(), v);
@@ -271,32 +294,35 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           switch (e->value_type) {
             case misc::perfdata::gauge:
               v = fmt::format("{:f}", e->value);
-              log_v2::rrd()->trace(
-                  "RRD: update metric {} of type GAUGE with {}", e->metric_id,
-                  v);
+              SPDLOG_LOGGER_TRACE(log_v2::rrd(),
+                                  "RRD: update metric {} of type GAUGE with {}",
+                                  e->metric_id, v);
               break;
             case misc::perfdata::counter:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
-              log_v2::rrd()->trace(
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::rrd(),
                   "RRD: update metric {} of type COUNTER with {}", e->metric_id,
                   v);
               break;
             case misc::perfdata::derive:
               v = fmt::format("{}", static_cast<int64_t>(e->value));
-              log_v2::rrd()->trace(
-                  "RRD: update metric {} of type DERIVE with {}", e->metric_id,
-                  v);
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::rrd(), "RRD: update metric {} of type DERIVE with {}",
+                  e->metric_id, v);
               break;
             case misc::perfdata::absolute:
               v = fmt::format("{}", static_cast<uint64_t>(e->value));
-              log_v2::rrd()->trace(
+              SPDLOG_LOGGER_TRACE(
+                  log_v2::rrd(),
                   "RRD: update metric {} of type ABSOLUTE with {}",
                   e->metric_id, v);
               break;
             default:
               v = fmt::format("{:f}", e->value);
-              log_v2::rrd()->trace("RRD: update metric {} of type {} with {}",
-                                   e->metric_id, e->value_type, v);
+              SPDLOG_LOGGER_TRACE(log_v2::rrd(),
+                                  "RRD: update metric {} of type {} with {}",
+                                  e->metric_id, e->value_type, v);
               break;
           }
           _backend.update(e->time, v);
@@ -389,13 +415,23 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           std::static_pointer_cast<storage::pb_rebuild_message>(d)};
       switch (e->obj().state()) {
         case RebuildMessage_State_START:
-          log_v2::rrd()->info("RRD: Starting to rebuild metrics ({})",
-                              fmt::join(e->obj().metric_id(), ","));
+          log_v2::rrd()->info(
+              "RRD: Starting to rebuild metrics ({}) status ({})",
+              fmt::join(keys_of_map(e->obj().metric_to_index_id()), ","),
+              fmt::join(values_of_map(e->obj().metric_to_index_id()), ","));
           // Rebuild is starting.
-          for (auto& m : e->obj().metric_id()) {
-            std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+          _metrics_to_index_rebuild.reserve(
+              e->obj().metric_to_index_id().size());
+          for (auto& m : e->obj().metric_to_index_id()) {
+            std::string path{fmt::format("{}{}.rrd", _metrics_path, m.first)};
             /* Creation of metric caches */
             _metrics_rebuild[path];
+            /* File removed */
+            _backend.remove(path);
+            // creation of status caches
+            path = fmt::format("{}{}.rrd", _status_path, m.second);
+            _status_rebuild[path];
+            _metrics_to_index_rebuild[m.first] = m.second;
             /* File removed */
             _backend.remove(path);
           }
@@ -405,11 +441,13 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           _rebuild_data(e->obj());
           break;
         case RebuildMessage_State_END:
-          log_v2::rrd()->info("RRD: Finishing to rebuild metrics ({})",
-                              fmt::join(e->obj().metric_id(), ","));
+          log_v2::rrd()->info(
+              "RRD: Finishing to rebuild metrics ({}) status ({})",
+              fmt::join(keys_of_map(e->obj().metric_to_index_id()), ","),
+              fmt::join(values_of_map(e->obj().metric_to_index_id()), ","));
           // Rebuild is ending.
-          for (auto& m : e->obj().metric_id()) {
-            std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
+          for (auto& m : e->obj().metric_to_index_id()) {
+            std::string path{fmt::format("{}{}.rrd", _metrics_path, m.first)};
             auto it = _metrics_rebuild.find(path);
             std::list<std::shared_ptr<io::data>> l;
             if (it != _metrics_rebuild.end()) {
@@ -420,6 +458,17 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
                 l.pop_front();
               }
             }
+            path = fmt::format("{}{}.rrd", _status_path, m.second);
+            it = _status_rebuild.find(path);
+            if (it != _status_rebuild.end()) {
+              l = std::move(it->second);
+              _status_rebuild.erase(it);
+              while (!l.empty()) {
+                write(l.front());
+                l.pop_front();
+              }
+            }
+            _metrics_to_index_rebuild.erase(m.first);
           }
           break;
         default:
@@ -533,40 +582,82 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
  */
 template <typename T>
 void output<T>::_rebuild_data(const RebuildMessage& rm) {
+  int64_t status_start_time = 0;
+  std::deque<std::string> status_query;
+
+  auto fill_status_request = [&](const com::centreon::broker::Point& pt) {
+    switch (pt.status()) {
+      case 0:
+        status_query.emplace_back(fmt::format("{}:100"), pt.ctime());
+        if (!status_start_time)
+          status_start_time = pt.ctime();
+        break;
+      case 1:
+        status_query.emplace_back(fmt::format("{}:75"), pt.ctime());
+        if (!status_start_time)
+          status_start_time = pt.ctime();
+        break;
+      case 2:
+        status_query.emplace_back(fmt::format("{}:0"), pt.ctime());
+        if (!status_start_time)
+          status_start_time = pt.ctime();
+        break;
+      default:
+        break;
+    }
+  };
+
   for (auto& p : rm.timeserie()) {
     std::deque<std::string> query;
+    status_start_time = 0;
+    status_query.clear();
     log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
     std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
+    std::string status_path;
+    auto index_id_search = _metrics_to_index_rebuild.find(p.first);
+    if (index_id_search != _metrics_to_index_rebuild.end()) {
+      status_path =
+          fmt::format("{}{}.rrd", _status_path, index_id_search->second);
+    }
+
     int32_t data_source_type = p.second.data_source_type();
     switch (data_source_type) {
       case misc::perfdata::gauge:
-        for (auto& pt : p.second.pts())
+        for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{:f}", pt.ctime(), pt.value()));
+          fill_status_request(pt);
+        }
         break;
       case misc::perfdata::counter:
       case misc::perfdata::absolute:
-        for (auto& pt : p.second.pts())
+        for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<uint64_t>(pt.value())));
+          fill_status_request(pt);
+        }
         break;
       case misc::perfdata::derive:
-        for (auto& pt : p.second.pts())
+        for (auto& pt : p.second.pts()) {
           query.emplace_back(fmt::format("{}:{}", pt.ctime(),
                                          static_cast<int64_t>(pt.value())));
+          fill_status_request(pt);
+        }
         break;
       default:
         log_v2::rrd()->debug("data_source_type = {} is not managed",
                              data_source_type);
     }
+
+    uint32_t interval{p.second.check_interval() ? p.second.check_interval()
+                                                : 60};
     if (!query.empty()) {
       time_t start_time;
       if (!p.second.pts().empty())
         start_time = p.second.pts()[0].ctime() - 1;
       else
         start_time = std::time(nullptr);
-      log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
-      uint32_t interval{p.second.check_interval() ? p.second.check_interval()
-                                                  : 60};
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "'{}' start date set to {}", path,
+                          start_time);
       try {
         /* Here, the file is opened only if it exists. */
         _backend.open(path);
@@ -575,9 +666,30 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
         _backend.open(path, p.second.rrd_retention(), start_time, interval,
                       p.second.data_source_type(), true);
       }
-      log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "{} points added to file '{}'",
+                          query.size(), path);
       _backend.update(query);
+
     } else
-      log_v2::rrd()->trace("Nothing to rebuild in '{}'", path);
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "Nothing to rebuild in '{}'", path);
+
+    if (!status_path.empty() && !status_query.empty()) {
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "'{}' start date set to {}",
+                          status_path, status_start_time);
+      try {
+        /* Here, the file is opened only if it exists. */
+        _backend.open(status_path);
+      } catch (const exceptions::open& b) {
+        /* Here, the file is created. */
+        _backend.open(status_path, p.second.rrd_retention(), status_start_time,
+                      interval);
+      }
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "{} points added to file '{}'",
+                          status_query.size(), status_path);
+      _backend.update(status_query);
+    } else if (!status_path.empty()) {
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "Nothing to rebuild in '{}'",
+                          status_path);
+    }
   }
 }
