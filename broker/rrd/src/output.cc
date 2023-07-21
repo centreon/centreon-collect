@@ -204,8 +204,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         std::shared_ptr<storage::pb_metric> e(
             std::static_pointer_cast<storage::pb_metric>(d));
         auto& m = e->obj();
-        log_v2::rrd()->debug("RRD: new pb data for metric {} (time {})",
-                             m.metric_id(), m.time());
+        SPDLOG_LOGGER_DEBUG(log_v2::rrd(),
+                            "RRD: new pb data for metric {} (time {})",
+                            m.metric_id(), m.time());
 
         // Metric path.
         std::string metric_path(
@@ -269,9 +270,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         // Debug message.
         std::shared_ptr<storage::metric> e(
             std::static_pointer_cast<storage::metric>(d));
-        log_v2::rrd()->debug("RRD: new data for metric {} (time {}) {}",
-                             e->metric_id, e->time,
-                             e->is_for_rebuild ? "for rebuild" : "");
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::rrd(), "RRD: new data for metric {} (time {}) {}",
+            e->metric_id, e->time, e->is_for_rebuild ? "for rebuild" : "");
 
         // Metric path.
         std::string metric_path(
@@ -336,8 +337,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         std::shared_ptr<storage::pb_status> e(
             std::static_pointer_cast<storage::pb_status>(d));
         const auto& s = e->obj();
-        log_v2::rrd()->debug("RRD: new pb status data for index {} (state {})",
-                             s.index_id(), s.state());
+        SPDLOG_LOGGER_DEBUG(log_v2::rrd(),
+                            "RRD: new pb status data for index {} (state {})",
+                            s.index_id(), s.state());
 
         // Status path.
         std::string status_path(
@@ -374,9 +376,9 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
         // Debug message.
         std::shared_ptr<storage::status> e(
             std::static_pointer_cast<storage::status>(d));
-        log_v2::rrd()->debug("RRD: new status data for index {} (state {}) {}",
-                             e->index_id, e->state,
-                             e->is_for_rebuild ? "for rebuild" : "");
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::rrd(), "RRD: new status data for index {} (state {}) {}",
+            e->index_id, e->state, e->is_for_rebuild ? "for rebuild" : "");
 
         // Status path.
         std::string status_path(
@@ -409,12 +411,18 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       }
       break;
     case storage::pb_rebuild_message::static_type(): {
-      log_v2::rrd()->debug("RRD: RebuildMessage received");
+      SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "RRD: RebuildMessage received");
       std::shared_ptr<storage::pb_rebuild_message> e{
           std::static_pointer_cast<storage::pb_rebuild_message>(d)};
       switch (e->obj().state()) {
         case RebuildMessage_State_START:
-          log_v2::rrd()->info(
+          if (e->obj().metric_to_index_id().empty()) {
+            SPDLOG_LOGGER_ERROR(log_v2::rrd(),
+                                "RRD: rebuild empty metric list");
+            return 1;
+          }
+          SPDLOG_LOGGER_INFO(
+              log_v2::rrd(),
               "RRD: Starting to rebuild metrics ({}) status ({})",
               fmt::join(keys_of_map(e->obj().metric_to_index_id()), ","),
               fmt::join(values_of_map(e->obj().metric_to_index_id()), ","));
@@ -438,14 +446,22 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           }
           break;
         case RebuildMessage_State_DATA:
-          log_v2::rrd()->debug("RRD: Data to rebuild metrics");
-          if (!e->obj().metric_id().empty())
-            _rebuild_data_v1(e->obj());
-          else
-            _rebuild_data(e->obj());
+          if (_metrics_rebuild.empty()) {
+            SPDLOG_LOGGER_ERROR(log_v2::rrd(),
+                                "RRD: rebuild empty metric list");
+            return 1;
+          }
+          SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "RRD: Data to rebuild metrics");
+          _rebuild_data(e->obj());
           break;
         case RebuildMessage_State_END:
-          log_v2::rrd()->info(
+          if (e->obj().metric_to_index_id().empty()) {
+            SPDLOG_LOGGER_ERROR(log_v2::rrd(),
+                                "RRD: rebuild empty metric list");
+            return 1;
+          }
+          SPDLOG_LOGGER_INFO(
+              log_v2::rrd(),
               "RRD: Finishing to rebuild metrics ({}) status ({})",
               fmt::join(keys_of_map(e->obj().metric_to_index_id()), ","),
               fmt::join(values_of_map(e->obj().metric_to_index_id()), ","));
@@ -483,29 +499,29 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       }
     } break;
     case storage::pb_remove_graph_message::static_type(): {
-      log_v2::rrd()->debug("RRD: RemoveGraphsMessage received");
+      SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "RRD: RemoveGraphsMessage received");
       std::shared_ptr<storage::pb_remove_graph_message> e{
           std::static_pointer_cast<storage::pb_remove_graph_message>(d)};
       for (auto& m : e->obj().metric_ids()) {
         std::string path{fmt::format("{}{}.rrd", _metrics_path, m)};
         /* File removed */
-        log_v2::rrd()->info("RRD: removing {} file", path);
+        SPDLOG_LOGGER_INFO(log_v2::rrd(), "RRD: removing {} file", path);
         _backend.remove(path);
       }
       for (auto& i : e->obj().index_ids()) {
         std::string path{fmt::format("{}{}.rrd", _status_path, i)};
         /* File removed */
-        log_v2::rrd()->info("RRD: removing {} file", path);
+        SPDLOG_LOGGER_INFO(log_v2::rrd(), "RRD: removing {} file", path);
         _backend.remove(path);
       }
     } break;
     case storage::remove_graph::static_type(): {
-      log_v2::rrd()->info("storage::remove_graph");
+      SPDLOG_LOGGER_INFO(log_v2::rrd(), "storage::remove_graph");
       // Debug message.
       std::shared_ptr<storage::remove_graph> e(
           std::static_pointer_cast<storage::remove_graph>(d));
-      log_v2::rrd()->debug("RRD: remove graph request for {} {}",
-                           e->is_index ? "index" : "metric", e->id);
+      SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "RRD: remove graph request for {} {}",
+                          e->is_index ? "index" : "metric", e->id);
 
       // Generate path.
       std::string path(fmt::format(
@@ -526,64 +542,6 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
   }
 
   return 1;
-}
-
-/**
- * @brief Internal function called to read the protobuf RebuildMessage
- * when timeseries are received. It is here that RRD files are rebuilt.
- *
- * @tparam T The backend RRD.
- * @param rm The message to handle.
- */
-template <typename T>
-void output<T>::_rebuild_data_v1(const RebuildMessage& rm) {
-  for (auto& p : rm.timeserie()) {
-    std::deque<std::string> query;
-    log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
-    std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
-    int32_t data_source_type = p.second.data_source_type();
-    switch (data_source_type) {
-      case misc::perfdata::gauge:
-        for (auto& pt : p.second.pts())
-          query.emplace_back(fmt::format("{}:{:f}", pt.ctime(), pt.value()));
-        break;
-      case misc::perfdata::counter:
-      case misc::perfdata::absolute:
-        for (auto& pt : p.second.pts())
-          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
-                                         static_cast<uint64_t>(pt.value())));
-        break;
-      case misc::perfdata::derive:
-        for (auto& pt : p.second.pts())
-          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
-                                         static_cast<int64_t>(pt.value())));
-        break;
-      default:
-        log_v2::rrd()->debug("data_source_type = {} is not managed",
-                             data_source_type);
-    }
-    if (!query.empty()) {
-      time_t start_time;
-      if (!p.second.pts().empty())
-        start_time = p.second.pts()[0].ctime() - 1;
-      else
-        start_time = std::time(nullptr);
-      log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
-      uint32_t interval{p.second.check_interval() ? p.second.check_interval()
-                                                  : 60};
-      try {
-        /* Here, the file is opened only if it exists. */
-        _backend.open(path);
-      } catch (const exceptions::open& b) {
-        /* Here, the file is created. */
-        _backend.open(path, p.second.rrd_retention(), start_time, interval,
-                      p.second.data_source_type(), true);
-      }
-      log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
-      _backend.update(query);
-    } else
-      log_v2::rrd()->trace("Nothing to rebuild in '{}'", path);
-  }
 }
 
 /**
@@ -635,7 +593,7 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
 
   for (auto& p : rm.timeserie()) {
     std::deque<std::string> query;
-    log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
+    SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "RRD: Rebuilding metric {}", p.first);
     std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
     auto index_id_search = _metrics_to_index_rebuild.find(p.first);
     uint64_t index_id = 0;
@@ -670,8 +628,9 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
         }
         break;
       default:
-        log_v2::rrd()->debug("data_source_type = {} is not managed",
-                             data_source_type);
+        SPDLOG_LOGGER_DEBUG(log_v2::rrd(),
+                            "data_source_type = {} is not managed",
+                            data_source_type);
     }
 
     uint32_t interval{p.second.check_interval() ? p.second.check_interval()
@@ -709,15 +668,17 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
     time_t start_time =
         by_index_status_values.second.time_to_value.begin()->first -
         by_index_status_values.second.check_interval;
-    SPDLOG_LOGGER_TRACE(log_v2::rrd(), "'{}' start date set to {}", status_path,
-                        start_time);
     try {
       /* Here, the file is opened only if it exists. */
       _backend.open(status_path);
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "open '{}' start date set to {}",
+                          status_path, start_time);
     } catch (const exceptions::open& b) {
       /* Here, the file is created. */
       _backend.open(status_path, by_index_status_values.second.rrd_retention,
                     start_time, by_index_status_values.second.check_interval);
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "create '{}' start date set to {}",
+                          status_path, start_time);
     }
     SPDLOG_LOGGER_TRACE(log_v2::rrd(), "{} points added to file '{}'",
                         by_index_status_values.second.time_to_value.size(),

@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Test Clean
 
 
 *** Test Cases ***
@@ -36,7 +36,7 @@ BRRDDM1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
     ${metrics}    Get Metrics To Delete    3
@@ -48,7 +48,7 @@ BRRDDM1
     ${content}    Create List    metrics .* erased from database
 
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result[0]}    msg=No log message telling about some metrics deletion.
+    Should Be True    ${result[0]}    No log message telling about some metrics deletion.
 
     # We should have one line, but stored in an array.
     FOR    ${l}    IN    @{result[1]}
@@ -295,6 +295,7 @@ BRRDRM1
     Config Broker    module
     Broker Config Log    rrd    rrd    trace
     Broker Config Log    central    sql    trace
+    Broker Config Log    rrd    perfdata    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
     Create Metrics    3
@@ -400,3 +401,10 @@ BRRDRMU1
         ...    ${result}
         ...    msg=Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 50 if modulo==2 .
     END
+
+
+*** Keywords ***
+Test Clean
+    Stop Engine
+    Kindly Stop Broker
+    Save logs If Failed
