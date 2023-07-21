@@ -1438,20 +1438,22 @@ def get_indexes_to_rebuild(count: int, nb_day=180):
             result = cursor.fetchall()
             for r in result:
                 if int(r['metric_id']) in ids:
+                    index_id = int(r['index_id'])
                     logger.console(
-                        "building data for metric {}".format(r['metric_id']))
+                        "building data for metric {} index_id {}".format(r['metric_id'], index_id))
                     # We go back to 180 days with steps of 5 mn
                     start = int(time.time()/86400)*86400 - \
                         24 * 60 * 60 * nb_day
                     value = int(r['metric_id']) // 2
+                    status_value = index_id % 3
                     cursor.execute("DELETE FROM data_bin WHERE id_metric={} AND ctime >= {}".format(
                         r['metric_id'], start))
                     # We set the value to a constant on 180 days
                     for i in range(0, 24 * 60 * 60 * nb_day, 60 * 5):
-                        cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'0')".format(
-                            r['metric_id'], start + i, value))
+                        cursor.execute("INSERT INTO data_bin (id_metric, ctime, value, status) VALUES ({},{},{},'{}')".format(
+                            r['metric_id'], start + i, value, status_value))
                     connection.commit()
-                    retval.append(int(r['index_id']))
+                    retval.append(index_id)
 
                 if len(retval) == count:
                     return retval

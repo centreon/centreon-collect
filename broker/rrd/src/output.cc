@@ -617,10 +617,12 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
                                                 : 60};
     if (!query.empty()) {
       time_t start_time;
+      // we substract interval to ensure that first value will be accepted by
+      // rrd
       if (!p.second.pts().empty())
-        start_time = p.second.pts()[0].ctime() - 1;
+        start_time = p.second.pts()[0].ctime() - interval;
       else
-        start_time = std::time(nullptr);
+        start_time = std::time(nullptr) - interval;
       SPDLOG_LOGGER_TRACE(log_v2::rrd(), "'{}' start date set to {}", path,
                           start_time);
       try {
@@ -644,7 +646,8 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
         fmt::format("{}{}.rrd", _status_path, by_index_status_values.first)};
 
     time_t start_time =
-        by_index_status_values.second.time_to_value.begin()->first;
+        by_index_status_values.second.time_to_value.begin()->first -
+        by_index_status_values.second.check_interval;
     SPDLOG_LOGGER_TRACE(log_v2::rrd(), "'{}' start date set to {}", status_path,
                         start_time);
     try {
@@ -653,8 +656,7 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
     } catch (const exceptions::open& b) {
       /* Here, the file is created. */
       _backend.open(status_path, by_index_status_values.second.rrd_retention,
-                    start_time - 1 /*mandatory to insert first value*/,
-                    by_index_status_values.second.check_interval);
+                    start_time, by_index_status_values.second.check_interval);
     }
     SPDLOG_LOGGER_TRACE(log_v2::rrd(), "{} points added to file '{}'",
                         by_index_status_values.second.time_to_value.size(),
