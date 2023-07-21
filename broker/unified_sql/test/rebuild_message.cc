@@ -116,7 +116,7 @@ TEST_F(UnifiedSqlRebuild2Test, WriteRebuildMessage_START) {
   stm.write(r);
   std::vector<char> const& mem1 = memory_stream->get_memory();
 
-  constexpr size_t size = 21u;
+  constexpr size_t size = 34u;
   ASSERT_EQ(mem1.size(), size);
   // The size of the protobuf part is size - 16: 16 is the header size.
   for (uint32_t i = 0; i < size; i++) {

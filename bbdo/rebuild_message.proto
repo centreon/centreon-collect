@@ -26,5 +26,6 @@ message RebuildMessage {
   map<uint64, Timeserie> timeserie = 2;
 
   /* Only used on START/END state */
-  map<uint64, uint64> metric_to_index_id = 3;
+  repeated uint64 metric_id = 3;  /* old version */
+  map<uint64, uint64> metric_to_index_id = 4;
 }

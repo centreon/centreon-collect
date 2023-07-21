@@ -439,7 +439,10 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
           break;
         case RebuildMessage_State_DATA:
           log_v2::rrd()->debug("RRD: Data to rebuild metrics");
-          _rebuild_data(e->obj());
+          if (!e->obj().metric_id().empty())
+            _rebuild_data_v1(e->obj());
+          else
+            _rebuild_data(e->obj());
           break;
         case RebuildMessage_State_END:
           log_v2::rrd()->info(
@@ -523,6 +526,64 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
   }
 
   return 1;
+}
+
+/**
+ * @brief Internal function called to read the protobuf RebuildMessage
+ * when timeseries are received. It is here that RRD files are rebuilt.
+ *
+ * @tparam T The backend RRD.
+ * @param rm The message to handle.
+ */
+template <typename T>
+void output<T>::_rebuild_data_v1(const RebuildMessage& rm) {
+  for (auto& p : rm.timeserie()) {
+    std::deque<std::string> query;
+    log_v2::rrd()->debug("RRD: Rebuilding metric {}", p.first);
+    std::string path{fmt::format("{}{}.rrd", _metrics_path, p.first)};
+    int32_t data_source_type = p.second.data_source_type();
+    switch (data_source_type) {
+      case misc::perfdata::gauge:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{:f}", pt.ctime(), pt.value()));
+        break;
+      case misc::perfdata::counter:
+      case misc::perfdata::absolute:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
+                                         static_cast<uint64_t>(pt.value())));
+        break;
+      case misc::perfdata::derive:
+        for (auto& pt : p.second.pts())
+          query.emplace_back(fmt::format("{}:{}", pt.ctime(),
+                                         static_cast<int64_t>(pt.value())));
+        break;
+      default:
+        log_v2::rrd()->debug("data_source_type = {} is not managed",
+                             data_source_type);
+    }
+    if (!query.empty()) {
+      time_t start_time;
+      if (!p.second.pts().empty())
+        start_time = p.second.pts()[0].ctime() - 1;
+      else
+        start_time = std::time(nullptr);
+      log_v2::rrd()->trace("'{}' start date set to {}", path, start_time);
+      uint32_t interval{p.second.check_interval() ? p.second.check_interval()
+                                                  : 60};
+      try {
+        /* Here, the file is opened only if it exists. */
+        _backend.open(path);
+      } catch (const exceptions::open& b) {
+        /* Here, the file is created. */
+        _backend.open(path, p.second.rrd_retention(), start_time, interval,
+                      p.second.data_source_type(), true);
+      }
+      log_v2::rrd()->trace("{} points added to file '{}'", query.size(), path);
+      _backend.update(query);
+    } else
+      log_v2::rrd()->trace("Nothing to rebuild in '{}'", path);
+  }
 }
 
 /**

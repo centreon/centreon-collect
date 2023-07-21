@@ -54,6 +54,7 @@ class output : public io::stream {
   T _backend;
 
   void _rebuild_data(const RebuildMessage& rm);
+  void _rebuild_data_v1(const RebuildMessage& rm);
 
  public:
   output(std::string const& metrics_path,
