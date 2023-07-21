@@ -31,11 +31,6 @@ constexpr double eps = 0.000001;
 bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
 
 /**
- *  Destructor.
- */
-bool_not::~bool_not() {}
-
-/**
  *  @brief Notify of the change of value of the child.
  *
  *  This class does not cache values. This method is therefore useless
@@ -71,12 +66,12 @@ double bool_not::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean
  *
- *  @return Soft value.
+ * @return True or false.
  */
-double bool_not::value_soft() {
-  return std::abs(_value->value_soft()) < ::eps;
+bool bool_not::boolean_value() const {
+  return std::abs(_value->value_hard()) < ::eps;
 }
 
 /**

@@ -63,34 +63,28 @@ double bool_operation::value_hard() {
   return NAN;
 }
 
-/**
- *  Get the soft value.
- *
- *  @return Evaluation of the expression with soft values.
- */
-double bool_operation::value_soft() {
+bool bool_operation::boolean_value() const {
   switch (_type) {
     case addition:
-      return _left_soft + _right_soft;
+      return _left_hard + _right_hard;
     case substraction:
-      return _left_soft - _right_soft;
+      return _left_hard - _right_hard;
     case multiplication:
-      return _left_soft * _right_soft;
+      return _left_hard * _right_hard;
     case division:
-      if (std::fabs(_right_soft) < COMPARE_EPSILON)
-        return NAN;
-      return _left_soft / _right_soft;
+      if (std::fabs(_right_hard) < COMPARE_EPSILON)
+        return false;
+      return _left_hard / _right_hard;
     case modulo: {
-      long long left_val(static_cast<long long>(_left_soft));
-      long long right_val(static_cast<long long>(_right_soft));
+      long long left_val(static_cast<long long>(_left_hard));
+      long long right_val(static_cast<long long>(_right_hard));
       if (right_val == 0)
-        return NAN;
+        return false;
       return left_val % right_val;
     }
   }
-  return NAN;
+  return false;
 }
-
 /**
  *  Is the state known?
  *
@@ -99,8 +93,7 @@ double bool_operation::value_soft() {
 bool bool_operation::state_known() const {
   bool known = bool_binary_operator::state_known();
   if (known && (_type == division || _type == modulo) &&
-      (std::fabs(_right_hard) < COMPARE_EPSILON ||
-       std::fabs(_right_soft) < COMPARE_EPSILON))
+      std::fabs(_right_hard) < COMPARE_EPSILON)
     return false;
   else
     return known;

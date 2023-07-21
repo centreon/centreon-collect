@@ -560,6 +560,7 @@ static void broker_json_decode(lua_State* L, const json& it) {
       broker_json_decode_object(L, it);
       break;
     case json::value_t::null:
+      lua_pushnil(L);
       break;
     default:
       luaL_error(L, "Unrecognized type in json content");

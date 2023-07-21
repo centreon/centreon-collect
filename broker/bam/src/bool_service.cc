@@ -32,7 +32,6 @@ bool_service::bool_service(uint32_t host_id, uint32_t service_id)
     : _host_id(host_id),
       _service_id(service_id),
       _state_hard(0),
-      _state_soft(0),
       _state_known(false),
       _in_downtime(false) {}
 
@@ -84,9 +83,31 @@ void bool_service::service_update(
   if (status && status->host_id == _host_id &&
       status->service_id == _service_id) {
     _state_hard = status->last_hard_state;
-    _state_soft = status->current_state;
     _state_known = true;
     _in_downtime = (status->downtime_depth > 0);
+    propagate_update(visitor);
+  }
+}
+
+/**
+ *  Notify of service update.
+ *
+ *  @param[in]  status   Service status.
+ *  @param[out] visitor  Object that will receive events.
+ */
+void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
+                                  io::stream* visitor) {
+  auto& o = svc->obj();
+  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+                      "bool_service: service ({},{}) updated with "
+                      "neb::pb_service hard state: {}, downtime: {}",
+                      o.host_id(), o.service_id(), o.last_hard_state(),
+                      o.scheduled_downtime_depth());
+  if (o.host_id() == _host_id && o.service_id() == _service_id) {
+    _state_hard = o.last_hard_state();
+    _state_known = true;
+    _in_downtime = o.scheduled_downtime_depth() > 0;
+    log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
     propagate_update(visitor);
   }
 }
@@ -108,9 +129,9 @@ void bool_service::service_update(
                       o.scheduled_downtime_depth());
   if (o.host_id() == _host_id && o.service_id() == _service_id) {
     _state_hard = o.last_hard_state();
-    _state_soft = o.state();
     _state_known = true;
     _in_downtime = o.scheduled_downtime_depth() > 0;
+    log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
     propagate_update(visitor);
   }
 }
@@ -125,12 +146,12 @@ double bool_service::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the value as a boolean
  *
- *  @preturn Soft value.
+ * @return True or false.
  */
-double bool_service::value_soft() {
-  return _state_soft;
+bool bool_service::boolean_value() const {
+  return _state_hard;
 }
 
 /**

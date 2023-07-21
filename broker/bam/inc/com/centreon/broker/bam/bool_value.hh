@@ -40,7 +40,7 @@ class bool_value : public computable {
   bool_value(const bool_value&) = delete;
   bool_value& operator=(const bool_value&) = delete;
   virtual double value_hard() = 0;
-  virtual double value_soft() = 0;
+  virtual bool boolean_value() const = 0;
   virtual bool state_known() const = 0;
   virtual bool in_downtime() const;
 };
