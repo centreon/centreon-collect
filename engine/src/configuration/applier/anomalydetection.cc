@@ -119,7 +119,7 @@ void applier::anomalydetection::add_object(
                                       obj.service_description()}]
       ->set_service_id(obj.service_id());
   ad->set_acknowledgement_timeout(obj.acknowledgement_timeout() *
-                                  config->interval_length());
+                                  pb_config.interval_length());
   ad->set_last_acknowledgement(0);
 
   // Add contacts.
