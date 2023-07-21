@@ -34,14 +34,16 @@ namespace bam {
  *  provides an effective way to compute whole part of the BA/KPI tree.
  */
 class computable {
+  std::list<std::weak_ptr<computable>> _parents;
+
  public:
-  computable();
-  computable(computable const& right);
-  virtual ~computable();
-  computable& operator=(computable const& right);
-  void add_parent(std::shared_ptr<computable> const& parent);
-  void propagate_update(io::stream* visitor = NULL);
-  void remove_parent(std::shared_ptr<computable> const& parent);
+  computable() = default;
+  computable(const computable&) = delete;
+  virtual ~computable() noexcept = default;
+  computable& operator=(const computable&) = delete;
+  void add_parent(const std::shared_ptr<computable>& parent);
+  void propagate_update(io::stream* visitor = nullptr);
+  void remove_parent(const std::shared_ptr<computable>& parent);
 
   /**
    *  @brief Notify node of the change of a child node.
@@ -56,12 +58,7 @@ class computable {
    *  @return True if the parent was modified.
    */
   virtual bool child_has_update(computable* child,
-                                io::stream* visitor = NULL) = 0;
-
- private:
-  void _internal_copy(computable const& right);
-
-  std::list<std::weak_ptr<computable>> _parents;
+                                io::stream* visitor = nullptr) = 0;
 };
 }  // namespace bam
 

@@ -17,40 +17,9 @@
 */
 
 #include "com/centreon/broker/bam/computable.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
-
-/**
- *  Default constructor.
- */
-computable::computable() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-computable::computable(computable const& right) {
-  _internal_copy(right);
-}
-
-/**
- *  Destructor.
- */
-computable::~computable() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-computable& computable::operator=(computable const& right) {
-  if (this != &right)
-    _internal_copy(right);
-  return *this;
-}
 
 /**
  *  Add a new parent.
@@ -70,6 +39,7 @@ void computable::add_parent(std::shared_ptr<computable> const& parent) {
  *  @param[out] visitor  Object that will receive events.
  */
 void computable::propagate_update(io::stream* visitor) {
+  log_v2::bam()->trace("{}::propagate_update: ", typeid(*this).name());
   std::vector<bool> filter(_parents.size());
   uint32_t i = 0;
   for (std::list<std::weak_ptr<computable> >::iterator it = _parents.begin(),
@@ -105,15 +75,4 @@ void computable::remove_parent(std::shared_ptr<computable> const& parent) {
       _parents.erase(it);
       break;
     }
-  return;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] right Object to copy.
- */
-void computable::_internal_copy(computable const& right) {
-  _parents = right._parents;
-  return;
 }

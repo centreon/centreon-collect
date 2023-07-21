@@ -40,15 +40,15 @@ double bool_call::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean.
  *
- *  @return Evaluation of the expression with soft values.
+ * @return True or false.
  */
-double bool_call::value_soft() {
+bool bool_call::boolean_value() const {
   if (!_expression)
-    return 0;
+    return false;
   else
-    return _expression->value_hard();
+    return _expression->boolean_value();
 }
 
 /**

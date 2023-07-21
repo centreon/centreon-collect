@@ -21,14 +21,6 @@
 using namespace com::centreon::broker::bam;
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-ba_svc_mapping::ba_svc_mapping(const ba_svc_mapping& other)
-    : _mapping{other._mapping} {}
-
-/**
  *  Assignment operator.
  *
  *  @param[in] other  Object to copy.

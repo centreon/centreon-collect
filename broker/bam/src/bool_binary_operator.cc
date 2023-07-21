@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2016, 2021 Centreon
+** Copyright 2014-2016, 2021, 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -24,17 +24,6 @@ using namespace com::centreon::broker::bam;
 static constexpr double eps = 0.000001;
 
 /**
- *  Default constructor.
- */
-bool_binary_operator::bool_binary_operator()
-    : _left_hard(0.0),
-      _left_soft(0.0),
-      _right_hard(0.0),
-      _right_soft(0.0),
-      _state_known(false),
-      _in_downtime(false) {}
-
-/**
  *  Notification of child update.
  *
  *  @param[in] child     Child that got updated.
@@ -50,54 +39,72 @@ bool bool_binary_operator::child_has_update(computable* child,
   // Check operation members values.
   if (child) {
     if (child == _left.get()) {
-      double value_hard(_left->value_hard());
-      double value_soft(_left->value_soft());
-      if (std::abs(_left_hard - value_hard) > ::eps ||
-          std::abs(_left_soft - value_soft) > ::eps) {
-        SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                            "{}::child_has_update old_soft_left={} "
-                            "old_hard_left={}, new soft_left={}, new "
-                            "hard_left={}, soft_right={}, hard_right={}",
-                            typeid(*this).name(), _left_soft, _left_hard,
-                            value_soft, value_hard, _right_soft, _right_hard);
-        _left_hard = value_hard;
-        _left_soft = value_soft;
+      if (_left->state_known() != _state_known ||
+          std::abs(_left_hard - _left->value_hard()) > ::eps) {
+        log_v2::bam()->trace(
+            "{}::child_has_update: on left: old state known: {} - new state "
+            "known: {} - old value: {} - new value: {}",
+            typeid(*this).name(), _state_known, _left->state_known(),
+            _left_hard, _left->value_hard());
+        _update_state();
         retval = true;
-      }
+      } else
+        log_v2::bam()->trace(
+            "{}::child_has_update: bool_binary_operator: child_has_update: no "
+            "on left - state known: {} - value: {}",
+            typeid(*this).name(), _state_known, _left_hard);
     } else if (child == _right.get()) {
-      double value_hard(_right->value_hard());
-      double value_soft(_right->value_soft());
-      if (std::abs(_right_hard - value_hard) > ::eps ||
-          std::abs(_right_soft - value_soft) > ::eps) {
-        SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                            "{}::child_has_update old_soft_right={} "
-                            "old_hard_right={}, new soft_right={}, new "
-                            "hard_right={}, soft_left={}, hard_left={}",
-                            typeid(*this).name(), _right_soft, _right_hard,
-                            value_soft, value_hard, _left_soft, _left_hard);
-        _right_hard = value_hard;
-        _right_soft = value_soft;
+      if (_right->state_known() != _state_known ||
+          std::abs(_right_hard - _right->value_hard()) > ::eps) {
+        log_v2::bam()->trace(
+            "{}::child_has_update on right: old state known: {} - new state "
+            "known: {} - old value: {} - new value: {}",
+            typeid(*this).name(), _state_known, _right->state_known(),
+            _right_hard, _right->value_hard());
+        _update_state();
         retval = true;
-      }
+      } else
+        log_v2::bam()->trace(
+            "{}::child_has_update: bool_binary_operator: child_has_update: no "
+            "on right",
+            typeid(*this).name());
     }
-    return retval;
-  }
-
-  // Check known flag.
-  bool known = state_known();
-  if (_state_known != known) {
-    _state_known = known;
-    retval = true;
-  }
-
-  // Check downtime flag.
-  bool in_dt = in_downtime();
-  if (_in_downtime != in_dt) {
-    _in_downtime = in_dt;
-    retval = true;
   }
 
   return retval;
+}
+
+/**
+ * @brief Check that the children are known and in that case propagate their
+ * values to _left_hard and _right_hard. Otherwise these attributes have no
+ * meaning.
+ *
+ * After a call to this internal function, the _state_known attribute has the
+ * good value.
+ */
+void bool_binary_operator::_update_state() {
+  if (_left && _right) {
+    _state_known = _left->state_known() && _right->state_known();
+    log_v2::bam()->trace(
+        "{}::_update_state: bool binary operator: state updated? {}",
+        typeid(*this).name(), _state_known ? "yes" : "no");
+    if (_state_known) {
+      _left_hard = _left->value_hard();
+      _right_hard = _right->value_hard();
+      _in_downtime = _left->in_downtime() || _right->in_downtime();
+      log_v2::bam()->trace(
+          "{}::_update_state: bool binary operator: new left value: {} - new "
+          "right value: {} "
+          "- downtime: {}",
+          typeid(*this).name(), _left_hard, _right_hard,
+          _in_downtime ? "yes" : "no");
+    }
+  } else {
+    _state_known = false;
+    log_v2::bam()->trace(
+        "{}::_update_state: bool binary operator: some children are empty",
+        typeid(*this).name());
+  }
 }
 
 /**
@@ -106,11 +113,9 @@ bool bool_binary_operator::child_has_update(computable* child,
  *  @param[in] left Left member of the boolean operator.
  */
 void bool_binary_operator::set_left(std::shared_ptr<bool_value> const& left) {
+  log_v2::bam()->trace("{}::set_left", typeid(*this).name());
   _left = left;
-  _left_hard = _left->value_hard();
-  _left_soft = _left->value_soft();
-  _state_known = state_known();
-  _in_downtime = in_downtime();
+  _update_state();
 }
 
 /**
@@ -119,11 +124,9 @@ void bool_binary_operator::set_left(std::shared_ptr<bool_value> const& left) {
  *  @param[in] right Right member of the boolean operator.
  */
 void bool_binary_operator::set_right(std::shared_ptr<bool_value> const& right) {
+  log_v2::bam()->trace("{}::set_right", typeid(*this).name());
   _right = right;
-  _right_hard = _right->value_hard();
-  _right_soft = _right->value_soft();
-  _state_known = state_known();
-  _in_downtime = in_downtime();
+  _update_state();
 }
 
 /**
@@ -132,10 +135,7 @@ void bool_binary_operator::set_right(std::shared_ptr<bool_value> const& right) {
  *  @return  True if the state is known.
  */
 bool bool_binary_operator::state_known() const {
-  bool retval =
-      _left && _right && _left->state_known() && _right->state_known();
-  log_v2::bam()->debug("BAM: bool binary operator: state known {}", retval);
-  return retval;
+  return _state_known;
 }
 
 /**
@@ -144,5 +144,5 @@ bool bool_binary_operator::state_known() const {
  *  @return  True if this expression is in downtime.
  */
 bool bool_binary_operator::in_downtime() const {
-  return (_left && _left->in_downtime()) || (_right && _right->in_downtime());
+  return _in_downtime;
 }

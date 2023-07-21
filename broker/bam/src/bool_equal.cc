@@ -29,18 +29,24 @@ using namespace com::centreon::broker::bam;
  *  @return Evaluation of the expression with hard values.
  */
 double bool_equal::value_hard() {
-  bool retval = std::fabs(_left_hard - _right_hard) < COMPARE_EPSILON;
-  log_v2::bam()->trace("BAM: bool_equal: {}", retval);
+  bool retval = false;
+  if (state_known())
+    retval = std::fabs(_left_hard - _right_hard) < COMPARE_EPSILON;
+
+  log_v2::bam()->trace("BAM: bool_equal: value as double: {}", retval);
   return retval;
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current as a boolean
  *
- *  @return Evaluation of the expression with soft values.
+ * @return True or false.
  */
-double bool_equal::value_soft() {
-  bool retval = std::fabs(_left_soft - _right_soft) < COMPARE_EPSILON;
-  log_v2::bam()->trace("BAM: soft bool_equal: {}", retval);
+bool bool_equal::boolean_value() const {
+  bool retval = false;
+  if (state_known())
+    retval = std::fabs(_left_hard - _right_hard) < COMPARE_EPSILON;
+
+  log_v2::bam()->trace("BAM: bool_equal: value: {}", retval);
   return retval;
 }
