@@ -283,7 +283,7 @@ void state_helper::_init() {
   obj->set_service_freshness_check_interval(60);
   obj->mutable_service_inter_check_delay_method()->set_type(
       InterCheckDelay_IcdType_smart);
-  obj->set_service_interleave_factor_method(DateType::ilf_smart);
+  obj->set_service_interleave_factor_method(InterleaveFactor::ilf_smart);
   obj->set_sleep_time(0.5);
   obj->set_soft_state_dependencies(false);
   obj->set_state_retention_file(DEFAULT_RETENTION_FILE);

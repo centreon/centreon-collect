@@ -161,7 +161,30 @@ void loop::_dispatching() {
     time(&current_time);
 
     configuration::applier::state::instance().lock();
-
+    time_t time_change_threshold;
+    uint32_t max_parallel_service_checks;
+    bool execute_service_checks;
+    bool execute_host_checks;
+    uint32_t interval_length;
+    int32_t command_check_interval;
+    double sleep_time;
+    if (legacy_conf) {
+      time_change_threshold = config->time_change_threshold();
+      max_parallel_service_checks = config->max_parallel_service_checks();
+      execute_service_checks = config->execute_service_checks();
+      execute_host_checks = config->execute_host_checks();
+      interval_length = config->interval_length();
+      sleep_time = config->sleep_time();
+      command_check_interval = config->command_check_interval();
+    } else {
+      time_change_threshold = pb_config.time_change_threshold();
+      max_parallel_service_checks = pb_config.max_parallel_service_checks();
+      execute_service_checks = pb_config.execute_service_checks();
+      execute_host_checks = pb_config.execute_host_checks();
+      interval_length = pb_config.interval_length();
+      sleep_time = pb_config.sleep_time();
+      command_check_interval = pb_config.command_check_interval();
+    }
     // Hey, wait a second...  we traveled back in time!
     if (current_time < _last_time)
       compensate_for_system_time_change(
@@ -169,10 +192,7 @@ void loop::_dispatching() {
           static_cast<unsigned long>(current_time));
     // Else if the time advanced over the specified threshold,
     // try and compensate...
-    else if ((current_time - _last_time) >=
-             static_cast<time_t>(legacy_conf
-                                     ? config->time_change_threshold()
-                                     : pb_config.time_change_threshold()))
+    else if ((current_time - _last_time) >= time_change_threshold)
       compensate_for_system_time_change(
           static_cast<unsigned long>(_last_time),
           static_cast<unsigned long>(current_time));
@@ -205,9 +225,6 @@ void loop::_dispatching() {
           << "No low priority events are scheduled...";
       log_v2::events()->debug("No low priority events are scheduled...");
     }
-    uint32_t max_parallel_service_checks =
-        legacy_conf ? config->max_parallel_service_checks()
-                    : pb_config.max_parallel_service_checks();
     engine_logger(dbg_events, more)
         << "Current/Max Service Checks: " << currently_running_service_checks
         << '/' << max_parallel_service_checks;
@@ -291,7 +308,7 @@ void loop::_dispatching() {
         }
 
         // Don't run a service check if active checks are disabled.
-        if (!config->execute_service_checks()) {
+        if (!execute_service_checks) {
           engine_logger(dbg_events | dbg_checks, more)
               << "We're not executing service checks right now, "
               << "so we'll skip this event.";
@@ -327,13 +344,11 @@ void loop::_dispatching() {
                 temp_service->get_current_state() != service::state_ok)
               temp_service->set_next_check(
                   (time_t)(temp_service->get_next_check() +
-                           temp_service->retry_interval() *
-                               config->interval_length()));
+                           temp_service->retry_interval() * interval_length));
             else
               temp_service->set_next_check(
                   (time_t)(temp_service->get_next_check() +
-                           (temp_service->check_interval() *
-                            config->interval_length())));
+                           temp_service->check_interval() * interval_length));
           }
           temp_event->run_time = temp_service->get_next_check();
           reschedule_event(std::move(temp_event), events::loop::low);
@@ -351,7 +366,7 @@ void loop::_dispatching() {
             static_cast<host*>(_event_list_low.front()->event_data));
 
         // Don't run a host check if active checks are disabled.
-        if (!config->execute_host_checks()) {
+        if (!execute_host_checks) {
           engine_logger(dbg_events | dbg_checks, more)
               << "We're not executing host checks right now, "
               << "so we'll skip this event.";
@@ -378,13 +393,13 @@ void loop::_dispatching() {
           // Reschedule.
           if ((notifier::soft == temp_host->get_state_type()) &&
               (temp_host->get_current_state() != host::state_up))
-            temp_host->set_next_check((time_t)(temp_host->get_next_check() +
-                                               temp_host->retry_interval() *
-                                                   config->interval_length()));
+            temp_host->set_next_check(
+                (time_t)(temp_host->get_next_check() +
+                         temp_host->retry_interval() * interval_length));
           else
-            temp_host->set_next_check((time_t)(temp_host->get_next_check() +
-                                               temp_host->check_interval() *
-                                                   config->interval_length()));
+            temp_host->set_next_check(
+                (time_t)(temp_host->get_next_check() +
+                         temp_host->check_interval() * interval_length));
           temp_event->run_time = temp_host->get_next_check();
           reschedule_event(std::move(temp_event), events::loop::low);
           temp_host->update_status();
@@ -415,7 +430,7 @@ void loop::_dispatching() {
             << "Did not execute scheduled event. Idling for a bit...";
         log_v2::events()->debug(
             "Did not execute scheduled event. Idling for a bit...");
-        uint64_t d = static_cast<uint64_t>(config->sleep_time() * 1000000000);
+        uint64_t d = static_cast<uint64_t>(sleep_time * 1000000000);
         std::this_thread::sleep_for(std::chrono::nanoseconds(d));
       }
     }
@@ -431,7 +446,7 @@ void loop::_dispatching() {
 
       // Check for external commands if we're supposed to check as
       // often as possible.
-      if (config->command_check_interval() == -1) {
+      if (command_check_interval == -1) {
         // Send data to event broker.
         broker_external_command(NEBTYPE_EXTERNALCOMMAND_CHECK, CMD_NONE,
                                 nullptr, nullptr);
@@ -439,19 +454,18 @@ void loop::_dispatching() {
 
       auto t1 = std::chrono::system_clock::now();
       auto delay = std::chrono::nanoseconds(
-          static_cast<uint64_t>(1000000000 * config->sleep_time()));
+          static_cast<uint64_t>(1000000000 * sleep_time));
       command_manager::instance().execute();
 
       // Set time to sleep so we don't hog the CPU...
-      timespec sleep_time;
-      sleep_time.tv_sec = (time_t)config->sleep_time();
-      sleep_time.tv_nsec =
-          (long)((config->sleep_time() - (double)sleep_time.tv_sec) *
-                 1000000000ull);
+      timespec stime;
+      stime.tv_sec = (time_t)sleep_time;
+      stime.tv_nsec =
+          (long)((sleep_time - (double)stime.tv_sec) * 1000000000ull);
 
       // Populate fake "sleep" event.
       _sleep_event.run_time = current_time;
-      _sleep_event.event_data = (void*)&sleep_time;
+      _sleep_event.event_data = (void*)&stime;
 
       // Send event data to broker.
       broker_timed_event(NEBTYPE_TIMEDEVENT_SLEEP, NEBFLAG_NONE, NEBATTR_NONE,
