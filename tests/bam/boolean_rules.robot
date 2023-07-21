@@ -190,8 +190,7 @@ BABOOAND
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]     Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service used and reload cbd. So the rule is something like "False OR True" and then it's changed into "False OR False". And to pass from True to False, we change the service.
