@@ -205,6 +205,7 @@ void state_helper::_init() {
   obj->set_additional_freshness_latency(15);
   obj->set_admin_email("");
   obj->set_admin_pager("");
+  obj->set_allow_empty_hostgroup_assignment(false);
   obj->set_auto_reschedule_checks(false);
   obj->set_auto_rescheduling_interval(30);
   obj->set_auto_rescheduling_window(180);
@@ -227,6 +228,8 @@ void state_helper::_init() {
   obj->set_enable_flap_detection(false);
   obj->set_enable_macros_filter(false);
   obj->set_enable_notifications(true);
+  obj->set_enable_predictive_host_dependency_checks(true);
+  obj->set_enable_predictive_service_dependency_checks(true);
   obj->set_event_broker_options(std::numeric_limits<unsigned long>::max());
   obj->set_event_handler_timeout(30);
   obj->set_execute_host_checks(true);
@@ -269,11 +272,18 @@ void state_helper::_init() {
   obj->set_poller_name("unknown");
   obj->set_rpc_listen_address("localhost");
   obj->set_process_performance_data(false);
+  obj->set_retained_contact_host_attribute_mask(0L);
+  obj->set_retained_contact_service_attribute_mask(0L);
   obj->set_retained_host_attribute_mask(0L);
+  obj->set_retained_process_host_attribute_mask(0L);
   obj->set_retain_state_information(true);
   obj->set_retention_scheduling_horizon(900);
   obj->set_retention_update_interval(60);
   obj->set_service_check_timeout(60);
+  obj->set_service_freshness_check_interval(60);
+  obj->mutable_service_inter_check_delay_method()->set_type(
+      InterCheckDelay_IcdType_smart);
+  obj->set_service_interleave_factor_method(DateType::ilf_smart);
   obj->set_sleep_time(0.5);
   obj->set_soft_state_dependencies(false);
   obj->set_state_retention_file(DEFAULT_RETENTION_FILE);
