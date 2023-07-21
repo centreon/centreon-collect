@@ -133,7 +133,7 @@ char const* my_ctime(time_t const* t) {
 /* given a "raw" command, return the "expanded" or "whole" command line */
 int get_raw_command_line_r(nagios_macros* mac,
                            commands::command* cmd_ptr,
-                           std::string const& cmd,
+                           std::string_view cmd,
                            std::string& full_command,
                            int macro_options) {
   char temp_arg[MAX_COMMAND_BUFFER] = "";
@@ -173,7 +173,7 @@ int get_raw_command_line_r(nagios_macros* mac,
     /* get each command argument */
     for (x = 0; x < MAX_COMMAND_ARGUMENTS; x++) {
       /* we reached the end of the arguments... */
-      if (cmd[arg_index] == '\x0')
+      if (arg_index == cmd.size())
         break;
 
       /* get the next argument */
@@ -186,8 +186,8 @@ int get_raw_command_line_r(nagios_macros* mac,
         }
 
         /* end of argument */
-        if ((cmd[arg_index] == '!' && escaped == false) ||
-            cmd[arg_index] == '\x0')
+        if (arg_index == cmd.size() ||
+            (cmd[arg_index] == '!' && escaped == false))
           break;
 
         /* normal of escaped char */

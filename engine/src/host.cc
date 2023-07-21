@@ -1223,6 +1223,15 @@ int host::handle_async_check_result_3x(
 
   /* get the current time */
   time_t current_time = std::time(nullptr);
+  bool accept_passive_host_checks;
+  uint32_t cached_host_check_horizon;
+  if (legacy_conf) {
+    accept_passive_host_checks = config->accept_passive_host_checks();
+    cached_host_check_horizon = config->cached_host_check_horizon();
+  } else {
+    accept_passive_host_checks = pb_config.accept_passive_host_checks();
+    cached_host_check_horizon = pb_config.cached_host_check_horizon();
+  }
 
   double execution_time =
       static_cast<double>(queued_check_result.get_finish_time().tv_sec -
@@ -1289,7 +1298,7 @@ int host::handle_async_check_result_3x(
    * skip this host check results if its passive and we aren't accepting passive
    * check results */
   if (queued_check_result.get_check_type() == check_passive) {
-    if (!config->accept_passive_host_checks()) {
+    if (!accept_passive_host_checks) {
       engine_logger(dbg_checks, basic)
           << "Discarding passive host check result because passive host "
              "checks are disabled globally.";
@@ -1536,8 +1545,7 @@ int host::handle_async_check_result_3x(
 
   /* process the host check result */
   process_check_result_3x(hst_res, old_plugin_output, CHECK_OPTION_NONE,
-                          reschedule_check, true,
-                          config->cached_host_check_horizon());
+                          reschedule_check, true, cached_host_check_horizon);
 
   engine_logger(dbg_checks, more)
       << "** Async check result for host '" << name()
@@ -1566,6 +1574,13 @@ int host::run_scheduled_check(int check_options, double latency) {
   time_t preferred_time = 0L;
   time_t next_valid_time = 0L;
   bool time_is_valid = true;
+
+  uint32_t interval_length;
+  if (legacy_conf) {
+    interval_length = config->interval_length();
+  } else {
+    interval_length = pb_config.interval_length();
+  }
 
   engine_logger(dbg_functions, basic) << "run_scheduled_host_check_3x()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "run_scheduled_host_check_3x()");
@@ -1603,8 +1618,7 @@ int host::run_scheduled_check(int check_options, double latency) {
             current_time +
             static_cast<time_t>(check_interval() <= 0
                                     ? 300
-                                    : check_interval() *
-                                          config->interval_length());
+                                    : check_interval() * interval_length);
 
       // Make sure we rescheduled the next host check at a valid time.
       {
@@ -1702,6 +1716,13 @@ int host::run_async_check(int check_options,
   // Check if the host is viable now.
   if (!verify_check_viability(check_options, time_is_valid, preferred_time))
     return ERROR;
+
+  int32_t host_check_timeout;
+  if (legacy_conf) {
+    host_check_timeout = config->host_check_timeout();
+  } else {
+    host_check_timeout = pb_config.host_check_timeout();
+  }
 
   // If this check is a rescheduled check, propagate the rescheduled check
   // flag to the host. This solves the problem when a new host check is bound
@@ -2452,7 +2473,11 @@ int host::handle_state() {
 /* updates host performance data */
 void host::update_performance_data() {
   /* should we be processing performance data for anything? */
-  if (!config->process_performance_data())
+
+  bool process_performance_data = legacy_conf
+                                      ? config->process_performance_data()
+                                      : pb_config.process_performance_data();
+  if (!process_performance_data)
     return;
 
   /* should we process performance data for this host? */
@@ -2490,14 +2515,18 @@ bool host::verify_check_viability(int check_options,
   engine_logger(dbg_functions, basic) << "check_host_check_viability_3x()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "check_host_check_viability_3x()");
 
+  uint32_t interval_length;
+  if (legacy_conf) {
+    interval_length = config->interval_length();
+  } else {
+    interval_length = pb_config.interval_length();
+  }
   /* get the check interval to use if we need to reschedule the check */
   if (this->get_state_type() == soft &&
       this->get_current_state() != host::state_up)
-    check_interval =
-        static_cast<int>(this->retry_interval() * config->interval_length());
+    check_interval = static_cast<int>(this->retry_interval() * interval_length);
   else
-    check_interval =
-        static_cast<int>(this->check_interval() * config->interval_length());
+    check_interval = static_cast<int>(this->check_interval() * interval_length);
 
   /* make sure check interval is positive - otherwise use 5 minutes out for next
    * check */
@@ -2573,6 +2602,16 @@ int host::notify_contact(nagios_macros* mac,
   log_v2::notifications()->debug("** Notifying contact '{}'",
                                  cntct->get_name());
 
+  bool log_notifications;
+  uint32_t notification_timeout;
+  if (legacy_conf) {
+    log_notifications = config->log_notifications();
+    notification_timeout = config->notification_timeout();
+  } else {
+    log_notifications = pb_config.log_notifications();
+    notification_timeout = pb_config.notification_timeout();
+  }
+
   /* get start time */
   gettimeofday(&start_time, nullptr);
 
@@ -2630,7 +2669,7 @@ int host::notify_contact(nagios_macros* mac,
                                    processed_command);
 
     /* log the notification to program log file */
-    if (config->log_notifications()) {
+    if (log_notifications) {
       char const* host_state_str("UP");
       if ((unsigned int)_current_state < tab_host_states.size())
         // sizeof(tab_host_state_str) / sizeof(*tab_host_state_str))
@@ -2668,8 +2707,8 @@ int host::notify_contact(nagios_macros* mac,
     /* run the notification command */
     try {
       std::string out;
-      my_system_r(mac, processed_command, config->notification_timeout(),
-                  &early_timeout, &exectime, out, 0);
+      my_system_r(mac, processed_command, notification_timeout, &early_timeout,
+                  &exectime, out, 0);
     } catch (std::exception const& e) {
       engine_logger(log_runtime_error, basic)
           << "Error: can't execute host notification '" << cntct->get_name()
@@ -2684,12 +2723,11 @@ int host::notify_contact(nagios_macros* mac,
       engine_logger(log_host_notification | log_runtime_warning, basic)
           << "Warning: Contact '" << cntct->get_name()
           << "' host notification command '" << processed_command
-          << "' timed out after " << config->notification_timeout()
-          << " seconds";
+          << "' timed out after " << notification_timeout << " seconds";
       log_v2::notifications()->info(
           "Warning: Contact '{}' host notification command '{}' timed out "
           "after {} seconds",
-          cntct->get_name(), processed_command, config->notification_timeout());
+          cntct->get_name(), processed_command, notification_timeout);
     }
 
     /* get end time */
@@ -2865,6 +2903,19 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
   int tminutes = 0;
   int tseconds = 0;
 
+  uint32_t interval_length;
+  int32_t additional_freshness_latency;
+  uint32_t max_host_check_spread;
+  if (legacy_conf) {
+    interval_length = config->interval_length();
+    additional_freshness_latency = config->additional_freshness_latency();
+    max_host_check_spread = config->max_host_check_spread();
+  } else {
+    interval_length = pb_config.interval_length();
+    additional_freshness_latency = pb_config.additional_freshness_latency();
+    max_host_check_spread = pb_config.max_host_check_spread();
+  }
+
   engine_logger(dbg_checks, most)
       << "Checking freshness of host '" << name() << "'...";
   SPDLOG_LOGGER_DEBUG(log_v2::checks(), "Checking freshness of host '{}'...",
@@ -2878,9 +2929,9 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
       interval = check_interval();
     else
       interval = retry_interval();
-    freshness_threshold = static_cast<int>(
-        (interval * config->interval_length()) + get_latency() +
-        config->additional_freshness_latency());
+    freshness_threshold =
+        static_cast<int>(interval * interval_length + get_latency() +
+                         additional_freshness_latency);
   } else
     freshness_threshold = get_freshness_threshold();
 
@@ -2904,9 +2955,8 @@ bool host::is_result_fresh(time_t current_time, int log_this) {
    * suggested by Altinity */
   else if (active_checks_enabled() && event_start > get_last_check() &&
            get_freshness_threshold() == 0)
-    expiration_time =
-        (time_t)(event_start + freshness_threshold +
-                 (config->max_host_check_spread() * config->interval_length()));
+    expiration_time = (time_t)(event_start + freshness_threshold +
+                               max_host_check_spread * interval_length);
   else
     expiration_time = (time_t)(get_last_check() + freshness_threshold);
 
@@ -3078,8 +3128,23 @@ int host::process_check_result_3x(enum host::host_state new_state,
   std::list<host*> check_hostlist;
   host::host_state parent_state = host::state_up;
   time_t current_time = 0L;
-  time_t next_check{get_last_check() +
-                    check_interval() * config->interval_length()};
+
+  uint32_t interval_length;
+  bool log_passive_checks;
+  bool enable_predictive_host_dependency_checks;
+  if (legacy_conf) {
+    interval_length = config->interval_length();
+    log_passive_checks = config->log_passive_checks();
+    enable_predictive_host_dependency_checks =
+        config->enable_predictive_host_dependency_checks();
+  } else {
+    interval_length = pb_config.interval_length();
+    log_passive_checks = pb_config.log_passive_checks();
+    enable_predictive_host_dependency_checks =
+        pb_config.enable_predictive_host_dependency_checks();
+  }
+
+  time_t next_check{get_last_check() + check_interval() * interval_length};
   time_t preferred_time = 0L;
   time_t next_valid_time = 0L;
   int run_async_check = true;
@@ -3111,7 +3176,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
   /* log passive checks - we need to do this here, as some my bypass external
    * commands by getting dropped in checkresults dir */
   if (get_check_type() == check_passive) {
-    if (config->log_passive_checks())
+    if (log_passive_checks)
       engine_logger(log_passive_check, basic)
           << "PASSIVE HOST CHECK: " << name() << ";" << new_state << ";"
           << get_plugin_output();
@@ -3221,8 +3286,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
         /* schedule a re-check of the host at the retry interval because we
          * can't determine its final state yet... */
         if (get_state_type() == soft)
-          next_check =
-              get_last_check() + retry_interval() * config->interval_length();
+          next_check = get_last_check() + retry_interval() * interval_length;
       }
     }
   }
@@ -3377,8 +3441,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
 
         /* schedule a re-check of the host at the retry interval because we
          * can't determine its final state yet... */
-        next_check =
-            get_last_check() + retry_interval() * config->interval_length();
+        next_check = get_last_check() + retry_interval() * interval_length;
 
         /* propagate checks to immediate parents if they are UP */
         /* we do this because a parent host (or grandparent) may have gone down
@@ -3430,7 +3493,7 @@ int host::process_check_result_3x(enum host::host_state new_state,
         }
 
         /* check dependencies on second to last host check */
-        if (config->enable_predictive_host_dependency_checks() &&
+        if (enable_predictive_host_dependency_checks &&
             get_current_attempt() == max_check_attempts() - 1) {
           /* propagate checks to hosts that THIS ONE depends on for
            * notifications AND execution */
@@ -3696,6 +3759,13 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
   SPDLOG_LOGGER_TRACE(log_v2::functions(),
                       "host::authorized_by_dependencies()");
 
+  bool soft_state_dependencies;
+  if (legacy_conf) {
+    soft_state_dependencies = config->soft_state_dependencies();
+  } else {
+    soft_state_dependencies = pb_config.soft_state_dependencies();
+  }
+
   auto p(hostdependency::hostdependencies.equal_range(name()));
   for (hostdependency_mmap::const_iterator it{p.first}, end{p.second};
        it != end; ++it) {
@@ -3720,7 +3790,7 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
      * state) */
     host_state state =
         (dep->master_host_ptr->get_state_type() == notifier::soft &&
-         !config->soft_state_dependencies())
+         !soft_state_dependencies)
             ? dep->master_host_ptr->get_last_hard_state()
             : dep->master_host_ptr->get_current_state();
 
@@ -3746,6 +3816,13 @@ bool host::authorized_by_dependencies(dependency::types dependency_type) const {
 void host::check_result_freshness() {
   time_t current_time = 0L;
 
+  bool check_host_freshness;
+  if (legacy_conf) {
+    check_host_freshness = config->check_host_freshness();
+  } else {
+    check_host_freshness = pb_config.check_host_freshness();
+  }
+
   engine_logger(dbg_functions, basic) << "check_host_result_freshness()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "check_host_result_freshness()");
   engine_logger(dbg_checks, most)
@@ -3755,7 +3832,7 @@ void host::check_result_freshness() {
       "Attempting to check the freshness of host check results...");
 
   /* bail out if we're not supposed to be checking freshness */
-  if (!config->check_host_freshness()) {
+  if (!check_host_freshness) {
     engine_logger(dbg_checks, most) << "Host freshness checking is disabled.";
     SPDLOG_LOGGER_DEBUG(log_v2::checks(),
                         "Host freshness checking is disabled.");
@@ -3856,6 +3933,16 @@ void host::check_for_orphaned() {
   engine_logger(dbg_functions, basic) << "check_for_orphaned_hosts()";
   SPDLOG_LOGGER_TRACE(log_v2::functions(), "check_for_orphaned_hosts()");
 
+  int32_t host_check_timeout;
+  uint32_t check_reaper_interval;
+  if (legacy_conf) {
+    host_check_timeout = config->host_check_timeout();
+    check_reaper_interval = config->check_reaper_interval();
+  } else {
+    host_check_timeout = pb_config.host_check_timeout();
+    check_reaper_interval = pb_config.check_reaper_interval();
+  }
+
   /* get the current time */
   time(&current_time);
 
@@ -3875,8 +3962,7 @@ void host::check_for_orphaned() {
      * 10 minutes slack time) */
     expected_time =
         (time_t)(it->second->get_next_check() + it->second->get_latency() +
-                 config->host_check_timeout() +
-                 config->check_reaper_interval() + 600);
+                 host_check_timeout + check_reaper_interval + 600);
 
     /* this host was supposed to have executed a while ago, but for some reason
      * the results haven't come back in... */

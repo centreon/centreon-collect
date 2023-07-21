@@ -832,6 +832,16 @@ bool processing::execute(const std::string& cmdstr) {
 
   int command_id(CMD_CUSTOM_COMMAND);
 
+  bool log_passive_checks;
+  bool log_external_commands;
+  if (legacy_conf) {
+    log_passive_checks = config->log_passive_checks();
+    log_external_commands = config->log_external_commands();
+  } else {
+    log_passive_checks = pb_config.log_passive_checks();
+    log_external_commands = pb_config.log_external_commands();
+  }
+
   std::unordered_map<std::string, command_info>::const_iterator it =
       _lst_command.find(command_name);
   if (it != _lst_command.end())
@@ -851,12 +861,12 @@ bool processing::execute(const std::string& cmdstr) {
   if (command_id == CMD_PROCESS_SERVICE_CHECK_RESULT ||
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
     // Passive checks are logged in checks.c.
-    if (config->log_passive_checks()) {
+    if (log_passive_checks) {
       engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
       log_v2::checks()->info("EXTERNAL COMMAND: {};{}", command_name, args);
     }
-  } else if (config->log_external_commands()) {
+  } else if (log_external_commands) {
     engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
     SPDLOG_LOGGER_INFO(log_v2::external_command(), "EXTERNAL COMMAND: {};{}",
@@ -906,7 +916,10 @@ void processing::_wrapper_read_state_information() {
   try {
     retention::state state;
     retention::parser p;
-    p.parse(config->state_retention_file(), state);
+    const std::string& retention_file = legacy_conf
+                                            ? config->state_retention_file()
+                                            : pb_config.state_retention_file();
+    p.parse(retention_file, state);
     retention::applier::state app_state;
     app_state.apply(*config, state);
   } catch (std::exception const& e) {
@@ -918,7 +931,8 @@ void processing::_wrapper_read_state_information() {
 }
 
 void processing::_wrapper_save_state_information() {
-  retention::dump::save(config->state_retention_file());
+  retention::dump::save(legacy_conf ? config->state_retention_file()
+                                    : pb_config.state_retention_file());
 }
 
 void processing::wrapper_enable_host_and_child_notifications(host* hst) {
