@@ -25,7 +25,12 @@
 extern com::centreon::engine::configuration::state* config;
 extern com::centreon::engine::configuration::State pb_config;
 
-void init_config_state(void);
+enum config_type {
+  LEGACY,
+  PROTO,
+};
+
+void init_config_state(const config_type type);
 void deinit_config_state(void);
 
 com::centreon::engine::configuration::Path build_path(absl::string_view path);

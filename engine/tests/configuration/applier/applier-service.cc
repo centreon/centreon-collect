@@ -43,7 +43,7 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierService : public TestEngine {
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { init_config_state(LEGACY); }
 
   void TearDown() override { deinit_config_state(); }
 };

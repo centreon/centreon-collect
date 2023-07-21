@@ -52,7 +52,7 @@ using namespace com::centreon::engine::retention;
 class HostNotification : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    init_config_state(LEGACY);
 
     log_v2::events()->set_level(spdlog::level::off);
 

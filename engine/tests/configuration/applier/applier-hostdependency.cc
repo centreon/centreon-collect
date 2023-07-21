@@ -53,7 +53,7 @@ extern configuration::state* config;
 class HostDependency : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    init_config_state(LEGACY);
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};

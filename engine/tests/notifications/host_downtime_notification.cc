@@ -42,7 +42,7 @@ using namespace com::centreon::engine::configuration::applier;
 class HostDowntimeNotification : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    init_config_state(LEGACY);
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};

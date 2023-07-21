@@ -49,14 +49,12 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
-extern configuration::state* config;
+extern configuration::State pb_config;
 
 class ServiceRetention : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
-    //    if (!config)
-    //      config = new configuration::state;
+    init_config_state(LEGACY);
 
     config->contacts().clear();
     configuration::applier::contact ct_aply;

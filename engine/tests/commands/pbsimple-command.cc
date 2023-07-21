@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,18 +35,21 @@ static void CreateFile(const std::string& filename,
   oss << content;
 }
 
-class SimpleCommand : public ::testing::Test {
+class PbSimpleCommand : public ::testing::Test {
  public:
   void SetUp() override {
     set_time(-1);
-    init_config_state(LEGACY);
-    config->interval_length(1);
+    init_config_state(PROTO);
+    pb_config.set_interval_length(1);
   }
 
   void TearDown() override { deinit_config_state(); }
 };
 
 class my_listener : public commands::command_listener {
+  mutable std::mutex _mutex;
+  commands::result _res;
+
  public:
   result& get_result() {
     std::lock_guard<std::mutex> guard(_mutex);
@@ -57,23 +60,19 @@ class my_listener : public commands::command_listener {
     std::lock_guard<std::mutex> guard(_mutex);
     _res = res;
   }
-
- private:
-  mutable std::mutex _mutex;
-  commands::result _res;
 };
 
 // Given an empty name
 // When the add_command method is called with it as argument,
 // Then it returns a NULL pointer.
-TEST_F(SimpleCommand, NewCommandWithNoName) {
+TEST_F(PbSimpleCommand, NewCommandWithNoName) {
   ASSERT_THROW(new commands::raw("", "bar"), std::exception);
 }
 
 // Given a command to store,
 // When the add_command method is called with an empty value,
 // Then it returns a NULL pointer.
-TEST_F(SimpleCommand, NewCommandWithNoValue) {
+TEST_F(PbSimpleCommand, NewCommandWithNoValue) {
   std::unique_ptr<commands::raw> cmd;
   ASSERT_THROW(cmd.reset(new commands::raw("foo", "")), std::exception);
 }
@@ -81,7 +80,7 @@ TEST_F(SimpleCommand, NewCommandWithNoValue) {
 // Given an already existing command
 // When the add_command method is called with the same name
 // Then it returns a NULL pointer.
-TEST_F(SimpleCommand, CommandAlreadyExisting) {
+TEST_F(PbSimpleCommand, CommandAlreadyExisting) {
   std::unique_ptr<commands::raw> cmd;
   ASSERT_NO_THROW(cmd.reset(new commands::raw("toto", "/bin/ls")));
 }
@@ -91,7 +90,7 @@ TEST_F(SimpleCommand, CommandAlreadyExisting) {
 // Then a new raw command is built
 // When sync executed
 // Then we have the output in the result class.
-TEST_F(SimpleCommand, NewCommandSync) {
+TEST_F(PbSimpleCommand, NewCommandSync) {
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/echo bonjour")};
   nagios_macros* mac(get_global_macros());
@@ -107,7 +106,7 @@ TEST_F(SimpleCommand, NewCommandSync) {
 // Then a new raw command is built
 // When async executed
 // Then we have the output in the result class.
-TEST_F(SimpleCommand, NewCommandAsync) {
+TEST_F(PbSimpleCommand, NewCommandAsync) {
   std::unique_ptr<my_listener> lstnr(new my_listener);
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/echo bonjour")};
@@ -126,7 +125,7 @@ TEST_F(SimpleCommand, NewCommandAsync) {
   ASSERT_EQ(lstnr->get_result().output, "bonjour\n");
 }
 
-TEST_F(SimpleCommand, LongCommandAsync) {
+TEST_F(PbSimpleCommand, LongCommandAsync) {
   std::unique_ptr<my_listener> lstnr(new my_listener);
   std::unique_ptr<commands::command> cmd{
       new commands::raw("test", "/bin/sleep 10")};
@@ -149,7 +148,7 @@ TEST_F(SimpleCommand, LongCommandAsync) {
   ASSERT_EQ(lstnr->get_result().output, "(Process Timeout)");
 }
 
-TEST_F(SimpleCommand, TooRecentDoubleCommand) {
+TEST_F(PbSimpleCommand, TooRecentDoubleCommand) {
   log_v2::commands()->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
@@ -191,7 +190,7 @@ TEST_F(SimpleCommand, TooRecentDoubleCommand) {
   ASSERT_EQ(file_stat.st_size, 4);
 }
 
-TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
+TEST_F(PbSimpleCommand, SufficientOldDoubleCommand) {
   log_v2::commands()->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
@@ -235,7 +234,7 @@ TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
   ASSERT_EQ(file_stat.st_size, 8);
 }
 
-TEST_F(SimpleCommand, WithOneArgument) {
+TEST_F(PbSimpleCommand, WithOneArgument) {
   auto lstnr = std::make_unique<my_listener>();
   std::unique_ptr<commands::command> cmd{
       std::make_unique<commands::raw>("test", "/bin/echo $ARG1$")};

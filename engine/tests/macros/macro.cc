@@ -53,7 +53,7 @@ using namespace com::centreon::engine;
 class Macro : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    init_config_state(LEGACY);
     _tp = _creator.new_timeperiod();
     for (int i(0); i < 7; ++i)
       _creator.new_timerange(0, 0, 24, 0, i);
@@ -597,7 +597,7 @@ TEST_F(Macro, FullCmd) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  // process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
   process_macros_r(mac,
                    "/bin/sh -c '/bin/echo \"LogFile: $LOGFILE$ - AdminEmail: "
                    "$ADMINEMAIL$ - AdminPager: $ADMINPAGER$\"",
@@ -647,7 +647,7 @@ TEST_F(Macro, AdminEmail) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  // process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
   process_macros_r(mac, "$ADMINEMAIL$", out, 1);
   ASSERT_EQ(out, "contactadmin@centreon.com");
 }

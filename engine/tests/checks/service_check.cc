@@ -52,7 +52,7 @@ extern configuration::state* config;
 class ServiceCheck : public TestEngine {
  public:
   void SetUp() override {
-    init_config_state();
+    init_config_state(LEGACY);
 
     config->contacts().clear();
     configuration::applier::contact ct_aply;

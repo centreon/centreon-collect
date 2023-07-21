@@ -24,9 +24,9 @@
 #include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "helper.hh"
-#include "configuration/hostgroup_helper.hh"
 #include "configuration/host_helper.hh"
+#include "configuration/hostgroup_helper.hh"
+#include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -35,7 +35,7 @@ using namespace com::centreon::engine::configuration::applier;
 
 class ApplierHostGroup : public ::testing::Test {
  public:
-  void SetUp() override { init_config_state(); }
+  void SetUp() override { init_config_state(LEGACY); }
 
   void TearDown() override { deinit_config_state(); }
 };
@@ -308,7 +308,8 @@ TEST_F(ApplierHostGroup, PbHostRemoved) {
 
   hg.mutable_members()->clear_data();
   hg_hlp.hook("members", "c");
-  ASSERT_NO_THROW(hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg));
+  ASSERT_NO_THROW(
+      hg_aply.modify_object(&pb_config.mutable_hostgroups()->at(0), hg));
 
   hg_aply.remove_object(0);
   ASSERT_TRUE(pb_config.hostgroups().empty());

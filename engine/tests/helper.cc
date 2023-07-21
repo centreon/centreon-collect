@@ -23,44 +23,69 @@
 #include <com/centreon/engine/configuration/applier/logging.hh>
 #include <com/centreon/engine/configuration/applier/state.hh>
 #include "com/centreon/engine/log_v2.hh"
+#include "configuration/state_helper.hh"
 
 using namespace com::centreon::engine;
 
 extern configuration::state* config;
 extern configuration::State pb_config;
+extern bool legacy_conf;
 
 using Message = ::google::protobuf::Message;
 using Reflection = ::google::protobuf::Reflection;
 using FieldDescriptor = ::google::protobuf::FieldDescriptor;
 
-void init_config_state(void) {
+/**
+ * @brief Initialize configurations. types is a bitfield of config_type values.
+ *
+ * @param types What configurations to initialize.
+ */
+void init_config_state(const config_type type) {
+  /* Cleanup */
   if (config) {
     delete config;
     config = nullptr;
   }
-  if (config == nullptr)
-    config = new configuration::state;
+  pb_config.Clear();
 
-  config->log_file_line(true);
-  config->log_file("");
+  /* Legacy case */
+  if (type == LEGACY) {
+    legacy_conf = true;
+    if (config == nullptr)
+      config = new configuration::state;
 
-  pb_config.CopyFrom(configuration::State());
-  pb_config.set_log_file_line(true);
-  pb_config.set_log_file("");
+    config->log_file_line(true);
+    config->log_file("");
 
-  // Hack to instanciate the logger.
-  configuration::applier::logging::instance().apply(*config);
-  log_v2::instance()->apply(*config);
+    // Hack to instanciate the logger.
+    configuration::applier::logging::instance().apply(*config);
+    log_v2::instance()->apply(*config);
+  }
+
+  if (type == PROTO) {
+    legacy_conf = false;
+    pb_config.CopyFrom(configuration::State());
+    configuration::state_helper cfg_hlp(&pb_config);
+    pb_config.set_log_file_line(true);
+    pb_config.set_log_file("");
+
+    // Hack to instanciate the logger.
+    configuration::applier::logging::instance().apply(pb_config);
+    log_v2::instance()->apply(pb_config);
+  }
 
   checks::checker::init(true);
 }
 
 void deinit_config_state(void) {
-  delete config;
-  config = nullptr;
+  if (legacy_conf) {
+    delete config;
+    config = nullptr;
+  } else {
+    configuration::State new_state;
+    pb_config.Swap(&new_state);
+  }
 
-  configuration::State new_state;
-  pb_config.Swap(&new_state);
   configuration::applier::state::instance().clear();
   checks::checker::deinit();
 }
