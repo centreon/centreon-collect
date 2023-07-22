@@ -296,6 +296,29 @@ void TestEngine::fill_pb_configuration_host(configuration::host_helper* hst_hlp,
   conf_hosts[hostname] = hst_id;
 }
 
+configuration::Host TestEngine::new_pb_configuration_host(
+    const std::string& hostname,
+    const std::string& contacts,
+    uint64_t hst_id) {
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name(hostname);
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(hst_id);
+  fill_string_group(hst.mutable_contacts(), contacts);
+
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("hcmd");
+  cmd.set_command_line("echo 0");
+  hst.set_check_command("hcmd");
+  configuration::applier::command cmd_aply;
+  cmd_aply.add_object(cmd);
+
+  conf_hosts[hostname] = hst_id;
+  return hst;
+}
+
 configuration::host TestEngine::new_configuration_host(
     const std::string& hostname,
     const std::string& contacts,
@@ -357,6 +380,40 @@ void TestEngine::fill_pb_configuration_service(
   svc->set_check_command("cmd!12");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
+}
+
+configuration::Service TestEngine::new_pb_configuration_service(
+    const std::string& hostname,
+    const std::string& description,
+    const std::string& contacts,
+    uint64_t svc_id) {
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_host_name(hostname);
+  svc.set_service_description(description);
+  auto it = conf_hosts.find(hostname);
+  if (it != conf_hosts.end())
+    svc.set_host_id(it->second);
+  else
+    svc.set_host_id(12);
+  svc.set_service_id(svc_id);
+  fill_string_group(svc.mutable_contacts(), contacts);
+
+  // We fake here the expand_object on configuration::service
+  if (it != conf_hosts.end())
+    svc.set_host_id(it->second);
+  else
+    svc.set_host_id(12);
+
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=$ARG1$;50;75'");
+  svc.set_check_command("cmd!12");
+  configuration::applier::command cmd_aply;
+  cmd_aply.add_object(cmd);
+
+  return svc;
 }
 
 configuration::service TestEngine::new_configuration_service(
