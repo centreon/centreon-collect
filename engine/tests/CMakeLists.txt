@@ -49,6 +49,8 @@ if(WITH_TESTING)
   set(ut_sources
       # Sources.
       "${TESTS_DIR}/checks/anomalydetection.cc"
+      "${TESTS_DIR}/checks/pb_service_check.cc"
+      "${TESTS_DIR}/checks/pb_service_retention.cc"
       "${TESTS_DIR}/checks/service_check.cc"
       "${TESTS_DIR}/checks/service_retention.cc"
       "${TESTS_DIR}/commands/connector.cc"
@@ -69,6 +71,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/configuration/applier/applier-pbanomalydetection.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbcommand.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbconnector.cc"
+      "${TESTS_DIR}/configuration/applier/applier-pbcontact.cc"
       "${TESTS_DIR}/configuration/applier/applier-pbcontactgroup.cc"
       "${TESTS_DIR}/configuration/applier/applier-service.cc"
       "${TESTS_DIR}/configuration/applier/applier-servicedependency.cc"

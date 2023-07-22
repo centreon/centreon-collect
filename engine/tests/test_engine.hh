@@ -61,11 +61,19 @@ class TestEngine : public ::testing::Test {
   configuration::host new_configuration_host(std::string const& hostname,
                                              std::string const& contacts,
                                              uint64_t hst_id = 12);
+  configuration::Host new_pb_configuration_host(const std::string& hostname,
+                                                const std::string& contacts,
+                                                uint64_t hst_id = 12);
   void fill_pb_configuration_service(configuration::service_helper* svc_hlp,
                                      std::string const& hostname,
                                      std::string const& description,
                                      std::string const& contacts,
                                      uint64_t svc_id = 13);
+  configuration::Service new_pb_configuration_service(
+      const std::string& hostname,
+      const std::string& description,
+      const std::string& contacts,
+      uint64_t svc_id = 13);
   configuration::service new_configuration_service(
       std::string const& hostname,
       std::string const& description,
