@@ -19,6 +19,7 @@
 
 #include <gtest/gtest.h>
 
+#include "configuration/anomalydetection_helper.hh"
 #include "test_engine.hh"
 
 #include "com/centreon/engine/commands/commands.hh"
@@ -464,6 +465,32 @@ configuration::anomalydetection TestEngine::new_configuration_anomalydetection(
   ad.parse("metric_name", "metric");
   ad.parse("internal_id", "1234");
   ad.parse("thresholds_file", thresholds_file.c_str());
+
+  // We fake here the expand_object on configuration::service
+  ad.set_host_id(12);
+
+  return ad;
+}
+
+configuration::Anomalydetection
+TestEngine::new_pb_configuration_anomalydetection(
+    const std::string& hostname,
+    const std::string& description,
+    const std::string& contacts,
+    uint64_t svc_id,
+    uint64_t dependent_svc_id,
+    const std::string& thresholds_file) {
+  configuration::Anomalydetection ad;
+  configuration::anomalydetection_helper ad_hlp(&ad);
+  ad.set_host_name(hostname);
+  ad.set_service_description(description);
+  ad.set_dependent_service_id(dependent_svc_id);
+  ad.set_host_id(12);
+  ad.set_service_id(svc_id);
+  fill_string_group(ad.mutable_contacts(), contacts);
+  ad.set_metric_name("metric");
+  ad.set_internal_id(1234);
+  ad.set_thresholds_file(thresholds_file);
 
   // We fake here the expand_object on configuration::service
   ad.set_host_id(12);

@@ -49,6 +49,7 @@ if(WITH_TESTING)
   set(ut_sources
       # Sources.
       "${TESTS_DIR}/checks/anomalydetection.cc"
+      "${TESTS_DIR}/checks/pb_anomalydetection.cc"
       "${TESTS_DIR}/checks/pb_service_check.cc"
       "${TESTS_DIR}/checks/pb_service_retention.cc"
       "${TESTS_DIR}/checks/service_check.cc"
