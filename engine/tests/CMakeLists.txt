@@ -56,6 +56,7 @@ if(WITH_TESTING)
       "${TESTS_DIR}/checks/anomalydetection.cc"
       "${TESTS_DIR}/commands/simple-command.cc"
       "${TESTS_DIR}/commands/pbsimple-command.cc"
+      "${TESTS_DIR}/commands/pb_connector.cc"
       "${TESTS_DIR}/commands/connector.cc"
       "${TESTS_DIR}/commands/environment.cc"
       "${TESTS_DIR}/configuration/applier/applier-anomalydetection.cc"
