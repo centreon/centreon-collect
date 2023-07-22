@@ -1,22 +1,23 @@
 /**
-* Copyright 1999-2011 Ethan Galstad
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2011 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/shared.hh"
 #include <random>
@@ -141,6 +142,13 @@ void get_datetime_string(time_t const* raw_time,
   char const* tzone(tm_s.tm_isdst ? tzname[1] : tzname[0]);
 #endif /* HAVE_TM_ZONE || HAVE_TZNAME */
 
+  int32_t date_format;
+  if (legacy_conf) {
+    date_format = config->date_format();
+  } else {
+    date_format = pb_config.date_format();
+  }
+
   /* ctime() style date/time */
   if (type == LONG_DATE_TIME)
     snprintf(buffer, buffer_length, "%s %s %d %02d:%02d:%02d %s %d",
@@ -149,16 +157,15 @@ void get_datetime_string(time_t const* raw_time,
 
   /* short date/time */
   else if (type == SHORT_DATE_TIME) {
-    if (config->date_format() == DATE_FORMAT_EURO)
+    if (date_format == DATE_FORMAT_EURO)
       snprintf(buffer, buffer_length, "%02d-%02d-%04d %02d:%02d:%02d", day,
                month, year, hour, minute, second);
-    else if (config->date_format() == DATE_FORMAT_ISO8601 ||
-             config->date_format() == DATE_FORMAT_STRICT_ISO8601)
-      snprintf(
-          buffer, buffer_length, "%04d-%02d-%02d%c%02d:%02d:%02d", year, month,
-          day,
-          (config->date_format() == DATE_FORMAT_STRICT_ISO8601) ? 'T' : ' ',
-          hour, minute, second);
+    else if (date_format == DATE_FORMAT_ISO8601 ||
+             date_format == DATE_FORMAT_STRICT_ISO8601)
+      snprintf(buffer, buffer_length, "%04d-%02d-%02d%c%02d:%02d:%02d", year,
+               month, day,
+               (date_format == DATE_FORMAT_STRICT_ISO8601) ? 'T' : ' ', hour,
+               minute, second);
     else
       snprintf(buffer, buffer_length, "%02d-%02d-%04d %02d:%02d:%02d", month,
                day, year, hour, minute, second);
@@ -166,10 +173,10 @@ void get_datetime_string(time_t const* raw_time,
 
   /* short date */
   else if (type == SHORT_DATE) {
-    if (config->date_format() == DATE_FORMAT_EURO)
+    if (date_format == DATE_FORMAT_EURO)
       snprintf(buffer, buffer_length, "%02d-%02d-%04d", day, month, year);
-    else if (config->date_format() == DATE_FORMAT_ISO8601 ||
-             config->date_format() == DATE_FORMAT_STRICT_ISO8601)
+    else if (date_format == DATE_FORMAT_ISO8601 ||
+             date_format == DATE_FORMAT_STRICT_ISO8601)
       snprintf(buffer, buffer_length, "%04d-%02d-%02d", year, month, day);
     else
       snprintf(buffer, buffer_length, "%02d-%02d-%04d", month, day, year);
