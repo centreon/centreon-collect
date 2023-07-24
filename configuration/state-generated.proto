@@ -253,7 +253,7 @@ message Anomalydetection {
   optional uint64 severity_id = 49;  // Optional
   optional uint64 icon_id = 50;      // Optional
   repeated PairUint64_32 tags = 51;
-  optional double sensitivity = 52;  // Optional
+  double sensitivity = 52;
 }
 
 message Command {

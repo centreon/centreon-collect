@@ -353,7 +353,7 @@ define command {
             level = i % 5 + 1
             content += """define severity {{
     id                     {0}
-    name                   severity{3}
+    severity_name          severity{3}
     level                  {1}
     icon_id                {2}
     type                   {4}
@@ -396,7 +396,7 @@ passive_checks_enabled 1
             typ = tt[i % 4]
             content += """define tag {{
     id                     {0}
-    name                   tag{2}
+    tag_name               tag{2}
     type                   {1}
 }}
 """.format(tid, typ, i + offset)
