@@ -399,6 +399,7 @@ int main(int argc, char* argv[]) {
       try {
         absl::string_view listen_address;
         uint16_t port;
+        std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc;
         if (legacy_conf) {
           // Parse configuration.
           configuration::state config;
@@ -412,7 +413,7 @@ int main(int argc, char* argv[]) {
             port = generate_port();
 
           listen_address = config.rpc_listen_address();
-          std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
+          rpc = std::unique_ptr<enginerpc, std::function<void(enginerpc*)>>(
               new enginerpc(listen_address, port), [](enginerpc* rpc) {
                 rpc->shutdown();
                 delete rpc;
@@ -467,7 +468,7 @@ int main(int argc, char* argv[]) {
             port = generate_port();
 
           listen_address = pb_config.rpc_listen_address();
-          std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc(
+          rpc = std::unique_ptr<enginerpc, std::function<void(enginerpc*)>>(
               new enginerpc(listen_address, port), [](enginerpc* rpc) {
                 rpc->shutdown();
                 delete rpc;
