@@ -28,12 +28,23 @@ ANO_NOFILE
     Remove File    /tmp/anomaly_threshold.json
     Clear Retention
     Clear Db    services
-    Start Broker    True
-    Start Engine
-    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata
-    Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
-    Stop Broker    True
-    Stop Engine
+#    ${start}=    Get Current Date
+#    Start Broker    True
+#    Start Engine
+#
+#    # Let's wait for the external command check start
+#    ${content}=    Create List    check_for_external_commands()
+#    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+#    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+#
+#    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata
+#    log to console    Step 2
+#    Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
+#    log to console    Step 3
+#    Stop Broker    True
+#    log to console    Step 4
+#    Stop Engine
+#    log to console    Step 5
 
 ANO_TOO_OLD_FILE
     [Documentation]    an anomaly detection with an oldest threshold file must be in unknown state
@@ -220,7 +231,7 @@ ANO_DT1
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     schedule_service_fixed_downtime    host_1    service_1    3600
 
     ${result}=    Check Service Downtime With Timeout    host_1    service_1    1    60
@@ -257,7 +268,7 @@ ANO_DT2
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     schedule_service_fixed_downtime    host_1    service_1    3600
 
     ${result}=    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
@@ -298,7 +309,7 @@ ANO_DT3
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     schedule_service_fixed_downtime    host_1    service_1    3600
 
     ${result}=    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
@@ -340,7 +351,7 @@ ANO_DT4
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     schedule_service_fixed_downtime    host_1    service_1    3600
     schedule_service_fixed_downtime    host_1    anomaly_${serv_id}    3600
 
