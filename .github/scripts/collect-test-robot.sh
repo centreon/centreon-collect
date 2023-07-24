@@ -73,7 +73,7 @@ git config --global --add safe.directory $PWD
 
 echo "########################### Install Robot Framework ###########################"
 cd tests
-pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
+pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl pymysql python-dateutil psutil
 
 if [ "$distrib" = "ALMALINUX" ]; then
   dnf groupinstall -y "Development Tools"
