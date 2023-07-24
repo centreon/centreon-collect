@@ -117,6 +117,10 @@ Start Engine
 	 Start Process	/usr/sbin/centengine	${conf}	alias=${alias}
 	END
 
+Restart Engine
+	Stop Engine
+	Start Engine
+
 Start Custom Engine
 	[Arguments]	 ${conf_path}  ${process_alias}
 	Start Process  /usr/sbin/centengine  ${conf_path}  alias=${process_alias}
