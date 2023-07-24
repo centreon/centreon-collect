@@ -515,6 +515,15 @@ bool set(std::unique_ptr<message_helper>& helper,
       } else
         return false;
     } break;
+    case FieldDescriptor::TYPE_DOUBLE: {
+      double val;
+      if (absl::SimpleAtod(value, &val)) {
+        refl->SetDouble(static_cast<Message*>(msg), f, val);
+        helper->set_changed(f->number());
+        return true;
+      } else
+        return false;
+    } break;
     case FieldDescriptor::TYPE_STRING:
       if (f->is_repeated()) {
         refl->AddString(static_cast<Message*>(msg), f,

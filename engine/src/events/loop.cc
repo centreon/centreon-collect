@@ -33,6 +33,7 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/logging/engine.hh"
+#include "configuration/state_helper.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;
@@ -91,6 +92,25 @@ void loop::run() {
  */
 loop::loop() : _need_reload(0), _reload_running(false) {}
 
+static void pb_apply_conf(std::atomic<bool>* reloading) {
+  log_v2::process()->info("Starting to reload configuration.");
+  try {
+    configuration::State config;
+    configuration::state_helper config_hlp(&config);
+    {
+      configuration::parser p;
+      std::string path(::pb_config.cfg_main());
+      p.parse(path, &config);
+    }
+    configuration::applier::state::instance().apply(config);
+    log_v2::process()->info("Configuration reloaded, main loop continuing.");
+  } catch (std::exception const& e) {
+    log_v2::config()->error("Error: {}", e.what());
+  }
+  *reloading = false;
+  log_v2::process()->info("Reload configuration finished.");
+}
+
 static void apply_conf(std::atomic<bool>* reloading) {
   engine_logger(log_info_message, more) << "Starting to reload configuration.";
   log_v2::process()->info("Starting to reload configuration.");
@@ -148,7 +168,10 @@ void loop::_dispatching() {
         engine_logger(log_info_message, most) << "Reloading...";
         log_v2::process()->info("Reloading...");
         reloading = true;
-        std::async(std::launch::async, apply_conf, &reloading);
+        if (legacy_conf)
+          std::async(std::launch::async, apply_conf, &reloading);
+        else
+          std::async(std::launch::async, pb_apply_conf, &reloading);
       } else {
         engine_logger(log_info_message, most) << "Already reloading...";
         log_v2::process()->info("Already reloading...");

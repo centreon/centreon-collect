@@ -975,7 +975,6 @@ void anomalydetection::merge(object const& obj) {
   MRG_OPTION(_timezone);
   MRG_OPTION(_severity_id);
   MRG_OPTION(_icon_id);
-  MRG_OPTION(_sensitivity);
   MRG_MAP(_tags);
 }
 
