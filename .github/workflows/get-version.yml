@@ -71,7 +71,7 @@ jobs:
               ENV="production"
               ;;
             *)
-              STABILITY="canary"
+              STABILITY="unstable"
               ENV="development"
               ;;
           esac
