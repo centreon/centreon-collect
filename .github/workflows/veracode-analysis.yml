@@ -118,6 +118,8 @@ jobs:
 
       - name: Analysis preparation
         run: |
+          # Keep only .so files and prepare the tarball
+          find ./build -type f -not -name "*.so" -delete
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
       - uses: actions/cache/save@v3
