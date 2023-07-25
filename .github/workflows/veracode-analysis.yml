@@ -158,7 +158,6 @@ jobs:
           toplevel: true
           scanallnonfataltoplevelmodules: true
           #deleteincompletescan: 1
-          exclude: "*.jar"
           scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
 
       - name: Promote Scan
