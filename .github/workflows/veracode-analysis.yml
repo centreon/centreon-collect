@@ -80,6 +80,27 @@ jobs:
 
           sudo ninja
 
+      - name: Removing files to exclude
+        run: |
+          echo "[INFO] - Removing veracode exclusions"
+            if [[ -f ".veracode-exclusions" ]]; then
+            for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
+              if [[ -d "$LINE" ]]; then
+                rm -rf "$LINE"
+                echo "[INFO] - folder removed from analysis : '$LINE'"
+              elif [[ -e "$LINE" ]]; then
+                rm -f "$LINE"
+                echo "[INFO] - file removed from analysis : '$LINE'"
+              elif [[ -z "$LINE" ]]; then
+                echo "[INFO] - empty directive. Skipping this line"
+              else
+                echo "[INFO] - target to exclude not found. Skipping: '$LINE'"
+              fi
+            done
+          else
+            echo "[INFO] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+          fi
+
       - name: debug after compilation status
         run: |
           echo "[DEBUG] - current location ?"
@@ -134,7 +155,7 @@ jobs:
           scanallnonfataltoplevelmodules: true
           deleteincompletescan: 1
           exclude: "*.jar"
-          scanpollinginterval: 180 # time between two checks in seconds / [30 to 120]
+          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
 
       - name: Promote Scan
         # only develop will be promoted to policy scan
