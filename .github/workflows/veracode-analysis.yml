@@ -153,7 +153,6 @@ jobs:
           sandboxname: "${{ github.ref_name }}"
           criticality: "Low"
           #scantimeout: 120
-          include: "*.so"
           includenewmodules: true
           toplevel: true
           scanallnonfataltoplevelmodules: true
