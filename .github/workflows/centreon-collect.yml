@@ -52,7 +52,6 @@ jobs:
       major_version: ${{ needs.get-version.outputs.version }}
       minor_version: ${{ needs.get-version.outputs.patch }}
       stability: ${{ needs.get-version.outputs.stability }}
-      is_cpp_project: "yes"
       img_version: ${{ needs.get-version.outputs.img_version }}
       docker_registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
     secrets:

@@ -14,9 +14,6 @@ on:
       stability:
         required: true
         type: string
-      is_cpp_project:
-        required: false
-        type: string
       img_version:
         required: true
         type: string
@@ -38,7 +35,7 @@ on:
 
 jobs:
   build:
-    name: Sandbox scan
+    name: Binary preparation
     runs-on: [self-hosted, collect]
 
     container:
@@ -50,22 +47,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: debug before compilation status
-        run: |
-          echo "[DEBUG] - current location ?"
-          pwd
-          ls -la
-          echo "[DEBUG] - Current folder size ?"
-          du -sh ./* | sort -h
-
       - name: Compile cpp sources
-        if: inputs.is_cpp_project == 'yes'
         run: |
-          pwd
-          ls -la
+          rm -rf build
+          mkdir build
+          cd build
 
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-          sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
           # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
           # Removed to test : -DCMAKE_BUILD_TYPE=RelWithDebInfo \
@@ -87,7 +76,7 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
-            .
+            ..
 
           sudo ninja
 
@@ -106,73 +95,30 @@ jobs:
           echo "[DEBUG] - Current location files ?"
           ls -la
 
-      - name: Removing files to exclude
-        run: |
-          echo "[INFO] - Removing veracode exclusions"
-          if [[ -f ".veracode-exclusions" ]]; then
-            for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
-              if [[ -d "$LINE" ]]; then
-                rm -rf "$LINE"
-                echo "[INFO] - folder removed from analysis : '$LINE'"
-              elif [[ -e "$LINE" ]]; then
-                rm -f "$LINE"
-                echo "[INFO] - file removed from analysis : '$LINE'"
-              elif [[ -z "$LINE" ]]; then
-                echo "[INFO] - empty directive. Skipping this line"
-              else
-                echo "[INFO] - target to exclude not found. Skipping: '$LINE'"
-              fi
-            done
-          else
-            echo "[INFO] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
-          fi
-
-          echo "[INFO] - Cleaning useless files"
-          rm -rf .git
-          toClean=(
-          	*.o
-          	*.a
-          	*.h
-          	*.sql
-          	CMake*.*
-          	*.in
-            *.cfg
-            CMakeDetermineCompilerABI_C.bin
-          )
-
-          for toFind in ${toClean[@]}; do
-            for file in $( find ./ -name "$toFind" ); do
-              echo "Removing : $file"
-              rm -f $file
-            done
-          done
-
-          echo "[INFO] - Checking for remaining scripts used to mock tests"
-          for file in $( find ./ -name "*.py" ); do
-            echo "[WARN] - Remaining file to exclude : $file"
-          done
-
-          echo "[DEBUG] - Current folder size ?"
-          du -sh ./* | sort -h
-          cd ..
-          echo "[DEBUG] - Parent folder size ?"
-          du -sh ./* | sort -h
-
       - name: Analysis preparation
         run: |
-          echo "[DEBUG] - Current location ?"
-          pwd
-          ls -la
-          cd ..
+          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
-          env GZIP=-9 tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" centreon-collect
-          ls -la
-          mv "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" centreon-collect
+      - uses: actions/cache/save@v3
+        with:
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
+
+  sandbox-scan:
+    needs: [build]
+    name: Sandbox scan
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Get build binary
+        uses: actions/cache/restore@v3
+        with:
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
       - name: Sandbox scan
-        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' && true || false }}
         uses: veracode/veracode-uploadandscan-action@0.2.6
-
+        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' && true || false }}
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
@@ -188,7 +134,7 @@ jobs:
           scanallnonfataltoplevelmodules: true
           deleteincompletescan: 1
           exclude: "*.jar"
-          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
+          scanpollinginterval: 180 # time between two checks in seconds / [30 to 120]
 
       - name: Promote Scan
         # only develop will be promoted to policy scan
