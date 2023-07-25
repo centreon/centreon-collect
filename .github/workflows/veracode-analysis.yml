@@ -153,11 +153,14 @@ jobs:
           sandboxname: "${{ github.ref_name }}"
           criticality: "Low"
           #scantimeout: 120
+          include: "*.so"
           includenewmodules: true
+          toplevel: true
           scanallnonfataltoplevelmodules: true
-          deleteincompletescan: 1
+          #deleteincompletescan: 1
           exclude: "*.jar"
           scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
+          maxretrycount: 3
 
       - name: Promote Scan
         # only develop will be promoted to policy scan
@@ -167,7 +170,7 @@ jobs:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
 
-        # Action forked as API call hardcode '.com' route
+        # Action forked as API calls hardcoded '.com' route
         uses: sc979/veracode-sandboxes-helper@v0.2
         with:
           activity: "promote-latest-scan"
