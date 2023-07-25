@@ -7,6 +7,8 @@ Library             OperatingSystem
 Library             DateTime
 Library             Collections
 Library             DatabaseLibrary
+Library             String
+Library             Examples
 Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
@@ -389,6 +391,54 @@ metric_mapping
     Wait Until Created    /tmp/test.log    30s
     ${grep_res}    Grep File    /tmp/test.log    name: metric1 corresponds to metric id
     Should Not Be Empty    ${grep_res}    metric name "metric1" not found
+
+Services_and_bulks_${id}
+    [Documentation]    One service are configured with one metrics with a name as long as 1021 characteres.
+    [Tags]    broker    engine    services    unified_sql    benchmark
+    Clear Metrics
+    Config Engine    ${1}    ${1}    ${1}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    ${random_string}    Generate Random String    ${metric_num_char}    [LOWER]
+    Set Services passive    ${0}    service_.*
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Log    central    core    error
+    Broker Config Log    central    tcp    error
+    Broker Config Log    central    sql    debug
+    Config Broker Sql Output    central    unified_sql
+    Config Broker Remove Rrd Output    central
+    Clear Retention
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+    Broker Set Sql Manager Stats    51001    5    5
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    ${start_1}    Get Round Current Date
+
+    Process Service Check result with metrics    host_1    service_${1}    ${1}    warning${0}    1    ${random_string}
+
+    ${content}    Create List    ${result_message}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    ${result}    Find In Log With Timeout    ${log}    ${start_1}    ${content}    60
+    Should Be True    ${result}    A message fail to handle a metric with ${metric_num_char} characters.
+
+    # Data too long for column 'metric_name' at row 1
+    # ${content}    Create List    metric name too long
+    # ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    # ${result}    Find In Log With Timeout    ${log}    ${start_1}    ${content}    60
+    # Should Be True    ${result}    A message fail to handle a metric as long as 1021 characters should be available.
+
+    Examples:    id    metric_num_char    result_message    --
+    ...    1    1021    Data too long for column 'metric_name' at row 1
+    ...    2    150    1 new perfdata inserted
 
 
 *** Keywords ***

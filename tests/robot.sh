@@ -2,7 +2,7 @@
 
 sed -i -r 's/(\$\{DBUserRoot\}\s*)root_centreon/\1root/g' resources/db_variables.robot
 ulimit -c unlimited
-sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t
+sudo sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t
 
 robot -L TRACE $*
 rep=$(date +%s)
