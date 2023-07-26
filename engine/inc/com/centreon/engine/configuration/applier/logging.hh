@@ -23,7 +23,7 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/logging/file.hh"
 #include "com/centreon/logging/syslogger.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 CCE_BEGIN()
 

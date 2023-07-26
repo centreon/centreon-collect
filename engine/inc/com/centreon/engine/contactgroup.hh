@@ -25,7 +25,7 @@
 #include <memory>
 #include <string>
 #include "com/centreon/engine/namespace.hh"
-#include "configuration/state-generated.pb.h"
+#include "common/configuration/state-generated.pb.h"
 
 /* Forward declaration. */
 CCE_BEGIN()

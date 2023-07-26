@@ -103,6 +103,16 @@ class state {
     std::list<stats_exporter> exporters;
   } _stats_exporter_conf;
 
+  /**
+   * @brief Structure used to store the poller_conf configuration object. Its
+   * content is:
+   * * path: the directory containing the poller configuration.
+   *
+   */
+  struct poller_conf {
+    std::string path;
+  } _poller_conf;
+
  public:
   state();
   state(state const& other);
@@ -148,6 +158,8 @@ class state {
   const log& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();
   const stats_exporter_conf& get_stats_exporter() const;
+  poller_conf& mut_poller_conf();
+  const poller_conf& get_poller_conf() const;
 };
 }  // namespace config
 
