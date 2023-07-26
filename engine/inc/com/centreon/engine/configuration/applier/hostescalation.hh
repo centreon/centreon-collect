@@ -20,7 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTESCALATION_HH
 
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 CCE_BEGIN()
 

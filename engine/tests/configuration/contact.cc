@@ -19,7 +19,7 @@
 
 #include "com/centreon/engine/configuration/contact.hh"
 #include <gtest/gtest.h>
-#include "configuration/contact_helper.hh"
+#include "common/configuration/contact_helper.hh"
 
 #include "helper.hh"
 

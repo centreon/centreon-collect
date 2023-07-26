@@ -27,7 +27,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "configuration/message_helper.hh"
+#include "common/configuration/message_helper.hh"
 
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;

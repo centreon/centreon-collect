@@ -39,21 +39,21 @@ enum data_category {
   internal = 65535
 };
 constexpr uint16_t category_id(const char* name) {
-  if (absl::string_view("neb", 3) == name)
+  if (std::string_view("neb") == name)
     return neb;
-  if (absl::string_view("bbdo", 4) == name)
+  if (std::string_view("bbdo") == name)
     return bbdo;
-  if (absl::string_view("storage", 7) == name)
+  if (std::string_view("storage") == name)
     return storage;
-  if (absl::string_view("internal", 8) == name)
+  if (std::string_view("internal") == name)
     return internal;
-  if (absl::string_view("bam", 3) == name)
+  if (std::string_view("bam") == name)
     return bam;
-  if (absl::string_view("extcmd", 6) == name)
+  if (std::string_view("extcmd") == name)
     return extcmd;
-  if (absl::string_view("dumper", 6) == name)
+  if (std::string_view("dumper") == name)
     return dumper;
-  if (absl::string_view("generator", 9) == name)
+  if (std::string_view("generator") == name)
     return generator;
   return none;
 }
@@ -102,7 +102,7 @@ enum data_element {
   de_custom_variable_status,
   de_downtime,
   de_event_handler = 6,
-  de_flapping_status = 7,   // unused
+  de_flapping_status = 7,  // unused
   de_host_check = 8,
   de_host_dependency = 9,
   de_host_group,
@@ -138,7 +138,7 @@ enum data_element {
   de_pb_service_check = 40,
   de_pb_log_entry = 41,
   de_pb_instance_status = 42,
-  //de_pb_module = 43,    Not used
+  // de_pb_module = 43,    Not used
   de_pb_instance = 44,
   de_pb_acknowledgement = 45,
   de_pb_responsive_instance = 46,
@@ -158,6 +158,7 @@ enum data_element {
   de_pb_status = 10,
   de_pb_index_mapping = 11,
   de_pb_metric_mapping = 12,
+  de_poller_config = 13,
 };
 }
 namespace bam {

@@ -24,8 +24,8 @@
 #include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "configuration/host_helper.hh"
-#include "configuration/hostgroup_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/hostgroup_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

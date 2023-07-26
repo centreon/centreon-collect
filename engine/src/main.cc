@@ -66,7 +66,7 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 using namespace com::centreon::engine;
 

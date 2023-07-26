@@ -26,8 +26,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
-#include "configuration/message_helper.hh"
-#include "configuration/state-generated.pb.h"
+#include "common/configuration/message_helper.hh"
+#include "common/configuration/state-generated.pb.h"
 
 using namespace com::centreon::engine::configuration;
 
