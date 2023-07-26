@@ -25,6 +25,7 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/service.hh"
+#include "com/centreon/engine/servicegroup.hh"
 #include "configuration/command_helper.hh"
 #include "configuration/host_helper.hh"
 #include "configuration/service_helper.hh"

@@ -179,6 +179,7 @@ if(WITH_TESTING)
     ut_engine
     ${ENGINERPC}
     cce_core
+    engine_config
     enginelog
     pthread
     ${GCOV}

@@ -20,7 +20,6 @@
 #ifndef CCE_CONFIGURATION_CONNECTOR_HH
 #define CCE_CONFIGURATION_CONNECTOR_HH
 
-#include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/object.hh"
 
 CCE_BEGIN()
