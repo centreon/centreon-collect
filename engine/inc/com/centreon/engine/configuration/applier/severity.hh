@@ -20,8 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_SEVERITY_HH
 #define CCE_CONFIGURATION_APPLIER_SEVERITY_HH
 
-#include "configuration/state-generated.pb.h"
-#include "configuration/state.pb.h"
+#include "common/configuration/state-generated.pb.h"
+#include "common/configuration/state.pb.h"
 
 CCE_BEGIN()
 

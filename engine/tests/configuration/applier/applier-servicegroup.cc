@@ -25,11 +25,11 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/applier/servicegroup.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "configuration/command_helper.hh"
-#include "configuration/host_helper.hh"
-#include "configuration/service_helper.hh"
-#include "configuration/servicegroup_helper.hh"
-#include "configuration/state-generated.pb.h"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/service_helper.hh"
+#include "common/configuration/servicegroup_helper.hh"
+#include "common/configuration/state-generated.pb.h"
 #include "helper.hh"
 
 using namespace com::centreon;

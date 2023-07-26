@@ -25,10 +25,10 @@
 #include <com/centreon/engine/host.hh>
 #include <com/centreon/engine/service.hh>
 #include <com/centreon/engine/servicedependency.hh>
-#include "configuration/command_helper.hh"
-#include "configuration/host_helper.hh"
-#include "configuration/service_helper.hh"
-#include "configuration/servicedependency_helper.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/service_helper.hh"
+#include "common/configuration/servicedependency_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

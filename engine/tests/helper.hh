@@ -20,7 +20,7 @@
 #define CENTREON_ENGINE_TESTS_HELPER_HH_
 
 #include "com/centreon/engine/configuration/state.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 extern com::centreon::engine::configuration::state* config;
 extern com::centreon::engine::configuration::State pb_config;

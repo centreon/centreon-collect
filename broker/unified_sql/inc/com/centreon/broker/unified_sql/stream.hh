@@ -35,6 +35,7 @@
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
+#include "com/centreon/broker/unified_sql/poller_configurator.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 
@@ -277,6 +278,10 @@ class stream : public io::stream {
   /* When the check_queues is really stopped */
   bool _check_queues_stopped;
 
+  /* Should pollers send their configuration when they are connected (legacy
+   * mode) or should broker send them when the connection is established? */
+  std::unique_ptr<poller_configurator> _configurator;
+
   /* Stats */
   ConflictManagerStats* _stats;
 
@@ -335,7 +340,7 @@ class stream : public io::stream {
   database::mysql_stmt _pb_acknowledgement_insupdate;
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _event_handler_insupdate;
-  //database::mysql_stmt _flapping_status_insupdate;
+  // database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_dependency_insupdate;

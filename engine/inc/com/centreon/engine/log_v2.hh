@@ -19,8 +19,8 @@
 #define CCE_LOG_V2_HH
 
 #include "com/centreon/engine/configuration/state.hh"
+#include "common/configuration/state.pb.h"
 #include "log_v2_base.hh"
-#include "configuration/state.pb.h"
 
 CCE_BEGIN()
 class log_v2 : public log_v2_base {

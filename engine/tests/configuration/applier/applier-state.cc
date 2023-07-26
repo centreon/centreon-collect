@@ -26,9 +26,9 @@
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/globals.hh"
-#include "configuration/contact_helper.hh"
-#include "configuration/state-generated.pb.h"
-#include "configuration/state.pb.h"
+#include "common/configuration/contact_helper.hh"
+#include "common/configuration/state-generated.pb.h"
+#include "common/configuration/state.pb.h"
 #include "tests/helper.hh"
 
 using namespace com::centreon::engine;

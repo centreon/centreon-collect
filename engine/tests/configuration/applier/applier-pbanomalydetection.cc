@@ -30,10 +30,10 @@
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "configuration/anomalydetection_helper.hh"
-#include "configuration/command_helper.hh"
-#include "configuration/host_helper.hh"
-#include "configuration/service_helper.hh"
+#include "common/configuration/anomalydetection_helper.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/service_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

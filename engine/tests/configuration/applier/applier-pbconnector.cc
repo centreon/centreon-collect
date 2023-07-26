@@ -21,7 +21,7 @@
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/connector.hh"
-#include "configuration/connector_helper.hh"
+#include "common/configuration/connector_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
