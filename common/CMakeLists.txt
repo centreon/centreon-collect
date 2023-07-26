@@ -19,6 +19,8 @@
 # Global options.
 project("Centreon common" C CXX)
 
+add_subdirectory(configuration)
+
 # Set directories.
 set(INCLUDE_DIR "${PROJECT_SOURCE_DIR}/inc")
 set(SRC_DIR "${PROJECT_SOURCE_DIR}/src")
