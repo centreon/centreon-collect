@@ -924,7 +924,11 @@ def create_ba(name: str, typ: str, critical_impact: int, warning_impact: int, dt
 
 
 def add_boolean_kpi(id_ba: int, expression: str, impact_if: bool, critical_impact: int):
-    dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
+    return dbconf.add_boolean_kpi(id_ba, expression, impact_if, critical_impact)
+
+
+def update_boolean_rule(boolean_id: int, expression: str):
+    dbconf.update_boolean_rule(boolean_id, expression)
 
 
 def add_ba_kpi(id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):

@@ -33,14 +33,18 @@ namespace bam {
  *  OR between two bool_value.
  */
 class bool_or : public bool_binary_operator {
+  bool _boolean_value = false;
+
+ protected:
+  virtual void _update_state() override;
+
  public:
   bool_or() = default;
   ~bool_or() noexcept override = default;
   bool_or(const bool_or&) = delete;
   bool_or& operator=(const bool_or&) = delete;
   double value_hard() override;
-  double value_soft() override;
-  bool state_known() const;
+  bool boolean_value() const override;
 };
 }  // namespace bam
 
