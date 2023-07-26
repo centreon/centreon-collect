@@ -1,7 +1,8 @@
 #!/bin/sh
 
-deluser centreon centreon-broker || true
-deluser centreon-broker || true
-delgroup centreon-broker || true
-
-#DEBHELPER#
+case "$1" in
+  purge)
+    deluser centreon-broker || :
+    delgroup centreon-broker || :
+  ;;
+esac

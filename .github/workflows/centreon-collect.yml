@@ -44,7 +44,7 @@ jobs:
 
   unit-test:
     needs: [get-version]
-    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    if: ${{ needs.get-version.outputs.stability != 'stable' }}
     runs-on: [self-hosted, collect]
 
     strategy:
