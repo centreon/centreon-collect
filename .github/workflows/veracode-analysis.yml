@@ -119,7 +119,7 @@ jobs:
             echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
 
-          echo "[INFO] - Generating the tarball
+          echo "[INFO] - Generating the tarball"
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
       - name: Cache
