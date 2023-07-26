@@ -207,6 +207,13 @@ stream::stream(const database_config& dbcfg,
     dedicated_cfg.set_queries_per_transaction(1);
     dedicated_cfg.set_connections_count(nb_dedicated_connection);
     _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
+
+  const char* env = getenv("CENTENGINE_LEGACY");
+  bool legacy;
+  if (env && absl::SimpleAtob(env, &legacy)) {
+    // FIXME DBO: this path should not be hard coded...
+    _configurator = std::make_unique<poller_configurator>(
+        "/tmp/etc/centreon-engine/config0");
   }
 
   stats::center::instance().execute([stats = _stats,

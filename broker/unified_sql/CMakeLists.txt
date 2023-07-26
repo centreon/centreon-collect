@@ -17,12 +17,13 @@
 #
 
 # Global options.
-set(INC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/inc")
-set(SRC_DIR "${PROJECT_SOURCE_DIR}/unified_sql/src")
+set(INC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/inc")
 set(TEST_DIR "${PROJECT_SOURCE_DIR}/unified_sql/test")
-include_directories("${INC_DIR}" "${SRC_DIR}")
-include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
-include_directories("${CMAKE_SOURCE_DIR}")
+include_directories("${INC_DIR}" src)
+include_directories("${PROJECT_SOURCE_DIR}/neb/inc"
+                    "${PROJECT_SOURCE_DIR}/poller_conf/inc")
+include_directories("${CMAKE_SOURCE_DIR}"
+                    ${CMAKE_BINARY_DIR}/common/configuration)
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
 # Storage module.
@@ -33,30 +34,24 @@ set(UNIFIED_SQL
 add_library(
   "${UNIFIED_SQL}" SHARED
   # Sources.
-  ${SRC_DIR}/bulk_queries.cc
-  ${SRC_DIR}/bulk_bind.cc
-  ${SRC_DIR}/connector.cc
-  ${SRC_DIR}/factory.cc
-  ${SRC_DIR}/main.cc
-  ${SRC_DIR}/rebuilder.cc
-  ${SRC_DIR}/stored_timestamp.cc
-  ${SRC_DIR}/stream.cc
-  ${SRC_DIR}/stream_sql.cc
-  ${SRC_DIR}/stream_storage.cc
-  # Headers.
-  ${INC_DIR}/bulk_queries.hh
-  ${INC_DIR}/bulk_bind.hh
-  ${INC_DIR}/connector.hh
-  ${INC_DIR}/events.hh
-  ${INC_DIR}/factory.hh
-  ${INC_DIR}/internal.hh
-  ${INC_DIR}/rebuilder.hh
-  ${INC_DIR}/stored_timestamp.hh
-  ${INC_DIR}/stream.hh)
+  src/bulk_queries.cc
+  src/bulk_bind.cc
+  src/connector.cc
+  src/factory.cc
+  src/main.cc
+  src/rebuilder.cc
+  src/stored_timestamp.cc
+  src/stream.cc
+  src/stream_sql.cc
+  src/stream_storage.cc
+  src/poller_configurator.cc
+#  ${proto_rebuild_message}
+#  ${proto_remove_graph_message})
+
 set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
                                                             "-fPIC")
 add_dependencies("${UNIFIED_SQL}" target_rebuild_message
-                 target_remove_graph_message target_neb)
+                 target_remove_graph_message target_neb ${POLLER_CONF})
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(
   ${UNIFIED_SQL}

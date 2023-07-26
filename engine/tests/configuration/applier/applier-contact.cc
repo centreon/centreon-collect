@@ -27,12 +27,12 @@
 #include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
-#include "configuration/command_helper.hh"
-#include "configuration/connector_helper.hh"
-#include "configuration/contact_helper.hh"
-#include "configuration/contactgroup_helper.hh"
-#include "configuration/message_helper.hh"
-#include "configuration/timeperiod_helper.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/connector_helper.hh"
+#include "common/configuration/contact_helper.hh"
+#include "common/configuration/contactgroup_helper.hh"
+#include "common/configuration/message_helper.hh"
+#include "common/configuration/timeperiod_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

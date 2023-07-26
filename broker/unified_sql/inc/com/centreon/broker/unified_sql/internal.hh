@@ -26,6 +26,7 @@
 #include "bbdo/storage.pb.h"
 #include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
+#include "common/configuration/state.pb.h"
 
 CCB_BEGIN()
 
@@ -62,7 +63,9 @@ using pb_index_mapping =
 using pb_metric_mapping =
     io::protobuf<MetricMapping,
                  make_type(io::storage, storage::de_pb_metric_mapping)>;
-
+using poller_config =
+    io::protobuf<com::centreon::engine::configuration::State,
+                 make_type(io::storage, storage::de_poller_config)>;
 }  // namespace storage
 CCB_END()
 

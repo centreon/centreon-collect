@@ -387,8 +387,7 @@ bool stream::_is_valid_poller(uint32_t instance_id) {
   if (_cache_deleted_instance_id.contains(instance_id)) {
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "unified sql: discarding some event related to a deleted poller "
-        "({})",
+        "unified sql: discarding some event related to a deleted poller ({})",
         instance_id);
     deleted = true;
   } else

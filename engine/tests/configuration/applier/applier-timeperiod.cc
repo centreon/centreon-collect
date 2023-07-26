@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/timeperiod.hh"
-#include "configuration/timeperiod_helper.hh"
+#include "common/configuration/timeperiod_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

@@ -32,11 +32,11 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "configuration/contact_helper.hh"
-#include "configuration/contactgroup_helper.hh"
-#include "configuration/host_helper.hh"
-#include "configuration/hostdependency_helper.hh"
-#include "configuration/service_helper.hh"
+#include "common/configuration/contact_helper.hh"
+#include "common/configuration/contactgroup_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/hostdependency_helper.hh"
+#include "common/configuration/service_helper.hh"
 
 using namespace com::centreon::engine;
 
