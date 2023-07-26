@@ -20,6 +20,7 @@
 #ifndef CCE_STRING_HH
 #define CCE_STRING_HH
 
+#include <absl/strings/string_view.h>
 #include <cerrno>
 #include <cstring>
 #include <fstream>

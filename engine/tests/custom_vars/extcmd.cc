@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <com/centreon/engine/macros.hh>
 #include "../timeperiod/utils.hh"
+#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"

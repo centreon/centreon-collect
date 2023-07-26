@@ -514,12 +514,11 @@ target_link_libraries(
   ${SOCKET_LIBRARIES}
   centreon_clib
   ${fmt_LIBRARIES}
-  CONAN_PKG::spdlog
-  pb_configuration_lib)
+  CONAN_PKG::spdlog)
 
 # centengine target.
-add_executable("centengine" "${SRC_DIR}/main.cc")
-set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
+add_executable(centengine "${SRC_DIR}/main.cc")
+set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
@@ -531,6 +530,7 @@ target_link_libraries(
   "-Wl,-whole-archive"
   enginerpc
   cce_core
+  engine_config
   "-Wl,-no-whole-archive"
   -L${CONAN_LIB_DIRS_GRPC}
   "-Wl,--whole-archive"

@@ -19,6 +19,7 @@
 
 #ifndef CCE_CONFIGURATION_POINT_3D_HH
 #define CCE_CONFIGURATION_POINT_3D_HH
+#include "com/centreon/engine/namespace.hh"
 
 namespace com::centreon::engine {
 

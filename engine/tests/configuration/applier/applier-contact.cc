@@ -18,6 +18,7 @@
  */
 
 #include <gtest/gtest.h>
+#include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/connector.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
