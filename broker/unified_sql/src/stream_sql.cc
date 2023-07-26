@@ -377,8 +377,7 @@ bool stream::_is_valid_poller(uint32_t instance_id) {
   if (_cache_deleted_instance_id.contains(instance_id)) {
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
-        "unified sql: discarding some event related to a deleted poller "
-        "({})",
+        "unified sql: discarding some event related to a deleted poller ({})",
         instance_id);
     deleted = true;
   } else
@@ -2337,33 +2336,40 @@ void stream::_process_pb_instance(const std::shared_ptr<io::data>& d) {
       "SQL: processing poller event (id: {}, name: {}, running: {})",
       inst.instance_id(), inst.name(), inst.running() ? "yes" : "no");
 
-  // Clean tables.
-  _clean_tables(inst.instance_id());
+  if (_configurator) {
+    log_v2::sql()->info(
+        "SQL: Configurator is updating the database with the poller "
+        "configuration");
 
-  // Processing.
-  if (_is_valid_poller(inst.instance_id())) {
-    // Prepare queries.
-    if (!_pb_instance_insupdate.prepared()) {
-      query_preparator::event_pb_unique unique{
-          {6, "instance_id", io::protobuf_base::invalid_on_zero, 0}};
-      query_preparator qp(neb::pb_instance::static_type(), unique);
-      _pb_instance_insupdate = qp.prepare_insert_or_update_table(
-          _mysql, "instances ",
-          {{2, "engine", 0, get_instances_col_size(instances_engine)},
-           {3, "running", 0, 0},
-           {4, "name", 0, get_instances_col_size(instances_name)},
-           {5, "pid", io::protobuf_base::invalid_on_zero, 0},
-           {6, "instance_id", io::protobuf_base::invalid_on_zero, 0},
-           {7, "end_time", 0, 0},
-           {8, "start_time", 0, 0},
-           {9, "version", 0, get_instances_col_size(instances_version)}});
+  } else {
+    // Clean tables.
+    _clean_tables(inst.instance_id());
+
+    // Processing.
+    if (_is_valid_poller(inst.instance_id())) {
+      // Prepare queries.
+      if (!_pb_instance_insupdate.prepared()) {
+        query_preparator::event_pb_unique unique{
+            {6, "instance_id", io::protobuf_base::invalid_on_zero, 0}};
+        query_preparator qp(neb::pb_instance::static_type(), unique);
+        _pb_instance_insupdate = qp.prepare_insert_or_update_table(
+            _mysql, "instances ",
+            {{2, "engine", 0, get_instances_col_size(instances_engine)},
+             {3, "running", 0, 0},
+             {4, "name", 0, get_instances_col_size(instances_name)},
+             {5, "pid", io::protobuf_base::invalid_on_zero, 0},
+             {6, "instance_id", io::protobuf_base::invalid_on_zero, 0},
+             {7, "end_time", 0, 0},
+             {8, "start_time", 0, 0},
+             {9, "version", 0, get_instances_col_size(instances_version)}});
+      }
+
+      // Process object.
+      _pb_instance_insupdate << inst_obj;
+      _mysql.run_statement(_pb_instance_insupdate,
+                           database::mysql_error::store_poller, conn);
+      _add_action(conn, actions::instances);
     }
-
-    // Process object.
-    _pb_instance_insupdate << inst_obj;
-    _mysql.run_statement(_pb_instance_insupdate,
-                         database::mysql_error::store_poller, conn);
-    _add_action(conn, actions::instances);
   }
 }
 

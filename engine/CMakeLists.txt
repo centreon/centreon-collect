@@ -47,8 +47,9 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
-include_directories("${INC_DIR}")
-include_directories("${INC_DIR}/compatibility")
+include_directories(
+  "${INC_DIR}" "${INC_DIR}/compatibility" # ${CMAKE_BINARY_DIR}
+)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 

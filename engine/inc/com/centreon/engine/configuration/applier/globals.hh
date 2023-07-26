@@ -21,7 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_GLOBALS_HH
 
 #include "com/centreon/engine/configuration/state.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 CCE_BEGIN()
 

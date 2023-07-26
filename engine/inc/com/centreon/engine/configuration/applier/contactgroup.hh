@@ -23,7 +23,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include "com/centreon/engine/configuration/contactgroup.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 CCE_BEGIN()
 

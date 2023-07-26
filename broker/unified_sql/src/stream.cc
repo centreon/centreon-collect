@@ -158,6 +158,14 @@ stream::stream(const database_config& dbcfg,
            "VALUES(value)"),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
+  const char* env = getenv("CENTENGINE_LEGACY");
+  bool legacy;
+  if (env && absl::SimpleAtob(env, &legacy)) {
+    // FIXME DBO: this path should not be hard coded...
+    _configurator = std::make_unique<poller_configurator>(
+        "/tmp/etc/centreon-engine/config0");
+  }
+
   stats::center::instance().execute([stats = _stats,
                                      loop_timeout = _loop_timeout,
                                      max_queries = _max_pending_queries] {

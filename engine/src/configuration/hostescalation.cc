@@ -22,7 +22,7 @@
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
-#include "configuration/hostescalation_helper.hh"
+#include "common/configuration/hostescalation_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
