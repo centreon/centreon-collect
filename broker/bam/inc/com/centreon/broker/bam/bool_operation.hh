@@ -49,7 +49,7 @@ class bool_operation : public bool_binary_operator {
   bool_operation(const bool_operation&) = delete;
   bool_operation& operator=(const bool_operation&) = delete;
   double value_hard() override;
-  double value_soft() override;
+  bool boolean_value() const override;
   bool state_known() const override;
 };
 }  // namespace bam

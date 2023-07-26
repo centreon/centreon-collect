@@ -37,10 +37,10 @@ double bool_less_than::value_hard() {
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean
  *
- *  @return Evaluation of the expression with soft values.
+ * @return True or false.
  */
-double bool_less_than::value_soft() {
-  return _strict ? _left_soft < _right_soft : _left_soft <= _right_soft;
+bool bool_less_than::boolean_value() const {
+  return _strict ? _left_hard < _right_hard : _left_hard <= _right_hard;
 }

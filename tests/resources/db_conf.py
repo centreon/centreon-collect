@@ -301,6 +301,22 @@ class DbConf:
                     f"INSERT INTO mod_bam_kpi (boolean_id,id_ba,drop_warning,drop_critical,drop_unknown,config_type) VALUES ({boolean_id},{id_ba},50,{critical_impact},75,'1')")
 
             connection.commit()
+            return boolean_id
+
+    def update_boolean_rule(self, boolean_id: int, expression: str):
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"UPDATE mod_bam_boolean SET expression='{expression}' WHERE boolean_id={boolean_id}")
+
+            connection.commit()
 
     def add_ba_kpi(self, id_ba_src: int, id_ba_dest: int, critical_impact: int, warning_impact: int, unknown_impact: int):
         connection = pymysql.connect(host=DB_HOST,
