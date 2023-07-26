@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_OBJECT_HH
 #define CCE_CONFIGURATION_OBJECT_HH
 
+#include <memory>
 #include "com/centreon/engine/string.hh"
 
 typedef std::list<std::string> list_string;

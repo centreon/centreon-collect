@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_DIFF_STATE_HH
 #define CCE_CONFIGURATION_DIFF_STATE_HH
 #include <google/protobuf/util/message_differencer.h>
+#include "com/centreon/engine/namespace.hh"
 #include "configuration/state.pb.h"
 
 CCE_BEGIN()

@@ -27,6 +27,7 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/hostescalation.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
 
 using namespace com::centreon;
