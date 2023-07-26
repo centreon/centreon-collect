@@ -23,6 +23,9 @@
 #ifndef CCE_COMPATIBILITY_CIRCULAR_BUFFER_HH
 #define CCE_COMPATIBILITY_CIRCULAR_BUFFER_HH
 
+#include <boost/circular_buffer.hpp>
+#include <boost/optional.hpp>
+
 template <class T>
 class circular_buffer : protected boost::circular_buffer<T> {
   mutable std::mutex _protect;
