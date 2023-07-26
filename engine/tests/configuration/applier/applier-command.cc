@@ -28,10 +28,10 @@
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
-#include "configuration/command_helper.hh"
-#include "configuration/connector_helper.hh"
-#include "configuration/contact_helper.hh"
-#include "configuration/host_helper.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/connector_helper.hh"
+#include "common/configuration/contact_helper.hh"
+#include "common/configuration/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

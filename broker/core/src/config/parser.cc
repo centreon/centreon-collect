@@ -483,6 +483,22 @@ state parser::parse(std::string const& file) {
             log_v2::config()->warn(
                 "config parser: no exporters defined in the stats_exporter "
                 "configuration");
+        } else if (it.key() == "poller_config") {
+          std::string path("/etc/centreon-engine");
+          if (!it.value().is_object())
+            throw msg_fmt(
+                "config parser: cannot parse key 'poller_config': value type "
+                "must be an object");
+          if (it.value().contains("path")) {
+            if (it.value()["path"].is_string())
+              path = it.value()["path"].get<std::string>();
+            else
+              throw msg_fmt(
+                  "config parser: in 'poller_config' object, 'path' must be a "
+                  "string as it contains the directory with the poller "
+                  "configuration");
+          }
+          retval.mut_poller_conf().path = std::move(path);
         } else if (it.key() == "logger") {
           log_v2::config()->warn("logger object is deprecated on 21.10");
         } else {

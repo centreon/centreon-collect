@@ -27,8 +27,8 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "configuration/host_helper.hh"
-#include "configuration/service_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/service_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

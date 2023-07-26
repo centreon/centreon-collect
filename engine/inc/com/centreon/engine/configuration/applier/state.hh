@@ -25,7 +25,7 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/timeperiod.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 CCE_BEGIN()
 

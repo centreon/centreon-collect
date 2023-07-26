@@ -23,8 +23,8 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
-#include "configuration/contact_helper.hh"
-#include "configuration/contactgroup_helper.hh"
+#include "common/configuration/contact_helper.hh"
+#include "common/configuration/contactgroup_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

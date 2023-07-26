@@ -186,11 +186,12 @@ set(protobuf_MODULE_COMPATIBLE True)
 add_definitions(${CONAN_DEFINES_SPDLOG})
 
 include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
-                    ${CMAKE_SOURCE_DIR}/clib/inc)
+                    ${CMAKE_SOURCE_DIR}/clib/inc ${CMAKE_BINARY_DIR})
 
 add_subdirectory(bbdo)
 add_subdirectory(common)
 add_subdirectory(configuration)
+
 add_subdirectory(broker)
 add_subdirectory(clib)
 add_subdirectory(engine)

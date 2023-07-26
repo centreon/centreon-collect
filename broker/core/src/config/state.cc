@@ -460,3 +460,11 @@ const state::stats_exporter_conf& state::get_stats_exporter() const {
 state::stats_exporter_conf& state::mut_stats_exporter() {
   return _stats_exporter_conf;
 }
+
+const state::poller_conf& state::get_poller_conf() const {
+  return _poller_conf;
+}
+
+state::poller_conf& state::mut_poller_conf() {
+  return _poller_conf;
+}

@@ -48,8 +48,16 @@ const char* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", nullptr};
-  return retval;
+  constexpr static const char* retval_legacy[]{"10-neb.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", "20-poller_conf.so",
+                                        nullptr};
+  const char* env = getenv("CENTENGINE_LEGACY");
+  bool legacy;
+  if (env && absl::SimpleAtob(env, &legacy)) {
+    if (!legacy)
+      return retval;
+  }
+  return retval_legacy;
 }
 
 /**
