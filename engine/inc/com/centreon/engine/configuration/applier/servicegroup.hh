@@ -22,8 +22,8 @@
 
 #include <absl/container/flat_hash_set.h>
 #include "com/centreon/engine/configuration/servicegroup.hh"
-#include "configuration/servicegroup_helper.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/servicegroup_helper.hh"
+#include "common/configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -62,8 +62,7 @@ class servicegroup {
       configuration::Servicegroup* sg_conf,
       absl::flat_hash_set<absl::string_view>& resolved,
       const absl::flat_hash_map<absl::string_view,
-                                configuration::Servicegroup*>&
-          sg_by_name);
+                                configuration::Servicegroup*>& sg_by_name);
 
   resolved_set _resolved;
 };

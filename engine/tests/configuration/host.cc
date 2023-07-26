@@ -20,7 +20,7 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/engine/exceptions/error.hh"
-#include "configuration/host_helper.hh"
+#include "common/configuration/host_helper.hh"
 
 using namespace com::centreon::engine;
 

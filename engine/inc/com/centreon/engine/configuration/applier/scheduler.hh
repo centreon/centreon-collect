@@ -24,8 +24,8 @@
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "configuration/state-generated.pb.h"
-#include "configuration/state.pb.h"
+#include "common/configuration/state-generated.pb.h"
+#include "common/configuration/state.pb.h"
 
 // Forward declaration.
 namespace com::centreon::engine {

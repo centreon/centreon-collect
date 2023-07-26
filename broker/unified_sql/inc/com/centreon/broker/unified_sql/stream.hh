@@ -35,6 +35,7 @@
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
+#include "com/centreon/broker/unified_sql/poller_configurator.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 
@@ -277,6 +278,10 @@ class stream : public io::stream {
   std::atomic_bool _stop_check_queues;
   /* When the check_queues is really stopped */
   bool _check_queues_stopped;
+
+  /* Should pollers send their configuration when they are connected (legacy
+   * mode) or should broker send them when the connection is established? */
+  std::unique_ptr<poller_configurator> _configurator;
 
   /* Stats */
   ConflictManagerStats* _stats;

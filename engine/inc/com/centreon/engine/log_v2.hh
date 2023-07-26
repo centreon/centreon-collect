@@ -20,7 +20,7 @@
 
 #include <boost/asio.hpp>
 #include "com/centreon/engine/configuration/state.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 #include "log_v2_base.hh"
 
 namespace asio = boost::asio;

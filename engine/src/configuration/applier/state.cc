@@ -59,7 +59,7 @@
 #include "com/centreon/engine/version.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
-#include "configuration/state-generated.pb.h"
+#include "common/configuration/state-generated.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

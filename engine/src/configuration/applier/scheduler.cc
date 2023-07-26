@@ -29,8 +29,8 @@
 #include "com/centreon/engine/timezone_locker.hh"
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/logging/logger.hh"
-#include "configuration/state-generated.pb.h"
-#include "configuration/state.pb.h"
+#include "common/configuration/state-generated.pb.h"
+#include "common/configuration/state.pb.h"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;

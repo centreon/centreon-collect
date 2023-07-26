@@ -42,10 +42,10 @@
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/timeperiod.hh"
-#include "configuration/contact_helper.hh"
-#include "configuration/host_helper.hh"
-#include "configuration/service_helper.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/contact_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/service_helper.hh"
+#include "common/configuration/state.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;

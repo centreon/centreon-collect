@@ -20,8 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 #define CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
 
-#include "configuration/state.pb.h"
 #include "com/centreon/engine/configuration/hostgroup.hh"
+#include "common/configuration/state.pb.h"
 
 namespace com::centreon::engine {
 

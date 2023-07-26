@@ -19,7 +19,7 @@
 #include <gtest/gtest.h>
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/tag.hh"
-#include "configuration/tag_helper.hh"
+#include "common/configuration/tag_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

@@ -31,7 +31,7 @@
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 #define CONF_LEGACY
 #define CONF_PROTO

@@ -40,7 +40,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
-#include "configuration/hostdependency_helper.hh"
+#include "common/configuration/hostdependency_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

@@ -25,7 +25,7 @@
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
-#include "configuration/state-generated.pb.h"
+#include "common/configuration/state-generated.pb.h"
 
 using namespace com::centreon::engine::configuration;
 

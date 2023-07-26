@@ -20,7 +20,7 @@
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
 
-#include <configuration/state.pb.h>
+#include <common/configuration/state.pb.h>
 #include <fstream>
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
@@ -35,7 +35,7 @@
 #include "com/centreon/engine/configuration/serviceescalation.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "configuration/message_helper.hh"
+#include "common/configuration/message_helper.hh"
 
 namespace com::centreon::engine {
 

@@ -73,7 +73,6 @@ static void send_custom_variables_list(
       if (cit->second.is_sent()) {
         // Fill callback struct.
         nebstruct_custom_variable_data nscvd;
-        memset(&nscvd, 0, sizeof(nscvd));
         nscvd.type = NEBTYPE_HOSTCUSTOMVARIABLE_ADD;
         nscvd.timestamp.tv_sec = time(nullptr);
         nscvd.var_name = const_cast<char*>(name.c_str());
@@ -100,11 +99,10 @@ static void send_custom_variables_list(
       if (cit->second.is_sent()) {
         // Fill callback struct.
         nebstruct_custom_variable_data nscvd;
-        memset(&nscvd, 0, sizeof(nscvd));
         nscvd.type = NEBTYPE_SERVICECUSTOMVARIABLE_ADD;
         nscvd.timestamp.tv_sec = time(nullptr);
-        nscvd.var_name = const_cast<char*>(name.c_str());
-        nscvd.var_value = const_cast<char*>(cit->second.value().c_str());
+        nscvd.var_name = name;
+        nscvd.var_value = cit->second.value();
         nscvd.object_ptr = it->second.get();
 
         // Callback.

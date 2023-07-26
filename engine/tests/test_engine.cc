@@ -19,17 +19,17 @@
 
 #include <gtest/gtest.h>
 
-#include "configuration/anomalydetection_helper.hh"
+#include "common/configuration/anomalydetection_helper.hh"
 #include "test_engine.hh"
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "configuration/command_helper.hh"
-#include "configuration/hostdependency_helper.hh"
-#include "configuration/state-generated.pb.h"
-#include "configuration/timeperiod_helper.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/hostdependency_helper.hh"
+#include "common/configuration/state-generated.pb.h"
+#include "common/configuration/timeperiod_helper.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;

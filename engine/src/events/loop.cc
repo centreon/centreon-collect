@@ -33,7 +33,7 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/logging/engine.hh"
-#include "configuration/state_helper.hh"
+#include "common/configuration/state_helper.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::events;

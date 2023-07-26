@@ -21,7 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
 #include "com/centreon/engine/timeperiod.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 // Forward declaration.
 namespace com::centreon::engine {

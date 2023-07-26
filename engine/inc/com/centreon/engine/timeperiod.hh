@@ -21,7 +21,7 @@
 #define CCE_OBJECTS_TIMEPERIOD_HH
 
 #include "com/centreon/engine/daterange.hh"
-#include "configuration/state-generated.pb.h"
+#include "common/configuration/state-generated.pb.h"
 
 /* Forward declaration. */
 namespace com::centreon::engine {

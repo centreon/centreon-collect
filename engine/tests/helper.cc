@@ -23,7 +23,7 @@
 #include <com/centreon/engine/configuration/applier/logging.hh>
 #include <com/centreon/engine/configuration/applier/state.hh>
 #include "com/centreon/engine/log_v2.hh"
-#include "configuration/state_helper.hh"
+#include "common/configuration/state_helper.hh"
 
 using namespace com::centreon::engine;
 

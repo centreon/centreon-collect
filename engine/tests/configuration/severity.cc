@@ -20,7 +20,7 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include <gtest/gtest.h>
 
-#include "configuration/severity_helper.hh"
+#include "common/configuration/severity_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

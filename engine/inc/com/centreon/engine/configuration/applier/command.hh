@@ -20,7 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_COMMAND_HH
 #define CCE_CONFIGURATION_APPLIER_COMMAND_HH
 
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 namespace com::centreon::engine {
 

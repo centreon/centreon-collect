@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "configuration/service_helper.hh"
+#include "common/configuration/service_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
