@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Compile cpp sources
+      - name: Compiling Cpp sources
         run: |
           rm -rf build
           mkdir build
@@ -80,8 +80,26 @@ jobs:
 
           sudo ninja
 
-      - name: Removing files to exclude
+      - name: debug after compilation status
         run: |
+          echo "[DEBUG] - current location ?"
+          pwd
+          echo "[DEBUG] - Current folder size ?"
+          du -sh ./build/* | sort -h
+          echo "[DEBUG] - Build / Bin folder size ?"
+          du -sh ./build/bin/* | sort -h
+          echo "[DEBUG] - Build / Lib folder size ?"
+          du -sh ./build/lib/* | sort -h
+          echo "[DEBUG] - Build / Broker module folder size ?"
+          du -sh ./build/broker/* | sort -h
+          echo "[DEBUG] - Current location files ?"
+          ls -la
+
+      - name: Binary preparation
+        run: |
+          echo "[INFO] - Keeping only compiled files"
+          find ./build -type f -not \( -name "*.so" -o -name "*.h" -o -name "*.cc" -o -name "*.hpp" \) -delete
+
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
             for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
@@ -94,35 +112,18 @@ jobs:
               elif [[ -z "$LINE" ]]; then
                 echo "[INFO] - empty directive. Skipping this line"
               else
-                echo "[INFO] - target to exclude not found. Skipping: '$LINE'"
+                echo "[WARN] - target to exclude not found. Skipping: '$LINE'"
               fi
             done
           else
-            echo "[INFO] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+            echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
 
-      - name: debug after compilation status
-        run: |
-          echo "[DEBUG] - current location ?"
-          pwd
-          echo "[DEBUG] - Current folder size ?"
-          du -sh ./* | sort -h
-          echo "[DEBUG] - Build / Bin folder size ?"
-          du -sh ./bin/* | sort -h
-          echo "[DEBUG] - Build / Lib folder size ?"
-          du -sh ./lib/* | sort -h
-          echo "[DEBUG] - Build / Broker module folder size ?"
-          du -sh ./broker/* | sort -h
-          echo "[DEBUG] - Current location files ?"
-          ls -la
-
-      - name: Analysis preparation
-        run: |
-          # Keep only .so files and prepare the tarball
-          find ./build -type f -not -name "*.so" -delete
+          echo "[INFO] - Generating the tarball
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
-      - uses: actions/cache/save@v3
+      - name: Cache
+        uses: actions/cache/save@v3
         with:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
