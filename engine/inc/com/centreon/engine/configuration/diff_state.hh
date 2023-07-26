@@ -22,9 +22,7 @@
 #include <google/protobuf/util/message_differencer.h>
 #include "common/configuration/state.pb.h"
 
-CCE_BEGIN()
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 /**
  *  @class diff_state diff_state.hh
  *
@@ -64,7 +62,6 @@ class diff_state
           google::protobuf::util::MessageDifferencer::SpecificField>&) override;
   const DiffState& report() const;
 };
-}  // namespace configuration
-CCE_END()
+}  // namespace com::centreon::engine::configuration
 
 #endif /* !CCE_CONFIGURATION_DIFF_STATE_HH */
