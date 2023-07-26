@@ -19,6 +19,8 @@
 #ifndef CCE_COMMANDS_RESULT_HH
 #define CCE_COMMANDS_RESULT_HH
 
+#include <fmt/ostream.h>
+#include <spdlog/spdlog.h>
 #include <string>
 
 #include "com/centreon/engine/namespace.hh"
