@@ -21,18 +21,15 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic
 
@@ -122,7 +119,7 @@ static unsigned short const default_flap_detection_options(host::up |
                                                            host::unreachable);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned short const default_initial_state(engine::host::state_up);
+static unsigned short const default_initial_state(HostStatus::state_up);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
@@ -434,10 +431,10 @@ bool host::operator<(host const& other) const noexcept {
  */
 void host::check_validity() const {
   if (_host_name.empty())
-    throw engine_error() << "Host has no name (property 'host_name')";
+    throw exceptions::msg_fmt("Host has no name (property 'host_name')");
   if (_address.empty())
-    throw engine_error() << "Host '" << _host_name
-                         << "' has no address (property 'address')";
+    throw exceptions::msg_fmt("Host '{}' has no address (property 'address')",
+                              _host_name);
 }
 
 /**
@@ -456,7 +453,8 @@ host::key_type host::key() const noexcept {
  */
 void host::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge host with '" << obj.type() << "'";
+    throw exceptions::msg_fmt("Cannot merge host with object of type '{}'",
+                              static_cast<uint32_t>(obj.type()));
   host const& tmpl(static_cast<host const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -486,7 +484,6 @@ void host::merge(object const& obj) {
   MRG_DEFAULT(_host_name);
   MRG_DEFAULT(_icon_image);
   MRG_DEFAULT(_icon_image_alt);
-  MRG_OPTION(_initial_state);
   MRG_OPTION(_low_flap_threshold);
   MRG_OPTION(_max_check_attempts);
   MRG_DEFAULT(_notes);
@@ -1270,9 +1267,6 @@ bool host::_set_event_handler_enabled(bool value) {
  */
 bool host::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: host failure_prediction_enabled is deprecated"
-      << " This option will not be supported in 20.04.";
   log_v2::config()->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
@@ -1289,14 +1283,11 @@ bool host::_set_failure_prediction_enabled(bool value) {
  */
 bool host::_set_failure_prediction_options(std::string const& value) {
   (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: service failure_prediction_options is deprecated"
-      << " This option will not be supported in 20.04.";
   log_v2::config()->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
   ++config_warnings;
-  return (true);
+  return true;
 }
 
 /**
@@ -1449,11 +1440,11 @@ bool host::_set_initial_state(std::string const& value) {
   std::string data(value);
   string::trim(data);
   if (data == "o" || data == "up")
-    _initial_state = engine::host::state_up;
+    _initial_state = HostStatus::state_up;
   else if (data == "d" || data == "down")
-    _initial_state = engine::host::state_down;
+    _initial_state = HostStatus::state_down;
   else if (data == "u" || data == "unreachable")
-    _initial_state = engine::host::state_unreachable;
+    _initial_state = HostStatus::state_unreachable;
   else
     return false;
   return true;

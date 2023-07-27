@@ -21,9 +21,9 @@
 #include <absl/container/flat_hash_set.h>
 #include <memory>
 #include "absl/strings/numbers.h"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "common/configuration/anomalydetection_helper.hh"
 #include "common/configuration/command_helper.hh"
@@ -47,6 +47,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::io;
+using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 using Descriptor = ::google::protobuf::Descriptor;
 using FieldDescriptor = ::google::protobuf::FieldDescriptor;
@@ -170,15 +171,12 @@ void parser::_add_object(object_ptr obj) {
 void parser::_add_template(object_ptr obj) {
   std::string const& name(obj->name());
   if (name.empty())
-    throw engine_error() << "Parsing of " << obj->type_name() << " failed "
-                         << _get_file_info(obj.get())
-                         << ": Property 'name' "
-                            "is missing";
+    throw msg_fmt("Parsing of {} failed {}: Property 'name' is missing",
+                  obj->type_name(), _get_file_info(obj.get()));
   map_object& tmpl(_templates[obj->type()]);
   if (tmpl.find(name) != tmpl.end())
-    throw engine_error() << "Parsing of " << obj->type_name() << " failed "
-                         << _get_file_info(obj.get()) << ": " << name
-                         << " already exists";
+    throw msg_fmt("Parsing of {} failed {}: '{}' already exists",
+                  obj->type_name(), _get_file_info(obj.get()), name);
   tmpl[name] = obj;
 }
 
@@ -196,8 +194,8 @@ file_info const& parser::_get_file_info(object* obj) const {
     if (it != _objects_info.end())
       return it->second;
   }
-  throw engine_error() << "Parsing failed: Object not "
-                          "found into the file information cache";
+  throw msg_fmt(
+      "Parsing failed: Object not found into the file information cache");
 }
 
 /**
@@ -572,7 +570,7 @@ void parser::_parse_global_configuration(const std::string& path,
     in.read(&content[0], content.size());
     in.close();
   } else
-    throw engine_error() << fmt::format(
+    throw msg_fmt(
         "Parsing of global configuration failed: can't open file '{}': {}",
         path, strerror(errno));
 
@@ -631,7 +629,7 @@ void parser::_parse_object_definitions(const std::string& path,
     in.read(&content[0], content.size());
     in.close();
   } else
-    throw engine_error() << fmt::format(
+    throw msg_fmt(
         "Parsing of object definition failed: can't open file '{}': {}", path,
         strerror(errno));
 
@@ -682,9 +680,9 @@ void parser::_parse_object_definitions(const std::string& path,
             pb_map_object& tmpl = _pb_templates[otype];
             auto it = tmpl.find(obj.name());
             if (it != tmpl.end())
-              throw engine_error() << fmt::format(
-                  "Parsing of '{}' failed {}: {} already exists", type,
-                  "file_info" /*_get_file_info(obj.get()) */, obj.name());
+              throw msg_fmt("Parsing of '{}' failed {}: {} already exists",
+                            type, "file_info" /*_get_file_info(obj.get()) */,
+                            obj.name());
             if (!obj.register_())
               tmpl[obj.name()] = std::move(msg);
             else {
@@ -787,7 +785,7 @@ void parser::_parse_object_definitions(const std::string& path,
           /* Classical part */
           if (!set(msg_helper, key, l)) {
             if (!msg_helper->insert_customvariable(key, l))
-              throw engine_error() << fmt::format(
+              throw msg_fmt(
                   "Unable to parse '{}' key with value '{}' in message of type "
                   "'{}'",
                   key, l, type);
@@ -796,14 +794,14 @@ void parser::_parse_object_definitions(const std::string& path,
       }
     } else {
       if (!absl::StartsWith(l, "define") || !std::isspace(l[6]))
-        throw engine_error() << fmt::format(
+        throw msg_fmt(
             "Parsing of object definition failed in file '{}' at line {}: "
             "Unexpected start definition",
             path, current_line);
       /* Let's remove the first 6 characters ("define") */
       l = absl::StripLeadingAsciiWhitespace(l.substr(6));
       if (l.empty() || l[l.size() - 1] != '{')
-        throw engine_error() << fmt::format(
+        throw msg_fmt(
             "Parsing of object definition failed in file '{}' at line {}; "
             "unexpected start definition",
             path, current_line);
@@ -893,9 +891,8 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
     in.read(&content[0], content.size());
     in.close();
   } else
-    throw engine_error() << fmt::format(
-        "Parsing of resource file failed: can't open file '{}': {}", path,
-        strerror(errno));
+    throw msg_fmt("Parsing of resource file failed: can't open file '{}': {}",
+                  path, strerror(errno));
 
   auto tab{absl::StrSplit(content, '\n')};
   int current_line = 1;
@@ -913,7 +910,7 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
             ->mutable_users())[std::string(p.first.data(), p.first.size())] =
           std::string(p.second.data(), p.second.size());
     } else
-      throw engine_error() << fmt::format("Invalid user key '{}'", p.first);
+      throw msg_fmt("Invalid user key '{}'", p.first);
   }
 }
 
@@ -923,15 +920,12 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
  *  @param[in] path The configuration path.
  */
 void parser::_parse_global_configuration(const std::string& path) {
-  engine_logger(logging::log_info_message, logging::most)
-      << "Reading main configuration file '" << path << "'.";
   log_v2::config()->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
-    throw engine_error()
-        << "Parsing of global configuration failed: can't open file '" << path
-        << "'";
+    throw msg_fmt(
+        "Parsing of global configuration failed: can't open file '{}'", path);
 
   _config->cfg_main(path);
 
@@ -943,10 +937,10 @@ void parser::_parse_global_configuration(const std::string& path) {
     char const* key;
     char const* value;
     if (!string::split(input, &key, &value, '=') || !_config->set(key, value))
-      throw engine_error() << "Parsing of global "
-                              "configuration failed in file '"
-                           << path << "' on line " << _current_line
-                           << ": Invalid line '" << input << "'";
+      throw msg_fmt(
+          "Parsing of global configuration failed in file '{}' on line {}: "
+          "Invalid line '{}'",
+          path, _current_line, input);
   }
 }
 
@@ -956,14 +950,12 @@ void parser::_parse_global_configuration(const std::string& path) {
  *  @param[in] path The object definitions path.
  */
 void parser::_parse_object_definitions(std::string const& path) {
-  engine_logger(logging::log_info_message, logging::basic)
-      << "Processing object config file '" << path << "'";
   log_v2::config()->info("Processing object config file '{}'", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
-    throw engine_error() << "Parsing of object definition failed: "
-                         << "can't open file '" << path << "'";
+    throw msg_fmt("Parsing of object definition failed: can't open file '{}'",
+                  path);
 
   _current_line = 0;
   _current_path = path;
@@ -984,24 +976,24 @@ void parser::_parse_object_definitions(std::string const& path) {
     // Check if is a valid object.
     if (obj == nullptr) {
       if (input.find("define") || !std::isspace(input[6]))
-        throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unexpected start definition";
+        throw msg_fmt(
+            "Parsing of object definition failed "
+            "in file '{}' on line {}: Unexpected start definition",
+            _current_path, _current_line);
       string::trim_left(input.erase(0, 6));
       std::size_t last(input.size() - 1);
       if (input.empty() || input[last] != '{')
-        throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unexpected start definition";
+        throw msg_fmt(
+            "Parsing of object definition failed in file '{}' on line {}: "
+            "Unexpected start definition",
+            _current_path, _current_line);
       std::string const& type(string::trim_right(input.erase(last)));
       obj = object::create(type);
       if (obj == nullptr)
-        throw engine_error()
-            << "Parsing of object definition failed "
-            << "in file '" << _current_path << "' on line " << _current_line
-            << ": Unknown object type name '" << type << "'";
+        throw msg_fmt(
+            "Parsing of object definition failed in file '{}' on line {}: "
+            "Unknown object type name '{}'",
+            _current_path, _current_line, type);
       parse_object = (_read_options & (1 << obj->type()));
       _objects_info.emplace(obj.get(), file_info(path, _current_line));
     }
@@ -1009,10 +1001,10 @@ void parser::_parse_object_definitions(std::string const& path) {
     else if (input != "}") {
       if (parse_object) {
         if (!obj->parse(input))
-          throw engine_error()
-              << "Parsing of object definition "
-              << "failed in file '" << _current_path << "' on line "
-              << _current_line << ": Invalid line '" << input << "'";
+          throw msg_fmt(
+              "Parsing of object definition failed in file '{}' on line {}: "
+              "Invalid line '{}'",
+              _current_path, _current_line, input);
       }
     }
     // End of the current object.
@@ -1034,14 +1026,12 @@ void parser::_parse_object_definitions(std::string const& path) {
  *  @param[in] path The resource file path.
  */
 void parser::_parse_resource_file(std::string const& path) {
-  engine_logger(logging::log_info_message, logging::most)
-      << "Reading resource file '" << path << "'";
   log_v2::config()->info("Reading resource file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
-    throw engine_error() << "Parsing of resource file failed: "
-                         << "can't open file '" << path << "'";
+    throw msg_fmt("Parsing of resource file failed: can't open file '{}'",
+                  path);
 
   _current_line = 0;
   _current_path = path;
@@ -1052,15 +1042,16 @@ void parser::_parse_resource_file(std::string const& path) {
       std::string key;
       std::string value;
       if (!string::split(input, key, value, '='))
-        throw engine_error() << "Parsing of resource file '" << _current_path
-                             << "' failed on line " << _current_line
-                             << ": Invalid line '" << input << "'";
+        throw msg_fmt(
+            "Parsing of resource file '{}' failed on line {}; Invalid line "
+            "'{}'",
+            _current_path, _current_line, input);
       _config->user(key, value);
     } catch (std::exception const& e) {
       (void)e;
-      throw engine_error() << "Parsing of resource file '" << _current_path
-                           << "' failed on line " << _current_line
-                           << ": Invalid line '" << input << "'";
+      throw msg_fmt(
+          "Parsing of resource file '{}' failed on line {}: Invalid line '{}'",
+          _current_path, _current_line, input);
     }
   }
 }
@@ -1158,6 +1149,9 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
             case FieldDescriptor::CPPTYPE_UINT64:
               refl->SetUInt64(msg, f, refl->GetUInt64(*tmpl, f));
               break;
+            case FieldDescriptor::CPPTYPE_ENUM:
+              refl->SetEnum(msg, f, refl->GetEnum(*tmpl, f));
+              break;
             case FieldDescriptor::CPPTYPE_MESSAGE: {
               Message* m = refl->MutableMessage(msg, f);
               const Descriptor* d = m->GetDescriptor();
@@ -1224,7 +1218,7 @@ void parser::_resolve_template(std::unique_ptr<message_helper>& msg_helper,
   for (const std::string& u : obj->use()) {
     auto it = tmpls.find(u);
     if (it == tmpls.end())
-      throw engine_error() << "Cannot merge object of type '" << u << "'";
+      throw msg_fmt("Cannot merge object of type '{}'", u);
     _resolve_template(_pb_helper[it->second.get()], tmpls);
     _merge(msg_helper, it->second.get());
   }
@@ -1285,70 +1279,65 @@ void parser::_resolve_template(State* pb_config) {
   for (Hostescalation& he : *pb_config->mutable_hostescalations())
     _resolve_template(_pb_helper[&he], _pb_templates[object::hostescalation]);
 
-  try {
-    for (const Command& c : pb_config->commands())
-      _pb_helper.at(&c)->check_validity();
+  for (const Command& c : pb_config->commands())
+    _pb_helper.at(&c)->check_validity();
 
-    for (const Contact& c : pb_config->contacts())
-      _pb_helper.at(&c)->check_validity();
+  for (const Contact& c : pb_config->contacts())
+    _pb_helper.at(&c)->check_validity();
 
-    for (const Contactgroup& cg : pb_config->contactgroups())
-      _pb_helper.at(&cg)->check_validity();
+  for (const Contactgroup& cg : pb_config->contactgroups())
+    _pb_helper.at(&cg)->check_validity();
 
-    for (const Host& h : pb_config->hosts())
-      _pb_helper.at(&h)->check_validity();
+  for (const Host& h : pb_config->hosts())
+    _pb_helper.at(&h)->check_validity();
 
-    for (const Hostdependency& hd : pb_config->hostdependencies())
-      _pb_helper.at(&hd)->check_validity();
+  for (const Hostdependency& hd : pb_config->hostdependencies())
+    _pb_helper.at(&hd)->check_validity();
 
-    for (const Hostescalation& he : pb_config->hostescalations())
-      _pb_helper.at(&he)->check_validity();
+  for (const Hostescalation& he : pb_config->hostescalations())
+    _pb_helper.at(&he)->check_validity();
 
-    for (const Hostgroup& hg : pb_config->hostgroups())
-      _pb_helper.at(&hg)->check_validity();
+  for (const Hostgroup& hg : pb_config->hostgroups())
+    _pb_helper.at(&hg)->check_validity();
 
-    for (const Service& s : pb_config->services())
-      _pb_helper.at(&s)->check_validity();
+  for (const Service& s : pb_config->services())
+    _pb_helper.at(&s)->check_validity();
 
-    for (const Hostdependency& hd : pb_config->hostdependencies())
-      _pb_helper.at(&hd)->check_validity();
+  for (const Hostdependency& hd : pb_config->hostdependencies())
+    _pb_helper.at(&hd)->check_validity();
 
-    for (const Servicedependency& sd : pb_config->servicedependencies())
-      _pb_helper.at(&sd)->check_validity();
+  for (const Servicedependency& sd : pb_config->servicedependencies())
+    _pb_helper.at(&sd)->check_validity();
 
-    for (const Servicegroup& sg : pb_config->servicegroups())
-      _pb_helper.at(&sg)->check_validity();
+  for (const Servicegroup& sg : pb_config->servicegroups())
+    _pb_helper.at(&sg)->check_validity();
 
-    for (const Timeperiod& t : pb_config->timeperiods())
-      _pb_helper.at(&t)->check_validity();
+  for (const Timeperiod& t : pb_config->timeperiods())
+    _pb_helper.at(&t)->check_validity();
 
-    for (const Anomalydetection& a : pb_config->anomalydetections())
-      _pb_helper.at(&a)->check_validity();
+  for (const Anomalydetection& a : pb_config->anomalydetections())
+    _pb_helper.at(&a)->check_validity();
 
-    for (const Tag& t : pb_config->tags())
-      _pb_helper.at(&t)->check_validity();
+  for (const Tag& t : pb_config->tags())
+    _pb_helper.at(&t)->check_validity();
 
-    for (const Servicegroup& sg : pb_config->servicegroups())
-      _pb_helper.at(&sg)->check_validity();
+  for (const Servicegroup& sg : pb_config->servicegroups())
+    _pb_helper.at(&sg)->check_validity();
 
-    for (const Severity& sv : pb_config->severities())
-      _pb_helper.at(&sv)->check_validity();
+  for (const Severity& sv : pb_config->severities())
+    _pb_helper.at(&sv)->check_validity();
 
-    for (const Tag& t : pb_config->tags())
-      _pb_helper.at(&t)->check_validity();
+  for (const Tag& t : pb_config->tags())
+    _pb_helper.at(&t)->check_validity();
 
-    for (const Serviceescalation& se : pb_config->serviceescalations())
-      _pb_helper.at(&se)->check_validity();
+  for (const Serviceescalation& se : pb_config->serviceescalations())
+    _pb_helper.at(&se)->check_validity();
 
-    for (const Hostescalation& he : pb_config->hostescalations())
-      _pb_helper.at(&he)->check_validity();
+  for (const Hostescalation& he : pb_config->hostescalations())
+    _pb_helper.at(&he)->check_validity();
 
-    for (const Connector& c : pb_config->connectors())
-      _pb_helper.at(&c)->check_validity();
-
-  } catch (const std::exception& e) {
-    throw engine_error() << e.what();
-  }
+  for (const Connector& c : pb_config->connectors())
+    _pb_helper.at(&c)->check_validity();
 }
 
 /**

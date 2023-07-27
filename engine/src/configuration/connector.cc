@@ -1,25 +1,26 @@
 /**
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013 Merethis
+ * Copyright 2020 - 2023 Centreon (https://www.centreon.com/)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ *
+ */
 
 #include "com/centreon/engine/configuration/connector.hh"
 #include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -114,12 +115,12 @@ bool connector::operator<(connector const& right) const throw() {
  */
 void connector::check_validity() const {
   if (_connector_name.empty())
-    throw(
-        engine_error() << "Connector has no name (property 'connector_name')");
+    throw exceptions::msg_fmt(
+        "Connector has no name (property 'connector_name')");
   if (_connector_line.empty())
-    throw(
-        engine_error() << "Connector '" << _connector_name
-                       << "' has no command line (property 'connector_line')");
+    throw exceptions::msg_fmt(
+        "Connector '{}' has no command line (property 'connector_line')",
+        _connector_name);
 }
 
 /**
@@ -138,8 +139,8 @@ connector::key_type const& connector::key() const throw() {
  */
 void connector::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge connector with '" << obj.type()
-                         << "'");
+    throw exceptions::msg_fmt("Cannot merge connector with object of type '{}'",
+                              static_cast<uint32_t>(obj.type()));
   connector const& tmpl(static_cast<connector const&>(obj));
 
   MRG_DEFAULT(_connector_line);

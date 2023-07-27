@@ -18,17 +18,15 @@
 */
 
 #include "com/centreon/engine/configuration/servicedependency.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 extern int config_warnings;
 extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
 
 #define SETTER(type, method) \
   &object::setter<servicedependency, type, &servicedependency::method>::generic
@@ -226,31 +224,28 @@ void servicedependency::check_validity() const {
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())
-      throw(engine_error() << "Service dependency is not attached to "
-                           << "any service or service group (properties "
-                           << "'service_description' or 'servicegroup_name', "
-                           << "respectively)");
+      throw exceptions::msg_fmt(
+          "Service dependency is not attached to any service or service group "
+          "(properties 'service_description' or 'servicegroup_name', "
+          "respectively)");
     else if (_hosts->empty() && _hostgroups->empty())
-      throw(
-          engine_error() << "Service dependency is not attached to "
-                         << "any host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+      throw exceptions::msg_fmt(
+          "Service dependency is not attached to any host or host group "
+          "(properties 'host_name' or 'hostgroup_name', respectively)");
   }
 
   // Check dependent service(s).
   if (_dependent_servicegroups->empty()) {
     if (_dependent_service_description->empty())
-      throw(
-          engine_error() << "Service dependency is not attached to "
-                         << "any dependent service or dependent service group "
-                         << "(properties 'dependent_service_description' or "
-                         << "'dependent_servicegroup_name', respectively)");
+      throw exceptions::msg_fmt(
+          "Service dependency is not attached to any dependent service or "
+          "dependent service group (properties 'dependent_service_description' "
+          "or 'dependent_servicegroup_name', respectively)");
     else if (_dependent_hosts->empty() && _dependent_hostgroups->empty())
-      throw(engine_error()
-            << "Service dependency is not attached to "
-            << "any dependent host or dependent host group (properties "
-            << "'dependent_host_name' or 'dependent_hostgroup_name', "
-            << "respectively)");
+      throw exceptions::msg_fmt(
+          "Service dependency is not attached to any dependent host or "
+          "dependent host group (properties 'dependent_host_name' or "
+          "'dependent_hostgroup_name', respectively)");
   }
 
   // With no execution or failure options this dependency is useless.
@@ -277,7 +272,6 @@ void servicedependency::check_validity() const {
       else
         msg << "host '" << _hosts->front() << "'";
     }
-    engine_logger(log_config_warning, basic) << msg.str();
     log_v2::config()->warn(msg.str());
   }
 }
@@ -298,8 +292,8 @@ servicedependency::key_type const& servicedependency::key() const throw() {
  */
 void servicedependency::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service dependency with '"
-                         << obj.type() << "'");
+    throw exceptions::msg_fmt("Cannot merge service dependency with '{}'",
+                              static_cast<uint32_t>(obj.type()));
   servicedependency const& tmpl(static_cast<servicedependency const&>(obj));
 
   MRG_DEFAULT(_dependency_period);

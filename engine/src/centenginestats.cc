@@ -1455,7 +1455,6 @@ void strip(char* buffer) {
       buffer[z - x] = buffer[z];
     buffer[y - x] = '\x0';
   }
-  return;
 }
 
 /* get days, hours, minutes, and seconds from a raw time_t format or total
@@ -1485,5 +1484,4 @@ void get_time_breakdown(unsigned long raw_time,
   *hours = temp_hours;
   *minutes = temp_minutes;
   *seconds = temp_seconds;
-  return;
 }

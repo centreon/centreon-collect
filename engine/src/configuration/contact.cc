@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@
 #include "com/centreon/engine/configuration/contact.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -232,7 +232,7 @@ bool contact::operator<(contact const& other) const noexcept {
  */
 void contact::check_validity() const {
   if (_contact_name.empty())
-    throw engine_error() << "Contact has no name (property 'contact_name')";
+    throw exceptions::msg_fmt("Contact has no name (property 'contact_name')");
 }
 
 /**
@@ -251,7 +251,8 @@ contact::key_type const& contact::key() const noexcept {
  */
 void contact::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge contact with '" << obj.type() << "'");
+    throw exceptions::msg_fmt("Cannot merge contact with object of type '{}'",
+                              static_cast<uint32_t>(obj.type()));
   contact const& tmpl(static_cast<contact const&>(obj));
 
   MRG_TAB(_address);

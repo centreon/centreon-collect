@@ -20,8 +20,8 @@
 #include <absl/hash/hash.h>
 
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/configuration/hostescalation_helper.hh"
 
 using namespace com::centreon;
@@ -181,9 +181,9 @@ bool hostescalation::operator<(hostescalation const& right) const {
  */
 void hostescalation::check_validity() const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw engine_error() << "Host escalation is not attached to any "
-                         << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)";
+    throw exceptions::msg_fmt(
+        "Host escalation is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)");
 }
 
 /**
@@ -202,8 +202,8 @@ hostescalation::key_type const& hostescalation::key() const throw() {
  */
 void hostescalation::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host escalation with '" << obj.type()
-                         << "'");
+    throw exceptions::msg_fmt("Cannot merge host escalation with '{}'",
+                              static_cast<uint32_t>(obj.type()));
   hostescalation const& tmpl(static_cast<hostescalation const&>(obj));
 
   MRG_INHERIT(_contactgroups);
@@ -266,7 +266,6 @@ bool hostescalation::contactgroups_defined() const throw() {
  */
 void hostescalation::escalation_options(unsigned short options) throw() {
   _escalation_options = options;
-  return;
 }
 
 /**
@@ -285,7 +284,6 @@ unsigned short hostescalation::escalation_options() const throw() {
  */
 void hostescalation::escalation_period(std::string const& period) {
   _escalation_period = period;
-  return;
 }
 
 /**
@@ -313,7 +311,6 @@ bool hostescalation::escalation_period_defined() const throw() {
  */
 void hostescalation::first_notification(unsigned int n) throw() {
   _first_notification = n;
-  return;
 }
 
 /**
@@ -368,7 +365,6 @@ set_string const& hostescalation::hosts() const throw() {
  */
 void hostescalation::last_notification(unsigned int n) throw() {
   _last_notification = n;
-  return;
 }
 
 /**
@@ -387,7 +383,6 @@ unsigned int hostescalation::last_notification() const throw() {
  */
 void hostescalation::notification_interval(unsigned int interval) {
   _notification_interval = interval;
-  return;
 }
 
 /**

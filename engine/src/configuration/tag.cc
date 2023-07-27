@@ -18,7 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/tag.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -111,11 +111,11 @@ bool tag::operator<(const tag& other) const noexcept {
  */
 void tag::check_validity() const {
   if (_tag_name.empty())
-    throw engine_error() << "Tag has no name (property 'tag_name')";
+    throw exceptions::msg_fmt("Tag has no name (property 'tag_name')");
   if (_key.first == 0)
-    throw engine_error() << "Tag id must not be less than 1 (property 'id')";
+    throw exceptions::msg_fmt("Tag id must not be less than 1 (property 'id')");
   if (_key.second == static_cast<uint16_t>(-1))
-    throw engine_error() << "Tag type must be defined (property 'type')";
+    throw exceptions::msg_fmt("Tag type must be defined (property 'type')");
 }
 
 /**

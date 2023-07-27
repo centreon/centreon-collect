@@ -191,8 +191,6 @@ void display_scheduling_info() {
   if (suggestions == 0) {
     std::cout << "I have no suggestions - things look okay.\n";
   }
-
-  return;
 }
 
 /**

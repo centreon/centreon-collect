@@ -20,9 +20,9 @@
 #include "com/centreon/engine/configuration/timeperiod.hh"
 
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/engine/timerange.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -129,8 +129,8 @@ bool timeperiod::operator<(timeperiod const& right) const {
  */
 void timeperiod::check_validity() const {
   if (_timeperiod_name.empty())
-    throw engine_error()
-        << "Time period has no name (property 'timeperiod_name')";
+    throw exceptions::msg_fmt(
+        "Time period has no name (property 'timeperiod_name')");
 }
 
 /**
@@ -149,8 +149,8 @@ timeperiod::key_type const& timeperiod::key() const throw() {
  */
 void timeperiod::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge time period with '" << obj.type()
-                         << "'");
+    throw exceptions::msg_fmt(
+        "Cannot merge time period with object of type '{}'", obj.type());
   timeperiod const& tmpl(static_cast<timeperiod const&>(obj));
 
   MRG_DEFAULT(_alias);
