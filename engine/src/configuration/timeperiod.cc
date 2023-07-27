@@ -19,9 +19,7 @@
 
 #include "com/centreon/engine/configuration/timeperiod.hh"
 
-#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/string.hh"
-#include "com/centreon/engine/timerange.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
@@ -86,10 +84,10 @@ timeperiod& timeperiod::operator=(timeperiod const& right) {
  *  @return True if is the same timeperiod, otherwise false.
  */
 bool timeperiod::operator==(timeperiod const& right) const {
-  return (object::operator==(right) && _alias == right._alias &&
-          _exceptions == right._exceptions && _exclude == right._exclude &&
-          _timeperiod_name == right._timeperiod_name &&
-          _timeranges == right._timeranges);
+  return object::operator==(right) && _alias == right._alias &&
+         _exceptions == right._exceptions && _exclude == right._exclude &&
+         _timeperiod_name == right._timeperiod_name &&
+         _timeranges == right._timeranges;
 }
 
 /**

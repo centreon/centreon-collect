@@ -19,12 +19,13 @@
 
 #include "com/centreon/engine/configuration/state.hh"
 
+#include <filesystem>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/file_entry.hh"
 #include "compatibility/locations.h"
 
 using namespace com::centreon;
@@ -1044,13 +1045,13 @@ std::string const& state::broker_module_directory() const noexcept {
  *
  *  @param[in] value The new broker_module_directory value.
  */
-void state::broker_module_directory(std::string const& value) {
+void state::broker_module_directory(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _broker_module_directory = value;
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _broker_module_directory = base_name + "/" + value;
+    std::filesystem::path p(_cfg_main);
+    std::string base_name = p.parent_path();
+    _broker_module_directory = fmt::format("{}/{}", base_name, value);
   }
 }
 
@@ -3386,9 +3387,9 @@ void state::state_retention_file(std::string const& value) {
   if (value.empty() || value[0] == '/')
     _state_retention_file = value;
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _state_retention_file = base_name + "/" + value;
+    std::filesystem::path p{_cfg_main};
+    std::string base_name(p.parent_path());
+    _state_retention_file = fmt::format("{}/{}", base_name, value);
   }
 }
 
@@ -4137,9 +4138,9 @@ void state::_set_cfg_dir(std::string const& value) {
   if (value.empty() || value[0] == '/')
     _cfg_dir.push_back(value);
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _cfg_dir.push_back(base_name + "/" + value);
+    std::filesystem::path p{_cfg_main};
+    std::string base_name(p.parent_path());
+    _cfg_dir.emplace_back(fmt::format("{}/{}", base_name, value));
   }
 }
 
@@ -4148,13 +4149,13 @@ void state::_set_cfg_dir(std::string const& value) {
  *
  *  @param[in] value The new configuration file.
  */
-void state::_set_cfg_file(std::string const& value) {
+void state::_set_cfg_file(const std::string& value) {
   if (value.empty() || value[0] == '/')
     _cfg_file.push_back(value);
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _cfg_file.push_back(base_name + "/" + value);
+    std::filesystem::path p{_cfg_main};
+    std::string base_name(p.parent_path());
+    _cfg_file.emplace_back(fmt::format("{}/{}", base_name, value));
   }
 }
 
@@ -4438,9 +4439,9 @@ void state::_set_resource_file(std::string const& value) {
   if (value.empty() || value[0] == '/')
     _resource_file.push_back(value);
   else {
-    io::file_entry fe(_cfg_main);
-    std::string base_name(fe.directory_name());
-    _resource_file.push_back(base_name + "/" + value);
+    std::filesystem::path p{_cfg_main};
+    std::string base_name(p.parent_path());
+    _resource_file.emplace_back(fmt::format("{}/{}", base_name, value));
   }
 }
 

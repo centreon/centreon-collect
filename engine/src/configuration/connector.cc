@@ -19,7 +19,6 @@
  */
 
 #include "com/centreon/engine/configuration/connector.hh"
-#include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
