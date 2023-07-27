@@ -915,8 +915,6 @@ void applier::anomalydetection::_expand_service_memberships(
     // Reinsert anomalydetection group.
     s.servicegroups().insert(backup);
   }
-
-  return;
 }
 
 /**
