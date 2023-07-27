@@ -21,7 +21,6 @@
 
 #include <filesystem>
 
-#include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
@@ -4279,9 +4278,9 @@ void state::_set_event_broker_options(std::string const& value) {
   if (value != "-1")
     setter<unsigned long, &state::event_broker_options>::generic(*this,
                                                                  value.c_str());
-  else {
-    _event_broker_options = BROKER_EVERYTHING;
-  }
+  else
+    _event_broker_options =
+        static_cast<unsigned long>(-1);  // BROKER_EVERYTHING
 }
 
 /**

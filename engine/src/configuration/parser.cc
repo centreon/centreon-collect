@@ -19,12 +19,12 @@
 
 #include "com/centreon/engine/configuration/parser.hh"
 #include <absl/container/flat_hash_set.h>
+#include <filesystem>
 #include <memory>
 #include "absl/strings/numbers.h"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "com/centreon/io/directory_entry.hh"
 #include "common/configuration/anomalydetection_helper.hh"
 #include "common/configuration/command_helper.hh"
 #include "common/configuration/connector_helper.hh"
@@ -46,7 +46,6 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::io;
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 using Descriptor = ::google::protobuf::Descriptor;
@@ -297,10 +296,10 @@ std::string const& parser::_map_object_type(map_object const& objects) const
  */
 void parser::_parse_directory_configuration(const std::string& path,
                                             State* pb_config) {
-  directory_entry dir(path);
-  const std::list<file_entry>& lst(dir.entry_list("*.cfg"));
-  for (auto& fe : lst)
-    _parse_object_definitions(fe.path(), pb_config);
+  for (auto& entry : std::filesystem::directory_iterator(path)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+      _parse_object_definitions(entry.path().string(), pb_config);
+  }
 }
 
 /**
@@ -309,11 +308,10 @@ void parser::_parse_directory_configuration(const std::string& path,
  *  @param[in] path The directory path.
  */
 void parser::_parse_directory_configuration(std::string const& path) {
-  directory_entry dir(path);
-  std::list<file_entry> const& lst(dir.entry_list("*.cfg"));
-  for (std::list<file_entry>::const_iterator it(lst.begin()), end(lst.end());
-       it != end; ++it)
-    _parse_object_definitions(it->path());
+  for (auto& entry : std::filesystem::directory_iterator(path)) {
+    if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+      _parse_object_definitions(entry.path().string());
+  }
 }
 
 bool set_global(std::unique_ptr<message_helper>& helper,

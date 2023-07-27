@@ -50,6 +50,9 @@ namespace configuration {
  *  to manage configuration data.
  */
 class state {
+  uint32_t _config_warnings = 0;
+  uint32_t _config_errors = 0;
+
  public:
   /**
    *  @enum state::date_format
