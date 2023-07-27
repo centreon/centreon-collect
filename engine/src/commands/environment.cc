@@ -180,7 +180,6 @@ void environment::_realloc_env(uint32_t size) {
   _size_env = size;
   delete[] _env;
   _env = new_env;
-  return;
 }
 
 /**
