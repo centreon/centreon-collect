@@ -149,15 +149,6 @@ void {cname}::_init() {{
                     cc_lines.append(
                         "  obj->mutable_obj()->set_register_(true);\n")
                 header = True
-#            if m['proto_type'] == 'UUID':
-#                cc_lines.append(
-#                    f"""  boost::uuids::uuid u = boost::uuids::random_generator()();
-#
-#  auto* bytes = obj->mutable_uuid()->mutable_value();
-#  for (const auto& b : u)
-#    bytes->push_back(b);
-#    //bytes->push_back(static_cast<char>(b));
-# """)
             if m['proto_type'] == 'KeyType':
                 values = m['default'].split(',')
                 cc_lines.append(
@@ -390,6 +381,20 @@ def get_messages_of_conf(cap_name: str, header, msg: [str]):
                     "name": "host_name",
                     "optional": False,
                 }
+            elif m.group(2) == "_initial_state" and cap_name == "Host":
+                msg = {
+                    "line": l,
+                    "typ": "HostStatus",
+                    "name": "_initial_state",
+                    "optional": False,
+                }
+            elif cap_name in ["Service", "Anomalydetection"] and m.group(2) == "_initial_state":
+                msg = {
+                    "line": l,
+                    "typ": "ServiceStatus",
+                    "name": "_initial_state",
+                    "optional": False,
+                }
             else:
                 msg = {
                     'line': l,
@@ -432,21 +437,25 @@ def get_default_values(cap_name, cpp, msg: [str]):
                 name = m.group(2)
                 value = m.group(3)
         if name != "":
-            if value.startswith("anomalydetection::"):
+            if value.startswith("engine::host::state_"):
+                value = value.replace("engine::host::", "HostStatus::")
+            elif value.startswith("engine::service::state_"):
+                value = value.replace("engine::service::", "ServiceStatus::")
+            elif value.startswith("anomalydetection::"):
                 value = value.replace("anomalydetection::", "action_svc_")
-            if value.startswith("hostdependency::"):
+            elif value.startswith("hostdependency::"):
                 value = value.replace("hostdependency::", "action_hd_")
-            if value.startswith("servicedependency::"):
+            elif value.startswith("servicedependency::"):
                 value = value.replace("servicedependency::", "action_sd_")
-            if value.startswith("hostescalation::"):
+            elif value.startswith("hostescalation::"):
                 value = value.replace("hostescalation::", "action_he_")
-            if value.startswith("serviceescalation::"):
+            elif value.startswith("serviceescalation::"):
                 value = value.replace("serviceescalation::", "action_se_")
-            if value.startswith("host::"):
+            elif value.startswith("host::"):
                 value = value.replace("host::", "action_hst_")
-            if value.startswith("service::"):
+            elif value.startswith("service::"):
                 value = value.replace("service::", "action_svc_")
-            if value.startswith("state::"):
+            elif value.startswith("state::"):
                 if value.startswith("state::icd_"):
                     value = value.replace(
                         "state::icd_", "InterCheckDelay_IcdType_")
@@ -980,15 +989,15 @@ def build_hook_content(cname: str, msg):
 """)
         elif (cname == 'Service' or cname == 'Anomalydetection') and m['proto_name'] == 'initial_state':
             retval.append(f"""  {els}if (key == "{m['proto_name']}") {{
-    uint16_t initial_state;
+    ServiceStatus initial_state;
       if (value == "o" || value == "ok")
-        initial_state = state_ok;
+        initial_state = ServiceStatus::state_ok;
       else if (value == "w" || value == "warning")
-        initial_state = state_warning;
+        initial_state = ServiceStatus::state_warning;
       else if (value == "u" || value == "unknown")
-        initial_state = state_unknown;
+        initial_state = ServiceStatus::state_unknown;
       else if (value == "c" || value == "critical")
-        initial_state = state_critical;
+        initial_state = ServiceStatus::state_critical;
       else
         return false;
       obj->set_initial_state(initial_state);
@@ -1296,6 +1305,12 @@ message CustomVariable {
   string value = 2;
   bool is_sent = 3;
   bool modified = 4;
+}
+
+enum HostStatus {
+  state_up = 0;
+  state_down = 1;
+  state_unreachable = 2;
 }
 
 enum ServiceStatus {

@@ -193,7 +193,7 @@ class service : public object {
   std::string _host_name;
   std::string _icon_image;
   std::string _icon_image_alt;
-  opt<unsigned int> _initial_state;
+  uint32_t _initial_state;
   opt<bool> _is_volatile;
   opt<unsigned int> _low_flap_threshold;
   opt<unsigned int> _max_check_attempts;

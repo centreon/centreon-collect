@@ -27,6 +27,12 @@ message CustomVariable {
   bool modified = 4;
 }
 
+enum HostStatus {
+  state_up = 0;
+  state_down = 1;
+  state_unreachable = 2;
+}
+
 enum ServiceStatus {
   state_ok = 0;
   state_warning = 1;
@@ -222,9 +228,9 @@ message Anomalydetection {
   string host_name = 22;
   string icon_image = 23;
   string icon_image_alt = 24;
-  uint32 initial_state =
-      25;                 // Optional - Default value: engine::service::state_ok
-  bool is_volatile = 26;  // Optional - Default value: false
+  ServiceStatus initial_state =
+      25;                          //  - Default value: ServiceStatus::state_ok
+  bool is_volatile = 26;           // Optional - Default value: false
   uint32 low_flap_threshold = 27;  // Optional - Default value: 0
   uint32 max_check_attempts = 28;  // Optional - Default value: 3
   string notes = 29;
@@ -334,8 +340,7 @@ message Host {
   string host_name = 27;
   string icon_image = 28;
   string icon_image_alt = 29;
-  uint32 initial_state =
-      30;  // Optional - Default value: engine::host::state_up
+  HostStatus initial_state = 30;   //  - Default value: HostStatus::state_up
   uint32 low_flap_threshold = 31;  // Optional - Default value: 0
   uint32 max_check_attempts = 32;  // Optional - Default value: 3
   string notes = 33;
@@ -427,9 +432,9 @@ message Service {
   string host_name = 22;
   string icon_image = 23;
   string icon_image_alt = 24;
-  uint32 initial_state =
-      25;                 // Optional - Default value: engine::service::state_ok
-  bool is_volatile = 26;  // Optional - Default value: false
+  ServiceStatus initial_state =
+      25;                          //  - Default value: ServiceStatus::state_ok
+  bool is_volatile = 26;           // Optional - Default value: false
   uint32 low_flap_threshold = 27;  // Optional - Default value: 0
   uint32 max_check_attempts = 28;  // Optional - Default value: 3
   string notes = 29;

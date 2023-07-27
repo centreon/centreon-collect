@@ -20,6 +20,7 @@
 #ifndef CCE_CONFIGURATION_FILE_INFO_HH
 #define CCE_CONFIGURATION_FILE_INFO_HH
 
+#include <fmt/ostream.h>
 #include "com/centreon/engine/exceptions/error.hh"
 
 CCE_BEGIN()
@@ -50,11 +51,22 @@ class file_info {
     err << "in file '" << info.path() << "' on line " << info.line();
     return err;
   }
+  friend std::ostream& operator<<(std::ostream& os, const file_info& info) {
+    os << fmt::format("in file '{}' on line {}", info.path(), info.line());
+    return os;
+  }
   unsigned int line() const noexcept { return _line; }
   const std::string& path() const noexcept { return _path; }
 };
+
 }  // namespace configuration
 
 CCE_END()
+
+namespace fmt {
+template <>
+struct formatter<com::centreon::engine::configuration::file_info>
+    : ostream_formatter {};
+}  // namespace fmt
 
 #endif  // !CCE_CONFIGURATION_FILE_INFO_HH

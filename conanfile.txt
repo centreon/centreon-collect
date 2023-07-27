@@ -4,13 +4,13 @@ boost/1.82.0
 fmt/9.1.0
 grpc/1.50.1
 gtest/cci.20210126
-libcurl/8.0.1
+libcurl/8.1.2
 libssh2/1.10.0
 mariadb-connector-c/3.3.3
 nlohmann_json/3.11.2
-openssl/1.1.1t
-opentelemetry-cpp/1.8.1
-protobuf/3.21.4
+openssl/3.1.1
+opentelemetry-cpp/1.9.1
+protobuf/3.21.9
 spdlog/1.11.0
 zlib/1.2.13
 

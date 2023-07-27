@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/servicegroup.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -143,8 +143,8 @@ bool servicegroup::operator<(servicegroup const& right) const throw() {
  */
 void servicegroup::check_validity() const {
   if (_servicegroup_name.empty())
-    throw engine_error() << "Service group has no name "
-                            "(property 'servicegroup_name')";
+    throw exceptions::msg_fmt(
+        "Service group has no name (property 'servicegroup_name')");
 }
 
 /**
@@ -152,7 +152,7 @@ void servicegroup::check_validity() const {
  *
  *  @return The service group name.
  */
-servicegroup::key_type const& servicegroup::key() const throw() {
+servicegroup::key_type const& servicegroup::key() const noexcept {
   return _servicegroup_name;
 }
 
@@ -163,8 +163,9 @@ servicegroup::key_type const& servicegroup::key() const throw() {
  */
 void servicegroup::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge service group with '" << obj.type()
-                         << "'");
+    throw exceptions::msg_fmt(
+        "Cannot merge service group with object of type '{}'",
+        static_cast<uint32_t>(obj.type()));
   servicegroup const& tmpl(static_cast<servicegroup const&>(obj));
 
   MRG_DEFAULT(_action_url);
