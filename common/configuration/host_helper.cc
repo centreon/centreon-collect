@@ -184,7 +184,7 @@ void host_helper::_init() {
                                   action_hst_unreachable);
   obj->set_freshness_threshold(0);
   obj->set_high_flap_threshold(0);
-  obj->set_initial_state(engine::host::state_up);
+  obj->set_initial_state(HostStatus::state_up);
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);
   obj->set_notifications_enabled(true);

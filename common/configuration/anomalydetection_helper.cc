@@ -92,15 +92,15 @@ bool anomalydetection_helper::hook(absl::string_view key,
     obj->set_flap_detection_options(options);
     return true;
   } else if (key == "initial_state") {
-    uint16_t initial_state;
+    ServiceStatus initial_state;
     if (value == "o" || value == "ok")
-      initial_state = state_ok;
+      initial_state = ServiceStatus::state_ok;
     else if (value == "w" || value == "warning")
-      initial_state = state_warning;
+      initial_state = ServiceStatus::state_warning;
     else if (value == "u" || value == "unknown")
-      initial_state = state_unknown;
+      initial_state = ServiceStatus::state_unknown;
     else if (value == "c" || value == "critical")
-      initial_state = state_critical;
+      initial_state = ServiceStatus::state_critical;
     else
       return false;
     obj->set_initial_state(initial_state);
@@ -257,7 +257,7 @@ void anomalydetection_helper::_init() {
                                   action_svc_unknown | action_svc_critical);
   obj->set_freshness_threshold(0);
   obj->set_high_flap_threshold(0);
-  obj->set_initial_state(engine::service::state_ok);
+  obj->set_initial_state(ServiceStatus::state_ok);
   obj->set_is_volatile(false);
   obj->set_low_flap_threshold(0);
   obj->set_max_check_attempts(3);
