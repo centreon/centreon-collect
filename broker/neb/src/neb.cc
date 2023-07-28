@@ -132,7 +132,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Initialization.
       com::centreon::broker::config::applier::init(s);
       try {
-        log_v2::instance()->apply(s);
+        log_v2::instance()->apply(s.log_conf());
       } catch (const std::exception& e) {
         log_v2::core()->error("main: {}", e.what());
       }
