@@ -19,11 +19,11 @@
 #ifndef CCB_CONFIG_STATE_HH
 #define CCB_CONFIG_STATE_HH
 
-#include <absl/container/flat_hash_map.h>
 #include <fmt/format.h>
 
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
+#include "common/log_v2/config.hh"
 
 CCB_BEGIN()
 
@@ -56,19 +56,20 @@ class state {
   std::string _poller_name;
   size_t _pool_size;
 
-  struct log {
-    std::string directory;
-    std::string filename;
-    std::size_t max_size;
-    uint32_t flush_period;
-    bool log_pid;
-    bool log_source;
-    absl::flat_hash_map<std::string, std::string> loggers;
-
-    std::string log_path() const {
-      return fmt::format("{}/{}", directory, filename);
-    }
-  } _log_conf;
+  common::log_v3::config _log_conf;
+  //  struct log {
+  //    std::string directory;
+  //    std::string filename;
+  //    std::size_t max_size;
+  //    uint32_t flush_period;
+  //    bool log_pid;
+  //    bool log_source;
+  //    absl::flat_hash_map<std::string, std::string> loggers;
+  //
+  //    std::string log_path() const {
+  //      return fmt::format("{}/{}", directory, filename);
+  //    }
+  //  } _log_conf;
 
  public:
   /**
@@ -154,8 +155,8 @@ class state {
   int pool_size() const noexcept;
   void poller_name(std::string const& name);
   std::string const& poller_name() const noexcept;
-  log& mut_log_conf();
-  const log& log_conf() const;
+  common::log_v3::config& mut_log_conf();
+  const common::log_v3::config& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();
   const stats_exporter_conf& get_stats_exporter() const;
   poller_conf& mut_poller_conf();

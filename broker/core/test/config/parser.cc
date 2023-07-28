@@ -256,8 +256,8 @@ TEST(parser, log) {
   ASSERT_EQ(s.event_queue_max_size(), 100000);
   ASSERT_EQ(s.command_file(), "/var/lib/centreon-broker/command.sock");
   ASSERT_EQ(s.cache_directory(), "/tmp/");
-  ASSERT_EQ(s.log_conf().directory, "/tmp");
-  ASSERT_EQ(s.log_conf().max_size, 0u);
+  ASSERT_EQ(s.log_conf().dirname(), "/tmp");
+  ASSERT_EQ(s.log_conf().max_size(), 0u);
 }
 
 TEST(parser, logBadFilename) {
@@ -354,10 +354,10 @@ TEST(parser, logDefaultDir) {
 
   // Remove temporary file.
   ::remove(config_file.c_str());
-  ASSERT_EQ(s.log_conf().directory, "/tmp");
-  ASSERT_EQ(s.log_conf().filename, "toto");
-  ASSERT_EQ(s.log_conf().max_size, 12345u);
-  ASSERT_EQ(s.log_conf().loggers.size(), 2u);
+  ASSERT_EQ(s.log_conf().dirname(), "/tmp");
+  ASSERT_EQ(s.log_conf().filename(), "toto");
+  ASSERT_EQ(s.log_conf().max_size(), 12345u);
+  ASSERT_EQ(s.log_conf().loggers().size(), 2u);
 }
 
 TEST(parser, logBadMaxSize) {
@@ -941,8 +941,8 @@ TEST(parser, grpc_full) {
   ASSERT_EQ(s.event_queue_max_size(), 100000);
   ASSERT_EQ(s.command_file(), "/var/lib/centreon-broker/command.sock");
   ASSERT_EQ(s.cache_directory(), "/tmp/");
-  ASSERT_EQ(s.log_conf().directory, "/tmp");
-  ASSERT_EQ(s.log_conf().max_size, 0u);
+  ASSERT_EQ(s.log_conf().dirname(), "/tmp");
+  ASSERT_EQ(s.log_conf().max_size(), 0u);
 }
 
 TEST(parser, grpc_in_error) {
@@ -1164,7 +1164,7 @@ TEST(parser, boolean1) {
   ::remove(config_file.c_str());
 
   // Check global params
-  ASSERT_TRUE(s.log_conf().log_pid);
+  ASSERT_TRUE(s.log_conf().log_pid());
 }
 
 TEST(parser, boolean2) {
@@ -1254,5 +1254,5 @@ TEST(parser, boolean2) {
   ::remove(config_file.c_str());
 
   // Check global params
-  ASSERT_FALSE(s.log_conf().log_pid);
+  ASSERT_FALSE(s.log_conf().log_pid());
 }
