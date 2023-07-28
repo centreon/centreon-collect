@@ -16,5 +16,13 @@
 # For more information : contact@centreon.com
 #
 
-add_subdirectory(configuration)
-add_subdirectory(log_v2)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+add_definitions(-DSPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_TRACE)
+add_definitions(${spdlog_DEFINITIONS})
+
+add_library(
+  log_v2 STATIC
+  # Sources.
+  log_v2.cc)
+
+target_link_libraries(log_v2 CONAN_PKG::spdlog)

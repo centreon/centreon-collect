@@ -354,24 +354,24 @@ state parser::parse(std::string const& file) {
 
           auto& conf = retval.mut_log_conf();
           if (conf_js.contains("directory") && conf_js["directory"].is_string())
-            conf.directory = conf_js["directory"].get<std::string>();
+            conf.set_dirname(conf_js["directory"].get<std::string>());
           else if (conf_js.contains("directory") &&
                    !conf_js["directory"].is_null())
             throw msg_fmt(
                 "'directory' key in the log configuration must contain a "
                 "directory name");
-          if (conf.directory.empty())
-            conf.directory = "/var/log/centreon-broker";
+          if (conf.dirname().empty())
+            conf.set_dirname("/var/log/centreon-broker");
 
-          if (!misc::filesystem::writable(conf.directory))
+          if (!misc::filesystem::writable(conf.dirname()))
             throw msg_fmt("The log directory '{}' is not writable",
-                          conf.directory);
+                          conf.dirname());
 
-          conf.filename = "";
+          conf.set_filename("");
 
           if (conf_js.contains("filename") && conf_js["filename"].is_string()) {
-            conf.filename = conf_js["filename"].get<std::string>();
-            if (conf.filename.find("/") != std::string::npos)
+            conf.set_filename(conf_js["filename"].get<std::string>());
+            if (conf.filename().find("/") != std::string::npos)
               throw msg_fmt(
                   "'filename' must only contain a filename without directory");
 
@@ -382,7 +382,7 @@ state parser::parse(std::string const& file) {
                 "file name");
 
           auto ms = check_and_read<int64_t>(conf_js, "max_size");
-          conf.max_size = ms ? ms.value() : 0u;
+          conf.set_max_size(ms ? ms.value() : 0u);
 
           auto fp = check_and_read<int64_t>(conf_js, "flush_period");
           if (fp) {
@@ -391,18 +391,18 @@ state parser::parse(std::string const& file) {
                   "'flush_period' key in the log configuration must contain a "
                   "positive number or 0.");
 
-            conf.flush_period = fp.value();
+            conf.set_flush_period(fp.value());
           } else
-            conf.flush_period = 0u;
+            conf.set_flush_period(0u);
 
           auto lp = check_and_read<bool>(conf_js, "log_pid");
-          conf.log_pid = lp ? lp.value() : false;
+          conf.set_log_pid(lp ? lp.value() : false);
 
           auto ls = check_and_read<bool>(conf_js, "log_source");
-          conf.log_source = ls ? ls.value() : false;
+          conf.set_log_source(ls ? ls.value() : false);
 
           if (conf_js.contains("loggers") && conf_js["loggers"].is_object()) {
-            conf.loggers.clear();
+            conf.loggers().clear();
             for (auto it = conf_js["loggers"].begin();
                  it != conf_js["loggers"].end(); ++it) {
               if (!log_v2::contains_logger(it.key()))
@@ -415,7 +415,7 @@ state parser::parse(std::string const& file) {
                     "'disabled'",
                     it.key());
 
-              conf.loggers.emplace(it.key(), it.value().get<std::string>());
+              conf.set_level(it.key(), it.value().get<std::string>());
             }
           }
         } else if (it.key() == "stats_exporter") {
@@ -514,8 +514,8 @@ state parser::parse(std::string const& file) {
 
   /* Post configuration */
   auto& conf = retval.mut_log_conf();
-  if (conf.filename.empty())
-    conf.filename = fmt::format("{}.log", retval.broker_name());
+  if (conf.filename().empty())
+    conf.set_filename(fmt::format("{}.log", retval.broker_name()));
   return retval;
 }
 

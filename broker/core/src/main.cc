@@ -45,11 +45,14 @@
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
+#include "common/log_v2/log_v2.hh"
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
@@ -74,21 +77,25 @@ static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
  *  @param[in] signum Signal number.
  */
 static void hup_handler(int signum [[maybe_unused]]) {
-
   // Disable SIGHUP handling during handler execution.
   signal(SIGHUP, SIG_IGN);
 
   // Log message.
-  log_v2::core()->info("main: configuration update requested");
+  auto core_logger = log_v3::get("core");
+  core_logger->info("main: configuration update requested");
 
   try {
     // Parse configuration file.
     config::parser parsr;
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+    auto& log_conf = conf.log_conf();
     try {
-      log_v2::instance()->apply(conf);
+      log_v2::instance()->apply(log_conf);
+      log_v3::apply(log_conf);
+      core_logger = log_v3::get("core");
     } catch (const std::exception& e) {
       log_v2::core()->error("problem while reloading cbd: {}", e.what());
+      core_logger->error("problem while reloading cbd: {}", e.what());
     }
 
     try {
@@ -97,21 +104,23 @@ static void hup_handler(int signum [[maybe_unused]]) {
 
       gl_state = conf;
     } catch (const std::exception& e) {
-      log_v2::core()->error(
+      core_logger->error(
           "main: configuration update could not succeed, reloading previous "
           "configuration: {}",
           e.what());
       config::applier::state::instance().apply(gl_state);
     } catch (...) {
-      log_v2::core()->error(
+      core_logger->error(
           "main: configuration update could not succeed, reloading previous "
           "configuration");
       config::applier::state::instance().apply(gl_state);
     }
   } catch (const std::exception& e) {
     log_v2::config()->info("main: configuration update failed: {}", e.what());
+    log_v3::get("config")->info("main: configuration update failed: {}",
+                                e.what());
   } catch (...) {
-    log_v2::config()->info(
+    log_v3::get("config")->info(
         "main: configuration update failed: unknown exception");
   }
 
@@ -151,11 +160,12 @@ int main(int argc, char* argv[]) {
   std::string default_listen_address{"localhost"};
 
   log_v2::load(g_io_context);
+  auto core_logger = log_v3::create_logger("core");
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
     char const* err{strerror(errno)};
-    log_v2::core()->info(
+    core_logger->info(
         "main: could not register configuration update handler: {}", err);
   }
 
@@ -166,7 +176,7 @@ int main(int argc, char* argv[]) {
 
   // Set termination handler.
   if (sigaction(SIGTERM, &sigterm_act, nullptr) < 0)
-    log_v2::core()->info("main: could not register termination handler");
+    core_logger->info("main: could not register termination handler");
 
   // Return value.
   int retval(0);
@@ -211,39 +221,39 @@ int main(int argc, char* argv[]) {
     // Check parameters requirements.
     if (diagnose) {
       if (gl_mainconfigfiles.empty()) {
-        log_v2::core()->error(
+        core_logger->error(
             "diagnostic: no configuration file provided: DIAGNOSTIC FILE MIGHT "
             "NOT BE USEFUL");
       }
       misc::diagnostic diag;
       diag.generate(gl_mainconfigfiles);
     } else if (help) {
-      log_v2::core()->info(
+      core_logger->info(
           "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]",
           argv[0]);
 
-      log_v2::core()->info("  '-s<poolsize>'  Set poolsize threads.");
-      log_v2::core()->info("  '-c'  Check configuration file.");
-      log_v2::core()->info("  '-D'  Generate a diagnostic file.");
-      log_v2::core()->info("  '-h'  Print this help.");
-      log_v2::core()->info("  '-v'  Print Centreon Broker version.");
-      log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
-      log_v2::core()->info("Copyright 2009-2021 Centreon");
-      log_v2::core()->info(
+      core_logger->info("  '-s<poolsize>'  Set poolsize threads.");
+      core_logger->info("  '-c'  Check configuration file.");
+      core_logger->info("  '-D'  Generate a diagnostic file.");
+      core_logger->info("  '-h'  Print this help.");
+      core_logger->info("  '-v'  Print Centreon Broker version.");
+      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
+      core_logger->info("Copyright 2009-2021 Centreon");
+      core_logger->info(
           "License ASL 2.0 <http://www.apache.org/licenses/LICENSE-2.0>");
       retval = 0;
     } else if (version) {
-      log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
+      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
       retval = 0;
     } else if (gl_mainconfigfiles.empty()) {
-      log_v2::core()->error(
+      core_logger->error(
           "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]\n\n",
           argv[0]);
       return 1;
     } else {
-      log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
-      log_v2::core()->info("Copyright 2009-2021 Centreon");
-      log_v2::core()->info(
+      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
+      core_logger->info("Copyright 2009-2021 Centreon");
+      core_logger->info(
           "License ASL 2.0 <http://www.apache.org/licenses/LICENSE-2.0>");
 
       // Reset locale.
@@ -253,14 +263,17 @@ int main(int argc, char* argv[]) {
         // Parse configuration file.
         config::parser parsr;
         config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+        auto& log_conf = conf.log_conf();
         try {
-          log_v2::instance()->apply(conf);
+          log_v2::instance()->apply(log_conf);
+          log_v3::apply(log_conf);
+          core_logger = log_v3::get("core");
         } catch (const std::exception& e) {
           log_v2::core()->error("{}", e.what());
+          core_logger->error("{}", e.what());
         }
 
-        log_v2::core()->info("main: process {} pid:{} begin", argv[0],
-                             getpid());
+        core_logger->info("main: process {} pid:{} begin", argv[0], getpid());
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
@@ -292,28 +305,29 @@ int main(int argc, char* argv[]) {
         while (!gl_term) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        log_v2::core()->info("main: termination request received by process {}",
-                             getpid());
+        core_logger->info("main: termination request received by process {}",
+                          getpid());
       }
       log_v2::instance()->stop_flush_timer();
-      // Unload endpoints.
+      // log_v2::instance()->stop_flush_timer();
+      //  Unload endpoints.
       config::applier::deinit();
-      spdlog::shutdown();
+      // spdlog::shutdown();
     }
   }
   // Standard exception.
   catch (const std::exception& e) {
-    log_v2::core()->error("Error during cbd exit: {}", e.what());
+    core_logger->error("Error during cbd exit: {}", e.what());
     retval = EXIT_FAILURE;
   }
   // Unknown exception.
   catch (...) {
-    log_v2::core()->error("Error general during cbd exit");
+    core_logger->error("Error general during cbd exit");
     retval = EXIT_FAILURE;
   }
 
-  log_v2::core()->info("main: process {} pid:{} end exit_code:{}", argv[0],
-                       getpid(), retval);
+  core_logger->info("main: process {} pid:{} end exit_code:{}", argv[0],
+                    getpid(), retval);
 
   return retval;
 }

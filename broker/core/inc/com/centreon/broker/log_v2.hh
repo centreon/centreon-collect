@@ -67,7 +67,7 @@ class log_v2 : public com::centreon::engine::log_v2_base {
   ~log_v2() noexcept;
 
   void stop_flush_timer();
-  void apply(const config::state& conf);
+  void apply(const common::log_v3::config& log_conf);
 
   static void load(const std::shared_ptr<asio::io_context>& io_context);
 

@@ -128,20 +128,18 @@ log_v2::~log_v2() noexcept {
     l.reset();
 }
 
-void log_v2::apply(const config::state& conf) {
+void log_v2::apply(const common::log_v3::config& log_conf) {
   std::lock_guard<std::mutex> lock(_load_m);
   _running = false;
-
-  const auto& log = conf.log_conf();
 
   // reset loggers to null sink
   auto null_sink = std::make_shared<sinks::null_sink_mt>();
   std::shared_ptr<sinks::base_sink<std::mutex>> file_sink;
 
-  _file_path = log.log_path();
-  if (log.max_size)
+  _file_path = log_conf.log_path();
+  if (log_conf.max_size())
     file_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-        _file_path, log.max_size, 99);
+        _file_path, log_conf.max_size(), 99);
   else
     file_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
 
@@ -151,18 +149,18 @@ void log_v2::apply(const config::state& conf) {
         name, this, file_sink);
     logger->set_level(lvl);
     if (lvl != level::off) {
-      if (log.flush_period)
+      if (log_conf.flush_period())
         logger->flush_on(level::warn);
       else
         logger->flush_on(level::trace);
-      if (log.log_pid) {
-        if (log.log_source)
+      if (log_conf.log_pid()) {
+        if (log_conf.log_source())
           logger->set_pattern(
               "[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] [%P] %v");
         else
           logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%P] %v");
       } else {
-        if (log.log_source)
+        if (log_conf.log_source())
           logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] [%s:%#] %v");
         else
           logger->set_pattern("[%Y-%m-%dT%H:%M:%S.%e%z] [%n] [%l] %v");
@@ -211,8 +209,8 @@ void log_v2::apply(const config::state& conf) {
       {"tcp", log_v2::log_tcp},
       {"tls", log_v2::log_tls},
   };
-  for (auto it = log.loggers.begin(), end = log.loggers.end(); it != end;
-       ++it) {
+  for (auto it = log_conf.loggers().begin(), end = log_conf.loggers().end();
+       it != end; ++it) {
     if (lgs.contains(it->first)) {
       _log[lgs[it->first]] = create_log(it->first, level::from_str(it->second));
       lgs.erase(it->first);
@@ -223,8 +221,8 @@ void log_v2::apply(const config::state& conf) {
     _log[lgs[it->first]] = create_log(it->first, spdlog::level::off);
   }
 
-  _flush_interval =
-      std::chrono::seconds(log.flush_period > 0 ? log.flush_period : 2);
+  _flush_interval = std::chrono::seconds(
+      log_conf.flush_period() > 0 ? log_conf.flush_period() : 2);
   start_flush_timer(file_sink);
   _running = true;
 }
