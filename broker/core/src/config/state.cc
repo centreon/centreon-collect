@@ -25,6 +25,8 @@ using namespace com::centreon::broker::config;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
+using log_v2_config = com::centreon::common::log_v3::config;
+
 /**
  *  Default constructor.
  */
@@ -36,7 +38,7 @@ state::state()
       _event_queue_max_size{10000},
       _poller_id{0},
       _pool_size{0},
-      _log_conf{"/var/log/centreon-broker", "", 0u, 5u, false, false, {}} {}
+      _log_conf{"/var/log/centreon-broker", "", 0u, 5u, false, false} {}
 
 /**
  *  Copy constructor.
@@ -58,7 +60,8 @@ state::state(const state& other)
       _params(other._params),
       _poller_id(other._poller_id),
       _poller_name(other._poller_name),
-      _pool_size(other._pool_size) {}
+      _pool_size(other._pool_size),
+      _log_conf(other._log_conf) {}
 
 /**
  *  Destructor.
@@ -445,11 +448,11 @@ const std::string& state::listen_address() const noexcept {
   return _listen_address;
 }
 
-state::log& state::mut_log_conf() {
+log_v2_config& state::mut_log_conf() {
   return _log_conf;
 }
 
-const state::log& state::log_conf() const {
+const log_v2_config& state::log_conf() const {
   return _log_conf;
 }
 
