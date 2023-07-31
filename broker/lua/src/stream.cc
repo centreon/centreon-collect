@@ -22,11 +22,14 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::lua;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -39,9 +42,11 @@ stream::stream(const std::string& lua_script,
                const std::shared_ptr<persistent_cache>& cache)
     : io::stream("lua"),
       _cache{cache},
-      _luabinding(lua_script, conf_params, _cache) {}
+      _luabinding(lua_script, conf_params, _cache),
+      _logger_id{log_v3::instance().create_logger_or_get_id("lua")} {}
 
 stream::~stream() noexcept {
+  log_v3::instance().get(_logger_id)->debug("lua: Stream destruction");
   log_v2::lua()->debug("lua: Stream destruction");
 }
 /**

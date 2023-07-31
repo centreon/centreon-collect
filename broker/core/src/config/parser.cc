@@ -393,9 +393,9 @@ state parser::parse(std::string const& file) {
                   "'flush_period' key in the log configuration must contain a "
                   "positive number or 0.");
 
-            conf.set_flush_period(fp.value());
+            conf.set_flush_interval(fp.value());
           } else
-            conf.set_flush_period(0u);
+            conf.set_flush_interval(0u);
 
           auto lp = check_and_read<bool>(conf_js, "log_pid");
           conf.set_log_pid(lp ? lp.value() : false);
