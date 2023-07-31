@@ -57,6 +57,9 @@ class stream : public io::stream {
   /* The Lua engine */
   luabinding _luabinding;
 
+  /* Logger ID */
+  uint32_t _logger_id;
+
  public:
   stream(std::string const& lua_script,
          std::map<std::string, misc::variant> const& conf_params,
