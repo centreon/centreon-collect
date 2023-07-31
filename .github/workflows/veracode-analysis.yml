@@ -77,21 +77,6 @@ jobs:
 
           sudo ninja
 
-      - name: debug after compilation status
-        run: |
-          echo "[DEBUG] - current location ?"
-          pwd
-          echo "[DEBUG] - Current folder size ?"
-          du -sh ./build/* | sort -h
-          echo "[DEBUG] - Build / Bin folder size ?"
-          du -sh ./build/bin/* | sort -h
-          echo "[DEBUG] - Build / Lib folder size ?"
-          du -sh ./build/lib/* | sort -h
-          echo "[DEBUG] - Build / Broker module folder size ?"
-          du -sh ./build/broker/* | sort -h
-          echo "[DEBUG] - Current location files ?"
-          ls -la
-
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
