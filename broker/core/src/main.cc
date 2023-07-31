@@ -81,7 +81,7 @@ static void hup_handler(int signum [[maybe_unused]]) {
   signal(SIGHUP, SIG_IGN);
 
   // Log message.
-  auto core_logger = log_v3::get("core");
+  auto core_logger = log_v3::instance().get(0);
   core_logger->info("main: configuration update requested");
 
   try {
@@ -91,8 +91,9 @@ static void hup_handler(int signum [[maybe_unused]]) {
     auto& log_conf = conf.log_conf();
     try {
       log_v2::instance()->apply(log_conf);
-      log_v3::apply(log_conf);
-      core_logger = log_v3::get("core");
+      log_v3::instance().apply(log_conf);
+      /* We update the logger, since the conf has been applied */
+      core_logger = log_v3::instance().get(0);
     } catch (const std::exception& e) {
       log_v2::core()->error("problem while reloading cbd: {}", e.what());
       core_logger->error("problem while reloading cbd: {}", e.what());
@@ -116,12 +117,10 @@ static void hup_handler(int signum [[maybe_unused]]) {
       config::applier::state::instance().apply(gl_state);
     }
   } catch (const std::exception& e) {
-    log_v2::config()->info("main: configuration update failed: {}", e.what());
-    log_v3::get("config")->info("main: configuration update failed: {}",
-                                e.what());
+    log_v2::core()->info("main: configuration update failed: {}", e.what());
+    core_logger->info("main: configuration update failed: {}", e.what());
   } catch (...) {
-    log_v3::get("config")->info(
-        "main: configuration update failed: unknown exception");
+    core_logger->info("main: configuration update failed: unknown exception");
   }
 
   // Reenable SIGHUP handler.
@@ -159,8 +158,9 @@ int main(int argc, char* argv[]) {
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
 
+  log_v3::load({"core", "config"});
   log_v2::load(g_io_context);
-  auto core_logger = log_v3::create_logger("core");
+  auto core_logger = log_v3::instance().get(0);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -266,8 +266,10 @@ int main(int argc, char* argv[]) {
         auto& log_conf = conf.log_conf();
         try {
           log_v2::instance()->apply(log_conf);
-          log_v3::apply(log_conf);
-          core_logger = log_v3::get("core");
+          log_v3::instance().apply(log_conf);
+          /* The core_logger is reloaded just after the configuration is applied
+           */
+          core_logger = log_v3::instance().get(0);
         } catch (const std::exception& e) {
           log_v2::core()->error("{}", e.what());
           core_logger->error("{}", e.what());

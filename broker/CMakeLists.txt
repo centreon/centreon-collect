@@ -465,9 +465,9 @@ add_dependencies(cbd multiplexing)
 target_link_libraries(
   cbd
   "-rdynamic"
-  log_v2
   rokerlog
   "-Wl,--whole-archive"
+  log_v2
   sql
   rokerbase
   roker

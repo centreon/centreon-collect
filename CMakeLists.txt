@@ -193,8 +193,7 @@ add_custom_target(test-broker COMMAND tests/ut_broker)
 add_custom_target(test-engine COMMAND tests/ut_engine)
 add_custom_target(test-clib COMMAND tests/ut_clib)
 add_custom_target(test-connector COMMAND tests/ut_connector)
+add_custom_target(test-common COMMAND tests/ut_common)
 
-add_custom_target(test DEPENDS test-broker test-engine test-clib test-connector)
-
-add_custom_target(test-coverage DEPENDS broker-test-coverage
-                                        engine-test-coverage clib-test-coverage)
+add_custom_target(test DEPENDS test-common test-broker test-engine test-clib
+                               test-connector)

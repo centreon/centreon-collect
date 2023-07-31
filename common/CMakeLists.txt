@@ -18,3 +18,7 @@
 
 add_subdirectory(configuration)
 add_subdirectory(log_v2)
+
+if(WITH_TESTING)
+  add_subdirectory(tests)
+endif()

@@ -96,7 +96,8 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
                                                                stdout_sink);
     log->flush_on(level::info);
     log->set_level(level::info);
-    spdlog::register_logger(log);
+    // FIXME DBO: this is to avoid conflict with the new logger common::log_v2
+    // spdlog::register_logger(log);
     return log;
   };
 
@@ -130,6 +131,7 @@ log_v2::~log_v2() noexcept {
 
 void log_v2::apply(const common::log_v3::config& log_conf) {
   std::lock_guard<std::mutex> lock(_load_m);
+
   _running = false;
 
   // reset loggers to null sink
@@ -149,7 +151,7 @@ void log_v2::apply(const common::log_v3::config& log_conf) {
         name, this, file_sink);
     logger->set_level(lvl);
     if (lvl != level::off) {
-      if (log_conf.flush_period())
+      if (log_conf.flush_interval())
         logger->flush_on(level::warn);
       else
         logger->flush_on(level::trace);
@@ -190,7 +192,7 @@ void log_v2::apply(const common::log_v3::config& log_conf) {
   _log[log_v2::log_core] = create_log("core", level::info);
   core()->info("{} : log started", _file_path);
 
-  absl::flat_hash_map<std::string, int32_t> lgs{
+  absl::flat_hash_map<std::string_view, int32_t> lgs{
       {"bam", log_v2::log_bam},
       {"bbdo", log_v2::log_bbdo},
       {"config", log_v2::log_config},
@@ -209,20 +211,23 @@ void log_v2::apply(const common::log_v3::config& log_conf) {
       {"tcp", log_v2::log_tcp},
       {"tls", log_v2::log_tls},
   };
+
   for (auto it = log_conf.loggers().begin(), end = log_conf.loggers().end();
        it != end; ++it) {
     if (lgs.contains(it->first)) {
-      _log[lgs[it->first]] = create_log(it->first, level::from_str(it->second));
+      _log[lgs[it->first]] =
+          create_log(std::string(it->first), level::from_str(it->second));
       lgs.erase(it->first);
     }
   }
 
   for (auto it = lgs.begin(); it != lgs.end(); ++it) {
-    _log[lgs[it->first]] = create_log(it->first, spdlog::level::off);
+    _log[lgs[it->first]] =
+        create_log(std::string(it->first), spdlog::level::off);
   }
 
   _flush_interval = std::chrono::seconds(
-      log_conf.flush_period() > 0 ? log_conf.flush_period() : 2);
+      log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 2);
   start_flush_timer(file_sink);
   _running = true;
 }
