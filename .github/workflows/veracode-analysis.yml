@@ -37,7 +37,7 @@ jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
-
+    if: github.event_name != 'pull_request' && (inputs.stability == 'stable' || inputs.stability == 'unstable')
     container:
       image: ${{ inputs.docker_registry_url }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
@@ -116,9 +116,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Promote Scan
+      - name: Promote latest scan
         # Only last develop should be promoted to policy scan
-        ## if: github.ref_name == 'develop'
+        if: github.ref_name == 'develop'
 
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
@@ -126,7 +126,7 @@ jobs:
 
         # Action forked as API calls hardcoded '.com' route
         uses: sc979/veracode-sandboxes-helper@v0.2
-        # Should not fail if sandbox was not found.
+        # Promote should not fail if sandbox was not found.
         continue-on-error: true
         with:
           activity: "promote-latest-scan"
@@ -156,5 +156,5 @@ jobs:
           #scantimeout: 120
           includenewmodules: true
           scanallnonfataltoplevelmodules: true
-          #deleteincompletescan: 1
+          deleteincompletescan: 2
           scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
