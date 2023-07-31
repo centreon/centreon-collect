@@ -56,9 +56,6 @@ jobs:
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
           sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-          # If verbosity is required add : -DCMAKE_VERBOSE_MAKEFILE:BOOL=ON \
-          # Removed to test : -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-
           sudo cmake \
             -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
@@ -160,7 +157,7 @@ jobs:
 
       - name: Sandbox scan
         uses: veracode/veracode-uploadandscan-action@0.2.6
-        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' && true || false }}
+        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
         with:
           appname: "${{ inputs.module_name }}"
           version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
