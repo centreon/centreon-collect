@@ -26,7 +26,7 @@ class config {
   std::string _dirname;
   std::string _filename;
   std::size_t _max_size;
-  uint32_t _flush_period;
+  uint32_t _flush_interval;
   bool _log_pid;
   bool _log_source;
   /* logger name => level */
@@ -36,28 +36,30 @@ class config {
   config(const std::string& dirname,
          const std::string& filename,
          std::size_t max_size,
-         uint32_t flush_period,
+         uint32_t flush_interval,
          bool log_pid,
          bool log_source)
       : _dirname{dirname},
         _filename{filename},
         _max_size{max_size},
-        _flush_period{flush_period},
+        _flush_interval{flush_interval},
         _log_pid{log_pid},
         _log_source{log_source} {}
   config(const config& other)
       : _dirname{other._dirname},
         _filename{other._filename},
         _max_size{other._max_size},
-        _flush_period{other._flush_period},
+        _flush_interval{other._flush_interval},
         _log_pid{other._log_pid},
         _log_source{other._log_source} {}
   std::string log_path() const {
     return fmt::format("{}/{}", _dirname, _filename);
   }
   size_t max_size() const { return _max_size; }
-  uint32_t flush_period() const { return _flush_period; }
-  void set_flush_period(uint32_t flush_period) { _flush_period = flush_period; }
+  uint32_t flush_interval() const { return _flush_interval; }
+  void set_flush_interval(uint32_t flush_interval) {
+    _flush_interval = flush_interval;
+  }
   bool log_pid() const { return _log_pid; }
   void set_log_pid(bool log_pid) { _log_pid = log_pid; }
   bool log_source() const { return _log_source; }
@@ -67,8 +69,8 @@ class config {
   void set_level(const std::string& name, const std::string& level) {
     _loggers[name] = level;
   }
-  absl::flat_hash_map<std::string, std::string> loggers() { return _loggers; }
-  absl::flat_hash_map<std::string, std::string> loggers() const {
+  absl::flat_hash_map<std::string, std::string>& loggers() { return _loggers; }
+  const absl::flat_hash_map<std::string, std::string>& loggers() const {
     return _loggers;
   }
   const std::string& filename() const { return _filename; }

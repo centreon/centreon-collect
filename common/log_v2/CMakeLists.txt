@@ -25,4 +25,4 @@ add_library(
   # Sources.
   log_v2.cc)
 
-target_link_libraries(log_v2 CONAN_PKG::spdlog)
+target_link_libraries(log_v2 CONAN_PKG::spdlog CONAN_PKG::abseil)

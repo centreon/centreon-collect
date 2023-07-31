@@ -134,6 +134,9 @@ target_link_libraries(
   roker
   rokerbase
   rokerlog
+  "-Wl,--whole-archive"
+  log_v2
+  "-Wl,--no-whole-archive"
   multiplexing
   ${TESTS_LIBRARIES}
   conflictmgr

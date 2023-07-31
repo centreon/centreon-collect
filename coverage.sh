@@ -26,7 +26,10 @@ broker)
 engine)
   tests/ut_engine $*
   ;;
+common)
+  tests/ut_common $*
 *)
+  tests/ut_common
   tests/ut_clib
   tests/ut_engine
   tests/ut_broker
