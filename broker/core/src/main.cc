@@ -331,5 +331,6 @@ int main(int argc, char* argv[]) {
   core_logger->info("main: process {} pid:{} end exit_code:{}", argv[0],
                     getpid(), retval);
 
+  log_v3::unload();
   return retval;
 }

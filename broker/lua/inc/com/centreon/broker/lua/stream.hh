@@ -59,6 +59,7 @@ class stream : public io::stream {
 
   /* Logger ID */
   uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   stream(std::string const& lua_script,

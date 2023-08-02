@@ -43,7 +43,7 @@ void log_v3::unload() {
 
 log_v3::log_v3(std::initializer_list<std::string> ilist) {
   for (auto& s : ilist)
-    create_logger_or_get_id(s);
+    create_logger_or_get_id(s, true);
 }
 
 log_v3::~log_v3() noexcept {}
@@ -83,19 +83,29 @@ void log_v3::set_flush_interval(uint32_t second_flush_interval) {
  * applied. And it just returns the id of the logger with the given name.
  *
  * @param name The name of the logger.
+ * @param activate If True, the logger is activated at its creation. It is only
+ * activated when the load() function is called, otherwise by default, the
+ * boolean is false.
  *
  * @return The ID of the logger (created or found in the existing
  * configuration).
  */
-uint32_t log_v3::create_logger_or_get_id(const std::string& name) {
+uint32_t log_v3::create_logger_or_get_id(const std::string& name,
+                                         bool activate) {
   std::lock_guard<std::shared_mutex> lck(_loggers_m);
   uint32_t idx;
   for (idx = 0; idx < _loggers.size(); ++idx) {
     if (_loggers[idx]->name() == name)
       return idx;
   }
-  auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-  auto logger = std::make_shared<spdlog::logger>(name, stdout_sink);
+  std::shared_ptr<spdlog::logger> logger;
+  if (activate) {
+    auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+    logger = std::make_shared<spdlog::logger>(name, stdout_sink);
+  } else {
+    auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
+    logger = std::make_shared<spdlog::logger>(name, null_sink);
+  }
   spdlog::register_logger(logger);
   _loggers.push_back(logger);
   return idx;
