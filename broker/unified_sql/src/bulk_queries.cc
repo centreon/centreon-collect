@@ -1,5 +1,5 @@
 /*
-** Copyright 2022 Centreon
+** Copyright 2022-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,9 +17,11 @@
 */
 
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::unified_sql;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Constructor
@@ -31,11 +33,13 @@ using namespace com::centreon::broker::unified_sql;
  */
 bulk_queries::bulk_queries(const uint32_t max_interval,
                            const uint32_t max_queries,
-                           const std::string& query)
+                           const std::string& query,
+                           uint32_t logger_id)
     : _interval{max_interval},
       _max_size{max_queries},
       _query(query),
-      _next_time{std::time(nullptr) + max_interval} {}
+      _next_time{std::time(nullptr) + max_interval},
+      _logger_id{logger_id} {}
 
 /**
  * @brief Compute the query to execute as a string and return it. The container
@@ -44,6 +48,7 @@ bulk_queries::bulk_queries(const uint32_t max_interval,
  * @return a string.
  */
 std::string bulk_queries::get_query() {
+  auto logger = log_v3::instance().get(_logger_id);
   std::deque<std::string> queue;
   {
     std::lock_guard<std::mutex> lck(_queue_m);
@@ -53,9 +58,9 @@ std::string bulk_queries::get_query() {
   std::string query;
   if (!queue.empty()) {
     /* Building the query */
-    log_v2::sql()->debug("SQL: {} items sent in bulk", queue.size());
+    logger->debug("SQL: {} items sent in bulk", queue.size());
     query = fmt::format(_query, fmt::join(queue, ","));
-    log_v2::sql()->trace("Sending query << {} >>", query);
+    logger->trace("Sending query << {} >>", query);
   }
   _next_time = std::time(nullptr) + _interval;
   return query;
