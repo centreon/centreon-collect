@@ -92,6 +92,10 @@ class monitoring_stream : public io::stream {
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
 
+  /* Loggers */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   void _write_forced_svc_check(const std::string& host,
                                const std::string& description);
   void _explicitly_send_forced_svc_checks(const boost::system::error_code& ec);

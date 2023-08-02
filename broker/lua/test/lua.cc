@@ -35,10 +35,13 @@
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 #define FILE1 CENTREON_BROKER_LUA_SCRIPT_PATH "/test1.lua"
 #define FILE2 CENTREON_BROKER_LUA_SCRIPT_PATH "/test2.lua"
@@ -50,6 +53,7 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 class LuaTest : public ::testing::Test {
  public:
   void SetUp() override {
+    log_v3::load({"core", "lua"});
     g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
@@ -65,6 +69,7 @@ class LuaTest : public ::testing::Test {
     _cache.reset();
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
+    log_v3::unload();
   }
 
   void CreateScript(std::string const& filename, std::string const& content) {

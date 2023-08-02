@@ -55,6 +55,7 @@ class kpi_service : public service_listener, public kpi {
   state _state_hard;
   state _state_soft;
   short _state_type;
+  uint32_t _logger_id;
 
  public:
   kpi_service(uint32_t kpi_id,

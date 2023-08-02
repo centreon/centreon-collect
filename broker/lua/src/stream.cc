@@ -43,11 +43,11 @@ stream::stream(const std::string& lua_script,
     : io::stream("lua"),
       _cache{cache},
       _luabinding(lua_script, conf_params, _cache),
-      _logger_id{log_v3::instance().create_logger_or_get_id("lua")} {}
+      _logger_id{log_v3::instance().create_logger_or_get_id("lua")},
+      _logger{log_v3::instance().get(_logger_id)} {}
 
 stream::~stream() noexcept {
-  log_v3::instance().get(_logger_id)->debug("lua: Stream destruction");
-  log_v2::lua()->debug("lua: Stream destruction");
+  _logger->debug("lua: Stream destruction");
 }
 /**
  *  Read from the connector.
@@ -72,6 +72,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 int stream::write(std::shared_ptr<io::data> const& data) {
   assert(data);
+  _logger = log_v3::instance().get(_logger_id);
 
   // Give data to cache.
   _cache.write(data);
@@ -90,7 +91,7 @@ int32_t stream::flush() {
   int32_t retval = 0;
   if (_luabinding.has_flush()) {
     retval = _luabinding.flush();
-    log_v2::lua()->debug("stream: flush {} events acknowledged", retval);
+    _logger->debug("stream: flush {} events acknowledged", retval);
   }
   return retval;
 }
@@ -101,6 +102,6 @@ int32_t stream::flush() {
  * @return The number of acknowledged events.
  */
 int32_t stream::stop() {
-  log_v2::lua()->debug("lua: stop stream");
+  _logger->debug("lua: stop stream");
   return _luabinding.stop();
 }
