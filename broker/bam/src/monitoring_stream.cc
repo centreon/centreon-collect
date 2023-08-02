@@ -30,7 +30,6 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/fifo_client.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
@@ -41,11 +40,14 @@
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/timestamp.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -68,8 +70,10 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
       _cache(std::move(cache)),
-      _forced_svc_checks_timer{pool::io_context()} {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream constructor");
+      _forced_svc_checks_timer{pool::io_context()},
+      _logger_id{log_v3::instance().create_logger_or_get_id("bam")},
+      _logger{log_v3::instance().get(_logger_id)} {
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream constructor");
   if (!_conf_queries_per_transaction) {
     _conf_queries_per_transaction = 1;
   }
@@ -88,13 +92,13 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
  */
 monitoring_stream::~monitoring_stream() {
   // save cache
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream destructor");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream destructor");
   try {
     _write_cache();
   } catch (std::exception const& e) {
-    log_v2::bam()->error("BAM: can't save cache: '{}'", e.what());
+    _logger->error("BAM: can't save cache: '{}'", e.what());
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: monitoring_stream destruction done");
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM: monitoring_stream destruction done");
 }
 
 /**
@@ -106,7 +110,7 @@ int32_t monitoring_stream::flush() {
   _execute();
   _pending_request = 0;
   int retval = _pending_events;
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream flush: {} events",
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream flush: {} events",
                       retval);
   _pending_events = 0;
   return retval;
@@ -119,12 +123,12 @@ int32_t monitoring_stream::flush() {
  */
 int32_t monitoring_stream::stop() {
   int32_t retval = flush();
-  log_v2::core()->info("monitoring stream: stopped with {} events acknowledged",
-                       retval);
+  log_v3::instance().get(0)->info(
+      "monitoring stream: stopped with {} events acknowledged", retval);
   /* I want to be sure the timer is really stopped. */
   std::promise<void> p;
   {
-    log_v2::bam()->info(
+    _logger->info(
         "bam: monitoring_stream - waiting for forced service checks to be "
         "done");
     std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
@@ -141,7 +145,7 @@ int32_t monitoring_stream::stop() {
   }
   p.get_future().wait();
   /* Now, it is really cancelled. */
-  log_v2::bam()->info("bam: monitoring_stream - stop finished");
+  _logger->info("bam: monitoring_stream - stop finished");
 
   return retval;
 }
@@ -150,7 +154,7 @@ int32_t monitoring_stream::stop() {
  *  Generate default state.
  */
 void monitoring_stream::initialize() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream initialize");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream initialize");
   multiplexing::publisher pblshr;
   event_cache_visitor ev_cache;
   _applier.visit(&ev_cache);
@@ -177,7 +181,7 @@ bool monitoring_stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *  Rebuild index and metrics cache.
  */
 void monitoring_stream::update() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream update");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream update");
   try {
     configuration::state s;
     configuration::reader_v2 r(_mysql, _storage_db_cfg);
@@ -349,8 +353,9 @@ struct kpi_binder {
  *
  *  @return Number of events acknowledged.
  */
-int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring_stream write {}", *data);
+int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
+  _logger = log_v3::instance().get(_logger_id);
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;
 
@@ -367,7 +372,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     }
   };
 
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: {} pending events", _pending_events);
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: {} pending events", _pending_events);
 
   // Process service status events.
   switch (data->type()) {
@@ -376,7 +381,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       std::shared_ptr<neb::service_status> ss(
           std::static_pointer_cast<neb::service_status>(data));
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
+          _logger,
           "BAM: processing service status (host: {}, service: {}, hard state "
           "{}, "
           "current state {})",
@@ -390,7 +395,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       auto ss = std::static_pointer_cast<neb::pb_service_status>(data);
       auto& o = ss->obj();
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
+          _logger,
           "BAM: processing pb service status (host: {}, service: {}, hard "
           "state {}, current state {})",
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
@@ -403,7 +408,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       auto s = std::static_pointer_cast<neb::pb_service>(data);
       auto& o = s->obj();
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
+          _logger,
           "BAM: processing pb service (host: {}, service: {}, hard "
           "state {}, current state {})",
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
@@ -415,7 +420,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     case neb::pb_acknowledgement::static_type(): {
       std::shared_ptr<neb::pb_acknowledgement> ack(
           std::static_pointer_cast<neb::pb_acknowledgement>(data));
-      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+      SPDLOG_LOGGER_TRACE(_logger,
                           "BAM: processing acknowledgement on service ({}, {})",
                           ack->obj().host_id(), ack->obj().service_id());
       multiplexing::publisher pblshr;
@@ -426,7 +431,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
     case neb::acknowledgement::static_type(): {
       std::shared_ptr<neb::acknowledgement> ack(
           std::static_pointer_cast<neb::acknowledgement>(data));
-      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+      SPDLOG_LOGGER_TRACE(_logger,
                           "BAM: processing acknowledgement on service ({}, {})",
                           ack->host_id, ack->service_id);
       multiplexing::publisher pblshr;
@@ -438,7 +443,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       std::shared_ptr<neb::downtime> dt(
           std::static_pointer_cast<neb::downtime>(data));
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
+          _logger,
           "BAM: processing downtime ({}) on service ({}, {}) started: {}, "
           "stopped: {}",
           dt->internal_id, dt->host_id, dt->service_id, dt->was_started,
@@ -452,7 +457,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       std::shared_ptr<neb::pb_downtime> dt(
           std::static_pointer_cast<neb::pb_downtime>(data));
       auto& downtime = dt->obj();
-      SPDLOG_LOGGER_TRACE(log_v2::bam(),
+      SPDLOG_LOGGER_TRACE(_logger,
                           "BAM: processing downtime (pb) ({}) on service "
                           "({}, {}) started: {}, "
                           "stopped: {}",
@@ -478,7 +483,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
         std::pair<std::string, std::string> ba_svc_name(
             _ba_mapping.get_service(status->ba_id));
         if (ba_svc_name.first.empty() || ba_svc_name.second.empty()) {
-          log_v2::bam()->error(
+          _logger->error(
               "BAM: could not trigger check of virtual service of BA {}:"
               "host name and service description were not found",
               status->ba_id);
@@ -505,7 +510,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
         std::pair<std::string, std::string> ba_svc_name(
             _ba_mapping.get_service(status.ba_id()));
         if (ba_svc_name.first.empty() || ba_svc_name.second.empty()) {
-          log_v2::bam()->error(
+          _logger->error(
               "BAM: could not trigger check of virtual service of BA {}:"
               "host name and service description were not found",
               status.ba_id());
@@ -533,7 +538,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       inherited_downtime const& dwn =
           *std::static_pointer_cast<inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(), "BAM: processing inherited downtime (ba id {}, now {}",
+          _logger, "BAM: processing inherited downtime (ba id {}, now {}",
           dwn.ba_id, now);
       if (dwn.in_downtime)
         cmd = fmt::format(
@@ -557,8 +562,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       pb_inherited_downtime const& dwn =
           *std::static_pointer_cast<pb_inherited_downtime const>(data);
       SPDLOG_LOGGER_TRACE(
-          log_v2::bam(),
-          "BAM: processing pb inherited downtime (ba id {}, now {}",
+          _logger, "BAM: processing pb inherited downtime (ba id {}, now {}",
           dwn.obj().ba_id(), now);
       if (dwn.obj().in_downtime())
         cmd = fmt::format(
@@ -584,13 +588,13 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
   // if uncommited request, we can't yet acknowledge
   if (_pending_request) {
     if (_pending_events >= 10 * _conf_queries_per_transaction) {
-      log_v2::bam()->trace(
+      _logger->trace(
           "BAM: monitoring_stream write: too many pending events =>flush and "
           "acknowledge {} events",
           _pending_events);
       return flush();
     }
-    log_v2::bam()->trace(
+    _logger->trace(
         "BAM: monitoring_stream write: 0 events (request pending) {} to "
         "acknowledge",
         _pending_events);
@@ -598,7 +602,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
   }
   int retval = _pending_events;
   _pending_events = 0;
-  log_v2::bam()->trace("BAM: monitoring_stream write: {} events", retval);
+  _logger->trace("BAM: monitoring_stream write: {} events", retval);
   return retval;
 }
 
@@ -607,7 +611,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
  */
 void monitoring_stream::_prepare() {
   if (_mysql.support_bulk_statement()) {
-    log_v2::bam()->trace("BAM: monitoring stream _prepare");
+    _logger->trace("BAM: monitoring stream _prepare");
     _ba_query = std::make_unique<database::bulk_or_multi>(
         _mysql,
         "UPDATE mod_bam SET "
@@ -648,7 +652,7 @@ void monitoring_stream::_prepare() {
  *  Rebuilds BA durations/availabilities from BA events.
  */
 void monitoring_stream::_rebuild() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring stream _rebuild");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _rebuild");
   // Get the list of the BAs that should be rebuild.
   std::vector<uint32_t> bas_to_rebuild;
   {
@@ -670,7 +674,7 @@ void monitoring_stream::_rebuild() {
   if (bas_to_rebuild.empty())
     return;
 
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+  SPDLOG_LOGGER_TRACE(_logger,
                       "BAM: rebuild asked, sending the rebuild signal");
 
   auto r{std::make_shared<rebuild>(
@@ -707,17 +711,17 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
     }
     if (!_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
-      log_v2::bam()->trace("opening {}", _ext_cmd_file);
+      _logger->trace("opening {}", _ext_cmd_file);
       misc::fifo_client fc(_ext_cmd_file);
-      SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: {} forced checks to schedule",
+      SPDLOG_LOGGER_DEBUG(_logger, "BAM: {} forced checks to schedule",
                           _timer_forced_svc_checks.size());
       for (auto& p : _timer_forced_svc_checks) {
         time_t now = time(nullptr);
         std::string cmd{fmt::format("[{}] SCHEDULE_FORCED_SVC_CHECK;{};{};{}\n",
                                     now, p.first, p.second, now)};
-        log_v2::bam()->debug("writing '{}' into {}", cmd, _ext_cmd_file);
+        _logger->debug("writing '{}' into {}", cmd, _ext_cmd_file);
         if (fc.write(cmd) < 0) {
-          log_v2::bam()->error(
+          _logger->error(
               "BAM: could not write forced service check to command file '{}'",
               _ext_cmd_file);
           _forced_svc_checks_timer.expires_after(std::chrono::seconds(5));
@@ -739,7 +743,7 @@ void monitoring_stream::_explicitly_send_forced_svc_checks(
 void monitoring_stream::_write_forced_svc_check(
     const std::string& host,
     const std::string& description) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+  SPDLOG_LOGGER_TRACE(_logger,
                       "BAM: monitoring stream _write_forced_svc_check");
   std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
   _forced_svc_checks.emplace(host, description);
@@ -755,28 +759,26 @@ void monitoring_stream::_write_forced_svc_check(
  *  @param[in] cmd  Command to write to the external command pipe.
  */
 void monitoring_stream::_write_external_command(const std::string& cmd) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                      "BAM: monitoring stream _write_external_command <<{}>>",
-                      cmd);
+  SPDLOG_LOGGER_TRACE(
+      _logger, "BAM: monitoring stream _write_external_command <<{}>>", cmd);
   std::lock_guard<std::mutex> lock(_ext_cmd_file_m);
   misc::fifo_client fc(_ext_cmd_file);
   if (fc.write(cmd) < 0) {
-    log_v2::bam()->error(
-        "BAM: could not write BA check result to command file '{}'",
-        _ext_cmd_file);
+    _logger->error("BAM: could not write BA check result to command file '{}'",
+                   _ext_cmd_file);
   } else
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: sent external command '{}'", cmd);
+    SPDLOG_LOGGER_DEBUG(_logger, "BAM: sent external command '{}'", cmd);
 }
 
 /**
  *  Get inherited downtime from the cache.
  */
 void monitoring_stream::_read_cache() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring stream _read_cache");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _read_cache");
   if (_cache == nullptr)
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: no cache configured");
+    SPDLOG_LOGGER_DEBUG(_logger, "BAM: no cache configured");
   else {
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: loading cache");
+    SPDLOG_LOGGER_DEBUG(_logger, "BAM: loading cache");
     _applier.load_from_cache(*_cache);
   }
 }
@@ -785,11 +787,11 @@ void monitoring_stream::_read_cache() {
  *  Save inherited downtime to the cache.
  */
 void monitoring_stream::_write_cache() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: monitoring stream _write_cache");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring stream _write_cache");
   if (_cache == nullptr)
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: no cache configured");
+    SPDLOG_LOGGER_DEBUG(_logger, "BAM: no cache configured");
   else {
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM: saving cache");
+    SPDLOG_LOGGER_DEBUG(_logger, "BAM: saving cache");
     _applier.save_to_cache(*_cache);
   }
 }

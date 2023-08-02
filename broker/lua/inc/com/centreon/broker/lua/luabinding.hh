@@ -101,6 +101,10 @@ class luabinding {
   // Api version among (1, 2)
   uint32_t _broker_api_version;
 
+  // logger ID.
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
   void _init_script(std::map<std::string, misc::variant> const& conf_params);

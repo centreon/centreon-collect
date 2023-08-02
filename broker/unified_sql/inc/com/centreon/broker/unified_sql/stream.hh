@@ -305,6 +305,12 @@ class stream : public io::stream {
   asio::system_timer _group_clean_timer;
   asio::system_timer _loop_timer;
 
+  /* loggers  */
+  uint32_t _logger_sql_id;
+  uint32_t _logger_sto_id;
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_sto;
+
   absl::flat_hash_set<uint32_t> _hostgroup_cache;
   absl::flat_hash_set<uint32_t> _servicegroup_cache;
 
@@ -341,7 +347,6 @@ class stream : public io::stream {
   database::mysql_stmt _pb_acknowledgement_insupdate;
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _event_handler_insupdate;
-  // database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_dependency_insupdate;
