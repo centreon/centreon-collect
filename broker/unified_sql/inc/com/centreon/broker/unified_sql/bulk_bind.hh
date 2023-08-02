@@ -64,12 +64,14 @@ class bulk_bind {
   mutable std::mutex _queue_m;
   std::vector<std::unique_ptr<database::mysql_bulk_bind>> _bind;
   std::vector<std::time_t> _next_time;
+  uint32_t _logger_id;
 
  public:
   bulk_bind(const size_t connections_count,
             const uint32_t max_interval,
             const uint32_t max_rows,
-            database::mysql_bulk_stmt& stmt);
+            database::mysql_bulk_stmt& stmt,
+            uint32_t logger_id);
   bulk_bind(const bulk_bind&) = delete;
   std::unique_ptr<database::mysql_bulk_bind>& bind(int32_t conn);
   void apply_to_stmt(int32_t conn);

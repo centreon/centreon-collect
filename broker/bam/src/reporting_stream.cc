@@ -34,16 +34,18 @@
 #include "com/centreon/broker/bam/ba.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -55,8 +57,10 @@ reporting_stream::reporting_stream(database_config const& db_cfg)
       _ack_events(0),
       _pending_events(0),
       _mysql(db_cfg),
-      _processing_dimensions(false) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: reporting stream constructor");
+      _processing_dimensions(false),
+      _logger_id{log_v3::instance().create_logger_or_get_id("bam")},
+      _logger{log_v3::instance().get(_logger_id)} {
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream constructor");
   // Prepare queries.
   _prepare();
 
@@ -81,7 +85,7 @@ reporting_stream::reporting_stream(database_config const& db_cfg)
  *  Destructor.
  */
 reporting_stream::~reporting_stream() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: reporting stream destructor");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream destructor");
   // Terminate the availabilities thread.
   _availabilities->terminate();
   _availabilities->wait();
@@ -119,7 +123,7 @@ void reporting_stream::statistics(nlohmann::json& tree) const {
  *  @return Number of acknowledged events.
  */
 int32_t reporting_stream::flush() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM: reporting stream flush");
+  SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream flush");
   _commit();
   int retval(_ack_events + _pending_events);
   _ack_events = 0;
@@ -134,8 +138,8 @@ int32_t reporting_stream::flush() {
  */
 int32_t reporting_stream::stop() {
   int32_t retval = flush();
-  log_v2::core()->info("reporting stream stopped with {} events acknowledged",
-                       retval);
+  log_v3::instance().get(0)->info(
+      "reporting stream stopped with {} events acknowledged", retval);
   return retval;
 }
 
@@ -150,12 +154,13 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_events;
   assert(data);
+  _logger = log_v3::instance().get(_logger_id);
 
-  if (log_v2::bam()->level() == spdlog::level::trace) {
+  if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(
-        log_v2::bam(), "BAM: reporting stream write - event of type {}", *data);
+        _logger, "BAM: reporting stream write - event of type {}", *data);
   } else {
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+    SPDLOG_LOGGER_DEBUG(_logger,
                         "BAM: reporting stream write - event of type {:x}",
                         data->type());
   }
@@ -229,8 +234,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
       commit_if_needed();
       break;
     default:
-      SPDLOG_LOGGER_TRACE(log_v2::bam(),
-                          "BAM: nothing to do with event of type {:x}",
+      SPDLOG_LOGGER_TRACE(_logger, "BAM: nothing to do with event of type {:x}",
                           data->type());
       if (_pending_events ==
           1) {  // no request in transaction => acknowledge right now
@@ -252,7 +256,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
  *  @param[in] tp  Timeperiod declaration.
  */
 void reporting_stream::_apply(const DimensionTimeperiod& tp) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "BAM-BI: applying timeperiod {} to cache",
+  SPDLOG_LOGGER_TRACE(_logger, "BAM-BI: applying timeperiod {} to cache",
                       tp.id());
   _timeperiods.add_timeperiod(
       tp.id(),
@@ -272,7 +276,7 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
                                                   char const* table,
                                                   char const* id) {
   SPDLOG_LOGGER_TRACE(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: reporting stream _close_inconsistent events (type {}, table: "
       "{}, id: {})",
       event_type, table, id);
@@ -287,7 +291,7 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
                     id, table));
     std::promise<mysql_result> promise;
     std::future<database::mysql_result> future = promise.get_future();
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+    SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
     _mysql.run_query_and_get_result(query, std::move(promise));
     try {
       mysql_result res(future.get());
@@ -307,8 +311,7 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
           fmt::format("SELECT start_time FROM {} WHERE {}={} AND start_time>{} "
                       "ORDER BY start_time ASC LIMIT 1",
                       table, id, p.first, p.second));
-      SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'",
-                          query_str);
+      SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query_str);
       std::promise<mysql_result> promise;
       std::future<database::mysql_result> future = promise.get_future();
       _mysql.run_query_and_get_result(query_str, std::move(promise));
@@ -330,28 +333,27 @@ void reporting_stream::_close_inconsistent_events(char const* event_type,
       std::string query(
           fmt::format("UPDATE {} SET end_time={} WHERE {}={} AND start_time={}",
                       table, end_time, id, p.first, p.second));
-      SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'",
-                          query);
+      SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
       _mysql.run_query(query, database::mysql_error::close_event);
     }
   }
 }
 
 void reporting_stream::_close_all_events() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting stream _close_all_events");
+  SPDLOG_LOGGER_TRACE(_logger, "reporting stream _close_all_events");
   time_t now(::time(nullptr));
   std::string query(
       fmt::format("UPDATE mod_bam_reporting_ba_events SET end_time={} WHERE "
                   "end_time IS NULL",
                   now));
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+  SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
   _mysql.run_query(query, database::mysql_error::close_ba_events);
 
   query = fmt::format(
       "UPDATE mod_bam_reporting_kpi_events SET end_time={} WHERE end_time IS "
       "NULL",
       now);
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+  SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
   _mysql.run_query(query, database::mysql_error::close_kpi_events);
 }
 
@@ -359,7 +361,7 @@ void reporting_stream::_close_all_events() {
  *  Load timeperiods from DB.
  */
 void reporting_stream::_load_timeperiods() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting stream _load_timeperiods");
+  SPDLOG_LOGGER_TRACE(_logger, "reporting stream _load_timeperiods");
   // Clear old timeperiods.
   _timeperiods.clear();
 
@@ -370,7 +372,7 @@ void reporting_stream::_load_timeperiods() {
         "thursday, friday, saturday FROM mod_bam_reporting_timeperiods");
     std::promise<mysql_result> promise;
     std::future<database::mysql_result> future = promise.get_future();
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+    SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
     _mysql.run_query_and_get_result(query, std::move(promise));
     try {
       mysql_result res(future.get());
@@ -395,7 +397,7 @@ void reporting_stream::_load_timeperiods() {
         "mod_bam_reporting_timeperiods_exceptions");
     std::promise<mysql_result> promise;
     std::future<database::mysql_result> future = promise.get_future();
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+    SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
     _mysql.run_query_and_get_result(query, std::move(promise));
     try {
       mysql_result res(future.get());
@@ -404,7 +406,7 @@ void reporting_stream::_load_timeperiods() {
             _timeperiods.get_timeperiod(res.value_as_u32(0));
         if (!tp)
           SPDLOG_LOGGER_ERROR(
-              log_v2::bam(),
+              _logger,
               "BAM-BI: could not apply exception to non-existing timeperiod {}",
               res.value_as_u32(0));
         else
@@ -423,7 +425,7 @@ void reporting_stream::_load_timeperiods() {
         "  FROM mod_bam_reporting_timeperiods_exclusions");
     std::promise<mysql_result> promise;
     std::future<database::mysql_result> future = promise.get_future();
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+    SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
     _mysql.run_query_and_get_result(query, std::move(promise));
     try {
       mysql_result res(future.get());
@@ -434,7 +436,7 @@ void reporting_stream::_load_timeperiods() {
             _timeperiods.get_timeperiod(res.value_as_u32(1));
         if (!tp || !excluded_tp)
           SPDLOG_LOGGER_ERROR(
-              log_v2::bam(),
+              _logger,
               "BAM-BI: could not apply exclusion of timeperiod {} by "
               "timeperiod {}: at least one timeperiod does not exist",
               res.value_as_u32(1), res.value_as_u32(0));
@@ -453,7 +455,7 @@ void reporting_stream::_load_timeperiods() {
         "  FROM mod_bam_reporting_relations_ba_timeperiods");
     std::promise<mysql_result> promise;
     std::future<database::mysql_result> future = promise.get_future();
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+    SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
     _mysql.run_query_and_get_result(query, std::move(promise));
     try {
       mysql_result res(future.get());
@@ -473,7 +475,7 @@ void reporting_stream::_load_timeperiods() {
  *
  */
 void reporting_stream::_load_kpi_ba_events() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting stream _load_kpi_ba_events");
+  SPDLOG_LOGGER_TRACE(_logger, "reporting stream _load_kpi_ba_events");
   _ba_event_cache.clear();
   _kpi_event_cache.clear();
 
@@ -482,7 +484,7 @@ void reporting_stream::_load_kpi_ba_events() {
       "SELECT ba_event_id, ba_id, start_time FROM mod_bam_reporting_ba_events");
   std::promise<mysql_result> promise;
   std::future<database::mysql_result> future = promise.get_future();
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+  SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
   _mysql.run_query_and_get_result(query, std::move(promise));
   try {
     mysql_result res(future.get());
@@ -501,7 +503,7 @@ void reporting_stream::_load_kpi_ba_events() {
       "mod_bam_reporting_kpi_events";
   std::promise<mysql_result> kpi_promise;
   std::future<database::mysql_result> kpi_future = kpi_promise.get_future();
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'", query);
+  SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
   _mysql.run_query_and_get_result(query, std::move(kpi_promise));
   try {
     mysql_result res(kpi_future.get());
@@ -517,6 +519,7 @@ void reporting_stream::_load_kpi_ba_events() {
 
 // When bulk statements are available.
 struct bulk_dimension_kpi_binder {
+  std::shared_ptr<spdlog::logger> logger;
   const std::shared_ptr<io::data>& event;
   void operator()(database::mysql_bulk_bind& binder) const {
     if (event->type() == bam::dimension_kpi_event::static_type()) {
@@ -533,7 +536,7 @@ struct bulk_dimension_kpi_binder {
         kpi_name = dk.boolean_name;
       else if (!dk.meta_service_name.empty())
         kpi_name = dk.meta_service_name;
-      SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+      SPDLOG_LOGGER_DEBUG(logger,
                           "BAM-BI: processing declaration of KPI {} ('{}')",
                           dk.kpi_id, kpi_name);
 
@@ -595,7 +598,7 @@ struct bulk_dimension_kpi_binder {
         kpi_name = dk.boolean_name();
       else if (!dk.meta_service_name().empty())
         kpi_name = dk.meta_service_name();
-      SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+      SPDLOG_LOGGER_DEBUG(logger,
                           "BAM-BI: processing declaration of KPI {} ('{}')",
                           dk.kpi_id(), kpi_name);
 
@@ -649,6 +652,7 @@ struct bulk_dimension_kpi_binder {
 
 // When bulk statements are not available.
 struct dimension_kpi_binder {
+  std::shared_ptr<spdlog::logger> logger;
   const std::shared_ptr<io::data>& event;
   std::string operator()() const {
     if (event->type() == bam::dimension_kpi_event::static_type()) {
@@ -667,7 +671,7 @@ struct dimension_kpi_binder {
         kpi_name = dk.meta_service_name;
       std::string sz_kpi_ba_id =
           dk.kpi_ba_id ? std::to_string(dk.kpi_ba_id) : "NULL";
-      SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+      SPDLOG_LOGGER_DEBUG(logger,
                           "BAM-BI: processing declaration of KPI {} ('{}')",
                           dk.kpi_id, kpi_name);
       return fmt::format(
@@ -718,7 +722,7 @@ struct dimension_kpi_binder {
         kpi_name = dk.meta_service_name();
       std::string sz_kpi_ba_id =
           dk.kpi_ba_id() ? std::to_string(dk.kpi_ba_id()) : "NULL";
-      SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+      SPDLOG_LOGGER_DEBUG(logger,
                           "BAM-BI: processing declaration of KPI {} ('{}')",
                           dk.kpi_id(), kpi_name);
       return fmt::format(
@@ -820,7 +824,7 @@ struct kpi_event_update_binder {
  *  Prepare queries.
  */
 void reporting_stream::_prepare() {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting stream _prepare");
+  SPDLOG_LOGGER_TRACE(_logger, "reporting stream _prepare");
   std::string query{
       "INSERT INTO mod_bam_reporting_ba_events (ba_id,"
       "first_level,start_time,end_time,status,in_downtime)"
@@ -980,7 +984,7 @@ void reporting_stream::_prepare() {
 void reporting_stream::_process_ba_event(std::shared_ptr<io::data> const& e) {
   bam::ba_event const& be = *std::static_pointer_cast<bam::ba_event const>(e);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: processing event of BA {} (start time {}, end time {}, status "
       "{}, in downtime {})",
       be.ba_id, be.start_time, be.end_time, be.status, be.in_downtime);
@@ -1076,7 +1080,7 @@ void reporting_stream::_process_pb_ba_event(
   const BaEvent& be =
       std::static_pointer_cast<bam::pb_ba_event const>(e)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: processing pb_ba_event of BA {} (start time {}, end time {}, "
       "status "
       "{}, in downtime {})",
@@ -1144,8 +1148,8 @@ void reporting_stream::_process_pb_ba_event(
       }
     } catch (std::exception const& e) {
       throw msg_fmt(
-          "BAM-BI: could not update event of BA {} "
-          " starting at {} and ending at {}: {}",
+          "BAM-BI: could not update event of BA {} starting at {} and ending "
+          "at {}: {}",
           be.ba_id(), be.start_time(), be.end_time(), e.what());
     }
   }
@@ -1163,7 +1167,7 @@ void reporting_stream::_process_ba_duration_event(
     std::shared_ptr<io::data> const& e) {
   bam::ba_duration_event const& bde =
       *std::static_pointer_cast<bam::ba_duration_event const>(e);
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM-BI: processing BA duration event of BA {} (start "
                       "time {}, end time "
                       "{}, duration {}, sla duration {})",
@@ -1223,7 +1227,7 @@ void reporting_stream::_process_pb_ba_duration_event(
     std::shared_ptr<io::data> const& e) {
   const BaDurationEvent& bde =
       std::static_pointer_cast<bam::pb_ba_duration_event>(e)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM-BI: processing BA duration event of BA {} (start "
                       "time {}, end time "
                       "{}, duration {}, sla duration {})",
@@ -1278,13 +1282,13 @@ void reporting_stream::_process_pb_ba_duration_event(
 void reporting_stream::_process_kpi_event(std::shared_ptr<io::data> const& e) {
   bam::kpi_event const& ke = *std::static_pointer_cast<bam::kpi_event const>(e);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: processing event of KPI {} (start time {}, end time {}, state "
       "{}, in downtime {})",
       ke.kpi_id, ke.start_time, ke.end_time, ke.status, ke.in_downtime);
 
   if (ke.start_time.is_null()) {
-    SPDLOG_LOGGER_ERROR(log_v2::bam(), "BAM_BI invalid null start_time ");
+    SPDLOG_LOGGER_ERROR(_logger, "BAM_BI invalid null start_time ");
     return;
   }
   id_start kpi_key = std::make_pair(
@@ -1352,14 +1356,14 @@ void reporting_stream::_process_pb_kpi_event(
   const KpiEvent& ke =
       std::static_pointer_cast<bam::pb_kpi_event const>(e)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: processing event of KPI {} (start time {}, end time {}, state "
       "{}, in downtime {})",
       ke.kpi_id(), ke.start_time(), ke.end_time(), ke.status(),
       ke.in_downtime());
 
   if (ke.start_time() > std::numeric_limits<int32_t>::max()) {
-    SPDLOG_LOGGER_ERROR(log_v2::bam(), "BAM_BI invalid start_time {}",
+    SPDLOG_LOGGER_ERROR(_logger, "BAM_BI invalid start_time {}",
                         ke.start_time());
     return;
   }
@@ -1424,8 +1428,7 @@ void reporting_stream::_process_dimension_ba(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_ba_event const& dba =
       *std::static_pointer_cast<bam::dimension_ba_event const>(e);
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                      "BAM-BI: processing declaration of BA {} ('{}')",
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: processing declaration of BA {} ('{}')",
                       dba.ba_id, dba.ba_description);
   _dimension_ba_insert.bind_value_as_i32(0, dba.ba_id);
   _dimension_ba_insert.bind_value_as_str(
@@ -1452,7 +1455,7 @@ void reporting_stream::_process_pb_dimension_ba(
     std::shared_ptr<io::data> const& e) {
   const DimensionBaEvent& dba =
       std::static_pointer_cast<bam::pb_dimension_ba_event const>(e)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM-BI: pb processing declaration of BA {} ('{}')",
                       dba.ba_id(), dba.ba_description());
   _dimension_ba_insert.bind_value_as_i32(0, dba.ba_id());
@@ -1480,8 +1483,7 @@ void reporting_stream::_process_dimension_bv(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_bv_event const& dbv =
       *std::static_pointer_cast<bam::dimension_bv_event const>(e);
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                      "BAM-BI: processing declaration of BV {} ('{}')",
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: processing declaration of BV {} ('{}')",
                       dbv.bv_id, dbv.bv_name);
 
   _dimension_bv_insert.bind_value_as_i32(0, dbv.bv_id);
@@ -1505,7 +1507,7 @@ void reporting_stream::_process_pb_dimension_bv(
     std::shared_ptr<io::data> const& e) {
   const DimensionBvEvent& dbv =
       std::static_pointer_cast<bam::pb_dimension_bv_event const>(e)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM-BI: processing pb declaration of BV {} ('{}')",
                       dbv.bv_id(), dbv.bv_name());
 
@@ -1530,7 +1532,7 @@ void reporting_stream::_process_dimension_ba_bv_relation(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_ba_bv_relation_event const& dbabv =
       *std::static_pointer_cast<bam::dimension_ba_bv_relation_event const>(e);
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM-BI: processing relation between BA {} and BV {}",
                       dbabv.ba_id, dbabv.bv_id);
 
@@ -1550,7 +1552,7 @@ void reporting_stream::_process_pb_dimension_ba_bv_relation(
   const DimensionBaBvRelationEvent& dbabv =
       std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event const>(e)
           ->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM-BI: processing pb relation between BA {} and BV {}",
                       dbabv.ba_id(), dbabv.bv_id());
 
@@ -1572,15 +1574,14 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
       case io::events::data_type<io::bam, bam::de_dimension_ba_event>::value: {
         bam::dimension_ba_event const& dba =
             *std::static_pointer_cast<bam::dimension_ba_event const>(e);
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+        SPDLOG_LOGGER_DEBUG(_logger,
                             "BAM-BI: preparing ba dimension {} ('{}' '{}')",
                             dba.ba_id, dba.ba_name, dba.ba_description);
       } break;
       case io::events::data_type<io::bam, bam::de_dimension_bv_event>::value: {
         bam::dimension_bv_event const& dbv =
             *std::static_pointer_cast<bam::dimension_bv_event const>(e);
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                            "BAM-BI: preparing bv dimension {} ('{}')",
+        SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: preparing bv dimension {} ('{}')",
                             dbv.bv_id, dbv.bv_name);
       } break;
       case io::events::data_type<
@@ -1589,7 +1590,7 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
             *std::static_pointer_cast<
                 bam::dimension_ba_bv_relation_event const>(e);
         SPDLOG_LOGGER_DEBUG(
-            log_v2::bam(), "BAM-BI: preparing relation between ba {} and bv {}",
+            _logger, "BAM-BI: preparing relation between ba {} and bv {}",
             dbabv.ba_id, dbabv.bv_id);
       } break;
       case io::events::data_type<io::bam, bam::de_dimension_kpi_event>::value: {
@@ -1605,7 +1606,7 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
           kpi_name = fmt::format("bool: {}", dk.boolean_name);
         else if (!dk.meta_service_name.empty())
           kpi_name = fmt::format("meta: {}", dk.meta_service_name);
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+        SPDLOG_LOGGER_DEBUG(_logger,
                             "BAM-BI: preparing declaration of kpi {} ('{}')",
                             dk.kpi_id, kpi_name);
       } break;
@@ -1614,9 +1615,8 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
         bam::dimension_timeperiod const& tp =
             *std::static_pointer_cast<bam::dimension_timeperiod const>(e);
         SPDLOG_LOGGER_DEBUG(
-            log_v2::bam(),
-            "BAM-BI: preparing declaration of timeperiod {} ('{}')", tp.id,
-            tp.name);
+            _logger, "BAM-BI: preparing declaration of timeperiod {} ('{}')",
+            tp.id, tp.name);
       } break;
       case io::events::data_type<
           io::bam, bam::de_dimension_ba_timeperiod_relation>::value: {
@@ -1624,20 +1624,19 @@ void reporting_stream::_process_dimension(const std::shared_ptr<io::data>& e) {
             *std::static_pointer_cast<
                 bam::dimension_ba_timeperiod_relation const>(e);
         SPDLOG_LOGGER_DEBUG(
-            log_v2::bam(),
-            "BAM-BI: preparing relation of BA {} to timeperiod {}", r.ba_id,
-            r.timeperiod_id);
+            _logger, "BAM-BI: preparing relation of BA {} to timeperiod {}",
+            r.ba_id, r.timeperiod_id);
       } break;
       default:
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                            "BAM-BI: preparing event of type {:x}", e->type());
+        SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: preparing event of type {:x}",
+                            e->type());
         break;
     }
     _dimension_data_cache.emplace_back(e);
 
   } else
     SPDLOG_LOGGER_WARN(
-        log_v2::bam(),
+        _logger,
         "Dimension of type {:x} not handled because dimension block not "
         "opened.",
         e->type());
@@ -1657,8 +1656,7 @@ void reporting_stream::_process_pb_dimension(
         const DimensionBvEvent& dbv =
             std::static_pointer_cast<bam::pb_dimension_bv_event const>(e)
                 ->obj();
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                            "BAM-BI: preparing bv dimension {} ('{}')",
+        SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: preparing bv dimension {} ('{}')",
                             dbv.bv_id(), dbv.bv_name());
       } break;
       case pb_dimension_ba_bv_relation_event::static_type(): {
@@ -1667,22 +1665,21 @@ void reporting_stream::_process_pb_dimension(
                 bam::pb_dimension_ba_bv_relation_event const>(e)
                 ->obj();
         SPDLOG_LOGGER_DEBUG(
-            log_v2::bam(), "BAM-BI: preparing relation between ba {} and bv {}",
+            _logger, "BAM-BI: preparing relation between ba {} and bv {}",
             dbabv.ba_id(), dbabv.bv_id());
       } break;
       case bam::pb_dimension_timeperiod::static_type(): {
         bam::pb_dimension_timeperiod const& tp =
             *std::static_pointer_cast<bam::pb_dimension_timeperiod const>(e);
         SPDLOG_LOGGER_DEBUG(
-            log_v2::bam(),
-            "BAM-BI: preparing declaration of timeperiod {} ('{}')",
+            _logger, "BAM-BI: preparing declaration of timeperiod {} ('{}')",
             tp.obj().id(), tp.obj().name());
       } break;
       case bam::pb_dimension_ba_event::static_type(): {
         const DimensionBaEvent& dba =
             std::static_pointer_cast<bam::pb_dimension_ba_event const>(e)
                 ->obj();
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+        SPDLOG_LOGGER_DEBUG(_logger,
                             "BAM-BI: preparing ba dimension {} ('{}' '{}')",
                             dba.ba_id(), dba.ba_name(), dba.ba_description());
       } break;
@@ -1700,7 +1697,7 @@ void reporting_stream::_process_pb_dimension(
           kpi_name = fmt::format("bool: {}", dk.boolean_name());
         else if (!dk.meta_service_name().empty())
           kpi_name = fmt::format("meta: {}", dk.meta_service_name());
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+        SPDLOG_LOGGER_DEBUG(_logger,
                             "BAM-BI: preparing declaration of kpi {} ('{}')",
                             dk.kpi_id(), kpi_name);
       } break;
@@ -1710,21 +1707,20 @@ void reporting_stream::_process_pb_dimension(
                 e)
                 ->obj();
         SPDLOG_LOGGER_DEBUG(
-            log_v2::bam(),
-            "BAM-BI: preparing relation of BA {} to timeperiod {}", r.ba_id(),
-            r.timeperiod_id());
+            _logger, "BAM-BI: preparing relation of BA {} to timeperiod {}",
+            r.ba_id(), r.timeperiod_id());
       } break;
 
       default:
-        SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                            "BAM-BI: preparing event of type {:x}", e->type());
+        SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: preparing event of type {:x}",
+                            e->type());
         break;
     }
     _dimension_data_cache.emplace_back(e);
 
   } else
     SPDLOG_LOGGER_WARN(
-        log_v2::bam(),
+        _logger,
         "Dimension of type {:x} not handled because dimension block not "
         "opened.",
         e->type());
@@ -1811,12 +1807,12 @@ void reporting_stream::_process_pb_dimension_truncate_signal(
 void reporting_stream::_process_dimension_truncate_signal(bool update_started) {
   if (update_started) {
     _processing_dimensions = true;
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+    SPDLOG_LOGGER_DEBUG(_logger,
                         "BAM-BI: processing table truncation signal (opening)");
 
     _dimension_data_cache.clear();
   } else {
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+    SPDLOG_LOGGER_DEBUG(_logger,
                         "BAM-BI: processing table truncation signal (closing)");
     // Lock the availability thread.
     std::lock_guard<availability_thread> lock(*_availabilities);
@@ -1833,9 +1829,8 @@ void reporting_stream::_process_dimension_truncate_signal(bool update_started) {
       for (auto& e : _dimension_data_cache)
         _dimension_dispatch(e);
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::bam(),
-                          "BAM-BI: ignored dimension insertion failure: {}",
-                          e.what());
+      SPDLOG_LOGGER_ERROR(
+          _logger, "BAM-BI: ignored dimension insertion failure: {}", e.what());
     }
 
     _mysql.commit();
@@ -1852,9 +1847,9 @@ void reporting_stream::_process_dimension_truncate_signal(bool update_started) {
 void reporting_stream::_process_dimension_kpi(
     std::shared_ptr<io::data> const& e) {
   if (_dimension_kpi_insert->is_bulk())
-    _dimension_kpi_insert->add_bulk_row(bulk_dimension_kpi_binder{e});
+    _dimension_kpi_insert->add_bulk_row(bulk_dimension_kpi_binder{_logger, e});
   else
-    _dimension_kpi_insert->add_multi_row(dimension_kpi_binder{e});
+    _dimension_kpi_insert->add_multi_row(dimension_kpi_binder{_logger, e});
 }
 
 /**
@@ -1868,9 +1863,8 @@ void reporting_stream::_process_pb_dimension_timeperiod(
   const DimensionTimeperiod& tp =
       std::static_pointer_cast<bam::pb_dimension_timeperiod>(e)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
-      "BAM-BI: processing pb declaration of timeperiod {} ('{}')", tp.id(),
-      tp.name());
+      _logger, "BAM-BI: processing pb declaration of timeperiod {} ('{}')",
+      tp.id(), tp.name());
   _dimension_timeperiod_insert.bind_value_as_i32(0, tp.id());
   _dimension_timeperiod_insert.bind_value_as_str(
       1, misc::string::truncate(tp.name(),
@@ -1920,7 +1914,7 @@ void reporting_stream::_process_dimension_timeperiod(
     std::shared_ptr<io::data> const& e) {
   bam::dimension_timeperiod const& tp =
       *std::static_pointer_cast<bam::dimension_timeperiod const>(e);
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "BAM-BI: processing declaration of timeperiod {} ('{}')",
                       tp.id, tp.name);
 
@@ -1983,7 +1977,7 @@ void reporting_stream::_process_dimension_ba_timeperiod_relation(
   bam::dimension_ba_timeperiod_relation const& r =
       *std::static_pointer_cast<bam::dimension_ba_timeperiod_relation const>(e);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: processing relation of BA {} to timeperiod {} is_default={}",
       r.ba_id, r.timeperiod_id, r.is_default);
 
@@ -2007,7 +2001,7 @@ void reporting_stream::_process_pb_dimension_ba_timeperiod_relation(
       std::static_pointer_cast<bam::pb_dimension_ba_timeperiod_relation>(e)
           ->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: processing relation of BA {} to timeperiod {} is_default={}",
       r.ba_id(), r.timeperiod_id(), r.is_default());
 
@@ -2034,7 +2028,7 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
     return;
 
   SPDLOG_LOGGER_INFO(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: computing durations of event started at {} and ended at {} on "
       "BA {}",
       ev.start_time(), ev.end_time(), ev.ba_id());
@@ -2044,7 +2038,7 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
       _timeperiods.get_timeperiods_by_ba_id(ev.ba_id());
 
   if (timeperiods.empty()) {
-    SPDLOG_LOGGER_DEBUG(log_v2::bam(),
+    SPDLOG_LOGGER_DEBUG(_logger,
                         "BAM-BI: no reporting period defined for event "
                         "started at {} and ended "
                         "at {} on BA {}",
@@ -2074,7 +2068,7 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
       dur_ev.set_timeperiod_id(tp->get_id());
       dur_ev.set_timeperiod_is_default(is_default);
       SPDLOG_LOGGER_DEBUG(
-          log_v2::bam(),
+          _logger,
           "BAM-BI: durations of event started at {} and ended at {} on BA {} "
           "were computed for timeperiod {}, duration is {}s, SLA duration is "
           "{}",
@@ -2083,7 +2077,7 @@ void reporting_stream::_compute_event_durations(const BaEvent& ev,
       visitor->write(to_write);
     } else
       SPDLOG_LOGGER_DEBUG(
-          log_v2::bam(),
+          _logger,
           "BAM-BI: event started at {} and ended at {} on BA {} has no "
           "duration on timeperiod {}",
           ev.start_time(), ev.end_time(), ev.ba_id(), tp->get_name());
@@ -2100,7 +2094,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
   const rebuild& r = *std::static_pointer_cast<const rebuild>(e);
   if (r.bas_to_rebuild.empty())
     return;
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM-BI: processing rebuild signal");
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: processing rebuild signal");
 
   _update_status("rebuilding: querying ba events");
 
@@ -2117,8 +2111,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
                       "a.ba_event_id = b.ba_event_id WHERE b.ba_id IN ({})",
                       r.bas_to_rebuild));
 
-      SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'",
-                          query);
+      SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
       _mysql.run_query(query, database::mysql_error::delete_ba_durations);
     }
 
@@ -2132,8 +2125,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
                       r.bas_to_rebuild));
       std::promise<mysql_result> promise;
       std::future<mysql_result> future = promise.get_future();
-      SPDLOG_LOGGER_TRACE(log_v2::bam(), "reporting_stream: query: '{}'",
-                          query);
+      SPDLOG_LOGGER_TRACE(_logger, "reporting_stream: query: '{}'", query);
       _mysql.run_query_and_get_result(query, std::move(promise));
       try {
         mysql_result res(future.get());
@@ -2147,7 +2139,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
               (com::centreon::broker::bam::state)res.value_as_i32(3)));
           baev->mut_obj().set_in_downtime(res.value_as_bool(4));
           ba_events.push_back(baev);
-          SPDLOG_LOGGER_DEBUG(log_v2::bam(), "BAM-BI: got events of BA {}",
+          SPDLOG_LOGGER_DEBUG(_logger, "BAM-BI: got events of BA {}",
                               baev->obj().ba_id());
         }
       } catch (std::exception const& e) {
@@ -2156,8 +2148,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
       }
     }
 
-    SPDLOG_LOGGER_INFO(log_v2::bam(),
-                       "BAM-BI: will now rebuild the event durations");
+    SPDLOG_LOGGER_INFO(_logger, "BAM-BI: will now rebuild the event durations");
 
     size_t ba_events_num = ba_events.size();
     size_t ba_events_curr = 0;
@@ -2177,7 +2168,7 @@ void reporting_stream::_process_rebuild(std::shared_ptr<io::data> const& e) {
   }
 
   SPDLOG_LOGGER_INFO(
-      log_v2::bam(),
+      _logger,
       "BAM-BI: event durations rebuild finished, will rebuild availabilities "
       "now");
 

@@ -32,9 +32,12 @@
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
+#include "common/log_v2/log_v2.hh"
 #include "test-visitor.hh"
 
 using namespace com::centreon::broker;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -47,6 +50,7 @@ class BamBA : public ::testing::Test {
  public:
   void SetUp() override {
     // Initialization.
+    log_v3::load({"core", "config", "bam"});
     g_io_context->restart();
     config::applier::init(0, "test_broker", 0);
 
@@ -58,6 +62,7 @@ class BamBA : public ::testing::Test {
   void TearDown() override {
     // Cleanup.
     config::applier::deinit();
+    log_v3::unload();
   }
 };
 
@@ -67,8 +72,7 @@ class BamBA : public ::testing::Test {
  */
 TEST_F(BamBA, KpiServiceRecompute) {
   // Build BAM objects.
-  std::shared_ptr<bam::ba> test_ba{
-      std::make_shared<bam::ba_impact>(1, 1, 1, true)};
+  auto test_ba{std::make_shared<bam::ba_impact>(1, 1, 1, true)};
   test_ba->set_level_critical(0);
   test_ba->set_level_warning(25);
 

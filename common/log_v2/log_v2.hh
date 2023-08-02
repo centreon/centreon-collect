@@ -66,7 +66,8 @@ class log_v3 {
 
   std::chrono::seconds flush_interval();
   void set_flush_interval(uint32_t second_flush_interval);
-  uint32_t create_logger_or_get_id(const std::string& name);
+  uint32_t create_logger_or_get_id(const std::string& name,
+                                   bool activate = false);
   std::shared_ptr<spdlog::logger> get(const std::string& name);
   std::shared_ptr<spdlog::logger> get(const uint32_t idx);
   void apply(const config& conf);
