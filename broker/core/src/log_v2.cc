@@ -185,7 +185,8 @@ void log_v2::apply(const common::log_v3::config& log_conf) {
       }
     }
 
-    spdlog::register_logger(logger);
+    // FIXME DBO: this will disappear very soon
+    // spdlog::register_logger(logger);
     return logger;
   };
 
