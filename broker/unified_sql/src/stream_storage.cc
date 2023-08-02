@@ -29,7 +29,6 @@
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/misc/shared_mutex.hh"
@@ -81,13 +80,13 @@ void stream::_unified_sql_process_pb_service_status(
 
   uint64_t host_id = ss.host_id(), service_id = ss.service_id();
 
-  log_v2::perfdata()->debug(
+  _logger_sto->debug(
       "unified sql::_unified_sql service_status processing: host_id:{}, "
       "service_id:{}",
       host_id, service_id);
   auto it_index_cache = _index_cache.find({host_id, service_id});
   if (it_index_cache == _index_cache.end()) {
-    log_v2::sql()->critical(
+    _logger_sql->critical(
         "sql: could not find index for service({}, {}) - maybe the poller with "
         "that service should be restarted",
         host_id, service_id);
@@ -109,14 +108,14 @@ void stream::_unified_sql_process_pb_service_status(
   rrd_len = it_index_cache->second.rrd_retention;
   index_locked = it_index_cache->second.locked;
   uint32_t interval = it_index_cache->second.interval * _interval_length;
-  log_v2::perfdata()->debug(
+  _logger_sto->debug(
       "unified sql: host_id:{}, service_id:{} - index already in cache "
       "- index_id {}, rrd_len {}",
       host_id, service_id, index_id, rrd_len);
 
   if (index_id) {
     /* Generate status event */
-    log_v2::perfdata()->debug(
+    _logger_sto->debug(
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
@@ -159,7 +158,7 @@ void stream::_unified_sql_process_pb_service_status(
         bool need_metric_mapping = true;
         if (it_index_cache == _metric_cache.end()) {
           rlck.unlock();
-          log_v2::perfdata()->debug(
+          _logger_sto->debug(
               "unified sql: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
               index_id, pd.name());
@@ -193,7 +192,7 @@ void stream::_unified_sql_process_pb_service_status(
             metric_id = future.get();
 
             // Insert metric in cache.
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: new metric {} for index {} and perfdata "
                 "'{}'",
                 metric_id, index_id, pd.name());
@@ -216,7 +215,7 @@ void stream::_unified_sql_process_pb_service_status(
             std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
-            log_v2::perfdata()->error(
+            _logger_sto->error(
                 "unified sql: failed to create metric {} with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
@@ -241,7 +240,7 @@ void stream::_unified_sql_process_pb_service_status(
           pd.value_type(static_cast<misc::perfdata::data_type>(
               it_index_cache->second.type));
 
-          log_v2::perfdata()->debug(
+          _logger_sto->debug(
               "unified sql: metric {} concerning index {}, perfdata "
               "'{}' found in cache",
               it_index_cache->second.metric_id, index_id, pd.name());
@@ -258,7 +257,7 @@ void stream::_unified_sql_process_pb_service_status(
               it_index_cache->second.crit_mode != pd.critical_mode() ||
               !check_equality(it_index_cache->second.min, pd.min()) ||
               !check_equality(it_index_cache->second.max, pd.max())) {
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: updating metric {} of index {}, perfdata "
                 "'{}' with unit: {}, warning: {}:{}, critical: {}:{}, min: "
                 "{}, max: {}",
@@ -281,8 +280,8 @@ void stream::_unified_sql_process_pb_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            log_v2::perfdata()->debug("new metric with metric_id={}",
-                                      it_index_cache->second.metric_id);
+            _logger_sto->debug("new metric with metric_id={}",
+                               it_index_cache->second.metric_id);
           }
         }
         if (cache_ptr) {
@@ -314,7 +313,7 @@ void stream::_unified_sql_process_pb_service_status(
               else
                 b.set_value_as_f32(3, pd.value());
               SPDLOG_LOGGER_TRACE(
-                  log_v2::sql(),
+                  _logger_sql,
                   "New value {} inserted on metric {} with state {}",
                   pd.value(), metric_id, ss.state());
               b.next_row();
@@ -349,14 +348,14 @@ void stream::_unified_sql_process_pb_service_status(
           m.set_name(pd.name());
           m.set_host_id(ss.host_id());
           m.set_service_id(ss.service_id());
-          log_v2::perfdata()->debug(
+          _logger_sto->debug(
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               m.metric_id(), pd.name(), m.time(), m.value(), rrd_len,
               m.value_type());
           to_publish.emplace_back(std::move(perf));
         } else {
-          log_v2::perfdata()->trace(
+          _logger_sto->trace(
               "unified sql: index {} is locked, so metric {} event not sent "
               "to rrd",
               index_id, metric_id);
@@ -380,7 +379,7 @@ void stream::_unified_sql_process_service_status(
   neb::service_status const& ss{*static_cast<neb::service_status*>(d.get())};
   uint64_t host_id = ss.host_id, service_id = ss.service_id;
 
-  log_v2::perfdata()->debug(
+  _logger_sto->debug(
       "unified sql::_unified_sql_process_service_status(): host_id:{}, "
       "service_id:{}",
       host_id, service_id);
@@ -404,7 +403,7 @@ void stream::_unified_sql_process_service_status(
     }
 
     /* Insert index in cache. */
-    log_v2::perfdata()->info(
+    _logger_sto->info(
         "unified sql: add_metric_in_cache: index {}, for host_id {} and "
         "service_id {}",
         index_id, host_id, service_id);
@@ -420,7 +419,7 @@ void stream::_unified_sql_process_service_status(
 
     _index_cache[{host_id, service_id}] = std::move(info);
     rrd_len = _rrd_len;
-    log_v2::perfdata()->debug(
+    _logger_sto->debug(
         "add metric in cache: (host: {}, service: {}, index: {}, returned "
         "rrd_len {}",
         ss.host_name, ss.service_description, index_id, rrd_len);
@@ -435,7 +434,7 @@ void stream::_unified_sql_process_service_status(
   /* Index does not exist */
   if (it_index_cache == _index_cache.end()) {
     _finish_action(-1, actions::index_data);
-    log_v2::perfdata()->debug(
+    _logger_sto->debug(
         "unified sql::_unified_sql_process_service_status(): host_id:{}, "
         "service_id:{} - index not found in cache",
         host_id, service_id);
@@ -478,7 +477,7 @@ void stream::_unified_sql_process_service_status(
           std::promise<database::mysql_result> promise;
           std::future<database::mysql_result> future = promise.get_future();
           SPDLOG_LOGGER_DEBUG(
-              log_v2::sql(),
+              _logger_sql,
               "Query for index_data for host_id={} and service_id={}", host_id,
               service_id);
           _mysql.run_statement_and_get_result(_index_data_query,
@@ -506,9 +505,8 @@ void stream::_unified_sql_process_service_status(
               "WHERE id=?");
 
         SPDLOG_LOGGER_DEBUG(
-            log_v2::sql(),
-            "Updating index_data for host_id={} and service_id={}", host_id,
-            service_id);
+            _logger_sql, "Updating index_data for host_id={} and service_id={}",
+            host_id, service_id);
         _index_data_update.bind_value_as_str(0, hv);
         _index_data_update.bind_value_as_str(1, sv);
         _index_data_update.bind_value_as_str(2, "0");
@@ -525,7 +523,7 @@ void stream::_unified_sql_process_service_status(
         add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
                             special, rrd_len);
         SPDLOG_LOGGER_DEBUG(
-            log_v2::sql(),
+            _logger_sql,
             "Index {} stored in cache for host_id={} and service_id={}",
             index_id, host_id, service_id);
       } catch (std::exception const& e) {
@@ -539,7 +537,7 @@ void stream::_unified_sql_process_service_status(
     index_id = it_index_cache->second.index_id;
     rrd_len = it_index_cache->second.rrd_retention;
     index_locked = it_index_cache->second.locked;
-    log_v2::perfdata()->debug(
+    _logger_sto->debug(
         "unified sql: host_id:{}, service_id:{} - index already in cache "
         "- index_id {}, rrd_len {}",
         host_id, service_id, index_id, rrd_len);
@@ -552,7 +550,7 @@ void stream::_unified_sql_process_service_status(
     }
 
     /* Generate status event */
-    log_v2::perfdata()->debug(
+    _logger_sto->debug(
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
@@ -590,7 +588,7 @@ void stream::_unified_sql_process_service_status(
         bool need_metric_mapping = true;
         if (it_index_cache == _metric_cache.end()) {
           rlck.unlock();
-          log_v2::perfdata()->debug(
+          _logger_sto->debug(
               "unified sql: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
               index_id, pd.name());
@@ -624,7 +622,7 @@ void stream::_unified_sql_process_service_status(
             metric_id = future.get();
 
             // Insert metric in cache.
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: new metric {} for index {} and perfdata "
                 "'{}'",
                 metric_id, index_id, pd.name());
@@ -647,7 +645,7 @@ void stream::_unified_sql_process_service_status(
             std::lock_guard<misc::shared_mutex> lock(_metric_cache_m);
             _metric_cache[{index_id, pd.name()}] = info;
           } catch (std::exception const& e) {
-            log_v2::perfdata()->error(
+            _logger_sto->error(
                 "unified sql: failed to create metric {} with type {}, "
                 "value {}, unit_name {}, warn {}, warn_low {}, warn_mode {}, "
                 "crit {}, crit_low {}, crit_mode {}, min {} and max {}",
@@ -672,7 +670,7 @@ void stream::_unified_sql_process_service_status(
           pd.value_type(static_cast<misc::perfdata::data_type>(
               it_index_cache->second.type));
 
-          log_v2::perfdata()->debug(
+          _logger_sto->debug(
               "unified sql: metric {} concerning index {}, perfdata "
               "'{}' found in cache",
               it_index_cache->second.metric_id, index_id, pd.name());
@@ -689,7 +687,7 @@ void stream::_unified_sql_process_service_status(
               it_index_cache->second.crit_mode != pd.critical_mode() ||
               !check_equality(it_index_cache->second.min, pd.min()) ||
               !check_equality(it_index_cache->second.max, pd.max())) {
-            log_v2::perfdata()->info(
+            _logger_sto->info(
                 "unified sql: updating metric {} of index {}, perfdata "
                 "'{}' with unit: {}, warning: {}:{}, critical: {}:{}, min: "
                 "{}, max: {}",
@@ -712,8 +710,8 @@ void stream::_unified_sql_process_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            log_v2::perfdata()->debug("new metric with metric_id={}",
-                                      it_index_cache->second.metric_id);
+            _logger_sto->debug("new metric with metric_id={}",
+                               it_index_cache->second.metric_id);
           }
         }
 
@@ -768,7 +766,7 @@ void stream::_unified_sql_process_service_status(
               static_cast<uint32_t>(ss.check_interval * _interval_length),
               false, metric_id, rrd_len, pd.value(),
               static_cast<misc::perfdata::data_type>(pd.value_type()))};
-          log_v2::perfdata()->debug(
+          _logger_sto->debug(
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,
@@ -834,7 +832,7 @@ void stream::_update_metrics() {
         fmt::join(m, ",")));
     int32_t conn = _mysql.choose_best_connection(-1);
     _finish_action(-1, actions::metrics);
-    SPDLOG_LOGGER_TRACE(log_v2::sql(), "Send query: {}", query);
+    SPDLOG_LOGGER_TRACE(_logger_sql, "Send query: {}", query);
     _mysql.run_query(query, database::mysql_error::update_metrics, conn);
     _add_action(conn, actions::metrics);
   }
@@ -842,8 +840,8 @@ void stream::_update_metrics() {
 
 void stream::_check_queues(boost::system::error_code ec) {
   if (ec)
-    log_v2::sql()->error(
-        "unified_sql: the queues check encountered an error: {}", ec.message());
+    _logger_sql->error("unified_sql: the queues check encountered an error: {}",
+                       ec.message());
   else {
     time_t now = time(nullptr);
     size_t sz_metrics;
@@ -861,7 +859,7 @@ void stream::_check_queues(boost::system::error_code ec) {
       if (_store_in_hosts_services) {
         if (_hscr_bind) {
           SPDLOG_LOGGER_TRACE(
-              log_v2::sql(),
+              _logger_sql,
               "Check if some statements are ready,  hscr_bind connections "
               "count "
               "= {}",
@@ -870,7 +868,7 @@ void stream::_check_queues(boost::system::error_code ec) {
                conn++) {
             if (_hscr_bind->ready(conn)) {
               SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
+                  _logger_sql,
                   "Sending {} hosts rows of host status on connection {}",
                   _hscr_bind->size(conn), conn);
               // Setting the good bind to the stmt
@@ -885,7 +883,7 @@ void stream::_check_queues(boost::system::error_code ec) {
         }
         if (_sscr_bind) {
           SPDLOG_LOGGER_TRACE(
-              log_v2::sql(),
+              _logger_sql,
               "Check if some statements are ready,  sscr_bind connections "
               "count "
               "= {}",
@@ -894,7 +892,7 @@ void stream::_check_queues(boost::system::error_code ec) {
                conn++) {
             if (_sscr_bind->ready(conn)) {
               SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
+                  _logger_sql,
                   "Sending {} services rows of service status on connection {}",
                   _sscr_bind->size(conn), conn);
               // Setting the good bind to the stmt
@@ -914,7 +912,7 @@ void stream::_check_queues(boost::system::error_code ec) {
                conn < _hscr_resources_bind->connections_count(); conn++) {
             if (_hscr_resources_bind->ready(conn)) {
               SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
+                  _logger_sql,
                   "Sending {} host rows of resource status on connection {}",
                   _hscr_resources_bind->size(conn), conn);
               // Setting the good bind to the stmt
@@ -932,7 +930,7 @@ void stream::_check_queues(boost::system::error_code ec) {
                conn < _sscr_resources_bind->connections_count(); conn++) {
             if (_sscr_resources_bind->ready(conn)) {
               SPDLOG_LOGGER_DEBUG(
-                  log_v2::sql(),
+                  _logger_sql,
                   "Sending {} service rows of resource status on connection {}",
                   _sscr_resources_bind->size(conn), conn);
               // Setting the good bind to the stmt
@@ -953,7 +951,7 @@ void stream::_check_queues(boost::system::error_code ec) {
     {
       std::lock_guard<database::bulk_or_multi> lck(*_perfdata_query);
       if (_perfdata_query->ready()) {
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new perfdata inserted",
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new perfdata inserted",
                             _perfdata_query->row_count());
         _perfdata_query->execute(_mysql);
         perfdata_done = true;
@@ -969,7 +967,7 @@ void stream::_check_queues(boost::system::error_code ec) {
 
     bool customvar_done = false;
     if (_cv.ready()) {
-      SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new custom variables inserted",
+      SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new custom variables inserted",
                           _cv.size());
       std::string query = _cv.get_query();
       int32_t conn = special_conn::custom_variable % _mysql.connections_count();
@@ -980,8 +978,8 @@ void stream::_check_queues(boost::system::error_code ec) {
     }
 
     if (_cvs.ready()) {
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::sql(), "{} new custom variable status inserted", _cvs.size());
+      SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new custom variable status inserted",
+                          _cvs.size());
       std::string query = _cvs.get_query();
       int32_t conn = special_conn::custom_variable % _mysql.connections_count();
       _mysql.run_query(query, database::mysql_error::update_customvariables,
@@ -994,7 +992,7 @@ void stream::_check_queues(boost::system::error_code ec) {
     {
       std::lock_guard<database::bulk_or_multi> lck(*_downtimes);
       if (_downtimes->ready()) {
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new downtimes inserted",
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new downtimes inserted",
                             _downtimes->row_count());
         _finish_action(-1, actions::hosts | actions::instances |
                                actions::downtimes | actions::host_parents |
@@ -1012,7 +1010,7 @@ void stream::_check_queues(boost::system::error_code ec) {
     {
       std::lock_guard<database::bulk_or_multi> lck(*_comments);
       if (_comments->ready()) {
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new comments inserted",
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new comments inserted",
                             _comments->row_count());
         int32_t conn = special_conn::comment % _mysql.connections_count();
         _comments->execute(_mysql, database::mysql_error::store_downtime, conn);
@@ -1026,7 +1024,7 @@ void stream::_check_queues(boost::system::error_code ec) {
       std::lock_guard<database::bulk_or_multi> lck(*_logs);
       if (_logs->ready()) {
         int32_t conn = special_conn::log % _mysql.connections_count();
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new logs inserted",
+        SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new logs inserted",
                             _logs->row_count());
         _logs->execute(_mysql, database::mysql_error::update_logs, conn);
         logs_done = true;
@@ -1034,7 +1032,7 @@ void stream::_check_queues(boost::system::error_code ec) {
     }
 
     // End.
-    SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+    SPDLOG_LOGGER_DEBUG(_logger_sql,
                         "unified_sql:_check_queues   - resources: {}, "
                         "perfdata: {}, metrics: {}, customvar: "
                         "{}, logs: {}, downtimes: {} comments: {}",
@@ -1048,7 +1046,7 @@ void stream::_check_queues(boost::system::error_code ec) {
       _queues_timer.async_wait(
           [this](const boost::system::error_code& err) { _check_queues(err); });
     } else {
-      SPDLOG_LOGGER_INFO(log_v2::sql(),
+      SPDLOG_LOGGER_INFO(_logger_sql,
                          "SQL: check_queues correctly interrupted.");
       _check_queues_stopped = true;
       _queues_cond_var.notify_all();
@@ -1061,7 +1059,7 @@ void stream::_check_queues(boost::system::error_code ec) {
  */
 void stream::_check_deleted_index() {
   // Info.
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "unified_sql: starting DB cleanup");
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql: starting DB cleanup");
 
   std::promise<database::mysql_result> promise;
   std::future<database::mysql_result> future = promise.get_future();
@@ -1090,15 +1088,15 @@ void stream::_check_deleted_index() {
       metrics_to_delete.insert(res.value_as_u64(0));
     }
   } catch (const std::exception& e) {
-    log_v2::sql()->error(
+    _logger_sql->error(
         "could not query index / metrics table(s) to get index to delete: "
         "{} ",
         e.what());
   }
 
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "Something to remove?");
+  SPDLOG_LOGGER_INFO(_logger_sql, "Something to remove?");
   if (!metrics_to_delete.empty() || !index_to_delete.empty()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(), "YES!!!");
+    SPDLOG_LOGGER_INFO(_logger_sql, "YES!!!");
     auto rg = std::make_shared<bbdo::pb_remove_graphs>();
     auto& obj = rg->mut_obj();
     for (auto& m : metrics_to_delete)
@@ -1129,13 +1127,13 @@ void stream::_check_rebuild_index() {
     }
 
   } catch (const std::exception& e) {
-    log_v2::sql()->error(
+    _logger_sql->error(
         "could not query indexes table to get indexes to delete: {}", e.what());
   }
 
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "Something to rebuild?");
+  SPDLOG_LOGGER_INFO(_logger_sql, "Something to rebuild?");
   if (!index_to_rebuild.empty()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(), "YES!!!");
+    SPDLOG_LOGGER_INFO(_logger_sql, "YES!!!");
     auto rg = std::make_shared<bbdo::pb_rebuild_graphs>();
     auto& obj = rg->mut_obj();
     for (auto& i : index_to_rebuild)
