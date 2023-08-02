@@ -58,7 +58,8 @@ luabinding::luabinding(std::string const& lua_script,
       _cache(cache),
       _total{0},
       _broker_api_version{1},
-      _logger_id{log_v3::instance().create_logger_or_get_id("lua")} {
+      _logger_id{log_v3::instance().create_logger_or_get_id("lua")},
+      _logger{log_v3::instance().get(_logger_id)} {
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();
