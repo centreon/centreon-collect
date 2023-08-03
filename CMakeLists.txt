@@ -185,7 +185,6 @@ include_directories(${CMAKE_SOURCE_DIR} ${CONAN_INCLUDE_DIRS}
 
 add_subdirectory(bbdo)
 add_subdirectory(common)
-add_subdirectory(configuration)
 
 add_subdirectory(broker)
 add_subdirectory(clib)
