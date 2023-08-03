@@ -37,17 +37,17 @@ set(UNIFIED_SQL
 add_library(
   "${UNIFIED_SQL}" SHARED
   # Sources.
-  src/bulk_queries.cc
   src/bulk_bind.cc
+  src/bulk_queries.cc
   src/connector.cc
   src/factory.cc
   src/main.cc
+  src/poller_configurator.cc
   src/rebuilder.cc
   src/stored_timestamp.cc
   src/stream.cc
   src/stream_sql.cc
   src/stream_storage.cc
-  src/poller_configurator.cc
   ${proto_rebuild_message}
   ${proto_remove_graph_message})
 
