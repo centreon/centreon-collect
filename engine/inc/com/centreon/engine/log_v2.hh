@@ -18,10 +18,12 @@
 #ifndef CCE_LOG_V2_HH
 #define CCE_LOG_V2_HH
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
 #include "com/centreon/engine/configuration/state.hh"
 #include "configuration/state.pb.h"
 #include "log_v2_base.hh"
+
+namespace asio = boost::asio;
 
 namespace com::centreon::engine {
 class log_v2 : public log_v2_base {
