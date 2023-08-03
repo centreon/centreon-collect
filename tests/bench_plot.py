@@ -108,10 +108,9 @@ parser.add_argument('-b', '--bucket', default='centreon-collect-robot-report',
                     help='s3 bucket')
 args = parser.parse_args()
 
-if args.bucket is not None and download_from_s3(args.unqlite_file, args.bucket) != True:
-    exit()
-
-data_column = args.data_column
+if args.bucket is not None:
+    if !download_from_s3(args.unqlite_file, args.bucket):
+        exit()
 
 db = UnQLite(args.unqlite_file)
 
