@@ -57,12 +57,12 @@ class EngineInstance:
         return ("cfg_file={2}/config{0}/hosts.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
                 "cfg_file={2}/config{0}/commands.cfg\n"
-                "#cfg_file={2}/config{0}/contactgroups.cfg\n"
+                "cfg_file={2}/config{0}/contactgroups.cfg\n"
                 "#cfg_file={2}/config{0}/contacts.cfg\n"
                 "cfg_file={2}/config{0}/hostgroups.cfg\n"
                 "cfg_file={2}/config{0}/timeperiods.cfg\n"
-                "#cfg_file={2}/config{0}/escalations.cfg\n"
-                "#cfg_file={2}/config{0}/dependencies.cfg\n"
+                "cfg_file={2}/config{0}/escalations.cfg\n"
+                "cfg_file={2}/config{0}/dependencies.cfg\n"
                 "cfg_file={2}/config{0}/connectors.cfg\n"
                 "#cfg_file={2}/config{0}/meta_commands.cfg\n"
                 "#cfg_file={2}/config{0}/meta_timeperiod.cfg\n"
@@ -195,6 +195,7 @@ class EngineInstance:
 """.format(
             host_id, service_id, self.service_cmd[service_id])
         return retval
+
 
     def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         self.last_service_id += 1
@@ -344,6 +345,17 @@ define command {
         return retval
 
     @staticmethod
+    def create_contact_group(id, mbs):
+        retval = """define contactgroup {{
+    contactgroup_name              contactgroup_{0}
+    alias                          contactgroup_{0}
+    members                        {1}
+}}
+""".format(id, ",".join(mbs))
+        logger.console(retval)
+        return retval
+
+    @staticmethod
     def create_severities(poller: int, nb: int, offset: int):
         config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
@@ -361,6 +373,19 @@ define command {
 """.format(i + 1, level, 6 - level, i + offset, typ[i % 2])
         ff.write(content)
         ff.close()
+
+    @staticmethod
+    def create_escalations_file(name: string, SG: string, contactgroup: string):
+        retval = """define serviceescalation {
+    ;escalation_name               {0}
+    escalation_period              24x7
+    escalation_options             w,c,r
+    servicegroup_name              {1}
+    contact_groups                 {2}
+    }}
+    """.format(name, SG, contactgroup)
+        logger.console(retval)
+        return retval
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
@@ -402,6 +427,7 @@ passive_checks_enabled 1
 """.format(tid, typ, i + offset)
         ff.write(content)
         ff.close()
+
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
@@ -499,6 +525,23 @@ define timeperiod {
     friday                         00:00-24:00
     saturday                       00:00-24:00
 }
+define timeperiod {
+    name                           none
+    timeperiod_name                none
+    alias                          Never
+}
+define timeperiod {
+    name                           nonworkhours
+    timeperiod_name                nonworkhours
+    alias                          Non-Work Hours
+    sunday                         00:00-24:00
+    monday                         00:00-09:00,17:00-24:00
+    tuesday                        00:00-09:00,17:00-24:00
+    wednesday                      00:00-09:00,17:00-24:00
+    thursday                       00:00-09:00,17:00-24:00
+    friday                         00:00-09:00,17:00-24:00
+    saturday                       00:00-24:00
+}
 """)
             f.close()
             f = open(config_dir + "/hostgroups.cfg", "w")
@@ -516,8 +559,64 @@ define timeperiod {
     host_notifications_enabled     1
     service_notifications_enabled  1
 }
+define contact {
+    contact_name                   U1
+    alias                          U1
+    email                          U1@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+}
+define contact {
+    contact_name                   U2
+    alias                          U2
+    email                          U2@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+}
+define contact {
+    contact_name                   U3
+    alias                          U3
+    email                          U3@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+}
+define contact {
+    contact_name                   U4
+    alias                          U4
+    email                          U4@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+}
             """)
             f.close()
+            with open(config_dir + "/dependencies.cfg", "w") as f:
+                f.write("#dependencies.cfg\n")
+
+            with open(config_dir + "/contactgroups.cfg", "w") as f:
+                f.write("#contactgroups.cfg\n")
+
+            with open(config_dir + "/escalations.cfg", "w") as f:
+                f.write("#escalations.cfg\n")
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
@@ -639,6 +738,37 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/escalations.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*escalation_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(i + 1, "    {}              {}\n".format(key, value))
+
+    f = open(filename, "w")
+    f.writelines(lines)
+    f.close()
+
+def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
+    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
+    f = open(filename, "r")
+    lines = f.readlines()
+    f.close()
+
+    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            logger.co
+            lines.replace(lines[i], "    {}              {}\n".format(key, value))
 
     f = open(filename, "w")
     f.writelines(lines)
@@ -932,6 +1062,29 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
+def add_contact_group(index: int, id_contact_group: int, members: list):
+    f = open(
+        ETC_ROOT + "/centreon-engine/config{}/contactgroups.cfg".format(index), "a+")
+    logger.console(members)
+    f.write(engine.create_contact_group(id_contact_group, members))
+    f.close()
+
+def add_servicegroup_dependency(index: int, dependency_name: str, execution_failure_criteria: str, notification_failure_criteria: str, inherits_parent: int,dependent_servicegroup_name: str, servicegroup_name: str):
+    f = open(
+        ETC_ROOT + "/centreon-engine/config{}/dependencies.cfg".format(index), "a+")
+    logger.console(dependency_name)
+    f.write(engine.create_servicegroup_dependency(dependency_name, dependent_servicegroup_name, servicegroup_name))
+    f.close()
+
+def add_service_dependency(index: int, dependency_name: str, execution_failure_criteria: str, notification_failure_criteria: str, inherits_parent: int, dependent_host_name: str, host_name: str, dependent_service_description: str, service_description: str):
+    f = open(
+        ETC_ROOT + "/centreon-engine/config{}/dependencies.cfg".format(index), "a+")
+    logger.console(dependency_name)
+    f.write(engine.create_service_dependency(dependency_name, dependent_service_description, service_description))
+    f.close()
+def write_to_config_file(content, file_path):
+    with open(file_path, "w") as f:
+        f.write(content)
 
 def create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
@@ -1538,8 +1691,15 @@ def create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def create_template_file(poller: int, typ: str, what: str, ids: list):
-    engine.create_template_file(poller, typ, what, ids)
+def create_service_dependency_file(poller: int, name: str, exc: str, notf: str,dephost: str, host: str, descs: str, sr: str):
+    notify_on_critical = True
+    if exc == "c" and notf == "c" and sr == "critical":
+        if descs == "critical":
+            notify_on_critical = False
+    engine.create_service_dependency(poller, name, exc, notf, dephost, host, descs, sr)
+
+def create_escalations_file(name: string, SG: string, contactgroup: string):
+    engine.create_escalations_file(name, SG, contactgroup)
 
 
 def create_template_file(poller: int, typ: str, what: str, ids: list):
