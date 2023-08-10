@@ -911,8 +911,11 @@ not12
     Stop Engine
     Kindly Stop Broker
 
+
+*** Keywords ***
 Clean Downtimes Before Suite
     Clean Before Suite
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${output}=    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL
+
