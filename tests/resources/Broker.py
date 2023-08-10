@@ -1648,6 +1648,29 @@ def compare_rrd_average_value(metric, value: float):
             f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
+##
+# @brief Compare the average value for an RRD metric.
+#
+# @param metric The metric id
+# @param key The key to search in the rrd info
+# @param float The value to compare with.
+#
+# @return A boolean.
+def compare_rrd_average_value_with_grpc(metric, key, value: float):
+    res = getoutput(
+        f"rrdtool info {VAR_ROOT}" + f"/lib/centreon/metrics/{metric}.rrd"
+    )
+    lst = res.split('\n')
+    if len(lst) >= 2:
+        for l in lst:
+            if key in l:
+                last_update = int(l.split('=')[1])
+                logger.console(f"{key}: {last_update}")
+                return last_update == value*60
+    else:
+        logger.console(
+            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd")
+        return False
 
 ##
 # @brief Call the GetSqlManagerStats function by gRPC and checks there are

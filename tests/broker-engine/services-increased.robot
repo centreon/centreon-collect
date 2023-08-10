@@ -55,3 +55,49 @@ EBNSVC1
     END
     Stop Engine
     Kindly Stop Broker
+
+Service_increased_1
+    [Documentation]    New services with high check interval at creation time.
+    [Tags]    broker    engine    services    protobuf
+    Config Engine    ${1}    ${1}    ${1}
+    Config Broker    rrd
+    Config Broker    central
+    Config Broker    module    ${1}
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Log    rrd    rrd    trace
+    Broker Config Log    central    sql    debug
+    Broker Config Log    rrd    core    error
+    Config Broker Sql Output    central    unified_sql
+    Broker Config Flush Log    central    0
+    Broker Config Flush Log    rrd    0
+    Clear Retention
+
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+    # Start Checkers
+    ${result}    Check host status    host_1    4    1    False
+    Should be true    ${result}    msg=host_1 should be pending
+
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    # End Checkers
+
+    Engine Config Replace Value In Services    0    service_1    check_interval    90
+
+    process_service_check_result_with_metrics    host_1    service_1    1    warning0    1
+
+    Sleep    30s
+    ${index}    Get Indexes To Rebuild    2
+    ${metrics}    Get Metrics Matching Indexes    ${index}
+    Log To Console    Metrics to rebuild: ${metrics}
+
+    FOR    ${m}    IN    @{metrics}
+        ${result}    Compare Rrd Average Value With Grpc    ${m}    pdp_per_row    90
+        Should Be True
+        ...    ${result}
+        ...    msg=The value of pdp_per_row does not correspond to the expected value.
+    END
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
