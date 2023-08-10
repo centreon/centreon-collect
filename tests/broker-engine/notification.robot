@@ -834,9 +834,6 @@ not11
     Kindly Stop Broker
 
 
-
- *** Keywords ***
-
 not12
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
     [Tags]    broker    engine    services    unified_sql
