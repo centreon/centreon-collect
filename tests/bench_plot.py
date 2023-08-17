@@ -22,6 +22,7 @@ import re
 import numpy as np
 import argparse
 import matplotlib.pyplot as plt
+import mplcursors
 import itertools
 import boto3
 import os
@@ -121,6 +122,8 @@ test_list = list_test(collection_list)
 fig = plt.figure()
 plt.subplots_adjust(left=0.22, right=0.98, bottom=0.1, top=0.99)
 ax = fig.subplots()
+list_com = []
+cursor = mplcursors.cursor()
 
 ax_origin_choice = None
 origin_choice = None
@@ -162,7 +165,6 @@ def points_to_value_array(rows):  # sourcery skip: avoid-builtin-shadow
 # radio bouton handlers
 radio_width = 0.1
 
-
 def prepare_boxplot_data(collection):
     data = {col: [] for col in data_column}
     commits = []
@@ -188,23 +190,37 @@ def boxplot_tooltip(index):
     ax.text(index + 1, 1.1, tooltip_text, ha='center',
             va='center', fontsize=8, color='blue')
 
-
 def plot_boxplot(collection):
-    global ax, list_commits, commits
+    global ax, list_commits, commits, cursor
     commits = prepare_boxplot_data(collection)
     ax.clear()
+    list_com.clear(),
     list_commits = list(set(commits.keys()))
-    ax.boxplot([commits[col] for col in commits.keys()], labels=list_commits)
+    for list_commit in list_commits:
+        list_com.append(list_commit[:8])
+    ax.boxplot([commits[col] for col in commits.keys()], labels=list_com)
 
     ax.set_xlabel("Commits")
     ax.set_ylabel("Normalized Values")
     ax.set_title("Benchmark Data")
-    ax.set_xticklabels(commits, rotation=45, ha='right')
+    ax.set_xticklabels(list_com, rotation=45, ha='right')
     ax.set_xlim(0, len(list_commits) + 1)
     for index in range(len(list_commits)):
         boxplot_tooltip(index)
+    # mplcursors.cursor(hover=True, highlight=True).connect(
+    #     "add", lambda sel: sel.annotation.set_text(f"{sel.artist.get_label()}\n Commit : {list_commits[int(sel.artist.get_xdata()[int(sel.index)])]}\n No:{len(commits[list_commits[int(sel.artist.get_xdata()[int(sel.index)])]])}")
+    # )
     fig.canvas.draw()
 
+# @cursor.connect("add")
+# def on_add(sel):
+#     """Custom tooltip for boxplot"""
+#     global list_commits, commits
+#     index = sel.target.index
+#     data = commits.values()
+#     tooltip_text = "".join(f"commit: {list_commits[index]}\n {data_column[index]}: {commits[list_commits[index]][index]}\n")
+#     sel.annotation.set_text(tooltip_text)
+#     sel.annotation.get_bbox_patch().set(fc="white")
 
 def conf_choice_on_clicked(conf: str, origin: str):
     """! conf radiobuttons handler the last step to plot
