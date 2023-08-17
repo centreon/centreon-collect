@@ -207,20 +207,11 @@ def plot_boxplot(collection):
     ax.set_xlim(0, len(list_commits) + 1)
     for index in range(len(list_commits)):
         boxplot_tooltip(index)
-    # mplcursors.cursor(hover=True, highlight=True).connect(
-    #     "add", lambda sel: sel.annotation.set_text(f"{sel.artist.get_label()}\n Commit : {list_commits[int(sel.artist.get_xdata()[int(sel.index)])]}\n No:{len(commits[list_commits[int(sel.artist.get_xdata()[int(sel.index)])]])}")
-    # )
+    mplcursors.cursor(hover=True, highlight=True).connect(
+        "add", lambda sel: sel.annotation.set_text(f"{sel.artist.get_label()}\n Commit : {list_commits[int(sel.artist.get_xdata()[int(sel.index)])]}\n No:{len(commits[list_commits[int(sel.artist.get_xdata()[int(sel.index)])]])}")
+    )
     fig.canvas.draw()
 
-# @cursor.connect("add")
-# def on_add(sel):
-#     """Custom tooltip for boxplot"""
-#     global list_commits, commits
-#     index = sel.target.index
-#     data = commits.values()
-#     tooltip_text = "".join(f"commit: {list_commits[index]}\n {data_column[index]}: {commits[list_commits[index]][index]}\n")
-#     sel.annotation.set_text(tooltip_text)
-#     sel.annotation.get_bbox_patch().set(fc="white")
 
 def conf_choice_on_clicked(conf: str, origin: str):
     """! conf radiobuttons handler the last step to plot
