@@ -24,8 +24,6 @@ import argparse
 import matplotlib.pyplot as plt
 import mplcursors
 import itertools
-import datetime
-import time
 import boto3
 import os
 from unqlite import UnQLite
@@ -58,7 +56,7 @@ def list_collection(database):
         for row in cursor:
             m = collect_name_extract.match(row[0])
             if m is not None:
-                collection_name.add(m.group(1))
+                collection_name.add(m[1])
     return collection_name
 
 
@@ -73,7 +71,7 @@ def list_test(collect_list):
     for collection_name in collect_list:
         m = test_name_extract.match(collection_name)
         if m is not None:
-            engine_broker[m.group(2)][(m.group(1))] = collection_name
+            engine_broker[m[2]][m[1]] = collection_name
     return engine_broker
 
 
@@ -82,11 +80,8 @@ def list_origin_branch(collection_name: str):
     @param collection_name name of an unqlite collection
     @return a set<str> of origins
     """
-    origins = set()
     collection = db.collection(collection_name)
-    for row in collection:
-        origins.add(row['origin'])
-    return origins
+    return {row['origin'] for row in collection}
 
 
 def list_conf(collection_name: str, origin: str):
@@ -95,26 +90,28 @@ def list_conf(collection_name: str, origin: str):
     @param origin develop or dev-23.04.x
     @return a set<str> that contains strings like <cpu configuration>\n<memory size in Go>
     """
-    confs = set()
     collection = db.collection(collection_name)
     selected = collection.filter(lambda row: row['origin'] == origin)
-    for row in selected:
-        confs.add(
-            f"{row['cpu']}\n mem:{int(row['memory_size']/1024/1024/1024)}")
-    return confs
+    return {
+        f"{row['cpu']}\n mem:{int(row['memory_size'] / 1024 / 1024 / 1024)}"
+        for row in selected
+    }
 
 
 parser = argparse.ArgumentParser(
     prog='bench_plot.py', description='Draw a summary on the benchs')
 parser.add_argument('-f', '--unqlite_file', default='bench.unqlite',
                     help='path of the unqlite database file')
+parser.add_argument('-d', '--data_column',
+                    default=['query_write_bytes'], nargs='+')
 parser.add_argument('-b', '--bucket', default='centreon-collect-robot-report',
                     help='s3 bucket')
 args = parser.parse_args()
 
-if args.bucket is not None:
-    if download_from_s3(args.unqlite_file, args.bucket) != True:
-        exit()
+if args.bucket is not None and download_from_s3(args.unqlite_file, args.bucket) != True:
+    exit()
+
+data_column = args.data_column
 
 db = UnQLite(args.unqlite_file)
 
@@ -123,10 +120,10 @@ collection_list = list_collection(db)
 test_list = list_test(collection_list)
 
 fig = plt.figure()
-ax = fig.subplots()
-lines = []
-tooltip_cursor = None
 plt.subplots_adjust(left=0.22, right=0.98, bottom=0.1, top=0.99)
+ax = fig.subplots()
+list_com = []
+cursor = mplcursors.cursor()
 
 ax_origin_choice = None
 origin_choice = None
@@ -137,13 +134,8 @@ conf_choice = None
 engine_or_broker = None
 active_collection_name = None
 
-values = []
 
-data_column = ['query_read_bytes', 'query_write_bytes', 'real_read_bytes',
-               'real_write_bytes', 'user_time', 'kernel_time', 'event_propagation_delay']
-
-
-def points_to_value_array(rows):
+def points_to_value_array(rows):  # sourcery skip: avoid-builtin-shadow
     """! fill a array from select rows this array can be passed to ax.plot()
     @param rows selected rows
     """
@@ -170,23 +162,55 @@ def points_to_value_array(rows):
     return plot_lib_ret
 
 
-def tooltip(sel):
-    """! fill tooltip with the nearest data
-    """
-    global values
-    data_index = round(sel.index)
-    tooltip_text = ""
-    if data_index < len(values):
-        for col_index in range(len(data_column)):
-            label = data_column[col_index]
-            tooltip_text += f"{label}: {values[data_index][label]}\n"
-        tooltip_text += f"commit: {values[data_index]['commit']}\n{datetime.datetime.fromtimestamp(values[data_index]['t'])}"
-
-    sel.annotation.set(text=tooltip_text)
-
-
 # radio bouton handlers
-radio_width = 0.18
+radio_width = 0.1
+
+def prepare_boxplot_data(collection):
+    data = {col: [] for col in data_column}
+    commits = []
+    for row in collection:
+        for col in data_column:
+            data[col].append(float(row[col]))
+        commits.append(row['commit'])
+
+    list_commits = list(set(commits))
+    commits_data = {cola: [] for cola in list_commits}
+    for row in collection:
+        for col in data_column:
+            if row['commit'] in commits_data:
+                commits_data[row['commit']].append(float(row[col]))
+    return commits_data
+
+
+def boxplot_tooltip(index):
+    """Custom tooltip for boxplot"""
+    global list_commits, commits
+    data = commits.values()
+    tooltip_text = "".join(f"commit: {list_commits[index]}\n")
+    ax.text(index + 1, 1.1, tooltip_text, ha='center',
+            va='center', fontsize=8, color='blue')
+
+def plot_boxplot(collection):
+    global ax, list_commits, commits, cursor
+    commits = prepare_boxplot_data(collection)
+    ax.clear()
+    list_com.clear(),
+    list_commits = list(set(commits.keys()))
+    for list_commit in list_commits:
+        list_com.append(list_commit[:8])
+    ax.boxplot([commits[col] for col in commits.keys()], labels=list_com)
+
+    ax.set_xlabel("Commits")
+    ax.set_ylabel("Normalized Values")
+    ax.set_title("Benchmark Data")
+    ax.set_xticklabels(list_com, rotation=45, ha='right')
+    ax.set_xlim(0, len(list_commits) + 1)
+    for index in range(len(list_commits)):
+        boxplot_tooltip(index)
+    mplcursors.cursor(hover=True, highlight=True).connect(
+        "add", lambda sel: sel.annotation.set_text(f"{sel.artist.get_label()}\n Commit : {list_commits[int(sel.artist.get_xdata()[int(sel.index)])]}\n No:{len(commits[list_commits[int(sel.artist.get_xdata()[int(sel.index)])]])}")
+    )
+    fig.canvas.draw()
 
 
 def conf_choice_on_clicked(conf: str, origin: str):
@@ -194,28 +218,13 @@ def conf_choice_on_clicked(conf: str, origin: str):
     @param conf label of the selected configuration
     @param origin label of the selected origin (develop, dev....)
     """
-    global ax, values, lines, tooltip_cursor, fig
-    for line in lines:
-        line.remove()
-        line = None
-
-    if tooltip_cursor is not None:
-        tooltip_cursor.remove()
-        tooltip_cursor = None
-    # there we have collection and origin so we can plot
+    global ax, lines, tooltip_cursor, fig
     collection = db.collection(active_collection_name)
     points = collection.filter(
         lambda row: row['origin'] == origin and f"{row['cpu']}\n mem:{int(row['memory_size']/1024/1024/1024)}" == conf)
-    sorted(points, key=lambda row: row['t'])
-    values = points.copy()
-    x = np.linspace(0, len(points) - 1, len(points))
-    ax.clear()
-    lines = ax.plot(x, points_to_value_array(points))
-    tooltip_cursor = mplcursors.cursor(
-        lines, hover=mplcursors.HoverMode.Transient)
-    tooltip_cursor.connect("add", tooltip)
-    ax.legend(lines, data_column)
+    sorted(points, key=lambda row: row['date_commit'])
     fig.canvas.draw()
+    plot_boxplot(points)
 
 
 def origin_choice_on_clicked(origin):
@@ -223,9 +232,12 @@ def origin_choice_on_clicked(origin):
     @param origin label of the selected origin 
     """
     global active_collection_name, ax_conf_choice, conf_choice
+    # there we have collection and origin so we can plot
+    collection = db.collection(active_collection_name)
+    collection = collection.filter(lambda row: row['origin'] == origin)
     if ax_conf_choice is not None:
         ax_conf_choice.remove()
-    ax_conf_choice = plt.axes([0.01, 0.01, radio_width, 0.2])
+    ax_conf_choice = plt.axes([0.01, 0.01, 0.18, 0.2])
     confs = list_conf(active_collection_name, origin)
     conf_choice = RadioButtons(ax_conf_choice, list(confs), 0, "blue", label_props={
                                'fontsize': {8}})
@@ -241,6 +253,8 @@ def test_choice_on_clicked(label):
     """
     global active_collection_name, ax_origin_choice, origin_choice
     active_collection_name = test_list[engine_or_broker][label]
+    # there we have collection and origin so we can plot
+    collection = db.collection(active_collection_name)
     origins = list_origin_branch(active_collection_name)
     if ax_origin_choice is not None:
         ax_origin_choice.remove()
@@ -248,7 +262,6 @@ def test_choice_on_clicked(label):
     origin_choice = RadioButtons(ax_origin_choice, list(origins))
     origin_choice.on_clicked(origin_choice_on_clicked)
     origin_choice_on_clicked(next(itertools.islice(origins, 1)))
-    fig.canvas.draw()
 
 
 ax_test_choice = None
@@ -256,7 +269,9 @@ test_choice = None
 
 
 def engine_broker_button_on_clicked(label):
-    """! engine/broker radiobuttons handler it initializes test radiobuttons 
+    """! engine/broker radiobuttons handler it initializes test radiobuttons
+    Status button handler it initializes test radiobuttons
+    exemple: 10000STATUS; 1000STATUSE; 1000STATUS
     @param label engine or broker
     """
     global ax_test_choice, test_choice, engine_or_broker
@@ -264,7 +279,7 @@ def engine_broker_button_on_clicked(label):
     new_test_list = list(test_list[label])
     if ax_test_choice is not None:
         ax_test_choice.remove()
-    ax_test_choice = plt.axes([0.01, 0.45, radio_width, 0.4])
+    ax_test_choice = plt.axes([0.01, 0.45, radio_width, 0.4])  # type: ignore
     test_choice = RadioButtons(ax_test_choice, new_test_list)
     test_choice.on_clicked(test_choice_on_clicked)
     fig.canvas.draw()
@@ -273,7 +288,7 @@ def engine_broker_button_on_clicked(label):
 
 # engine or broker
 # xposition, yposition, width, height
-ax_engine_broker = plt.axes([0.01, 0.89, radio_width, 0.1])
+ax_engine_broker = plt.axes([0.01, 0.89, radio_width, 0.1])  # type: ignore
 engine_broker_button = RadioButtons(
     ax_engine_broker, ['engine', 'broker'])
 
