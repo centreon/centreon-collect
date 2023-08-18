@@ -222,7 +222,7 @@ def conf_choice_on_clicked(conf: str, origin: str):
     collection = db.collection(active_collection_name)
     points = collection.filter(
         lambda row: row['origin'] == origin and f"{row['cpu']}\n mem:{int(row['memory_size']/1024/1024/1024)}" == conf)
-    sorted(points, key=lambda row: row['commit'])
+    sorted(points, key=lambda row: row['date_commit'])
     fig.canvas.draw()
     plot_boxplot(points)
 
