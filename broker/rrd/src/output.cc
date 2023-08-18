@@ -662,6 +662,8 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
   }
 
   for (const auto& by_index_status_values : status_values) {
+    SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "RRD: Rebuilding status {}",
+                        by_index_status_values.first);
     std::string status_path{
         fmt::format("{}{}.rrd", _status_path, by_index_status_values.first)};
 
@@ -676,9 +678,14 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
     } catch (const exceptions::open& b) {
       /* Here, the file is created. */
       _backend.open(status_path, by_index_status_values.second.rrd_retention,
-                    start_time, by_index_status_values.second.check_interval);
-      SPDLOG_LOGGER_TRACE(log_v2::rrd(), "create '{}' start date set to {}",
-                          status_path, start_time);
+                    start_time, by_index_status_values.second.check_interval, 0,
+                    true);
+      SPDLOG_LOGGER_TRACE(log_v2::rrd(),
+                          "create '{}' start date set to {} retention set to "
+                          "{}, check interval set to {}",
+                          status_path, start_time,
+                          by_index_status_values.second.rrd_retention,
+                          by_index_status_values.second.check_interval);
     }
     SPDLOG_LOGGER_TRACE(log_v2::rrd(), "{} points added to file '{}'",
                         by_index_status_values.second.time_to_value.size(),
