@@ -1,5 +1,6 @@
 import re
 import time
+import datetime
 import json
 import os
 import psutil
@@ -158,7 +159,7 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         # if we launch from tests directory => open ..directory
         repo = Repo(os.getcwd() + "/..")
     commit = repo.head.commit
-    row['date_commit'] = commit.authored_datetime
+    row['date_commit'] = commit.authored_datetime.timestamp()
     origin_found = False
     while True:
         m = rev_name_dev_branch.match(commit.name_rev)
