@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             DatabaseLibrary
 Library             Process
 Library             OperatingSystem

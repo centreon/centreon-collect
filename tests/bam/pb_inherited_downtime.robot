@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and BAM with bbdo version 3.0.1
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             DatabaseLibrary
 Library             DateTime

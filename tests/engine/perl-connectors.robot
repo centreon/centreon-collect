@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Engine test perl connectors
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             OperatingSystem
 Library             DateTime

@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric deletion from the legacy query made by the php.
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             DatabaseLibrary
 Library             Process
 Library             OperatingSystem

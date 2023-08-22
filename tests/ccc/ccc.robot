@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       ccc tests with engine and broker
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             DateTime
 Library             OperatingSystem

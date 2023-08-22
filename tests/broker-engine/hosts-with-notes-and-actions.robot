@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine Creation of hosts with long action_url, notes and notes_url.
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             DatabaseLibrary
 Library             Process
 Library             OperatingSystem

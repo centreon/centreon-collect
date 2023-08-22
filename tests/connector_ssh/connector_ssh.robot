@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       centreon_connector_ssh tests.
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py

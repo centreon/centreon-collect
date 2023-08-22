@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine add Hostgroup
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             DatabaseLibrary
 Library             Process
 Library             OperatingSystem

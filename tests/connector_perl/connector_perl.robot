@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       centreon_connector_perl tests.
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             ../resources/Engine.py
 Library             Process
 Library             OperatingSystem

@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker victoria metrics tests
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             String
 Library             Process
 Library             OperatingSystem

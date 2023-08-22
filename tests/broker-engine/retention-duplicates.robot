@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker tests on dublicated data that could come from retention when centengine or cbd are restarted
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             DateTime
 Library             OperatingSystem

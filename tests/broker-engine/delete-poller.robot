@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Creation of 4 pollers and then deletion of Poller3.
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             DatabaseLibrary
 Library             Process
 Library             OperatingSystem

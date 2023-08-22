@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine benchmark
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             DateTime
 Library             Process
 Library             OperatingSystem

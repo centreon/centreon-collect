@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Engine/Broker tests on bbdo_version 3.0.0 and protobuf bbdo embedded events.
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             String
 Library             DateTime

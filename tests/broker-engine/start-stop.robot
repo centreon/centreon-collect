@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine start/stop tests
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             DateTime
 Library             OperatingSystem

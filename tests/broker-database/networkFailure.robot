@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker database connection failure
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             DateTime
 Library             OperatingSystem

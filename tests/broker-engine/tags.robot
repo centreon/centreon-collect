@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Engine/Broker tests on tags.
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             DateTime
 Library             OperatingSystem

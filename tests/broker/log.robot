@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker only start/stop tests
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             OperatingSystem
 Library             ../resources/Broker.py

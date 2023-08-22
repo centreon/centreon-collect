@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and BAM
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             Process
 Library             DatabaseLibrary
 Library             DateTime

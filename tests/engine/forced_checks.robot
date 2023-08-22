@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Engine forced checks tests
 
-Resource            ../resources/resources.robot
+Resource            ../resources/resources.resource
 Library             DateTime
 Library             Process
 Library             OperatingSystem

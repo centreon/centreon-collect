@@ -1,5 +1,5 @@
 *** Settings ***
-Resource    ./db_variables.robot
+Resource    ./db_variables.resource
 Library     Process
 Library     OperatingSystem
 Library     Common.py
@@ -24,6 +24,20 @@ ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 
 
 *** Keywords ***
+Config Service
+    [Documentation]    Configuration of Broker and Engine
+    [Arguments]    ${core_log}=info    ${bbdo_version}=3.0.0
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    Broker Config Log    central    sql    error
+    Broker Config Log    central    core    info
+    Broker Config Log    central    processing    error
+    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config Broker Sql Output    central    unified_sql
+
 Config BBDO3
     [Arguments]    ${nbEngine}    ${version}=3.0.1
     Config Broker Sql Output    central    unified_sql
