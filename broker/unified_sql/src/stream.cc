@@ -42,6 +42,15 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
 
+const std::string stream::_index_data_insert_request(
+    "INSERT INTO index_data "
+    "(host_id,host_name,service_id,service_description,"
+    "check_interval, must_be_rebuild,"
+    "special) VALUES (?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE "
+    "host_name=VALUES(host_name), "
+    "service_description=VALUES(service_description), "
+    "check_interval=VALUES(check_interval), special=VALUES(special)");
+
 const std::array<std::string, 5> stream::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
 
