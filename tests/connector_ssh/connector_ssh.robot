@@ -38,7 +38,7 @@ TestBadUser
     ${content}=    Create List    fail to connect to toto@127.0.0.10
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message fail to connect to toto@127.0.0.10 should be available.
-    Stop Engine
+    [Teardown]  Stop Engine
 
 TestBadPwd
     [Documentation]    test bad password
@@ -67,7 +67,7 @@ TestBadPwd
     ${content}=    Create List    fail to connect to testconnssh@127.0.0.11
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message fail to connect to testconnssh@127.0.0.11 should be available.
-    Stop Engine
+    [Teardown]  Stop Engine
 
 Test6Hosts
     [Documentation]    as 127.0.0.x point to the localhost address we will simulate check on 6 hosts
@@ -128,7 +128,7 @@ Test6Hosts
         Should Be True    ${result}    msg=A message output='toto=127.0.0.${idx}' should be available.
     END
 
-    Stop Engine
+    [Teardown]  Stop Engine
 
 *** Keywords ***
 Prepare ssh

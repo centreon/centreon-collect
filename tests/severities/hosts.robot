@@ -45,8 +45,7 @@ BEUHSEV1
     ${result}=    check host severity With Timeout    1    None    60
     Should Be True    ${result}    msg=Host 1 should have no severity
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEUHSEV2
     [Documentation]    Seven hosts are configured with a severity on two pollers. Then we remove severities from the first and second hosts of the first poller but only the severity from the first host of the second poller.
@@ -119,8 +118,7 @@ BEUHSEV2
     ${result}=    check host severity With Timeout    5    None    60
     Should Be True    ${result}    msg=Second step: Host 5 should have severity_id=17
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BETUHSEV1
     [Documentation]    Hosts have severities provided by templates.
@@ -173,5 +171,4 @@ BETUHSEV1
     ${result}=    check host severity With Timeout    33    10    60
     Should Be True    ${result}    msg=First step: Host 33 should have severity_id=10
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

@@ -30,8 +30,7 @@ BESEV1
     Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
     ${result}=    check severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BESEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
@@ -54,8 +53,7 @@ BESEV2
     Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
     ${result}=    check severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEUSEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
@@ -81,8 +79,7 @@ BEUSEV1
     Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
     ${result}=    check severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEUSEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
@@ -109,8 +106,7 @@ BEUSEV2
     Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
     ${result}=    check severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEUSEV3
     [Documentation]    Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
@@ -148,8 +144,7 @@ BEUSEV3
     ${result}=    check service severity With Timeout    1    1    None    60
     Should Be True    ${result}    msg=Service (1, 1) should have no severity
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEUSEV4
     [Documentation]    Seven services are configured with a severity on two pollers. Then we remove severities from the first and second services of the first poller but only the severity from the first service of the second poller. Then only severities no more used should be removed from the database.
@@ -221,8 +216,7 @@ BEUSEV4
     ${result}=    check service severity With Timeout    1    5    None    60
     Should Be True    ${result}    msg=Second step: Service (1, 5) should have severity_id=17
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BETUSEV1
     [Documentation]    Services have severities provided by templates.
@@ -274,5 +268,4 @@ BETUSEV1
     ${result}=    check service severity With Timeout    26    503    5    60
     Should Be True    ${result}    msg=First step: Service (26, 503) should have severity_id=5
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

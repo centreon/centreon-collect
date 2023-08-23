@@ -30,8 +30,7 @@ BECCC1
         Sleep    1s
     END
     should be equal as strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt
 
 BECCC2
@@ -65,8 +64,7 @@ BECCC2
     ${version}=    Get Version
     ${expected}=    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt
 
 BECCC3
@@ -99,8 +97,7 @@ BECCC3
     ${version}=    Get Version
     ${expected}=    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt
 
 BECCC4
@@ -132,8 +129,7 @@ BECCC4
     END
     ${contains}=    Evaluate    "GetVersion" in """${content}""" and "RemovePoller" in """${content}"""
     Should Be True    ${contains}    msg=The list of methods should contain GetVersion(Empty)
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt
 
 BECCC5
@@ -165,8 +161,7 @@ BECCC5
     END
     ${contains}=    Evaluate    "The list argument expects no command" in """${content}"""
     Should Be True    ${contains}    msg=When -l option is applied, we can't call a command.
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt
 
 BECCC6
@@ -212,8 +207,7 @@ BECCC6
         ...    {\n \"major\": ${mm},\n \"minor\": ${m},\n \"patch\": ${p}\n}
         ...    msg=A version as json string should be returned
     END
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt
 
 BECCC7
@@ -247,8 +241,7 @@ BECCC7
     ...    ${content}
     ...    Error during the execution of '/com.centreon.broker.Broker/GetVersion' method:
     ...    msg=GetVersion{"idx":1} should return an error because the input message is incompatible with the expected one.
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt
 
 BECCC8
@@ -283,6 +276,5 @@ BECCC8
         Sleep    1s
     END
     Should Contain    ${content}    {}
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Remove File    /tmp/output.txt

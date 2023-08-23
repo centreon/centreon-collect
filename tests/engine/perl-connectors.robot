@@ -26,4 +26,4 @@ EPC1
     ${result}=    Find In Log with timeout    ${engineLog0}    ${start}    ${content}    20
     Should Be True    ${result}    msg=Missing a message telling data is available from the Perl connector
 
-    Stop Engine
+    [Teardown]  Stop Engine

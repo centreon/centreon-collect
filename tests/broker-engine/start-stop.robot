@@ -21,8 +21,7 @@ BESS1
     Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BESS2
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
@@ -40,7 +39,7 @@ BESS2
     Stop Engine
     ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
+    [Teardown]    Kindly Stop Broker
 
 BESS3
     [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
@@ -73,8 +72,7 @@ BESS4
     Should Be True    ${result}
     ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BESS5
     [Documentation]    Start-Stop Broker/engine - Engine debug level is set to all, it should not hang
@@ -88,8 +86,7 @@ BESS5
     Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BESS_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
@@ -106,8 +103,7 @@ BESS_GRPC1
     Start Engine
     ${result}    Check Connections
     Should Be True    ${result}
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BESS_GRPC2
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Engine stopped first
@@ -168,8 +164,7 @@ BESS_GRPC4
     Start Broker
     ${result}    Check Connections
     Should Be True    ${result}
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BESS_GRPC5
     [Documentation]    Start-Stop grpc version Broker/engine - Engine debug level is set to all, it should not hang
@@ -268,8 +263,7 @@ BESS_CRYPTED_GRPC2
         Start Broker
         Start Engine
         Sleep    2s
-        Kindly Stop Broker
-        Stop Engine
+        Stop Centreon
     END
 
 BESS_CRYPTED_GRPC3
@@ -291,8 +285,7 @@ BESS_CRYPTED_GRPC3
         Start Broker
         Start Engine
         Sleep    2s
-        Kindly Stop Broker
-        Stop Engine
+        Stop Centreon
     END
 
 BESS_CRYPTED_REVERSED_GRPC1
@@ -319,8 +312,7 @@ BESS_CRYPTED_REVERSED_GRPC1
         ${result}    Check Connections
         Should Be True    ${result}
         Sleep    2s
-        Kindly Stop Broker
-        Stop Engine
+        Stop Centreon
     END
 
 BESS_CRYPTED_REVERSED_GRPC2
@@ -367,8 +359,7 @@ BESS_CRYPTED_REVERSED_GRPC3
         Start Broker
         Start Engine
         Sleep    5s
-        Kindly Stop Broker
-        Stop Engine
+        Stop Centreon
     END
 
 BESS_ENGINE_DELETE_HOST
@@ -392,8 +383,7 @@ BESS_ENGINE_DELETE_HOST
     engine_config_remove_host    ${0}    host_16
     Reload Engine
     Sleep    2s
-    Kindly Stop Broker    True
-    Stop Engine
+    [Teardown]    Stop Centreon    True
 
 BESSBQ1
     [Documentation]    A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
@@ -417,8 +407,7 @@ BESSBQ1
 
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    Services should be updated after the ingestion of the queue file
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 Start_Stop_Engine_Broker_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first

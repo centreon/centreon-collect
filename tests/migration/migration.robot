@@ -107,5 +107,4 @@ MIGRATION
     ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${contentRRD}    30
     Should Be True    ${result}    msg=No metric sent to rrd cbd for 30s
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

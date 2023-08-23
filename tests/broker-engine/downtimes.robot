@@ -69,8 +69,7 @@ BEDTMASS1
     ${result}=    check number of downtimes    ${0}    ${start}    ${60}
     Should be true    ${result}    msg=We should have no downtime enabled.
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEDTMASS2
     [Documentation]    New services with several pollers are created. Then downtimes are set on all configured hosts. This action results on 1050 downtimes if we also count impacted services. Then all these downtimes are removed. This test is done with BBDO 2.0
@@ -125,8 +124,7 @@ BEDTMASS2
     ${result}=    check number of downtimes    ${0}    ${start}    ${60}
     Should be true    ${result}    msg=We should have no downtime enabled.
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEDTSVCREN1
     [Documentation]    A downtime is set on a service then the service is renamed. The downtime is still active on the renamed service. The downtime is removed from the renamed service and it is well removed.
@@ -168,8 +166,7 @@ BEDTSVCREN1
     ${result}=    check number of downtimes    ${0}    ${start}    ${60}
     Should be true    ${result}    msg=We should have no downtime enabled.
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEDTSVCFIXED
     [Documentation]    A downtime is set on a service, the total number of downtimes is really 1 then we delete this downtime and the number of downtime is 0.
@@ -202,8 +199,7 @@ BEDTSVCFIXED
     ${result}=    check number of downtimes    ${0}    ${start}    ${60}
     Should be true    ${result}    msg=We should have no downtime enabled.
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEDTHOSTFIXED
     [Documentation]    A downtime is set on a host, the total number of downtimes is really 21 (1 for the host and 20 for its 20 services) then we delete this downtime and the number is 0.
@@ -238,8 +234,7 @@ BEDTHOSTFIXED
     ${result}=    check number of downtimes    ${0}    ${start}    ${60}
     Should be true    ${result}    msg=We should have no downtime enabled.
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 
 *** Keywords ***

@@ -118,6 +118,5 @@ EBNSGU2
 
 *** Keywords ***
 Test End
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Save logs If Failed

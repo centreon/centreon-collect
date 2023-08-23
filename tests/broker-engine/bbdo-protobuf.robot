@@ -27,8 +27,7 @@ BEPBBEE1
     ${content}=    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
     ${result}=    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    msg=Message about not matching bbdo versions not available
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEPBBEE2
     [Documentation]    bbdo_version 3 not compatible with sql/storage
@@ -71,8 +70,7 @@ BEPBBEE3
     Start Broker
     Start Engine
     Wait Until Created    /tmp/pbservicestatus.log    1m
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEPBBEE4
     [Documentation]    bbdo_version 3 generates new bbdo protobuf host status messages.
@@ -93,8 +91,7 @@ BEPBBEE4
     Start Broker
     Start Engine
     Wait Until Created    /tmp/pbhoststatus.log    1m
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEPBBEE5
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service messages.
@@ -115,8 +112,7 @@ BEPBBEE5
     Start Broker
     Start Engine
     Wait Until Created    /tmp/pbservice.log    1m
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEPBRI1
     [Documentation]    bbdo_version 3 use pb_resource new bbdo protobuf ResponsiveInstance message.
@@ -180,5 +176,4 @@ BEPBCVS
     END
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True

@@ -189,8 +189,7 @@ BEDB2
     Start Mysql
     ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    60
     Should Be True    ${result}    Message about the connection to the database is missing.
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BEDB3
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
@@ -221,8 +220,7 @@ BEDB3
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BEDB4
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
@@ -247,8 +245,7 @@ BEDB4
         IF    ${result}    BREAK
     END
     Should Be True    ${result}    gRPC does not return 3 connections as expected
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon
 
 BDBM1
     [Documentation]    start broker/engine and then start MariaDB => connection is established
@@ -273,8 +270,7 @@ BDBM1
         Should Be True
         ...    ${result} >= ${c} + 1
         ...    The stats file should contain at less ${c} + 1 connections to the database.
-        Kindly Stop Broker
-        Stop Engine
+        Stop Centreon
     END
 
 BDBU1
@@ -386,6 +382,5 @@ BDBMU1
         Should Be True    ${result}    No stats on mysql manager found
         ${result}    Get Broker Stats Size    central    mysql manager    ${60}
         Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
-        Kindly Stop Broker
-        Stop Engine
+        Stop Centreon
     END

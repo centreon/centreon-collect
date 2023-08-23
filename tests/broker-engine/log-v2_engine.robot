@@ -51,8 +51,7 @@ LOGV2EB1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2EBU1
     [Documentation]    Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
@@ -98,8 +97,7 @@ LOGV2EBU1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2DB1
     [Documentation]    log-v2 disabled old log enabled check broker sink
@@ -145,8 +143,7 @@ LOGV2DB1
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2DB2
     [Documentation]    log-v2 disabled old log disabled check broker sink
@@ -190,8 +187,7 @@ LOGV2DB2
         IF    "${output}" == "((0,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0,),)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2EB2
     [Documentation]    log-v2 enabled old log enabled check broker sink
@@ -237,8 +233,7 @@ LOGV2EB2
     END
     Should Be Equal As Strings    ${output}    ((2,),)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2EBU2
     [Documentation]    Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
@@ -285,8 +280,7 @@ LOGV2EBU2
     END
     Should Be Equal As Strings    ${output}    ((2,),)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2EF1
     [Documentation]    log-v2 enabled    old log disabled check logfile sink
@@ -310,8 +304,7 @@ LOGV2EF1
 
     ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2DF1
     [Documentation]    log-v2 disabled old log enabled check logfile sink
@@ -338,8 +331,7 @@ LOGV2DF1
     ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Should Not Be True    ${result2}
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2DF2
     [Documentation]    log-v2 disabled old log disabled check logfile sink
@@ -366,8 +358,7 @@ LOGV2DF2
     ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2EF2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
@@ -394,8 +385,7 @@ LOGV2EF2
     ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Be True    ${result1}
     Should Be True    ${result2}
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 LOGV2FE2
     [Documentation]    log-v2 enabled old log enabled check logfile sink
@@ -424,5 +414,4 @@ LOGV2FE2
 
     ${res}=    check engine logs are duplicated    ${engineLog0}    ${start}
     Should Be True    ${res}    msg=one or other log are not duplicate in logsfile
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

@@ -339,6 +339,5 @@ RLCode
 
 *** Keywords ***
 Test Clean
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     Save logs If Failed

@@ -41,8 +41,7 @@ EBSNU1
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EBSAU2
     [Documentation]    New hosts with action_url with more than 2000 characters
@@ -75,8 +74,7 @@ EBSAU2
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EBSN3
     [Documentation]    New hosts with notes with more than 500 characters
@@ -109,5 +107,4 @@ EBSN3
         IF    "${output}" == "(('${n}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

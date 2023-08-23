@@ -67,7 +67,7 @@ VICT_ONE_CHECK_METRIC
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Stop Centreon    AND    Stop Server
 
 VICT_ONE_CHECK_STATUS
     [Documentation]    victoria metrics status output
@@ -194,7 +194,7 @@ VICT_ONE_CHECK_STATUS
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Stop Centreon    AND    Stop Server
 
 VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     [Documentation]    victoria metrics metric output after victoria shutdown
@@ -257,4 +257,4 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
 
     Should Be True    ${now} < ${timeout}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    AND    Stop Server
+    [Teardown]    Run Keywords    Stop Centreon    AND    Stop Server

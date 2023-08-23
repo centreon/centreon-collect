@@ -31,8 +31,7 @@ STUPID_FILTER
     ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling bad filter should be available.
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 STORAGE_ON_LUA
     [Documentation]    The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
@@ -61,8 +60,7 @@ STORAGE_ON_LUA
     ${grep_res}=    Grep File    /tmp/all_lua_event.log    "category":[^3]    regexp=True
     Should Be Empty    ${grep_res}    msg=Events of category different than 'storage' found.
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 FILTER_ON_LUA_EVENT
     [Documentation]    stream connector with a bad configured filter generate a log error message
@@ -107,8 +105,7 @@ FILTER_ON_LUA_EVENT
         ...    msg=All the lines in all_lua_event.log should contain "_type":196620
     END
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BAM_STREAM_FILTER
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
@@ -200,8 +197,7 @@ BAM_STREAM_FILTER
     ...    centreon-bam-reporting event of type 1[0-9a-f]{4} rejected by write filter    regexp=True
     Should Not Be Empty    ${grep_res}    msg=no rejected neb event
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 UNIFIED_SQL_FILTER
     [Documentation]    With bbdo version 3.0.1, we watch events written or rejected in unified_sql
@@ -236,8 +232,7 @@ UNIFIED_SQL_FILTER
         Should Not Be Empty    ${grep_res}
     END
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 CBD_RELOAD_AND_FILTERS
     [Documentation]    We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
@@ -336,8 +331,7 @@ CBD_RELOAD_AND_FILTERS
     ...    False
     ...    msg=Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 CBD_RELOAD_AND_FILTERS_WITH_OPR
     [Documentation]    We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
@@ -438,8 +432,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ...    False
     ...    msg=Some events are rejected by the rrd output whereas all categories are enabled.
 
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 SEVERAL_FILTERS_ON_LUA_EVENT
     [Documentation]    Two stream connectors with different filters are configured.
@@ -510,5 +503,4 @@ SEVERAL_FILTERS_ON_LUA_EVENT
         ...    "_type":65565
         ...    msg=All the lines in all_lua_event-bis.log should contain "_type":65565
     END
-    Stop Engine
-    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True

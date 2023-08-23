@@ -35,8 +35,7 @@ BECT1
             Start Engine
             ${result}=    Check Connections
             Should Be True    ${result}    msg=Engine and Broker not connected
-            Kindly Stop Broker
-            Stop Engine
+            Stop Centreon
             ${content1}=    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}=    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
@@ -116,8 +115,7 @@ BECT2
     Start Engine
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
     ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -161,8 +159,7 @@ BECT3
     Start Engine
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
     ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
     ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -245,8 +242,7 @@ BECT4
     Start Engine
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
     ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -281,8 +277,7 @@ BECT_GRPC1
             Start Engine
             ${result}=    Check Connections
             Should Be True    ${result}    msg=Engine and Broker not connected
-            Kindly Stop Broker
-            Stop Engine
+            Stop Centreon
             ${content1}=    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
             ${content2}=    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
@@ -363,8 +358,7 @@ BECT_GRPC2
     Start Engine
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
     ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -412,8 +406,7 @@ BECT_GRPC3
     Start Engine
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
     ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
     ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
     ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
@@ -498,8 +491,7 @@ BECT_GRPC4
     Start Engine
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
     ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
     ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}

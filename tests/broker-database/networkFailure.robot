@@ -59,8 +59,7 @@ NetworkDBFail6
     Reset Eth Connection
     ${content}=    Create List    0 events acknowledged
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 NetworkDBFailU6
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
@@ -89,8 +88,7 @@ NetworkDBFailU6
     Reset Eth Connection
     ${content}=    Create List    0 events acknowledged
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 NetworkDBFail7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s
@@ -122,8 +120,7 @@ NetworkDBFail7
     ${content}=    Create List    0 events acknowledged
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=There are still events in the queue.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 NetworkDBFailU7
     [Documentation]    network failure test between broker and database: we wait for the connection to be established and then we shut down the connection for 60s (with unified_sql)
@@ -154,8 +151,7 @@ NetworkDBFailU7
     ${content}=    Create List    0 events acknowledged
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    msg=There are still events in the queue.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 
 *** Keywords ***
@@ -191,5 +187,4 @@ Network Failure
     Should Be True
     ...    ${result[0]}
     ...    msg=timeout after network to be restablished (network failure duration : ${interval})
-    Kindly Stop Broker
-    Stop Engine
+    [Teardown]    Stop Centreon

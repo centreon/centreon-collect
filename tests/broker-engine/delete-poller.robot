@@ -36,8 +36,7 @@ EBDP1
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
@@ -52,8 +51,7 @@ EBDP1
     Remove Poller    51001    Poller3
     Sleep    6s
 
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
@@ -118,8 +116,7 @@ EBDP2
 
     Remove Poller    51001    Poller2
 
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -191,8 +188,7 @@ EBDP_GRPC2
 
     Remove Poller    51001    Poller2
 
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -251,8 +247,7 @@ EBDP3
 
     Remove Poller    51001    Poller2
 
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -348,8 +343,7 @@ EBDP4
     log to console    date ${start}
     ${result}    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should be True    ${result}    msg=No message about these two wrong service status.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EBDP5
     [Documentation]    Four new pollers are started and then we remove Poller3.
@@ -377,8 +371,7 @@ EBDP5
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     # Poller3 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${3}    ${50}    ${20}
     ${start}    Get Current Date
@@ -398,8 +391,8 @@ EBDP5
     ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
 
-    Stop Engine
-    Kindly Stop Broker
+
+    Stop Centreon
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
@@ -465,8 +458,7 @@ EBDP6
     ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
 
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -531,8 +523,7 @@ EBDP7
     ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
 
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
 
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
@@ -622,5 +613,4 @@ EBDP8
     log to console    date ${start}
     ${result}    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should be True    ${result}    msg=No message about these two wrong service status.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

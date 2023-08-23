@@ -67,8 +67,7 @@ BEBAMIDT1
     ${result}=    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    msg=The BA ba_1 is in downtime as it should not
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEBAMIDT2
     [Documentation]    A BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
@@ -154,8 +153,7 @@ BEBAMIDT2
     Should Be True    ${result}    msg=The BA ba_1 is in downtime as it should not
 
     log to console    Broker is stopped (end of BEBAMIDT2)
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEBAMIGNDT1
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
@@ -264,8 +262,7 @@ BEBAMIGNDT1
     Should Be True    ${result}    msg=The critical service is no more in downtime, the BA should be critical.
     Log to console    The BA is now critical (no more downtime)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEBAMIGNDT2
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. The first downtime reaches its end, the BA is still OK, but when the second downtime reaches its end, the BA should be CRITICAL.
@@ -355,8 +352,7 @@ BEBAMIGNDT2
     Should Be True    ${result}    msg=The critical service is no more in downtime, the BA should be critical.
     Log to console    The BA is now critical (no more downtime)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 
 *** Keywords ***

@@ -37,8 +37,7 @@ EBNHG1
 
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    msg=One of the new host groups not found in logs.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EBNHGU1
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
@@ -67,8 +66,7 @@ EBNHGU1
 
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    msg=One of the new host groups not found in logs.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EBNHGU2
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
@@ -101,8 +99,7 @@ EBNHGU2
 
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    msg=One of the new host groups not found in logs.
-    Stop Engine
-    Kindly stop Broker
+    [Teardown]    Stop Centreon
 
 EBNHGU3
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
@@ -146,8 +143,7 @@ EBNHGU3
     ${result}=    Check Number of relations between hostgroup and hosts    1    9    30
     Should Be True    ${result}    msg=We should have 12 hosts members of host 1.
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EBNHG4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
@@ -197,8 +193,7 @@ EBNHG4
     END
     Should Be Equal As Strings    ${output}    (('hostgroup_test',),)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EBNHGU4
     [Documentation]    New host group with several pollers and connections to DB with broker and rename this hostgroup
@@ -248,5 +243,4 @@ EBNHGU4
     END
     Should Be Equal As Strings    ${output}    (('hostgroup_test',),)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

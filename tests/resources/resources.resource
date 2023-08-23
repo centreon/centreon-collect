@@ -329,3 +329,8 @@ Clear Metrics
     Execute SQL String    DELETE FROM metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin
+
+Stop Centreon
+    [Documentation]    Stop Engine and Broker
+    [Arguments]    ${only_central}=False
+    Run Keywords    Stop Engine    AND    Kindly Stop Broker    ${only_central}

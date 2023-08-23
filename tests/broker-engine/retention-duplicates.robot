@@ -42,8 +42,7 @@ BERD1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}=    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -81,8 +80,7 @@ BERD2
     Stop Engine
     Start Engine
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Files Contain Same Json    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=Contents of /tmp/lua.log and /tmp/lua-engine.log do not match.
     ${result}=    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
@@ -123,8 +121,7 @@ BERDUC1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -160,8 +157,7 @@ BERDUCU1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -197,8 +193,7 @@ BERDUC2
     Clear Cache
     Start Engine
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -236,8 +231,7 @@ BERDUCU2
     Clear Cache
     Start Engine
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -277,8 +271,7 @@ BERDUC3U1
     Clear Cache
     Start Broker
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Check Multiplicity When Broker Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 
@@ -332,8 +325,7 @@ BERDUC3U2
     Clear Cache
     Start Engine
     Sleep    25s
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${result}=    Check Multiplicity When Engine Restarted    /tmp/lua-engine.log    /tmp/lua.log
     Should Be True    ${result}    msg=There are events sent several times, see /tmp/lua-engine.log and /tmp/lua.log
 

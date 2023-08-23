@@ -180,8 +180,7 @@ AOUTLU1
 
     Process Service Check result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
-    Stop Engine
-    Kindly Stop Broker
+    Stop Centreon
     ${lst}=    Create List    1    0    4
     ${result}=    Check Types in resources    ${lst}
     Should Be True
@@ -222,8 +221,7 @@ ANO_DT1
     ${result}=    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 ANO_DT2
     [Documentation]    delete downtime on dependent service delete one on ano serv
@@ -263,8 +261,7 @@ ANO_DT2
     ${result}=    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    0    60
     Should Be True    ${result}    msg=anomaly service must be in downtime
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 ANO_DT3
     [Documentation]    delete downtime on anomaly don t delete dependent service one
@@ -305,8 +302,7 @@ ANO_DT3
     ${result}=    Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    msg=dependent service must be in downtime
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 ANO_DT4
     [Documentation]    set dt on anomaly and on dependent service, delete last one don t delete first one
@@ -347,5 +343,4 @@ ANO_DT4
     ${result}=    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    msg=anomaly service must be in simple downtime
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

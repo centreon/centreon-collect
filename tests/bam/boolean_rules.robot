@@ -82,7 +82,7 @@ BABOO
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BABOOOR
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
@@ -134,7 +134,7 @@ BABOOOR
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BABOOAND
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
@@ -186,7 +186,7 @@ BABOOAND
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BABOOORREL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service state and reload cbd. So the rule is something like "False OR True" which is equal to True. And to pass from True to False, we change the second service.
@@ -283,7 +283,7 @@ BABOOORREL
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]  Stop Centreon
 
 BABOOCOMPL
     [Documentation]    With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
@@ -348,7 +348,7 @@ BABOOCOMPL
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 
 *** Keywords ***

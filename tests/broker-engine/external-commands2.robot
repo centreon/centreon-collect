@@ -55,8 +55,7 @@ BEEXTCMD30
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD31
@@ -150,8 +149,7 @@ BEEXTCMD31
             IF    "${output}" == "((1,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((1,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD32
@@ -223,8 +221,7 @@ BEEXTCMD32
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD33
@@ -279,8 +276,7 @@ BEEXTCMD33
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD34
@@ -330,8 +326,7 @@ BEEXTCMD34
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD35
@@ -400,8 +395,7 @@ BEEXTCMD35
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD36
@@ -447,8 +441,7 @@ BEEXTCMD36
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD37
@@ -521,8 +514,7 @@ BEEXTCMD37
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD38
@@ -572,8 +564,7 @@ BEEXTCMD38
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD39
@@ -624,8 +615,7 @@ BEEXTCMD39
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD40
@@ -671,8 +661,7 @@ BEEXTCMD40
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD41
@@ -727,8 +716,7 @@ BEEXTCMD41
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD42
@@ -778,8 +766,7 @@ BEEXTCMD42
         END
         Should Be Equal As Strings    ${output}    ((1,),)
 
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_GRPC1
@@ -821,8 +808,7 @@ BEEXTCMD_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_GRPC2
@@ -860,8 +846,7 @@ BEEXTCMD_GRPC2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_GRPC3
@@ -903,8 +888,7 @@ BEEXTCMD_GRPC3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_GRPC4
@@ -941,8 +925,7 @@ BEEXTCMD_GRPC4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_REVERSE_GRPC1
@@ -989,8 +972,7 @@ BEEXTCMD_REVERSE_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_REVERSE_GRPC2
@@ -1032,8 +1014,7 @@ BEEXTCMD_REVERSE_GRPC2
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_REVERSE_GRPC3
@@ -1079,8 +1060,7 @@ BEEXTCMD_REVERSE_GRPC3
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_REVERSE_GRPC4
@@ -1122,8 +1102,7 @@ BEEXTCMD_REVERSE_GRPC4
             IF    "${output}" == "((15.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((15.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEEXTCMD_COMPRESS_GRPC1
@@ -1167,8 +1146,7 @@ BEEXTCMD_COMPRESS_GRPC1
             IF    "${output}" == "((10.0,),)"    BREAK
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
-        Stop Engine
-        Kindly Stop Broker
+        Stop Centreon
     END
 
 BEATOI11
@@ -1190,8 +1168,7 @@ BEATOI11
     ${content}=    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
     ${result}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEATOI12
     [Documentation]    external command SEND_CUSTOM_HOST_NOTIFICATION with option_number>7 should fail
@@ -1213,8 +1190,7 @@ BEATOI12
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEATOI13
     [Documentation]    external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
@@ -1236,8 +1212,7 @@ BEATOI13
     ${content}=    Create List    Error: could not schedule downtime : duration
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=command argument duration must be an integer >= 0.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEATOI21
     [Documentation]    external command ADD_HOST_COMMENT and DEL_HOST_COMMENT should work
@@ -1263,8 +1238,7 @@ BEATOI21
     DEL HOST COMMENT    ${com_id}
     ${result}=    Find Internal Id    ${start}    False    30
     Should Be True    ${result}    msg=the comment with id:${com_id} was not deleted.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEATOI22
     [Documentation]    external command DEL_HOST_COMMENT with comment_id<0 should fail
@@ -1293,8 +1267,7 @@ BEATOI22
     Should Be True    ${result}    msg=comment_id must be an unsigned integer.
     ${result}=    Find Internal Id    ${start}    True    30
     Should Be True    ${result}    msg=comment with id:-1 was deleted.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEATOI23
     [Documentation]    external command ADD_SVC_COMMENT with persistent=0 should work
@@ -1316,8 +1289,7 @@ BEATOI23
     ${content}=    Create List    ADD_SVC_COMMENT
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=command argument persistent_flag must be 0 or 1.
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BECUSTOMHOSTVAR
     [Documentation]    external command CHANGE_CUSTOM_HOST_VAR on SNMPVERSION
@@ -1351,8 +1323,7 @@ BECUSTOMHOSTVAR
     END
     Should Be Equal As Strings    ${output}    (('789456',),)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BECUSTOMSVCVAR
     [Documentation]    external command CHANGE_CUSTOM_SVC_VAR on CRITICAL
@@ -1386,8 +1357,7 @@ BECUSTOMSVCVAR
     END
     Should Be Equal As Strings    ${output}    (('456123',),)
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BESERVCHECK
     [Documentation]    external command CHECK_SERVICE_RESULT

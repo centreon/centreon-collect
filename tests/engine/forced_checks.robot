@@ -50,8 +50,7 @@ EFHC1
 
     ${result}=    Check host status    host_1    1    1    False
     Should be true    ${result}    msg=host_1 should be down/hard
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EFHC2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo2
@@ -90,8 +89,7 @@ EFHC2
 
     ${result}=    Check host status    host_1    1    1    False
     Should be true    ${result}    msg=host_1 should be down/hard
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EFHCU1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
@@ -139,8 +137,7 @@ EFHCU1
 
     ${result}=    Check host status    host_1    1    1    True
     Should be true    ${result}    msg=host_1 should be down/hard
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EFHCU2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
@@ -187,8 +184,7 @@ EFHCU2
 
     ${result}=    Check host status    host_1    1    1    True
     Should be true    ${result}    msg=host_1 should be down/hard
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EMACROS
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
@@ -222,8 +218,7 @@ EMACROS
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 EMACROS_NOTIF
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
@@ -268,5 +263,4 @@ EMACROS_NOTIF
     ...    /tmp/notif_toto.txt
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Stop Centreon

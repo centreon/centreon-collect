@@ -88,7 +88,7 @@ BAWORST
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BABEST_SERVICE_CRITICAL
     [Documentation]    With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
@@ -189,7 +189,7 @@ BABEST_SERVICE_CRITICAL
     ${result}    Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BA_IMPACT_2KPI_SERVICES
     [Documentation]    With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
@@ -307,7 +307,7 @@ BA_IMPACT_2KPI_SERVICES
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]   Stop Centreon
 
 BA_RATIO_PERCENT_BA_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
@@ -418,7 +418,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BA_RATIO_NUMBER_BA_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
@@ -534,7 +534,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BA_BOOL_KPI
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
@@ -583,7 +583,7 @@ BA_BOOL_KPI
     ${result}    Check Ba Status With Timeout    test    2    30
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BEPB_DIMENSION_BV_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_bv_event message.
@@ -614,7 +614,7 @@ BEPB_DIMENSION_BV_EVENT
 
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BEPB_DIMENSION_BA_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_ba_event message.
@@ -646,7 +646,7 @@ BEPB_DIMENSION_BA_EVENT
 
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
@@ -684,7 +684,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 
     Should Be True    len(@{query_results}) >= 1    We should have one line in mod_bam_reporting_relations_ba_bv table
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    ${True}
+    [Teardown]    Stop Centreon    ${True}
 
 BEPB_DIMENSION_TIMEPERIOD
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -715,7 +715,7 @@ BEPB_DIMENSION_TIMEPERIOD
 
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BEPB_DIMENSION_KPI_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_kpi_event message.
@@ -747,7 +747,7 @@ BEPB_DIMENSION_KPI_EVENT
 
     Should Be Equal As Strings    ${output}    ${expected}    mod_bam_reporting_kpi not filled
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BEPB_KPI_STATUS
     [Documentation]    bbdo_version 3 use kpi_status message.
@@ -783,7 +783,7 @@ BEPB_KPI_STATUS
 
     Should Be True    (${output} + 0.999) >= ${start}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BEPB_BA_DURATION_EVENT
     [Documentation]    use of pb_ba_duration_event message.
@@ -832,7 +832,7 @@ BEPB_BA_DURATION_EVENT
     Should Be True    ${output[0][0]} >= ${start_event}
     Should Be True    ${output[0][1]} <= ${end_event}
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     [Documentation]    use of pb_dimension_ba_timeperiod_relation message.
@@ -863,7 +863,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     ...    len("""${output}""") > 5
     ...    "centreon_storage.mod_bam_reporting_relations_ba_timeperiods not updated"
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BEPB_DIMENSION_TRUNCATE_TABLE
     [Documentation]    use of pb_dimension_timeperiod message.
@@ -895,7 +895,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
     ...    "_type":393246, "category":6, "element":30, "update_started":false
     Should Not Be Empty    ${grep_res}    event not found
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker    True
+    [Teardown]    Stop Centreon    True
 
 BA_RATIO_NUMBER_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -956,7 +956,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Ba Status With Timeout    test    0    30
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 BA_RATIO_PERCENT_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -1017,7 +1017,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Ba Status With Timeout    test    0    30
     Should Be True    ${result}    The BA test is not OK as expected
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Centreon
 
 
 *** Keywords ***

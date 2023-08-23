@@ -30,8 +30,7 @@ BRGC1
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${50}    ${0.2}
 
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
 
     ${content}=    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -62,8 +61,7 @@ BRCTS1
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
     Run Reverse Bam    ${150}    ${10}
 
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
 
     ${content}=    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
@@ -92,8 +90,7 @@ BRCS1
     ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
-    Kindly Stop Broker
-    Stop Engine
+    Stop Centreon
 
     ${content}=    Create List
     ...    New incoming connection 'centreon-broker-master-map-2'
