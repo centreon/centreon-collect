@@ -5,6 +5,7 @@
 *.pb.h
 *.so
 *.swp
+*.DS_Store
 
 Testing
 __

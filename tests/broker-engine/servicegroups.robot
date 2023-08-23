@@ -1,14 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine add servicegroup
 
-Resource            ../resources/resources.resource
-Library             Process
-Library             OperatingSystem
-Library             DateTime
-Library             Collections
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite

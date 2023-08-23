@@ -1,14 +1,7 @@
 *** Settings ***
 Documentation       Engine/Broker tests on severities.
 
-Resource            ../resources/resources.resource
-Library             Process
-Library             DateTime
-Library             OperatingSystem
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
-Library             ../resources/specific-duplication.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite

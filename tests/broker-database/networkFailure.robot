@@ -1,13 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker database connection failure
 
-Resource            ../resources/resources.resource
-Library             Process
-Library             DateTime
-Library             OperatingSystem
-Library             ../resources/Common.py
-Library             ../resources/Broker.py
-Library             ../resources/Engine.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
