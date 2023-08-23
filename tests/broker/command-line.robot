@@ -1,11 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker only start/stop tests
 
-Resource            ../resources/resources.resource
-Library             Process
-Library             OperatingSystem
-Library             ../resources/Broker.py
-Library             DateTime
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite

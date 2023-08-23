@@ -1,11 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker start/stop tests with bbdo_server and bbdo_client input/output streams. Only these streams are used instead of grpc and tcp.
 
-Resource            ../resources/resources.resource
-Library             DateTime
-Library             Process
-Library             OperatingSystem
-Library             ../resources/Broker.py
+Resource            ../resources/import.resource
 
 Suite Setup         Prepare Suite
 Suite Teardown      Clean After Suite
