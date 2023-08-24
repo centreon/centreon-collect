@@ -55,6 +55,27 @@ def check_connection(port: int, pid1: int, pid2: int):
     return False
 
 
+def wait_for_connections(port: int, nb: int, timeout: int = 60):
+    """!  wait untill nb connection are established on localhost and port
+    @param port connection port
+    @param nb number of connection expected
+    @param timeout  timeout in second
+    @return True if nb connection are established
+    """
+    limit = time.time() + timeout
+    r = re.compile(
+        r"^ESTAB\s+\d+\s+\d+\s+127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        estab_port = list(filter(r.match, lst))
+        if len(estab_port) >= nb:
+            return True
+        time.sleep(5)
+    return False
+
+
 def get_date(d: str):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 

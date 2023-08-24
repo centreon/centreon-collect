@@ -53,6 +53,7 @@ class EngineInstance:
         makedirs(VAR_ROOT + "/log/centreon-broker/", mode=0o777, exist_ok=True)
 
     def create_centengine(self, id: int, debug_level=0):
+        grpc_port = id + 50001
         return ("cfg_file={2}/config{0}/hosts.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
                 "cfg_file={2}/config{0}/commands.cfg\n"
@@ -108,7 +109,7 @@ class EngineInstance:
                 "log_pid=1\n"
                 "macros_filter=KEY80,KEY81,KEY82,KEY83,KEY84\n"
                 "enable_macros_filter=0\n"
-                "rpc_port=50001\n"
+                "rpc_port={5}\n"
                 "postpone_notification_to_timeperiod=0\n"
                 "instance_heartbeat_interval=30\n"
                 "enable_notifications=1\n"
@@ -148,7 +149,7 @@ class EngineInstance:
                 "check_for_orphaned_services=0\n"
                 "check_for_orphaned_hosts=0\n"
                 "check_service_freshness=1\n"
-                "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT)
+                "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
 
     def create_host(self):
         self.last_host_id += 1
