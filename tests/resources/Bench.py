@@ -120,7 +120,7 @@ def calc_bench_delay(bench_event_result, bench_muxer_begin: str, bench_muxer_beg
             time_begin = date_parser.parse(point['time'])
         if point['name'] == bench_muxer_end and point['function'] == bench_muxer_end_function:
             time_end = date_parser.parse(point['time'])
-    return time_end - time_begin
+    return time_end - time_begin if time_begin and time_end else None
 
 
 def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: str, resources_consumed: delta_process_stat, end_process_stat, bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str, other_bench_data: dict = None):
