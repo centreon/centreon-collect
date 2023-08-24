@@ -70,10 +70,10 @@ class feeder : public stat_visitable,
 
   template <bool to_lock>
   void _start_stat_timer();
-  void _stat_timer_handler(const asio::error_code& err);
+  void _stat_timer_handler(const boost::system::error_code& err);
 
   void _start_read_from_stream_timer();
-  void _read_from_stream_timer_handler(const asio::error_code& err);
+  void _read_from_stream_timer_handler(const boost::system::error_code& err);
 
   void _read_from_muxer();
   void _on_event_from_muxer(const std::shared_ptr<io::data>& event);

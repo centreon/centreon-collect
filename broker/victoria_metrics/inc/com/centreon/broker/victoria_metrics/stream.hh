@@ -60,31 +60,6 @@ class stream : public http_tsdb::stream {
   const std::string& get_authorization() const { return _authorization; }
 };
 
-/**
- * @brief stream is asynchronous and so needs to inherit from
- * enable_shared_from_this
- * connector needs a unique_ptr, this little class does the conversion
- *
- */
-class stream_unique_wrapper : public io::stream {
-  std::shared_ptr<stream> _stream;
-
- public:
-  stream_unique_wrapper(const std::shared_ptr<stream>& stream)
-      : io::stream(stream->get_name()), _stream(stream) {}
-
-  int32_t stop() override { return _stream->stop(); }
-  int flush() override { return _stream->flush(); }
-  bool read(std::shared_ptr<io::data>& d, time_t deadline) override {
-    return _stream->read(d, deadline);
-  }
-  void statistics(nlohmann::json& tree) const override {
-    return _stream->statistics(tree);
-  }
-  int write(std::shared_ptr<io::data> const& d) override {
-    return _stream->write(d);
-  }
-};
 };  // namespace victoria_metrics
 
 CCB_END()
