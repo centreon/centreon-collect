@@ -69,14 +69,12 @@ def get_last_bench_result(log: str, id: int, name_to_find: str):
         r".+bench\s+\w+\s+content:'(.\"id\":{}.+{}.+)'".format(id, name_to_find.replace(" ", "\s")))
 
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
-
+        with open(log, "r") as f:
+            lines = f.readlines()
         for line in lines:
             extract = p.match(line)
             if extract is not None:
-                last_bench_str = extract.group(1)
+                last_bench_str = extract[1]
 
         if len(last_bench_str) == 0:
             return None
@@ -99,7 +97,7 @@ def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, tim
         if json_obj is not None:
             return json_obj
         time.sleep(5)
-    logger.console("The file '{}' does not contain bench".format(log))
+    logger.console(f"The file '{log}' does not contain bench")
     return None
 
 
@@ -164,21 +162,21 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     # git branch and commit
     try:
         repo = Repo(os.getcwd())
-    except:
+    except Exception:
         # if we launch from tests directory => open ..directory
-        repo = Repo(os.getcwd() + "/..")
+        repo = Repo(f"{os.getcwd()}/..")
     commit = repo.head.commit
     row['date_commit'] = commit.authored_datetime.timestamp()
     origin_found = False
     while True:
         m = rev_name_dev_branch.match(commit.name_rev)
         if m is not None:
-            row['origin'] = m.group(1)
+            row['origin'] = m[1]
             origin_found = True
             break
         m = remote_rev_name_dev_branch.match(commit.name_rev)
         if m is not None:
-            row['origin'] = m.group(1)
+            row['origin'] = m[1]
             origin_found = True
             break
 

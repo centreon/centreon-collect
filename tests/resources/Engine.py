@@ -162,23 +162,25 @@ class EngineInstance:
         q //= 255
         d = q % 255
 
-        retval = {
-            "config": "define host {{\n" "    host_name                      host_{0}\n    alias                          "
-                      "host_{0}\n    address                        {1}.{2}.{3}.{4}\n    check_command                "
-                      "  checkh{0}\n    check_period                   24x7\n    register                       1\n    "
-                      "_KEY{0}                      VAL{0}\n    _SNMPCOMMUNITY                 public\n    "
-                      "_SNMPVERSION                   2c\n    _HOST_ID                       {0}\n}}\n".format(
-                          hid, a, b, c, d),
-            "hid": hid}
-        return retval
+        return {
+            "config": "define host {{\n"
+            "    host_name                      host_{0}\n    alias                          "
+            "host_{0}\n    address                        {1}.{2}.{3}.{4}\n    check_command                "
+            "  checkh{0}\n    check_period                   24x7\n    register                       1\n    "
+            "_KEY{0}                      VAL{0}\n    _SNMPCOMMUNITY                 public\n    "
+            "_SNMPVERSION                   2c\n    _HOST_ID                       {0}\n}}\n".format(
+                hid, a, b, c, d
+            ),
+            "hid": hid,
+        }
 
     def create_service(self, host_id: int, cmd_ids: int):
         self.last_service_id += 1
         service_id = self.last_service_id
         command_id = random.randint(cmd_ids[0], cmd_ids[1])
-        self.service_cmd[service_id] = "command_{}".format(command_id)
+        self.service_cmd[service_id] = f"command_{command_id}"
 
-        retval = """define service {{
+        return """define service {{
     host_name                       host_{0}
     service_description             service_{1}
     _SERVICE_ID                     {1}
@@ -228,10 +230,9 @@ class EngineInstance:
   saturday                       00:00-24:00
 }
 """
-        config_dir = "{}/config0".format(CONF_DIR)
-        ff = open(config_dir + "/centreon-bam-timeperiod.cfg", "a+")
-        ff.write(retval)
-        ff.close()
+        config_dir = f"{CONF_DIR}/config0"
+        with open(f"{config_dir}/centreon-bam-timeperiod.cfg", "a+") as ff:
+            ff.write(retval)
 
     def create_bam_command(self):
         retval = """define command {
@@ -244,10 +245,9 @@ define command {
   command_line                   /usr/lib64/nagios/plugins//check_ping -H $HOSTADDRESS$ -w 3000.0,80% -c 5000.0,100% -p 1
 }
 """
-        config_dir = "{}/config0".format(CONF_DIR)
-        ff = open(config_dir + "/centreon-bam-command.cfg", "a+")
-        ff.write(retval)
-        ff.close()
+        config_dir = f"{CONF_DIR}/config0"
+        with open(f"{config_dir}/centreon-bam-command.cfg", "a+") as ff:
+            ff.write(retval)
 
     def create_bam_host(self):
         self.last_host_id += 1
@@ -269,10 +269,9 @@ define command {
   register                       1
 }}
 """.format(host_id)
-        config_dir = "{}/config0".format(CONF_DIR)
-        ff = open(config_dir + "/centreon-bam-host.cfg", "a+")
-        ff.write(retval)
-        ff.close()
+        config_dir = f"{CONF_DIR}/config0"
+        with open(f"{config_dir}/centreon-bam-host.cfg", "a+") as ff:
+            ff.write(retval)
         return host_id
 
     def create_bam_service(self, name: str, display_name: str, host_name: str, check_command: str):
@@ -296,29 +295,32 @@ define command {
     register                        1
 }}
 """.format(host_name, name, display_name, check_command, service_id)
-        config_dir = "{}/config0".format(CONF_DIR)
-        ff = open(config_dir + "/centreon-bam-services.cfg", "a+")
-        ff.write(retval)
-        ff.close()
+        config_dir = f"{CONF_DIR}/config0"
+        with open(f"{config_dir}/centreon-bam-services.cfg", "a+") as ff:
+            ff.write(retval)
         return service_id
 
     @staticmethod
     def create_command(cmd):
         retval: str
-        if cmd % 2 == 0:
-            retval = """define command {{
+        return (
+            """define command {{
     command_name                    command_{1}
     command_line                    {0}/check.pl {1}
     connector                       Perl Connector
 }}
-""".format(ENGINE_HOME, cmd)
-        else:
-            retval = """define command {{
+""".format(
+                ENGINE_HOME, cmd
+            )
+            if cmd % 2 == 0
+            else """define command {{
     command_name                    command_{1}
     command_line                    {0}/check.pl {1}
 }}
-""".format(ENGINE_HOME, cmd)
-        return retval
+""".format(
+                ENGINE_HOME, cmd
+            )
+        )
 
     @staticmethod
     def create_host_group(id, mbs):
@@ -357,13 +359,13 @@ define command {
 
     @staticmethod
     def create_severities(poller: int, nb: int, offset: int):
-        config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
-        ff = open(config_file, "w+")
-        content = ""
-        typ = ["service", "host"]
-        for i in range(nb):
-            level = i % 5 + 1
-            content += """define severity {{
+        config_file = f"{CONF_DIR}/config{poller}/severities.cfg"
+        with open(config_file, "w+") as ff:
+            content = ""
+            typ = ["service", "host"]
+            for i in range(nb):
+                level = i % 5 + 1
+                content += """define severity {{
     id                     {0}
     name                   severity{3}
     level                  {1}
@@ -371,8 +373,7 @@ define command {
     type                   {4}
 }}
 """.format(i + 1, level, 6 - level, i + offset, typ[i % 2])
-        ff.write(content)
-        ff.close()
+            ff.write(content)
 
     @staticmethod
     def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
@@ -390,51 +391,47 @@ define command {
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
-        config_file = "{}/config{}/{}Templates.cfg".format(
-            CONF_DIR, poller, typ)
-        ff = open(config_file, "w+")
-        content = ""
-        idx = 1
-        for i in ids:
-            content += """define {} {{
+        config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
+        with open(config_file, "w+") as ff:
+            content = "".join(
+                """define {} {{
 name                   {}_template_{}
 {}               {}
 register               0
 active_checks_enabled  1
 passive_checks_enabled 1
 }}
-""".format(typ, typ, idx, what, i)
-            idx += 1
-        ff.write(content)
-        ff.close()
+""".format(
+                    typ, typ, idx, what, i
+                )
+                for idx, i in enumerate(ids, start=1)
+            )
+            ff.write(content)
 
     @staticmethod
     def create_tags(poller: int, nb: int, offset: int):
         tt = ["servicegroup", "hostgroup", "servicecategory", "hostcategory"]
 
-        config_file = "{}/config{}/tags.cfg".format(CONF_DIR, poller)
-        ff = open(config_file, "w+")
-        content = ""
-        tid = 0
-        for i in range(nb):
-            if i % 4 == 0:
-                tid += 1
-            typ = tt[i % 4]
-            content += """define tag {{
+        config_file = f"{CONF_DIR}/config{poller}/tags.cfg"
+        with open(config_file, "w+") as ff:
+            content = ""
+            tid = 0
+            for i in range(nb):
+                if i % 4 == 0:
+                    tid += 1
+                typ = tt[i % 4]
+                content += """define tag {{
     id                     {0}
     name                   tag{2}
     type                   {1}
 }}
 """.format(tid, typ, i + offset)
-        ff.write(content)
-        ff.close()
+            ff.write(content)
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
             shutil.rmtree(CONF_DIR)
-        r = 0
-        if hosts % self.instances > 0:
-            r = 1
+        r = 1 if hosts % self.instances > 0 else 0
         v = int(hosts / self.instances) + r
         last = hosts - (self.instances - 1) * v
         for inst in range(self.instances):
@@ -445,36 +442,31 @@ passive_checks_enabled 1
                 nb_hosts = hosts
                 hosts = 0
 
-            config_dir = "{}/config{}".format(CONF_DIR, inst)
+            config_dir = f"{CONF_DIR}/config{inst}"
             makedirs(config_dir)
-            f = open(config_dir + "/centengine.cfg", "w")
-            bb = self.create_centengine(inst, debug_level=debug_level)
-            f.write(bb)
-            f.close()
-
-            f = open(config_dir + "/hosts.cfg", "w")
-            ff = open(config_dir + "/services.cfg", "w")
-            for i in range(1, nb_hosts + 1):
-                h = self.create_host()
-                f.write(h["config"])
-                self.hosts.append("host_{}".format(h["hid"]))
-                for j in range(1, services_by_host + 1):
-                    ff.write(self.create_service(h["hid"],
-                                                 (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
-                    self.services.append("service_{}".format(h["hid"]))
-            ff.close()
-            f.close()
-
-            f = open(config_dir + "/commands.cfg", "w")
-            for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
-                f.write(self.create_command(i))
-            for i in range(self.last_host_id):
-                f.write("""define command {{
+            with open(f"{config_dir}/centengine.cfg", "w") as f:
+                bb = self.create_centengine(inst, debug_level=debug_level)
+                f.write(bb)
+            with open(f"{config_dir}/hosts.cfg", "w") as f:
+                with open(f"{config_dir}/services.cfg", "w") as ff:
+                    for _ in range(1, nb_hosts + 1):
+                        h = self.create_host()
+                        f.write(h["config"])
+                        self.hosts.append(f'host_{h["hid"]}')
+                        for _ in range(1, services_by_host + 1):
+                            ff.write(self.create_service(h["hid"],
+                                                         (inst * self.commands_count + 1, (inst + 1) * self.commands_count)))
+                            self.services.append(f'service_{h["hid"]}')
+            with open(f"{config_dir}/commands.cfg", "w") as f:
+                for i in range(inst * self.commands_count + 1, (inst + 1) * self.commands_count + 1):
+                    f.write(self.create_command(i))
+                for i in range(self.last_host_id):
+                    f.write("""define command {{
     command_name                    checkh{1}
     command_line                    {0}/check.pl 0
 }}
 """.format(ENGINE_HOME, i + 1))
-            f.write("""define command {{
+                f.write("""define command {{
     command_name                    notif
     command_line                    {0}/notif.pl
 }}
@@ -483,9 +475,8 @@ define command {{
     command_line                    {0}/notif.pl
 }}
 """.format(ENGINE_HOME))
-            f.close()
-            f = open(config_dir + "/connectors.cfg", "w")
-            f.write("""define connector {
+            with open(f"{config_dir}/connectors.cfg", "w") as f:
+                f.write("""define connector {
     connector_name                 Perl Connector
     connector_line                 /usr/lib64/centreon-connector/centreon_connector_perl
 }
@@ -495,13 +486,11 @@ define connector {
     connector_line                 /usr/lib64/centreon-connector/centreon_connector_ssh --debug --log-file=/tmp/var/log/centreon-engine/config0/connector_ssh.log 
 }
 """)
-            f.close()
-            f = open(config_dir + "/resource.cfg", "w")
-            f.write("""$USER1$=/usr/lib64/nagios/plugins
+            with open(f"{config_dir}/resource.cfg", "w") as f:
+                f.write("""$USER1$=/usr/lib64/nagios/plugins
 $CENTREONPLUGINS$=/usr/lib/centreon/plugins""")
-            f.close()
-            f = open(config_dir + "/timeperiods.cfg", "w")
-            f.write("""define timeperiod {
+            with open(f"{config_dir}/timeperiods.cfg", "w") as f:
+                f.write("""define timeperiod {
     name                           24x7
     timeperiod_name                24x7
     alias                          24_Hours_A_Day,_7_Days_A_Week
@@ -543,8 +532,7 @@ define timeperiod {
     saturday                       09:00-12:00,14:00-18:00
 }
 """)
-            f.close()
-            f = open(config_dir + "/hostgroups.cfg", "w")
+            f = open(f"{config_dir}/hostgroups.cfg", "w")
             f.close()
             f = open(config_dir + "/contacts.cfg", "w")
             f.write("""define contact {
@@ -633,31 +621,36 @@ define contact {
                                 "{0}/{1}".format(ENGINE_HOME, file))
                 chmod("{0}/{1}".format(ENGINE_HOME, file),
                       stat.S_IRWXU | stat.S_IRGRP | stat.S_IXGRP)
-            if not exists(ENGINE_HOME + "/config{}/rw".format(inst)):
-                makedirs(ENGINE_HOME + "/config{}/rw".format(inst))
+            if not exists(f"{ENGINE_HOME}/config{inst}/rw"):
+                makedirs(f"{ENGINE_HOME}/config{inst}/rw")
 
     def centengine_conf_add_bam(self):
-        config_dir = "{}/config0".format(CONF_DIR)
-        f = open(config_dir + "/centengine.cfg", "r")
+        config_dir = f"{CONF_DIR}/config0"
+        f = open(f"{config_dir}/centengine.cfg", "r")
         lines = f.readlines()
         f.close
-        lines_to_prep = ["cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-command.cfg\n", "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-timeperiod.cfg\n",
-                         "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-host.cfg\n", "cfg_file=" + ETC_ROOT + "/centreon-engine/config0/centreon-bam-services.cfg\n"]
-        f = open(config_dir + "/centengine.cfg", "w")
-        f.writelines(lines_to_prep)
-        f.writelines(lines)
-        f.close()
+        lines_to_prep = [
+            f"cfg_file={ETC_ROOT}"
+            + "/centreon-engine/config0/centreon-bam-command.cfg\n",
+            f"cfg_file={ETC_ROOT}"
+            + "/centreon-engine/config0/centreon-bam-timeperiod.cfg\n",
+            f"cfg_file={ETC_ROOT}"
+            + "/centreon-engine/config0/centreon-bam-host.cfg\n",
+            f"cfg_file={ETC_ROOT}"
+            + "/centreon-engine/config0/centreon-bam-services.cfg\n",
+        ]
+        with open(f"{config_dir}/centengine.cfg", "w") as f:
+            f.writelines(lines_to_prep)
+            f.writelines(lines)
 
     def centengine_conf_add_anomaly(self):
-        config_dir = "{}/config0".format(CONF_DIR)
-        f = open(config_dir + "/centengine.cfg", "r")
+        config_dir = f"{CONF_DIR}/config0"
+        f = open(f"{config_dir}/centengine.cfg", "r")
         lines = f.readlines()
         f.close
-        f = open(config_dir + "/centengine.cfg", "w")
-        f.writelines("cfg_file=" + config_dir +
-                     "/anomaly_detection.cfg\n")
-        f.writelines(lines)
-        f.close()
+        with open(f"{config_dir}/centengine.cfg", "w") as f:
+            f.writelines((f"cfg_file={config_dir}" + "/anomaly_detection.cfg\n"))
+            f.writelines(lines)
 
 
 engine = None
@@ -692,24 +685,20 @@ def get_engines_count():
 # @param value the new value to set to the key variable.
 #
 def engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
-    filename = ETC_ROOT + \
-        "/centreon-engine/config{}/centengine.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
     replaced = False
     for i in range(len(lines)):
-        if lines[i].startswith(key + "="):
-            lines[i] = "{}={}\n".format(key, value)
+        if lines[i].startswith(f"{key}="):
+            lines[i] = f"{key}={value}\n"
             replaced = True
 
     if not replaced and force:
-        lines.append("{}={}\n".format(key, value))
+        lines.append(f"{key}={value}\n")
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 ##
 # @brief Function to add a value in the centengine.cfg for the config idx.
@@ -721,11 +710,9 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
 
 
 def engine_config_add_value(idx: int, key: str, value: str):
-    filename = ETC_ROOT + \
-        "/centreon-engine/config{}/centengine.cfg".format(idx)
-    f = open(filename, "a")
-    f.write(f"{key}={value}")
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/centengine.cfg"
+    with open(filename, "a") as f:
+        f.write(f"{key}={value}")
 
 
 ##
@@ -737,19 +724,18 @@ def engine_config_add_value(idx: int, key: str, value: str):
 # @param value the new value to set to the key variable.
 #
 def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
     r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i + 1, "    {}              {}\n".format(key, value))
+            lines.insert(i + 1, f"    {key}              {value}\n")
 
     f = open(filename, "w")
     f.writelines(lines)
     f.close()
+
 
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """! Function to update a value in the services.cfg for the config idx.
@@ -786,19 +772,16 @@ def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value
 
 
 def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
     r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(i + 1, "    {}              {}\n".format(key, value))
+            lines.insert(i + 1, f"    {key}              {value}\n")
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 ##
@@ -810,24 +793,21 @@ def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
 # @param value the new value to set to the key variable.
 #
 def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
     r = re.compile(r"^\s*host_name\s+" + desc + "\s*$")
     rkey = re.compile(r"^\s*"+key+"\s+[\w\.]+\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             while i < len(lines) and lines[i] != "}":
                 if rkey.match(lines[i]):
-                    lines[i] = "    {}              {}\n".format(key, value)
+                    lines[i] = f"    {key}              {value}\n"
                     break
                 i += 1
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 ##
@@ -866,21 +846,20 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
 # @param new_command
 #
 def engine_config_add_command(idx: int, command_name: str, new_command: str, connector: str = None):
-    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "a")
-    if connector is None:
-        f.write("""define command {{
+    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "a") as f:
+        if connector is None:
+            f.write("""define command {{
     command_name                   {} 
     command_line                   {}
 }}
     """.format(command_name, new_command))
-    else:
-        f.write("""define command {{
+        else:
+            f.write("""define command {{
     command_name                   {} 
     command_line                   {}
     connector                      {}
 }}
     """.format(command_name, new_command, connector))
-    f.close()
 
 
 #
@@ -891,10 +870,8 @@ def engine_config_add_command(idx: int, command_name: str, new_command: str, con
 #
 def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: str):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/contacts.cfg"
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
+    with open(filename, "r") as f:
+        lines = f.readlines()
     r = re.compile(r"^\s*contact_name\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
@@ -918,17 +895,14 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
         ff.writelines(lines)
 
 def engine_config_remove_service_host(idx: int, host: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     serv_begin = re.compile(r"^define service {$")
     serv_end = re.compile(r"^}$")
     serv_begin_idx = 0
-    while True:
-        if (serv_begin_idx >= len(lines)):
-            break
+    while serv_begin_idx < len(lines):
         if (serv_begin.match(lines[serv_begin_idx])):
             for serv_line_idx in range(serv_begin_idx, len(lines)):
                 if (host_name.match(lines[serv_line_idx])):
@@ -943,24 +917,19 @@ def engine_config_remove_service_host(idx: int, host: str):
         else:
             serv_begin_idx = serv_begin_idx + 1
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_remove_host(idx: int, host: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     host_begin = re.compile(r"^define host {$")
     host_end = re.compile(r"^}$")
     host_begin_idx = 0
-    while True:
-        if (host_begin_idx >= len(lines)):
-            break
+    while host_begin_idx < len(lines):
         if (host_begin.match(lines[host_begin_idx])):
             for host_line_idx in range(host_begin_idx, len(lines)):
                 if (host_name.match(lines[host_line_idx])):
@@ -975,37 +944,33 @@ def engine_config_remove_host(idx: int, host: str):
         else:
             host_begin_idx = host_begin_idx + 1
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def add_host_group(index: int, id_host_group: int, members: list):
     mbs = [l for l in members if l in engine.hosts]
-    f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "a+")
-    logger.console(mbs)
-    f.write(engine.create_host_group(id_host_group, mbs))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "a+") as f:
+        logger.console(mbs)
+        f.write(engine.create_host_group(id_host_group, mbs))
 
 
 def rename_host_group(index: int, id_host_group: int, name: str, members: list):
     mbs = [l for l in members if l in engine.hosts]
-    f = open(ETC_ROOT + "/centreon-engine/config{}/hostgroups.cfg".format(index), "w")
-    logger.console(mbs)
-    f.write("""define hostgroup {{
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/hostgroups.cfg", "w") as f:
+        logger.console(mbs)
+        f.write("""define hostgroup {{
     hostgroup_id                    {0}
     hostgroup_name                  hostgroup_{1}
     alias                           hostgroup_{1}
     members                         {2}
 }}
 """.format(id_host_group, name, ",".join(mbs)))
-    f.close()
 
 
 def rename_service(index: int, hst: str, svc: str, new_svc: str):
-    f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r")
-    ll = f.readlines()
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "r") as f:
+        ll = f.readlines()
     rs_start = re.compile(r"^\s*define service {")
     rs_end = re.compile(r"^\s*}")
     rs_hst = re.compile(r"^\s*host_name\s+([a-z_0-9]+)")
@@ -1024,30 +989,23 @@ def rename_service(index: int, hst: str, svc: str, new_svc: str):
                     ll[l_svc] = f"    service_description\t{new_svc}\n"
                 svc, hst, l_svc = None, None, None
                 continue
-            m = rs_hst.search(l)
-            if m:
-                my_hst = m.group(1)
-            else:
-                m = rs_svc.search(l)
-                if m:
-                    my_svc = m.group(1)
-                    l_svc = i
+            if m := rs_hst.search(l):
+                my_hst = m[1]
+            elif m := rs_svc.search(l):
+                my_svc = m[1]
+                l_svc = i
 
-        else:
-            if rs_start.match(l):
-                inside = True
+        elif rs_start.match(l):
+            inside = True
 
-    f = open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "w")
-    f.writelines(ll)
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "w") as f:
+        f.writelines(ll)
 
 
 def add_service_group(index: int, id_service_group: int, members: list):
-    f = open(
-        ETC_ROOT + "/centreon-engine/config{}/servicegroups.cfg".format(index), "a+")
-    logger.console(members)
-    f.write(engine.create_service_group(id_service_group, members))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "a+") as f:
+        logger.console(members)
+        f.write(engine.create_service_group(id_service_group, members))
 
 def add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
@@ -1055,48 +1013,37 @@ def add_contact_group(index: int, id_contact_group: int, members: list):
         f.write(engine.create_contact_group(id_contact_group, members))
 
 def create_service(index: int, host_id: int, cmd_id: int):
-    f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
-    svc = engine.create_service(host_id, [1, cmd_id])
-    lst = svc.split('\n')
-    good = [l for l in lst if "_SERVICE_ID" in l][0]
-    m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
-    if m is not None:
-        retval = int(m.group(1))
-    else:
-        raise Exception(
-            "Impossible to get the service id from '{}'".format(good))
-        m = 0
-    f.write(svc)
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/services.cfg", "a+") as f:
+        svc = engine.create_service(host_id, [1, cmd_id])
+        lst = svc.split('\n')
+        good = [l for l in lst if "_SERVICE_ID" in l][0]
+        m = re.search(r"_SERVICE_ID\s+([^\s]*)$", good)
+        if m is not None:
+            retval = int(m[1])
+        else:
+            raise Exception(f"Impossible to get the service id from '{good}'")
+        f.write(svc)
     return retval
 
 
 def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
-    f = open(
-        ETC_ROOT + "/centreon-engine/config{}/anomaly_detection.cfg".format(index), "a+")
-    to_append = engine.create_anomaly_detection(
-        host_id, dependent_service_id, metric_name, sensitivity)
-    lst = to_append.split('\n')
-    good = [l for l in lst if "service_id" in l][0]
-    m = re.search(r"service_id\s+([^\s]*)$", good)
-    if m is not None:
-        retval = int(m.group(1))
-    else:
-        raise Exception(
-            "Impossible to get the service id from '{}'".format(good))
-        m = 0
-    f.write(to_append)
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/anomaly_detection.cfg", "a+") as f:
+        to_append = engine.create_anomaly_detection(
+            host_id, dependent_service_id, metric_name, sensitivity)
+        lst = to_append.split('\n')
+        good = [l for l in lst if "service_id" in l][0]
+        m = re.search(r"service_id\s+([^\s]*)$", good)
+        if m is not None:
+            retval = int(m[1])
+        else:
+            raise Exception(f"Impossible to get the service id from '{good}'")
+        f.write(to_append)
     engine.centengine_conf_add_anomaly()
     return retval
 
 
 def engine_log_duplicate(result: list):
-    dup = True
-    for i in result:
-        if (i[0] % 2) != 0:
-            dup = False
-    return dup
+    return all(i[0] % 2 == 0 for i in result)
 
 
 def clone_engine_config_to_db():
@@ -1159,11 +1106,9 @@ def change_normal_svc_check_interval(use_grpc: int, hst: str, svc: str, check_in
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{};{};{}\n".format(
-            now, hst, svc, check_interval)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_NORMAL_SVC_CHECK_INTERVAL;{hst};{svc};{check_interval}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: int):
@@ -1174,11 +1119,9 @@ def change_normal_host_check_interval(use_grpc: int, hst: str, check_interval: i
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.NORMAL_CHECK_INTERVAL, dval=check_interval))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{};{}\n".format(
-            now, hst, check_interval)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_NORMAL_HOST_CHECK_INTERVAL;{hst};{check_interval}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_interval: int):
@@ -1189,11 +1132,9 @@ def change_retry_svc_check_interval(use_grpc: int, hst: str, svc: str, retry_int
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{};{};{}\n".format(
-            now, hst, svc, retry_interval)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_RETRY_SVC_CHECK_INTERVAL;{hst};{svc};{retry_interval}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: int):
@@ -1204,11 +1145,9 @@ def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: in
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{};{}\n".format(
-            now, hst, retry_interval)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):
@@ -1219,11 +1158,9 @@ def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_a
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{};{};{}\n".format(
-            now, hst, svc, max_check_attempts)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
@@ -1234,11 +1171,9 @@ def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: 
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{};{}\n".format(
-            now, hst, max_check_attempts)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_MAX_HOST_CHECK_ATTEMPTS;{hst};{max_check_attempts}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str):
@@ -1249,11 +1184,9 @@ def change_host_check_timeperiod(use_grpc: int, hst: str, check_timeperiod: str)
                 host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_HOST_CHECK_TIMEPERIOD;{};{}\n".format(
-            now, hst, check_timeperiod)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_HOST_CHECK_TIMEPERIOD;{hst};{check_timeperiod}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_timeperiod: str):
@@ -1264,11 +1197,9 @@ def change_host_notification_timeperiod(use_grpc: int, hst: str, notification_ti
                 host_name=hst, mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{};{}\n".format(
-            now, hst, notification_timeperiod)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_HOST_NOTIFICATION_TIMEPERIOD;{hst};{notification_timeperiod}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeperiod: str):
@@ -1279,11 +1210,9 @@ def change_svc_check_timeperiod(use_grpc: int, hst: str, svc: str, check_timeper
                 host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_CHECK_TIMEPERIOD, charval=check_timeperiod))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_SVC_CHECK_TIMEPERIOD;{};{};{}\n".format(
-            now, hst, svc, check_timeperiod)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_SVC_CHECK_TIMEPERIOD;{hst};{svc};{check_timeperiod}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notification_timeperiod: str):
@@ -1294,11 +1223,9 @@ def change_svc_notification_timeperiod(use_grpc: int, hst: str, svc: str, notifi
                 host_name=hst, service_desc=svc,  mode=engine_pb2.ChangeObjectChar.Mode.CHANGE_NOTIFICATION_TIMEPERIOD, charval=notification_timeperiod))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{};{};{}\n".format(
-            now, hst, svc, notification_timeperiod)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_SVC_NOTIFICATION_TIMEPERIOD;{hst};{svc};{notification_timeperiod}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_host_and_child_notifications(use_grpc: int, hst: str):
@@ -1309,11 +1236,9 @@ def disable_host_and_child_notifications(use_grpc: int, hst: str):
                 engine_pb2.HostIdentifier(name=hst))
     else:
         now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_host_and_child_notifications(use_grpc: int, hst: str):
@@ -1324,71 +1249,57 @@ def enable_host_and_child_notifications(use_grpc: int, hst: str):
                 engine_pb2.HostIdentifier(name=hst))
     else:
         now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_HOST_AND_CHILD_NOTIFICATIONS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_host_check(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_CHECK;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_HOST_CHECK;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_host_check(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_CHECK;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_HOST_CHECK;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_host_event_handler(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_EVENT_HANDLER;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_HOST_EVENT_HANDLER;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_host_event_handler(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_EVENT_HANDLER;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_HOST_EVENT_HANDLER;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_host_flap_detection(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_FLAP_DETECTION;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_HOST_FLAP_DETECTION;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_host_flap_detection(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_FLAP_DETECTION;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_HOST_FLAP_DETECTION;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_host_notifications(use_grpc: int, hst: str):
@@ -1399,11 +1310,9 @@ def disable_host_notifications(use_grpc: int, hst: str):
                 engine_pb2.HostIdentifier(name=hst))
     else:
         now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_HOST_NOTIFICATIONS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_host_notifications(use_grpc: int, hst: str):
@@ -1414,11 +1323,9 @@ def enable_host_notifications(use_grpc: int, hst: str):
                 engine_pb2.HostIdentifier(name=hst))
     else:
         now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_HOST_NOTIFICATIONS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: float):
@@ -1429,167 +1336,135 @@ def update_ano_sensitivity(use_grpc: int, hst: str, serv: str, sensitivity: floa
                 names=engine_pb2.NameIdentifier(host_name=hst, service_name=serv)), dval=sensitivity))
     else:
         now = int(time.time())
-        cmd = "[{}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{};{};{}\n".format(
-            now, hst, serv, sensitivity)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_ANOMALYDETECTION_SENSITIVITY;{hst};{serv};{sensitivity}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_host_svc_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_SVC_CHECKS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_HOST_SVC_CHECKS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_host_svc_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_SVC_CHECKS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_HOST_SVC_CHECKS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_host_svc_notifications(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] DISABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_HOST_SVC_NOTIFICATIONS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_host_svc_notifications(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] ENABLE_HOST_SVC_NOTIFICATIONS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_HOST_SVC_NOTIFICATIONS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_passive_host_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] DISABLE_PASSIVE_HOST_CHECKS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_PASSIVE_HOST_CHECKS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_passive_host_checks(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] ENABLE_PASSIVE_HOST_CHECKS;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_PASSIVE_HOST_CHECKS;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def disable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] DISABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
-            now, hst, svc)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] DISABLE_PASSIVE_SVC_CHECKS;{hst};{svc}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def enable_passive_svc_checks(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] ENABLE_PASSIVE_SVC_CHECKS;{};{}\n".format(
-            now, hst, svc)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] ENABLE_PASSIVE_SVC_CHECKS;{hst};{svc}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def start_obsessing_over_host(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] START_OBSESSING_OVER_HOST;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] START_OBSESSING_OVER_HOST;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def stop_obsessing_over_host(use_grpc: int, hst: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] STOP_OBSESSING_OVER_HOST;{}\n".format(
-            now, hst)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] STOP_OBSESSING_OVER_HOST;{hst}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def start_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] START_OBSESSING_OVER_SVC;{};{}\n".format(
-            now, hst, svc)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] START_OBSESSING_OVER_SVC;{hst};{svc}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
     if use_grpc == 0:
         now = int(time.time())
-        cmd = "[{}] STOP_OBSESSING_OVER_SVC;{};{}\n".format(
-            now, hst, svc)
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] STOP_OBSESSING_OVER_SVC;{hst};{svc}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def service_ext_commands(hst: str, svc: str, state: int, output: str):
     now = int(time.time())
-    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
-        now, hst, svc, state, output)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def process_host_check_result(hst: str, state: int, output: str):
     now = int(time.time())
-    cmd = "[{}] PROCESS_HOST_CHECK_RESULT;{};{};{}\n".format(
-        now, hst, state, output)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    cmd = f"[{now}] PROCESS_HOST_CHECK_RESULT;{hst};{state};{output}\n"
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
     cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};0;0;{4};admin;Downtime set by admin\n".format(
         hst, svc, now, now+duration, duration)
-    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
     cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin\n".format(
         hst, svc, now, now + duration, duration)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
@@ -1598,11 +1473,9 @@ def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
         hst, now, now + duration)
     cmd2 = "[{1}] SCHEDULE_HOST_SVC_DOWNTIME;{0};{1};{2};1;0;;admin;Downtime set by admin\n".format(
         hst, now, now + duration)
-    f = open(
-        VAR_ROOT + "/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
-    f.write(cmd1)
-    f.write(cmd2)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
+        f.write(cmd1)
+        f.write(cmd2)
 
 
 def schedule_host_downtime(poller: int, hst: str, duration: int):
@@ -1611,47 +1484,41 @@ def schedule_host_downtime(poller: int, hst: str, duration: int):
         hst, now, now + duration, duration)
     cmd2 = "[{1}] SCHEDULE_HOST_SVC_DOWNTIME;{0};{1};{2};1;0;{3};admin;Downtime set by admin\n".format(
         hst, now, now + duration, duration)
-    f = open(
-        VAR_ROOT + "/lib/centreon-engine/config{}/rw/centengine.cmd".format(poller), "w")
-    f.write(cmd1)
-    f.write(cmd2)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
+        f.write(cmd1)
+        f.write(cmd2)
 
 
 def delete_host_downtimes(poller: int, hst: str):
     now = int(time.time())
-    cmd = "[{}] DEL_HOST_DOWNTIME_FULL;{};;;;;;;;\n".format(now, hst)
-    f = open(
-        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    cmd = f"[{now}] DEL_HOST_DOWNTIME_FULL;{hst};;;;;;;;\n"
+    with open(
+        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def delete_service_downtime_full(poller: int, hst: str, svc: str):
     now = int(time.time())
     cmd = f"[{now}] DEL_SVC_DOWNTIME_FULL;{hst};{svc};;;;;;;\n"
-    f = open(
-        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(
+        f"{VAR_ROOT}/lib/centreon-engine/config{poller}/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
-def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
+def schedule_forced_svc_check(host: str, svc: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
-    f = open(pipe, "w")
-    cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}\n".format(
-        host, svc, now)
-    f.write(cmd)
-    f.close()
+    with open(pipe, "w") as f:
+        cmd = "[{2}] SCHEDULE_FORCED_SVC_CHECK;{0};{1};{2}\n".format(
+            host, svc, now)
+        f.write(cmd)
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
+def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
-    f = open(pipe, "w")
-    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}\n".format(host, now)
-    f.write(cmd)
-    f.close()
+    with open(pipe, "w") as f:
+        cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}\n".format(host, now)
+        f.write(cmd)
     time.sleep(0.05)
 
 
@@ -1663,8 +1530,8 @@ def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
 
-def create_template_file(poller: int, typ: str, what: str, ids: list):
-    engine.create_template_file(poller, typ, what, ids)
+# def create_template_file(poller: int, typ: str, what: str, ids: list):
+#     engine.create_template_file(poller, typ, what, ids)
 
 
 def create_tags_file(poller: int, nb: int, offset: int = 1):
@@ -1672,132 +1539,109 @@ def create_tags_file(poller: int, nb: int, offset: int = 1):
 
 
 def config_engine_add_cfg_file(poller: int, cfg: str):
-    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/centengine.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines.insert(
-                i, "cfg_file={}/config{}/{}\n".format(CONF_DIR, poller, cfg))
+            lines.insert(i, f"cfg_file={CONF_DIR}/config{poller}/{cfg}\n")
             break
-    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w+")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/centengine.cfg", "w+") as ff:
+        ff.writelines(lines)
 
 
 def add_severity_to_services(poller: int, severity_id: int, svc_lst):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    severity_id                     {}\n".format(severity_id))
+        if m is not None and m[1] in svc_lst:
+            lines.insert(i + 1, f"    severity_id                     {severity_id}\n")
 
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def set_services_passive(poller: int, srv_regex):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(f"^\s*service_description\s*({srv_regex})$")
     rce = re.compile(r"^\s*([a-z]*)_checks_enabled\s*([01])$")
     rc = re.compile(r"^\s*}\s*$")
     desc = ""
     for i in range(len(lines)):
-        m = r.match(lines[i])
-        if m:
-            desc = m.group(1)
+        if m := r.match(lines[i]):
+            desc = m[1]
         elif len(desc) > 0:
-            m = rce.match(lines[i])
-            if m:
-                if m.group(1) == "active":
+            if m := rce.match(lines[i]):
+                if m[1] == "active":
                     lines[i] = "    active_checks_enabled           0\n"
-                elif m.group(1) == "passive":
+                elif m[1] == "passive":
                     lines[i] = "    passive_checks_enabled          1\n"
             else:
                 m = rc.match(lines[i])
                 if m:
                     desc = ""
 
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def add_severity_to_hosts(poller: int, severity_id: int, svc_lst):
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    severity_id                     {}\n".format(severity_id))
+        if m is not None and m[1] in svc_lst:
+            lines.insert(i + 1, f"    severity_id                     {severity_id}\n")
 
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def add_template_to_services(poller: int, tmpl: str, svc_lst):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    use                     {}\n".format(tmpl))
+        if m is not None and m[1] in svc_lst:
+            lines.insert(i + 1, f"    use                     {tmpl}\n")
 
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def add_tags_to_services(poller: int, type: str, tag_id: str, svc_lst):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    {}                     {}\n".format(type, tag_id))
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+        if m is not None and m[1] in svc_lst:
+            lines.insert(i + 1, f"    {type}                     {tag_id}\n")
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def remove_severities_from_services(poller: int):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [l for l in lines if not r.match(l)]
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(out)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+        ff.writelines(out)
 
 
 def remove_severities_from_hosts(poller: int):
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*severity_id\s*\d+$")
     out = [l for l in lines if not r.match(l)]
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(out)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(out)
 
 ##
 # @brief Function that search a check, retrieve command index and return check result
@@ -1816,7 +1660,7 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
         with open(debug_file_path, 'r') as f:
             lines = f.readlines()
             for first_ind in range(len(lines)):
-                find_index = lines[first_ind].find(str_to_search + ' ')
+                find_index = lines[first_ind].find(f'{str_to_search} ')
                 if (find_index > 0):
                     cmd_executed = True
                     for second_ind in range(first_ind, len(lines)):
@@ -1824,14 +1668,14 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
                         m = re.search(
                             r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
                         if m is not None:
-                            cmd_id = m.group(1)
+                            cmd_id = m[1]
                             r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
                                 cmd_id + ",\s+(\S[\s\S]+)$"
                             for third_ind in range(second_ind, len(lines)):
                                 m = re.match(
                                     r_query_execute, lines[third_ind])
                                 if m is not None:
-                                    return m.group(1)
+                                    return m[1]
         time.sleep(1)
 
     if not cmd_executed:
@@ -1841,101 +1685,86 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
 
 
 def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m is not None and m.group(1) in hst_lst:
-            lines.insert(
-                i + 1, "    {}                     {}\n".format(type, tag_id))
+        if m is not None and m[1] in hst_lst:
+            lines.insert(i + 1, f"    {type}                     {tag_id}\n")
 
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def remove_tags_from_services(poller: int, type: str):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
     lines = [l for l in lines if not r.match(l)]
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def remove_tags_from_hosts(poller: int, type: str):
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*" + type + r"\s*[0-9,]+$")
     lines = [l for l in lines if not r.match(l)]
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
-def add_template_to_services(poller: int, tmpl: str, svc_lst):
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
-    r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
-    for i in range(len(lines)):
-        m = r.match(lines[i])
-        if m is not None and m.group(1) in svc_lst:
-            lines.insert(
-                i + 1, "    use                     {}\n".format(tmpl))
+# def add_template_to_services(poller: int, tmpl: str, svc_lst):
+#     with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
+#         lines = ff.readlines()
+#     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
+#     for i in range(len(lines)):
+#         m = r.match(lines[i])
+#         if m is not None and m[1] in svc_lst:
+#             lines.insert(i + 1, f"    use                     {tmpl}\n")
 
-    ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+#     with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
+#         ff.writelines(lines)
 
 
 def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(r"^\s*_HOST_ID\s*(\d+)$")
     for i in range(len(lines)):
         m = r.match(lines[i])
-        if m is not None and m.group(1) in hst_lst:
-            lines.insert(
-                i + 1, "    use                     {}\n".format(tmpl))
+        if m is not None and m[1] in hst_lst:
+            lines.insert(i + 1, f"    use                     {tmpl}\n")
 
-    ff = open("{}/config{}/hosts.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(lines)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
 
 
 def config_engine_remove_cfg_file(poller: int, fic: str):
-    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/centengine.cfg", "r") as ff:
+        lines = ff.readlines()
     r = re.compile(
-        r"^\s*cfg_file=" + ETC_ROOT + "/centreon-engine/config{}/{}".format(poller, fic))
+        r"^\s*cfg_file=" + ETC_ROOT + f"/centreon-engine/config{poller}/{fic}"
+    )
     linesearch = [l for l in lines if not r.match(l)]
-    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "w")
-    ff.writelines(linesearch)
-    ff.close()
+    with open(f"{CONF_DIR}/config{poller}/centengine.cfg", "w") as ff:
+        ff.writelines(linesearch)
 
 
 def external_command(func):
     def wrapper(*args):
         now = int(time.time())
         cmd = f"[{now}] {func(*args)}"
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
     return wrapper
 
 
 def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
     now = int(time.time())
-    pd = [output + " | "]
+    pd = [f"{output} | "]
     for m in range(metrics):
         v = math.sin((now + m) / 1000) * 5
         pd.append(f"metric{m}={v}")
@@ -2009,59 +1838,58 @@ def change_host_check_command(hst: str, Check_Command: str):
 
 @external_command
 def change_custom_host_var_command(hst: str, var_name: str, var_value):
-    return "CHANGE_CUSTOM_HOST_VAR;{};{};{}\n".format(hst, var_name, var_value)
+    return f"CHANGE_CUSTOM_HOST_VAR;{hst};{var_name};{var_value}\n"
 
 
 @external_command
 def change_custom_svc_var_command(hst: str, svc: str, var_name: str, var_value):
-    return "CHANGE_CUSTOM_SVC_VAR;{};{};{};{}\n".format(hst, svc, var_name, var_value)
+    return f"CHANGE_CUSTOM_SVC_VAR;{hst};{svc};{var_name};{var_value}\n"
 
 
 @external_command
 def change_global_host_event_handler(var_value: str):
-    return "CHANGE_GLOBAL_HOST_EVENT_HANDLER;{}\n".format(var_value)
+    return f"CHANGE_GLOBAL_HOST_EVENT_HANDLER;{var_value}\n"
 
 
 @external_command
 def change_global_svc_event_handler(var_value: str):
-    return "CHANGE_GLOBAL_SVC_EVENT_HANDLER;{}\n".format(var_value)
+    return f"CHANGE_GLOBAL_SVC_EVENT_HANDLER;{var_value}\n"
 
 
 @external_command
 def set_svc_notification_number(host_name: string, svc_description: string, value):
-    return "SET_SVC_NOTIFICATION_NUMBER;{};{};{}\n".format(host_name, svc_description, value)
+    return f"SET_SVC_NOTIFICATION_NUMBER;{host_name};{svc_description};{value}\n"
 
 
 def create_anomaly_threshold_file(path: string, host_id: int, service_id: int, metric_name: string, values: array):
-    f = open(path, "w")
-    f.write("""[
+    with open(path, "w") as f:
+        f.write("""[
     {{
         "host_id": "{0}",
         "service_id": "{1}",
         "metric_name": "{2}",
         "predict": [
             """.format(host_id, service_id, metric_name))
-    sep = ""
-    for ts_lower_upper in values:
-        f.write(sep)
-        sep = ","
-        f.write("""
+        sep = ""
+        for ts_lower_upper in values:
+            f.write(sep)
+            sep = ","
+            f.write("""
             {{
                 "timestamp": {0},
                 "lower": {1},
                 "upper": {2}
             }}""".format(ts_lower_upper[0], ts_lower_upper[1], ts_lower_upper[2]))
-    f.write("""
+        f.write("""
         ]
     }
 ]
 """)
-    f.close()
 
 
 def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int, metric_name: string, sensitivity: float, values: array):
-    f = open(path, "w")
-    f.write("""[
+    with open(path, "w") as f:
+        f.write("""[
     {{
         "host_id": "{0}",
         "service_id": "{1}",
@@ -2069,109 +1897,97 @@ def create_anomaly_threshold_file_V2(path: string, host_id: int, service_id: int
         "sensitivity": {3},
         "predict": [
             """.format(host_id, service_id, metric_name, sensitivity))
-    sep = ""
-    for ts_fit_lower_upper in values:
-        f.write(sep)
-        sep = ","
-        f.write("""
+        sep = ""
+        for ts_fit_lower_upper in values:
+            f.write(sep)
+            sep = ","
+            f.write("""
             {{
                 "timestamp": {0},
                 "fit": {1},
                 "lower_margin": {2},
                 "upper_margin": {3}
             }}""".format(ts_fit_lower_upper[0], ts_fit_lower_upper[1], ts_fit_lower_upper[2], ts_fit_lower_upper[3]))
-    f.write("""
+        f.write("""
         ]
     }
 ]
 """)
-    f.close()
 
 
 def grep_retention(poller: int, pattern: str):
-    return Common.grep("{}/log/centreon-engine/config{}/retention.dat".format(VAR_ROOT, poller), pattern)
+    return Common.grep(
+        f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", pattern
+    )
 
 
 def modify_retention_dat(poller, host, service, key, value):
-    if host != "" and host != "":
-        # We want a service
-        ff = open(
-            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+    if host == "":
+        return
+    with open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r") as ff:
         lines = ff.readlines()
-        ff.close()
+    r_hst = re.compile(r"^\s*host_name=(.*)$")
+    r_svc = re.compile(r"^\s*service_description=(.*)$")
+    in_block = False
+    hst = ""
+    svc = ""
+    for i in range(len(lines)):
+        l = lines[i]
+        if in_block:
+            if l == "}\n":
+                in_block = False
+                hst = ""
+                svc = ""
+                continue
+            if m := r_hst.match(l):
+                hst = m[1]
+                continue
+            if m := r_svc.match(l):
+                svc = m[1]
+                continue
+            if l.startswith(f"{key}=") and host == hst and svc == service:
+                logger.console(f"key '{key}' found !")
+                lines[i] = f"{key}={value}\n"
+                hst = ""
+                svc = ""
 
-        r_hst = re.compile(r"^\s*host_name=(.*)$")
-        r_svc = re.compile(r"^\s*service_description=(.*)$")
-        in_block = False
-        hst = ""
-        svc = ""
-        for i in range(len(lines)):
-            l = lines[i]
-            if not in_block:
-                if l == "service {\n":
-                    in_block = True
-                    continue
-            else:
-                if l == "}\n":
-                    in_block = False
-                    hst = ""
-                    svc = ""
-                    continue
-                m = r_hst.match(l)
-                if m:
-                    hst = m.group(1)
-                    continue
-                m = r_svc.match(l)
-                if m:
-                    svc = m.group(1)
-                    continue
-                if l.startswith(f"{key}=") and host == hst and svc == service:
-                    logger.console(f"key '{key}' found !")
-                    lines[i] = f"{key}={value}\n"
-                    hst = ""
-                    svc = ""
-
-        ff = open(
-            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        elif l == "service {\n":
+            in_block = True
+    with open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w") as ff:
         ff.writelines(lines)
-        ff.close()
 
 
 def modify_retention_dat_host(poller, host, key, value):
-    if host != "" and host != "":
-        # We want a host
-        ff = open(
-            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r")
+    if host == "":
+        return
+    with open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "r") as ff:
         lines = ff.readlines()
-        ff.close()
+    r_hst = re.compile(r"^\s*host_name=(.*)$")
+    in_block = False
+    hst = ""
+    for i in range(len(lines)):
+        l = lines[i]
+        if in_block:
+            if l == "}\n":
+                in_block = False
+                hst = ""
+                continue
+            if m := r_hst.match(l):
+                hst = m[1]
+                continue
+            if l.startswith(f"{key}=") and host == hst:
+                logger.console(f"key '{key}' found !")
+                lines[i] = f"{key}={value}\n"
+                hst = ""
 
-        r_hst = re.compile(r"^\s*host_name=(.*)$")
-        in_block = False
-        hst = ""
-        for i in range(len(lines)):
-            l = lines[i]
-            if not in_block:
-                if l == "host {\n":
-                    in_block = True
-                    continue
-            else:
-                if l == "}\n":
-                    in_block = False
-                    hst = ""
-                    continue
-                m = r_hst.match(l)
-                if m:
-                    hst = m.group(1)
-                    continue
-                if l.startswith(f"{key}=") and host == hst:
-                    logger.console(f"key '{key}' found !")
-                    lines[i] = f"{key}={value}\n"
-                    hst = ""
-
-        ff = open(
-            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
+        elif l == "host {\n":
+            in_block = True
+    with open(
+            f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w") as ff:
         ff.writelines(lines)
-        ff.close()
 
 
 ##
@@ -2186,13 +2002,12 @@ def get_engine_process_stat(port, timeout=10):
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
-        with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             # same for engine and broker
             stub = engine_pb2_grpc.EngineStub(channel)
             try:
-                res = stub.GetProcessStats(empty_pb2.Empty())
-                return res
-            except:
+                return stub.GetProcessStats(empty_pb2.Empty())
+            except Exception:
                 logger.console("gRPC server not ready")
     logger.console("unable to get process stats")
     return None
@@ -2207,7 +2022,7 @@ def get_engine_process_stat(port, timeout=10):
 def send_bench(id: int, port: int):
     ts = Timestamp()
     ts.GetCurrentTime()
-    with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
         
