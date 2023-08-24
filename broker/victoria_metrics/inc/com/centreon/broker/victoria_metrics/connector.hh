@@ -35,7 +35,7 @@ class connector : public io::endpoint {
             const std::string& account_id);
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 
   std::shared_ptr<http_tsdb::http_tsdb_config> get_conf() const {
     return _conf;

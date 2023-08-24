@@ -65,6 +65,7 @@ class TestFeeder : public ::testing::Test {
   }
 
   void TearDown() override {
+    _feeder->stop();
     _feeder.reset();
     multiplexing::engine::unload();
     config::applier::state::unload();
@@ -77,7 +78,7 @@ class TestFeeder : public ::testing::Test {
 };
 
 TEST_F(TestFeeder, ImmediateStartExit) {
-  ASSERT_NO_THROW(_feeder.reset());
+  ASSERT_NO_THROW(_feeder->stop());
 }
 
 TEST_F(TestFeeder, isFinished) {

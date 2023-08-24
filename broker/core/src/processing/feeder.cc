@@ -83,6 +83,7 @@ feeder::feeder(const std::string& name,
 
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
+  set_state("connected");
 }
 
 /**
@@ -231,6 +232,8 @@ void feeder::stop() {
     return;
   }
 
+  set_state("disconnected");
+
   std::unique_lock<std::mutex> l(_protect);
   // muxer should not receive events
   multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
@@ -275,16 +278,19 @@ void feeder::_start_stat_timer() {
   }
   _stat_timer.expires_from_now(std::chrono::seconds(5));
   _stat_timer.async_wait(
-      [me = shared_from_this()](const asio::error_code& err) {
+      [me = shared_from_this()](const boost::system::error_code& err) {
         me->_stat_timer_handler(err);
       });
 }
 
-void feeder::_stat_timer_handler(const asio::error_code& err) {
+void feeder::_stat_timer_handler(const boost::system::error_code& err) {
   if (err) {
     return;
   }
   std::unique_lock<std::mutex> l(_protect);
+  if (!_muxer) {
+    return;
+  }
   set_queued_events(_muxer->get_event_queue_size());
   _start_stat_timer<false>();
 }
@@ -294,12 +300,13 @@ void feeder::_start_read_from_stream_timer() {
   _read_from_stream_timer.expires_from_now(
       std::chrono::microseconds(idle_microsec_wait_idle_thread_delay));
   _read_from_stream_timer.async_wait(
-      [me = shared_from_this()](const asio::error_code& err) {
+      [me = shared_from_this()](const boost::system::error_code& err) {
         me->_read_from_stream_timer_handler(err);
       });
 }
 
-void feeder::_read_from_stream_timer_handler(const asio::error_code& err) {
+void feeder::_read_from_stream_timer_handler(
+    const boost::system::error_code& err) {
   if (err) {
     return;
   }
@@ -319,7 +326,10 @@ void feeder::_read_from_stream_timer_handler(const asio::error_code& err) {
   std::list<std::shared_ptr<io::data>> events_to_publish;
   std::shared_ptr<io::data> event;
   try {
-    while (client->read(event, 0)) {
+    std::chrono::system_clock::time_point timeout_read =
+        std::chrono::system_clock::now() + std::chrono::milliseconds(100);
+    while (client->read(event, 0) &&
+           std::chrono::system_clock::now() < timeout_read) {
       if (event) {  // event is null if not decoded by bbdo stream
         if (log_v2::processing()->level() == spdlog::level::trace)
           SPDLOG_LOGGER_TRACE(

@@ -568,7 +568,14 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
 void muxer::write(std::list<std::shared_ptr<io::data>>& to_publish) {
   for (auto list_iter = to_publish.begin();
        !to_publish.empty() && list_iter != to_publish.end();) {
-    if (_read_filter.allows((*list_iter)->type())) {
+    const std::shared_ptr<io::data>& d = *list_iter;
+    if (_read_filter.allows(d->type())) {
+      if (d->type() == bbdo::pb_bench::static_type()) {
+        add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
+                        "write");
+        SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench write {}", _name,
+                           io::data::dump_json{*d});
+      }
       ++list_iter;
     } else {
       list_iter = to_publish.erase(list_iter);

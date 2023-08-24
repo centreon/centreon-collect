@@ -34,15 +34,12 @@ connector::connector(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
       _conf(conf),
       _account_id(account_id) {}
 
-std::unique_ptr<io::stream> connector::open() {
-  std::shared_ptr<stream> s;
+std::shared_ptr<io::stream> connector::open() {
   if (!_conf->is_crypted()) {
-    s = stream::load(pool::io_context_ptr(), _conf, _account_id,
-                     http_client::http_connection::load);
+    return stream::load(pool::io_context_ptr(), _conf, _account_id,
+                        http_client::http_connection::load);
   } else {
-    s = stream::load(pool::io_context_ptr(), _conf, _account_id,
-                     http_client::https_connection::load);
+    return stream::load(pool::io_context_ptr(), _conf, _account_id,
+                        http_client::https_connection::load);
   }
-
-  return std::make_unique<stream_unique_wrapper>(s);
 }
