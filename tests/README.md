@@ -2,7 +2,8 @@
 
 This sub-project contains functional tests for Centreon Broker, Engine and Connectors.
 It is based on the [Robot Framework](https://robotframework.org/) with Python functions
-we can find in the resources directory. The Python code is formatted using autopep8.
+we can find in the resources directory. The Python code is formatted using autopep8 and
+robot files are formatted using `robottidy --overwrite tests`.
 
 ## Getting Started
 
@@ -15,7 +16,7 @@ From a Centreon host, you need to install Robot Framework
 On CentOS 7, the following commands should work to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql
 
 yum install "Development Tools" python3-devel -y
 
@@ -33,7 +34,6 @@ pip3 install -U robotframework robotframework-databaselibrary pymysql
 yum install python3-devel -y
 
 pip3 install grpcio grpcio_tools
-pip3 install robotframework-httpctrl
 
 ./init-proto.sh
 ./init-sql.sh
@@ -50,7 +50,6 @@ And it is also possible to execute a specific test, for example:
 ```
 robot broker/sql.robot
 ```
-
 In order to execute bench tests (broker-engine/bench.robot), you need also to install py-cpuinfo, cython, unqlite and boto3
 
 pip3 install py-cpuinfo cython unqlite gitpython boto3
@@ -61,7 +60,12 @@ Here is the list of the currently implemented tests:
 
 ### Bam
 - [x] **BABEST_SERVICE_CRITICAL**: With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
-- [x] **BAPBSTATUS**: With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. 
+- [x] **BABOO**: With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
+- [x] **BABOOAND**: With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if both of its two services are ok is created. When one condition is false, the and operator returns false as a result even if the other child is unknown.
+- [x] **BABOOCOMPL**: With bbdo version 3.0.1, a BA of type impact with a complex boolean rule is configured. We check its correct behaviour following service updates.
+- [x] **BABOOOR**: With bbdo version 3.0.1, a BA of type 'worst' with 2 child services and another BA of type impact with a boolean rule returning if one of its two services are critical are created. These two BA are built from the same services and should have a similar behavior
+- [x] **BABOOORREL**: With bbdo version 3.0.1, a BA of type impact with a boolean rule returning if one of its two services is ok is created. One of the two underlying services must change of state to change the ba state. For this purpose, we change the service used and reload cbd. So the rule is something like "False OR True" and then it's changed into "False OR False". And to pass from True to False, we change the service.
+- [x] **BAPBSTATUS**: With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service.
 - [x] **BA_BOOL_KPI**: With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
 - [x] **BA_IMPACT_2KPI_SERVICES**: With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
 - [x] **BA_RATIO_NUMBER_BA_4_SERVICE**: With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
@@ -195,6 +199,7 @@ Here is the list of the currently implemented tests:
 - [x] **ANO_OUT_UPPER_THAN_LIMIT**: an anomaly detection with a perfdata upper than upper limit make a critical state
 - [x] **ANO_TOO_OLD_FILE**: an anomaly detection with an oldest threshold file must be in unknown state
 - [x] **AOUTLU1**: an anomaly detection with a perfdata upper than upper limit make a critical state with bbdo 3
+- [x] **BAM_STREAM_FILTER**: With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. we watch its events
 - [x] **BEACK1**: Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted from engine but still open on the database.
 - [x] **BEACK2**: Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
 - [x] **BEACK3**: Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
@@ -274,10 +279,13 @@ Here is the list of the currently implemented tests:
 - [x] **BEEXTCMD_REVERSE_GRPC2**: external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 and grpc reversed
 - [x] **BEEXTCMD_REVERSE_GRPC3**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 and grpc reversed
 - [x] **BEEXTCMD_REVERSE_GRPC4**: external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 and grpc reversed
-- [x] **BEHOSTCHECK**: external command CHECK_SERVICE_RESULT 
+- [x] **BEHOSTCHECK**: external command CHECK_SERVICE_RESULT
 - [x] **BEHS1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
-- [x] **BEINSTANCE**: Instance to bdd 
-- [x] **BEINSTANCESTATUS**: Instance status to bdd 
+- [x] **BEINSTANCE**: Instance to bdd
+- [x] **BEINSTANCESTATUS**: Instance status to bdd
+- [x] **BENCH_${nb_check}STATUS**: external command CHECK_SERVICE_RESULT 1000 times
+- [x] **BENCH_10000STATUS**: external command CHECK_SERVICE_RESULT 10000 times
+- [x] **BENCH_1000STATUS_100ENGINE**: external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
 - [x] **BEPBBEE1**: central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
 - [x] **BEPBBEE2**: bbdo_version 3 not compatible with sql/storage
 - [x] **BEPBBEE3**: bbdo_version 3 generates new bbdo protobuf service status messages.
@@ -296,7 +304,7 @@ Here is the list of the currently implemented tests:
 - [x] **BERDUCU1**: Starting/stopping Broker does not create duplicated events in usual cases with unified_sql
 - [x] **BERDUCU2**: Starting/stopping Engine does not create duplicated events in usual cases with unified_sql
 - [x] **BERES1**: store_in_resources is enabled and store_in_hosts_services is not. Only writes into resources should be done (except hosts/services events that continue to be written in hosts/services tables)
-- [x] **BESERVCHECK**: external command CHECK_SERVICE_RESULT 
+- [x] **BESERVCHECK**: external command CHECK_SERVICE_RESULT
 - [x] **BESS1**: Start-Stop Broker/Engine - Broker started first - Broker stopped first
 - [x] **BESS2**: Start-Stop Broker/Engine - Broker started first - Engine stopped first
 - [x] **BESS3**: Start-Stop Broker/Engine - Engine started first - Engine stopped first
@@ -330,12 +338,13 @@ Here is the list of the currently implemented tests:
 - [x] **BEUTAG7**: some services are configured and deleted with tags on two pollers.
 - [x] **BEUTAG8**: Services have tags provided by templates.
 - [x] **BEUTAG9**: hosts have tags provided by templates.
+- [x] **BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE**: default notification_interval must be set to NULL in services, hosts and resources tables.
 - [x] **BE_NOTIF_OVERFLOW**: bbdo 2.0 notification number =40000. make an overflow => notification_number null in db
-- [x] **BE_TIME_NULL_SERVICE_RESOURCE**: With BBDO 3, time must be set to NULL on 0 in services, hosts and resources tables.
+- [x] **BE_TIME_NULL_SERVICE_RESOURCE**: With BBDO 3, notification_interval time must be set to NULL on 0 in services, hosts and resources tables.
 - [x] **BRCS1**: Broker reverse connection stopped
 - [x] **BRCTS1**: Broker reverse connection too slow
 - [x] **BRCTSMN**: Broker connected to map with neb filter
-- [x] **BRCTSMNS**: Broker connected to map with neb and storages filters
+- [x] **BRCTSMNS**: Broker connected to map with neb and storage filters
 - [x] **BRGC1**: Broker good reverse connection
 - [x] **BRRDCDDID1**: RRD metrics deletion from index ids with rrdcached.
 - [x] **BRRDCDDIDDB1**: RRD metrics deletion from index ids with a query in centreon_storage with rrdcached.
@@ -361,7 +370,10 @@ Here is the list of the currently implemented tests:
 - [x] **BRRDRBUDB1**: RRD metric rebuild with a query in centreon_storage and unified sql
 - [x] **BRRDRM1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
 - [x] **BRRDRMU1**: RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with unified_sql output.
+- [x] **BRRDUPLICATE**: RRD metric rebuild with a query in centreon_storage and unified sql with duplicate rows in database
 - [x] **BRRDWM1**: We are working with BBDO3. This test checks protobuf metrics and status are sent to cbd RRD.
+- [x] **CBD_RELOAD_AND_FILTERS**: We start engine/broker with a classical configuration. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
+- [x] **CBD_RELOAD_AND_FILTERS_WITH_OPR**: We start engine/broker with an almost classical configuration, just the connection between cbd central and cbd rrd is reversed with one peer retention. All is up and running. Some filters are added to the rrd output and cbd is reloaded. All is still up and running but some events are rejected. Then all is newly set as filter and all events are sent to rrd broker.
 - [x] **EBBPS1**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
 - [x] **EBBPS2**: 1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
 - [x] **EBDP1**: Four new pollers are started and then we remove Poller3.
@@ -383,10 +395,12 @@ Here is the list of the currently implemented tests:
 - [x] **EBNSGU1**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSGU2**: New service group with several pollers and connections to DB with broker configured with unified_sql
 - [x] **EBNSVC1**: New services with several pollers
-- [x] **EBSAU2**: New services with action_url with more than 2000 characters
-- [x] **EBSN3**: New services with notes with more than 500 characters
-- [x] **EBSNU1**: New services with notes_url with more than 2000 characters
+- [x] **EBPS2**: 1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
+- [x] **EBSAU2**: New hosts with action_url with more than 2000 characters
+- [x] **EBSN3**: New hosts with notes with more than 500 characters
+- [x] **EBSNU1**: New hosts with notes_url with more than 2000 characters
 - [x] **ENRSCHE1**: Verify that next check of a rescheduled host is made at last_check + interval_check
+- [x] **FILTER_ON_LUA_EVENT**: stream connector with a bad configured filter generate a log error message
 - [x] **LOGV2DB1**: log-v2 disabled old log enabled check broker sink
 - [x] **LOGV2DB2**: log-v2 disabled old log disabled check broker sink
 - [x] **LOGV2DF1**: log-v2 disabled old log enabled check logfile sink
@@ -395,9 +409,18 @@ Here is the list of the currently implemented tests:
 - [x] **LOGV2EB2**: log-v2 enabled old log enabled check broker sink
 - [x] **LOGV2EBU1**: Checking broker sink when log-v2 is enabled and legacy logs are disabled with bbdo3.
 - [x] **LOGV2EBU2**: Check Broker sink with log-v2 enabled and legacy log enabled with BBDO3.
-- [x] **LOGV2EF1**: log-v2 enabled  old log disabled check logfile sink
+- [x] **LOGV2EF1**: log-v2 enabled    old log disabled check logfile sink
 - [x] **LOGV2EF2**: log-v2 enabled old log enabled check logfile sink
 - [x] **LOGV2FE2**: log-v2 enabled old log enabled check logfile sink
+- [x] **RLCode**: Test if reloading LUA code in a stream connector applies the changes
+- [x] **SDER**: The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then engine and broker are started and broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that broker doesn't crash anymore.
+- [x] **SEVERAL_FILTERS_ON_LUA_EVENT**: Two stream connectors with different filters are configured.
+- [x] **STORAGE_ON_LUA**: The category 'storage' is applied on the stream connector. Only events of this category should be sent to this stream.
+- [x] **STUPID_FILTER**: Unified SQL is configured with only the bbdo category as filter. An error is raised by broker and broker should run correctly.
+- [x] **UNIFIED_SQL_FILTER**: With bbdo version 3.0.1, we watch events written or rejected in unified_sql
+- [x] **VICT_ONE_CHECK_METRIC**: victoria metrics metric output
+- [x] **VICT_ONE_CHECK_METRIC_AFTER_FAILURE**: victoria metrics metric output after victoria shutdown
+- [x] **VICT_ONE_CHECK_STATUS**: victoria metrics status output
 
 ### Ccc
 - [x] **BECCC1**: ccc without port fails with an error message
@@ -424,6 +447,8 @@ Here is the list of the currently implemented tests:
 - [x] **EFHC2**: Engine is configured with hosts and we force checks on one 5 times on bbdo2
 - [x] **EFHCU1**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
 - [x] **EFHCU2**: Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
+- [x] **EMACROS**: macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
+- [x] **EMACROS_NOTIF**: macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
 - [x] **EPC1**: Check with perl connector
 - [x] **ESS1**: Start-Stop (0s between start/stop) 5 times one instance of engine and no coredump
 - [x] **ESS2**: Start-Stop (300ms between start/stop) 5 times one instance of engine and no coredump

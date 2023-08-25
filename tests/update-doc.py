@@ -62,7 +62,7 @@ From a Centreon host, you need to install Robot Framework
 On CentOS 7, the following commands should work to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql
 
 yum install "Development Tools" python3-devel -y
 
