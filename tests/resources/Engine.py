@@ -1791,18 +1791,20 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+        port = 50001 + int(config[6:])
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             for i in range(nb_check):
+                indexed_output = f"{output}_{i}"
                 stub.ProcessServiceCheckResult(engine_pb2.Check(
-                    host_name=hst, svc_desc=svc, output=output, code=state))
+                    host_name=hst, svc_desc=svc, output=indexed_output, code=state))
 
     else:
         now = int(time.time())
-        cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
         with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
-            logger.console(cmd)
             for i in range(nb_check):
+                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
+                logger.console(cmd)
                 f.write(cmd)
 
 

@@ -79,11 +79,9 @@ def get_last_bench_result(log: str, id: int, name_to_find: str):
                 last_bench_str = extract.group(1)
 
         if len(last_bench_str) == 0:
-            logger.console("The file '{}' does not contain bench".format(log))
             return None
         return json.loads(last_bench_str)
     except IOError:
-        logger.console("The file '{}' does not exist".format(log))
         return None
 
 
@@ -108,31 +106,35 @@ def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, tim
 def calc_bench_delay(bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str):
     """! calc a duration between two time points of a bench event json object
     @param bench_event_result bench result json object
-    @param bench_muxer_begin name of the muxer owned to the first time point
+    @param bench_muxer_begin name of the muxer owned to the first time point (accepts regexp)
     @param bench_muxer_begin_function name of the muxer function owned to the first time point
     @param bench_muxer_end name of the muxer owned to the last time point
     @param bench_muxer_end_function name of the muxer function owned to the last time point
     """
+
+    begin_re = re.compile(bench_muxer_begin)
     for point in bench_event_result['points']:
-        if point['name'] == bench_muxer_begin and point['function'] == bench_muxer_begin_function:
+        if begin_re.match(point['name']) and point['function'] == bench_muxer_begin_function:
             time_begin = date_parser.parse(point['time'])
         if point['name'] == bench_muxer_end and point['function'] == bench_muxer_end_function:
             time_end = date_parser.parse(point['time'])
     return time_end - time_begin
 
 
-def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: str, resources_consumed: delta_process_stat, bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str):
+def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: str, resources_consumed: delta_process_stat, end_process_stat, bench_event_result, bench_muxer_begin: str, bench_muxer_begin_function: str, bench_muxer_end: str, bench_muxer_end_function: str, other_bench_data: dict = None):
     """! store a bench result and process stat difference in an unqlite file
     it also stores git information
     @param file_path  path of the unqlite file
     @param test_name name of the state
     @param broker_or_engine a string equal to engine or broker to identify stats owning
     @param resources_consumed a delta_process_stat object
+    @param end_process_stat stat of the process at the end of the test
     @param bench_event_result a json bench result
     @param bench_muxer_begin name of the muxer owned to the first time point
     @param bench_muxer_begin_function name of the muxer function owned to the first time point
     @param bench_muxer_end name of the muxer owned to the last time point
     @param bench_muxer_end_function name of the muxer function owned to the last time point
+    @param other_bench_data  arbitrary datas added to database
     """
 
     row = vars(resources_consumed).copy()
@@ -144,8 +146,13 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     row['cpu'] = info["brand_raw"]
     row['nb_core'] = info["count"]
     row['memory_size'] = psutil.virtual_memory().total
+    row['memory_used'] = end_process_stat.vm_size
     row['event_propagation_delay'] = calc_bench_delay(
         bench_event_result, bench_muxer_begin, bench_muxer_begin_function, bench_muxer_end, bench_muxer_end_function).total_seconds()
+
+    if other_bench_data is not None:
+        for key, value in other_bench_data.items():
+            row[key] = value
 
     # rev_name is like <commit sha> <branch>~*
     rev_name_dev_branch = re.compile(
