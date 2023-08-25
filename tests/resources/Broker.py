@@ -424,11 +424,7 @@ def config_broker(name, poller_inst: int = 1):
     makedirs(f"{VAR_ROOT}/log/centreon-broker/", mode=0o777, exist_ok=True)
     makedirs(f"{VAR_ROOT}/lib/centreon-broker/", mode=0o777, exist_ok=True)
 
-    if name == 'central':
-        broker_id = 1
-        broker_name = "central-broker-master"
-        filename = "central-broker.json"
-    elif name == 'central_map':
+    if name in ['central', 'central_map']:
         broker_id = 1
         broker_name = "central-broker-master"
         filename = "central-broker.json"
