@@ -236,6 +236,10 @@ class conflict_manager {
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
+  uint32_t _logger_sql_id;
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  uint32_t _logger_storage_id;
+  std::shared_ptr<spdlog::logger> _logger_storage;
 
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _comment_insupdate;

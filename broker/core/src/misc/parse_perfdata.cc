@@ -21,13 +21,15 @@
 #include <cmath>
 
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Extract a real value from a perfdata string.
@@ -125,7 +127,8 @@ static inline void extract_range(double* low,
  */
 std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
                                          uint32_t service_id,
-                                         const char* str) {
+                                         const char* str,
+                                         std::shared_ptr<spdlog::logger> logger) {
   std::list<perfdata> retval;
   auto id = [host_id, service_id] {
     if (host_id || service_id)
@@ -138,7 +141,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
   const char* buf = str + start;
 
   // Debug message.
-  log_v2::perfdata()->debug("storage: parsing service {} perfdata string '{}'",
+  logger->debug("storage: parsing service {} perfdata string '{}'",
                             id(), buf);
 
   char const* tmp = buf;
@@ -208,7 +211,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
           name, get_metrics_col_size(metrics_metric_name)));
       p.name(std::move(name));
     } else {
-      log_v2::perfdata()->error(
+      logger->error(
           "In service {}, metric name empty before '{}...'", id(),
           fmt::string_view(s, 10));
       error = true;
@@ -219,7 +222,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
       int i;
       for (i = 0; i < 10 && tmp[i]; i++)
         ;
-      log_v2::perfdata()->warn(
+      logger->warn(
           "invalid perfdata format in service {}: equal sign not present or "
           "misplaced '{}'",
           id(), fmt::string_view(s, (tmp - s) + i));
@@ -239,7 +242,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
       for (i = 0; i < 10 && tmp[i]; i++)
         ;
 
-      log_v2::perfdata()->warn(
+      logger->warn(
           "storage: invalid perfdata format in service {}: no numeric value "
           "after equal sign "
           "'{}'",
@@ -291,7 +294,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
     p.max(extract_double(const_cast<const char**>(&tmp)));
 
     // Log new perfdata.
-    log_v2::perfdata()->debug(
+    logger->debug(
         "storage: got new perfdata (name={}, value={}, unit={}, warning={}, "
         "critical={}, min={}, max={})",
         p.name(), p.value(), p.unit(), p.warning(), p.critical(), p.min(),

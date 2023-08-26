@@ -26,9 +26,11 @@
 #include "com/centreon/broker/misc/math.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 static constexpr double eps = 0.000001;
 
@@ -224,7 +226,7 @@ void stream::_update_stats() {
                     d = fmt::format("{}s", sec);
                   s->set_file_expected_terminated_in(d);
 
-                  log_v2::core()->info(
+                  log_v3::instance().get(0)->info(
                       "Retention file will be terminated at {:%Y-%m-%d "
                       "%H:%M:%S}",
                       fmt::localtime(terminated));

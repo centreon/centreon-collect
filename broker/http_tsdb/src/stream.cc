@@ -23,10 +23,12 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::http_tsdb;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /************************************************************************
  *      request
@@ -108,29 +110,27 @@ unsigned stream::stat_average::get_average() const {
  * conn_creator is used by this object to construct http_client::connection_base
  * objects conn_creator can construct an http_connection, https_connection or a
  * mock
- * @param name
- * @param io_context
- * @param logger
- * @param conf
- * @param cache
+ * @param name   Name of the stream also used for the logger.
+ * @param io_context ASIO context
+ * @param conf http_tsdb_config shared pointer.
  * @param conn_creator
  */
 stream::stream(const std::string& name,
                const std::shared_ptr<asio::io_context>& io_context,
-               const std::shared_ptr<spdlog::logger>& logger,
                const std::shared_ptr<http_tsdb_config>& conf,
                http_client::client::connection_creator conn_creator)
     : io::stream(name),
       _io_context(io_context),
-      _logger(logger),
       _conf(conf),
       _acknowledged(0),
       _success_request_stat{{0, 0}, {0, 0}},
       _failed_request_stat{{0, 0}, {0, 0}},
       _metric_stat{{0, 0}, {0, 0}},
-      _status_stat{{0, 0}, {0, 0}} {
+      _status_stat{{0, 0}, {0, 0}},
+_logger_id{log_v3::instance().create_logger_or_get_id(name)},
+_logger{log_v3::instance().get(_logger_id)} {
   _http_client =
-      http_client::client::load(io_context, logger, conf, conn_creator);
+      http_client::client::load(io_context, _logger, conf, conn_creator);
 }
 
 stream::~stream() {}
@@ -228,6 +228,8 @@ int stream::write(std::shared_ptr<io::data> const& data) {
     ++_acknowledged;
     return 0;
   }
+
+  _logger = log_v3::instance().get(_logger_id);
 
   request::pointer to_send;
   {

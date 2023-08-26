@@ -24,9 +24,11 @@
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -80,7 +82,7 @@ void persistent_cache::commit() {
     }
     // No error checking, this is a secondary issue.
     if (unlink(_old_file().c_str()))
-      log_v2::core()->error("removing persistent cache '{}' failed",
+      log_v3::instance().get(0)->error("removing persistent cache '{}' failed",
                             _old_file());
   }
 }

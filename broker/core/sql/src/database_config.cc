@@ -21,8 +21,10 @@
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/config.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 namespace com::centreon::broker {
 std::ostream& operator<<(std::ostream& s, const database_config cfg) {
@@ -130,7 +132,7 @@ database_config::database_config(config::endpoint const& cfg) {
   if (it != end) {
     uint32_t port;
     if (!absl::SimpleAtoi(it->second, &port)) {
-      log_v2::config()->error(
+      log_v3::instance().get(1)->error(
           "In the database configuration, 'db_port' should be a number, and "
           "not '{}'",
           it->second);
@@ -162,7 +164,7 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("queries_per_transaction");
   if (it != end) {
     if (!absl::SimpleAtoi(it->second, &_queries_per_transaction)) {
-      log_v2::core()->error(
+      log_v3::instance().get(0)->error(
           "queries_per_transaction is a number but must be given as a string. "
           "Unable to read the value '{}' - value 2000 taken by default.",
           it->second);
@@ -175,7 +177,7 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("check_replication");
   if (it != end) {
     if (!absl::SimpleAtob(it->second, &_check_replication)) {
-      log_v2::core()->error(
+      log_v3::instance().get(0)->error(
           "check_replication is a string containing a boolean. If not "
           "specified, it will be considered as \"true\".");
       _check_replication = true;
@@ -187,7 +189,7 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("connections_count");
   if (it != end) {
     if (!absl::SimpleAtoi(it->second, &_connections_count)) {
-      log_v2::core()->error(
+      log_v3::instance().get(0)->error(
           "connections_count is a string "
           "containing an integer. If not "
           "specified, it will be considered as "
@@ -199,7 +201,7 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("max_commit_delay");
   if (it != end) {
     if (!absl::SimpleAtoi(it->second, &_max_commit_delay)) {
-      log_v2::core()->error(
+      log_v3::instance().get(0)->error(
           "max_commit_delay is a string "
           "containing an integer. If not "
           "specified, it will be considered as "

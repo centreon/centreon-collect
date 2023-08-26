@@ -22,10 +22,12 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Fill a strings list with the files listed in the directory.
@@ -71,7 +73,7 @@ std::list<std::string> filesystem::dir_content(std::string const& path,
     }
     closedir(dir);
   } else
-    log_v2::core()->error("directory_dumper: unable to read directory '{}'",
+    log_v3::instance().get(0)->error("directory_dumper: unable to read directory '{}'",
                           path);
   return retval;
 }

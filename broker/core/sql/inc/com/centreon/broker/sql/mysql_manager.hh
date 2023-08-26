@@ -70,6 +70,9 @@ class mysql_manager {
   // Number of tasks per connection
   std::vector<int> _stats_counts;
 
+  /* Logger */
+  uint32_t _logger_id;
+
   mysql_manager();
 
  public:

@@ -24,7 +24,6 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
@@ -33,10 +32,13 @@
 #include "com/centreon/broker/processing/endpoint.hh"
 #include "com/centreon/broker/processing/failover.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config::applier;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Class instance.
 static config::applier::endpoint* gl_endpoint = nullptr;
@@ -99,13 +101,13 @@ endpoint::~endpoint() {
  */
 void endpoint::apply(std::list<config::endpoint> const& endpoints) {
   // Log messages.
-  log_v2::config()->info("endpoint applier: loading configuration");
+  log_v3::instance().get(1)->info("endpoint applier: loading configuration");
 
   {
     std::vector<std::string> eps;
     for (auto& ep : endpoints)
       eps.push_back(ep.name);
-    log_v2::config()->debug("endpoint applier: {} endpoints to apply: {}",
+    log_v3::instance().get(1)->debug("endpoint applier: {} endpoints to apply: {}",
                             endpoints.size(),
                             fmt::format("{}", fmt::join(eps, ", ")));
   }
@@ -127,7 +129,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       // resources that might be used by other endpoints.
       auto it = _endpoints.find(ep);
       if (it != _endpoints.end()) {
-        log_v2::config()->debug("endpoint applier: removing old endpoint {}",
+        log_v3::instance().get(1)->debug("endpoint applier: removing old endpoint {}",
                                 it->first.name);
         /* failover::exit() is called. */
         it->second->exit();
@@ -139,13 +141,13 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
 
   // Update existing endpoints.
   for (auto it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it) {
-    log_v2::config()->debug("endpoint applier: updating endpoint {}",
+    log_v3::instance().get(1)->debug("endpoint applier: updating endpoint {}",
                             it->first.name);
     it->second->update();
   }
 
   // Debug message.
-  log_v2::config()->debug("endpoint applier: {} endpoints to create",
+  log_v3::instance().get(1)->debug("endpoint applier: {} endpoints to create",
                           endp_to_create.size());
 
   // Create new endpoints.
@@ -155,7 +157,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
     if (ep.name.empty() ||
         std::find_if(endp_to_create.begin(), endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
-      log_v2::config()->debug("endpoint applier: creating endpoint {}",
+      log_v3::instance().get(1)->debug("endpoint applier: creating endpoint {}",
                               ep.name);
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
@@ -179,7 +181,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         std::unique_ptr<processing::acceptor> acceptr(
             std::make_unique<processing::acceptor>(e, ep.name, r_filter,
                                                    w_filter));
-        log_v2::config()->debug(
+        log_v3::instance().get(1)->debug(
             "endpoint applier: acceptor '{}' configured with write filters: {} "
             "and read filters: {}",
             ep.name, w_filter.get_allowed_categories(),
@@ -189,19 +191,19 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         // Create muxer and endpoint.
         if (e->get_stream_mandatory_filter().is_in(w_filter)) {
           w_filter = e->get_stream_mandatory_filter();
-          log_v2::config()->debug(
+          log_v3::instance().get(1)->debug(
               "endpoint applier: filters for endpoint '{}' reduced to the "
               "needed ones: {}",
               ep.name, misc::dump_filters(w_filter));
         } else if (!e->get_stream_mandatory_filter().allows_all()) {
           w_filter = e->get_stream_mandatory_filter();
-          log_v2::config()->error(
+          log_v3::instance().get(1)->error(
               "endpoint applier: The configured write filters for the endpoint "
               "'{}' are too restrictive and will be ignored.{} categories are "
               "mandatory.",
               ep.name, w_filter.get_allowed_categories());
         } else
-          log_v2::config()->debug(
+          log_v3::instance().get(1)->debug(
               "endpoint applier: filters {} for endpoint '{}' applied.",
               w_filter.get_allowed_categories(), ep.name);
 
@@ -216,7 +218,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       }
 
       // Run thread.
-      log_v2::config()->debug(
+      log_v3::instance().get(1)->debug(
           "endpoint applier: endpoint thread {} of '{}' is registered and "
           "ready to run",
           static_cast<void*>(endp.get()), ep.name);
@@ -231,13 +233,13 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
  */
 void endpoint::_discard() {
   _discarding = true;
-  log_v2::config()->debug("endpoint applier: destruction");
+  log_v3::instance().get(1)->debug("endpoint applier: destruction");
 
   // wait for failover and feeder to push endloop event
   ::usleep(processing::idle_microsec_wait_idle_thread_delay + 100000);
   // Exit threads.
   {
-    log_v2::config()->debug("endpoint applier: requesting threads termination");
+    log_v3::instance().get(1)->debug("endpoint applier: requesting threads termination");
     std::unique_lock<std::timed_mutex> lock(_endpointsm);
 
     // Send termination requests.
@@ -245,7 +247,7 @@ void endpoint::_discard() {
     for (auto it = _endpoints.begin(); it != _endpoints.end();) {
       if (it->second->is_feeder()) {
         it->second->wait_for_all_events_written(5000);
-        log_v2::config()->trace(
+        log_v3::instance().get(1)->trace(
             "endpoint applier: send exit signal to endpoint '{}'",
             it->second->get_name());
         delete it->second;
@@ -257,20 +259,20 @@ void endpoint::_discard() {
 
   // Exit threads.
   {
-    log_v2::config()->debug("endpoint applier: requesting threads termination");
+    log_v3::instance().get(1)->debug("endpoint applier: requesting threads termination");
     std::unique_lock<std::timed_mutex> lock(_endpointsm);
 
     // We continue with failovers
     for (auto it = _endpoints.begin(); it != _endpoints.end();) {
       it->second->wait_for_all_events_written(5000);
-      log_v2::config()->trace(
+      log_v3::instance().get(1)->trace(
           "endpoint applier: send exit signal on endpoint '{}'",
           it->second->get_name());
       delete it->second;
       it = _endpoints.erase(it);
     }
 
-    log_v2::config()->debug("endpoint applier: all threads are terminated");
+    log_v3::instance().get(1)->debug("endpoint applier: all threads are terminated");
   }
 
   // Stop multiplexing: we must stop the engine after failovers otherwise
@@ -278,7 +280,7 @@ void endpoint::_discard() {
   try {
     multiplexing::engine::instance_ptr()->stop();
   } catch (const std::exception& e) {
-    log_v2::config()->warn("multiplexing engine stop interrupted: {}",
+    log_v3::instance().get(1)->warn("multiplexing engine stop interrupted: {}",
                            e.what());
   }
 }
@@ -362,7 +364,7 @@ processing::failover* endpoint::_create_failover(
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
   // Debug message.
-  log_v2::config()->info("endpoint applier: creating new failover '{}'",
+  log_v3::instance().get(1)->info("endpoint applier: creating new failover '{}'",
                          cfg.name);
 
   // Check that failover is configured.
@@ -372,7 +374,7 @@ processing::failover* endpoint::_create_failover(
     std::list<config::endpoint>::iterator it =
         std::find_if(l.begin(), l.end(), failover_match_name(front_failover));
     if (it == l.end())
-      log_v2::config()->error(
+      log_v3::instance().get(1)->error(
           "endpoint applier: could not find failover '{}' for endpoint '{}'",
           front_failover, cfg.name);
     else {
@@ -401,7 +403,7 @@ processing::failover* endpoint::_create_failover(
         bool is_acceptor{false};
         std::shared_ptr<io::endpoint> endp(_create_endpoint(*it, is_acceptor));
         if (is_acceptor) {
-          log_v2::config()->error(
+          log_v3::instance().get(1)->error(
               "endpoint applier: secondary failover '{}' is an acceptor and "
               "cannot therefore be instantiated for endpoint '{}'",
               *failover_it, cfg.name);
@@ -446,7 +448,7 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
 
       endp = std::shared_ptr<io::endpoint>(
           it->second.endpntfactry->new_endpoint(cfg, is_acceptor, cache));
-      log_v2::config()->info(" create endpoint {} for endpoint '{}'", it->first,
+      log_v3::instance().get(1)->info(" create endpoint {} for endpoint '{}'", it->first,
                              cfg.name);
       level = it->second.osi_to + 1;
       break;
@@ -468,7 +470,7 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
           (it->second.endpntfactry->has_endpoint(cfg, nullptr))) {
         std::shared_ptr<io::endpoint> current(
             it->second.endpntfactry->new_endpoint(cfg, is_acceptor));
-        log_v2::config()->info(" create endpoint {} for endpoint '{}'",
+        log_v3::instance().get(1)->info(" create endpoint {} for endpoint '{}'",
                                it->first, cfg.name);
         current->from(endp);
         endp = current;
@@ -529,7 +531,7 @@ void endpoint::_diff_endpoints(
           list_it = std::find_if(new_ep.begin(), new_ep.end(),
                                  failover_match_name(failover));
           if (list_it == new_ep.end())
-            log_v2::config()->error(
+            log_v3::instance().get(1)->error(
                 "endpoint applier: could not find failover '{}' for endpoint "
                 "'{}'",
                 failover, entry.name);
@@ -569,7 +571,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
              it = tmp_elements.cbegin(),
              end = tmp_elements.cend();
          it != end; ++it) {
-      log_v2::config()->trace("endpoint applier: new filtering element: {}",
+      log_v3::instance().get(1)->trace("endpoint applier: new filtering element: {}",
                               it->first);
       elements.insert(it->first);
       retval = true;
@@ -586,7 +588,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
       try {
         ok = fill_elements(str);
       } catch (const std::exception& e) {
-        log_v2::config()->error(
+        log_v3::instance().get(1)->error(
             "endpoint applier: '{}' is not a known category: {}", str,
             e.what());
       }
@@ -598,7 +600,7 @@ multiplexing::muxer_filter endpoint::parse_filters(
       applied_filters.emplace_front("all");
     }
   }
-  log_v2::config()->info("Filters applied on endpoint:{}",
+  log_v3::instance().get(1)->info("Filters applied on endpoint:{}",
                          fmt::join(applied_filters, ", "));
   return elements;
 }

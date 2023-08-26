@@ -30,12 +30,14 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::sql;
 using namespace com::centreon::broker::database;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Process log issue event.
@@ -91,7 +93,7 @@ int32_t stream::stop() {
   int32_t retval = storage::conflict_manager::instance().unload(
       storage::conflict_manager::sql);
   _stopped = true;
-  log_v2::core()->info("sql stream stopped with {} ackowledged events", retval);
+  log_v3::instance().get(0)->info("sql stream stopped with {} ackowledged events", retval);
   return retval;
 }
 

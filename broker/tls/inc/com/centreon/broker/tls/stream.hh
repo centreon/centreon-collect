@@ -20,6 +20,8 @@
 #define CCB_TLS_STREAM_HH
 
 #include <gnutls/gnutls.h>
+#include <spdlog/logger.h>
+#include <memory>
 
 #include "com/centreon/broker/io/stream.hh"
 
@@ -39,6 +41,8 @@ class stream : public io::stream {
   std::vector<char> _buffer;
   time_t _deadline;
   gnutls_session_t* _session;
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   stream(gnutls_session_t* session);

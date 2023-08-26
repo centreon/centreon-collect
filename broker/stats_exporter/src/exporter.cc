@@ -22,10 +22,12 @@
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/center.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats_exporter;
 namespace metric_sdk = opentelemetry::sdk::metrics;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Default constructor.
@@ -45,7 +47,7 @@ void exporter::init_metrics(
   double timeout = s.get_stats_exporter().export_timeout;
 
   // Initialize and set the periodic metrics reader
-  log_v2::config()->info(
+  log_v3::instance().get(1)->info(
       "stats_exporter: export configured with an interval of {}s and a timeout "
       "of {}s",
       interval, timeout);

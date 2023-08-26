@@ -18,10 +18,11 @@
 
 #include "com/centreon/broker/time/timerange.hh"
 #include <absl/strings/str_split.h>
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::time;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -164,7 +165,7 @@ uint64_t timerange::end_hour() const throw() {
  *  @return The minute when the timerange ends.
  */
 uint64_t timerange::end_minute() const throw() {
-  return ((_end / 60) % 60);
+  return (_end / 60) % 60;
 }
 
 /**
@@ -187,7 +188,7 @@ bool timerange::to_time_t(struct tm const& midnight,
   my_tm.tm_hour = end_hour();
   my_tm.tm_min = end_minute();
   range_end = mktime(&my_tm);
-  return (true);
+  return true;
 }
 
 static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
@@ -195,6 +196,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   const char* begin_str = time_str.data();
   char* endptr;
   char* endptr1;
+  auto logger = log_v3::instance().get(0);
 
   // move cursor while we meet blanks
   while (std::isspace(*begin_str)) {
@@ -204,7 +206,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   uint64_t hours = strtoull(begin_str, &endptr, 10);
 
   if (endptr == begin_str || endptr + 2 >= endc || *endptr != ':') {
-    log_v2::core()->error(
+    logger->error(
         "parser timeranges: error while reading hours '{}' at {}.", begin_str,
         endptr - begin_str);
     return false;
@@ -213,7 +215,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   uint64_t minutes = strtoull(endptr + 1, &endptr1, 10);
 
   if (endptr1 == endptr + 1) {
-    log_v2::core()->error(
+    logger->error(
         "parser timeranges: error while reading minutes '{}' at {}.", begin_str,
         endptr1 - begin_str);
     return false;
@@ -225,7 +227,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   }
 
   if (endptr1 != endc) {
-    log_v2::core()->error(
+    logger->error(
         "parser timeranges: error while reading end "
         "of your timerange '{}' at {}.",
         begin_str, endptr1 - begin_str);

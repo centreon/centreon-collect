@@ -29,13 +29,14 @@
 #include <unistd.h>
 
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/rrd/creator.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -44,10 +45,13 @@ using namespace com::centreon::broker::rrd;
  *  @param[in] cache_size The maximum number of cache element.
  */
 creator::creator(std::string const& tmpl_path, uint32_t cache_size)
-    : _cache_size(cache_size), _tmpl_path(tmpl_path) {
-  log_v2::rrd()->debug(
-      "RRD: file creator will maintain at most {} templates in '{}'",
-      _cache_size, _tmpl_path);
+    : _cache_size(cache_size),
+      _tmpl_path(tmpl_path),
+      _logger_id{log_v3::instance().create_logger_or_get_id("rrd")} {
+  log_v3::instance()
+      .get(_logger_id)
+      ->debug("RRD: file creator will maintain at most {} templates in '{}'",
+              _cache_size, _tmpl_path);
 }
 
 /**
@@ -263,9 +267,10 @@ void creator::_open(std::string const& filename,
 
   // Debug message.
   argv[argc] = nullptr;
-  log_v2::rrd()->debug("RRD: opening file '{}' ({}, {}, {}, step 1, from  {})",
-                       filename, argv[0], argv[1],
-                       (argv[2] ? argv[2] : "(null)"), from);
+  log_v3::instance()
+      .get(_logger_id)
+      ->debug("RRD: opening file '{}' ({}, {}, {}, step 1, from  {})", filename,
+              argv[0], argv[1], (argv[2] ? argv[2] : "(null)"), from);
 
   // Create RRD file.
   rrd_clear_error();

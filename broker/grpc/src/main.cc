@@ -18,9 +18,10 @@
  */
 #include "com/centreon/broker/grpc/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Load count.
 static uint32_t instances(0);
@@ -64,7 +65,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TCP module.
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "Module for Centreon Broker {}",
+    SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "Module for Centreon Broker {}",
                        CENTREON_BROKER_VERSION);
 
     // Register TCP protocol.

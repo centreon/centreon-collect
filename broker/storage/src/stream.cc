@@ -27,7 +27,6 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -37,11 +36,13 @@
 #include "com/centreon/broker/neb/service_status.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::storage;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -58,7 +59,9 @@ stream::stream(database_config const& dbcfg,
                uint32_t rrd_len,
                uint32_t interval_length,
                bool store_in_db)
-    : io::stream("storage"), _pending_events(0), _stopped(false) {
+    : io::stream("storage"), _pending_events(0), _stopped(false),
+_logger_id{log_v3::instance().create_logger_or_get_id("storage")},
+  _logger{log_v3::instance().get(_logger_id)} {
   log_v2::sql()->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;
@@ -75,7 +78,7 @@ int32_t stream::stop() {
   // Stop cleanup thread.
   int32_t retval =
       conflict_manager::instance().unload(conflict_manager::storage);
-  log_v2::core()->info("storage stream stopped with {} acknowledged events",
+  log_v3::instance().get(0)->info("storage stream stopped with {} acknowledged events",
                        retval);
   _stopped = true;
   return retval;
@@ -141,6 +144,7 @@ void stream::statistics(nlohmann::json& tree) const {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& data) {
+  _logger = log_v3::instance().get(_logger_id);
   ++_pending_events;
 
   assert(data);

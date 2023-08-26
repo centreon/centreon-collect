@@ -21,13 +21,14 @@
 
 #include <fmt/format.h>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/broker/rrd/lib.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::exceptions;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 namespace com::centreon::broker {
 
@@ -110,17 +111,17 @@ class cached : public backend {
    */
   void remove(std::string const& filename) {
     // Build rrdcached command.
-    log_v2::rrd()->trace("RRD: FORGET the {} file", filename);
+    _logger->trace("RRD: FORGET the {} file", filename);
     std::string cmd(fmt::format("FORGET {}\n", filename));
 
     try {
       _send_to_cached(cmd);
     } catch (msg_fmt const& e) {
-      log_v2::rrd()->error(e.what());
+      _logger->error(e.what());
     }
 
     if (::remove(filename.c_str()))
-      log_v2::rrd()->error("RRD: could not remove file '{}': {}", filename,
+      _logger->error("RRD: could not remove file '{}': {}", filename,
                            strerror(errno));
   }
 
@@ -269,37 +270,38 @@ class cached : public backend {
    *  @param[in] value Associated value.
    */
   void update(time_t t, std::string const& value) {
+    _logger = log_v3::instance().get(_logger_id);
     // Build rrdcached command.
     std::string cmd(fmt::format("UPDATE {} {}:{}\n", _filename, t, value));
 
     // Send command.
-    log_v2::rrd()->debug("RRD: updating file '{}' ({})", _filename, cmd);
+    _logger->debug("RRD: updating file '{}' ({})", _filename, cmd);
     try {
       _send_to_cached(cmd);
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
       else
-        log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
+        _logger->error("RRD: ignored update error in file '{}': {}",
                              _filename, e.what() + 5);
     }
   }
 
   void update(const std::deque<std::string>& pts) {
-    log_v2::rrd()->debug("RRD: updating file '{}' with {} values", _filename,
+    _logger->debug("RRD: updating file '{}' with {} values", _filename,
                          pts.size());
 
     std::string cmd{
         fmt::format("UPDATE {} {}\n", _filename, fmt::join(pts, " "))};
     try {
       _send_to_cached(cmd);
-      log_v2::rrd()->trace("RRD: flushing file '{}'", _filename);
+      _logger->trace("RRD: flushing file '{}'", _filename);
       _send_to_cached(fmt::format("FLUSH {}\n", _filename));
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());
       else
-        log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
+        _logger->error("RRD: ignored update error in file '{}': {}",
                              _filename, e.what() + 5);
     }
   }

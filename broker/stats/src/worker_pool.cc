@@ -20,12 +20,13 @@
 #include "com/centreon/broker/stats/worker_pool.hh"
 #include <sys/stat.h>
 #include <cerrno>
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 worker_pool::worker_pool() {}
 
@@ -36,7 +37,8 @@ void worker_pool::add_worker(std::string const& fifo) {
   // Stat failed, probably because of inexistant file.
   if (stat(fifo_path.c_str(), &s) != 0) {
     char const* msg(strerror(errno));
-    log_v2::stats()->info("stats: cannot stat() '{}': {}", fifo_path, msg);
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("stats");
+    log_v3::instance().get(logger_id)->info("stats: cannot stat() '{}': {}", fifo_path, msg);
 
     // Create FIFO.
     if (mkfifo(fifo_path.c_str(),

@@ -27,9 +27,11 @@
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
 #include "com/centreon/common/process_stat.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Return the Broker's version.
@@ -299,7 +301,7 @@ grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        __attribute__((unused)),
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
-  log_v2::core()->info("Remove poller...");
+  log_v3::instance().get(0)->info("Remove poller...");
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
   pblshr.write(e);
@@ -345,7 +347,7 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+    SPDLOG_LOGGER_ERROR(log_v3::instance().get(0), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     logger->set_level(spdlog::level::level_enum(request->level()));
@@ -388,7 +390,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::core(), "fail to get process info: {}",
+    SPDLOG_LOGGER_ERROR(log_v3::instance().get(0), "fail to get process info: {}",
                         boost::diagnostic_information(e));
 
     return grpc::Status(grpc::StatusCode::INTERNAL,

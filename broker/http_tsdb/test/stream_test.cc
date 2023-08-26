@@ -87,7 +87,6 @@ class stream_test : public http_tsdb::stream {
                   http_client::http_connection::load)
       : http_tsdb::stream("stream_test",
                           g_io_context,
-                          log_v2::tcp(),
                           conf,
                           conn_creator) {}
   http_tsdb::request::pointer create_request() const override {

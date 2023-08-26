@@ -35,6 +35,7 @@ class connector : public io::endpoint {
   std::string _cert;
   std::string _key;
   std::string _tls_hostname;
+  uint32_t _logger_id;
 
  public:
   connector(std::string const& cert = std::string(),

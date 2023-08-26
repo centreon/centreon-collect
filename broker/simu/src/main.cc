@@ -25,8 +25,10 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/simu/factory.hh"
 #include "com/centreon/broker/simu/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Load count.
 static uint32_t instances{0u};
@@ -71,7 +73,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // generic simu module.
-    log_v2::core()->info("simu: module for Centreon Broker {}",
+    log_v3::instance().get(0)->info("simu: module for Centreon Broker {}",
                          CENTREON_BROKER_VERSION);
 
     io::events& e(io::events::instance());

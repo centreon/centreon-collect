@@ -233,3 +233,37 @@ void log_v3::apply(const config& log_conf) {
   /* if _flush_interval is 0, the flush worker is stopped. */
   spdlog::flush_every(_flush_interval);
 }
+
+/**
+ * @brief Check if the given logger makes part of our loggers
+ *
+ * @param logger A logger name
+ *
+ * @return a boolean.
+ */
+bool log_v3::contains_logger(const std::string& logger) const {
+  const absl::flat_hash_set<std::string> loggers{
+      "bam",      "bbdo",         "config",
+      "core",     "lua",          "influxdb",
+      "graphite", "notification", "rrd",
+      "stats",    "perfdata",     "processing",
+      "sql",      "neb",          "tcp",
+      "tls",      "grpc",         "victoria_metrics"};
+  return loggers.contains(logger);
+}
+
+/**
+ * @brief Check if the given level makes part of the available levels.
+ *
+ * @param level A level as a string
+ *
+ * @return A boolean.
+ */
+bool log_v3::contains_level(const std::string& level) const {
+  /* spdlog wants 'off' to disable a log but we tolerate 'disabled' */
+  if (level == "disabled" || level == "off")
+    return true;
+
+  level::level_enum l = level::from_str(level);
+  return l != level::off;
+}

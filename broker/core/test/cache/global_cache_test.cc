@@ -21,14 +21,17 @@
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::cache;
 
+using log_v3 = com::centreon::common::log_v3::log_v3;
+
 class global_cache_test : public testing::Test {
  public:
   static void SetUpTestSuite() {
-    log_v2::core()->set_level(spdlog::level::debug);
+    log_v3::instance().get(0)->set_level(spdlog::level::trace);
     srand(time(nullptr));
   }
 };
@@ -368,7 +371,7 @@ TEST_F(global_cache_test, Huge) {
 
   unsigned ii;
 
-  SPDLOG_LOGGER_INFO(log_v2::core(), "begin construct cache");
+  SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "begin construct cache");
   // 10000 hosts with 30 services with 20 metrics
   unsigned serv_id = 1;
   unsigned resource_id = 1;
@@ -390,11 +393,11 @@ TEST_F(global_cache_test, Huge) {
       }
     }
   }
-  SPDLOG_LOGGER_INFO(log_v2::core(), "end construct cache");
+  SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "end construct cache");
   // we search 10000 metrics infos
   unsigned metric_info_increment = metric_id / 10000;
   unsigned id_search = 0;
   for (ii = 0; ii < 10000; ++ii, id_search += metric_info_increment)
     obj->get_metric_info(id_search);
-  SPDLOG_LOGGER_INFO(log_v2::core(), "end of 10000 metric search");
+  SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "end of 10000 metric search");
 }

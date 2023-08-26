@@ -32,20 +32,7 @@ namespace rrd {
  *  Create RRD objects.
  */
 class creator {
- public:
-  creator(std::string const& tmpl_path, uint32_t cache_size);
-  creator(creator const&) = delete;
-  ~creator();
-  creator& operator=(creator const&) = delete;
-  void clear();
-  void create(std::string const& filename,
-              uint32_t length,
-              time_t from,
-              uint32_t step,
-              short value_type,
-              bool without_cache = false);
-
- private:
+  uint32_t _logger_id;
   struct tmpl_info {
     bool operator<(tmpl_info const& right) const {
       if (length != right.length)
@@ -94,6 +81,18 @@ class creator {
   uint32_t _cache_size;
   std::map<tmpl_info, fd_info> _fds;
   std::string _tmpl_path;
+ public:
+  creator(std::string const& tmpl_path, uint32_t cache_size);
+  creator(creator const&) = delete;
+  ~creator();
+  creator& operator=(creator const&) = delete;
+  void clear();
+  void create(std::string const& filename,
+              uint32_t length,
+              time_t from,
+              uint32_t step,
+              short value_type,
+              bool without_cache = false);
 };
 }  // namespace rrd
 

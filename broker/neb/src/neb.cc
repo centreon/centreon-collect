@@ -26,9 +26,11 @@
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
@@ -134,7 +136,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       try {
         log_v2::instance()->apply(s.log_conf());
       } catch (const std::exception& e) {
-        log_v2::core()->error("main: {}", e.what());
+        log_v3::instance().get(0)->error("main: {}", e.what());
       }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
@@ -159,19 +161,19 @@ int nebmodule_init(int flags, char const* args, void* handle) {
                 NEBCALLBACK_LOG_DATA, neb::gl_mod_handle, &neb::callback_log));
       }
     } catch (std::exception const& e) {
-      log_v2::core()->error("main: {}", e.what());
+      log_v3::instance().get(0)->error("main: {}", e.what());
       return -1;
     } catch (...) {
-      log_v2::core()->error("main: configuration file parsing failed");
+      log_v3::instance().get(0)->error("main: configuration file parsing failed");
       return -1;
     }
 
   } catch (std::exception const& e) {
-    log_v2::core()->error("main: cbmod loading failed: {}", e.what());
+    log_v3::instance().get(0)->error("main: cbmod loading failed: {}", e.what());
     nebmodule_deinit(0, 0);
     return -1;
   } catch (...) {
-    log_v2::core()->error(
+    log_v3::instance().get(0)->error(
         "main: cbmod loading failed due to an unknown exception");
     nebmodule_deinit(0, 0);
     return -1;

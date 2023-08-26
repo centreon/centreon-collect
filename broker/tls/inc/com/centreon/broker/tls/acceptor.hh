@@ -40,6 +40,7 @@ class acceptor : public io::endpoint {
   std::string _cert;
   std::string _key;
   std::string _tls_hostname;
+  uint32_t _logger_id;
 
  public:
   acceptor(const std::string& cert = std::string(),
@@ -47,8 +48,8 @@ class acceptor : public io::endpoint {
            const std::string& ca = std::string(),
            const std::string& tls_hostname = std::string());
   ~acceptor() = default;
-  acceptor(acceptor const& right) = delete;
-  acceptor& operator=(acceptor const&) = delete;
+  acceptor(const acceptor&) = delete;
+  acceptor& operator=(const acceptor&) = delete;
   std::shared_ptr<io::stream> open() override;
   std::shared_ptr<io::stream> open(const std::shared_ptr<io::stream>& lower);
 };
