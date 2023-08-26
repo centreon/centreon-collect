@@ -21,10 +21,12 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 constexpr const char* mysql_error::msg[];
 
@@ -910,7 +912,7 @@ void mysql_connection::_run() {
   }
   _clear_connection();
   mysql_thread_end();
-  log_v2::core()->trace("mysql connection main loop finished.");
+  log_v3::instance().get(0)->trace("mysql connection main loop finished.");
 }
 
 /**

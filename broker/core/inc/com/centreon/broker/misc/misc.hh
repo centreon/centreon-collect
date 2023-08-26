@@ -35,7 +35,8 @@ std::vector<char> from_hex(std::string const& str);
 std::string dump_filters(const multiplexing::muxer_filter& filters);
 std::list<perfdata> parse_perfdata(uint32_t host_id,
                                    uint32_t service_id,
-                                   const char* str);
+                                   const char* str,
+                                   std::shared_ptr<spdlog::logger> logger);
 }  // namespace misc
 
 CCB_END()

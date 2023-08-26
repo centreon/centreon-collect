@@ -24,9 +24,11 @@
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Check if an endpoint configuration match the compression layer.
@@ -56,7 +58,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
       if (it == cfg.params.end())
         has_compression = false;
       else if (!absl::SimpleAtob(it->second, &has_compression)) {
-        log_v2::core()->error(
+        log_v3::instance().get(0)->error(
             "TLS: the field 'compression' in endpoint '{}' should be a boolean",
             cfg.name);
         has_compression = false;
@@ -79,7 +81,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
         if (absl::EqualsIgnoreCase(it->second, "auto"))
           has_compression = true;
         else {
-          log_v2::core()->error(
+          log_v3::instance().get(0)->error(
               "TLS: the field 'compression' in endpoint '{}' should be a "
               "boolean",
               cfg.name);
@@ -120,7 +122,7 @@ io::endpoint* factory::new_endpoint(
       cfg.params.find("compression_level")};
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &level)) {
-      log_v2::core()->error(
+      log_v3::instance().get(0)->error(
           "compression: the 'compression_level' should be an integer and not "
           "'{}'",
           it->second);
@@ -133,7 +135,7 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("compression_buffer");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &size)) {
-      log_v2::core()->error(
+      log_v3::instance().get(0)->error(
           "compression: compression_buffer is the size of the compression "
           "buffer represented by an integer and not '{}'",
           it->second);

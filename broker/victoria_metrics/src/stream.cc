@@ -19,13 +19,14 @@
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/request.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::victoria_metrics;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 const std::string stream::allowed_macros =
     "$INSTANCE$,$INSTANCEID$,$HOST$,$SERVICE$,$HOSTGROUP$,$SERVICE_GROUP$,"
@@ -40,17 +41,16 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                http_client::client::connection_creator conn_creator)
     : http_tsdb::stream("victoria_metrics",
                         io_context,
-                        log_v2::victoria_metrics(),
                         conf,
                         conn_creator),
       _metric_formatter(allowed_macros,
                         conf->get_metric_columns(),
                         http_tsdb::line_protocol_query::data_type::metric,
-                        log_v2::victoria_metrics()),
+                        _logger),
       _status_formatter(allowed_macros,
                         conf->get_status_columns(),
                         http_tsdb::line_protocol_query::data_type::status,
-                        log_v2::victoria_metrics()),
+                        _logger),
       _account_id(account_id) {
   // in order to avoid reallocation of request body
   _body_size_to_reserve = conf->get_max_queries_per_transaction() *

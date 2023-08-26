@@ -1,5 +1,5 @@
 /*
-** Copyright 2013,2017-2022 Centreon
+** Copyright 2013,2017-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,9 +19,11 @@
 #ifndef CCB_BBDO_STREAM_HH
 #define CCB_BBDO_STREAM_HH
 
+#include "com/centreon/broker/io/raw.hh"
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/stream.hh"
+#include "com/centreon/broker/mapping/entry.hh"
 
 CCB_BEGIN()
 
@@ -146,12 +148,22 @@ class stream : public io::stream {
   std::list<std::shared_ptr<io::extension>> _extensions;
   bbdo::bbdo_version _bbdo_version;
 
+  /* bbdo logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
   std::string _poller_name;
   uint64_t _poller_id = 0u;
+  io::data* unserialize(uint32_t event_type,
+                             uint32_t source_id,
+                             uint32_t destination_id,
+                             const char* buffer,
+                             uint32_t size);
+  io::raw* serialize(const io::data& e);
 
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };

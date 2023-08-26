@@ -20,9 +20,10 @@
 #include <cassert>
 #include "com/centreon/broker/compression/factory.hh"
 #include "com/centreon/broker/file/factory.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::io;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Class instance.
 static protocols* gl_protocols = nullptr;
@@ -93,7 +94,7 @@ void protocols::reg(std::string const& name,
   p.osi_to = osi_to;
 
   // Register protocol in protocol list.
-  log_v2::core()->info("protocols: registering protocol ('{}' (layers {}-{})",
+  log_v3::instance().get(0)->info("protocols: registering protocol ('{}' (layers {}-{})",
                        name, osi_from, osi_to);
   _protocols[name] = p;
 }
@@ -104,7 +105,7 @@ void protocols::reg(std::string const& name,
  *  @param[in] name Protocol name.
  */
 void protocols::unreg(std::string const& name) {
-  log_v2::core()->info("protocols: unregistering protocol '{}'", name);
+  log_v3::instance().get(0)->info("protocols: unregistering protocol '{}'", name);
   _protocols.erase(name);
 }
 
@@ -123,6 +124,6 @@ protocols::protocols() {
 protocols::~protocols() noexcept {
   unreg("compression");
   unreg("file");
-  log_v2::core()->info("protocols: destruction ({} protocols still registered)",
+  log_v3::instance().get(0)->info("protocols: destruction ({} protocols still registered)",
                        _protocols.size());
 }
