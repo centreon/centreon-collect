@@ -18,15 +18,16 @@
 
 #include "com/centreon/broker/neb/set_log_data.hh"
 #include <absl/strings/str_split.h>
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Extract the first element of a log string.
@@ -231,13 +232,13 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
 
 #define test_fail(name)                                                   \
   if (ait == args.end()) {                                                \
-    log_v2::neb()->error("Missing " name " in log message '{}'", output); \
+    logger->error("Missing " name " in log message '{}'", output); \
     return false;                                                         \
   }
 
 #define test_fail_and_not_empty(name)                                     \
   if (ait == args.end()) {                                                \
-    log_v2::neb()->error("Missing " name " in log message '{}'", output); \
+    logger->error("Missing " name " in log message '{}'", output); \
     return false;                                                         \
   }                                                                       \
   if (ait->empty()) {                                                     \
@@ -287,6 +288,8 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
   lasts = absl::StripLeadingAsciiWhitespace(lasts);
   auto args = absl::StrSplit(lasts, ';');
   auto ait = args.begin();
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("neb");
+  auto logger = log_v3::instance().get(logger_id);
 
   if (typ == "SERVICE ALERT") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_ALERT);
@@ -309,7 +312,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;
@@ -336,7 +339,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;
@@ -410,7 +413,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;
@@ -442,7 +445,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;
@@ -517,7 +520,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;
@@ -549,7 +552,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;
@@ -577,7 +580,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;
@@ -609,7 +612,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
     test_fail("retry value");
     int retry;
     if (!absl::SimpleAtoi(*ait, &retry)) {
-      log_v2::neb()->error(
+      logger->error(
           "Retry value in log message should be an integer and not '{}'",
           fmt::string_view(ait->data(), ait->size()));
       return false;

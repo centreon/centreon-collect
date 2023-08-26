@@ -20,12 +20,13 @@
 #include <absl/strings/match.h>
 
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tls/acceptor.hh"
 #include "com/centreon/broker/tls/connector.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Check if an endpoint configuration match the TLS layer.
@@ -43,6 +44,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   bool has_tls;
   std::map<std::string, std::string>::iterator it;
   bool legacy;
+
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tls");
+  auto logger = log_v3::instance().get(logger_id);
 
   if (ext) {
     if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
@@ -67,7 +71,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
       if (legacy && absl::EqualsIgnoreCase(it->second, "auto"))
         has_tls = true;
       else {
-        log_v2::tls()->error(
+        logger->error(
             "TLS: the field 'tls' in endpoint '{}' should be a boolean",
             cfg.name);
         has_tls = false;
@@ -76,7 +80,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
     if (!has_tls)
       *ext = io::extension("TLS", false, false);
     else {
-      log_v2::tls()->info("Configuration of TLS for endpoint '{}'", cfg.name);
+      logger->info("Configuration of TLS for endpoint '{}'", cfg.name);
       if (absl::EqualsIgnoreCase(it->second, "auto"))
         *ext = io::extension("TLS", true, false);
       else
@@ -127,6 +131,9 @@ io::endpoint* factory::new_endpoint(
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
 
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tls");
+  auto logger = log_v3::instance().get(logger_id);
+
   // Find TLS parameters (optional).
   bool tls{false};
   std::string private_key;
@@ -139,7 +146,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("tls")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &tls)) {
-        log_v2::tls()->error(
+        logger->error(
             "factory: cannot parse the 'tls' boolean: the content is '{}'",
             it->second);
         tls = false;

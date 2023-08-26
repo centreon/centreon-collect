@@ -17,11 +17,12 @@
 */
 
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/factory.hh"
 #include "com/centreon/broker/sql/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Load count.
 static uint32_t instances(0);
@@ -65,7 +66,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // SQL module.
-    log_v2::sql()->info("SQL: module for Centreon Broker {}",
+    log_v3::instance().get(0)->info("SQL: module for Centreon Broker {}",
                         CENTREON_BROKER_VERSION);
 
     // Register SQL layer.

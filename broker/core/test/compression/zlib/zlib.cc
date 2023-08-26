@@ -23,7 +23,10 @@ using namespace com::centreon::broker::compression;
 
 class CompressionZlib : public ::testing::Test {
  public:
-  void SetUp() override {}
+  void SetUp() override {
+  }
+  void TearDown() override {
+  }
 };
 
 // Given a simple buffer

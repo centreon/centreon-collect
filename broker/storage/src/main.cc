@@ -24,14 +24,15 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/storage/factory.hh"
 #include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/broker/storage/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Load count.
 static uint32_t instances{0u};
@@ -77,7 +78,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // Storage module.
-    log_v2::sql()->info("storage: module for Centreon Broker {}",
+    log_v3::instance().get(0)->info("storage: module for Centreon Broker {}",
                         CENTREON_BROKER_VERSION);
 
     io::events& e(io::events::instance());

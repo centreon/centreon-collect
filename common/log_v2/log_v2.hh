@@ -29,7 +29,7 @@
 namespace com::centreon::common::log_v3 {
 
 /**
- * @brief Unified log engine for broker and engine.
+ * @brief Unified log module for broker and engine.
  *
  * To instance a logger with a name, we call the static internal function
  * create_logger(name). It creates the logger and returns an ID useful to
@@ -71,6 +71,8 @@ class log_v3 {
   std::shared_ptr<spdlog::logger> get(const std::string& name);
   std::shared_ptr<spdlog::logger> get(const uint32_t idx);
   void apply(const config& conf);
+  bool contains_logger(const std::string& logger) const;
+  bool contains_level(const std::string& level) const;
 };
 }  // namespace com::centreon::common::log_v3
 #endif /* !CCC_LOG_V2_HH */

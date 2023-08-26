@@ -20,10 +20,12 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief this option set the interval in seconds between two keepalive sent
@@ -199,11 +201,11 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
  */
 void tcp_async::_clear_available_con(boost::system::error_code ec) {
   if (ec)
-    log_v2::core()->info("Available connections cleaning: {}", ec.message());
+    log_v3::instance().get(0)->info("Available connections cleaning: {}", ec.message());
   else {
     std::lock_guard<std::mutex> l(_acceptor_available_con_m);
     if (_clear_available_con_running) {
-      log_v2::core()->debug("Available connections cleaning");
+      log_v3::instance().get(0)->debug("Available connections cleaning");
       std::time_t now = std::time(nullptr);
       for (auto it = _acceptor_available_con.begin();
            it != _acceptor_available_con.end();) {
@@ -221,7 +223,7 @@ void tcp_async::_clear_available_con(boost::system::error_code ec) {
       } else
         _clear_available_con_running = false;
     } else
-      log_v2::core()->debug("Available connections cleaner already stopped");
+      log_v3::instance().get(0)->debug("Available connections cleaner already stopped");
   }
 }
 

@@ -624,7 +624,8 @@ static auto l_stacktrace = [](lua_State* L) -> void {
 static int l_broker_parse_perfdata(lua_State* L) {
   char const* perf_data(lua_tostring(L, 1));
   int full(lua_toboolean(L, 2));
-  std::list<misc::perfdata> pds{misc::parse_perfdata(0, 0, perf_data)};
+  std::list<misc::perfdata> pds{
+      misc::parse_perfdata(0, 0, perf_data, log_v2::lua())};
   lua_createtable(L, 0, pds.size());
   for (auto const& pd : pds) {
     lua_pushlstring(L, pd.name().c_str(), pd.name().size());

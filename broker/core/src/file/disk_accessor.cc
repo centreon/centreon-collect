@@ -16,9 +16,11 @@
 ** For more information : contact@centreon.com
 */
 #include "com/centreon/broker/file/disk_accessor.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::file;
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 disk_accessor* disk_accessor::_instance{nullptr};
 /**
@@ -34,7 +36,7 @@ void disk_accessor::load(size_t limit_size) {
   if (_instance == nullptr)
     _instance = new disk_accessor(limit_size);
   else
-    log_v2::core()->warn("disk accessor already loaded");
+    log_v3::instance().get(0)->warn("disk accessor already loaded");
 }
 
 /**
@@ -88,7 +90,7 @@ size_t disk_accessor::fwrite(const void* ptr,
     return ::fwrite(ptr, size, nmemb, stream);
   } else {
     errno = ENOSPC;
-    log_v2::core()->error(
+    log_v3::instance().get(0)->error(
         "disk_accessor: the limit size of {} bytes is reached for queue files. "
         "New events written to disk are lost",
         _limit_size);

@@ -22,18 +22,19 @@
 #include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::storage;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 const std::array<std::string, 5> conflict_manager::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
@@ -100,8 +101,12 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _ref_count{0},
       _group_clean_timer{pool::io_context()},
-      _oldest_timestamp{std::numeric_limits<time_t>::max()} {
-  log_v2::sql()->debug("conflict_manager: class instanciation");
+      _oldest_timestamp{std::numeric_limits<time_t>::max()},
+_logger_sql_id{log_v3::instance().create_logger_or_get_id("sql")},
+_logger_sql{log_v3::instance().get(_logger_sql_id)},
+_logger_storage_id{log_v3::instance().create_logger_or_get_id("storage")},
+_logger_storage{log_v3::instance().get(_logger_storage_id)} {
+  _logger_sql->debug("conflict_manager: class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
                                    _stats, _loop_timeout);
   stats::center::instance().update(
@@ -110,7 +115,7 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
 }
 
 conflict_manager::~conflict_manager() {
-  log_v2::sql()->debug("conflict_manager: destruction");
+  _logger_sql->debug("conflict_manager: destruction");
   std::lock_guard<std::mutex> l(_group_clean_timer_m);
   _group_clean_timer.cancel();
 }
@@ -132,7 +137,7 @@ bool conflict_manager::init_storage(bool store_in_db,
                                     uint32_t rrd_len,
                                     uint32_t interval_length,
                                     const database_config& dbcfg) {
-  log_v2::sql()->debug("conflict_manager: storage stream initialization");
+  log_v3::instance().get(0)->debug("conflict_manager: storage stream initialization");
   int count;
 
   std::unique_lock<std::mutex> lk(_init_m);
@@ -145,11 +150,11 @@ bool conflict_manager::init_storage(bool store_in_db,
         })) {
       if (_state == finished ||
           config::applier::mode == config::applier::finished) {
-        log_v2::sql()->info("Conflict manager not started because cbd stopped");
+        log_v3::instance().get(0)->info("Conflict manager not started because cbd stopped");
         return false;
       }
       if (_singleton->_mysql.get_config() != dbcfg) {
-        log_v2::sql()->error(
+        log_v3::instance().get(0)->error(
             "Conflict manager: storage and sql streams do not have the same "
             "database configuration");
         return false;
@@ -169,15 +174,15 @@ bool conflict_manager::init_storage(bool store_in_db,
       _singleton->_thread =
           std::thread(&conflict_manager::_callback, _singleton);
       pthread_setname_np(_singleton->_thread.native_handle(), "conflict_mngr");
-      log_v2::sql()->info("Conflict manager running");
+      log_v3::instance().get(0)->info("Conflict manager running");
       return true;
     }
-    log_v2::sql()->info(
+    log_v3::instance().get(0)->info(
         "conflict_manager: Waiting for the sql stream initialization for {} "
         "seconds",
         count);
   }
-  log_v2::sql()->error(
+  log_v3::instance().get(0)->error(
       "conflict_manager: not initialized after 60s. Probably "
       "an issue in the sql output configuration.");
   return false;
@@ -201,7 +206,7 @@ bool conflict_manager::init_storage(bool store_in_db,
 bool conflict_manager::init_sql(database_config const& dbcfg,
                                 uint32_t loop_timeout,
                                 uint32_t instance_timeout) {
-  log_v2::sql()->debug("conflict_manager: sql stream initialization");
+  log_v3::instance().get(0)->debug("conflict_manager: sql stream initialization");
   std::lock_guard<std::mutex> lk(_init_m);
   _singleton = new conflict_manager(dbcfg, loop_timeout, instance_timeout);
   if (!_singleton) {
@@ -341,7 +346,7 @@ void conflict_manager::_load_caches() {
           .special = res.value_as_u32(6) == 2};
       uint32_t host_id(res.value_as_u32(1));
       uint32_t service_id(res.value_as_u32(2));
-      log_v2::perfdata()->debug(
+      _logger_storage->debug(
           "storage: loaded index {} of ({}, {}) with rrd_len={}", info.index_id,
           host_id, service_id, info.rrd_retention);
       _index_cache[{host_id, service_id}] = std::move(info);
@@ -442,7 +447,7 @@ void conflict_manager::update_metric_info_cache(uint64_t index_id,
                                                 short metric_type) {
   auto it = _metric_cache.find({index_id, metric_name});
   if (it != _metric_cache.end()) {
-    log_v2::perfdata()->info(
+    _logger_storage->info(
         "conflict_manager: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
         metric_name, metric_id, index_id, metric_type_name[metric_type]);
@@ -466,7 +471,7 @@ void conflict_manager::_callback() {
   try {
     _load_caches();
   } catch (std::exception const& e) {
-    log_v2::sql()->error("error while loading caches: {}", e.what());
+    _logger_sql->error("error while loading caches: {}", e.what());
     _broken = true;
   }
 
@@ -494,7 +499,7 @@ void conflict_manager::_callback() {
         /* Time to send logs to database */
         _insert_logs();
 
-        log_v2::sql()->trace(
+        _logger_sql->trace(
             "conflict_manager: main loop initialized with a timeout of {} "
             "seconds.",
             _loop_timeout);
@@ -508,7 +513,7 @@ void conflict_manager::_callback() {
             _check_deleted_index();
             time_to_deleted_index += std::chrono::minutes(5);
           } catch (std::exception const& e) {
-            log_v2::sql()->error(
+            _logger_sql->error(
                 "conflict_manager: error while checking deleted indexes: {}",
                 e.what());
             _broken = true;
@@ -618,7 +623,7 @@ void conflict_manager::_callback() {
               if (fn)
                 (this->*fn)(tpl);
               else {
-                log_v2::sql()->warn("SQL: no function defined for event {}:{}",
+                _logger_sql->warn("SQL: no function defined for event {}:{}",
                                     cat, elem);
                 *std::get<2>(tpl) = true;
               }
@@ -634,7 +639,7 @@ void conflict_manager::_callback() {
               remove_graphs(d);
               *std::get<2>(tpl) = true;
             } else {
-              log_v2::sql()->trace(
+              _logger_sql->trace(
                   "conflict_manager: event of type {} from channel '{}' thrown "
                   "away ; no need to "
                   "store it in the database.",
@@ -680,14 +685,14 @@ void conflict_manager::_callback() {
             }
           }
         }
-        log_v2::sql()->debug("{} new events to treat", count);
+        _logger_sql->debug("{} new events to treat", count);
         /* Here, just before looping, we commit. */
         _finish_actions();
         if (_fifo.get_pending_elements() == 0)
-          log_v2::sql()->debug(
+          _logger_sql->debug(
               "conflict_manager: acknowledgement - no pending events");
         else
-          log_v2::sql()->debug(
+          _logger_sql->debug(
               "conflict_manager: acknowledgement - still {} not acknowledged",
               _fifo.get_pending_elements());
 
@@ -700,7 +705,7 @@ void conflict_manager::_callback() {
                       _fifo.get_timeline(storage).size());
       }
     } catch (std::exception const& e) {
-      log_v2::sql()->error("conflict_manager: error in the main loop: {}",
+      _logger_sql->error("conflict_manager: error in the main loop: {}",
                            e.what());
       if (strstr(e.what(), "server has gone away")) {
         // The case where we must restart the connector.
@@ -712,7 +717,7 @@ void conflict_manager::_callback() {
   if (_broken) {
     std::unique_lock<std::mutex> lk(_loop_m);
     /* Let's wait for the end */
-    log_v2::sql()->info(
+    _logger_sql->info(
         "conflict_manager: waiting for the end of the conflict manager main "
         "loop.");
     _loop_cv.wait(lk, [this]() { return !_exit; });
@@ -748,7 +753,7 @@ int32_t conflict_manager::send_event(conflict_manager::stream_type c,
   if (_broken)
     throw msg_fmt("conflict_manager: events loop interrupted");
 
-  log_v2::sql()->trace(
+  _logger_sql->trace(
       "conflict_manager: send_event category:{}, element:{} from {}",
       e->type() >> 16, e->type() & 0xffff, c == 0 ? "sql" : "storage");
 
@@ -803,14 +808,14 @@ void conflict_manager::_finish_action(int32_t conn, uint32_t action) {
  *  events.
  */
 void conflict_manager::_finish_actions() {
-  log_v2::sql()->trace("conflict_manager: finish actions");
+  _logger_sql->trace("conflict_manager: finish actions");
   _mysql.commit();
   std::fill(_action.begin(), _action.end(), actions::none);
 
   _fifo.clean(sql);
   _fifo.clean(storage);
 
-  log_v2::sql()->debug("conflict_manager: still {} not acknowledged",
+  _logger_sql->debug("conflict_manager: still {} not acknowledged",
                        _fifo.get_pending_elements());
 }
 
@@ -892,7 +897,7 @@ nlohmann::json conflict_manager::get_statistics() {
  */
 int32_t conflict_manager::unload(stream_type type) {
   if (!_singleton) {
-    log_v2::sql()->info("conflict_manager: already unloaded.");
+    _logger_sql->info("conflict_manager: already unloaded.");
     return 0;
   } else {
     uint32_t count = --_singleton->_ref_count;
@@ -906,14 +911,14 @@ int32_t conflict_manager::unload(stream_type type) {
         delete _singleton;
         _singleton = nullptr;
       }
-      log_v2::sql()->info(
+      _logger_sql->info(
           "conflict_manager: no more user of the conflict manager.");
     } else {
-      log_v2::sql()->info(
+      _logger_sql->info(
           "conflict_manager: still {} stream{} using the conflict manager.",
           count, count > 1 ? "s" : "");
       retval = _fifo.get_acks(type);
-      log_v2::sql()->info(
+      _logger_sql->info(
           "conflict_manager: still {} events handled but not acknowledged.",
           retval);
     }
@@ -978,7 +983,7 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
         }
       }
     } catch (const std::exception& e) {
-      log_v2::sql()->error(
+      _logger_sql->error(
           "could not query index / metrics table(s) to get index to delete: "
           "{} ",
           e.what());
@@ -986,14 +991,14 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
 
     std::string mids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
     if (!metrics_to_delete.empty()) {
-      log_v2::sql()->info("metrics {} erased from database", mids_str);
+      _logger_sql->info("metrics {} erased from database", mids_str);
       ms.run_query(
           fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
           database::mysql_error::delete_metric);
     }
     std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
     if (!indexes_to_delete.empty()) {
-      log_v2::sql()->info("indexes {} erased from database", ids_str);
+      _logger_sql->info("indexes {} erased from database", ids_str);
       ms.run_query(
           fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
           database::mysql_error::delete_index);
@@ -1007,7 +1012,7 @@ void conflict_manager::remove_graphs(const std::shared_ptr<io::data>& d) {
         rmg->mut_obj().add_index_ids(i);
       multiplexing::publisher().write(rmg);
     } else
-      log_v2::sql()->info(
+      _logger_sql->info(
           "metrics {} and indexes {} do not appear in the storage database",
           fmt::join(ids.obj().metric_ids(), ","),
           fmt::join(ids.obj().index_ids(), ","));
