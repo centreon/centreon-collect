@@ -28,11 +28,12 @@
 #include "com/centreon/broker/http_tsdb/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/factory.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Load count.
 static uint32_t instances(0);
@@ -75,7 +76,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // RRD module.
-    SPDLOG_LOGGER_INFO(log_v2::victoria_metrics(),
+    SPDLOG_LOGGER_INFO(log_v3::instance().get(0),
                        "victoria_metrics: module for Centreon Broker {}",
                        CENTREON_BROKER_VERSION);
 

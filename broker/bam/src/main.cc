@@ -35,11 +35,12 @@
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Load count.
 namespace {
@@ -88,11 +89,12 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
+  auto logger = log_v3::instance().get(0);
 
   // Increment instance number.
   if (!instances++) {
     // BAM module.
-    log_v2::bam()->info("BAM: module for Centreon Broker {} ",
+    logger->info("BAM: module for Centreon Broker {} ",
                         CENTREON_BROKER_VERSION);
 
     io::protocols::instance().reg(bam_module, std::make_shared<bam::factory>(),

@@ -23,8 +23,10 @@
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/file/stream.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -96,7 +98,7 @@ int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
  */
 int32_t persistent_file::stop() {
   int32_t retval = _substream->stop();
-  log_v2::core()->info("persistent file stopped with {} acknowledged events",
+  log_v3::instance().get(0)->info("persistent file stopped with {} acknowledged events",
                        retval);
   return retval;
 }

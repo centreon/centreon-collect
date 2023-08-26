@@ -79,7 +79,6 @@ inline std::ostream& operator<<(std::ostream& str, const request& req) {
 class stream : public io::stream, public std::enable_shared_from_this<stream> {
  protected:
   std::shared_ptr<asio::io_context> _io_context;
-  const std::shared_ptr<spdlog::logger> _logger;
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
 
@@ -107,6 +106,10 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   stat _metric_stat;
   stat _status_stat;
 
+  /* Logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   /**
    * @brief this cless calc an average over a period
    *
@@ -128,7 +131,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 
   stream(const std::string& name,
          const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<spdlog::logger>& logger,
          const std::shared_ptr<http_tsdb_config>& conf,
          http_client::client::connection_creator conn_creator =
              http_client::http_connection::load);

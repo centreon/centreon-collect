@@ -24,15 +24,16 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 constexpr unsigned max_event_queue_size = 0x10000;
 
@@ -85,7 +86,8 @@ feeder::feeder(const std::string& name,
                                          false)),
       _stat_timer(pool::io_context()),
       _read_from_stream_timer(pool::io_context()),
-      _io_context(pool::io_context_ptr()) {
+      _io_context(pool::io_context_ptr()),
+      _logger_id{log_v3::instance().create_logger_or_get_id("processing")} {
   DEBUG(fmt::format("CONSTRUCTOR feeder {:p} {} - muxer: {:p}",
                     static_cast<void*>(this), name,
                     static_cast<void*>(_muxer.get())));
@@ -95,7 +97,7 @@ feeder::feeder(const std::string& name,
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
   set_state("connected");
-  SPDLOG_LOGGER_DEBUG(log_v2::core(), "create feeder {}, {:p}", name,
+  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "create feeder {}, {:p}", name,
                       static_cast<const void*>(this));
 }
 
@@ -104,7 +106,7 @@ feeder::feeder(const std::string& name,
  */
 feeder::~feeder() {
   stop();
-  SPDLOG_LOGGER_DEBUG(log_v2::core(), "destroy feeder {}, {:p}", get_name(),
+  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "destroy feeder {}, {:p}", get_name(),
                       static_cast<const void*>(this));
   stop();
   DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));

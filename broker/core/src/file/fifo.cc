@@ -27,12 +27,14 @@
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 #define BUF_SIZE 4096 * 4
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Fifo constructor.
@@ -113,7 +115,7 @@ void fifo::_open_fifo() {
   // Stat failed, probably because of inexistant file.
   if (::stat(_path.c_str(), &s) != 0) {
     char const* msg(strerror(errno));
-    log_v2::config()->info("stats: cannot stat() '{}': {}", _path, msg);
+    log_v3::instance().get(1)->info("stats: cannot stat() '{}': {}", _path, msg);
 
     // Create FIFO.
     if (::mkfifo(_path.c_str(),

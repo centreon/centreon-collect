@@ -17,11 +17,12 @@
  *
  */
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tcp/factory.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 // Load count.
 static uint32_t instances(0);
@@ -66,7 +67,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TCP module.
-    log_v2::tcp()->info("TCP: module for Centreon Broker {}",
+    log_v3::instance().get(0)->info("TCP: module for Centreon Broker {}",
                         CENTREON_BROKER_VERSION);
 
     // Register TCP protocol.

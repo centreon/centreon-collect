@@ -56,6 +56,8 @@ class feeder : public stat_visitable,
 
   mutable std::timed_mutex _protect;
 
+  uint32_t _logger_id;
+
  protected:
   feeder(const std::string& name,
          const std::shared_ptr<multiplexing::engine>& parent,

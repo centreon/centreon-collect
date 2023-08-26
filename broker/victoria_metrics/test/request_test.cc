@@ -34,22 +34,26 @@ using duration = system_clock::duration;
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/victoria_metrics/factory.hh"
 #include "com/centreon/broker/victoria_metrics/request.hh"
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::http_tsdb;
 ;
 using namespace nlohmann;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 class victoria_request_test : public ::testing::Test {
+ protected:
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   static void SetUpTestSuite() {
-    log_v2::victoria_metrics()->set_level(spdlog::level::debug);
     file::disk_accessor::load(1000);
     io::protocols::load();
     io::events::load();
@@ -63,6 +67,11 @@ class victoria_request_test : public ::testing::Test {
                      &storage::pb_metric::operations);
     e.register_event(make_type(io::storage, storage::de_pb_status), "pb_status",
                      &storage::pb_status::operations);
+  }
+  void SetUp() override {
+    _logger_id = log_v3::instance().create_logger_or_get_id("victoria_metrics");
+    _logger = log_v3::instance().get(_logger_id);
+    _logger->set_level(spdlog::level::debug);
   }
 };
 
@@ -166,14 +175,14 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
       http_tsdb::factory::get_columns(
           victoria_metrics::factory::default_extra_metric_column),
       http_tsdb::line_protocol_query::data_type::status,
-      log_v2::victoria_metrics());
+      _logger);
 
   http_tsdb::line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(
           victoria_metrics::factory::default_extra_status_column),
       http_tsdb::line_protocol_query::data_type::status,
-      log_v2::victoria_metrics());
+      _logger);
 
   victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
                                 "/", 0, metric_columns, status_columns, "toto");
@@ -267,13 +276,13 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(column),
       http_tsdb::line_protocol_query::data_type::status,
-      log_v2::victoria_metrics());
+      _logger);
 
   http_tsdb::line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(column),
       http_tsdb::line_protocol_query::data_type::status,
-      log_v2::victoria_metrics());
+      _logger);
 
   victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
                                 "/", 0, metric_columns, status_columns, "toto");
