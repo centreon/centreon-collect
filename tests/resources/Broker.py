@@ -1681,7 +1681,7 @@ def rebuild_rrd_graphs_from_db(indexes):
     with connection:
         with connection.cursor() as cursor:
             if len(indexes) > 0:
-                sq l = f"""UPDATE index_data SET must_be_rebuild='1' WHERE id in ({",".join(map(str, indexes))})"""
+                sql = f"""UPDATE index_data SET must_be_rebuild='1' WHERE id in ({",".join(map(str, indexes))})"""
                 logger.console(sql)
                 cursor.execute(sql)
                 connection.commit()
