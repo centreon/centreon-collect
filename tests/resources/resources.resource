@@ -334,3 +334,48 @@ Stop Centreon
     [Documentation]    Stop Engine and Broker
     [Arguments]    ${only_central}=False
     Run Keywords    Stop Engine    AND    Kindly Stop Broker    ${only_central}
+
+BAM Setup
+    Stop Processes
+    Connect To Database    pymysql    ${DBName}    ${DBUserRoot}    ${DBPassRoot}    ${DBHost}    ${DBPort}
+    Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=0
+    Execute SQL String    DELETE FROM mod_bam_reporting_kpi
+    Execute SQL String    DELETE FROM mod_bam_reporting_timeperiods
+    Execute SQL String    DELETE FROM mod_bam_reporting_relations_ba_timeperiods
+    Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
+    Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
+    Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+
+Init Centreon
+    [Documentation]    Config Engine and Broker
+    [Arguments]    @{engine_conf}
+    Clear Commands Status
+    Clear Retention
+    Config Broker    module
+    Config Broker    central
+    Config Broker    rrd
+    Config Engine    @{engine_conf}
+
+
+Config Process Bam
+    [Documentation]    Configure the bam process
+    Init Centreon    ${1}
+    Broker Config Log    central    core    error
+    Broker Config Log    central    bam    trace
+    Broker Config Log    central    sql    error
+    Broker Config Flush Log    central    0
+    Broker Config Source Log    central    1
+    Config BBDO3    ${1}
+
+    Clone Engine Config To DB
+    Add Bam Config To Engine
+    Add Bam Config To Broker    central
+
+BAM Setup Execution
+    Stop Processes
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${date}    Get Current Date    result_format=epoch
+    log to console    Cleaning downtimes at date=${date}
+    Execute SQL String
+    ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null
+
