@@ -150,7 +150,6 @@ BEBAMIDT2
 BEBAMIGNDT1
     [Documentation]    A BA of type 'worst' with two services is configured. The downtime policy on this ba is "Ignore the indicator in the calculation". The BA is in critical state, because of the second critical service. Then we apply two downtimes on this last one. The BA state is ok because of the policy on indicators. A first downtime is cancelled, the BA is still OK, but when the second downtime is cancelled, the BA should be CRITICAL.
     [Tags]    broker    downtime    engine    bam
-    Init Centreon
     Broker Config Log    central    bam    trace
     Broker Config Log    central    sql    trace
     broker_config_source_log    central    true
