@@ -2,7 +2,12 @@
 Resource    db_variables.resource
 Library     Process
 Library     OperatingSystem
-Library     Common.py
+# Python Library
+Library             Engine.py
+Library             Broker.py
+Library             Bench.py
+Library             Common.py
+Library             specific-duplication.py
 
 
 *** Variables ***
