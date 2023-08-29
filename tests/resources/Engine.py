@@ -53,6 +53,7 @@ class EngineInstance:
         makedirs(VAR_ROOT + "/log/centreon-broker/", mode=0o777, exist_ok=True)
 
     def create_centengine(self, id: int, debug_level=0):
+        grpc_port = id + 50001
         return ("cfg_file={2}/config{0}/hosts.cfg\n"
                 "cfg_file={2}/config{0}/services.cfg\n"
                 "cfg_file={2}/config{0}/commands.cfg\n"
@@ -108,7 +109,7 @@ class EngineInstance:
                 "log_pid=1\n"
                 "macros_filter=KEY80,KEY81,KEY82,KEY83,KEY84\n"
                 "enable_macros_filter=0\n"
-                "rpc_port=50001\n"
+                "rpc_port={5}\n"
                 "postpone_notification_to_timeperiod=0\n"
                 "instance_heartbeat_interval=30\n"
                 "enable_notifications=1\n"
@@ -148,7 +149,7 @@ class EngineInstance:
                 "check_for_orphaned_services=0\n"
                 "check_for_orphaned_hosts=0\n"
                 "check_service_freshness=1\n"
-                "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT)
+                "enable_flap_detection=0\n").format(id, debug_level, CONF_DIR, VAR_ROOT, ETC_ROOT, grpc_port)
 
     def create_host(self):
         self.last_host_id += 1
@@ -1790,18 +1791,20 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     if use_grpc > 0:
-        with grpc.insecure_channel("127.0.0.1:50001") as channel:
+        port = 50001 + int(config[6:])
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
             for i in range(nb_check):
+                indexed_output = f"{output}_{i}"
                 stub.ProcessServiceCheckResult(engine_pb2.Check(
-                    host_name=hst, svc_desc=svc, output=output, code=state))
+                    host_name=hst, svc_desc=svc, output=indexed_output, code=state))
 
     else:
         now = int(time.time())
-        cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
         with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
-            logger.console(cmd)
             for i in range(nb_check):
+                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
+                logger.console(cmd)
                 f.write(cmd)
 
 

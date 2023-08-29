@@ -55,6 +55,27 @@ def check_connection(port: int, pid1: int, pid2: int):
     return False
 
 
+def wait_for_connections(port: int, nb: int, timeout: int = 60):
+    """!  wait until nb connection are established on localhost and port
+    @param port connection port
+    @param nb number of connection expected
+    @param timeout  timeout in second
+    @return True if nb connection are established
+    """
+    limit = time.time() + timeout
+    r = re.compile(
+        r"^ESTAB\s+\d+\s+\d+\s+127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        estab_port = list(filter(r.match, lst))
+        if len(estab_port) >= nb:
+            return True
+        time.sleep(5)
+    return False
+
+
 def get_date(d: str):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
@@ -116,6 +137,25 @@ def find_in_log_with_timeout(log: str, date, content, timeout: int):
     return False
 
 
+def find_in_log_with_timeout_with_line(log: str, date, content, timeout: int):
+    """! search a pattern in log from date param
+    @param log: path of the log file
+    @param date: date from witch it begins search
+    @param content: array of pattern to search
+    @param timeout: time out in second
+    @return  True/False, array of lines found for each pattern
+    """
+    limit = time.time() + timeout
+    c = ""
+    while time.time() < limit:
+        ok, c = find_in_log(log, date, content, False)
+        if ok:
+            return ok, c
+        time.sleep(5)
+    logger.console(f"Unable to find '{c}' from {date} during {timeout}s")
+    return False, None
+
+
 def find_in_log(log: str, date, content, regex=False):
     """Find content in log file from the given date
 
@@ -147,8 +187,7 @@ def find_in_log(log: str, date, content, regex=False):
                 if match:
                     logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
-                    if regex:
-                        res.append(line)
+                    res.append(line)
                     break
             if not found:
                 return False, c
