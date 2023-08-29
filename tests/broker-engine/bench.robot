@@ -41,19 +41,19 @@ BENCH_${nb_check}STATUS
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    ${broker_stat_before}    get_broker_process_stat    51001
-    ${engine_stat_before}    get_engine_process_stat    50001
+    ${broker_stat_before}    Get Broker Process Stat    51001
+    ${engine_stat_before}    Get Engine Process Stat    50001
     Process Service Check result    host_1    service_1    1    warning    config0    1    ${nb_check}
-    send_bench    1    50001
-    ${bench_data}    get_last_bench_result_with_timeout    ${rrdLog}    1    central-rrd-master-output    60
-    ${broker_stat_after}    get_broker_process_stat    51001
-    ${engine_stat_after}    get_engine_process_stat    50001
-    ${diff_broker}    diff_process_stat    ${broker_stat_after}    ${broker_stat_before}
-    ${diff_engine}    diff_process_stat    ${engine_stat_after}    ${engine_stat_before}
+    Send Bench    1    50001
+    ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${broker_stat_after}    Get Broker Process Stat    51001
+    ${engine_stat_after}    Get Engine Process Stat    50001
+    ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
+    ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
-    download_database_from_s3    bench.unqlite
+    Download Database From S3    bench.unqlite
 
-    ${success}    store_result_in_unqlite
+    ${success}    Store Result In Unqlite
     ...    bench.unqlite
     ...    BENCH_${nb_check}STATUS
     ...    broker
@@ -64,9 +64,9 @@ BENCH_${nb_check}STATUS
     ...    write
     ...    central-rrd-master-output
     ...    publish
-    Should Be True    ${success}    "fail to save broker bench to database"
+    Should Be True    ${success}    fail to save broker bench to database
 
-    ${success}    store_result_in_unqlite
+    ${success}    Store Result In Unqlite
     ...    bench.unqlite
     ...    BENCH_${nb_check}STATUS
     ...    engine
@@ -77,9 +77,9 @@ BENCH_${nb_check}STATUS
     ...    callback_pb_bench
     ...    central-module-master-output
     ...    read
-    Should Be True    ${success}    "fail to save engine bench to database"
+    Should Be True    ${success}    fail to save engine bench to database
 
-    upload_database_to_s3    bench.unqlite
+    Upload Database To S3    bench.unqlite
 
     Stop Engine
     Stop Broker
@@ -115,8 +115,8 @@ BENCH_1000STATUS_100ENGINE
 
     Sleep    5
 
-    ${broker_stat_before}    get_broker_process_stat    51001
-    ${engine_stat_before}    get_engine_process_stat    50001
+    ${broker_stat_before}    Get Broker Process Stat    51001
+    ${engine_stat_before}    Get Engine Process Stat    50001
 
     ${start_check}    Get Current Date
     # one host per poller
@@ -132,27 +132,27 @@ BENCH_1000STATUS_100ENGINE
             ...    config${poller_index}
             ...    1
             ...    100
-            IF    ${poller_index} == 1    send_bench    1    50001
+            IF    ${poller_index} == 1    Send Bench    1    50001
         END
     END
 
-    ${bench_data}    get_last_bench_result_with_timeout    ${rrdLog}    1    central-rrd-master-output    60
-    ${broker_stat_after}    get_broker_process_stat    51001
-    ${engine_stat_after}    get_engine_process_stat    50001
-    ${diff_broker}    diff_process_stat    ${broker_stat_after}    ${broker_stat_before}
-    ${diff_engine}    diff_process_stat    ${engine_stat_after}    ${engine_stat_before}
+    ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${broker_stat_after}    Get Broker Process Stat    51001
+    ${engine_stat_after}    Get Engine Process Stat    50001
+    ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
+    ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
     ${content}    Create List    pb service (100, 2000) status 1 type 1 check result output: <<warning_99>>
     ${result}    Find In Log with Timeout with Line    ${centralLog}    ${start_check}    ${content}    240
     Should Be True    ${result[0]}    No check check result received.
-    ${date_last_check_received}    extract_date_from_log    ${result[1][0]}
+    ${date_last_check_received}    Extract Date From Log    ${result[1][0]}
     ${all_check_delay}    Subtract Date From Date    ${date_last_check_received}    ${start_check}
 
     ${delay_last_result}    Create Dictionary    200000_event_received    ${all_check_delay}
 
-    download_database_from_s3    bench.unqlite
+    Download Database From S3    bench.unqlite
 
-    ${success}    store_result_in_unqlite
+    ${success}    Store Result In Unqlite
     ...    bench.unqlite
     ...    BENCH_1000STATUS_100POLLER
     ...    broker
@@ -166,7 +166,7 @@ BENCH_1000STATUS_100ENGINE
     ...    ${delay_last_result}
     Should Be True    ${success}    "fail to save broker bench to database"
 
-    ${success}    store_result_in_unqlite
+    ${success}    Store Result In Unqlite
     ...    bench.unqlite
     ...    BENCH_1000STATUS_100POLLER
     ...    engine
@@ -180,7 +180,7 @@ BENCH_1000STATUS_100ENGINE
     ...    ${delay_last_result}
     Should Be True    ${success}    "fail to save engine bench to database"
 
-    upload_database_to_s3    bench.unqlite
+    Upload Database To S3    bench.unqlite
 
     Stop Engine
     Stop Broker

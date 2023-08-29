@@ -112,6 +112,8 @@ def calc_bench_delay(bench_event_result, bench_muxer_begin: str, bench_muxer_beg
     @param bench_muxer_end_function name of the muxer function owned to the last time point
     """
 
+    time_begin = 0
+    time_end = 0
     begin_re = re.compile(bench_muxer_begin)
     for point in bench_event_result['points']:
         if begin_re.match(point['name']) and point['function'] == bench_muxer_begin_function:
