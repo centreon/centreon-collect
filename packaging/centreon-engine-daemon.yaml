@@ -126,6 +126,7 @@ overrides:
     depends:
       - centreon-clib = ${VERSION}-${RELEASE}${DIST}
       - centreon-engine = ${VERSION}-${RELEASE}${DIST}
+      - centreon-broker-cbmod = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-devel
@@ -139,6 +140,7 @@ overrides:
     depends:
       - centreon-clib (= ${VERSION}-${RELEASE}${DIST})
       - centreon-engine (= ${VERSION}-${RELEASE}${DIST})
+      - centreon-broker-cbmod = ${VERSION}-${RELEASE}${DIST}
     conflicts:
       - centreon-engine-extcommands
       - centreon-engine-dev

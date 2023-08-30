@@ -34,11 +34,9 @@ overrides:
   rpm:
     depends:
       - centreon-broker-core = ${VERSION}-${RELEASE}${DIST}
-      - centreon-engine-daemon = ${VERSION}-${RELEASE}${DIST}
   deb:
     depends:
       - centreon-broker-core (= ${VERSION}-${RELEASE}${DIST})
-      - centreon-engine-daemon (= ${VERSION}-${RELEASE}${DIST})
 
 rpm:
   summary: Centreon Broker as Centreon Engine 2 module.
