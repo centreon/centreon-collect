@@ -42,15 +42,18 @@ using namespace com::centreon::broker::bam;
  *                                      should generate statuses of
  *                                      virtual hosts and services.
  */
-ba_ratio_percent::ba_ratio_percent(uint32_t id,
-                                   uint32_t host_id,
-                                   uint32_t service_id,
-                                   bool generate_virtual_status)
+ba_ratio_percent::ba_ratio_percent(
+    uint32_t id,
+    uint32_t host_id,
+    uint32_t service_id,
+    bool generate_virtual_status,
+    const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,
          host_id,
          service_id,
          configuration::ba::state_source_ratio_percent,
-         generate_virtual_status) {
+         generate_virtual_status,
+         logger) {
   _level_hard = _level_soft = 0;
 }
 

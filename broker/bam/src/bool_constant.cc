@@ -28,8 +28,9 @@ constexpr double eps = 0.000001;
  *
  *  @param[in] val  The constant value to assign.
  */
-bool_constant::bool_constant(double val)
-    : _value(val), _boolean_value{std::abs(val) > ::eps} {}
+bool_constant::bool_constant(double val,
+                             const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _value(val), _boolean_value{std::abs(val) > ::eps} {}
 
 /**
  *  Get the hard value.

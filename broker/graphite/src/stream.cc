@@ -20,7 +20,6 @@
 #include "bbdo/storage/metric.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
@@ -61,7 +60,8 @@ stream::stream(std::string const& metric_naming,
       _cache{cache},
       _metric_query{_metric_naming, escape_string, query::metric, _cache},
       _status_query{_status_naming, escape_string, query::status, _cache},
-      _socket{_io_context} {
+      _socket{_io_context},
+      _logger_id{log_v3::instance().create_logger_or_get_id("graphite")} {
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
     std::string auth{_db_user};
@@ -117,7 +117,8 @@ stream::~stream() {}
  *  @return Number of events acknowledged.
  */
 int32_t stream::flush() {
-  log_v2::graphite()->debug("graphite: commiting {} queries", _actual_query);
+  auto logger = log_v3::instance().get(_logger_id);
+  logger->debug("graphite: commiting {} queries", _actual_query);
   int32_t ret(_pending_queries);
   if (_actual_query != 0)
     _commit();
@@ -134,7 +135,8 @@ int32_t stream::flush() {
  */
 int32_t stream::stop() {
   int32_t retval = flush();
-  log_v3::instance().get(0)->info("graphite stopped with {} events acknowledged", retval);
+  log_v3::instance().get(0)->info(
+      "graphite stopped with {} events acknowledged", retval);
   return retval;
 }
 

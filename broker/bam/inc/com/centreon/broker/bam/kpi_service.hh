@@ -56,13 +56,13 @@ class kpi_service : public service_listener, public kpi {
   state _state_hard;
   state _state_soft;
   short _state_type;
-  uint32_t _logger_id;
 
  public:
   kpi_service(uint32_t kpi_id,
               uint32_t ba_id,
               uint32_t host_id,
-              uint32_t service_id);
+              uint32_t service_id,
+              const std::shared_ptr<spdlog::logger>& logger);
   ~kpi_service() noexcept = default;
   kpi_service(const kpi_service&) = delete;
   kpi_service& operator=(const kpi_service&) = delete;
@@ -79,19 +79,26 @@ class kpi_service : public service_listener, public kpi {
   bool in_downtime() const override;
   bool is_acknowledged() const;
   void service_update(std::shared_ptr<neb::service_status> const& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_acknowledgement>& ack,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(std::shared_ptr<neb::downtime> const& dt,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void set_acknowledged(bool acknowledged);
   void set_downtimed(bool downtimed);
   void set_impact_critical(double impact);

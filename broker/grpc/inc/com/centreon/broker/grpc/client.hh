@@ -41,11 +41,14 @@ class client : public channel,
   // direct call from StartWrite to OnWriteDone
   std::recursive_mutex _hold_mutex;
 
+  /* Logger */
+  const uint32_t _logger_id;
+
  protected:
   client& operator=(const client&) = delete;
   client(const client&) = delete;
 
-  client(const grpc_config::pointer& conf);
+  client(const grpc_config::pointer& conf, const uint32_t logger_id);
 
   void start_read(event_ptr& to_read, bool first_read) override;
   void start_write(const event_ptr& to_send) override;

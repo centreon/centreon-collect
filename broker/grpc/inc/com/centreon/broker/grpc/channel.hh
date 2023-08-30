@@ -93,10 +93,16 @@ class channel : public std::enable_shared_from_this<channel> {
 
   grpc_config::pointer _conf;
 
+  /* Logger */
+  const uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   mutable std::mutex _protect;
   mutable std::condition_variable _read_cond, _write_cond;
 
-  channel(const std::string& class_name, const grpc_config::pointer& conf);
+  channel(const std::string& class_name,
+          const grpc_config::pointer& conf,
+          const uint32_t logger_id);
 
   void start_read(bool first_read);
   void start_write();

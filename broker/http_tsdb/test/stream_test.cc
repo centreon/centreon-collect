@@ -32,39 +32,50 @@ using duration = system_clock::duration;
 
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace nlohmann;
+using com::centreon::common::log_v3::log_v3;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class http_tsdb_stream_test : public ::testing::Test {
+ protected:
+  static std::shared_ptr<spdlog::logger> _logger;
+
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
 
-    log_v2::tcp()->set_level(spdlog::level::debug);
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    _logger = log_v3::instance().get(logger_id);
+    _logger->set_level(spdlog::level::debug);
     file::disk_accessor::load(1000);
     pool::load(g_io_context, 1);
   }
 };
 
+std::shared_ptr<spdlog::logger> http_tsdb_stream_test::_logger;
+
 class request_test : public http_tsdb::request {
   uint _request_id;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   static std::atomic_uint id_gen;
 
   request_test() : _request_id(id_gen.fetch_add(1)) {
-    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "create request {}", _request_id);
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    _logger = log_v3::instance().get(logger_id);
+    SPDLOG_LOGGER_TRACE(_logger, "create request {}", _request_id);
   }
 
   ~request_test() {
-    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "delete request {}", _request_id);
+    SPDLOG_LOGGER_TRACE(_logger, "delete request {}", _request_id);
   }
 
   void add_metric(const storage::pb_metric& metric) override { ++_nb_metric; }
@@ -86,10 +97,7 @@ class stream_test : public http_tsdb::stream {
   stream_test(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
               http_client::client::connection_creator conn_creator =
                   http_client::http_connection::load)
-      : http_tsdb::stream("stream_test",
-                          g_io_context,
-                          conf,
-                          conn_creator) {}
+      : http_tsdb::stream("stream_test", g_io_context, conf, conn_creator) {}
   http_tsdb::request::pointer create_request() const override {
     return std::make_shared<request_test>();
   }
@@ -128,7 +136,7 @@ class connection_send_bagot : public http_client::connection_base {
     } else {
       if (rand() & 3) {
         SPDLOG_LOGGER_ERROR(
-            log_v2::tcp(), "fail id:{} nb_data={}",
+            _logger, "fail id:{} nb_data={}",
             std::static_pointer_cast<request_test>(request)->get_request_id(),
             std::static_pointer_cast<request_test>(request)->get_nb_data());
         _io_context->post([cb = std::move(callback), request]() {
@@ -145,7 +153,7 @@ class connection_send_bagot : public http_client::connection_base {
                               ->get_nb_metric());
         success_cond.notify_one();
         SPDLOG_LOGGER_DEBUG(
-            log_v2::tcp(), "success id:{} nb_data={}",
+            _logger, "success id:{} nb_data={}",
             std::static_pointer_cast<request_test>(request)->get_request_id(),
             std::static_pointer_cast<request_test>(request)->get_nb_data());
         _io_context->post([cb = std::move(callback)]() {
@@ -190,7 +198,7 @@ TEST_F(http_tsdb_stream_test, all_event_sent) {
         std::chrono::milliseconds(1));  // to let io_context thread fo the job
   }
   str->flush();
-  SPDLOG_LOGGER_DEBUG(log_v2::tcp(), "wait");
+  SPDLOG_LOGGER_DEBUG(_logger, "wait");
   std::mutex dummy;
   std::unique_lock<std::mutex> l(dummy);
   connection_send_bagot::success_cond.wait_for(

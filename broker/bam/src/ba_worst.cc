@@ -45,12 +45,14 @@ using namespace com::centreon::broker::bam;
 ba_worst::ba_worst(uint32_t id,
                    uint32_t host_id,
                    uint32_t service_id,
-                   bool generate_virtual_status)
+                   bool generate_virtual_status,
+                   const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,
          host_id,
          service_id,
          configuration::ba::state_source_worst,
-         generate_virtual_status) {}
+         generate_virtual_status,
+         logger) {}
 
 /**
  *  Get BA hard state.

@@ -19,15 +19,19 @@
 #include "com/centreon/broker/bam/kpi_ba.hh"
 
 #include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Default constructor.
  */
-kpi_ba::kpi_ba(uint32_t kpi_id, uint32_t ba_id) : kpi(kpi_id, ba_id) {}
+kpi_ba::kpi_ba(uint32_t kpi_id,
+               uint32_t ba_id,
+               const std::shared_ptr<spdlog::logger>& logger)
+    : kpi(kpi_id, ba_id, logger) {}
 
 /**
  *  Get the impact introduced by a CRITICAL state of the BA.
@@ -73,8 +77,8 @@ void kpi_ba::impact_soft(impact_values& soft_impact) {
  *  @param[in] my_ba Linked BA.
  */
 void kpi_ba::link_ba(std::shared_ptr<ba>& my_ba) {
-  log_v2::bam()->trace("kpi ba ({}, {}) linked to ba {} {}", _id, _ba_id,
-                       my_ba->get_name(), my_ba->get_id());
+  _logger->trace("kpi ba ({}, {}) linked to ba {} {}", _id, _ba_id,
+                 my_ba->get_name(), my_ba->get_id());
   _ba = my_ba;
 }
 
@@ -109,8 +113,8 @@ void kpi_ba::set_impact_unknown(double impact) {
  *  Unlink from BA.
  */
 void kpi_ba::unlink_ba() {
-  log_v2::bam()->trace("kpi ba ({}, {}) unlinked from ba {} {}", _id, _ba_id,
-                       _ba->get_name(), _ba->get_id());
+  _logger->trace("kpi ba ({}, {}) unlinked from ba {} {}", _id, _ba_id,
+                 _ba->get_name(), _ba->get_id());
   _ba.reset();
 }
 
@@ -157,7 +161,7 @@ void kpi_ba::visit(io::stream* visitor) {
 
     // Generate status event.
     {
-      log_v2::bam()->debug("Generating kpi status {} for BA {}", _id, _ba_id);
+      _logger->debug("Generating kpi status {} for BA {}", _id, _ba_id);
       std::shared_ptr<pb_kpi_status> status{std::make_shared<pb_kpi_status>()};
       KpiStatus& ev(status->mut_obj());
       ev.set_kpi_id(_id);

@@ -68,6 +68,11 @@ namespace bam {
  */
 class monitoring_stream : public io::stream {
   const std::string _ext_cmd_file;
+
+  /* Loggers */
+  const uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   configuration::applier::state _applier;
   /* This mutex is to protect writes to the external command named pipe. */
   mutable std::mutex _ext_cmd_file_m;
@@ -92,10 +97,6 @@ class monitoring_stream : public io::stream {
   std::unordered_set<std::pair<std::string, std::string>,
                      absl::Hash<std::pair<std::string, std::string>>>
       _timer_forced_svc_checks;
-
-  /* Loggers */
-  uint32_t _logger_id;
-  std::shared_ptr<spdlog::logger> _logger;
 
   void _write_forced_svc_check(const std::string& host,
                                const std::string& description);

@@ -28,8 +28,10 @@ using namespace com::centreon::broker::bam;
 /**
  *  Default constructor.
  */
-kpi_boolexp::kpi_boolexp(uint32_t kpi_id, uint32_t ba_id)
-    : kpi(kpi_id, ba_id) {}
+kpi_boolexp::kpi_boolexp(uint32_t kpi_id,
+                         uint32_t ba_id,
+                         const std::shared_ptr<spdlog::logger>& logger)
+    : kpi(kpi_id, ba_id, logger) {}
 
 /**
  *  Return true if in downtime.
@@ -201,17 +203,17 @@ void kpi_boolexp::_update_state() {
   uint32_t id = _boolexp->get_id();
   if (_boolexp->state_known()) {
     _current_state = _boolexp->get_state();
-    log_v2::bam()->trace(
+    _logger->trace(
         "BAM: kpi {} boolean expression: state (known) value: {}", id,
         _current_state);
   } else if (_event) {
     _current_state = static_cast<state>(_event->status());
-    log_v2::bam()->trace(
+    _logger->trace(
         "BAM: kpi {} boolean expression: state from internal event: {}", id,
         _current_state);
   } else {
     _current_state = _boolexp->get_state();
-    log_v2::bam()->trace(
+    _logger->trace(
         "BAM: kpi {} boolean expression: state value still taken from "
         "boolexp: {}",
         id, _current_state);

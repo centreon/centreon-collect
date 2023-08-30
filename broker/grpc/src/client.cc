@@ -22,15 +22,20 @@
 
 #include "com/centreon/broker/grpc/client.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
+using com::centreon::common::log_v3::log_v3;
 
-client::client(const grpc_config::pointer& conf)
-    : channel("client", conf), _hold_to_remove(false) {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
+client::client(const grpc_config::pointer& conf, const uint32_t logger_id)
+    : channel("client", conf, logger_id),
+      _hold_to_remove(false),
+      _logger_id{logger_id} {
+  auto logger = log_v3::instance().get(_logger_id);
+  SPDLOG_LOGGER_TRACE(logger, "this={:p}", static_cast<void*>(this));
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
   args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
@@ -46,11 +51,11 @@ client::client(const grpc_config::pointer& conf)
 
     const char* algo_name;
     if (grpc_compression_algorithm_name(algo, &algo_name)) {
-      log_v2::grpc()->debug("client this={:p} activate compression {}",
-                            static_cast<void*>(this), algo_name);
+      logger->debug("client this={:p} activate compression {}",
+                    static_cast<void*>(this), algo_name);
     } else {
-      log_v2::grpc()->debug("client this={:p} activate compression unknown",
-                            static_cast<void*>(this));
+      logger->debug("client this={:p} activate compression unknown",
+                    static_cast<void*>(this));
     }
     args.SetCompressionAlgorithm(algo);
   }
@@ -58,8 +63,7 @@ client::client(const grpc_config::pointer& conf)
 #ifdef USE_TLS
   if (conf->is_crypted()) {
     SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
-        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+        logger, "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
         conf->get_hostport(), conf->get_cert().substr(0, 10),
         conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
 
@@ -70,8 +74,7 @@ client::client(const grpc_config::pointer& conf)
     ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
                                               conf->get_cert()};
     SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
-        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+        logger, "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
         conf->get_hostport(), conf->get_cert().substr(0, 10),
         conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
     creds = ::grpc::SslCredentials(ssl_opts);
@@ -84,7 +87,7 @@ client::client(const grpc_config::pointer& conf)
 #endif
 #endif
   } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
+    SPDLOG_LOGGER_INFO(logger, "unencrypted connection to {}",
                        conf->get_hostport());
     creds = ::grpc::InsecureChannelCredentials();
   }
@@ -100,7 +103,8 @@ client::client(const grpc_config::pointer& conf)
 }
 
 client::pointer client::create(const grpc_config::pointer& conf) {
-  client::pointer newClient(new client(conf));
+  client::pointer newClient(
+      new client(conf, log_v3::instance().create_logger_or_get_id("grpc")));
   newClient->start();
   return newClient;
 }
@@ -144,7 +148,8 @@ void client::start_write(const event_ptr& to_send) {
 void client::OnWriteDone(bool ok) {
   on_write_done(ok);
   if (!ok) {
-    SPDLOG_LOGGER_ERROR(log_v2::grpc(),
+    auto logger = log_v3::instance().get(_logger_id);
+    SPDLOG_LOGGER_ERROR(logger,
                         "Write failed, server logs should help to understand "
                         "what's gone wrong");
     remove_hold();

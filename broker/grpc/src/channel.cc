@@ -23,9 +23,11 @@
 #include "com/centreon/broker/grpc/channel.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/trash.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief this memory leak is mandatory
@@ -37,9 +39,7 @@ using channel_trash_type = com::centreon::broker::misc::trash<channel>;
 
 static channel_trash_type* _trash(new channel_trash_type);
 
-namespace com {
-namespace centreon {
-namespace broker {
+namespace com::centreon::broker {
 namespace stream {
 std::ostream& operator<<(std::ostream& st,
                          const centreon_stream::centreon_event& to_dump) {
@@ -67,24 +67,25 @@ std::ostream& operator<<(std::ostream& st,
   return st;
 }
 }  // namespace grpc
-}  // namespace broker
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::broker
 
 channel::channel(const std::string& class_name,
-                 const grpc_config::pointer& conf)
+                 const grpc_config::pointer& conf,
+                 const uint32_t logger_id)
     : _class_name(class_name),
       _read_pending(false),
       _write_pending(false),
       _error(false),
       _thrown(false),
-      _conf(conf) {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "channel::channel this={:p}",
+      _conf(conf),
+      _logger_id{logger_id},
+      _logger{log_v3::instance().get(_logger_id)} {
+  SPDLOG_LOGGER_TRACE(_logger, "channel::channel this={:p}",
                       static_cast<void*>(this));
 }
 
 channel::~channel() {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "channel::~channel this={:p}",
+  SPDLOG_LOGGER_TRACE(_logger, "channel::~channel this={:p}",
                       static_cast<void*>(this));
 }
 
@@ -97,8 +98,7 @@ constexpr unsigned second_delay_before_delete = 60u;
 void channel::to_trash() {
   this->shutdown();
   _thrown = true;
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "to_trash this={:p}",
-                      static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(_logger, "to_trash this={:p}", static_cast<void*>(this));
   _trash->to_trash(shared_from_this(),
                    time(nullptr) + second_delay_before_delete);
 }
@@ -135,6 +135,7 @@ std::pair<event_ptr, bool> channel::read(
 }
 
 void channel::start_read(bool first_read) {
+  _logger = log_v3::instance().get(_logger_id);
   event_ptr to_read;
   {
     lock_guard l(_protect);
@@ -145,9 +146,9 @@ void channel::start_read(bool first_read) {
 
     _read_pending = true;
     if (first_read)
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "Start call and read");
+      SPDLOG_LOGGER_DEBUG(_logger, "Start call and read");
     else
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "Start read");
+      SPDLOG_LOGGER_TRACE(_logger, "Start read");
   }
   if (to_read) {
     start_read(to_read, first_read);
@@ -158,7 +159,7 @@ void channel::on_read_done(bool ok) {
   if (ok) {
     {
       lock_guard l(_protect);
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "receive: {}", *_read_current);
+      SPDLOG_LOGGER_DEBUG(_logger, "receive: {}", *_read_current);
 
       _read_queue.push_back(_read_current);
       _read_cond.notify_one();
@@ -166,7 +167,7 @@ void channel::on_read_done(bool ok) {
     }
     start_read(false);
   } else {
-    log_v2::grpc()->error("{}::{} ", _class_name, __FUNCTION__);
+    _logger->error("{}::{} ", _class_name, __FUNCTION__);
     lock_guard l(_protect);
     _error = true;
   }
@@ -201,7 +202,7 @@ void channel::start_write() {
     _write_pending = true;
     write_current = _write_current = _write_queue.front();
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write: {}", *write_current);
+  SPDLOG_LOGGER_DEBUG(_logger, "write: {}", *write_current);
   start_write(write_current);
 }
 
@@ -211,7 +212,7 @@ void channel::on_write_done(bool ok) {
     {
       lock_guard l(_protect);
       _write_pending = false;
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done: {}", *_write_current);
+      SPDLOG_LOGGER_DEBUG(_logger, "write done: {}", *_write_current);
 
       _write_queue.pop_front();
       data_to_write = !_write_queue.empty();
@@ -222,7 +223,7 @@ void channel::on_write_done(bool ok) {
     }
   } else {
     lock_guard l(_protect);
-    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}", *_write_current);
+    SPDLOG_LOGGER_ERROR(_logger, "write failed: {}", *_write_current);
     _error = true;
   }
 }
@@ -240,8 +241,8 @@ int channel::flush() {
  */
 bool channel::wait_for_all_events_written(unsigned ms_timeout) {
   unique_lock l(_protect);
-  log_v2::grpc()->trace("wait_for_all_events_written _write_queue.size()={}",
-                        _write_queue.size());
+  _logger->trace("wait_for_all_events_written _write_queue.size()={}",
+                 _write_queue.size());
   return _write_cond.wait_for(l, std::chrono::milliseconds(ms_timeout),
                               [this]() { return _write_queue.empty(); });
 }

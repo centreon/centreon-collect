@@ -38,7 +38,7 @@ class bool_constant : public bool_value {
   const bool _boolean_value;
 
  public:
-  bool_constant(double value);
+  bool_constant(double value, const std::shared_ptr<spdlog::logger>& logger);
   ~bool_constant() noexcept override = default;
   bool_constant(const bool_constant&) = delete;
   bool_constant& operator=(const bool_constant&) = delete;

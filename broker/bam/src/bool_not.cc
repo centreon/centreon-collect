@@ -29,7 +29,9 @@ constexpr double eps = 0.000001;
  *
  *  @param[in] val Value that will be negated.
  */
-bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
+bool_not::bool_not(bool_value::ptr val,
+                   const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _value(std::move(val)) {}
 
 /**
  *  Set value object.

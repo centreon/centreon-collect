@@ -68,6 +68,9 @@ class stream : public io::stream {
   asio::io_context _io_context;
   asio::ip::tcp::socket _socket;
 
+  // Logger
+  uint32_t _logger_id;
+
   // Process metric/status and generate query.
   bool _process_metric(storage::metric const& me);
   bool _process_status(storage::status const& st);
