@@ -51,15 +51,15 @@ namespace lua {
  *  exit, the thread waits for 500ms before rechecking events.
  */
 class stream : public io::stream {
-  /* Macro cache */
-  macro_cache _cache;
-
   /* The Lua engine */
   luabinding _luabinding;
 
   /* Logger ID */
   uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
+
+  /* Macro cache */
+  macro_cache _cache;
 
  public:
   stream(std::string const& lua_script,

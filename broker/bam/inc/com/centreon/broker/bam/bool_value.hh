@@ -34,7 +34,8 @@ class bool_value : public computable {
  public:
   typedef std::shared_ptr<bool_value> ptr;
 
-  bool_value() = default;
+  bool_value(const std::shared_ptr<spdlog::logger>& logger)
+      : computable(logger) {}
   ~bool_value() noexcept override = default;
   bool_value(const bool_value&) = delete;
   bool_value& operator=(const bool_value&) = delete;

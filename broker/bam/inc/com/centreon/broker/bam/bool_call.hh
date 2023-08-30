@@ -39,7 +39,8 @@ class bool_call : public bool_value {
  public:
   typedef std::shared_ptr<bool_call> ptr;
 
-  bool_call(std::string const& name);
+  bool_call(std::string const& name,
+            const std::shared_ptr<spdlog::logger>& logger);
   ~bool_call() noexcept override = default;
   bool_call(const bool_call&) = delete;
   bool_call& operator=(const bool_call&) = delete;

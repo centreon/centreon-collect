@@ -19,6 +19,8 @@
 #ifndef CCB_BAM_COMPUTABLE_HH
 #define CCB_BAM_COMPUTABLE_HH
 
+#include <spdlog/logger.h>
+#include <memory>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
@@ -36,8 +38,11 @@ class computable {
  protected:
   std::list<std::weak_ptr<computable>> _parents;
 
+  /* Logger is updated on child_hash_update() */
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
-  computable() = default;
+  computable(const std::shared_ptr<spdlog::logger>& logger) : _logger(logger) {}
   computable(const computable&) = delete;
   virtual ~computable() noexcept = default;
   computable& operator=(const computable&) = delete;

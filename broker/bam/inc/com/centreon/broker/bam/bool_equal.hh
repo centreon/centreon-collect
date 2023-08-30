@@ -33,7 +33,8 @@ namespace bam {
  */
 class bool_equal : public bool_binary_operator {
  public:
-  bool_equal() = default;
+  bool_equal(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   ~bool_equal() noexcept override = default;
   bool_equal(const bool_equal&) = delete;
   bool_equal& operator=(const bool_equal&) = delete;

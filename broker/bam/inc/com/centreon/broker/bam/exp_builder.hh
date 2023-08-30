@@ -41,6 +41,7 @@ class exp_builder {
   using any_operand = std::pair<bool_value::ptr, std::string>;
 
  private:
+  std::shared_ptr<spdlog::logger> _logger;
   hst_svc_mapping const& _mapping;
   list_call _calls;
   list_service _services;
@@ -54,7 +55,8 @@ class exp_builder {
 
  public:
   exp_builder(exp_parser::notation const& postfix,
-              hst_svc_mapping const& mapping);
+              hst_svc_mapping const& mapping,
+              const std::shared_ptr<spdlog::logger>& logger);
   exp_builder(const exp_builder&) = delete;
   exp_builder& operator=(const exp_builder&);
   ~exp_builder() noexcept = default;

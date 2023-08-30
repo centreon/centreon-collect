@@ -35,7 +35,7 @@ class bool_more_than : public bool_binary_operator {
   const bool _strict;
 
  public:
-  bool_more_than(bool strict = false);
+  bool_more_than(bool strict, const std::shared_ptr<spdlog::logger>& logger);
   bool_more_than(const bool_more_than&) = delete;
   ~bool_more_than() noexcept = default;
   bool_more_than& operator=(const bool_more_than&) = delete;

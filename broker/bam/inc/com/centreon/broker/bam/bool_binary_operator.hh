@@ -48,7 +48,8 @@ class bool_binary_operator : public bool_value {
  public:
   typedef std::shared_ptr<bool_binary_operator> ptr;
 
-  bool_binary_operator() = default;
+  bool_binary_operator(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_value(logger) {}
   bool_binary_operator(bool_binary_operator const&) = delete;
   ~bool_binary_operator() noexcept override = default;
   bool_binary_operator& operator=(const bool_binary_operator&) = delete;

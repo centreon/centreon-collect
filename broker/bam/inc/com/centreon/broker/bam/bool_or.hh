@@ -38,7 +38,8 @@ class bool_or : public bool_binary_operator {
   virtual void _update_state() override;
 
  public:
-  bool_or() = default;
+  bool_or(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   ~bool_or() noexcept override = default;
   bool_or(const bool_or&) = delete;
   bool_or& operator=(const bool_or&) = delete;

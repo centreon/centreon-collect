@@ -17,8 +17,10 @@
 */
 #include "com/centreon/broker/bam/availability_builder.hh"
 #include <gtest/gtest.h>
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 TEST(BamAvailabilityBuilder, Simple) {
   /* mon. 29 mars 2021 15:59:18 CEST */
@@ -26,16 +28,18 @@ TEST(BamAvailabilityBuilder, Simple) {
   /* mon. 29 mars 2021 15:04:18 CEST */
   time_t start_time = 1617023058u;
 
-  time::timeperiod::ptr period{std::make_shared<time::timeperiod>(
+  time::timeperiod::ptr period = std::make_shared<time::timeperiod>(
       4, "test_timeperiod", "test_alias", "08:00-20:00", "08:00-20:00",
       "08:00-20:00", "08:00-20:00", "08:00-20:00", "08:00-20:00",
-      "08:00-20:00")};
+      "08:00-20:00");
   ASSERT_TRUE(period->is_valid(end_time));
 
   bam::availability_builder builder(end_time, start_time);
   ASSERT_EQ(builder.get_available(), 0);
 
-  builder.add_event(0, start_time, end_time, false, period);
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("bam");
+  auto logger = log_v3::instance().get(logger_id);
+  builder.add_event(0, start_time, end_time, false, period, logger);
 
   /* The availability here is the duration from start_time to end_time: 3300 */
   ASSERT_EQ(builder.get_available(), 3300);

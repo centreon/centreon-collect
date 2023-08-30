@@ -44,7 +44,9 @@ class bool_expression : public computable {
   std::shared_ptr<bool_value> _expression;
 
  public:
-  bool_expression(uint32_t id, bool impact_if);
+  bool_expression(uint32_t id,
+                  bool impact_if,
+                  const std::shared_ptr<spdlog::logger>& logger);
   bool_expression(const bool_expression&) = delete;
   ~bool_expression() noexcept override = default;
   bool_expression& operator=(const bool_expression&) = delete;

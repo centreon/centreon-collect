@@ -21,9 +21,11 @@
 
 #include "com/centreon/broker/grpc/connector.hh"
 #include "com/centreon/broker/grpc/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -41,13 +43,14 @@ connector::connector(const grpc_config::pointer& conf)
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::open() {
-  SPDLOG_LOGGER_INFO(log_v2::grpc(), "Connecting to {}", _conf->get_hostport());
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("grpc");
+  auto logger = log_v3::instance().get(logger_id);
+  SPDLOG_LOGGER_INFO(logger, "Connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
     SPDLOG_LOGGER_DEBUG(
-        log_v2::tcp(),
-        "Unable to establish the connection to {} (attempt {}): {}",
+        logger, "Unable to establish the connection to {} (attempt {}): {}",
         _conf->get_hostport(), _is_ready_count, e.what());
     return nullptr;
   }

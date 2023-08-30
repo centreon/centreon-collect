@@ -44,7 +44,7 @@ class exp_parser {
   notation _postfix;
 
  public:
-  exp_parser(std::string const& expression);
+  exp_parser(const std::string& expression);
   exp_parser(exp_parser const&) = delete;
   ~exp_parser() noexcept = default;
   exp_parser& operator=(const exp_parser&) = delete;

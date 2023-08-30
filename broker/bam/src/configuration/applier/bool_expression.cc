@@ -24,7 +24,6 @@
 #include "com/centreon/broker/bam/exp_builder.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
 #include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
@@ -42,6 +41,8 @@ void applier::bool_expression::apply(
     configuration::state::bool_exps const& my_bools,
     hst_svc_mapping const& mapping,
     service_book& book) {
+  _logger = log_v3::instance().get(_logger_id);
+
   //
   // DIFF
   //
@@ -85,8 +86,8 @@ void applier::bool_expression::apply(
   for (std::map<uint32_t, applied>::iterator it(to_delete.begin()),
        end(to_delete.end());
        it != end; ++it) {
-    log_v2::bam()->info("BAM: removing boolean expression {}",
-                        it->second.cfg.get_id());
+    _logger->info("BAM: removing boolean expression {}",
+                  it->second.cfg.get_id());
     for (std::list<bool_service::ptr>::const_iterator
              it2(it->second.svc.begin()),
          end2(it->second.svc.end());
@@ -101,12 +102,12 @@ void applier::bool_expression::apply(
   for (bam::configuration::state::bool_exps::iterator it = to_create.begin(),
                                                       end = to_create.end();
        it != end; ++it) {
-    log_v2::bam()->info("BAM: creating new boolean expression {}", it->first);
+    _logger->info("BAM: creating new boolean expression {}", it->first);
     auto new_bool_exp = std::make_shared<bam::bool_expression>(
-        it->first, it->second.get_impact_if());
+        it->first, it->second.get_impact_if(), _logger);
     try {
       bam::exp_parser p(it->second.get_expression());
-      bam::exp_builder b(p.get_postfix(), mapping);
+      bam::exp_builder b(p.get_postfix(), mapping, _logger);
       bam::bool_value::ptr tree(b.get_tree());
       new_bool_exp->set_expression(tree);
       if (tree)
@@ -125,7 +126,7 @@ void applier::bool_expression::apply(
         book.listen((*it2)->get_host_id(), (*it2)->get_service_id(),
                     it2->get());
     } catch (std::exception const& e) {
-      log_v2::bam()->error(
+      _logger->error(
           "BAM: could not create boolean expression {} so it will be "
           "discarded: {}",
           it->first, e.what());
@@ -170,7 +171,7 @@ void applier::bool_expression::_resolve_expression_calls() {
       std::map<std::string, uint32_t>::const_iterator found =
           _name_to_ids.find((*call_it)->get_name());
       if (found == _name_to_ids.end()) {
-        log_v2::bam()->error(
+        _logger->error(
             "BAM: could not resolve the external boolean called '{}' for "
             "expression '{}'",
             (*call_it)->get_name(), it->second.cfg.get_name());

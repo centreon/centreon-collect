@@ -58,6 +58,9 @@ class stream : public io::stream {
   std::string _status;
   mutable std::mutex _statusm;
 
+  /* Logger */
+  uint32_t _logger_id;
+
  public:
   stream(std::string const& user,
          std::string const& passwd,
@@ -70,7 +73,11 @@ class stream : public io::stream {
          std::string const& metric_ts,
          std::vector<column> const& metric_cols,
          std::shared_ptr<persistent_cache> const& cache);
-  ~stream();
+
+  /**
+   *  Destructor.
+   */
+  ~stream() noexcept = default;
   int flush() override;
   bool read(std::shared_ptr<io::data>& d, time_t deadline) override;
   void statistics(nlohmann::json& tree) const override;

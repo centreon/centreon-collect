@@ -49,7 +49,10 @@ class kpi : public computable {
   void _event_init();
 
  public:
-  kpi(uint32_t kpi_id, uint32_t ba_id, const std::string& name);
+  kpi(uint32_t kpi_id,
+      uint32_t ba_id,
+      const std::string& name,
+      const std::shared_ptr<spdlog::logger>& logger);
   virtual ~kpi() noexcept = default;
   kpi& operator=(const kpi&) = delete;
   kpi(const kpi&) = delete;

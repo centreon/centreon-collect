@@ -21,12 +21,13 @@
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -53,15 +54,11 @@ stream::stream(std::string const& user,
       _pending_queries(0),
       _actual_query(0),
       _commit(false),
-      _cache(cache) {
+      _cache(cache),
+      _logger_id{log_v3::instance().create_logger_or_get_id("influxdb")} {
   _influx_db.reset(new influxdb(user, passwd, addr, port, db, status_ts,
                                 status_cols, metric_ts, metric_cols, _cache));
 }
-
-/**
- *  Destructor.
- */
-stream::~stream() {}
 
 /**
  *  Flush the stream.
@@ -69,7 +66,9 @@ stream::~stream() {}
  *  @return Number of events acknowledged.
  */
 int32_t stream::flush() {
-  log_v2::influxdb()->debug("influxdb: commiting {} queries", _actual_query);
+  log_v3::instance()
+      .get(_logger_id)
+      ->debug("influxdb: commiting {} queries", _actual_query);
   int ret(_pending_queries);
   _actual_query = 0;
   _pending_queries = 0;
@@ -85,8 +84,8 @@ int32_t stream::flush() {
  */
 int32_t stream::stop() {
   int32_t retval = flush();
-  log_v2::core()->info("influxdb stream stopped with {} acknowledged events",
-                       retval);
+  log_v3::instance().get(0)->info(
+      "influxdb stream stopped with {} acknowledged events", retval);
   return retval;
 }
 

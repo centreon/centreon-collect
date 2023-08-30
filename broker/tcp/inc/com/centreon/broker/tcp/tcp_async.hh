@@ -72,12 +72,16 @@ class tcp_async : public std::enable_shared_from_this<tcp_async> {
   std::unique_ptr<asio::steady_timer> _timer;
   std::atomic_bool _clear_available_con_running;
 
+  /* Logger */
+  uint32_t _logger_id;
+
   tcp_async();
 
   void _clear_available_con(boost::system::error_code ec);
 
   static void _set_sock_opt(asio::ip::tcp::socket& sock,
-                            const tcp_config::pointer& conf);
+                            const tcp_config::pointer& conf,
+                            const std::shared_ptr<spdlog::logger>& logger);
 
  public:
   static void load();

@@ -31,7 +31,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v3::log_v3;
 
 #ifdef LUA51
 static int l_pairs(lua_State* L) {

@@ -47,22 +47,29 @@ class service_listener {
   virtual ~service_listener() noexcept = default;
   service_listener& operator=(const service_listener&) = delete;
   virtual void service_update(std::shared_ptr<neb::pb_service> const& status,
-                              io::stream* visitor = nullptr);
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger);
   virtual void service_update(
       std::shared_ptr<neb::pb_service_status> const& status,
-      io::stream* visitor = nullptr);
+      io::stream* visitor,
+      const std::shared_ptr<spdlog::logger>& logger);
   virtual void service_update(
       std::shared_ptr<neb::service_status> const& status,
-      io::stream* visitor = nullptr);
+      io::stream* visitor,
+      const std::shared_ptr<spdlog::logger>& logger);
   virtual void service_update(
       const std::shared_ptr<neb::pb_acknowledgement>& ack,
-      io::stream* visitor = nullptr);
+      io::stream* visitor,
+      const std::shared_ptr<spdlog::logger>& logger);
   virtual void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
-                              io::stream* visitor = nullptr);
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger);
   virtual void service_update(std::shared_ptr<neb::downtime> const& dt,
-                              io::stream* visitor = nullptr);
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger);
   virtual void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
-                              io::stream* visitor = nullptr);
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace bam
 

@@ -61,6 +61,9 @@ class query {
   // Macro cache
   macro_cache const* _cache;
 
+  /* Logger */
+  uint32_t _logger_id;
+
   void _compile_naming_scheme(std::string const& naming_scheme, data_type type);
   std::string _escape(std::string const& str);
   void _throw_on_invalid(data_type macro_type);

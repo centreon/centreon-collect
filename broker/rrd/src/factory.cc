@@ -19,13 +19,14 @@
 #include "com/centreon/broker/rrd/factory.hh"
 
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Search for a property value.
@@ -106,7 +107,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("write_metrics"));
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &write_metrics)) {
-        log_v2::rrd()->error(
+        log_v3::instance().get(0)->error(
             "factory: cannot parse the 'write_metrics' boolean: the content is "
             "'{}'",
             it->second);
@@ -123,7 +124,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("write_status")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &write_status)) {
-        log_v2::rrd()->error(
+        log_v3::instance().get(0)->error(
             "factory: cannot parse the 'write_status' boolean: the content is "
             "'{}'",
             it->second);
@@ -147,7 +148,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("ignore_update_errors")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &ignore_update_errors)) {
-        log_v2::rrd()->error(
+        log_v3::instance().get(0)->error(
             "factory: cannot parse the 'ignore_update_errors' boolean: the "
             "content is '{}'",
             it->second);

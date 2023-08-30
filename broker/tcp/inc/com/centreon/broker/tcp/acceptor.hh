@@ -38,6 +38,8 @@ class acceptor : public io::endpoint {
   std::mutex _childrenm;
   std::shared_ptr<asio::ip::tcp::acceptor> _acceptor;
 
+  uint32_t _logger_id;
+
  public:
   acceptor(const tcp_config::pointer& conf);
   ~acceptor() noexcept;

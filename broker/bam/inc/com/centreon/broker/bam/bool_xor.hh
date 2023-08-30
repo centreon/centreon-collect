@@ -33,7 +33,8 @@ namespace bam {
  */
 class bool_xor : public bool_binary_operator {
  public:
-  bool_xor() = default;
+  bool_xor(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   ~bool_xor() noexcept = default;
   bool_xor(const bool_xor&) = delete;
   bool_xor& operator=(const bool_xor&) = delete;

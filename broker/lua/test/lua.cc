@@ -51,9 +51,16 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class LuaTest : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   void SetUp() override {
-    log_v3::load({"core", "lua"});
+    // log_v3::load({"core", "config", "lua"});
+    const uint32_t logger_id =
+        log_v3::instance().create_logger_or_get_id("lua");
+    _logger = log_v3::instance().get(logger_id);
+
     g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
@@ -62,14 +69,14 @@ class LuaTest : public ::testing::Test {
     }
     std::shared_ptr<persistent_cache> pcache(
         std::make_shared<persistent_cache>("/tmp/broker_test_cache"));
-    _cache.reset(new macro_cache(pcache));
+    _cache.reset(new macro_cache(pcache, logger_id));
   }
   void TearDown() override {
     // The cache must be destroyed before the applier deinit() call.
     _cache.reset();
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
-    log_v3::unload();
+    // log_v3::unload();
   }
 
   void CreateScript(std::string const& filename, std::string const& content) {

@@ -32,8 +32,10 @@ using namespace com::centreon::broker;
  * @param impact_if True if impact is applied if the expression is true.False
  * otherwise.
  */
-bool_expression::bool_expression(uint32_t id, bool impact_if)
-    : _id(id), _impact_if(impact_if) {}
+bool_expression::bool_expression(uint32_t id,
+                                 bool impact_if,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : computable(logger), _id(id), _impact_if(impact_if) {}
 
 /**
  *  Get the boolean expression state.
@@ -43,7 +45,7 @@ bool_expression::bool_expression(uint32_t id, bool impact_if)
 state bool_expression::get_state() const {
   bool v = _expression->boolean_value();
   state retval = v == _impact_if ? state_critical : state_ok;
-  log_v2::bam()->debug(
+  _logger->debug(
       "BAM: boolean expression {} - impact if: {} - value: {} - state: {}", _id,
       _impact_if, v, retval);
   return retval;
