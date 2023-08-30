@@ -9,7 +9,8 @@ if id centreon-broker > /dev/null 2>&1; then
 fi
 
 if id centreon-gorgone > /dev/null 2>&1; then
-  usermod -a -G centreon-gorgone centreon-engine
+  usermod centreon-engine -a -G centreon-gorgone
+  usermod centreon-gorgone -a -G centreon-engine
 fi
 
 if id -g nagios > /dev/null 2>&1; then

@@ -15,7 +15,8 @@ else # rpm
 fi
 
 if [ "$(getent passwd centreon-gorgone)" ]; then
-  usermod -a -G centreon-gorgone centreon-broker
+  usermod centreon-broker -a -G centreon-gorgone
+  usermod centreon-gorgone -a -G centreon-broker
 fi
 
 if [ "$(getent passwd centreon-engine)" ]; then
