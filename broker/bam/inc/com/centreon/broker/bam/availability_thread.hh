@@ -88,6 +88,10 @@ class availability_thread final {
   bool _should_rebuild_all;
   std::string _bas_to_rebuild;
   std::condition_variable _wait;
+
+  /* Logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
 };
 }  // namespace bam
 

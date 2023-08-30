@@ -21,12 +21,13 @@
 
 #include <fmt/format.h>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tcp/stream.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -40,23 +41,21 @@ connector::connector(const tcp_config::pointer& conf)
     : io::limit_endpoint(false, {}), _conf(conf) {}
 
 /**
- *  Destructor.
- */
-connector::~connector() {}
-
-/**
  * @brief Connect to the remote host.
  *
  * @return The TCP connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+  auto logger = log_v3::instance().get(logger_id);
+
   // Launch connection process.
-  log_v2::tcp()->info("TCP: connecting to {}:{}", _conf->get_host(),
-                      _conf->get_port());
+  logger->info("TCP: connecting to {}:{}", _conf->get_host(),
+               _conf->get_port());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
-    log_v2::tcp()->debug(
+    logger->debug(
         "Unable to establish the connection to {}:{} (attempt {}): {}",
         _conf->get_host(), _conf->get_port(), _is_ready_count, e.what());
     return nullptr;

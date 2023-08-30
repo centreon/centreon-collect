@@ -64,15 +64,16 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
                                      std::shared_ptr<persistent_cache> cache)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
+      _logger_id{log_v3::instance().create_logger_or_get_id("bam")},
+      _logger{log_v3::instance().get(_logger_id)},
+      _applier(_logger_id),
       _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
       _pending_request(0),
       _storage_db_cfg(storage_db_cfg),
       _cache(std::move(cache)),
-      _forced_svc_checks_timer{pool::io_context()},
-      _logger_id{log_v3::instance().create_logger_or_get_id("bam")},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _forced_svc_checks_timer{pool::io_context()} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream constructor");
   if (!_conf_queries_per_transaction) {
     _conf_queries_per_transaction = 1;
@@ -391,7 +392,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           ss->host_id, ss->service_id, ss->last_hard_state, ss->current_state);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ss, &ev_cache);
+      _applier.book_service().update(ss, &ev_cache, _logger);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_service_status::static_type(): {
@@ -404,7 +405,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ss, &ev_cache);
+      _applier.book_service().update(ss, &ev_cache, _logger);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_service::static_type(): {
@@ -417,7 +418,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           o.host_id(), o.service_id(), o.last_hard_state(), o.state());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(s, &ev_cache);
+      _applier.book_service().update(s, &ev_cache, _logger);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_acknowledgement::static_type(): {
@@ -428,7 +429,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
                           ack->obj().host_id(), ack->obj().service_id());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ack, &ev_cache);
+      _applier.book_service().update(ack, &ev_cache, _logger);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::acknowledgement::static_type(): {
@@ -439,7 +440,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
                           ack->host_id, ack->service_id);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(ack, &ev_cache);
+      _applier.book_service().update(ack, &ev_cache, _logger);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::downtime::static_type(): {
@@ -453,7 +454,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
           dt->was_cancelled);
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(dt, &ev_cache);
+      _applier.book_service().update(dt, &ev_cache, _logger);
       ev_cache.commit_to(pblshr);
     } break;
     case neb::pb_downtime::static_type(): {
@@ -469,7 +470,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
                           downtime.cancelled());
       multiplexing::publisher pblshr;
       event_cache_visitor ev_cache;
-      _applier.book_service().update(dt, &ev_cache);
+      _applier.book_service().update(dt, &ev_cache, _logger);
       ev_cache.commit_to(pblshr);
     } break;
     case bam::ba_status::static_type(): {

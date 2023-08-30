@@ -67,6 +67,10 @@ class luabinding {
 
   // Count on events
   int _total;
+
+  /* Logger */
+  const uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
 };
 }  // namespace simu
 

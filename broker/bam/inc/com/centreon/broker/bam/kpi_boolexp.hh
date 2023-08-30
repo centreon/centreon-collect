@@ -49,7 +49,10 @@ class kpi_boolexp : public kpi {
   void _open_new_event(io::stream* visitor, int impact, state state);
 
  public:
-  kpi_boolexp(uint32_t kpi_id, uint32_t ba_id, const std::string& bool_name);
+  kpi_boolexp(uint32_t kpi_id,
+              uint32_t ba_id,
+              const std::string& bool_name,
+              const std::shared_ptr<spdlog::logger>& logger);
   ~kpi_boolexp() noexcept = default;
   kpi_boolexp(const kpi_boolexp&) = delete;
   kpi_boolexp& operator=(const kpi_boolexp&) = delete;

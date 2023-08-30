@@ -57,19 +57,26 @@ class service_book {
                 uint32_t service_id,
                 service_listener* listnr);
   void update(const std::shared_ptr<neb::acknowledgement>& t,
-              io::stream* visitor = nullptr);
+              io::stream* visitor,
+              const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::pb_acknowledgement>& t,
-              io::stream* visitor = nullptr);
+              io::stream* visitor,
+              const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::downtime>& t,
-              io::stream* visitor = nullptr);
+              io::stream* visitor,
+              const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::pb_downtime>& t,
-              io::stream* visitor = nullptr);
+              io::stream* visitor,
+              const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::service_status>& t,
-              io::stream* visitor = nullptr);
+              io::stream* visitor,
+              const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::pb_service>& t,
-              io::stream* visitor = nullptr);
+              io::stream* visitor,
+              const std::shared_ptr<spdlog::logger>& logger);
   void update(const std::shared_ptr<neb::pb_service_status>& t,
-              io::stream* visitor = nullptr);
+              io::stream* visitor,
+              const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace bam
 

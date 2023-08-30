@@ -34,15 +34,16 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
 using namespace nlohmann;
+using com::centreon::common::log_v3::log_v3;
 
 static void broker_json_encode(lua_State* L, std::ostringstream& oss);
 static void broker_json_decode(lua_State* L, const json& it);
@@ -470,7 +471,10 @@ static int l_broker_json_encode(lua_State* L) noexcept {
     lua_pushlstring(L, s.c_str(), s.size());
     return 1;
   } catch (const std::exception& e) {
-    log_v2::lua()->error("lua: json_encode encountered an error: {}", e.what());
+    const uint32_t logger_id =
+        log_v3::instance().create_logger_or_get_id("lua");
+    auto logger = log_v3::instance().get(logger_id);
+    logger->error("lua: json_encode encountered an error: {}", e.what());
   }
   return 0;
 }
@@ -624,8 +628,9 @@ static auto l_stacktrace = [](lua_State* L) -> void {
 static int l_broker_parse_perfdata(lua_State* L) {
   char const* perf_data(lua_tostring(L, 1));
   int full(lua_toboolean(L, 2));
-  std::list<misc::perfdata> pds{
-      misc::parse_perfdata(0, 0, perf_data, log_v2::lua())};
+  const uint32_t logger_id = log_v3::instance().create_logger_or_get_id("lua");
+  auto logger = log_v3::instance().get(logger_id);
+  std::list<misc::perfdata> pds{misc::parse_perfdata(0, 0, perf_data, logger)};
   lua_createtable(L, 0, pds.size());
   for (auto const& pd : pds) {
     lua_pushlstring(L, pd.name().c_str(), pd.name().size());

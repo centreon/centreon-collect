@@ -22,20 +22,24 @@
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Construct a macro cache
  *
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
-macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
-    : _cache(cache) {
+macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache,
+                         const uint32_t logger_id)
+    : _cache(cache),
+      _logger_id{logger_id},
+      _logger{log_v3::instance().get(_logger_id)} {
   if (_cache != nullptr) {
     std::shared_ptr<io::data> d;
     do {
@@ -53,7 +57,7 @@ macro_cache::~macro_cache() {
     try {
       _save_to_disk();
     } catch (std::exception const& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+      SPDLOG_LOGGER_ERROR(_logger,
                           "lua: macro cache couldn't save data to disk: '{}'",
                           e.what());
     }
@@ -499,6 +503,7 @@ macro_cache::get_dimension_bv_event(uint64_t bv_id) const {
  *  @param[in] data  The event to write.
  */
 void macro_cache::write(std::shared_ptr<io::data> const& data) {
+  _logger = log_v3::instance().get(_logger_id);
   if (!data)
     return;
 
@@ -609,7 +614,7 @@ void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host> const& h =
       std::static_pointer_cast<neb::host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "lua: processing host '{}' of id {}",
                       h->host_name, h->host_id);
   if (h->enabled)
     _hosts[h->host_id] = data;
@@ -625,7 +630,7 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::pb_host> const& h =
       std::static_pointer_cast<neb::pb_host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "lua: processing host '{}' of id {}",
                       h->obj().name(), h->obj().host_id());
   if (h->obj().enabled())
     _hosts[h->obj().host_id()] = data;
@@ -641,7 +646,7 @@ void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_adaptive_host(
     const std::shared_ptr<io::data>& data) {
   const auto& h = std::static_pointer_cast<neb::pb_adaptive_host>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing adaptive host {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "lua: processing adaptive host {}",
                       h->obj().host_id());
   auto& ah = h->obj();
   auto it = _hosts.find(ah.host_id());
@@ -713,7 +718,7 @@ void macro_cache::_process_pb_adaptive_host(
     }
   } else
     SPDLOG_LOGGER_WARN(
-        log_v2::lua(),
+        _logger,
         "lua: cannot update cache for host {}, it does not exist in "
         "the cache",
         h->obj().host_id());
@@ -727,7 +732,7 @@ void macro_cache::_process_pb_adaptive_host(
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host_group> const& hg =
       std::static_pointer_cast<neb::host_group>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host group '{}' of id {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "lua: processing host group '{}' of id {}",
                       hg->name, hg->id);
   if (hg->enabled)
     _host_groups[hg->id] = hg;
@@ -743,7 +748,7 @@ void macro_cache::_process_host_group_member(
   std::shared_ptr<neb::host_group_member> const& hgm =
       std::static_pointer_cast<neb::host_group_member>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _logger,
       "lua: processing host group member (group_name: '{}', group_id: {}, "
       "host_id: {})",
       hgm->group_name, hgm->group_id, hgm->host_id);
@@ -760,7 +765,7 @@ void macro_cache::_process_host_group_member(
  */
 void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::service>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "lua: processing service ({}, {}) (description:{})",
                       s->host_id, s->service_id, s->service_description);
   if (s->enabled)
@@ -777,7 +782,7 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(), "lua: processing service ({}, {}) (description:{})",
+      _logger, "lua: processing service ({}, {}) (description:{})",
       s->obj().host_id(), s->obj().service_id(), s->obj().description());
   if (s->obj().enabled())
     _services[{s->obj().host_id(), s->obj().service_id()}] = data;
@@ -793,8 +798,7 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_adaptive_service(
     std::shared_ptr<io::data> const& data) {
   const auto& s = std::static_pointer_cast<neb::pb_adaptive_service>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
-                      "lua: processing adaptive service ({}, {})",
+  SPDLOG_LOGGER_DEBUG(_logger, "lua: processing adaptive service ({}, {})",
                       s->obj().host_id(), s->obj().service_id());
   auto& as = s->obj();
   auto it = _services.find({as.host_id(), as.service_id()});
@@ -867,7 +871,7 @@ void macro_cache::_process_pb_adaptive_service(
     }
   } else {
     SPDLOG_LOGGER_WARN(
-        log_v2::lua(),
+        _logger,
         "lua: cannot update cache for service ({}, {}), it does not exist in "
         "the cache",
         s->obj().host_id(), s->obj().service_id());
@@ -882,9 +886,8 @@ void macro_cache::_process_pb_adaptive_service(
 void macro_cache::_process_service_group(
     std::shared_ptr<io::data> const& data) {
   auto const& sg = std::static_pointer_cast<neb::service_group>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
-                      "lua: processing service group '{}' of id {}", sg->name,
-                      sg->id);
+  SPDLOG_LOGGER_DEBUG(_logger, "lua: processing service group '{}' of id {}",
+                      sg->name, sg->id);
   if (sg->enabled)
     _service_groups[sg->id] = sg;
 }
@@ -898,7 +901,7 @@ void macro_cache::_process_service_group_member(
     std::shared_ptr<io::data> const& data) {
   auto const& sgm = std::static_pointer_cast<neb::service_group_member>(data);
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _logger,
       "lua: processing service group member (group_name: {}, group_id: {}, "
       "host_id: {}, service_id: {}",
       sgm->group_name, sgm->group_id, sgm->host_id, sgm->service_id);
@@ -978,7 +981,7 @@ void macro_cache::_process_dimension_ba_event(
   if (data->type() == bam::pb_dimension_ba_event::static_type()) {
     auto const& dbae =
         std::static_pointer_cast<bam::pb_dimension_ba_event>(data);
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_logger,
                         "lua: pb processing dimension ba event of id {}",
                         dbae->obj().ba_id());
     _dimension_ba_events[dbae->obj().ba_id()] = dbae;
@@ -994,7 +997,7 @@ void macro_cache::_process_dimension_ba_event(
     to_fill.set_sla_month_percent_warn(to_convert->sla_month_percent_warn);
     to_fill.set_sla_duration_crit(to_convert->sla_duration_crit);
     to_fill.set_sla_duration_warn(to_convert->sla_duration_warn);
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_logger,
                         "lua: pb processing dimension ba event of id {}",
                         dbae->obj().ba_id());
     _dimension_ba_events[dbae->obj().ba_id()] = dbae;
@@ -1012,7 +1015,7 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
     const auto& pb_data =
         std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data);
     const DimensionBaBvRelationEvent& rel = pb_data->obj();
-    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+    SPDLOG_LOGGER_DEBUG(_logger,
                         "lua: processing pb dimension ba bv relation event "
                         "(ba_id: {}, bv_id: {})",
                         rel.ba_id(), rel.bv_id());
@@ -1021,7 +1024,7 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
     auto const& rel =
         std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
     SPDLOG_LOGGER_DEBUG(
-        log_v2::lua(),
+        _logger,
         "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
         rel->ba_id, rel->bv_id);
     auto pb_data(std::make_shared<bam::pb_dimension_ba_bv_relation_event>());
@@ -1062,7 +1065,7 @@ void macro_cache::_process_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
   auto const& trunc =
       std::static_pointer_cast<bam::dimension_truncate_table_signal>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "lua: processing dimension truncate table signal");
 
   if (trunc->update_started) {
@@ -1079,7 +1082,7 @@ void macro_cache::_process_dimension_truncate_table_signal(
  */
 void macro_cache::_process_pb_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_logger,
                       "lua: processing dimension truncate table signal");
 
   if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
@@ -1103,7 +1106,7 @@ void macro_cache::_process_custom_variable(
   auto const& cv = std::static_pointer_cast<neb::custom_variable>(data);
   if (cv->name == "CRITICALITY_LEVEL") {
     SPDLOG_LOGGER_DEBUG(
-        log_v2::lua(),
+        _logger,
         "lua: processing custom variable representing a criticality level for "
         "host_id {} and service_id {} and level {}",
         cv->host_id, cv->service_id, cv->value);
@@ -1127,7 +1130,7 @@ void macro_cache::_process_pb_custom_variable(
   if (cv->obj().name() == "CRITICALITY_LEVEL") {
     int32_t value;
     if (absl::SimpleAtoi(cv->obj().value(), &value)) {
-      SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+      SPDLOG_LOGGER_DEBUG(_logger,
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} and level {}",
@@ -1135,7 +1138,7 @@ void macro_cache::_process_pb_custom_variable(
       if (value)
         _custom_vars[{cv->obj().host_id(), cv->obj().service_id()}] = cv;
     } else {
-      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+      SPDLOG_LOGGER_ERROR(_logger,
                           "lua: processing custom variable representing a "
                           "criticality level for "
                           "host_id {} and service_id {} incorrect value {}",

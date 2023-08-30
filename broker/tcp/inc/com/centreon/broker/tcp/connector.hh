@@ -37,7 +37,7 @@ class connector : public io::limit_endpoint {
 
  public:
   connector(const tcp_config::pointer& conf);
-  ~connector();
+  ~connector() noexcept = default;
 
   connector& operator=(const connector&) = delete;
   connector(const connector&) = delete;

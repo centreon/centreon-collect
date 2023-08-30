@@ -29,8 +29,11 @@ static constexpr double eps = 0.000001;
 /**
  *  Constructor.
  */
-kpi::kpi(uint32_t kpi_id, uint32_t ba_id, const std::string& name)
-    : _id(kpi_id), _ba_id(ba_id), _name(name) {}
+kpi::kpi(uint32_t kpi_id,
+         uint32_t ba_id,
+         const std::string& name,
+         const std::shared_ptr<spdlog::logger>& logger)
+    : computable(logger), _id(kpi_id), _ba_id(ba_id), _name(name) {}
 
 /**
  *  Get KPI ID.

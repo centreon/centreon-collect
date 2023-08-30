@@ -41,10 +41,10 @@ stream::stream(const std::string& lua_script,
                const std::map<std::string, misc::variant>& conf_params,
                const std::shared_ptr<persistent_cache>& cache)
     : io::stream("lua"),
-      _cache{cache},
       _luabinding(lua_script, conf_params, _cache),
       _logger_id{log_v3::instance().create_logger_or_get_id("lua")},
-      _logger{log_v3::instance().get(_logger_id)} {}
+      _logger{log_v3::instance().get(_logger_id)},
+      _cache{cache, _logger_id} {}
 
 stream::~stream() noexcept {
   _logger->debug("lua: Stream destruction");

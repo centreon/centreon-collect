@@ -26,7 +26,9 @@ using namespace com::centreon::broker::bam;
  *
  *  @param[in] name  The name of the external expression.
  */
-bool_call::bool_call(std::string const& name) : _name(name) {}
+bool_call::bool_call(std::string const& name,
+                     const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _name(name) {}
 
 /**
  *  Get the hard value.

@@ -38,6 +38,10 @@ class accepted_service
 
   std::atomic_bool _finished_called;
 
+  /* Logger */
+  const uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   using pointer = std::shared_ptr<accepted_service>;
 
@@ -47,7 +51,8 @@ class accepted_service
   }
 
   accepted_service(const grpc_config::pointer& conf,
-                   const shared_bool& server_finished);
+                   const shared_bool& server_finished,
+                   uint32_t logger_id);
   ~accepted_service();
 
   void start();
@@ -77,7 +82,11 @@ class server : public centreon_stream::centreon_bbdo::Service,
   mutable std::mutex _protect;
   mutable std::condition_variable _accept_cond;
 
-  server(const grpc_config::pointer& conf);
+  /* Logger */
+  const uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
+  server(const grpc_config::pointer& conf, uint32_t logger_id);
 
   ::grpc::ServerBidiReactor<grpc_event_type, grpc_event_type>* exchange(
       ::grpc::CallbackServerContext*);

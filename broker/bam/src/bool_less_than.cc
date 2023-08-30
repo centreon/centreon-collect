@@ -25,7 +25,9 @@ using namespace com::centreon::broker::bam;
  *
  *  @param[in] strict  Should the operator be strict?
  */
-bool_less_than::bool_less_than(bool strict) : _strict(strict) {}
+bool_less_than::bool_less_than(bool strict,
+                               const std::shared_ptr<spdlog::logger>& logger)
+    : bool_binary_operator(logger), _strict(strict) {}
 
 /**
  *  Get the hard value.

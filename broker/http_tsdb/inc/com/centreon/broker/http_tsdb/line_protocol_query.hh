@@ -123,13 +123,13 @@ class line_protocol_query {
                         std::ostream& is) const;
 
   void _get_tag_host_cat_id(io::data const& d,
-                            unsigned& string_index,
+                            unsigned& string_index [[maybe_unused]],
                             std::ostream& is) const {
     _get_tag_host_id(d, TagType::HOSTCATEGORY, is);
   }
 
   void _get_tag_host_group_id(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_host_id(d, TagType::HOSTGROUP, is);
   }
@@ -139,13 +139,13 @@ class line_protocol_query {
                           std::ostream& is) const;
 
   void _get_tag_host_cat_name(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_host_name(d, TagType::HOSTCATEGORY, is);
   }
 
   void _get_tag_host_group_name(io::data const& d,
-                                unsigned& string_index,
+                                unsigned& string_index [[maybe_unused]],
                                 std::ostream& is) const {
     _get_tag_host_name(d, TagType::HOSTGROUP, is);
   }
@@ -155,13 +155,13 @@ class line_protocol_query {
                         std::ostream& is) const;
 
   void _get_tag_serv_cat_id(io::data const& d,
-                            unsigned& string_index,
+                            unsigned& string_index [[maybe_unused]],
                             std::ostream& is) const {
     _get_tag_serv_id(d, TagType::SERVICECATEGORY, is);
   }
 
   void _get_tag_serv_group_id(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_serv_id(d, TagType::SERVICEGROUP, is);
   }
@@ -171,13 +171,13 @@ class line_protocol_query {
                           std::ostream& is) const;
 
   void _get_tag_serv_cat_name(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_serv_name(d, TagType::SERVICECATEGORY, is);
   }
 
   void _get_tag_serv_group_name(io::data const& d,
-                                unsigned& string_index,
+                                unsigned& string_index [[maybe_unused]],
                                 std::ostream& is) const {
     _get_tag_serv_name(d, TagType::SERVICEGROUP, is);
   }

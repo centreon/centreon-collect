@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_BA_HH
 #define CCB_BAM_BA_HH
 
+#include <memory>
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/state.hh"
@@ -114,7 +115,8 @@ class ba : public computable, public service_listener {
      uint32_t host_id,
      uint32_t service_id,
      configuration::ba::state_source source,
-     bool generate_virtual_status = true);
+     bool generate_virtual_status,
+     const std::shared_ptr<spdlog::logger>& logger);
   ba(const ba&) = delete;
   virtual ~ba() noexcept = default;
   ba& operator=(ba const& other) = delete;
@@ -143,9 +145,11 @@ class ba : public computable, public service_listener {
   void set_state_source(configuration::ba::state_source source);
   void visit(io::stream* visitor);
   void service_update(std::shared_ptr<neb::downtime> const& dt,
-                      io::stream* visitor) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(std::shared_ptr<neb::pb_downtime> const& dt,
-                      io::stream* visitor) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void save_inherited_downtime(persistent_cache& cache) const;
   void set_inherited_downtime(inherited_downtime const& dwn);
   void set_inherited_downtime(pb_inherited_downtime const& dwn);

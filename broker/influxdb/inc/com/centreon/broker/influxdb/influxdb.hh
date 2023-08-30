@@ -48,7 +48,11 @@ class influxdb {
            std::string const& metric_ts,
            std::vector<column> const& metric_cols,
            macro_cache const& cache);
-  ~influxdb();
+
+  /**
+   *  Destructor.
+   */
+  ~influxdb() noexcept = default;
 
   influxdb(influxdb const& f) = delete;
   influxdb& operator=(influxdb const& f) = delete;
@@ -73,6 +77,9 @@ class influxdb {
   uint16_t _port;
 
   macro_cache const& _cache;
+
+  /* Logger */
+  uint32_t _logger_id;
 
   void _connect_socket();
   bool _check_answer_string(std::string const& ans,
