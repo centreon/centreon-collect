@@ -31,17 +31,6 @@ opener::opener()
     : io::endpoint(false, {}), _auto_delete(true), _max_size(100000000) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-opener::opener(const opener& other)
-    : io::endpoint(other),
-      _auto_delete(other._auto_delete),
-      _filename(other._filename),
-      _max_size(other._max_size) {}
-
-/**
  *  Destructor.
  */
 opener::~opener() {}

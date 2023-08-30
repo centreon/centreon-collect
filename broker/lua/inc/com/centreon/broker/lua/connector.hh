@@ -34,7 +34,7 @@ namespace lua {
 class connector : public io::endpoint {
  public:
   connector();
-  connector(connector const& other);
+  connector(connector const& other) = delete;
   ~connector();
   connector& operator=(connector const&) = delete;
   void connect_to(std::string const& lua_script,

@@ -50,13 +50,16 @@ class endpoint {
   std::shared_ptr<endpoint> _from;
 
  public:
+  using open_callback = std::function<void(const std::shared_ptr<stream>&)>;
+
   endpoint(bool is_accptr, const multiplexing::muxer_filter& filter);
-  endpoint(const endpoint& other);
+  endpoint(const endpoint& other) = delete;
   virtual ~endpoint() noexcept = default;
   endpoint& operator=(const endpoint& other) = delete;
   void from(std::shared_ptr<endpoint> endp);
   bool is_acceptor() const noexcept;
   bool is_connector() const noexcept;
+  // virtual void open(open_callback&&) = 0;
   virtual std::shared_ptr<stream> open() = 0;
   virtual bool is_ready() const;
   virtual void stats(nlohmann::json& tree);

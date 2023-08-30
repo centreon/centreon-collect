@@ -34,7 +34,7 @@ namespace file {
 class opener : public io::endpoint {
  public:
   opener();
-  opener(const opener& other);
+  opener(const opener& other) = delete;
   ~opener();
   opener& operator=(const opener&) = delete;
   std::shared_ptr<io::stream> open();

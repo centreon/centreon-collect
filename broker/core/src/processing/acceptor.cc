@@ -51,6 +51,15 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
       name, _read_filters_str, _write_filters_str);
 }
 
+std::shared_ptr<acceptor> acceptor::create(
+    std::shared_ptr<io::endpoint> endp,
+    std::string const& name,
+    const multiplexing::muxer_filter& r_filter,
+    const multiplexing::muxer_filter& w_filter) {
+  std::shared_ptr<acceptor> ret(new acceptor(endp, name, r_filter, w_filter));
+  ret->start();
+  return ret;
+}
 /**
  *  Destructor.
  */

@@ -42,22 +42,13 @@ class temporary_endpoint : public io::endpoint {
    */
   temporary_endpoint(std::string const& id = "")
       : io::endpoint(false, {}), _id(id) {}
-  /**
-   *  Copy constructor.
-   *
-   *  @param[in] se Object to copy.
-   */
-  temporary_endpoint(const temporary_endpoint& se)
-      : io::endpoint(se), _id(se._id) {}
+
+  temporary_endpoint(const temporary_endpoint& se) = delete;
   /**
    *  Destructor.
    */
   ~temporary_endpoint() noexcept { this->close(); }
   temporary_endpoint& operator=(temporary_endpoint const&) = delete;
-  /**
-   *  Clone endpoint.
-   */
-  io::endpoint* clone() const { return new temporary_endpoint(*this); }
   /**
    *  Close endpoint.
    */

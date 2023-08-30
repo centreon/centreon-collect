@@ -40,7 +40,8 @@ class feeder;
  *
  *  Accept incoming connections and launch a feeder thread.
  */
-class acceptor : public endpoint {
+class acceptor : public endpoint,
+                 public std::enable_shared_from_this<acceptor> {
   enum state { stopped, running, finished };
 
   std::unique_ptr<std::thread> _thread;
@@ -63,6 +64,8 @@ class acceptor : public endpoint {
 
   void _set_listening(bool listening) noexcept;
 
+  void accept();
+
  protected:
   // From stat_visitable
   std::string const& _get_read_filters() const override;
@@ -70,16 +73,23 @@ class acceptor : public endpoint {
   virtual void _forward_statistic(nlohmann::json& tree) override;
   virtual uint32_t _get_queued_events() const override;
 
- public:
   acceptor(std::shared_ptr<io::endpoint> endp,
            std::string const& name,
            const multiplexing::muxer_filter& r_filter,
            const multiplexing::muxer_filter& w_filter);
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
-  ~acceptor();
-  void accept();
+
   void start() override;
+
+ public:
+  static std::shared_ptr<acceptor> create(
+      std::shared_ptr<io::endpoint> endp,
+      std::string const& name,
+      const multiplexing::muxer_filter& r_filter,
+      const multiplexing::muxer_filter& w_filter);
+
+  ~acceptor();
   void exit() override final;
   void set_retry_interval(time_t retry_interval);
 

@@ -30,16 +30,6 @@ endpoint::endpoint(bool is_accptr, const multiplexing::muxer_filter& filter)
     : _is_acceptor(is_accptr), _stream_mandatory_filter{filter} {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-endpoint::endpoint(endpoint const& other)
-    : _is_acceptor(other._is_acceptor),
-      _stream_mandatory_filter{other._stream_mandatory_filter},
-      _from(other._from) {}
-
-/**
  *  Set the lower layer endpoint object of this endpoint.
  *
  *  @param[in] endp Lower layer endpoint object.

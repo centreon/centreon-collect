@@ -48,14 +48,14 @@ namespace applier {
  *  Apply the configuration of the configured endpoints.
  */
 class endpoint {
-  std::map<config::endpoint, processing::endpoint*> _endpoints;
+  std::map<config::endpoint, std::shared_ptr<processing::endpoint>> _endpoints;
   std::timed_mutex _endpointsm;
   std::atomic_bool _discarding;
 
   endpoint();
   ~endpoint();
   void _discard();
-  processing::failover* _create_failover(
+  std::shared_ptr<processing::failover> _create_failover(
       config::endpoint& cfg,
       std::shared_ptr<multiplexing::muxer> mux,
       std::shared_ptr<io::endpoint> endp,
@@ -63,13 +63,15 @@ class endpoint {
   std::shared_ptr<io::endpoint> _create_endpoint(config::endpoint& cfg,
                                                  bool& is_acceptor);
   void _diff_endpoints(
-      std::map<config::endpoint, processing::endpoint*> const& current,
+      std::map<config::endpoint, std::shared_ptr<processing::endpoint>> const&
+          current,
       std::list<config::endpoint> const& new_endpoints,
       std::list<config::endpoint>& to_create,
       std::list<config::endpoint>& to_delete);
 
  public:
-  typedef std::map<config::endpoint, processing::endpoint*>::iterator iterator;
+  typedef std::map<config::endpoint,
+                   std::shared_ptr<processing::endpoint>>::iterator iterator;
 
   endpoint& operator=(const endpoint&) = delete;
   endpoint(const endpoint&) = delete;

@@ -28,17 +28,6 @@ using namespace com::centreon::broker::lua;
 connector::connector() : io::endpoint(false, {}) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-connector::connector(connector const& other)
-    : io::endpoint(other),
-      _lua_script(other._lua_script),
-      _conf_params(other._conf_params),
-      _cache(other._cache) {}
-
-/**
  *  Destructor.
  */
 connector::~connector() {}

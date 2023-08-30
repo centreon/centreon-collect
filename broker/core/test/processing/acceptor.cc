@@ -51,32 +51,22 @@ class ProcessingTest : public ::testing::Test {
   std::shared_ptr<io::endpoint> _endpoint;
 };
 
-TEST_F(ProcessingTest, NotStarted) {
-  multiplexing::muxer_filter f{};
-  std::unique_ptr<acceptor> acc =
-      std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
-  ASSERT_NO_THROW(acc->exit());
-}
-
 TEST_F(ProcessingTest, StartStop1) {
   multiplexing::muxer_filter f{};
-  auto acc = std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
-  acc->start();
+  auto acc = acceptor::create(_endpoint, "temporary_endpoint", f, f);
   ASSERT_NO_THROW(acc->exit());
 }
 
 TEST_F(ProcessingTest, StartStop2) {
   multiplexing::muxer_filter f{};
-  auto acc = std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
-  acc->start();
+  auto acc = acceptor::create(_endpoint, "temporary_endpoint", f, f);
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
   ASSERT_NO_THROW(acc->exit());
 }
 
 TEST_F(ProcessingTest, StartStop3) {
   multiplexing::muxer_filter f{};
-  auto acc = std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
-  acc->start();
+  auto acc = acceptor::create(_endpoint, "temporary_endpoint", f, f);
   std::this_thread::sleep_for(std::chrono::seconds(1));
   ASSERT_NO_THROW(acc->exit());
 }
@@ -85,11 +75,9 @@ TEST_F(ProcessingTest, StartWithFilterStop) {
   multiplexing::muxer_filter filters({});
   filters.insert(io::raw::static_type());
   multiplexing::muxer_filter f{};
-  auto acc =
-      std::make_unique<acceptor>(_endpoint, "temporary_endpoint", filters, f);
+  auto acc = acceptor::create(_endpoint, "temporary_endpoint", filters, f);
   time_t now{time(nullptr)};
   acc->set_retry_interval(2);
-  acc->start();
   std::this_thread::sleep_for(std::chrono::milliseconds(1500));
   ASSERT_NO_THROW(acc->exit());
   time_t now1{time(nullptr)};

@@ -131,7 +131,6 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
                                 it->first.name);
         /* failover::exit() is called. */
         it->second->exit();
-        delete it->second;
         _endpoints.erase(it);
       }
     }
@@ -159,7 +158,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
                               ep.name);
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
-      std::unique_ptr<processing::endpoint> endp;
+      std::shared_ptr<processing::endpoint> endp;
       /* Input or output? */
       /* This is tricky, one day we will make better... I hope.
        * In case of an Engine making connection to Broker, usually Broker is an
@@ -176,15 +175,12 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       multiplexing::muxer_filter r_filter = parse_filters(ep.read_filters);
       multiplexing::muxer_filter w_filter = parse_filters(ep.write_filters);
       if (is_acceptor) {
-        std::unique_ptr<processing::acceptor> acceptr(
-            std::make_unique<processing::acceptor>(e, ep.name, r_filter,
-                                                   w_filter));
+        endp = processing::acceptor::create(e, ep.name, r_filter, w_filter);
         log_v2::config()->debug(
             "endpoint applier: acceptor '{}' configured with write filters: {} "
             "and read filters: {}",
             ep.name, w_filter.get_allowed_categories(),
             r_filter.get_allowed_categories());
-        endp.reset(acceptr.release());
       } else {
         // Create muxer and endpoint.
         if (e->get_stream_mandatory_filter().is_in(w_filter)) {
@@ -207,11 +203,12 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
 
         auto mux =
             multiplexing::muxer::create(ep.name, r_filter, w_filter, true);
-        endp.reset(_create_failover(ep, mux, e, endp_to_create));
+        endp = _create_failover(ep, mux, e, endp_to_create);
+        endp->start();
       }
       {
         std::lock_guard<std::timed_mutex> lock(_endpointsm);
-        _endpoints[ep] = endp.get();
+        _endpoints[ep] = endp;
       }
 
       // Run thread.
@@ -219,7 +216,6 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
           "endpoint applier: endpoint thread {} of '{}' is registered and "
           "ready to run",
           static_cast<void*>(endp.get()), ep.name);
-      endp.release()->start();
     }
   }
 }
@@ -247,7 +243,6 @@ void endpoint::_discard() {
         log_v2::config()->trace(
             "endpoint applier: send exit signal to endpoint '{}'",
             it->second->get_name());
-        delete it->second;
         it = _endpoints.erase(it);
       } else
         ++it;
@@ -265,7 +260,6 @@ void endpoint::_discard() {
       log_v2::config()->trace(
           "endpoint applier: send exit signal on endpoint '{}'",
           it->second->get_name());
-      delete it->second;
       it = _endpoints.erase(it);
     }
 
@@ -355,7 +349,7 @@ void endpoint::unload() {
  *  @param[in]  endp     Endpoint.
  *  @param[in]  l        List of endpoints.
  */
-processing::failover* endpoint::_create_failover(
+std::shared_ptr<processing::failover> endpoint::_create_failover(
     config::endpoint& cfg,
     std::shared_ptr<multiplexing::muxer> mux,
     std::shared_ptr<io::endpoint> endp,
@@ -382,8 +376,7 @@ processing::failover* endpoint::_create_failover(
             "endpoint applier: cannot allow acceptor '{}' as failover for "
             "endpoint '{}'",
             front_failover, cfg.name);
-      failovr = std::shared_ptr<processing::failover>(
-          _create_failover(*it, mux, e, l));
+      failovr = _create_failover(*it, mux, e, l);
 
       // Add secondary failovers
       for (std::list<std::string>::const_iterator
@@ -411,11 +404,11 @@ processing::failover* endpoint::_create_failover(
   }
 
   // Return failover thread.
-  auto fo{std::make_unique<processing::failover>(endp, mux, cfg.name)};
+  auto fo{std::make_shared<processing::failover>(endp, mux, cfg.name)};
   fo->set_buffering_timeout(cfg.buffering_timeout);
   fo->set_retry_interval(cfg.retry_interval);
   fo->set_failover(failovr);
-  return fo.release();
+  return fo;
 }
 
 /**
@@ -495,7 +488,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
  *  @param[out] to_delete     Endpoints that should be deleted.
  */
 void endpoint::_diff_endpoints(
-    const std::map<config::endpoint, processing::endpoint*>& current,
+    const std::map<config::endpoint, std::shared_ptr<processing::endpoint>>&
+        current,
     const std::list<config::endpoint>& new_endpoints,
     std::list<config::endpoint>& to_create,
     std::list<config::endpoint>& to_delete) {

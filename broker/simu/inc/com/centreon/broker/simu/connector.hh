@@ -37,7 +37,7 @@ class connector : public io::endpoint {
 
  public:
   connector();
-  connector(connector const& other);
+  connector(connector const& other) = delete;
   ~connector();
   void connect_to(std::string const& lua_script,
                   std::map<std::string, misc::variant> const& cfg_params);
