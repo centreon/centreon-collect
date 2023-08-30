@@ -45,12 +45,13 @@ class bool_expression : public computable {
   std::shared_ptr<bool_value> _expression;
 
  public:
-  bool_expression(uint32_t id, bool impact_if);
+  bool_expression(uint32_t id,
+                  bool impact_if,
+                  const std::shared_ptr<spdlog::logger>& logger);
   bool_expression(const bool_expression&) = delete;
   ~bool_expression() noexcept override = default;
   bool_expression& operator=(const bool_expression&) = delete;
-  bool child_has_update(computable* child,
-                        io::stream* visitor = nullptr) override;
+  bool child_has_update(computable* child, io::stream* visitor) override;
   state get_state() const;
   bool state_known() const;
   void set_expression(std::shared_ptr<bool_value> const& expression);

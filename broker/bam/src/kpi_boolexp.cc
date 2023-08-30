@@ -1,20 +1,20 @@
-/*
-** Copyright 2014 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/kpi_boolexp.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
@@ -28,8 +28,10 @@ using namespace com::centreon::broker::bam;
 /**
  *  Default constructor.
  */
-kpi_boolexp::kpi_boolexp(uint32_t kpi_id, uint32_t ba_id)
-    : kpi(kpi_id, ba_id) {}
+kpi_boolexp::kpi_boolexp(uint32_t kpi_id,
+                         uint32_t ba_id,
+                         const std::shared_ptr<spdlog::logger>& logger)
+    : kpi(kpi_id, ba_id, logger) {}
 
 /**
  *  Base boolean expression got updated.
@@ -46,7 +48,7 @@ bool kpi_boolexp::child_has_update(computable* child, io::stream* visitor) {
     state old_state = _get_state();
     // Generate status event.
     visit(visitor);
-    log_v2::bam()->debug(
+    _logger->debug(
         "BAM: boolean expression KPI {} is getting notified of child update "
         "old_state={}, new_state={}",
         _id, old_state, _get_state());
@@ -224,19 +226,19 @@ state kpi_boolexp::_get_state() const {
   state retval;
   if (_boolexp->state_known()) {
     state retval = _boolexp->get_state();
-    log_v2::bam()->trace(
-        "BAM: kpi {} boolean expression: state (known) value: {}", id, retval);
+    _logger->trace("BAM: kpi {} boolean expression: state (known) value: {}",
+                   id, retval);
     return retval;
   } else {
     if (_event) {
       retval = static_cast<state>(_event->status());
-      log_v2::bam()->trace(
+      _logger->trace(
           "BAM: kpi {} boolean expression: state from internal event: {}", id,
           retval);
       return retval;
     } else {
       retval = _boolexp->get_state();
-      log_v2::bam()->trace(
+      _logger->trace(
           "BAM: kpi {} boolean expression: state value still taken from "
           "boolexp: {}",
           id, retval);

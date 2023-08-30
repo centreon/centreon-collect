@@ -49,13 +49,13 @@ class bool_binary_operator : public bool_value {
  public:
   typedef std::shared_ptr<bool_binary_operator> ptr;
 
-  bool_binary_operator() = default;
+  bool_binary_operator(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_value(logger) {}
   bool_binary_operator(bool_binary_operator const&) = delete;
   ~bool_binary_operator() noexcept override = default;
   bool_binary_operator& operator=(const bool_binary_operator&) = delete;
-  bool child_has_update(computable* child,
-                        io::stream* visitor = nullptr) override;
-  void set_left(std::shared_ptr<bool_value> const& left);
+  bool child_has_update(computable* child, io::stream* visitor) override;
+  void set_left(const std::shared_ptr<bool_value>& left);
   void set_right(std::shared_ptr<bool_value> const& right);
   bool state_known() const override;
   bool in_downtime() const override;

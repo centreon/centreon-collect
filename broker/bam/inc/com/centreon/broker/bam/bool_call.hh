@@ -34,10 +34,14 @@ namespace bam {
  *  to an external expression.
  */
 class bool_call : public bool_value {
+  std::string _name;
+  std::shared_ptr<bool_value> _expression;
+
  public:
   typedef std::shared_ptr<bool_call> ptr;
 
-  bool_call(std::string const& name);
+  bool_call(std::string const& name,
+            const std::shared_ptr<spdlog::logger>& logger);
   ~bool_call() noexcept override = default;
   bool_call(const bool_call&) = delete;
   bool_call& operator=(const bool_call&) = delete;
@@ -46,12 +50,7 @@ class bool_call : public bool_value {
   bool state_known() const override;
   std::string const& get_name() const;
   void set_expression(std::shared_ptr<bool_value> expression);
-  bool child_has_update(computable* child,
-                        io::stream* visitor = nullptr) override;
-
- private:
-  std::string _name;
-  std::shared_ptr<bool_value> _expression;
+  bool child_has_update(computable* child, io::stream* visitor) override;
 };
 }  // namespace bam
 

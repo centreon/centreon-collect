@@ -22,6 +22,9 @@
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "common/log_v2/log_v2.hh"
+
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 CCB_BEGIN()
 
@@ -54,12 +57,17 @@ class bool_expression {
 
   std::map<uint32_t, applied> _applied;
 
+  /* Logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   std::shared_ptr<bam::bool_expression> _new_bool_exp(
       configuration::bool_expression const& cfg);
   void _resolve_expression_calls();
 
  public:
-  bool_expression() = default;
+  bool_expression(const uint32_t logger_id)
+      : _logger_id{logger_id}, _logger{log_v3::instance().get(_logger_id)} {}
   bool_expression(const bool_expression&) = delete;
   ~bool_expression() noexcept = default;
   bool_expression& operator=(const bool_expression&) = delete;

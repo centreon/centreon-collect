@@ -94,6 +94,9 @@ class line_protocol_query {
 
   // Macro cache
   macro_cache const* _cache;
+
+  /* Logger */
+  uint32_t _logger_id;
 };
 }  // namespace influxdb
 

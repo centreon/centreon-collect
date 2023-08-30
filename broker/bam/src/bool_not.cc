@@ -28,7 +28,9 @@ constexpr double eps = 0.000001;
  *
  *  @param[in] val Value that will be negated.
  */
-bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
+bool_not::bool_not(bool_value::ptr val,
+                   const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _value(std::move(val)) {}
 
 /**
  *  @brief Notify of the change of value of the child.
@@ -41,9 +43,8 @@ bool_not::bool_not(bool_value::ptr val) : _value(std::move(val)) {}
  *
  *  @return              True;
  */
-bool bool_not::child_has_update(computable* child, io::stream* visitor) {
-  (void)child;
-  (void)visitor;
+bool bool_not::child_has_update(computable* child [[maybe_unused]],
+                                io::stream* visitor [[maybe_unused]]) {
   return true;
 }
 

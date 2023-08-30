@@ -19,6 +19,8 @@
 #ifndef CCB_BAM_COMPUTABLE_HH
 #define CCB_BAM_COMPUTABLE_HH
 
+#include <spdlog/logger.h>
+#include <memory>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
@@ -36,13 +38,18 @@ namespace bam {
 class computable {
   std::list<std::weak_ptr<computable>> _parents;
 
+ protected:
+  /* Logger is updated on child_hash_update() */
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
-  computable() = default;
+  computable(const std::shared_ptr<spdlog::logger>& logger) : _logger(logger) {}
   computable(const computable&) = delete;
   virtual ~computable() noexcept = default;
   computable& operator=(const computable&) = delete;
   void add_parent(const std::shared_ptr<computable>& parent);
-  void propagate_update(io::stream* visitor = nullptr);
+  void propagate_update(io::stream* visitor,
+                        const std::shared_ptr<spdlog::logger>& logger);
   void remove_parent(const std::shared_ptr<computable>& parent);
 
   /**
@@ -57,8 +64,7 @@ class computable {
    *
    *  @return True if the parent was modified.
    */
-  virtual bool child_has_update(computable* child,
-                                io::stream* visitor = nullptr) = 0;
+  virtual bool child_has_update(computable* child, io::stream* visitor) = 0;
 };
 }  // namespace bam
 

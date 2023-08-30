@@ -332,23 +332,28 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
   switch (cfg.get_state_source()) {
     case configuration::ba::state_source_impact:
       obj = std::make_shared<bam::ba_impact>(cfg.get_id(), cfg.get_host_id(),
-                                             cfg.get_service_id(), false);
+                                             cfg.get_service_id(), false,
+                                             log_v2::bam());
       break;
     case configuration::ba::state_source_best:
       obj = std::make_shared<bam::ba_best>(cfg.get_id(), cfg.get_host_id(),
-                                           cfg.get_service_id(), false);
+                                           cfg.get_service_id(), false,
+                                           log_v2::bam());
       break;
     case configuration::ba::state_source_worst:
       obj = std::make_shared<bam::ba_worst>(cfg.get_id(), cfg.get_host_id(),
-                                            cfg.get_service_id(), false);
+                                            cfg.get_service_id(), false,
+                                            log_v2::bam());
       break;
     case configuration::ba::state_source_ratio_percent:
       obj = std::make_shared<bam::ba_ratio_percent>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false,
+          log_v2::bam());
       break;
     case configuration::ba::state_source_ratio_number:
       obj = std::make_shared<bam::ba_ratio_number>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false,
+          log_v2::bam());
       break;
     default:
       /* Should not arrive */

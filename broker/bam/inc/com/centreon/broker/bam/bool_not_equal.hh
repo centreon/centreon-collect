@@ -35,7 +35,8 @@ namespace bam {
  */
 class bool_not_equal : public bool_binary_operator {
  public:
-  bool_not_equal() = default;
+  bool_not_equal(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   bool_not_equal(const bool_not_equal&) = delete;
   ~bool_not_equal() noexcept override = default;
   bool_not_equal& operator=(const bool_not_equal&) = delete;

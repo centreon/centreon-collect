@@ -43,7 +43,8 @@ class ba_impact : public ba {
   ba_impact(uint32_t id,
             uint32_t host_id,
             uint32_t service_id,
-            bool generate_virtual_status = true);
+            bool generate_virtual_status,
+            const std::shared_ptr<spdlog::logger>& logger);
   state get_state_hard() const override;
   state get_state_soft() const override;
   double get_ack_impact_hard() override;

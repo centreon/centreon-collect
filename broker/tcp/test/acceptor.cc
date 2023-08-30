@@ -25,14 +25,15 @@
 #include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -44,16 +45,21 @@ static tcp::tcp_config::pointer test_conf2(
     std::make_shared<tcp::tcp_config>(test_addr, 4141));
 
 class TcpAcceptor : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> logger;
+
  public:
   void SetUp() override {
-    log_v2::tcp()->set_level(spdlog::level::trace);
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    logger = log_v3::instance().get(logger_id);
+    logger->set_level(spdlog::level::trace);
     g_io_context->restart();
     pool::load(g_io_context, 0);
     tcp::tcp_async::load();
   }
 
   void TearDown() override {
-    log_v2::tcp()->info("TCP TearDown");
+    logger->info("TCP TearDown");
     tcp::tcp_async::instance().stop_timer();
     tcp::tcp_async::unload();
     pool::unload();

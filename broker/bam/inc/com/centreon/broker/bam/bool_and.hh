@@ -39,7 +39,8 @@ class bool_and : public bool_binary_operator {
   virtual void _update_state() override;
 
  public:
-  bool_and() = default;
+  bool_and(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   ~bool_and() noexcept override = default;
   bool_and(const bool_and&) = delete;
   bool_and& operator=(const bool_and&) = delete;

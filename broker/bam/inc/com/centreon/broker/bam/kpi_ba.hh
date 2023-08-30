@@ -57,23 +57,25 @@ class kpi_ba : public kpi {
                        const timestamp& event_start_time);
 
  public:
-  kpi_ba(uint32_t kpi_id, uint32_t ba_id);
+  kpi_ba(uint32_t kpi_id,
+         uint32_t ba_id,
+         const std::shared_ptr<spdlog::logger>& logger);
   ~kpi_ba() noexcept = default;
   kpi_ba(const kpi_ba&) = delete;
   kpi_ba& operator=(const kpi_ba&) = delete;
-  bool child_has_update(computable* child, io::stream* visitor = nullptr);
+  bool child_has_update(computable* child, io::stream* visitor) override;
   double get_impact_critical() const;
   double get_impact_warning() const;
-  void impact_hard(impact_values& hard_impact);
-  void impact_soft(impact_values& soft_impact);
+  void impact_hard(impact_values& hard_impact) override;
+  void impact_soft(impact_values& soft_impact) override;
   void link_ba(std::shared_ptr<ba>& my_ba);
   void set_impact_critical(double impact);
   void set_impact_warning(double impact);
   void set_impact_unknown(double impact);
   void unlink_ba();
-  void visit(io::stream* visitor);
-  bool ok_state() const;
-  bool in_downtime() const;
+  void visit(io::stream* visitor) override;
+  bool ok_state() const override;
+  bool in_downtime() const override;
 };
 }  // namespace bam
 

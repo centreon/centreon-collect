@@ -25,7 +25,9 @@ using namespace com::centreon::broker::bam;
  *
  *  @param[in] name  The name of the external expression.
  */
-bool_call::bool_call(std::string const& name) : _name(name) {}
+bool_call::bool_call(std::string const& name,
+                     const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _name(name) {}
 
 /**
  *  Get the hard value.
@@ -89,8 +91,7 @@ void bool_call::set_expression(std::shared_ptr<bool_value> expression) {
  *
  *  @return  True if this was modified.
  */
-bool bool_call::child_has_update(computable* child, io::stream* visitor) {
-  (void)child;
-  (void)visitor;
+bool bool_call::child_has_update(computable* child [[maybe_unused]],
+                                 io::stream* visitor [[maybe_unused]]) {
   return true;
 }

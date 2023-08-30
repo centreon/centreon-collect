@@ -44,10 +44,13 @@ namespace applier {
  *  Take the configuration of the BAM engine and apply it.
  */
 class state {
+  const uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
-  state();
+  state(const uint32_t logger_id);
   ~state();
-  state(state const& other) = delete;
+  state(const state&) = delete;
   state& operator=(state const& other) = delete;
   void apply(configuration::state const& my_state);
   service_book& book_service();

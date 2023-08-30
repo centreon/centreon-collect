@@ -38,8 +38,11 @@ void computable::add_parent(std::shared_ptr<computable> const& parent) {
  *
  *  @param[out] visitor  Object that will receive events.
  */
-void computable::propagate_update(io::stream* visitor) {
-  log_v2::bam()->trace("{}::propagate_update: ", typeid(*this).name());
+void computable::propagate_update(
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  _logger = logger;
+  _logger->trace("{}::propagate_update: ", typeid(*this).name());
   std::vector<bool> filter(_parents.size());
   uint32_t i = 0;
   for (std::list<std::weak_ptr<computable> >::iterator it = _parents.begin(),
@@ -58,7 +61,7 @@ void computable::propagate_update(io::stream* visitor) {
     if (filter[i++]) {
       std::shared_ptr<computable> ptr = it->lock();
       if (ptr)
-        ptr->propagate_update(visitor);
+        ptr->propagate_update(visitor, _logger);
     }
 }
 

@@ -22,12 +22,13 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "common/log_v2/log_v2.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
+using com::centreon::common::log_v3::log_v3;
 
 #include "com/centreon/broker/http_client/http_connection.hh"
 #include "com/centreon/broker/http_client/https_connection.hh"
@@ -204,8 +205,10 @@ class dummy_connection : public connection_base {
 };
 
 TEST(http_keepalive_test, ConnectionClose) {
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+  auto logger = log_v3::instance().get(logger_id);
   dummy_connection conn(
-      g_io_context, log_v2::tcp(),
+      g_io_context, logger,
       std::make_shared<http_config>(test_endpoint, "localhost"));
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(false);
@@ -215,8 +218,10 @@ TEST(http_keepalive_test, ConnectionClose) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+  auto logger = log_v3::instance().get(logger_id);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
-  dummy_connection conn(g_io_context, log_v2::tcp(), conf);
+  dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(true);
   conn.set_state(connection_base::e_idle);
@@ -231,8 +236,10 @@ TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithTimeout) {
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+  auto logger = log_v3::instance().get(logger_id);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
-  dummy_connection conn(g_io_context, log_v2::tcp(), conf);
+  dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
   resp->keep_alive(true);
   resp->set(beast::http::field::keep_alive, "timeout=5, max=1000");
@@ -254,7 +261,11 @@ TEST(http_keepalive_test, KeepAliveWithTimeout) {
 class session_base : public std::enable_shared_from_this<session_base> {
  public:
   using pointer = std::shared_ptr<session_base>;
-  virtual ~session_base() { SPDLOG_LOGGER_TRACE(log_v2::tcp(), "end session"); }
+  virtual ~session_base() {
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    auto logger = log_v3::instance().get(logger_id);
+    SPDLOG_LOGGER_TRACE(logger, "end session");
+  }
 
   virtual void on_receive(const beast::error_code& err,
                           const request_ptr& request) = 0;
@@ -280,11 +291,14 @@ class http_session : public session_base {
         _stream, _buffer, *request,
         [me = shared_from_this(), request](const beast::error_code& err,
                                            std::size_t bytes_received) {
+          uint32_t logger_id =
+              log_v3::instance().create_logger_or_get_id("tcp");
+          auto logger = log_v3::instance().get(logger_id);
           if (err) {
-            SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail recv {}", err.message());
+            SPDLOG_LOGGER_ERROR(logger, "fail recv {}", err.message());
             me->shutdown();
           } else {
-            SPDLOG_LOGGER_TRACE(log_v2::tcp(), "recv {} bytes", bytes_received);
+            SPDLOG_LOGGER_TRACE(logger, "recv {} bytes", bytes_received);
             me->on_receive(err, request);
             me->start_recv();
           }
@@ -302,18 +316,22 @@ class http_session : public session_base {
   }
 
   void start() override {
-    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "start a session");
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    auto logger = log_v3::instance().get(logger_id);
+    SPDLOG_LOGGER_TRACE(logger, "start a session");
     start_recv();
   }
 
   void send_response(const response_ptr& resp) override {
-    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "send response");
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    auto logger = log_v3::instance().get(logger_id);
+    SPDLOG_LOGGER_TRACE(logger, "send response");
     beast::http::async_write(
         _stream, *resp,
-        [me = shared_from_this(), resp](const beast::error_code& err,
-                                        std::size_t bytes_sent) {
+        [me = shared_from_this(), resp, logger](const beast::error_code& err,
+                                                std::size_t bytes_sent) {
           if (err) {
-            SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail send response");
+            SPDLOG_LOGGER_ERROR(logger, "fail send response");
             me->shutdown();
           }
         });
@@ -335,11 +353,14 @@ class https_session : public session_base {
         _stream, _buffer, *request,
         [me = shared_from_this(), request](const beast::error_code& err,
                                            std::size_t bytes_received) {
+          uint32_t logger_id =
+              log_v3::instance().create_logger_or_get_id("tcp");
+          auto logger = log_v3::instance().get(logger_id);
           if (err) {
-            SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail recv {}", err.message());
+            SPDLOG_LOGGER_ERROR(logger, "fail recv {}", err.message());
             me->shutdown();
           } else {
-            SPDLOG_LOGGER_TRACE(log_v2::tcp(), "recv {} bytes", bytes_received);
+            SPDLOG_LOGGER_TRACE(logger, "recv {} bytes", bytes_received);
             me->on_receive(err, request);
             me->start_recv();
           }
@@ -357,7 +378,9 @@ class https_session : public session_base {
   }
 
   void start() override {
-    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "start a session");
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    auto logger = log_v3::instance().get(logger_id);
+    SPDLOG_LOGGER_TRACE(logger, "start a session");
     _stream.async_handshake(
         asio::ssl::stream_base::server,
         [me = shared_from_this()](const beast::error_code& err) {
@@ -366,24 +389,28 @@ class https_session : public session_base {
   }
 
   void on_handshake(const beast::error_code& err) {
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    auto logger = log_v3::instance().get(logger_id);
     if (err) {
-      SPDLOG_LOGGER_TRACE(log_v2::tcp(), "{} fail handshake {}", __FUNCTION__,
+      SPDLOG_LOGGER_TRACE(logger, "{} fail handshake {}", __FUNCTION__,
                           err.message());
       shutdown();
       return;
     }
-    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "handshake done");
+    SPDLOG_LOGGER_TRACE(logger, "handshake done");
     start_recv();
   }
 
   void send_response(const response_ptr& resp) override {
-    SPDLOG_LOGGER_TRACE(log_v2::tcp(), "send response");
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    auto logger = log_v3::instance().get(logger_id);
+    SPDLOG_LOGGER_TRACE(logger, "send response");
     beast::http::async_write(
         _stream, *resp,
-        [me = shared_from_this(), resp](const beast::error_code& err,
-                                        std::size_t bytes_sent) {
+        [me = shared_from_this(), resp, logger](const beast::error_code& err,
+                                                std::size_t bytes_sent) {
           if (err) {
-            SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail send response");
+            SPDLOG_LOGGER_ERROR(logger, "fail send response");
             me->shutdown();
           }
         });
@@ -408,11 +435,13 @@ class listener : public std::enable_shared_from_this<listener> {
   }
 
   void on_accept(const beast::error_code& ec, asio::ip::tcp::socket socket) {
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    auto logger = log_v3::instance().get(logger_id);
     if (ec) {
-      SPDLOG_LOGGER_ERROR(log_v2::tcp(), "fail accept");
+      SPDLOG_LOGGER_ERROR(logger, "fail accept");
       return;
     }
-    SPDLOG_LOGGER_DEBUG(log_v2::tcp(), "accept a connection");
+    SPDLOG_LOGGER_DEBUG(logger, "accept a connection");
     auto session = creator(std::move(socket), _ssl_context);
     session->start();
     do_accept();
@@ -442,11 +471,14 @@ const char* client_cert_path = "/tmp/client_test.cert";
 class http_test : public ::testing::TestWithParam<bool> {
  protected:
   static listener::pointer _listener;
+  static std::shared_ptr<spdlog::logger> _logger;
 
  public:
   static void SetUpTestSuite() {
     create_client_certificate(client_cert_path);
-    log_v2::tcp()->set_level(spdlog::level::trace);
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
+    _logger = log_v3::instance().get(logger_id);
+    _logger->set_level(spdlog::level::trace);
     _listener = std::make_shared<listener>(port);
     _listener->start();
   };
@@ -473,6 +505,7 @@ class http_test : public ::testing::TestWithParam<bool> {
 };
 
 listener::pointer http_test::_listener;
+std::shared_ptr<spdlog::logger> http_test::_logger;
 
 // simple exchange with no keepalive
 template <class base_class>
@@ -515,9 +548,8 @@ TEST_P(http_test, connect_send_answer_without_keepalive) {
     };
   }
 
-  auto client = GetParam()
-                    ? https_connection::load(g_io_context, log_v2::tcp(), conf)
-                    : http_connection::load(g_io_context, log_v2::tcp(), conf);
+  auto client = GetParam() ? https_connection::load(g_io_context, _logger, conf)
+                           : http_connection::load(g_io_context, _logger, conf);
   request_ptr request(std::make_shared<request_base>());
   request->method(beast::http::verb::put);
   request->target("/");
@@ -594,9 +626,8 @@ TEST_P(http_test, connect_send_answer_with_keepalive) {
     };
   }
 
-  auto client = GetParam()
-                    ? https_connection::load(g_io_context, log_v2::tcp(), conf)
-                    : http_connection::load(g_io_context, log_v2::tcp(), conf);
+  auto client = GetParam() ? https_connection::load(g_io_context, _logger, conf)
+                           : http_connection::load(g_io_context, _logger, conf);
   request_ptr request(std::make_shared<request_base>());
   request->method(beast::http::verb::put);
   request->target("/");

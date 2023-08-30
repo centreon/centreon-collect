@@ -52,6 +52,10 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   std::string _address;
   uint16_t _port;
 
+  /* Logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   typedef std::shared_ptr<tcp_connection> pointer;
   tcp_connection(asio::io_context& io_context,

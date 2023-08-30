@@ -1,20 +1,20 @@
-/*
-** Copyright 2014-2015, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2015, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/availability_builder.hh"
 
@@ -60,12 +60,14 @@ availability_builder::~availability_builder() {}
  *  @param[in] was_in_downtime  Was the event in downtime?
  *  @param[in] tp               The timeperiod of the event.
  */
-void availability_builder::add_event(short status,
-                                     time_t start,
-                                     time_t end,
-                                     bool was_in_downtime,
-                                     time::timeperiod::ptr const& tp) {
-  log_v2::bam()->trace(
+void availability_builder::add_event(
+    short status,
+    time_t start,
+    time_t end,
+    bool was_in_downtime,
+    time::timeperiod::ptr const& tp,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace(
       "availability_builder::add_event (status: {}, start: {}, end: {}, was in "
       "downtime: {}",
       status, start, end, was_in_downtime);

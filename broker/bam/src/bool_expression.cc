@@ -32,8 +32,10 @@ using namespace com::centreon::broker;
  * @param impact_if True if impact is applied if the expression is true.False
  * otherwise.
  */
-bool_expression::bool_expression(uint32_t id, bool impact_if)
-    : _id(id), _impact_if(impact_if) {}
+bool_expression::bool_expression(uint32_t id,
+                                 bool impact_if,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : computable(logger), _id(id), _impact_if(impact_if) {}
 
 /**
  *  Base boolean expression got updated.
@@ -43,13 +45,13 @@ bool_expression::bool_expression(uint32_t id, bool impact_if)
  *
  *  @return True if the values of this object were modified.
  */
-bool bool_expression::child_has_update(computable* child, io::stream* visitor) {
-  (void)visitor;
+bool bool_expression::child_has_update(computable* child,
+                                       io::stream* visitor [[maybe_unused]]) {
   // It is useless to maintain a cache of expression values in this
   // class, as the bool_* classes already cache most of them.
   if (child == _expression.get()) {
     // Logging.
-    log_v2::bam()->debug(
+    _logger->debug(
         "BAM: boolean expression {} is getting notified of child update", _id);
   }
   return true;
@@ -63,7 +65,7 @@ bool bool_expression::child_has_update(computable* child, io::stream* visitor) {
 state bool_expression::get_state() const {
   bool v = _expression->boolean_value();
   state retval = v == _impact_if ? state_critical : state_ok;
-  log_v2::bam()->debug(
+  _logger->debug(
       "BAM: boolean expression {} - impact if: {} - value: {} - state: {}", _id,
       _impact_if, v, retval);
   return retval;

@@ -48,20 +48,22 @@ class kpi_boolexp : public kpi {
   void _open_new_event(io::stream* visitor, int impact, state state);
 
  public:
-  kpi_boolexp(uint32_t kpi_id, uint32_t ba_id);
+  kpi_boolexp(uint32_t kpi_id,
+              uint32_t ba_id,
+              const std::shared_ptr<spdlog::logger>& logger);
   ~kpi_boolexp() noexcept = default;
   kpi_boolexp(const kpi_boolexp&) = delete;
   kpi_boolexp& operator=(const kpi_boolexp&) = delete;
-  bool child_has_update(computable* child, io::stream* visitor = nullptr);
-  bool in_downtime() const;
+  bool child_has_update(computable* child, io::stream* visitor) override;
+  bool in_downtime() const override;
   double get_impact() const;
-  void impact_hard(impact_values& hard_impact);
-  void impact_soft(impact_values& soft_impact);
+  void impact_hard(impact_values& hard_impact) override;
+  void impact_soft(impact_values& soft_impact) override;
   void link_boolexp(std::shared_ptr<bool_expression>& my_boolexp);
   void set_impact(double impact);
   void unlink_boolexp();
-  void visit(io::stream* visitor);
-  bool ok_state() const;
+  void visit(io::stream* visitor) override;
+  bool ok_state() const override;
 };
 }  // namespace bam
 

@@ -51,14 +51,14 @@ stream::stream(const tcp_config::pointer& conf)
     : io::stream("TCP"),
       _conf(conf),
       _connection(tcp_async::instance().create_connection(_conf)),
-      _parent(nullptr), _logger_id{log_v3::instance().create_logger_or_get_id("tcp")}, _logger{log_v3::instance().get(_logger_id)} {
+      _parent(nullptr),
+      _logger_id{log_v3::instance().create_logger_or_get_id("tcp")},
+      _logger{log_v3::instance().get(_logger_id)} {
   assert(_connection->port());
   _total_tcp_count++;
-  _logger->trace("New stream to {}:{}", _conf->get_host(),
-                       _conf->get_port());
-  _logger->info(
-      "{} TCP streams are configured on a thread pool of {} threads",
-      _total_tcp_count, pool::instance().get_pool_size());
+  _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
+  _logger->info("{} TCP streams are configured on a thread pool of {} threads",
+                _total_tcp_count, pool::instance().get_pool_size());
 }
 
 /**
@@ -70,14 +70,17 @@ stream::stream(const tcp_config::pointer& conf)
  */
 stream::stream(const tcp_connection::pointer& conn,
                const tcp_config::pointer& conf)
-    : io::stream("TCP"), _conf(conf), _connection(conn), _parent(nullptr) {
+    : io::stream("TCP"),
+      _conf(conf),
+      _connection(conn),
+      _parent(nullptr),
+      _logger_id{log_v3::instance().create_logger_or_get_id("tcp")},
+      _logger{log_v3::instance().get(_logger_id)} {
   assert(_connection->port());
   _total_tcp_count++;
-  _logger->info("New stream to {}:{}", _conf->get_host(),
-                      _conf->get_port());
-  _logger->info(
-      "{} TCP streams are configured on a thread pool of {} threads",
-      _total_tcp_count, pool::instance().get_pool_size());
+  _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());
+  _logger->info("{} TCP streams are configured on a thread pool of {} threads",
+                _total_tcp_count, pool::instance().get_pool_size());
 }
 
 /**
@@ -178,8 +181,8 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
 
   if (d->type() == io::raw::static_type()) {
     std::shared_ptr<io::raw> r(std::static_pointer_cast<io::raw>(d));
-    _logger->trace("TCP: write request of {} bytes to peer '{}:{}'",
-                         r->size(), _conf->get_host(), _conf->get_port());
+    _logger->trace("TCP: write request of {} bytes to peer '{}:{}'", r->size(),
+                   _conf->get_host(), _conf->get_port());
     _logger->trace("write {} bytes", r->size());
     try {
       return _connection->write(r->get_buffer());

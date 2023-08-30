@@ -29,8 +29,11 @@ using namespace com::centreon::broker::bam;
 /**
  *  Default constructor.
  */
-bool_service::bool_service(uint32_t host_id, uint32_t service_id)
-    : _host_id(host_id),
+bool_service::bool_service(uint32_t host_id,
+                           uint32_t service_id,
+                           const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger),
+      _host_id(host_id),
       _service_id(service_id),
       _state_hard(0),
       _state_known(false),
@@ -47,9 +50,8 @@ bool_service::bool_service(uint32_t host_id, uint32_t service_id)
  *
  *  @return             True.
  */
-bool bool_service::child_has_update(computable* child, io::stream* visitor) {
-  (void)child;
-  (void)visitor;
+bool bool_service::child_has_update(computable* child [[maybe_unused]],
+                                    io::stream* visitor [[maybe_unused]]) {
   return true;
 }
 
@@ -79,15 +81,17 @@ uint32_t bool_service::get_service_id() const {
  */
 void bool_service::service_update(
     std::shared_ptr<neb::service_status> const& status,
-    io::stream* visitor) {
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  _logger = logger;
+  SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service update with neb::service_status");
   if (status && status->host_id == _host_id &&
       status->service_id == _service_id) {
     _state_hard = status->last_hard_state;
     _state_known = true;
     _in_downtime = (status->downtime_depth > 0);
-    propagate_update(visitor);
+    propagate_update(visitor, _logger);
   }
 }
 
@@ -97,10 +101,13 @@ void bool_service::service_update(
  *  @param[in]  status   Service status.
  *  @param[out] visitor  Object that will receive events.
  */
-void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
-                                  io::stream* visitor) {
+void bool_service::service_update(
+    const std::shared_ptr<neb::pb_service>& svc,
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  _logger = logger;
   auto& o = svc->obj();
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+  SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service ({},{}) updated with "
                       "neb::pb_service hard state: {}, downtime: {}",
                       o.host_id(), o.service_id(), o.last_hard_state(),
@@ -109,8 +116,8 @@ void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
     _state_hard = o.last_hard_state();
     _state_known = true;
     _in_downtime = o.scheduled_downtime_depth() > 0;
-    log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
-    propagate_update(visitor);
+    _logger->trace("bool_service: updated with state: {}", _state_hard);
+    propagate_update(visitor, _logger);
   }
 }
 
@@ -122,9 +129,11 @@ void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
  */
 void bool_service::service_update(
     const std::shared_ptr<neb::pb_service_status>& status,
-    io::stream* visitor) {
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  _logger = logger;
   auto& o = status->obj();
-  SPDLOG_LOGGER_TRACE(log_v2::bam(),
+  SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service ({},{}) updated with "
                       "neb::pb_service_status hard state: {}, downtime: {}",
                       o.host_id(), o.service_id(), o.last_hard_state(),
@@ -133,8 +142,8 @@ void bool_service::service_update(
     _state_hard = o.last_hard_state();
     _state_known = true;
     _in_downtime = o.scheduled_downtime_depth() > 0;
-    log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
-    propagate_update(visitor);
+    _logger->trace("bool_service: updated with state: {}", _state_hard);
+    propagate_update(visitor, _logger);
   }
 }
 
@@ -162,7 +171,7 @@ bool bool_service::boolean_value() const {
  *  @return  True if the state is known.
  */
 bool bool_service::state_known() const {
-  log_v2::bam()->trace("BAM: bool_service::state_known: {}", _state_known);
+  _logger->trace("BAM: bool_service::state_known: {}", _state_known);
   return _state_known;
 }
 
