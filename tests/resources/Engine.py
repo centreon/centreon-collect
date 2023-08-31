@@ -636,20 +636,20 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     f.writelines(lines)
     f.close()
 
-##
-# @brief Function to update a value in the services.cfg for the config idx.
-#
-# @param idx index of the configuration (from 0)
-# @param desc service description of the service to modify.
-# @param key the key to change the value.
-# @param value the new value to set to the key variable.
-#
+
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
+    """! Function to update a value in the services.cfg for the config idx.
+    @param idx index of the configuration (from 0)
+    @param desc service description of the service to modify.
+    @param key the key to change the value.
+    @param value the new value to set to the key variable.
+    """
+
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/services.cfg"
     with open(filename, "r") as f:
         lines = f.readlines()
     r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
-    rkey = re.compile(r"^\s*"+key+"\s+[\w\.]+\s*$")
+    rkey = re.compile(r"^\s*" + key + "\s+[\w\.]+\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             while i < len(lines) and lines[i] != "}":
@@ -669,6 +669,8 @@ def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value
 # @param key the key to change the value.
 # @param value the new value to set to the key variable.
 #
+
+
 def engine_config_set_value_in_hosts(idx: int, desc: str, key: str, value: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
     f = open(filename, "r")

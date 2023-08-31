@@ -686,6 +686,7 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
     for i, v in enumerate(output_dict):
         if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
             output_dict.pop(i)
+    str_queries_per_transaction = str(queries_per_transaction)
     if output == 'unified_sql':
         output_dict.append({
             "name": "central-broker-unified-sql",
@@ -697,7 +698,7 @@ def config_broker_sql_output(name, output, queries_per_transaction: int = 20000)
             "db_name": DB_NAME_STORAGE,
             "interval": "60",
             "length": "15552000",
-            "queries_per_transaction": queries_per_transaction,
+            "queries_per_transaction": str_queries_per_transaction,
             "connections_count": "4",
             "read_timeout": "60",
             "buffering_timeout": "0",
@@ -1711,19 +1712,16 @@ def compare_rrd_average_value(metric, value: float):
             f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd from the last 30 days")
         return True
 
-##
-# @brief Compare the average value for an RRD metric.
-#
-# @param metric The metric id
-# @param key The key to search in the rrd info
-# @param float The value to compare with.
-#
-# @return A boolean.
-
 
 def compare_rrd_average_value_with_grpc(metric, key, value: float):
+    """! Compare the average value for an RRD metric.
+    @param metric The metric id
+    @param key The key to search in the rrd info
+    @param float The value to compare with.
+    @return True if value pointed by key is equal to value param.
+    """
     res = getoutput(
-        f"rrdtool info {VAR_ROOT}" + f"/lib/centreon/metrics/{metric}.rrd"
+        f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd"
     )
     lst = res.split('\n')
     if len(lst) >= 2:
@@ -1737,16 +1735,14 @@ def compare_rrd_average_value_with_grpc(metric, key, value: float):
             f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd")
         return False
 
-##
-# @brief Call the GetSqlManagerStats function by gRPC and checks there are
-# count active connections.
-#
-# @param count The expected number of active connections.
-#
-# @return A boolean.
-
 
 def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
+    """!Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
+    @param port grpc port
+    @param count number of expected connections
+    @param timeout timeout in seconds
+    @return  True is nb connections is equal to count
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
