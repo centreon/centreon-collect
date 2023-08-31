@@ -353,18 +353,17 @@ BAM Setup
 
 Init Centreon
     [Documentation]    Config Engine and Broker
-    [Arguments]    @{engine_conf}
     Clear Commands Status
     Clear Retention
     Config Broker    module
     Config Broker    central
     Config Broker    rrd
-    Config Engine    @{engine_conf}
+    Config Engine    ${1}
 
 
 Config Process Bam
     [Documentation]    Configure the bam process
-    Init Centreon    ${1}
+    Init Centreon
     Broker Config Log    central    core    error
     Broker Config Log    central    bam    trace
     Broker Config Log    central    sql    error
