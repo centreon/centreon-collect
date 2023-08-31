@@ -7,34 +7,10 @@ Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
 
+Library    Examples
 
 *** Test Cases ***
-BSCSSK1
-    [Documentation]    Start-Stop two instances of broker, server configured with grpc and client with tcp. No connectrion established and error raised on client side.
-    [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker BBDO Input    central    bbdo_server    5669    tcp
-    Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
-    Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Log    central    grpc    debug
-    Broker Config Log    central    tcp    debug
-    Broker Config Log    rrd    grpc    debug
-    Broker Config Log    rrd    tcp    debug
-    Broker Config Log    central    core    error
-    Broker Config Log    rrd    core    error
-    ${start}=    Get Current Date    exclude_millis=True
-    Sleep    1s
-    Start Broker
-
-    # Client cannot connect. It returns an error
-    ${content}=    Create List    peer tcp://localhost:5670 is sending corrupted data
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No message about the bad connection.
-
-    Kindly Stop Broker
-
-BSCSSK2
+BSCSSK${id}
     [Documentation]    Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
     Config Broker    central
@@ -53,12 +29,15 @@ BSCSSK2
     Start Broker
 
     # Client cannot connect. It returns an error
-    ${content}=    Create List
-    ...    BBDO: invalid protocol header, aborting connection: waiting for message of type 'version_response' but nothing received
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    ${content}    Create List    ${message}
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    msg=No message about the bad connection.
 
     Kindly Stop Broker
+
+    Examples:    id    message    --
+    ...          1     peer tcp://localhost:5670 is sending corrupted data
+    ...          2     BBDO: invalid protocol header, aborting connection: waiting for message of type 'version_response' but nothing received
 
 
 *** Keywords ***
