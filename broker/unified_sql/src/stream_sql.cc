@@ -3091,6 +3091,9 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       s.host_id(), s.service_id(), s.state(), s.state_type());
   SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: pb service output: <<{}>>",
                       s.output());
+  SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: pb service detail: <<{}>>",
+                      io::data::dump_detail{*d});
+
   // Processed object.
   if (!_host_instance_known(s.host_id())) {
     SPDLOG_LOGGER_WARN(
@@ -3660,11 +3663,7 @@ void stream::_check_and_update_index_cache(const Service& ss) {
                         ss.host_id(), ss.service_id());
 
     if (!_index_data_insert.prepared())
-      _index_data_insert = _mysql.prepare_query(
-          "INSERT INTO index_data "
-          "(host_id,host_name,service_id,service_description,must_be_"
-          "rebuild,"
-          "special) VALUES (?,?,?,?,?,?)");
+      _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
     uint64_t index_id = 0;
 
@@ -3672,114 +3671,48 @@ void stream::_check_and_update_index_cache(const Service& ss) {
     _index_data_insert.bind_value_as_str(1, hv);
     _index_data_insert.bind_value_as_i32(2, ss.service_id());
     _index_data_insert.bind_value_as_str(3, sv);
-    _index_data_insert.bind_value_as_str(4, "0");
-    _index_data_insert.bind_value_as_str(5, special ? "1" : "0");
+    _index_data_insert.bind_value_as_u32(4, ss.check_interval());
+    _index_data_insert.bind_value_as_str(5, "0");
+    _index_data_insert.bind_value_as_str(6, special ? "1" : "0");
 
     std::promise<uint64_t> p;
     std::future<uint64_t> future = p.get_future();
     _mysql.run_statement_and_get_int<uint64_t>(
         _index_data_insert, std::move(p), database::mysql_task::LAST_INSERT_ID,
         conn);
-    try {
-      index_id = future.get();
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::sql(),
-          "sql: new index {} added for service ({}, {}), special {}", index_id,
-          ss.host_id(), ss.service_id(), special ? "1" : "0");
-      index_info info{
-          .index_id = index_id,
-          .host_name = ss.host_name(),
-          .service_description = ss.description(),
-          .rrd_retention = _rrd_len,
-          .interval = ss.check_interval(),
-          .special = special,
-          .locked = false,
-      };
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::sql(), "sql: loaded index {} of ({}, {}) with rrd_len={}",
-          index_id, ss.host_id(), ss.service_id(), info.rrd_retention);
-      _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
+    index_id = future.get();
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::sql(),
+        "sql: new index {} added for service ({}, {}), special {}", index_id,
+        ss.host_id(), ss.service_id(), special ? "1" : "0");
+    index_info info{
+        .index_id = index_id,
+        .host_name = ss.host_name(),
+        .service_description = ss.description(),
+        .rrd_retention = _rrd_len,
+        .interval = ss.check_interval(),
+        .special = special,
+        .locked = false,
+    };
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::sql(),
+        "sql: loaded index {} of ({}, {}) with rrd_len={} and interval={}",
+        index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
+        info.interval);
+    _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
 
-      if (cache_ptr) {
-        cache_ptr->set_index_mapping(index_id, ss.host_id(), ss.service_id());
-      }
-
-      // Create the metric mapping.
-      auto im{std::make_shared<storage::pb_index_mapping>()};
-      auto& im_obj = im->mut_obj();
-      im_obj.set_index_id(info.index_id);
-      im_obj.set_host_id(ss.host_id());
-      im_obj.set_service_id(ss.service_id());
-      multiplexing::publisher pblshr;
-      pblshr.write(im);
-    } catch (const std::exception& e) {
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::sql(),
-          "sql: cannot insert new index for service ({}, {}): {}", ss.host_id(),
-          ss.service_id(), e.what());
-      if (!_index_data_query.prepared())
-        _index_data_query = _mysql.prepare_query(
-            "SELECT "
-            "id,host_name,service_description,rrd_retention,check_"
-            "interval,"
-            "special,locked from index_data WHERE host_id=? AND "
-            "service_id=?");
-
-      _index_data_query.bind_value_as_i32(0, ss.host_id());
-      _index_data_query.bind_value_as_i32(1, ss.service_id());
-      std::promise<database::mysql_result> pq;
-      std::future<database::mysql_result> future_pq = pq.get_future();
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::sql(),
-          "Attempt to get the index from the database for service ({}, {})",
-          ss.host_id(), ss.service_id());
-
-      _mysql.run_statement_and_get_result(
-          _index_data_query, std::move(pq), conn,
-          get_index_data_col_size(index_data_service_description));
-
-      try {
-        database::mysql_result res(future_pq.get());
-        if (_mysql.fetch_row(res)) {
-          index_id = res.value_as_u64(0);
-          index_info info{
-              .index_id = index_id,
-              .host_name = res.value_as_str(1),
-              .service_description = res.value_as_str(2),
-              .rrd_retention =
-                  res.value_as_u32(3) ? res.value_as_u32(3) : _rrd_len,
-              .interval = res.value_as_u32(4) ? res.value_as_u32(4) : 5,
-              .special = res.value_as_str(5) == "1",
-              .locked = res.value_as_str(6) == "1",
-          };
-          SPDLOG_LOGGER_DEBUG(
-              log_v2::sql(),
-              "sql: loaded index {} of ({}, {}) with rrd_len={}, special={}, "
-              "locked={}",
-              index_id, ss.host_id(), ss.service_id(), info.rrd_retention,
-              info.special, info.locked);
-          _index_cache[{ss.host_id(), ss.service_id()}] = std::move(info);
-          if (cache_ptr) {
-            cache_ptr->set_index_mapping(index_id, ss.host_id(),
-                                         ss.service_id());
-          }
-
-          // Create the metric mapping.
-          auto im{std::make_shared<storage::pb_index_mapping>()};
-          auto& im_obj = im->mut_obj();
-          im_obj.set_index_id(info.index_id);
-          im_obj.set_host_id(ss.host_id());
-          im_obj.set_service_id(ss.service_id());
-          multiplexing::publisher pblshr;
-          pblshr.write(im);
-        }
-      } catch (const std::exception& e) {
-      }
-      if (index_id == 0)
-        throw exceptions::msg_fmt(
-            "Could not fetch index id of service ({}, {}): {}", ss.host_id(),
-            ss.service_id(), e.what());
+    if (cache_ptr) {
+      cache_ptr->set_index_mapping(index_id, ss.host_id(), ss.service_id());
     }
+
+    // Create the metric mapping.
+    auto im{std::make_shared<storage::pb_index_mapping>()};
+    auto& im_obj = im->mut_obj();
+    im_obj.set_index_id(info.index_id);
+    im_obj.set_host_id(ss.host_id());
+    im_obj.set_service_id(ss.service_id());
+    multiplexing::publisher pblshr;
+    pblshr.write(im);
 
   } else {
     uint64_t index_id = it_index_cache->second.index_id;

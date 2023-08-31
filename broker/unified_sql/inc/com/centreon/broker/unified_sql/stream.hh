@@ -387,6 +387,7 @@ class stream : public io::stream {
   std::unique_ptr<database::mysql_stmt_base> _sscr_resources_update;
   std::unique_ptr<bulk_bind> _sscr_resources_bind;
 
+  static const std::string _index_data_insert_request;
   database::mysql_stmt _index_data_insert;
   database::mysql_stmt _index_data_update;
   database::mysql_stmt _index_data_query;
