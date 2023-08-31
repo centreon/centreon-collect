@@ -155,7 +155,8 @@ BEBAMIGNDT1
     Broker Config Log    central    sql    trace
     broker_config_source_log    central    true
     Broker Config Flush Log    module0    0
-    Broker Config Log    module0    neb    traceInit Centreon
+    Broker Config Log    module0    neb    trace
+    Init Centreon
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_functions    trace

@@ -68,7 +68,7 @@ BEBAMIDTU1
 BEBAMIDTU2
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service. Then we set a downtime on this last one. An inherited downtime is set to the BA. Engine is restarted. Broker is restarted. The two downtimes are still there with no duplicates. The downtime is removed from the service, the inherited downtime is then deleted.
     [Tags]    broker    downtime    engine    bam    start    stop
-    CInit Centreon
+    Init Centreon
     Broker Config Log    central    bam    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.1
