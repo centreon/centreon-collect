@@ -80,7 +80,8 @@ void stream::_unified_sql_process_pb_service_status(
 
   uint64_t host_id = ss.host_id(), service_id = ss.service_id();
 
-  log_v2::perfdata()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::perfdata(),
       "unified sql::_unified_sql service_status processing: host_id:{}, "
       "service_id:{}",
       host_id, service_id);
@@ -103,14 +104,17 @@ void stream::_unified_sql_process_pb_service_status(
   rrd_len = it_index_cache->second.rrd_retention;
   index_locked = it_index_cache->second.locked;
   uint32_t interval = it_index_cache->second.interval * _interval_length;
-  log_v2::perfdata()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::perfdata(),
       "unified sql: host_id:{}, service_id:{} - index already in cache "
-      "- index_id {}, rrd_len {}",
-      host_id, service_id, index_id, rrd_len);
+      "- index_id {}, rrd_len {}, serv_interval {}, interval {}",
+      host_id, service_id, index_id, rrd_len, it_index_cache->second.interval,
+      interval);
 
   if (index_id) {
     /* Generate status event */
-    log_v2::perfdata()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::perfdata(),
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
@@ -147,7 +151,8 @@ void stream::_unified_sql_process_pb_service_status(
         bool need_metric_mapping = true;
         if (it_index_cache == _metric_cache.end()) {
           rlck.unlock();
-          log_v2::perfdata()->debug(
+          SPDLOG_LOGGER_DEBUG(
+              log_v2::perfdata(),
               "unified sql: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
               index_id, pd.name());
@@ -229,7 +234,8 @@ void stream::_unified_sql_process_pb_service_status(
           pd.value_type(static_cast<misc::perfdata::data_type>(
               it_index_cache->second.type));
 
-          log_v2::perfdata()->debug(
+          SPDLOG_LOGGER_DEBUG(
+              log_v2::perfdata(),
               "unified sql: metric {} concerning index {}, perfdata "
               "'{}' found in cache",
               it_index_cache->second.metric_id, index_id, pd.name());
@@ -269,8 +275,9 @@ void stream::_unified_sql_process_pb_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            log_v2::perfdata()->debug("new metric with metric_id={}",
-                                      it_index_cache->second.metric_id);
+            SPDLOG_LOGGER_DEBUG(log_v2::perfdata(),
+                                "new metric with metric_id={}",
+                                it_index_cache->second.metric_id);
           }
         }
         if (need_metric_mapping)
@@ -329,7 +336,8 @@ void stream::_unified_sql_process_pb_service_status(
               perf->value_type);
           to_publish.emplace_back(perf);
         } else {
-          log_v2::perfdata()->trace(
+          SPDLOG_LOGGER_TRACE(
+              log_v2::perfdata(),
               "unified sql: index {} is locked, so metric {} event not sent "
               "to rrd",
               index_id, metric_id);
@@ -353,7 +361,8 @@ void stream::_unified_sql_process_service_status(
   neb::service_status const& ss{*static_cast<neb::service_status*>(d.get())};
   uint64_t host_id = ss.host_id, service_id = ss.service_id;
 
-  log_v2::perfdata()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::perfdata(),
       "unified sql::_unified_sql_process_service_status(): host_id:{}, "
       "service_id:{}",
       host_id, service_id);
@@ -393,7 +402,8 @@ void stream::_unified_sql_process_service_status(
 
     _index_cache[{host_id, service_id}] = std::move(info);
     rrd_len = _rrd_len;
-    log_v2::perfdata()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::perfdata(),
         "add metric in cache: (host: {}, service: {}, index: {}, returned "
         "rrd_len {}",
         ss.host_name, ss.service_description, index_id, rrd_len);
@@ -408,16 +418,14 @@ void stream::_unified_sql_process_service_status(
   /* Index does not exist */
   if (it_index_cache == _index_cache.end()) {
     _finish_action(-1, actions::index_data);
-    log_v2::perfdata()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::perfdata(),
         "unified sql::_unified_sql_process_service_status(): host_id:{}, "
         "service_id:{} - index not found in cache",
         host_id, service_id);
 
     if (!_index_data_insert.prepared())
-      _index_data_insert = _mysql.prepare_query(
-          "INSERT INTO index_data "
-          "(host_id,host_name,service_id,service_description,must_be_rebuild,"
-          "special) VALUES (?,?,?,?,?,?)");
+      _index_data_insert = _mysql.prepare_query(_index_data_insert_request);
 
     fmt::string_view hv(misc::string::truncate(
         ss.host_name, get_index_data_col_size(index_data_host_name)));
@@ -428,88 +436,24 @@ void stream::_unified_sql_process_service_status(
     _index_data_insert.bind_value_as_str(1, hv);
     _index_data_insert.bind_value_as_i32(2, service_id);
     _index_data_insert.bind_value_as_str(3, sv);
-    _index_data_insert.bind_value_as_str(4, "0");
-    _index_data_insert.bind_value_as_str(5, special ? "1" : "0");
+    _index_data_insert.bind_value_as_u32(
+        4, static_cast<uint32_t>(ss.check_interval));
+    _index_data_insert.bind_value_as_str(5, "0");
+    _index_data_insert.bind_value_as_str(6, special ? "1" : "0");
     std::promise<uint64_t> promise;
     std::future<uint64_t> future = promise.get_future();
     _mysql.run_statement_and_get_int<uint64_t>(
         _index_data_insert, std::move(promise),
         database::mysql_task::LAST_INSERT_ID, conn);
-    try {
-      index_id = future.get();
-      add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
-                          special, rrd_len);
-    } catch (std::exception const& e) {
-      try {
-        if (!_index_data_query.prepared())
-          _index_data_query = _mysql.prepare_query(
-              "SELECT id from index_data WHERE host_id=? AND service_id=?");
-
-        _index_data_query.bind_value_as_i32(0, host_id);
-        _index_data_query.bind_value_as_i32(1, service_id);
-        {
-          std::promise<database::mysql_result> promise;
-          std::future<database::mysql_result> future = promise.get_future();
-          log_v2::sql()->debug(
-              "Query for index_data for host_id={} and service_id={}", host_id,
-              service_id);
-          _mysql.run_statement_and_get_result(_index_data_query,
-                                              std::move(promise), conn, 50);
-
-          database::mysql_result res(future.get());
-          if (_mysql.fetch_row(res))
-            index_id = res.value_as_u64(0);
-          else
-            index_id = 0;
-        }
-
-        if (index_id == 0)
-          throw msg_fmt(
-              "unified_sql: could not fetch index_id of newly inserted index "
-              "({}, "
-              "{})",
-              host_id, service_id);
-
-        if (!_index_data_update.prepared())
-          _index_data_update = _mysql.prepare_query(
-              "UPDATE index_data "
-              "SET host_name=?, service_description=?, must_be_rebuild=?, "
-              "special=? "
-              "WHERE id=?");
-
-        log_v2::sql()->debug(
-            "Updating index_data for host_id={} and service_id={}", host_id,
-            service_id);
-        _index_data_update.bind_value_as_str(0, hv);
-        _index_data_update.bind_value_as_str(1, sv);
-        _index_data_update.bind_value_as_str(2, "0");
-        _index_data_update.bind_value_as_str(3, special ? "1" : "0");
-        _index_data_update.bind_value_as_u64(4, index_id);
-        {
-          std::promise<database::mysql_result> promise;
-          std::future<database::mysql_result> future = promise.get_future();
-          _mysql.run_statement_and_get_result(_index_data_update,
-                                              std::move(promise), conn, 50);
-          future.get();
-        }
-
-        add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
-                            special, rrd_len);
-        log_v2::sql()->debug(
-            "Index {} stored in cache for host_id={} and service_id={}",
-            index_id, host_id, service_id);
-      } catch (std::exception const& e) {
-        throw msg_fmt(
-            "unified_sql: insertion of index ( {}, {}"
-            ") failed: {}",
-            host_id, service_id, e.what());
-      }
-    }
+    index_id = future.get();
+    add_metric_in_cache(index_id, host_id, service_id, ss, index_locked,
+                        special, rrd_len);
   } else {
     index_id = it_index_cache->second.index_id;
     rrd_len = it_index_cache->second.rrd_retention;
     index_locked = it_index_cache->second.locked;
-    log_v2::perfdata()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::perfdata(),
         "unified sql: host_id:{}, service_id:{} - index already in cache "
         "- index_id {}, rrd_len {}",
         host_id, service_id, index_id, rrd_len);
@@ -517,7 +461,8 @@ void stream::_unified_sql_process_service_status(
 
   if (index_id) {
     /* Generate status event */
-    log_v2::perfdata()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::perfdata(),
         "unified sql: host_id:{}, service_id:{} - generating status event "
         "with index_id {}, rrd_len: {}",
         host_id, service_id, index_id, rrd_len);
@@ -555,7 +500,8 @@ void stream::_unified_sql_process_service_status(
         bool need_metric_mapping = true;
         if (it_index_cache == _metric_cache.end()) {
           rlck.unlock();
-          log_v2::perfdata()->debug(
+          SPDLOG_LOGGER_DEBUG(
+              log_v2::perfdata(),
               "unified sql: no metrics corresponding to index {} and "
               "perfdata '{}' found in cache",
               index_id, pd.name());
@@ -637,7 +583,8 @@ void stream::_unified_sql_process_service_status(
           pd.value_type(static_cast<misc::perfdata::data_type>(
               it_index_cache->second.type));
 
-          log_v2::perfdata()->debug(
+          SPDLOG_LOGGER_DEBUG(
+              log_v2::perfdata(),
               "unified sql: metric {} concerning index {}, perfdata "
               "'{}' found in cache",
               it_index_cache->second.metric_id, index_id, pd.name());
@@ -677,8 +624,9 @@ void stream::_unified_sql_process_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            log_v2::perfdata()->debug("new metric with metric_id={}",
-                                      it_index_cache->second.metric_id);
+            SPDLOG_LOGGER_DEBUG(log_v2::perfdata(),
+                                "new metric with metric_id={}",
+                                it_index_cache->second.metric_id);
           }
         }
         if (need_metric_mapping)
@@ -728,7 +676,8 @@ void stream::_unified_sql_process_service_status(
               static_cast<uint32_t>(ss.check_interval * _interval_length),
               false, metric_id, rrd_len, pd.value(),
               static_cast<misc::perfdata::data_type>(pd.value_type()))};
-          log_v2::perfdata()->debug(
+          SPDLOG_LOGGER_DEBUG(
+              log_v2::perfdata(),
               "unified sql: generating perfdata event for metric {} "
               "(name '{}', time {}, value {}, rrd_len {}, data_type {})",
               perf->metric_id, perf->name, perf->time, perf->value, rrd_len,

@@ -1073,3 +1073,28 @@ def get_version():
         if m3:
             patch = m3.group(1)
     return f"{maj}.{mini}.{patch}"
+
+
+def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
+    """! wait until file is modified
+    @param path  path of the file
+    @param date  minimal of modified time
+    @param path  timeout timeout in seconds
+    @return True if file has been modified since date
+    """
+    try:
+        my_date = parser.parse(date).timestamp()
+    except:
+        my_date = datetime.fromtimestamp(date).timestamp()
+    limit = time.time() + timeout
+    while time.time() < limit:
+        try:
+            stat_result = os.stat(path)
+            if stat_result.st_mtime > my_date:
+                return True
+            time.sleep(5)
+        except:
+            time.sleep(5)
+
+    logger.console(f"{path} not modified since {date}")
+    return False
