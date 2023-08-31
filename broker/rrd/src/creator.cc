@@ -64,11 +64,8 @@ void creator::clear() {
   for (std::map<tmpl_info, fd_info>::const_iterator it(_fds.begin()),
        end(_fds.end());
        it != end; ++it) {
-    tmpl_info info(it->first);
     ::close(it->second.fd);
-    ::remove(fmt::format("{}/tmpl_{}_{}_{}.rrd", _tmpl_path, info.length,
-                         info.step, info.value_type)
-                 .c_str());
+    ::remove(it->second.path.c_str());
   }
   _fds.clear();
 }
@@ -103,17 +100,10 @@ void creator::create(std::string const& filename,
 
     // Find fd informations.
     std::map<tmpl_info, fd_info>::const_iterator it(_fds.lower_bound(info));
-    for (; it != _fds.end(); ++it) {
-      // search an entry in cache for witch from is lower than from parameter
-      if (!it->first.is_length_step_type_equal(info)) {
-        it = _fds.end();
-      }
-      if (it->first.from <= from)
-        break;
-    }
 
     // Is in the cache, just duplicate file.
-    if (it != _fds.end()) {
+    if (it != _fds.end() && it->first.is_length_step_type_equal(info) &&
+        it->first.from <= from) {
       _duplicate(filename, it->second);
       log_v2::rrd()->debug("reuse {} for {}", it->second.path, filename);
     }

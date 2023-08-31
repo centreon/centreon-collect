@@ -3097,12 +3097,8 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
       log_v2::sql(),
       "SQL: processing pb service ({}, {}) state: {} state_type: {}",
       s.host_id(), s.service_id(), s.state(), s.state_type());
-  SPDLOG_LOGGER_TRACE(log_v2::sql(), "pb service: {}",
-                      io::data::dump_detail{*d});
   SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: pb service output: <<{}>>",
                       s.output());
-  SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: pb service detail: <<{}>>",
-                      io::data::dump_detail{*d});
 
   // Processed object.
   if (!_host_instance_known(s.host_id())) {
