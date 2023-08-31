@@ -90,9 +90,11 @@ echo "########################## Install centreon collect ######################
 cd ..
 echo "Installation..."
 if [ "$distrib" = "ALMALINUX" ]; then
-  /usr/bin/rpm -Uvvh --force --nodeps *.rpm
+  dnf clean all
+  dnf install -y ./*.rpm
 else
-  dpkg --force-all -i ./*.deb
+  apt-get update
+  apt-get install -y ./*.deb
 fi
 
 ulimit -c unlimited
