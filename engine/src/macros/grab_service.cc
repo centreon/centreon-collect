@@ -20,7 +20,7 @@
 
 #include "com/centreon/engine/macros/grab_service.hh"
 
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/clear_service.hh"
 #include "com/centreon/engine/macros/clear_servicegroup.hh"
@@ -418,8 +418,8 @@ int grab_standard_service_macro_r(nagios_macros* mac,
     else {
       engine_logger(dbg_macros, basic)
           << "UNHANDLED SERVICE MACRO #" << macro_type << "! THIS IS A BUG!";
-      log_v2::macros()->trace("UNHANDLED SERVICE MACRO #{}! THIS IS A BUG!",
-                              macro_type);
+      macros_logger->trace("UNHANDLED SERVICE MACRO #{}! THIS IS A BUG!",
+                           macro_type);
       retval = ERROR;
     }
   } else

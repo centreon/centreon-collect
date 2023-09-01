@@ -37,21 +37,30 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 class AnomalydetectionCheck : public TestEngine {
+ protected:
+  std::shared_ptr<spdlog::logger> _checks_logger;
+  std::shared_ptr<spdlog::logger> _commands_logger;
+
  public:
   void SetUp() override {
     init_config_state(LEGACY);
 
-    log_v2::checks()->set_level(spdlog::level::trace);
-    log_v2::commands()->set_level(spdlog::level::trace);
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("checks");
+    _checks_logger = log_v3::instance().get(logger_id);
+    _checks_logger->set_level(spdlog::level::trace);
+    logger_id = log_v3::instance().create_logger_or_get_id("commands");
+    _commands_logger = log_v3::instance().get(logger_id);
+    _commands_logger->set_level(spdlog::level::trace);
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};

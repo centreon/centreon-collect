@@ -237,7 +237,7 @@ void hostdependency::resolve(int& w, int& e) {
   // Find the dependent host.
   host_map::const_iterator it = host::hosts.find(_dependent_hostname);
   if (it == host::hosts.end() || !it->second) {
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Dependent host specified in host dependency for "
         "host '{}' is not defined anywhere!",
         _dependent_hostname);
@@ -249,7 +249,7 @@ void hostdependency::resolve(int& w, int& e) {
   // Find the host we're depending on.
   it = host::hosts.find(_hostname);
   if (it == host::hosts.end() || !it->second) {
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host specified in host dependency for host '{}' is not defined "
         "anywhere!",
         _dependent_hostname);
@@ -260,7 +260,7 @@ void hostdependency::resolve(int& w, int& e) {
 
   // Make sure they're not the same host.
   if (dependent_host_ptr == master_host_ptr && dependent_host_ptr != nullptr) {
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host dependency definition for host '{}' is circular (it "
         "depends on itself)!",
         _dependent_hostname);
@@ -277,7 +277,7 @@ void hostdependency::resolve(int& w, int& e) {
           << "Error: Dependency period '" << this->get_dependency_period()
           << "' specified in host dependency for host '" << _dependent_hostname
           << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Dependency period '{}' specified in host dependency for host "
           "'{}' is not defined anywhere!",
           this->get_dependency_period(), _dependent_hostname);

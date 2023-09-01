@@ -28,14 +28,15 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/configuration/message_helper.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Add a new service.
@@ -56,8 +57,9 @@ void applier::service::add_object(const configuration::Service& obj) {
         obj.host_name(), obj.service_description());
 
   // Logging.
-  log_v2::config()->debug("Creating new service '{}' of host '{}'.",
-                          obj.service_description(), obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new service '{}' of host '{}'.",
+                obj.service_description(), obj.host_name());
 
   // Add service to the global configuration set.
   auto* cfg_svc = pb_config.add_services();
@@ -187,11 +189,9 @@ void applier::service::add_object(configuration::service const& obj) {
                          << obj.service_description() << "'";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new service '" << obj.service_description() << "' of host '"
-      << obj.host_name() << "'.";
-  log_v2::config()->debug("Creating new service '{}' of host '{}'.",
-                          obj.service_description(), obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new service '{}' of host '{}'.",
+                obj.service_description(), obj.host_name());
 
   // Add service to the global configuration set.
   config->services().insert(obj);
@@ -391,8 +391,9 @@ void applier::service::modify_object(configuration::Service* old_obj,
   const std::string& service_description(old_obj->service_description());
 
   // Logging.
-  log_v2::config()->debug("Modifying service '{}' of host '{}'.",
-                          service_description, host_name);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying service '{}' of host '{}'.", service_description,
+                host_name);
 
   // Find service object.
   service_id_map::iterator it_obj = engine::service::services_by_id.find(
@@ -617,11 +618,9 @@ void applier::service::modify_object(configuration::service const& obj) {
   std::string const& service_description(obj.service_description());
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying new service '" << service_description << "' of host '"
-      << host_name << "'.";
-  log_v2::config()->debug("Modifying new service '{}' of host '{}'.",
-                          service_description, host_name);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying new service '{}' of host '{}'.", service_description,
+                host_name);
 
   // Find the configuration object.
   set_service::iterator it_cfg(config->services_find(obj.key()));
@@ -844,11 +843,9 @@ void applier::service::remove_object(configuration::service const& obj) {
 
   assert(obj.key().first);
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing service '" << service_description << "' of host '"
-      << host_name << "'.";
-  log_v2::config()->debug("Removing service '{}' of host '{}'.",
-                          service_description, host_name);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing service '{}' of host '{}'.", service_description,
+                host_name);
 
   // Find anomaly detections depending on this service
   set_anomalydetection sad = config->anomalydetections();
@@ -906,8 +903,9 @@ void applier::service::remove_object(ssize_t idx) {
   const std::string& service_description = obj.service_description();
 
   // Logging.
-  log_v2::config()->debug("Removing service '{}' of host '{}'.",
-                          service_description, host_name);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing service '{}' of host '{}'.", service_description,
+                host_name);
 
   // Find anomaly detections depending on this service
   for (auto cad : pb_config.anomalydetections()) {
@@ -962,8 +960,9 @@ void applier::service::remove_object(ssize_t idx) {
  */
 void applier::service::resolve_object(const configuration::Service& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving service '{}' of host '{}'.",
-                          obj.service_description(), obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving service '{}' of host '{}'.",
+                obj.service_description(), obj.host_name());
 
   // Find service.
   service_id_map::iterator it =
@@ -996,11 +995,9 @@ void applier::service::resolve_object(const configuration::Service& obj) {
  */
 void applier::service::resolve_object(configuration::service const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving service '" << obj.service_description() << "' of host '"
-      << obj.host_name() << "'.";
-  log_v2::config()->debug("Resolving service '{}' of host '{}'.",
-                          obj.service_description(), obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving service '{}' of host '{}'.",
+                obj.service_description(), obj.host_name());
 
   // Find service.
   service_id_map::iterator it(engine::service::services_by_id.find(obj.key()));

@@ -79,7 +79,7 @@ std::string const& hostescalation::get_hostname() const {
  */
 bool hostescalation::is_viable(int state, uint32_t notification_number) const {
   engine_logger(dbg_functions, basic) << "serviceescalation::is_viable()";
-  log_v2::functions()->trace("serviceescalation::is_viable()");
+  functions_logger->trace("serviceescalation::is_viable()");
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
@@ -106,7 +106,7 @@ void hostescalation::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: Host '" << this->get_hostname()
         << "' specified in host escalation is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host '{}' specified in host escalation is not defined "
         "anywhere!",
         this->get_hostname());
@@ -122,7 +122,7 @@ void hostescalation::resolve(int& w, int& e) {
   } catch (std::exception const& ee) {
     engine_logger(log_verification_error, basic)
         << "Error: Notifier escalation error: " << ee.what();
-    log_v2::config()->error("Error: Notifier escalation error: {}", ee.what());
+    config_logger->error("Error: Notifier escalation error: {}", ee.what());
   }
 
   // Add errors.

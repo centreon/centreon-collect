@@ -305,7 +305,7 @@ void servicedependency::resolve(int& w, int& e) {
         << "' specified in service dependency for service '"
         << get_service_description() << "' on host '" << get_hostname()
         << "' is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Dependent service '{}' on host '{}' specified in service "
         "dependency for service '{}' on host '{}' is not defined anywhere!",
         get_dependent_service_description(), get_dependent_hostname(),
@@ -325,7 +325,7 @@ void servicedependency::resolve(int& w, int& e) {
         << get_hostname() << "' specified in service dependency for service '"
         << get_dependent_service_description() << "' on host '"
         << get_dependent_hostname() << "' is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Service '{}' on host '{}' specified in service dependency for "
         "service '{}' on host '{}' is not defined anywhere!",
         get_service_description(), get_hostname(),
@@ -343,7 +343,7 @@ void servicedependency::resolve(int& w, int& e) {
         << "Error: Service dependency definition for service '"
         << get_dependent_service_description() << "' on host '"
         << get_dependent_hostname() << "' is circular (it depends on itself)!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Service dependency definition for service '{}' on host '{}' is "
         "circular (it depends on itself)!",
         get_dependent_service_description(), get_dependent_hostname());
@@ -361,7 +361,7 @@ void servicedependency::resolve(int& w, int& e) {
           << "' specified in service dependency for service '"
           << get_dependent_service_description() << "' on host '"
           << get_dependent_hostname() << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Dependency period '{}' specified in service dependency for "
           "service '{}' on host '{}' is not defined anywhere!",
           get_dependency_period(), get_dependent_service_description(),

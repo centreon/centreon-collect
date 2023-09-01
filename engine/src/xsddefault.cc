@@ -65,9 +65,8 @@ int xsddefault_initialize_status_data() {
                       engine::logging::basic)
             << "Error: Unable to open status data file '"
             << config->status_file() << "': " << strerror(errno);
-        log_v2::runtime()->error(
-            "Error: Unable to open status data file '{}': {}",
-            config->status_file(), strerror(errno));
+        runtime_logger->error("Error: Unable to open status data file '{}': {}",
+                              config->status_file(), strerror(errno));
         return ERROR;
       }
       set_cloexec(xsddefault_status_log_fd);
@@ -88,9 +87,8 @@ int xsddefault_initialize_status_data() {
                       engine::logging::basic)
             << "Error: Unable to open status data file '"
             << pb_config.status_file() << "': " << strerror(errno);
-        log_v2::runtime()->error(
-            "Error: Unable to open status data file '{}': {}",
-            pb_config.status_file(), strerror(errno));
+        runtime_logger->error("Error: Unable to open status data file '{}': {}",
+                              pb_config.status_file(), strerror(errno));
         return ERROR;
       }
       set_cloexec(xsddefault_status_log_fd);
@@ -141,7 +139,7 @@ int xsddefault_save_status_data() {
 
   engine_logger(engine::logging::dbg_functions, engine::logging::basic)
       << "save_status_data()";
-  log_v2::functions()->trace("save_status_data()");
+  functions_logger->trace("save_status_data()");
 
   // get number of items in the command buffer
   if (config->check_external_commands()) {
@@ -769,9 +767,8 @@ int xsddefault_save_status_data() {
     engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
         << "Error: Unable to update status data file '" << config->status_file()
         << "': " << msg;
-    log_v2::runtime()->error(
-        "Error: Unable to update status data file '{}': {}",
-        config->status_file(), msg);
+    runtime_logger->error("Error: Unable to update status data file '{}': {}",
+                          config->status_file(), msg);
     return ERROR;
   }
 
@@ -786,9 +783,8 @@ int xsddefault_save_status_data() {
       engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
           << "Error: Unable to update status data file '"
           << config->status_file() << "': " << msg;
-      log_v2::runtime()->error(
-          "Error: Unable to update status data file '{}': {}",
-          config->status_file(), msg);
+      runtime_logger->error("Error: Unable to update status data file '{}': {}",
+                            config->status_file(), msg);
       return ERROR;
     }
     data_ptr += wb;
@@ -808,7 +804,7 @@ int xsddefault_save_pb_status_data() {
 
   engine_logger(engine::logging::dbg_functions, engine::logging::basic)
       << "save_status_data()";
-  log_v2::functions()->trace("save_status_data()");
+  functions_logger->trace("save_status_data()");
 
   // get number of items in the command buffer
   if (pb_config.check_external_commands()) {
@@ -1436,9 +1432,8 @@ int xsddefault_save_pb_status_data() {
     engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
         << "Error: Unable to update status data file '"
         << pb_config.status_file() << "': " << msg;
-    log_v2::runtime()->error(
-        "Error: Unable to update status data file '{}': {}",
-        pb_config.status_file(), msg);
+    runtime_logger->error("Error: Unable to update status data file '{}': {}",
+                          pb_config.status_file(), msg);
     return ERROR;
   }
 
@@ -1453,9 +1448,8 @@ int xsddefault_save_pb_status_data() {
       engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
           << "Error: Unable to update status data file '"
           << pb_config.status_file() << "': " << msg;
-      log_v2::runtime()->error(
-          "Error: Unable to update status data file '{}': {}",
-          pb_config.status_file(), msg);
+      runtime_logger->error("Error: Unable to update status data file '{}': {}",
+                            pb_config.status_file(), msg);
       return ERROR;
     }
     data_ptr += wb;

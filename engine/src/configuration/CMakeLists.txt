@@ -81,4 +81,4 @@ add_library(
   "${INC_DIR}/timeperiod.hh")
 
 target_link_libraries(engine_config CONAN_PKG::spdlog CONAN_PKG::abseil
-                      pb_configuration_lib)
+                      pb_configuration_lib log_v2)

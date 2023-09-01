@@ -24,12 +24,13 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/tag.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Add a new tag.
@@ -38,8 +39,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::tag::add_object(const configuration::Tag& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new tag ({},{}).", obj.key().id(),
-                          obj.key().type());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new tag ({},{}).", obj.key().id(), obj.key().type());
 
   // Add tag to the global configuration set.
   configuration::Tag* new_tg = pb_config.add_tags();
@@ -58,7 +59,7 @@ void applier::tag::add_object(const configuration::Tag& obj) {
   auto res = engine::tag::tags.insert(
       {{new_tg->key().id(), new_tg->key().type()}, tg});
   if (!res.second)
-    log_v2::config()->error(
+    logger->error(
         "Could not insert tag ({},{}) into cache because it already exists",
         new_tg->key().id(), new_tg->key().type());
 
@@ -72,8 +73,8 @@ void applier::tag::add_object(const configuration::Tag& obj) {
  */
 void applier::tag::add_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new tag ({},{}).", obj.key().first, obj.key().second);
 
   // Add tag to the global configuration set.
   config->mut_tags().insert(obj);
@@ -88,7 +89,7 @@ void applier::tag::add_object(const configuration::tag& obj) {
   // Add new items to the configuration state.
   auto res = engine::tag::tags.insert({obj.key(), tg});
   if (!res.second)
-    log_v2::config()->error(
+    logger->error(
         "Could not insert tag ({},{}) into cache because it already exists",
         obj.key().first, obj.key().second);
 
@@ -123,8 +124,9 @@ void applier::tag::expand_objects(configuration::state&) {}
 void applier::tag::modify_object(configuration::Tag* to_modify,
                                  const configuration::Tag& new_object) {
   // Logging.
-  log_v2::config()->debug("Modifying tag ({},{}).", to_modify->key().id(),
-                          to_modify->key().type());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying tag ({},{}).", to_modify->key().id(),
+                to_modify->key().type());
 
   // Find tag object.
   tag_map::iterator it_obj =
@@ -145,8 +147,8 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
     // Notify event broker.
     broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
   } else
-    log_v2::config()->debug("Tag ({},{}) did not change", new_object.key().id(),
-                            new_object.key().type());
+    logger->debug("Tag ({},{}) did not change", new_object.key().id(),
+                  new_object.key().type());
 }
 
 /**
@@ -156,8 +158,8 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
  */
 void applier::tag::modify_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying tag ({},{}).", obj.key().first, obj.key().second);
 
   // Find old configuration.
   auto it_cfg = config->tags_find(obj.key());
@@ -185,8 +187,8 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     // Notify event broker.
     broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
   } else
-    log_v2::config()->debug("Tag ({},{}) did not change", obj.key().first,
-                            obj.key().second);
+    logger->debug("Tag ({},{}) did not change", obj.key().first,
+                  obj.key().second);
 }
 
 /**
@@ -198,8 +200,8 @@ void applier::tag::remove_object(ssize_t idx) {
   const configuration::Tag& obj = pb_config.tags().at(idx);
 
   // Logging.
-  log_v2::config()->debug("Removing tag ({},{}).", obj.key().id(),
-                          obj.key().type());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing tag ({},{}).", obj.key().id(), obj.key().type());
 
   // Find tag.
   tag_map::iterator it =
@@ -225,8 +227,8 @@ void applier::tag::remove_object(ssize_t idx) {
  */
 void applier::tag::remove_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Removing tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing tag ({},{}).", obj.key().first, obj.key().second);
 
   // Find tag.
   tag_map::iterator it =

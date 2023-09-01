@@ -43,10 +43,12 @@
 #include "common/configuration/state_helper.hh"
 #include "common/configuration/tag_helper.hh"
 #include "common/configuration/timeperiod_helper.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using msg_fmt = com::centreon::exceptions::msg_fmt;
+using com::centreon::common::log_v3::log_v3;
 
 using Descriptor = ::google::protobuf::Descriptor;
 using FieldDescriptor = ::google::protobuf::FieldDescriptor;
@@ -80,7 +82,9 @@ parser::store parser::_store[] = {
  *             (use to skip some object type).
  */
 parser::parser(unsigned int read_options)
-    : _config(NULL), _read_options(read_options) {}
+    : _config(NULL),
+      _read_options(read_options),
+      _logger{log_v3::instance().get(common::log_v3::log_v2_configuration)} {}
 
 void parser::parse(const std::string& path, State* pb_config) {
   /* Parse the global configuration file. */
@@ -557,7 +561,7 @@ bool set(std::unique_ptr<message_helper>& helper,
 
 void parser::_parse_global_configuration(const std::string& path,
                                          State* pb_config) {
-  log_v2::config()->info("Reading main configuration file '{}'.", path);
+  _logger->info("Reading main configuration file '{}'.", path);
 
   std::ifstream in(path, std::ios::in);
   std::string content;
@@ -590,8 +594,8 @@ void parser::_parse_global_configuration(const std::string& path,
     retval = cfg_helper->hook(p.first, p.second);
     if (!retval) {
       if (!set_global(cfg_helper, p.first, p.second))
-        log_v2::config()->error("Unable to parse '{}' key with value '{}'",
-                                p.first, p.second);
+        _logger->error("Unable to parse '{}' key with value '{}'", p.first,
+                       p.second);
     }
   }
 }
@@ -616,7 +620,7 @@ void parser::_parse_global_configuration(const std::string& path,
  */
 void parser::_parse_object_definitions(const std::string& path,
                                        State* pb_config) {
-  log_v2::config()->info("Processing object config file '{}'", path);
+  _logger->info("Processing object config file '{}'", path);
 
   std::ifstream in(path, std::ios::in);
   std::string content;
@@ -758,8 +762,7 @@ void parser::_parse_object_definitions(const std::string& path,
                     static_cast<Hostescalation*>(msg.release()));
                 break;
               default:
-                log_v2::config()->critical(
-                    "Attempt to add an object of unknown type");
+                _logger->critical("Attempt to add an object of unknown type");
             }
           }
         }
@@ -869,8 +872,7 @@ void parser::_parse_object_definitions(const std::string& path,
         msg_helper = std::make_unique<hostescalation_helper>(
             static_cast<Hostescalation*>(msg.get()));
       } else {
-        log_v2::config()->error("Type '{}' not yet supported by the parser",
-                                type);
+        _logger->error("Type '{}' not yet supported by the parser", type);
         assert(1 == 18);
       }
     }
@@ -878,7 +880,7 @@ void parser::_parse_object_definitions(const std::string& path,
 }
 
 void parser::_parse_resource_file(const std::string& path, State* pb_config) {
-  log_v2::config()->info("Reading resource file '{}'", path);
+  _logger->info("Reading resource file '{}'", path);
 
   std::ifstream in(path, std::ios::in);
   std::string content;
@@ -918,7 +920,7 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
  *  @param[in] path The configuration path.
  */
 void parser::_parse_global_configuration(const std::string& path) {
-  log_v2::config()->info("Reading main configuration file '{}'.", path);
+  _logger->info("Reading main configuration file '{}'.", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
@@ -948,7 +950,7 @@ void parser::_parse_global_configuration(const std::string& path) {
  *  @param[in] path The object definitions path.
  */
 void parser::_parse_object_definitions(std::string const& path) {
-  log_v2::config()->info("Processing object config file '{}'", path);
+  _logger->info("Processing object config file '{}'", path);
 
   std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
@@ -1024,7 +1026,7 @@ void parser::_parse_object_definitions(std::string const& path) {
  *  @param[in] path The resource file path.
  */
 void parser::_parse_resource_file(std::string const& path) {
-  log_v2::config()->info("Reading resource file '{}'", path);
+  _logger->info("Reading resource file '{}'", path);
 
   std::ifstream stream(path.c_str(), std::ios::binary);
   if (!stream.is_open())
@@ -1124,7 +1126,7 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
               }
             } break;
             default:
-              log_v2::config()->error(
+              _logger->error(
                   "Repeated type f->cpp_type = {} not managed in the "
                   "inheritence.",
                   f->cpp_type());
@@ -1188,9 +1190,8 @@ void parser::_merge(std::unique_ptr<message_helper>& msg_helper,
             } break;
 
             default:
-              log_v2::config()->error(
-                  "Entry '{}' of type {} not managed in merge", f->name(),
-                  f->type_name());
+              _logger->error("Entry '{}' of type {} not managed in merge",
+                             f->name(), f->type_name());
               assert(123 == 293);
           }
         }

@@ -25,11 +25,12 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "common/configuration/message_helper.hh"
 #include "common/configuration/state-generated.pb.h"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 namespace com {
 namespace centreon {
@@ -80,13 +81,9 @@ void applier::hostdependency::add_object(
                          << *obj.hosts().begin() << "'";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new host dependency of host '"
-      << *obj.dependent_hosts().begin() << "' on host '" << *obj.hosts().begin()
-      << "'.";
-  log_v2::config()->debug(
-      "Creating new host dependency of host '{}' on host '{}'.",
-      *obj.dependent_hosts().begin(), *obj.hosts().begin());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new host dependency of host '{}' on host '{}'.",
+                *obj.dependent_hosts().begin(), *obj.hosts().begin());
 
   // Add dependency to the global configuration set.
   config->hostdependencies().insert(obj);
@@ -156,9 +153,9 @@ void applier::hostdependency::add_object(
         obj.dependent_hosts().data(0), obj.hosts().data(0));
 
   // Logging.
-  log_v2::config()->debug(
-      "Creating new host dependency of host '{}' on host '{}'.",
-      obj.dependent_hosts().data(0), obj.hosts().data(0));
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new host dependency of host '{}' on host '{}'.",
+                obj.dependent_hosts().data(0), obj.hosts().data(0));
 
   // Add dependency to the global configuration set.
   auto* new_obj = pb_config.add_hostdependencies();
@@ -379,9 +376,8 @@ void applier::hostdependency::modify_object(
 void applier::hostdependency::remove_object(
     configuration::hostdependency const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing a host dependency.";
-  log_v2::config()->debug("Removing a host dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing a host dependency.");
 
   // Find host dependency.
   hostdependency_mmap::iterator it(
@@ -408,7 +404,8 @@ void applier::hostdependency::remove_object(
  */
 void applier::hostdependency::remove_object(ssize_t idx) {
   // Logging.
-  log_v2::config()->debug("Removing a host dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing a host dependency.");
 
   // Find host dependency.
   auto& obj = pb_config.hostdependencies(0);
@@ -439,9 +436,8 @@ void applier::hostdependency::remove_object(ssize_t idx) {
 void applier::hostdependency::resolve_object(
     configuration::hostdependency const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving a host dependency.";
-  log_v2::config()->debug("Resolving a host dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving a host dependency.");
 
   // Find host escalation
   hostdependency_mmap::iterator it{
@@ -462,7 +458,8 @@ void applier::hostdependency::resolve_object(
 void applier::hostdependency::resolve_object(
     const configuration::Hostdependency& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving a host dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving a host dependency.");
 
   // Find host escalation
   auto k = hostdependency_key(obj);

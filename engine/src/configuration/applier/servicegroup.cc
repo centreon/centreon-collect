@@ -23,11 +23,11 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
 #include "common/configuration/state-generated.pb.h"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Add new servicegroup.
@@ -37,10 +37,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new servicegroup '" << obj.servicegroup_name() << "'";
-  log_v2::config()->debug("Creating new servicegroup '{}'",
-                          obj.servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new servicegroup '{}'", obj.servicegroup_name());
 
   // Add service group to the global configuration set.
   config->servicegroups().insert(obj);
@@ -73,8 +71,8 @@ void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
  */
 void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new servicegroup '{}'",
-                          obj.servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new servicegroup '{}'", obj.servicegroup_name());
 
   // Add service group to the global configuration set.
   auto* new_obj = pb_config.add_servicegroups();
@@ -195,8 +193,8 @@ void applier::servicegroup::modify_object(
     configuration::Servicegroup* to_modify,
     const configuration::Servicegroup& new_object) {
   // Logging.
-  log_v2::config()->debug("Modifying servicegroup '{}'",
-                          to_modify->servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying servicegroup '{}'", to_modify->servicegroup_name());
 
   // Find service group object.
   servicegroup_map::iterator it_obj =
@@ -247,10 +245,8 @@ void applier::servicegroup::modify_object(
 void applier::servicegroup::modify_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying servicegroup '" << obj.servicegroup_name() << "'";
-  log_v2::config()->debug("Modifying servicegroup '{}'",
-                          obj.servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying servicegroup '{}'", obj.servicegroup_name());
 
   // Find old configuration.
   set_servicegroup::iterator it_cfg(config->servicegroups_find(obj.key()));
@@ -310,8 +306,8 @@ void applier::servicegroup::modify_object(
 void applier::servicegroup::remove_object(ssize_t idx) {
   // Logging.
   auto obj = pb_config.servicegroups(idx);
-  log_v2::config()->debug("Removing servicegroup '{}'",
-                          obj.servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing servicegroup '{}'", obj.servicegroup_name());
 
   // Find service group.
   servicegroup_map::iterator it =
@@ -337,10 +333,8 @@ void applier::servicegroup::remove_object(ssize_t idx) {
 void applier::servicegroup::remove_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing servicegroup '" << obj.servicegroup_name() << "'";
-  log_v2::config()->debug("Removing servicegroup '{}'",
-                          obj.servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing servicegroup '{}'", obj.servicegroup_name());
 
   // Find service group.
   servicegroup_map::iterator it{
@@ -365,10 +359,8 @@ void applier::servicegroup::remove_object(
 void applier::servicegroup::resolve_object(
     configuration::servicegroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing service group '" << obj.servicegroup_name() << "'";
-  log_v2::config()->debug("Removing service group '{}'",
-                          obj.servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing service group '{}'", obj.servicegroup_name());
 
   // Find service group.
   servicegroup_map::const_iterator it{
@@ -384,8 +376,8 @@ void applier::servicegroup::resolve_object(
 void applier::servicegroup::resolve_object(
     const configuration::Servicegroup& obj) {
   // Logging.
-  log_v2::config()->debug("Removing service group '{}'",
-                          obj.servicegroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing service group '{}'", obj.servicegroup_name());
 
   // Find service group.
   servicegroup_map::const_iterator it =
@@ -411,11 +403,9 @@ void applier::servicegroup::_resolve_members(
   // Only process if servicegroup has not been resolved already.
   if (_resolved.find(obj.key()) == _resolved.end()) {
     // Logging.
-    engine_logger(logging::dbg_config, logging::more)
-        << "Resolving members of service group '" << obj.servicegroup_name()
-        << "'";
-    log_v2::config()->debug("Resolving members of service group '{}'",
-                            obj.servicegroup_name());
+    auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+    logger->debug("Resolving members of service group '{}'",
+                  obj.servicegroup_name());
 
     // Mark object as resolved.
     configuration::servicegroup& resolved_obj(_resolved[obj.key()]);

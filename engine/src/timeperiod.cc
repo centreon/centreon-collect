@@ -52,8 +52,8 @@ timeperiod::timeperiod(std::string const& name, std::string const& alias)
   if (it != timeperiod::timeperiods.end()) {
     engine_logger(log_config_error, basic)
         << "Error: Timeperiod '" << name << "' has already been defined";
-    log_v2::config()->error("Error: Timeperiod '{}' has already been defined",
-                            name);
+    config_logger->error("Error: Timeperiod '{}' has already been defined",
+                         name);
     throw engine_error() << "Could not register time period '" << name << "'";
   }
 }
@@ -68,8 +68,8 @@ timeperiod::timeperiod(const configuration::Timeperiod& obj)
   // Check if the timeperiod already exist.
   timeperiod_map::const_iterator it{timeperiod::timeperiods.find(_name)};
   if (it != timeperiod::timeperiods.end()) {
-    log_v2::config()->error("Error: Timeperiod '{}' has already been defined",
-                            _name);
+    config_logger->error("Error: Timeperiod '{}' has already been defined",
+                         _name);
     throw engine_error() << "Could not register time period '" << _name << "'";
   }
 
@@ -853,7 +853,7 @@ static bool _timerange_to_time_t(const timerange& trange,
  */
 bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "check_time_against_period()";
-  log_v2::functions()->trace("check_time_against_period()");
+  functions_logger->trace("check_time_against_period()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -863,8 +863,8 @@ bool check_time_against_period(time_t test_time, timeperiod* tperiod) {
   time_t next_valid_time{(time_t)-1};
   tperiod->get_next_valid_time_per_timeperiod(test_time, &next_valid_time,
                                               false);
-  log_v2::functions()->trace("check_time_against_period {} ret={}",
-                             tperiod->get_name(), next_valid_time == test_time);
+  functions_logger->trace("check_time_against_period {} ret={}",
+                          tperiod->get_name(), next_valid_time == test_time);
 
   return next_valid_time == test_time;
 }
@@ -882,7 +882,7 @@ bool check_time_against_period_for_notif(time_t test_time,
                                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic)
       << "check_time_against_period_for_notif()";
-  log_v2::functions()->trace("check_time_against_period_for_notif()");
+  functions_logger->trace("check_time_against_period_for_notif()");
 
   // If no period was specified, assume the time is good.
   if (!tperiod)
@@ -908,7 +908,7 @@ void timeperiod::get_next_invalid_time_per_timeperiod(time_t preferred_time,
                                                       bool notif_timeperiod) {
   engine_logger(dbg_functions, basic)
       << "get_next_invalid_time_per_timeperiod()";
-  log_v2::functions()->trace("get_next_invalid_time_per_timeperiod()");
+  functions_logger->trace("get_next_invalid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in invalid_time at the end of the loop.
@@ -1093,7 +1093,7 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
                                                     time_t* valid_time,
                                                     bool notif_timeperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time_per_timeperiod()";
-  log_v2::functions()->trace("get_next_valid_time_per_timeperiod()");
+  functions_logger->trace("get_next_valid_time_per_timeperiod()");
 
   // If no time can be found, the original preferred time will be set
   // in valid_time at the end of the loop.
@@ -1204,9 +1204,8 @@ void timeperiod::get_next_valid_time_per_timeperiod(time_t preferred_time,
   // Else use the calculated time.
   else
     *valid_time = earliest_time;
-  log_v2::functions()->trace(
-      "get_next_valid_time_per_timeperiod {} valid_time={}", _name,
-      *valid_time);
+  functions_logger->trace("get_next_valid_time_per_timeperiod {} valid_time={}",
+                          _name, *valid_time);
 }
 
 /**
@@ -1221,7 +1220,7 @@ void get_next_valid_time(time_t pref_time,
                          time_t* valid_time,
                          timeperiod* tperiod) {
   engine_logger(dbg_functions, basic) << "get_next_valid_time()";
-  log_v2::functions()->trace("get_next_valid_time()");
+  functions_logger->trace("get_next_valid_time()");
 
   // Preferred time must be now or in the future.
   time_t preferred_time(std::max(pref_time, time(NULL)));
@@ -1256,7 +1255,7 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of time period '" << _name
         << "' contains one or more illegal characters.";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: The name of time period '{}' contains one or more illegal "
         "characters.",
         _name);
@@ -1275,7 +1274,7 @@ void timeperiod::resolve(int& w __attribute__((unused)), int& e) {
           << "Error: Excluded time period '" << it->first
           << "' specified in timeperiod '" << _name
           << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Excluded time period '{}' specified in timeperiod '{}' is "
           "not defined anywhere!",
           it->first, _name);

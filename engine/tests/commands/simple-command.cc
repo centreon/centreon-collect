@@ -18,8 +18,9 @@
  */
 
 #include <gtest/gtest.h>
-#include <com/centreon/engine/macros.hh>
-#include "com/centreon/engine/log_v2.hh"
+#include <spdlog/logger.h>
+#include "com/centreon/engine/macros.hh"
+#include "common/log_v2/log_v2.hh"
 
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/raw.hh"
@@ -28,6 +29,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::commands;
+using com::centreon::common::log_v3::log_v3;
 
 static void CreateFile(const std::string& filename,
                        const std::string& content) {
@@ -36,8 +38,13 @@ static void CreateFile(const std::string& filename,
 }
 
 class SimpleCommand : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> logger;
+
  public:
   void SetUp() override {
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("commands");
+    logger = log_v3::instance().get(logger_id);
     set_time(-1);
     init_config_state(LEGACY);
     config->interval_length(1);
@@ -150,7 +157,7 @@ TEST_F(SimpleCommand, LongCommandAsync) {
 }
 
 TEST_F(SimpleCommand, TooRecentDoubleCommand) {
-  log_v2::commands()->set_level(spdlog::level::trace);
+  logger->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
 
@@ -192,7 +199,7 @@ TEST_F(SimpleCommand, TooRecentDoubleCommand) {
 }
 
 TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
-  log_v2::commands()->set_level(spdlog::level::trace);
+  logger->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
 

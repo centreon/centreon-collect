@@ -528,6 +528,7 @@ target_link_libraries(
   "-rdynamic"
   centreon_clib
   enginelog
+  log_v2
   "-Wl,-whole-archive"
   enginerpc
   cce_core

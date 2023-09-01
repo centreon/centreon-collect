@@ -36,6 +36,7 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "common/configuration/message_helper.hh"
+#include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::engine {
 
@@ -140,6 +141,9 @@ class parser {
 
   std::array<pb_map_object, 19> _pb_templates;
   pb_map_helper _pb_helper;
+
+  /* Configuration Logger */
+  std::shared_ptr<spdlog::logger> _logger;
 };
 }  // namespace configuration
 

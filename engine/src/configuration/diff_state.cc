@@ -18,6 +18,7 @@
  */
 #include "com/centreon/engine/configuration/diff_state.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
 using Descriptor = ::google::protobuf::Descriptor;
@@ -27,11 +28,13 @@ using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
 using Reflection = ::google::protobuf::Reflection;
 using SpecificField =
     ::google::protobuf::util::MessageDifferencer::SpecificField;
+using com::centreon::common::log_v3::log_v3;
 
 void diff_state::_build_path(
     const std::vector<MessageDifferencer::SpecificField>& field_path,
     Path* path) {
-  log_v2::config()->error("Build path");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->error("Build path");
   for (size_t i = 0; i < field_path.size(); ++i) {
     const SpecificField& specific_field = field_path[i];
     const FieldDescriptor* field = specific_field.field;
@@ -44,8 +47,8 @@ void diff_state::_build_path(
     }
 
     if (field != nullptr) {
-      log_v2::config()->error("=> name: {}", field->name());
-      log_v2::config()->error("=> number: {}", field->number());
+      logger->error("=> name: {}", field->name());
+      logger->error("=> number: {}", field->number());
 
       if (field->is_map()) {
         const Message* entry1 = specific_field.map_entry1;
@@ -58,7 +61,7 @@ void diff_state::_build_path(
             // characters
             std::string key_string = entry1->GetReflection()->GetString(
                 *entry1, entry1->GetDescriptor()->field(0));
-            log_v2::config()->error("=> map key '{}'", key_string);
+            logger->error("=> map key '{}'", key_string);
 
             Key* k = path->add_key();
             k->set_i32(field->number());
@@ -70,7 +73,7 @@ void diff_state::_build_path(
           }
         }
       } else {
-        log_v2::config()->error("=> index {}", specific_field.index);
+        logger->error("=> index {}", specific_field.index);
         Key* k = path->add_key();
         k->set_i32(field->number());
         k = path->add_key();
@@ -87,6 +90,7 @@ void diff_state::_set_value(
     Value* value) {
   const SpecificField& specific_field = field_path.back();
   const FieldDescriptor* field = specific_field.field;
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
   if (field != nullptr) {
     int index = left_side ? specific_field.index : specific_field.new_index;
     switch (field->cpp_type()) {
@@ -107,7 +111,7 @@ void diff_state::_set_value(
             if (name == "Contact")
               *value->mutable_value_ct() = *static_cast<const Contact*>(msg);
             else {
-              log_v2::config()->error("name of message '{}' not managed", name);
+              logger->error("name of message '{}' not managed", name);
               assert(1 == 20);
             }
           } else {
@@ -121,7 +125,7 @@ void diff_state::_set_value(
             *value->mutable_value_ct() =
                 *static_cast<const Contact*>(&field_message);
           else {
-            log_v2::config()->error("name of message '{}' not managed", name);
+            logger->error("name of message '{}' not managed", name);
             assert(2 == 20);
           }
         }
@@ -136,7 +140,7 @@ void diff_state::_set_value(
       } break;
     }
   } else {
-    log_v2::config()->error("unknown field not handled");
+    logger->error("unknown field not handled");
     assert(2 == 3);
   }
 }
@@ -152,7 +156,8 @@ void diff_state::ReportAdded(
     const Message&,
     const Message& new_message,
     const std::vector<MessageDifferencer::SpecificField>& field_path) {
-  log_v2::config()->error("Added message");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->error("Added message");
   PathWithValue* path = _dstate.add_to_add();
   _build_path(field_path, path->mutable_path());
   _set_value(new_message, field_path, false, path->mutable_val());
@@ -170,10 +175,11 @@ void diff_state::ReportDeleted(
     const google::protobuf::Message& old_message,
     const google::protobuf::Message&,
     const std::vector<MessageDifferencer::SpecificField>& field_path) {
-  log_v2::config()->error("Removed message");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->error("Removed message");
   _build_path(field_path, _dstate.add_to_remove());
   const Descriptor* desc = old_message.GetDescriptor();
-  log_v2::config()->error("Old_message : {}", desc->name());
+  logger->error("Old_message : {}", desc->name());
 }
 
 void diff_state::ReportModified(
@@ -182,6 +188,7 @@ void diff_state::ReportModified(
     const std::vector<MessageDifferencer::SpecificField>& field_path) {
   const MessageDifferencer::SpecificField& specific_field = field_path.back();
   const FieldDescriptor* field = specific_field.field;
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
 
   // Any changes to the subfields have already been handled.
   if (field == nullptr && specific_field.unknown_field_type ==
@@ -190,7 +197,7 @@ void diff_state::ReportModified(
   else if (field->cpp_type() == FieldDescriptor::CPPTYPE_MESSAGE)
     return;
 
-  log_v2::config()->error("Modified message");
+  logger->error("Modified message");
   PathWithValue* path = _dstate.add_to_modify();
   _build_path(field_path, path->mutable_path());
   _set_value(new_message, field_path, false, path->mutable_val());

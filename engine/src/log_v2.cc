@@ -99,7 +99,7 @@ void log_v2::apply(const configuration::State& config) {
         sinks.push_back(
             std::make_shared<sinks::basic_file_sink_mt>(config.log_file()));
       else {
-        log_v2::config()->error("log_file name is empty");
+        config_logger->error("log_file name is empty");
         sinks.push_back(std::make_shared<sinks::stdout_sink_mt>());
       }
     } else if (config.log_v2_logger() == "syslog")
@@ -186,7 +186,7 @@ void log_v2::apply(const configuration::state& config) {
         _file_path = config.log_file();
         sink_to_flush = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
       } else {
-        log_v2::config()->error("log_file name is empty");
+        config_logger->error("log_file name is empty");
         sink_to_flush = std::make_shared<sinks::stdout_sink_mt>();
       }
     } else if (config.log_v2_logger() == "syslog")

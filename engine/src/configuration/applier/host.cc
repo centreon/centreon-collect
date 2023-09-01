@@ -29,13 +29,14 @@
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/severity.hh"
 #include "common/configuration/message_helper.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Add new host.
@@ -44,7 +45,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::host::add_object(const configuration::Host& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new host '{}'.", obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new host '{}'.", obj.host_name());
 
   // Add host to the global configuration set.
   auto* cfg_obj = pb_config.add_hosts();
@@ -158,9 +160,8 @@ void applier::host::add_object(const configuration::Host& obj) {
  */
 void applier::host::add_object(configuration::host const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new host '" << obj.host_name() << "'.";
-  log_v2::config()->debug("Creating new host '{}'.", obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new host '{}'.", obj.host_name());
 
   // Add host to the global configuration set.
   config->hosts().insert(obj);
@@ -370,8 +371,9 @@ void applier::host::expand_objects(configuration::state& s) {
 void applier::host::modify_object(configuration::Host* old_obj,
                                   const configuration::Host& new_obj) {
   // Logging.
-  log_v2::config()->debug("Modifying host '{}' (id {}).", new_obj.host_name(),
-                          new_obj.host_id());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying host '{}' (id {}).", new_obj.host_name(),
+                new_obj.host_id());
 
   // Find host object.
   host_id_map::iterator it_obj =
@@ -603,9 +605,8 @@ void applier::host::modify_object(configuration::Host* old_obj,
  */
 void applier::host::modify_object(configuration::host const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying host '" << obj.host_name() << "'.";
-  log_v2::config()->debug("Modifying host '{}'.", obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying host '{}'.", obj.host_name());
 
   // Find the configuration object.
   set_host::iterator it_cfg(config->hosts_find(obj.key()));
@@ -840,7 +841,8 @@ void applier::host::modify_object(configuration::host const& obj) {
 void applier::host::remove_object(ssize_t idx) {
   const Host& obj = pb_config.hosts()[idx];
   // Logging.
-  log_v2::config()->debug("Removing host '{}'.", obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing host '{}'.", obj.host_name());
 
   // Find host.
   host_id_map::iterator it(engine::host::hosts_by_id.find(obj.host_id()));
@@ -885,9 +887,8 @@ void applier::host::remove_object(ssize_t idx) {
  */
 void applier::host::remove_object(configuration::host const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing host '" << obj.host_name() << "'.";
-  log_v2::config()->debug("Removing host '{}'.", obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing host '{}'.", obj.host_name());
 
   // Find host.
   host_id_map::iterator it(engine::host::hosts_by_id.find(obj.key()));
@@ -932,9 +933,8 @@ void applier::host::remove_object(configuration::host const& obj) {
  */
 void applier::host::resolve_object(configuration::host const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving host '" << obj.host_name() << "'.";
-  log_v2::config()->debug("Resolving host '{}'.", obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving host '{}'.", obj.host_name());
 
   // If it is the very first host to be resolved,
   // remove all the child backlinks of all the hosts.
@@ -974,7 +974,8 @@ void applier::host::resolve_object(configuration::host const& obj) {
  */
 void applier::host::resolve_object(const configuration::Host& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving host '{}'.", obj.host_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving host '{}'.", obj.host_name());
 
   // If it is the very first host to be resolved,
   // remove all the child backlinks of all the hosts.

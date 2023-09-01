@@ -1,7 +1,7 @@
 /**
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
- * Copyright 2011-2021 Centreon
+ * Copyright 2011-2023 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -67,8 +67,10 @@ namespace asio = boost::asio;
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/logging/engine.hh"
 #include "common/configuration/state.pb.h"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
@@ -111,15 +113,22 @@ int main(int argc, char* argv[]) {
 
   // Hack to instanciate the logger.
   log_v2::load(g_io_context);
+  log_v3::load({"core", "config", "process", "configuration", "functions",
+                "events", "checks", "notifications", "eventbroker",
+                "external_command", "commands", "downtimes", "comments",
+                "macros", "runtime"});
+  auto config_logger = log_v3::instance().get(3);
+  auto process_logger = log_v3::instance().get(2);
+  init_loggers();
   configuration::applier::logging::instance();
 
   // Load singletons and global variable.
   const char* legacy = getenv("CENTENGINE_LEGACY");
   if (legacy && absl::SimpleAtob(legacy, &legacy_conf))
-    log_v2::config()->info("Configuration mechanism used: {}",
-                           legacy_conf ? "legacy" : "protobuf");
+    config_logger->info("Configuration mechanism used: {}",
+                        legacy_conf ? "legacy" : "protobuf");
   else {
-    log_v2::config()->info("Legacy configuration mechanism used");
+    config_logger->info("Legacy configuration mechanism used");
     legacy_conf = true;
   }
   if (legacy_conf)
@@ -430,7 +439,7 @@ int main(int argc, char* argv[]) {
             try {
               p.parse(config.state_retention_file(), state);
             } catch (const std::exception& e) {
-              log_v2::config()->error("{}", e.what());
+              config_logger->error("{}", e.what());
               engine_logger(logging::log_config_error, logging::basic)
                   << e.what();
             }
@@ -485,7 +494,7 @@ int main(int argc, char* argv[]) {
             try {
               p.parse(pb_config.state_retention_file(), state);
             } catch (const std::exception& e) {
-              log_v2::config()->error("{}", e.what());
+              config_logger->error("{}", e.what());
               engine_logger(logging::log_config_error, logging::basic)
                   << e.what();
             }
@@ -533,13 +542,13 @@ int main(int argc, char* argv[]) {
 
         // if neb has not started g_io_context we do it here
         if (!g_io_context_started) {
-          SPDLOG_LOGGER_INFO(log_v2::process(),
+          SPDLOG_LOGGER_INFO(process_logger,
                              "io_context not started => create thread");
-          std::thread asio_thread([cont = g_io_context]() {
+          std::thread asio_thread([cont = g_io_context, process_logger]() {
             try {
               cont->run();
             } catch (const std::exception& e) {
-              SPDLOG_LOGGER_CRITICAL(log_v2::process(),
+              SPDLOG_LOGGER_CRITICAL(process_logger,
                                      "catch in io_context run: {}", e.what());
             }
           });
@@ -553,8 +562,8 @@ int main(int argc, char* argv[]) {
 
         engine_logger(logging::log_info_message, logging::basic)
             << "Event loop start at " << string::ctime(event_start);
-        log_v2::config()->info("Event loop start at {}",
-                               string::ctime(event_start));
+        config_logger->info("Event loop start at {}",
+                            string::ctime(event_start));
         // Start monitoring all services (doesn't return until a
         // restart or shutdown signal is encountered).
         com::centreon::engine::events::loop::instance().run();
@@ -563,8 +572,8 @@ int main(int argc, char* argv[]) {
           log_v2::instance()->stop_flush_timer();
           engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
-          SPDLOG_LOGGER_INFO(log_v2::process(),
-                             "Caught SIG {}, shutting down ...", sigs[sig_id]);
+          SPDLOG_LOGGER_INFO(process_logger, "Caught SIG {}, shutting down ...",
+                             sigs[sig_id]);
         }
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_EVENTLOOPEND, NEBFLAG_NONE);
@@ -585,7 +594,7 @@ int main(int argc, char* argv[]) {
         if (sigshutdown) {
           engine_logger(logging::log_process_info, logging::basic)
               << "Successfully shutdown ... (PID=" << getpid() << ")";
-          SPDLOG_LOGGER_INFO(log_v2::process(),
+          SPDLOG_LOGGER_INFO(process_logger,
                              "Successfully shutdown ... (PID={})", getpid());
         }
 
@@ -594,7 +603,7 @@ int main(int argc, char* argv[]) {
         // Log.
         engine_logger(logging::log_runtime_error, logging::basic)
             << "Error: " << e.what();
-        SPDLOG_LOGGER_ERROR(log_v2::process(), "Error: {}", e.what());
+        SPDLOG_LOGGER_ERROR(process_logger, "Error: {}", e.what());
         // Send program data to broker.
         broker_program_state(NEBTYPE_PROCESS_SHUTDOWN,
                              NEBFLAG_PROCESS_INITIATED);
@@ -607,7 +616,7 @@ int main(int argc, char* argv[]) {
   } catch (std::exception const& e) {
     engine_logger(logging::log_runtime_error, logging::basic)
         << "Error: " << e.what();
-    SPDLOG_LOGGER_ERROR(log_v2::process(), "Error: {}", e.what());
+    SPDLOG_LOGGER_ERROR(process_logger, "Error: {}", e.what());
   }
 
   // Unload singletons and global objects.

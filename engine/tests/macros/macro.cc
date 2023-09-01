@@ -87,7 +87,7 @@ TEST_F(Macro, pollerName) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "poller_name=poller-test" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -109,7 +109,7 @@ TEST_F(Macro, PbPollerName) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "poller_name=poller-test" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -129,7 +129,7 @@ TEST_F(Macro, PbPollerId) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "poller_id=42" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -148,7 +148,7 @@ TEST_F(Macro, pollerId) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "poller_id=42" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -586,7 +586,7 @@ TEST_F(Macro, FullCmd) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "admin_email=contactadmin@centreon.com" << std::endl;
-  ofs << "log_file=\"my-log-file\"" << std::endl;
+  ofs << "log_file=my-log-file" << std::endl;
   ofs << "admin_pager=\"pager\"" << std::endl;
   ofs.close();
 
@@ -615,7 +615,7 @@ TEST_F(Macro, PbAdminEmail) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "admin_email=contactadmin@centreon.com" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -637,7 +637,7 @@ TEST_F(Macro, AdminEmail) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "admin_email=contactadmin@centreon.com" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -660,7 +660,7 @@ TEST_F(Macro, PbAdminPager) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "admin_pager=04737293866" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -682,7 +682,7 @@ TEST_F(Macro, AdminPager) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "admin_pager=04737293866" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -703,7 +703,7 @@ TEST_F(Macro, PbMainConfigFile) {
   std::remove("/tmp/test-config.cfg");
 
   std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -723,7 +723,7 @@ TEST_F(Macro, MainConfigFile) {
   std::remove("/tmp/test-config.cfg");
 
   std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -744,7 +744,7 @@ TEST_F(Macro, PbStatusDataFile) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "status_file=/usr/local/var/status.dat" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -765,7 +765,7 @@ TEST_F(Macro, StatusDataFile) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "status_file=/usr/local/var/status.dat" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -787,7 +787,7 @@ TEST_F(Macro, PbRetentionDataFile) {
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "state_retention_file=/var/log/centreon-engine/retention.dat"
       << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -809,7 +809,7 @@ TEST_F(Macro, RetentionDataFile) {
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "state_retention_file=/var/log/centreon-engine/retention.dat"
       << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -829,7 +829,7 @@ TEST_F(Macro, PbTempFile) {
   std::remove("/tmp/test-config.cfg");
 
   std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -849,7 +849,7 @@ TEST_F(Macro, TempFile) {
   std::remove("/tmp/test-config.cfg");
 
   std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -910,7 +910,7 @@ TEST_F(Macro, PbCommandFile) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "command_file=/usr/local/var/rw/centengine.cmd" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -931,7 +931,7 @@ TEST_F(Macro, CommandFile) {
 
   std::ofstream ofs("/tmp/test-config.cfg");
   ofs << "command_file=/usr/local/var/rw/centengine.cmd" << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);
@@ -951,7 +951,7 @@ TEST_F(Macro, PbTempPath) {
   std::remove("/tmp/test-config.cfg");
 
   std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", &st);
@@ -971,7 +971,7 @@ TEST_F(Macro, TempPath) {
   std::remove("/tmp/test-config.cfg");
 
   std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "log_file=\"\"" << std::endl;
+  ofs << "log_file=" << std::endl;
   ofs.close();
 
   parser.parse("/tmp/test-config.cfg", st);

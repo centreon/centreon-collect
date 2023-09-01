@@ -25,19 +25,20 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Add new hostgroup.
  *
  *  @param[in] obj  The new hostgroup to add into the monitoring engine.
  */
-void applier::hostgroup::add_object(const configuration::Hostgroup & obj) {
+void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
   // Add host group to the global configuration state.
   auto* new_obj = pb_config.add_hostgroups();
@@ -66,9 +67,8 @@ void applier::hostgroup::add_object(const configuration::Hostgroup & obj) {
  */
 void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new hostgroup '" << obj.hostgroup_name() << "'.";
-  log_v2::config()->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
   // Add host group to the global configuration state.
   config->hostgroups().insert(obj);
@@ -96,8 +96,8 @@ void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
  *
  *  @param[in,out] s  State being applied.
  */
-void applier::hostgroup::expand_objects(configuration::State& s [[ may_be_unused ]]) {
-}
+void applier::hostgroup::expand_objects(configuration::State& s
+                                        [[may_be_unused]]) {}
 
 /**
  *  Expand all host groups.
@@ -125,17 +125,20 @@ void applier::hostgroup::expand_objects(configuration::state& s) {
  *  @param[in] obj  The new hostgroup to modify into the monitoring
  *                  engine.
  */
-void applier::hostgroup::modify_object(configuration::Hostgroup* old_obj,
+void applier::hostgroup::modify_object(
+    configuration::Hostgroup* old_obj,
     const configuration::Hostgroup& new_obj) {
   // Logging.
-  log_v2::config()->debug("Modifying hostgroup '{}'",
-                          old_obj->hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying hostgroup '{}'", old_obj->hostgroup_name());
 
   // Find host group object.
   hostgroup_map::iterator it_obj =
       engine::hostgroup::hostgroups.find(old_obj->hostgroup_name());
   if (it_obj == engine::hostgroup::hostgroups.end())
-    throw engine_error() << fmt::format("Could not modify non-existing host group object '{}'", old_obj->hostgroup_name());
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing host group object '{}'",
+        old_obj->hostgroup_name());
 
   it_obj->second->set_action_url(new_obj.action_url());
   it_obj->second->set_alias(new_obj.alias());
@@ -173,9 +176,8 @@ void applier::hostgroup::modify_object(configuration::Hostgroup* old_obj,
  */
 void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying hostgroup '" << obj.hostgroup_name() << "'";
-  log_v2::config()->debug("Modifying hostgroup '{}'", obj.hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying hostgroup '{}'", obj.hostgroup_name());
 
   // Find old configuration.
   set_hostgroup::iterator it_cfg(config->hostgroups_find(obj.key()));
@@ -231,7 +233,8 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
 void applier::hostgroup::remove_object(ssize_t idx) {
   const Hostgroup& obj = pb_config.hostgroups(idx);
   // Logging.
-  log_v2::config()->debug("Removing host group '{}'", obj.hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing host group '{}'", obj.hostgroup_name());
 
   // Find host group.
   hostgroup_map::iterator it =
@@ -258,9 +261,8 @@ void applier::hostgroup::remove_object(ssize_t idx) {
  */
 void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing host group '" << obj.hostgroup_name() << "'";
-  log_v2::config()->debug("Removing host group '{}'", obj.hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing host group '{}'", obj.hostgroup_name());
 
   // Find host group.
   hostgroup_map::iterator it{engine::hostgroup::hostgroups.find(obj.key())};
@@ -285,10 +287,12 @@ void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
  */
 void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving host group '{}'", obj.hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving host group '{}'", obj.hostgroup_name());
 
   // Find host group.
-  hostgroup_map::iterator it = engine::hostgroup::hostgroups.find(obj.hostgroup_name());
+  hostgroup_map::iterator it =
+      engine::hostgroup::hostgroups.find(obj.hostgroup_name());
   if (it == engine::hostgroup::hostgroups.end())
     throw engine_error() << fmt::format(
         "Cannot resolve non-existing host group '{}'", obj.hostgroup_name());
@@ -304,9 +308,8 @@ void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj) {
  */
 void applier::hostgroup::resolve_object(configuration::hostgroup const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving host group '" << obj.hostgroup_name() << "'";
-  log_v2::config()->debug("Resolving host group '{}'", obj.hostgroup_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving host group '{}'", obj.hostgroup_name());
 
   // Find host group.
   hostgroup_map::iterator it{engine::hostgroup::hostgroups.find(obj.key())};
@@ -330,10 +333,8 @@ void applier::hostgroup::_resolve_members(configuration::state& s
   // Only process if hostgroup has not been resolved already.
   if (_resolved.find(obj.key()) == _resolved.end()) {
     // Logging.
-    engine_logger(logging::dbg_config, logging::more)
-        << "Resolving members of host group '" << obj.hostgroup_name() << "'";
-    log_v2::config()->debug("Resolving members of host group '{}'",
-                            obj.hostgroup_name());
+    auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+    logger->debug("Resolving members of host group '{}'", obj.hostgroup_name());
 
     // Mark object as resolved.
     configuration::hostgroup& resolved_obj(_resolved[obj.key()]);

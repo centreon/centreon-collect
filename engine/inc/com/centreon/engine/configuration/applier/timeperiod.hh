@@ -41,6 +41,7 @@ class timeperiod {
    * @brief Default constructor.
    */
   timeperiod() = default;
+
   /**
    * @brief Destructor.
    */
