@@ -28,14 +28,15 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "common/configuration/message_helper.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
 using MessageDifferencer = google::protobuf::util::MessageDifferencer;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Check if the contact group name matches the configuration object.
@@ -65,7 +66,8 @@ void applier::contact::add_object(const configuration::Contact& obj) {
     throw engine_error() << "Could not register contact with an empty name";
 
   // Logging.
-  log_v2::config()->debug("Creating new contact '{}'.", obj.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
   configuration::Contact* ct_cfg = pb_config.add_contacts();
@@ -126,9 +128,8 @@ void applier::contact::add_object(configuration::contact const& obj) {
     throw engine_error() << "Could not register contact with an empty name";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Creating new contact '{}'.", obj.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
   config->contacts().insert(obj);
@@ -277,7 +278,8 @@ void applier::contact::expand_objects(configuration::state& s) {
 void applier::contact::modify_object(configuration::Contact* to_modify,
                                      const configuration::Contact& new_object) {
   // Logging.
-  log_v2::config()->debug("Modifying contact '{}'.", new_object.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying contact '{}'.", new_object.contact_name());
 
   // Find contact object.
   contact_map::iterator it_obj(
@@ -467,9 +469,8 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
  */
 void applier::contact::modify_object(configuration::contact const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Modifying contact '{}'.", obj.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying contact '{}'.", obj.contact_name());
 
   // Find old configuration.
   set_contact::iterator it_cfg(config->contacts_find(obj.key()));
@@ -631,7 +632,8 @@ void applier::contact::remove_object(ssize_t idx) {
   const configuration::Contact& obj = pb_config.contacts()[idx];
 
   // Logging.
-  log_v2::config()->debug("Removing contact '{}'.", obj.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::iterator it{engine::contact::contacts.find(obj.contact_name())};
@@ -663,9 +665,8 @@ void applier::contact::remove_object(ssize_t idx) {
  */
 void applier::contact::remove_object(configuration::contact const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Removing contact '{}'.", obj.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::iterator it{engine::contact::contacts.find(obj.key())};
@@ -697,9 +698,8 @@ void applier::contact::remove_object(configuration::contact const& obj) {
  */
 void applier::contact::resolve_object(const configuration::contact& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving contact '" << obj.contact_name() << "'.";
-  log_v2::config()->debug("Resolving contact '{}'.", obj.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::const_iterator ct_it{
@@ -757,7 +757,8 @@ void applier::contact::resolve_object(const configuration::contact& obj) {
  */
 void applier::contact::resolve_object(const configuration::Contact& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving contact '{}'.", obj.contact_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving contact '{}'.", obj.contact_name());
 
   // Find contact.
   contact_map::const_iterator ct_it{

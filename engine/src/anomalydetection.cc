@@ -198,12 +198,12 @@ uint64_t cancellable_command::run(
   } else if (_original_command) {
     uint64_t id = _original_command->run(processed_cmd, macros, timeout,
                                          to_push_to_checker, caller);
-    log_v2::checks()->debug(
+    checks_logger->debug(
         "cancellable_command::run command launched id={} cmd {}", id,
         _original_command);
     return id;
   } else {
-    log_v2::checks()->debug("cancellable_command::run no original command");
+    checks_logger->debug("cancellable_command::run no original command");
     return 0;
   }
 }
@@ -226,7 +226,7 @@ const std::string& cancellable_command::get_command_line() const noexcept {
   if (_original_command) {
     return _original_command->get_command_line();
   } else {
-    log_v2::commands()->error(
+    commands_logger->error(
         "cancellable_command::get_command_line: original command no set");
     return _empty;
   }
@@ -237,7 +237,7 @@ void cancellable_command::set_command_line(
   if (_original_command) {
     _original_command->set_command_line(command_line);
   } else {
-    log_v2::commands()->error(
+    commands_logger->error(
         "cancellable_command::set_command_line: original command no set");
   }
 }
@@ -618,21 +618,20 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   // Make sure we have everything we need.
   if (!service_id) {
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: Service comes from a database, therefore its service id must "
         "not be null");
     return nullptr;
   } else if (description.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: Service description is not set";
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Error: Service description is not set");
+    SPDLOG_LOGGER_ERROR(config_logger, "Error: Service description is not set");
     return nullptr;
   } else if (!host_name.empty()) {
     uint64_t hid = get_host_id(host_name);
     if (hid != host_id) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::config(),
+          config_logger,
           "Error: host id ({}) of host ('{}') of anomaly detection service "
           "'{}' has a conflict between config does not match with the config "
           "id ({})",
@@ -642,7 +641,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
   }
 
   if (internal_id == 0) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
+    SPDLOG_LOGGER_ERROR(config_logger,
                         "Error: The internal_id in the anomaly detection "
                         "configuration is mandatory");
     return nullptr;
@@ -653,7 +652,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
         << "Error: Dependent service " << dependent_service_id
         << " does not exist (anomaly detection " << service_id << ")";
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: Dependent service {} does not exist (anomaly detection {})",
         dependent_service_id, service_id);
     return nullptr;
@@ -666,7 +665,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
            "service (host_id:"
         << host_id << ", service_id:" << service_id << ")";
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: metric name must be provided for an anomaly detection "
         "service (host_id:{}, service_id:{})",
         host_id, service_id);
@@ -679,7 +678,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
            "service (host_id:"
         << host_id << ", service_id:" << service_id << ")";
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: thresholds file must be provided for an anomaly detection "
         "service (host_id:{}, service_id:{})",
         host_id, service_id);
@@ -694,7 +693,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
            ", or notification_interval value for service '"
         << description << "' on host '" << host_name << "'";
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: Invalid max_attempts, check_interval, retry_interval"
         ", or notification_interval value for service '{}' on host '{}'",
         description, host_name);
@@ -707,7 +706,7 @@ com::centreon::engine::anomalydetection* add_anomalydetection(
         << "Error: Service '" << description << "' on host '" << host_name
         << "' has already been defined";
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: Service '{}' on host '{}' has already been defined",
         description, host_name);
     return nullptr;
@@ -823,7 +822,7 @@ int anomalydetection::run_async_check(int check_options,
       << ", reschedule_check=" << reschedule_check;
 
   SPDLOG_LOGGER_TRACE(
-      log_v2::functions(),
+      functions_logger,
       "anomalydetection::run_async_check, check_options={}, latency={}, "
       "scheduled_check={}, reschedule_check={}",
       check_options, latency, scheduled_check, reschedule_check);
@@ -833,7 +832,7 @@ int anomalydetection::run_async_check(int check_options,
       << "' on host '" << get_hostname() << "'...";
 
   SPDLOG_LOGGER_TRACE(
-      log_v2::checks(),
+      checks_logger,
       "** Running async check of anomalydetection '{} ' on host '{}'...",
       description(), get_hostname());
 
@@ -873,11 +872,11 @@ int anomalydetection::run_async_check(int check_options,
         service_state::state_unknown,
         "failed to calc check_result from perf_data");
     if (!parse_perfdata(dependent_perf_data, time(nullptr), *fake_res)) {
-      SPDLOG_LOGGER_ERROR(log_v2::checks(),
+      SPDLOG_LOGGER_ERROR(checks_logger,
                           "parse_perfdata failed => unknown state");
     } else {
       SPDLOG_LOGGER_TRACE(
-          log_v2::checks(),
+          checks_logger,
           "** Running async check of anomalydetection '{} ' on host '{}'... "
           "without check",
           description(), get_hostname());
@@ -886,13 +885,13 @@ int anomalydetection::run_async_check(int check_options,
   } else {
     if (!my_check_command->get_original_command()) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::checks(),
+          checks_logger,
           "anomaly: no original commands for host {} => do nothing",
           get_hostname());
       return ERROR;
     }
     SPDLOG_LOGGER_TRACE(
-        log_v2::checks(),
+        checks_logger,
         "** Running async check of anomalydetection '{} ' on host '{}'... with "
         "check",
         description(), get_hostname());
@@ -950,7 +949,7 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
     engine_logger(log_info_message, basic)
         << "The thresholds file is not viable "
            "(not available or not readable).";
-    SPDLOG_LOGGER_ERROR(log_v2::checks(),
+    SPDLOG_LOGGER_ERROR(checks_logger,
                         "The thresholds file is not viable "
                         "(not available or not readable).");
     oss << "The thresholds file is not viable for metric " << _metric_name
@@ -968,8 +967,7 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
   if (pos == std::string::npos) {
     engine_logger(log_runtime_error, basic)
         << "Error: Unable to parse perfdata '" << without_thresholds << "'";
-    SPDLOG_LOGGER_ERROR(log_v2::runtime(),
-                        "Error: Unable to parse perfdata '{}'",
+    SPDLOG_LOGGER_ERROR(runtime_logger, "Error: Unable to parse perfdata '{}'",
                         without_thresholds);
     oss << "UNKNOWN: Unknown activity, " << _metric_name
         << " did not return any values"
@@ -1000,7 +998,7 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
         << "Error: the thresholds file is too old "
            "compared to the check timestamp "
         << check_time;
-    SPDLOG_LOGGER_ERROR(log_v2::runtime(),
+    SPDLOG_LOGGER_ERROR(runtime_logger,
                         "Error: the thresholds file is too old "
                         "compared to the check timestamp {}",
                         check_time);
@@ -1021,7 +1019,7 @@ bool anomalydetection::parse_perfdata(std::string const& perfdata,
         << "Error: timestamp " << check_time
         << " too old compared with the thresholds file";
     SPDLOG_LOGGER_ERROR(
-        log_v2::runtime(),
+        runtime_logger,
         "Error: timestamp {} too old compared with the thresholds file",
         check_time);
     oss << "timestamp " << check_time
@@ -1101,20 +1099,18 @@ void anomalydetection::init_thresholds() {
 
   engine_logger(dbg_config, most)
       << "Trying to read thresholds file '" << _thresholds_file << "'";
-  SPDLOG_LOGGER_DEBUG(log_v2::config(), "Trying to read thresholds file '{}'",
+  SPDLOG_LOGGER_DEBUG(config_logger, "Trying to read thresholds file '{}'",
                       _thresholds_file);
   std::ifstream t;
   t.exceptions(t.exceptions() | std::ios::failbit);
   try {
     t.open(_thresholds_file);
   } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}",
+    SPDLOG_LOGGER_ERROR(config_logger, "Fail to read thresholds file '{}' : {}",
                         _thresholds_file, e.code().message());
     return;
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}",
+    SPDLOG_LOGGER_ERROR(config_logger, "Fail to read thresholds file '{}' : {}",
                         _thresholds_file, e.what());
     return;
   }
@@ -1129,7 +1125,7 @@ void anomalydetection::init_thresholds() {
     engine_logger(log_config_error, basic)
         << "Error: the file '" << _thresholds_file
         << "' contains errors: " << e.what();
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
+    SPDLOG_LOGGER_ERROR(config_logger,
                         "Error: the file '{}' contains errors: {}",
                         _thresholds_file, e.what());
     return;
@@ -1139,7 +1135,7 @@ void anomalydetection::init_thresholds() {
         << "Error: the file '" << _thresholds_file
         << "' is not a thresholds file. Its global structure is not an array.";
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: the file '{}' is not a thresholds file. Its global structure "
         "is not an array.",
         _thresholds_file);
@@ -1168,7 +1164,7 @@ void anomalydetection::init_thresholds() {
              "service_id must "
              "be strings containing integers: "
           << e.what();
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
+      SPDLOG_LOGGER_ERROR(config_logger,
                           "Error: metric_name and predict are mandatory and "
                           "host_id and service_id must "
                           "be strings containing integers: {}",
@@ -1179,7 +1175,7 @@ void anomalydetection::init_thresholds() {
         metric_name == _metric_name) {
       set_thresholds_no_lock(_thresholds_file, sensitivity, predict);
       if (!_thresholds_file_viable) {
-        SPDLOG_LOGGER_ERROR(log_v2::config(),
+        SPDLOG_LOGGER_ERROR(config_logger,
                             "{} don't contain at least 2 thresholds datas for "
                             "host_id {} and service_id {}",
                             _thresholds_file, this->host_id(),
@@ -1191,7 +1187,7 @@ void anomalydetection::init_thresholds() {
   }
   if (!found) {
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "{} don't contain datas for host_id {} and service_id {}",
         _thresholds_file, host_id(), this->service_id());
   }
@@ -1208,22 +1204,19 @@ void anomalydetection::init_thresholds() {
 int anomalydetection::update_thresholds(const std::string& filename) {
   engine_logger(log_info_message, most)
       << "Reading thresholds file '" << filename << "'.";
-  SPDLOG_LOGGER_INFO(log_v2::checks(), "Reading thresholds file '{}'.",
-                     filename);
+  SPDLOG_LOGGER_INFO(checks_logger, "Reading thresholds file '{}'.", filename);
 
   std::ifstream t;
   t.exceptions(t.exceptions() | std::ios::failbit);
   try {
     t.open(filename);
   } catch (const std::system_error& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}", filename,
-                        e.code().message());
+    SPDLOG_LOGGER_ERROR(config_logger, "Fail to read thresholds file '{}' : {}",
+                        filename, e.code().message());
     return -1;
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "Fail to read thresholds file '{}' : {}", filename,
-                        e.what());
+    SPDLOG_LOGGER_ERROR(config_logger, "Fail to read thresholds file '{}' : {}",
+                        filename, e.what());
     return -1;
   }
 
@@ -1237,7 +1230,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
         << "Error: The thresholds file '" << filename
         << "' should be a json file: " << e.what();
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: The thresholds file '{}' should be a json file: {}", filename,
         e.what());
     return -2;
@@ -1248,7 +1241,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
         << "Error: the file '" << filename
         << "' is not a thresholds file. Its global structure is not an array.";
     SPDLOG_LOGGER_ERROR(
-        log_v2::config(),
+        config_logger,
         "Error: the file '{}' is not a thresholds file. Its global structure "
         "is not an array.",
         filename);
@@ -1276,7 +1269,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
              "service_id must "
              "be strings containing integers: "
           << e.what();
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
+      SPDLOG_LOGGER_ERROR(config_logger,
                           "Error: metric_name and predict are mandatory, "
                           "host_id and service_id must "
                           "be strings containing integers: {}",
@@ -1290,7 +1283,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
              "detection service (host_id: "
           << host_id << ", service_id: " << svc_id << ") that does not exist";
       SPDLOG_LOGGER_ERROR(
-          log_v2::config(),
+          config_logger,
           "Error: The thresholds file contains thresholds for the anomaly "
           "detection service (host_id: {}, service_id: {}) that does not exist",
           host_id, svc_id);
@@ -1298,7 +1291,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
     }
     if (found->second->get_service_type() != service_type::ANOMALY_DETECTION) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::config(),
+          config_logger,
           "host_id: {}, service_id: {} is not an anomaly detection service",
           host_id, svc_id);
       continue;
@@ -1315,7 +1308,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
           << "' whereas the configured metric name is '"
           << ad->get_metric_name() << "'";
       SPDLOG_LOGGER_ERROR(
-          log_v2::config(),
+          config_logger,
           "Error: The thresholds file contains thresholds for the anomaly "
           "detection service (host_id: {}, service_id: {}) with "
           "metric_name='{}' whereas the configured metric name is '{}'",
@@ -1327,7 +1320,7 @@ int anomalydetection::update_thresholds(const std::string& filename) {
         << ", service_id: " << ad->service_id()
         << ", metric: " << ad->get_metric_name() << ")";
     SPDLOG_LOGGER_INFO(
-        log_v2::checks(),
+        checks_logger,
         "Filling thresholds in anomaly detection (host_id: {}, service_id: {}, "
         "metric: {})",
         ad->host_id(), ad->service_id(), ad->get_metric_name());
@@ -1373,13 +1366,13 @@ void anomalydetection::set_thresholds_no_lock(
           _thresholds.end(), timepoint,
           threshold_point(timepoint, sensitivity, threshold_obj));
     } catch (const nlohmann::json::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse predict:{} cause:{}",
+      SPDLOG_LOGGER_ERROR(config_logger, "fail to parse predict:{} cause:{}",
                           threshold_obj.dump(), e.what());
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse predict:{} cause {}",
+      SPDLOG_LOGGER_ERROR(config_logger, "fail to parse predict:{} cause {}",
                           threshold_obj.dump(), e.what());
     } catch (...) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "unknown exception {}",
+      SPDLOG_LOGGER_ERROR(config_logger, "unknown exception {}",
                           threshold_obj.dump());
     }
   }
@@ -1387,7 +1380,7 @@ void anomalydetection::set_thresholds_no_lock(
     engine_logger(dbg_config, most)
         << "host_id=" << host_id() << " serv_id=" << service_id()
         << " Number of rows in memory: " << _thresholds.size();
-    SPDLOG_LOGGER_DEBUG(log_v2::config(),
+    SPDLOG_LOGGER_DEBUG(config_logger,
                         "host_id={} serv_id={} Number of rows in memory: {}",
                         host_id(), service_id(), _thresholds.size());
     _thresholds_file_viable = true;
@@ -1395,7 +1388,7 @@ void anomalydetection::set_thresholds_no_lock(
     engine_logger(dbg_config, most)
         << "Nothing in memory " << _thresholds.size()
         << " for host_id=" << host_id() << " serv_id=" << service_id();
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
+    SPDLOG_LOGGER_ERROR(config_logger,
                         "Nothing in memory {} for host_id={} servid={}",
                         _thresholds.size(), host_id(), service_id());
     _thresholds_file_viable = false;

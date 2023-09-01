@@ -953,7 +953,7 @@ int grab_macro_value_r(nagios_macros* mac,
     if (strcmp(macro_x_names[x].c_str(), buf) == 0) {
       engine_logger(dbg_macros, most)
           << "  macros[" << x << "] (" << macro_x_names[x] << ") match.";
-      log_v2::macros()->trace("  macros[{}] ({}) match.", x, macro_x_names[x]);
+      macros_logger->trace("  macros[{}] ({}) match.", x, macro_x_names[x]);
 
       /* get the macro value */
       result = grab_macrox_value_r(mac, x, arg[0] ? arg[0] : "",
@@ -967,7 +967,7 @@ int grab_macro_value_r(nagios_macros* mac,
         *clean_options |= (STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
         engine_logger(dbg_macros, most)
             << "  New clean options: " << *clean_options;
-        log_v2::macros()->trace("  New clean options: {}", *clean_options);
+        macros_logger->trace("  New clean options: {}", *clean_options);
       }
       break;
     }
@@ -981,7 +981,7 @@ int grab_macro_value_r(nagios_macros* mac,
            strncmp(macro_name.c_str(), "ARG", 3) == 0) {
     /* which arg do we want? */
     if (!absl::SimpleAtoi(macro_name.c_str() + 3, &x)) {
-      log_v2::macros()->error(
+      macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
           macro_name.c_str() + 3);
       return ERROR;
@@ -1001,7 +1001,7 @@ int grab_macro_value_r(nagios_macros* mac,
            strncmp(macro_name.c_str(), "USER", 4) == 0) {
     /* which macro do we want? */
     if (!absl::SimpleAtoi(macro_name.c_str() + 4, &x)) {
-      log_v2::macros()->error(
+      macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
           macro_name.c_str() + 4);
       return ERROR;
@@ -1023,7 +1023,7 @@ int grab_macro_value_r(nagios_macros* mac,
            strncmp(macro_name.c_str(), "CONTACTADDRESS", 14) == 0) {
     /* which address do we want? */
     if (!absl::SimpleAtoi(macro_name.c_str() + 14, &x)) {
-      log_v2::macros()->error(
+      macros_logger->error(
           "Error: could not grab macro value : '{}' must be a positive integer",
           macro_name.c_str() + 14);
       return ERROR;
@@ -1107,8 +1107,8 @@ int grab_macro_value_r(nagios_macros* mac,
   else {
     engine_logger(dbg_macros, basic)
         << " WARNING: Could not find a macro matching '" << macro_name << "'!";
-    log_v2::macros()->trace(" WARNING: Could not find a macro matching '{}'!",
-                            macro_name);
+    macros_logger->trace(" WARNING: Could not find a macro matching '{}'!",
+                         macro_name);
     result = ERROR;
   }
 
@@ -1146,8 +1146,7 @@ int grab_macrox_value_r(nagios_macros* mac,
       retval = ERROR;
       engine_logger(dbg_macros, basic)
           << "UNHANDLED MACRO #" << macro_type << "! THIS IS A BUG!";
-      log_v2::macros()->trace("UNHANDLED MACRO #{}! THIS IS A BUG!",
-                              macro_type);
+      macros_logger->trace("UNHANDLED MACRO #{}! THIS IS A BUG!", macro_type);
     } else {
       retval = (*it->second)(mac, macro_type, arg1, arg2, output, free_macro);
     }

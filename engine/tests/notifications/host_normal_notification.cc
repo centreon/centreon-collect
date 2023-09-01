@@ -38,6 +38,7 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/timezone_manager.hh"
@@ -54,7 +55,7 @@ class HostNotification : public TestEngine {
   void SetUp() override {
     init_config_state(LEGACY);
 
-    log_v2::events()->set_level(spdlog::level::off);
+    events_logger->set_level(spdlog::level::off);
 
     configuration::applier::contact ct_aply;
     configuration::contact ctct{new_configuration_contact("admin", true)};

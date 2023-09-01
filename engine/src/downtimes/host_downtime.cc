@@ -23,7 +23,7 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/statusdata.hh"
 #include "com/centreon/engine/string.hh"
@@ -183,7 +183,7 @@ int host_downtime::unschedule() {
           << "HOST DOWNTIME ALERT: " << it->second->name()
           << ";CANCELLED; Scheduled downtime for host has been "
              "cancelled.";
-      log_v2::events()->info(
+      events_logger->info(
           "HOST DOWNTIME ALERT: {};CANCELLED; Scheduled downtime for host has "
           "been "
           "cancelled.",
@@ -199,7 +199,7 @@ int host_downtime::unschedule() {
 
 int host_downtime::subscribe() {
   engine_logger(dbg_functions, basic) << "host_downtime::subscribe()";
-  log_v2::functions()->trace("host_downtime::subscribe()");
+  functions_logger->trace("host_downtime::subscribe()");
 
   auto it = host::hosts_by_id.find(host_id());
 
@@ -242,11 +242,11 @@ int host_downtime::subscribe() {
         type_string, start_time_string, end_time_string, hours, minutes);
 
   engine_logger(dbg_downtime, basic) << "Scheduled Downtime Details:";
-  log_v2::downtimes()->trace("Scheduled Downtime Details:");
+  downtimes_logger->trace("Scheduled Downtime Details:");
   engine_logger(dbg_downtime, basic) << " Type:        Host Downtime\n"
                                         " Host:        "
                                      << hst->name();
-  log_v2::downtimes()->trace(" Type: Host Downtime ; Host: {}", hst->name());
+  downtimes_logger->trace(" Type: Host Downtime ; Host: {}", hst->name());
   engine_logger(dbg_downtime, basic)
       << " Fixed/Flex:  " << (is_fixed() ? "Fixed\n" : "Flexible\n")
       << " Start:       " << start_time_string
@@ -262,7 +262,7 @@ int host_downtime::subscribe() {
       << "\n"
          " Trigger ID:  "
       << get_triggered_by();
-  log_v2::downtimes()->trace(
+  downtimes_logger->trace(
       " Fixed/Flex:  {} Start:       {} End:         {} Duration:    {}h "
       "{}m {}s Downtime ID: {} Trigger ID:  ",
       is_fixed() ? "Fixed" : "Flexible", start_time_string, end_time_string,
@@ -309,7 +309,7 @@ int host_downtime::handle() {
   int attr{0};
 
   engine_logger(dbg_functions, basic) << "handle_downtime()";
-  log_v2::functions()->trace("handle_downtime()");
+  functions_logger->trace("handle_downtime()");
 
   auto it_hst = host::hosts_by_id.find(host_id());
 
@@ -366,7 +366,7 @@ int host_downtime::handle() {
           << "Host '" << it_hst->second->name()
           << "' has exited from a period of scheduled downtime (id="
           << get_downtime_id() << ").";
-      log_v2::downtimes()->trace(
+      downtimes_logger->trace(
           "Host '{}' has exited from a period of scheduled downtime (id={}).",
           it_hst->second->name(), get_downtime_id());
 
@@ -375,7 +375,7 @@ int host_downtime::handle() {
           << "HOST DOWNTIME ALERT: " << it_hst->second->name()
           << ";STOPPED; Host has exited from a period of scheduled "
              "downtime";
-      log_v2::events()->info(
+      events_logger->info(
           "HOST DOWNTIME ALERT: {};STOPPED; Host has exited from a period of "
           "scheduled "
           "downtime",
@@ -442,7 +442,7 @@ int host_downtime::handle() {
           << "Host '" << it_hst->second->name()
           << "' has entered a period of scheduled downtime (id="
           << get_downtime_id() << ").";
-      log_v2::downtimes()->trace(
+      downtimes_logger->trace(
           "Host '{}' has entered a period of scheduled downtime (id={}).",
           it_hst->second->name(), get_downtime_id());
 
@@ -450,7 +450,7 @@ int host_downtime::handle() {
       engine_logger(log_info_message, basic)
           << "HOST DOWNTIME ALERT: " << it_hst->second->name()
           << ";STARTED; Host has entered a period of scheduled downtime";
-      log_v2::events()->info(
+      events_logger->info(
           "HOST DOWNTIME ALERT: {};STARTED; Host has entered a period of "
           "scheduled downtime",
           it_hst->second->name());

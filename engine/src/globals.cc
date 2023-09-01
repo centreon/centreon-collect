@@ -23,9 +23,11 @@
 #include "com/centreon/engine/globals.hh"
 
 #include "com/centreon/engine/logging/logger.hh"
+#include "common/log_v2/log_v2.hh"
 #include "nagios.h"
 
 using namespace com::centreon::engine;
+using com::centreon::common::log_v3::log_v3;
 
 configuration::State pb_config;
 configuration::state* config(NULL);
@@ -38,6 +40,18 @@ char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "PWR",  "UNUSED", "ZERR",   "DEBUG", NULL};
 
 com::centreon::engine::restart_stats restart_apply_stats;
+
+std::shared_ptr<spdlog::logger> checks_logger;
+std::shared_ptr<spdlog::logger> commands_logger;
+std::shared_ptr<spdlog::logger> config_logger;
+std::shared_ptr<spdlog::logger> downtimes_logger;
+std::shared_ptr<spdlog::logger> events_logger;
+std::shared_ptr<spdlog::logger> external_command_logger;
+std::shared_ptr<spdlog::logger> functions_logger;
+std::shared_ptr<spdlog::logger> macros_logger;
+std::shared_ptr<spdlog::logger> notifications_logger;
+std::shared_ptr<spdlog::logger> process_logger;
+std::shared_ptr<spdlog::logger> runtime_logger;
 
 /**
  * @brief If true, it is the legacy configuration mechanism that is in place.
@@ -126,3 +140,28 @@ unsigned long modified_service_process_attributes(MODATTR_NONE);
 unsigned long next_event_id(1);
 unsigned long next_notification_id(1);
 unsigned long next_problem_id(1);
+
+void init_loggers() {
+  checks_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("checks"));
+  commands_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("commands"));
+  config_logger = log_v3::instance().get(
+      com::centreon::common::log_v3::log_v2_configuration);
+  downtimes_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("downtimes"));
+  events_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("events"));
+  external_command_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("external_command"));
+  functions_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("functions"));
+  macros_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("macros"));
+  notifications_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("notifications"));
+  process_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("process"));
+  runtime_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("runtime"));
+}

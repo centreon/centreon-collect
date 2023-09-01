@@ -20,7 +20,7 @@
 #include "com/centreon/engine/retention/service.hh"
 
 #include "com/centreon/engine/common.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
@@ -1183,7 +1183,7 @@ bool service::_set_last_time_critical(time_t value) {
            "critical cannot be in the future "
            "(bad value: "
         << value << ")";
-    log_v2::config()->warn(
+    config_logger->warn(
         "Warning: Service last time "
         "critical cannot be in the future "
         "(bad value: {})",
@@ -1205,7 +1205,7 @@ bool service::_set_last_time_ok(time_t value) {
     engine_logger(log_verification_error, basic)
         << "Warning: Service last time ok cannot be in the future (bad value: "
         << value << ")";
-    log_v2::config()->warn(
+    config_logger->warn(
         "Warning: Service last time ok cannot be in the future (bad value: {})",
         value);
     value = now;
@@ -1227,7 +1227,7 @@ bool service::_set_last_time_unknown(time_t value) {
            "unknown cannot be in the future "
            "(bad value: "
         << value << ")";
-    log_v2::config()->warn(
+    config_logger->warn(
         "Warning: Service last time "
         "unknown cannot be in the future "
         "(bad value: {})",
@@ -1251,7 +1251,7 @@ bool service::_set_last_time_warning(time_t value) {
            "warning cannot be in the future "
            "(bad value: "
         << value << ")";
-    log_v2::config()->warn(
+    config_logger->warn(
         "Warning: Service last time "
         "warning cannot be in the future "
         "(bad value: {})",

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2019 Centreon
+** Copyright 2011-2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -23,11 +23,12 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "common/configuration/message_helper.hh"
 #include "common/configuration/state-generated.pb.h"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Add new host escalation.
@@ -43,8 +44,8 @@ void applier::hostescalation::add_object(
         << "Could not create host escalation with multiple hosts / host groups";
 
   // Logging.
-  log_v2::config()->debug("Creating new escalation for host '{}'.",
-                          obj.hosts().data(0));
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new escalation for host '{}'.", obj.hosts().data(0));
 
   // Add escalation to the global configuration set.
   auto* new_obj = pb_config.add_hostescalations();
@@ -95,10 +96,8 @@ void applier::hostescalation::add_object(
         << "Could not create host escalation with multiple hosts / host groups";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new escalation for host '" << *obj.hosts().begin() << "'.";
-  log_v2::config()->debug("Creating new escalation for host '{}'.",
-                          *obj.hosts().begin());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new escalation for host '{}'.", *obj.hosts().begin());
 
   // Add escalation to the global configuration set.
   config->hostescalations().insert(obj);
@@ -255,7 +254,8 @@ void applier::hostescalation::modify_object(
 void applier::hostescalation::remove_object(ssize_t idx) {
   configuration::Hostescalation obj = pb_config.hostescalations(idx);
   // Logging.
-  log_v2::config()->debug("Removing a host escalation.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing a host escalation.");
 
   // Find host escalation.
   const std::string& host_name{obj.hosts().data(0)};
@@ -267,8 +267,7 @@ void applier::hostescalation::remove_object(ssize_t idx) {
   host_map::iterator hit{engine::host::hosts.find(host_name)};
   /* ... and its escalations */
   if (hit == engine::host::hosts.end()) {
-    log_v2::config()->debug("Cannot find host '{}' - already removed.",
-                            host_name);
+    logger->debug("Cannot find host '{}' - already removed.", host_name);
     host_exists = false;
   } else
     host_exists = true;
@@ -300,11 +299,8 @@ void applier::hostescalation::remove_object(ssize_t idx) {
                                       it->second.get(), &tv);
 
       if (host_exists) {
-        engine_logger(logging::dbg_config, logging::more)
-            << "Host '" << host_name
-            << "' found - removing escalation from it.";
-        log_v2::config()->debug(
-            "Host '{}' found - removing escalation from it.", host_name);
+        logger->debug("Host '{}' found - removing escalation from it.",
+                      host_name);
         std::list<escalation*>& escalations(hit->second->get_escalations());
         /* We need also to remove the escalation from the host */
         for (std::list<engine::escalation*>::iterator heit{escalations.begin()},
@@ -335,9 +331,8 @@ void applier::hostescalation::remove_object(ssize_t idx) {
 void applier::hostescalation::remove_object(
     configuration::hostescalation const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing a host escalation.";
-  log_v2::config()->debug("Removing a host escalation.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing a host escalation.");
 
   // Find host escalation.
   std::string const& host_name{*obj.hosts().begin()};
@@ -351,8 +346,7 @@ void applier::hostescalation::remove_object(
   if (hit == engine::host::hosts.end()) {
     engine_logger(logging::dbg_config, logging::more)
         << "Cannot find host '" << host_name << "' - already removed.";
-    log_v2::config()->debug("Cannot find host '{}' - already removed.",
-                            host_name);
+    logger->debug("Cannot find host '{}' - already removed.", host_name);
     host_exists = false;
   } else
     host_exists = true;
@@ -387,8 +381,8 @@ void applier::hostescalation::remove_object(
         engine_logger(logging::dbg_config, logging::more)
             << "Host '" << host_name
             << "' found - removing escalation from it.";
-        log_v2::config()->debug(
-            "Host '{}' found - removing escalation from it.", host_name);
+        logger->debug("Host '{}' found - removing escalation from it.",
+                      host_name);
         std::list<escalation*>& escalations(hit->second->get_escalations());
         /* We need also to remove the escalation from the host */
         for (std::list<engine::escalation*>::iterator heit{escalations.begin()},
@@ -418,7 +412,8 @@ void applier::hostescalation::remove_object(
 void applier::hostescalation::resolve_object(
     const configuration::Hostescalation& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving a host escalation.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving a host escalation.");
 
   // Find host escalation
   bool found = false;
@@ -452,9 +447,8 @@ void applier::hostescalation::resolve_object(
 void applier::hostescalation::resolve_object(
     configuration::hostescalation const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving a host escalation.";
-  log_v2::config()->debug("Resolving a host escalation.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving a host escalation.");
 
   // Find host escalation
   bool found{false};

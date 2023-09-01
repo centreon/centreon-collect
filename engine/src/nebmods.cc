@@ -137,20 +137,20 @@ int neb_load_module(void* mod) {
     engine_logger(log_info_message, basic)
         << "Event broker module '" << module->get_filename()
         << "' initialized successfully";
-    log_v2::events()->info("Event broker module '{}' initialized successfully",
-                           module->get_filename());
+    events_logger->info("Event broker module '{}' initialized successfully",
+                        module->get_filename());
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: Could not load module '" << module->get_filename()
         << "': " << e.what();
-    log_v2::runtime()->error("Error: Could not load module '{}': {}",
-                             module->get_filename(), e.what());
+    runtime_logger->error("Error: Could not load module '{}': {}",
+                          module->get_filename(), e.what());
     return ERROR;
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "Error: Could not load module '" << module->get_filename() << "'";
-    log_v2::runtime()->error("Error: Could not load module '{}'",
-                             module->get_filename());
+    runtime_logger->error("Error: Could not load module '{}'",
+                          module->get_filename());
     return ERROR;
   }
   return OK;
@@ -179,12 +179,12 @@ int neb_reload_all_modules() {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Warning: Module reloading failed: " << e.what();
-    log_v2::runtime()->error("Warning: Module reloading failed: {}", e.what());
+    runtime_logger->error("Warning: Module reloading failed: {}", e.what());
     retval = ERROR;
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "Warning: Module reloading failed: unknown error";
-    log_v2::runtime()->error("Warning: Module reloading failed: unknown error");
+    runtime_logger->error("Warning: Module reloading failed: unknown error");
     retval = ERROR;
   }
   return retval;
@@ -238,12 +238,12 @@ int neb_unload_all_modules(int flags, int reason) {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: Module unloading failed: " << e.what();
-    log_v2::runtime()->error("Error: Module unloading failed: {}", e.what());
+    runtime_logger->error("Error: Module unloading failed: {}", e.what());
     retval = ERROR;
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "Error: unloading of all modules failed";
-    log_v2::runtime()->error("Error: unloading of all modules failed");
+    runtime_logger->error("Error: unloading of all modules failed");
     retval = ERROR;
   }
   return retval;
@@ -278,8 +278,8 @@ int neb_unload_module(handle* module, int flags, int reason) {
   engine_logger(log_info_message, basic)
       << "Event broker module '" << module->get_filename()
       << "' deinitialized successfully";
-  log_v2::events()->info("Event broker module '{}' deinitialized successfully",
-                         module->get_filename());
+  events_logger->info("Event broker module '{}' deinitialized successfully",
+                      module->get_filename());
 
   return OK;
 }

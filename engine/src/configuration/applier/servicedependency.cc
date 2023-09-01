@@ -26,10 +26,10 @@
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 namespace com {
 namespace centreon {
@@ -100,7 +100,8 @@ void applier::servicedependency::add_object(
         << obj.hosts().data()[0] << "'";
 
   // Logging.
-  log_v2::config()->debug(
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug(
       "Creating new service dependency of service '{}' of host '{}' on service "
       "'{}' of host '{}'.",
       obj.dependent_service_description().data()[0],
@@ -191,13 +192,8 @@ void applier::servicedependency::add_object(
         << obj.hosts().front() << "'";
 
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new service dependency of service '"
-      << obj.dependent_service_description().front() << "' of host '"
-      << obj.dependent_hosts().front() << "' on service '"
-      << obj.service_description().front() << "' of host '"
-      << obj.hosts().front() << "'.";
-  log_v2::config()->debug(
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug(
       "Creating new service dependency of service '{}' of host '{}' on service "
       "'{}' of host '{}'.",
       obj.dependent_service_description().front(),
@@ -457,7 +453,8 @@ void applier::servicedependency::modify_object(
  */
 void applier::servicedependency::remove_object(ssize_t idx) {
   // Logging.
-  log_v2::config()->debug("Removing a service dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing a service dependency.");
 
   // Find service dependency.
   auto& obj = pb_config.servicedependencies(idx);
@@ -490,9 +487,8 @@ void applier::servicedependency::remove_object(ssize_t idx) {
 void applier::servicedependency::remove_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing a service dependency.";
-  log_v2::config()->debug("Removing a service dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing a service dependency.");
 
   // Find service dependency.
   servicedependency_mmap::iterator it(
@@ -519,7 +515,8 @@ void applier::servicedependency::remove_object(
 void applier::servicedependency::resolve_object(
     const configuration::Servicedependency& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving a service dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving a service dependency.");
 
   // Find service dependency.
   size_t key = configuration::servicedependency_key(obj);
@@ -542,9 +539,8 @@ void applier::servicedependency::resolve_object(
 void applier::servicedependency::resolve_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving a service dependency.";
-  log_v2::config()->debug("Resolving a service dependency.");
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving a service dependency.");
 
   // Find service dependency.
   servicedependency_mmap::iterator it(

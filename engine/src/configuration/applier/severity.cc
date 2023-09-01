@@ -25,13 +25,13 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/severity.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-
+using com::centreon::common::log_v3::log_v3;
 using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
 
 /**
@@ -41,8 +41,9 @@ using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
  */
 void applier::severity::add_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new severity ({}, {}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new severity ({}, {}).", obj.key().first,
+                obj.key().second);
 
   // Add severity to the global configuration set.
   config->mut_severities().insert(obj);
@@ -67,8 +68,9 @@ void applier::severity::add_object(const configuration::severity& obj) {
  */
 void applier::severity::add_object(const configuration::Severity& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new severity ({}, {}).", obj.key().id(),
-                          obj.key().type());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new severity ({}, {}).", obj.key().id(),
+                obj.key().type());
 
   // Add severity to the global configuration set.
   auto* new_sv = pb_config.add_severities();
@@ -117,8 +119,9 @@ void applier::severity::modify_object(
     configuration::Severity* to_modify,
     const configuration::Severity& new_object) {
   // Logging.
-  log_v2::config()->debug("Modifying severity ({}, {}).", new_object.key().id(),
-                          new_object.key().type());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying severity ({}, {}).", new_object.key().id(),
+                new_object.key().type());
 
   // Find severity object.
   severity_map::iterator it_obj = engine::severity::severities.find(
@@ -147,8 +150,8 @@ void applier::severity::modify_object(
     // Notify event broker.
     broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
   } else
-    log_v2::config()->debug("Severity ({}, {}) did not change",
-                            new_object.key().id(), new_object.key().type());
+    logger->debug("Severity ({}, {}) did not change", new_object.key().id(),
+                  new_object.key().type());
 }
 
 /**
@@ -158,8 +161,9 @@ void applier::severity::modify_object(
  */
 void applier::severity::modify_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying severity ({}, {}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying severity ({}, {}).", obj.key().first,
+                obj.key().second);
 
   // Find old configuration.
   auto it_cfg = config->severities_find(obj.key());
@@ -188,8 +192,8 @@ void applier::severity::modify_object(const configuration::severity& obj) {
     // Notify event broker.
     broker_adaptive_severity_data(NEBTYPE_SEVERITY_UPDATE, s);
   } else
-    log_v2::config()->debug("Severity ({}, {}) did not change", obj.key().first,
-                            obj.key().second);
+    logger->debug("Severity ({}, {}) did not change", obj.key().first,
+                  obj.key().second);
 }
 
 /**
@@ -202,8 +206,9 @@ void applier::severity::remove_object(ssize_t idx) {
 
   // Logging.
 
-  log_v2::config()->debug("Removing severity ({}, {}).", obj.key().id(),
-                          obj.key().type());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing severity ({}, {}).", obj.key().id(),
+                obj.key().type());
 
   // Find severity.
   severity_map::iterator it =
@@ -230,8 +235,9 @@ void applier::severity::remove_object(ssize_t idx) {
  */
 void applier::severity::remove_object(const configuration::severity& obj) {
   // Logging.
-  log_v2::config()->debug("Removing severity ({}, {}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing severity ({}, {}).", obj.key().first,
+                obj.key().second);
 
   // Find severity.
   severity_map::iterator it = engine::severity::severities.find(obj.key());
