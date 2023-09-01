@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/dependency.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
@@ -44,8 +45,7 @@ dependency::dependency(size_t key,
   if (dependent_hostname.empty() || hostname.empty()) {
     engine_logger(log_config_error, basic)
         << "Error: NULL host name in host dependency definition";
-    log_v2::config()->error(
-        "Error: NULL host name in host dependency definition");
+    config_logger->error("Error: NULL host name in host dependency definition");
     throw engine_error() << "Could not create execution "
                          << "dependency of '" << dependent_hostname << "' on '"
                          << hostname << "'";

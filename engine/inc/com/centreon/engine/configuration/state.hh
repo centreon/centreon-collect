@@ -37,6 +37,7 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "common/log_v2/log_v2.hh"
 
 CCE_BEGIN()
 
@@ -49,6 +50,7 @@ namespace configuration {
  *  to manage configuration data.
  */
 class state {
+  std::shared_ptr<spdlog::logger> _config_logger;
   uint32_t _config_warnings = 0;
   uint32_t _config_errors = 0;
 

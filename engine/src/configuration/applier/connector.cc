@@ -23,11 +23,12 @@
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/macros/misc.hh"
 #include "com/centreon/engine/macros/process.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Add new connector.
@@ -36,7 +37,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::connector::add_object(const configuration::Connector& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new connector '{}'.", obj.connector_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
   nagios_macros* macros = get_global_macros();
@@ -60,9 +62,8 @@ void applier::connector::add_object(const configuration::Connector& obj) {
  */
 void applier::connector::add_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new connector '" << obj.connector_name() << "'.";
-  log_v2::config()->debug("Creating new connector '{}'.", obj.connector_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new connector '{}'.", obj.connector_name());
 
   // Expand command line.
   nagios_macros* macros(get_global_macros());
@@ -117,8 +118,8 @@ void applier::connector::modify_object(
     configuration::Connector* to_modify,
     const configuration::Connector& new_obj) {
   // Logging.
-  log_v2::config()->debug("Modifying connector '{}'.",
-                          new_obj.connector_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying connector '{}'.", new_obj.connector_name());
 
   // Find connector object.
   connector_map::iterator it_obj(
@@ -149,9 +150,8 @@ void applier::connector::modify_object(
  */
 void applier::connector::modify_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying connector '" << obj.connector_name() << "'.";
-  log_v2::config()->debug("Modifying connector '{}'.", obj.connector_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying connector '{}'.", obj.connector_name());
 
   // Find old configuration.
   set_connector::iterator it_cfg(config->connectors_find(obj.key()));
@@ -185,7 +185,8 @@ void applier::connector::modify_object(configuration::connector const& obj) {
 void applier::connector::remove_object(ssize_t idx) {
   // Logging.
   const configuration::Connector& obj = pb_config.connectors()[idx];
-  log_v2::config()->debug("Removing connector '{}'.", obj.connector_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing connector '{}'.", obj.connector_name());
 
   // Find connector.
   connector_map::iterator it =
@@ -207,9 +208,8 @@ void applier::connector::remove_object(ssize_t idx) {
  */
 void applier::connector::remove_object(configuration::connector const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing connector '" << obj.connector_name() << "'.";
-  log_v2::config()->debug("Removing connector '{}'.", obj.connector_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing connector '{}'.", obj.connector_name());
 
   // Find connector.
   connector_map::iterator it(commands::connector::connectors.find(obj.key()));

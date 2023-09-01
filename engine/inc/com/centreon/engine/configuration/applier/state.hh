@@ -54,6 +54,8 @@ class state {
   void apply(configuration::state& new_cfg);
   void apply(configuration::State& new_cfg, retention::state& state);
   void apply(configuration::state& new_cfg, retention::state& state);
+  void apply_log_config(configuration::State& new_cfg);
+  void apply_log_config(configuration::state& new_cfg);
   static state& instance();
   void clear();
 

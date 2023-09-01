@@ -25,11 +25,13 @@
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 #include "compatibility/locations.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 #define SETTER(type, method) &state::setter<type, &state::method>::generic
 
@@ -386,7 +388,9 @@ static const std::string default_rpc_listen_address("localhost");
  *  Default constructor.
  */
 state::state()
-    : _accept_passive_host_checks(default_accept_passive_host_checks),
+    : _config_logger{log_v3::instance().get(
+          com::centreon::common::log_v3::log_v2_configuration)},
+      _accept_passive_host_checks(default_accept_passive_host_checks),
       _accept_passive_service_checks(default_accept_passive_service_checks),
       _additional_freshness_latency(default_additional_freshness_latency),
       _admin_email(default_admin_email),
@@ -2167,7 +2171,7 @@ void state::host_perfdata_file(std::string const& value) {
  *  @param[in] value The new host_perfdata_file_processing_command value.
  */
 void state::host_perfdata_file_processing_command(std::string const& value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: host_perfdata_file_processing_command is no more used for a "
       "long time, you should not use it anymore.");
 }
@@ -2178,7 +2182,7 @@ void state::host_perfdata_file_processing_command(std::string const& value) {
  *  @param[in] value The new host_perfdata_file_processing_interval value.
  */
 void state::host_perfdata_file_processing_interval(unsigned int value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: host_perfdata_file_processing_interval is no more used for a "
       "long time, you should not use it anymore.");
 }
@@ -2189,7 +2193,7 @@ void state::host_perfdata_file_processing_interval(unsigned int value) {
  *  @param[in] value The new host_perfdata_file_template value.
  */
 void state::host_perfdata_file_template(std::string const& value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: host_perfdata_file_template is no more used for a long time, "
       "you should not use it anymore.");
 }
@@ -3289,7 +3293,7 @@ std::string const& state::service_perfdata_file() const noexcept {
  *  @param[in] value The new service_perfdata_file value.
  */
 void state::service_perfdata_file(std::string const& value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: service_perfdata_command is no more used for a long time, you "
       "should not use it anymore.");
   _service_perfdata_file = value;
@@ -3301,7 +3305,7 @@ void state::service_perfdata_file(std::string const& value) {
  *  @param[in] value The new service_perfdata_file_processing_command value.
  */
 void state::service_perfdata_file_processing_command(std::string const& value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: service_perfdata_file_processing_command is no more used for a "
       "long time, you should not use it anymore.");
 }
@@ -3312,7 +3316,7 @@ void state::service_perfdata_file_processing_command(std::string const& value) {
  *  @param[in] value The new service_perfdata_file_processing_interval value.
  */
 void state::service_perfdata_file_processing_interval(unsigned int value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: service_perfdata_file_processing_interval is no more used for "
       "a long time, you should not use it anymore.");
 }
@@ -3323,7 +3327,7 @@ void state::service_perfdata_file_processing_interval(unsigned int value) {
  *  @param[in] value The new service_perfdata_file_template value.
  */
 void state::service_perfdata_file_template(std::string const& value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: service_perfdata_file_template is no more used for a long "
       "time, you should not use it anymore.");
 }
@@ -3445,7 +3449,7 @@ bool state::set(char const* key, char const* value) {
     if (it != _setters.end())
       return (it->second)(*this, value);
   } catch (std::exception const& e) {
-    log_v2::config()->error(e.what());
+    _config_logger->error(e.what());
     return false;
   }
   return true;
@@ -3579,7 +3583,7 @@ void state::user(unsigned int key, std::string const& value) {
  *  @param[in] value The new use_aggressive_host_checking value.
  */
 void state::use_aggressive_host_checking(bool value __attribute__((unused))) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: use_aggressive_host_checking is deprecated. This option is "
       "no "
       "more supported since version 21.04.");
@@ -4092,7 +4096,7 @@ void state::use_true_regexp_matching(bool value) {
  */
 void state::_set_aggregate_status_updates(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: aggregate_status_updates variable ignored");
+  _config_logger->warn("Warning: aggregate_status_updates variable ignored");
   ++config_warnings;
 }
 
@@ -4103,7 +4107,7 @@ void state::_set_aggregate_status_updates(std::string const& value) {
  */
 void state::_set_auth_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: auth_file variable ignored");
+  _config_logger->warn("Warning: auth_file variable ignored");
   ++config_warnings;
 }
 
@@ -4114,7 +4118,7 @@ void state::_set_auth_file(std::string const& value) {
  */
 void state::_set_bare_update_check(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: bare_update_check variable ignored");
+  _config_logger->warn("Warning: bare_update_check variable ignored");
   ++config_warnings;
 }
 
@@ -4164,7 +4168,7 @@ void state::_set_cfg_file(const std::string& value) {
  */
 void state::_set_check_for_updates(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: check_for_updates variable ignored");
+  _config_logger->warn("Warning: check_for_updates variable ignored");
   ++config_warnings;
 }
 
@@ -4175,8 +4179,7 @@ void state::_set_check_for_updates(std::string const& value) {
  */
 void state::_set_child_processes_fork_twice(std::string const& value) {
   (void)value;
-  log_v2::config()->warn(
-      "Warning: child_processes_fork_twice variable ignored");
+  _config_logger->warn("Warning: child_processes_fork_twice variable ignored");
   ++config_warnings;
 }
 
@@ -4204,7 +4207,7 @@ void state::_set_command_check_interval(std::string const& value) {
  */
 void state::_set_comment_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: comment_file variable ignored");
+  _config_logger->warn("Warning: comment_file variable ignored");
   ++config_warnings;
 }
 
@@ -4215,7 +4218,7 @@ void state::_set_comment_file(std::string const& value) {
  */
 void state::_set_daemon_dumps_core(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: daemon_dumps_core variable ignored");
+  _config_logger->warn("Warning: daemon_dumps_core variable ignored");
   ++config_warnings;
 }
 
@@ -4242,7 +4245,7 @@ void state::_set_date_format(std::string const& value) {
  */
 void state::_set_downtime_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: downtime_file variable ignored");
+  _config_logger->warn("Warning: downtime_file variable ignored");
   ++config_warnings;
 }
 
@@ -4253,7 +4256,7 @@ void state::_set_downtime_file(std::string const& value) {
  */
 void state::_set_enable_embedded_perl(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: enable_embedded_perl variable ignored");
+  _config_logger->warn("Warning: enable_embedded_perl variable ignored");
   ++config_warnings;
 }
 
@@ -4264,7 +4267,7 @@ void state::_set_enable_embedded_perl(std::string const& value) {
  */
 void state::_set_enable_failure_prediction(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: enable_failure_prediction variable ignored");
+  _config_logger->warn("Warning: enable_failure_prediction variable ignored");
   ++config_warnings;
 }
 
@@ -4289,7 +4292,7 @@ void state::_set_event_broker_options(std::string const& value) {
  */
 void state::_set_free_child_process_memory(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: free_child_process_memory variable ignored");
+  _config_logger->warn("Warning: free_child_process_memory variable ignored");
   ++config_warnings;
 }
 
@@ -4323,7 +4326,7 @@ void state::_set_host_inter_check_delay_method(std::string const& value) {
  *  @param[in] value The new host_inter_check_delay_method value.
  */
 void state::_set_host_perfdata_file_mode(std::string const& value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: host_perfdata_file_mode is no more used for a long time, you "
       "should not use it anymore.");
 }
@@ -4335,7 +4338,7 @@ void state::_set_host_perfdata_file_mode(std::string const& value) {
  */
 void state::_set_lock_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: lock_file variable ignored");
+  _config_logger->warn("Warning: lock_file variable ignored");
   ++config_warnings;
 }
 
@@ -4346,7 +4349,7 @@ void state::_set_lock_file(std::string const& value) {
  */
 void state::_set_log_archive_path(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: log_archive_path variable ignored");
+  _config_logger->warn("Warning: log_archive_path variable ignored");
   ++config_warnings;
 }
 
@@ -4357,7 +4360,7 @@ void state::_set_log_archive_path(std::string const& value) {
  */
 void state::_set_log_initial_states(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: log_initial_states variable ignored");
+  _config_logger->warn("Warning: log_initial_states variable ignored");
   ++config_warnings;
 }
 
@@ -4368,7 +4371,7 @@ void state::_set_log_initial_states(std::string const& value) {
  */
 void state::_set_log_rotation_method(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: log_rotation_method variable ignored");
+  _config_logger->warn("Warning: log_rotation_method variable ignored");
   ++config_warnings;
 }
 
@@ -4379,7 +4382,7 @@ void state::_set_log_rotation_method(std::string const& value) {
  */
 void state::_set_nagios_group(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: nagios_group variable ignored");
+  _config_logger->warn("Warning: nagios_group variable ignored");
   ++config_warnings;
 }
 
@@ -4390,7 +4393,7 @@ void state::_set_nagios_group(std::string const& value) {
  */
 void state::_set_nagios_user(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: nagios_user variable ignored");
+  _config_logger->warn("Warning: nagios_user variable ignored");
   ++config_warnings;
 }
 
@@ -4401,7 +4404,7 @@ void state::_set_nagios_user(std::string const& value) {
  */
 void state::_set_object_cache_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: object_cache_file variable ignored");
+  _config_logger->warn("Warning: object_cache_file variable ignored");
   ++config_warnings;
 }
 
@@ -4412,7 +4415,7 @@ void state::_set_object_cache_file(std::string const& value) {
  */
 void state::_set_p1_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: p1_file variable ignored");
+  _config_logger->warn("Warning: p1_file variable ignored");
 
   ++config_warnings;
 }
@@ -4424,7 +4427,7 @@ void state::_set_p1_file(std::string const& value) {
  */
 void state::_set_precached_object_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: precached_object_file variable ignored");
+  _config_logger->warn("Warning: precached_object_file variable ignored");
   ++config_warnings;
 }
 
@@ -4451,7 +4454,7 @@ void state::_set_resource_file(std::string const& value) {
 void state::_set_retained_process_service_attribute_mask(
     std::string const& value) {
   (void)value;
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: retained_process_service_attribute_mask variable ignored");
   ++config_warnings;
 }
@@ -4463,7 +4466,7 @@ void state::_set_retained_process_service_attribute_mask(
  */
 void state::_set_retained_service_attribute_mask(std::string const& value) {
   (void)value;
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: retained_service_attribute_mask variable ignored");
   ++config_warnings;
 }
@@ -4514,7 +4517,7 @@ void state::_set_service_interleave_factor_method(std::string const& value) {
  *  @param[in] value The new service_inter_check_delay_method value.
  */
 void state::_set_service_perfdata_file_mode(std::string const& value) {
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: service_perfdata_file_mode is no more used for a long time, "
       "you should not use it anymore.");
 }
@@ -4526,7 +4529,7 @@ void state::_set_service_perfdata_file_mode(std::string const& value) {
  */
 void state::_set_temp_file(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: temp_file variable ignored");
+  _config_logger->warn("Warning: temp_file variable ignored");
   ++config_warnings;
 }
 
@@ -4537,7 +4540,7 @@ void state::_set_temp_file(std::string const& value) {
  */
 void state::_set_temp_path(std::string const& value) {
   (void)value;
-  log_v2::config()->warn("Warning: temp_path variable ignored");
+  _config_logger->warn("Warning: temp_path variable ignored");
   ++config_warnings;
 }
 
@@ -4548,7 +4551,7 @@ void state::_set_temp_path(std::string const& value) {
  */
 void state::_set_use_embedded_perl_implicitly(std::string const& value) {
   (void)value;
-  log_v2::config()->warn(
+  _config_logger->warn(
       "Warning: use_embedded_perl_implicitly variable ignored");
   ++config_warnings;
 }

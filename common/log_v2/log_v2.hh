@@ -28,6 +28,11 @@
 
 namespace com::centreon::common::log_v3 {
 
+constexpr uint32_t log_v2_core = 0;
+constexpr uint32_t log_v2_config = 1;
+constexpr uint32_t log_v2_process = 2;
+constexpr uint32_t log_v2_configuration = 3;
+
 /**
  * @brief Unified log module for broker and engine.
  *

@@ -37,6 +37,7 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "helper.hh"
 
@@ -50,8 +51,9 @@ class PbAnomalydetectionCheck : public TestEngine {
   void SetUp() override {
     init_config_state(PROTO);
 
-    log_v2::checks()->set_level(spdlog::level::trace);
-    log_v2::commands()->set_level(spdlog::level::trace);
+    init_loggers();
+    checks_logger->set_level(spdlog::level::trace);
+    commands_logger->set_level(spdlog::level::trace);
 
     configuration::applier::contact ct_aply;
     configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
