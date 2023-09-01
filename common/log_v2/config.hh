@@ -19,10 +19,20 @@
 #define CCC_LOG_V2_CONFIG_HH
 #include <absl/container/flat_hash_map.h>
 #include <fmt/format.h>
+#include <filesystem>
 #include <string>
 
 namespace com::centreon::common::log_v3 {
 class config {
+ public:
+  enum class logger_type {
+    LOGGER_STDOUT = 0,
+    LOGGER_FILE = 1,
+    LOGGER_SYSLOG = 2,
+  };
+
+ private:
+  logger_type _log_type;
   std::string _dirname;
   std::string _filename;
   std::size_t _max_size;
@@ -33,28 +43,42 @@ class config {
   absl::flat_hash_map<std::string, std::string> _loggers;
 
  public:
-  config(const std::string& dirname,
-         const std::string& filename,
-         std::size_t max_size,
+  config(logger_type log_type,
          uint32_t flush_interval,
          bool log_pid,
          bool log_source)
-      : _dirname{dirname},
-        _filename{filename},
-        _max_size{max_size},
+      : _log_type{log_type},
         _flush_interval{flush_interval},
         _log_pid{log_pid},
         _log_source{log_source} {}
+
   config(const config& other)
-      : _dirname{other._dirname},
+      : _log_type{other._log_type},
+        _dirname{other._dirname},
         _filename{other._filename},
         _max_size{other._max_size},
         _flush_interval{other._flush_interval},
         _log_pid{other._log_pid},
         _log_source{other._log_source} {}
   std::string log_path() const {
-    return fmt::format("{}/{}", _dirname, _filename);
+    return _dirname.empty() ? _filename
+                            : fmt::format("{}/{}", _dirname, _filename);
   }
+
+  logger_type log_type() const { return _log_type; }
+
+  /**
+   * @brief Set the file name to write into. The name must be the full path of
+   * the file, including the parent directories.
+   *
+   * @param full_path The file to log into.
+   */
+  void set_log_path(const std::string& full_path) {
+    std::filesystem::path p{full_path};
+    _dirname = p.parent_path();
+    _filename = p.filename();
+  }
+
   size_t max_size() const { return _max_size; }
   uint32_t flush_interval() const { return _flush_interval; }
   void set_flush_interval(uint32_t flush_interval) {

@@ -24,9 +24,10 @@
 #include "com/centreon/engine/deleter/listmember.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Add new time period.
@@ -35,10 +36,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Creating new time period '" << obj.timeperiod_name() << "'.";
-  log_v2::config()->debug("Creating new time period '{}'.",
-                          obj.timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new time period '{}'.", obj.timeperiod_name());
 
   if (obj.timeperiod_name().empty() || obj.alias().empty()) {
     throw engine_error() << fmt::format(
@@ -74,8 +73,8 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new time period '{}'.",
-                          obj.timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Creating new time period '{}'.", obj.timeperiod_name());
 
   if (obj.timeperiod_name().empty() || obj.alias().empty()) {
     throw engine_error() << fmt::format(
@@ -129,8 +128,8 @@ void applier::timeperiod::modify_object(
     configuration::Timeperiod* to_modify,
     const configuration::Timeperiod& new_obj) {
   // Logging.
-  log_v2::config()->debug("Modifying time period '{}'.",
-                          to_modify->timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying time period '{}'.", to_modify->timeperiod_name());
 
   // Find time period object.
   timeperiod_map::iterator it_obj =
@@ -185,9 +184,8 @@ void applier::timeperiod::modify_object(
  */
 void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Modifying time period '" << obj.timeperiod_name() << "'.";
-  log_v2::config()->debug("Modifying time period '{}'.", obj.timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Modifying time period '{}'.", obj.timeperiod_name());
 
   // Find old configuration.
   set_timeperiod::iterator it_cfg(config->timeperiods_find(obj.key()));
@@ -244,9 +242,8 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Removing time period '" << obj.timeperiod_name() << "'.";
-  log_v2::config()->debug("Removing time period '{}'.", obj.timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
   timeperiod_map::iterator it(engine::timeperiod::timeperiods.find(obj.key()));
@@ -268,7 +265,8 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
 void applier::timeperiod::remove_object(ssize_t idx) {
   /* obj is the object to remove */
   auto& obj = pb_config.timeperiods()[idx];
-  log_v2::config()->debug("Removing time period '{}'.", obj.timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Removing time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
   timeperiod_map::iterator it =
@@ -298,7 +296,8 @@ void applier::timeperiod::remove_object(ssize_t idx) {
  */
 void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj) {
   // Logging.
-  log_v2::config()->debug("Resolving time period '{}'.", obj.timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
   timeperiod_map::iterator it =
@@ -321,9 +320,8 @@ void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj) {
  */
 void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
   // Logging.
-  engine_logger(logging::dbg_config, logging::more)
-      << "Resolving time period '" << obj.timeperiod_name() << "'.";
-  log_v2::config()->debug("Resolving time period '{}'.", obj.timeperiod_name());
+  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
   timeperiod_map::iterator it{engine::timeperiod::timeperiods.find(obj.key())};

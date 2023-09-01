@@ -130,7 +130,7 @@ int pre_flight_circular_check(int* w, int* e) {
       engine_logger(log_verification_error, basic)
           << "Error: The host '" << it->first
           << "' is part of a circular parent/child chain!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: The host '{}' is part of a circular parent/child chain!",
           it->first);
     }
@@ -162,7 +162,7 @@ int pre_flight_circular_check(int* w, int* e) {
              "in a deadlock) exists for service '"
           << it->second->get_service_description() << "' on host '"
           << it->second->get_hostname() << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular execution dependency (which could result "
           "in a deadlock) exists for service '{}' on host '{}'!",
           it->second->get_service_description(), it->second->get_hostname());
@@ -190,7 +190,7 @@ int pre_flight_circular_check(int* w, int* e) {
              "result in a deadlock) exists for service '"
           << it->second->get_service_description() << "' on host '"
           << it->second->get_hostname() << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular notification dependency (which could "
           "result in a deadlock) exists for service '{}' on host '{}'!",
           it->second->get_service_description(), it->second->get_hostname());
@@ -222,7 +222,7 @@ int pre_flight_circular_check(int* w, int* e) {
           << "Error: A circular execution dependency (which could "
              "result in a deadlock) exists for host '"
           << it->second->get_hostname() << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular execution dependency (which could "
           "result in a deadlock) exists for host '{}'!",
           it->second->get_hostname());
@@ -247,7 +247,7 @@ int pre_flight_circular_check(int* w, int* e) {
           << "Error: A circular notification dependency (which could "
              "result in a deadlock) exists for host '"
           << it->first << "'!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: A circular notification dependency (which could "
           "result in a deadlock) exists for host '{}'!",
           it->first);

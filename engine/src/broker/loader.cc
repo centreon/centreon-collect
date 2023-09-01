@@ -20,6 +20,7 @@
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/io/directory_entry.hh"
@@ -118,16 +119,16 @@ unsigned int loader::load_directory(std::string const& dir) {
       engine_logger(log_info_message, basic)
           << "Event broker module '" << f.file_name()
           << "' initialized successfully.";
-      log_v2::events()->info(
-          "Event broker module '{}' initialized successfully.", f.file_name());
+      events_logger->info("Event broker module '{}' initialized successfully.",
+                          f.file_name());
       ++loaded;
     } catch (error const& e) {
       del_module(module);
       engine_logger(log_runtime_error, basic)
           << "Error: Could not load module '" << f.file_name() << "' -> "
           << e.what();
-      log_v2::runtime()->error("Error: Could not load module '{}' -> {}",
-                               f.file_name(), e.what());
+      runtime_logger->error("Error: Could not load module '{}' -> {}",
+                            f.file_name(), e.what());
     }
   }
   return loaded;

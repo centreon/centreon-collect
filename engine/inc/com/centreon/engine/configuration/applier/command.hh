@@ -41,6 +41,7 @@ class command {
    * @brief Default constructor
    */
   command() = default;
+
   /**
    * @brief Destructor.
    */

@@ -130,7 +130,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Contact '" << it->first << "' specified in contact group '"
           << _name << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Contact '{}' specified in contact group '{}' is not defined "
           "anywhere!",
           it->first, _name);
@@ -144,7 +144,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of contact group '" << _name
         << "' contains one or more illegal characters.";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: The name of contact group '{}' contains one or more illegal "
         "characters.",
         _name);
