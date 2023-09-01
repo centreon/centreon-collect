@@ -375,17 +375,19 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_escalations_file(name: string, SG: string, contactgroup: string):
-        retval = """define serviceescalation {
-    ;escalation_name               {0}
+    def create_escalations_file(poller: int, name: int, SG: string, contactgroup: string):
+        config_file = "{}/config{}/escalations.cfg".format(CONF_DIR, poller)
+        ff = open(config_file, "a+")
+        content = """define escalations {{
+    escalation_name                esc{0}
     escalation_period              24x7
     escalation_options             w,c,r
     servicegroup_name              {1}
     contact_groups                 {2}
     }}
     """.format(name, SG, contactgroup)
-        logger.console(retval)
-        return retval
+        ff.write(content)
+        ff.close()
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
@@ -427,7 +429,6 @@ passive_checks_enabled 1
 """.format(tid, typ, i + offset)
         ff.write(content)
         ff.close()
-
 
     def build_configs(self, hosts: int, services_by_host: int, debug_level=0):
         if exists(CONF_DIR):
@@ -615,8 +616,8 @@ define contact {
             with open(config_dir + "/contactgroups.cfg", "w") as f:
                 f.write("#contactgroups.cfg\n")
 
-            with open(config_dir + "/escalations.cfg", "w") as f:
-                f.write("#escalations.cfg\n")
+            f = open(config_dir + "/escalations.cfg", "w")
+            f.close()
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
@@ -735,21 +736,6 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     f.close()
 
     r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
-    for i in range(len(lines)):
-        if r.match(lines[i]):
-            lines.insert(i + 1, "    {}              {}\n".format(key, value))
-
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
-
-def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/escalations.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
-    r = re.compile(r"^\s*escalation_name\s+" + desc + "\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines.insert(i + 1, "    {}              {}\n".format(key, value))
@@ -1068,23 +1054,6 @@ def add_contact_group(index: int, id_contact_group: int, members: list):
     logger.console(members)
     f.write(engine.create_contact_group(id_contact_group, members))
     f.close()
-
-def add_servicegroup_dependency(index: int, dependency_name: str, execution_failure_criteria: str, notification_failure_criteria: str, inherits_parent: int,dependent_servicegroup_name: str, servicegroup_name: str):
-    f = open(
-        ETC_ROOT + "/centreon-engine/config{}/dependencies.cfg".format(index), "a+")
-    logger.console(dependency_name)
-    f.write(engine.create_servicegroup_dependency(dependency_name, dependent_servicegroup_name, servicegroup_name))
-    f.close()
-
-def add_service_dependency(index: int, dependency_name: str, execution_failure_criteria: str, notification_failure_criteria: str, inherits_parent: int, dependent_host_name: str, host_name: str, dependent_service_description: str, service_description: str):
-    f = open(
-        ETC_ROOT + "/centreon-engine/config{}/dependencies.cfg".format(index), "a+")
-    logger.console(dependency_name)
-    f.write(engine.create_service_dependency(dependency_name, dependent_service_description, service_description))
-    f.close()
-def write_to_config_file(content, file_path):
-    with open(file_path, "w") as f:
-        f.write(content)
 
 def create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
@@ -1698,8 +1667,8 @@ def create_service_dependency_file(poller: int, name: str, exc: str, notf: str,d
             notify_on_critical = False
     engine.create_service_dependency(poller, name, exc, notf, dephost, host, descs, sr)
 
-def create_escalations_file(name: string, SG: string, contactgroup: string):
-    engine.create_escalations_file(name, SG, contactgroup)
+def create_escalations_file(poller: int, name: string, SG: string, contactgroup: string):
+    engine.create_escalations_file(poller, name, SG, contactgroup)
 
 
 def create_template_file(poller: int, typ: str, what: str, ids: list):
@@ -2250,3 +2219,4 @@ def send_bench(id: int, port: int):
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
+

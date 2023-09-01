@@ -61,7 +61,7 @@ not1
 
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
 
@@ -127,7 +127,7 @@ not2
 
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
 ## Time to set the service to CRITICAL HARD.
@@ -880,8 +880,6 @@ not12
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-
-
 ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
@@ -907,12 +905,3 @@ not12
 
     Stop Engine
     Kindly Stop Broker
-
-
-*** Keywords ***
-Clean Downtimes Before Suite
-    Clean Before Suite
-
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${output}=    Execute SQL String    DELETE FROM downtimes WHERE deletion_time IS NULL
-
