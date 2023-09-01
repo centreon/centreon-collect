@@ -554,7 +554,7 @@ define timeperiod {
     email                          admin@admin.tld
     host_notification_period       24x7
     service_notification_period    24x7
-    host_notification_options      n
+    host_notification_options      d,u,r,f,s
     service_notification_options   w,c,r
     register                       1
     host_notifications_enabled     1
@@ -571,6 +571,8 @@ define contact {
     register                       1
     host_notifications_enabled     1
     service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
 }
 define contact {
     contact_name                   U2
@@ -583,6 +585,8 @@ define contact {
     register                       1
     host_notifications_enabled     1
     service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif    
 }
 define contact {
     contact_name                   U3
@@ -595,6 +599,8 @@ define contact {
     register                       1
     host_notifications_enabled     1
     service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
 }
 define contact {
     contact_name                   U4
@@ -607,6 +613,8 @@ define contact {
     register                       1
     host_notifications_enabled     1
     service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
 }
             """)
             f.close()

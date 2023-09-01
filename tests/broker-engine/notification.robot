@@ -77,7 +77,7 @@ not1
     Sleep    1s
 
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification is sent
 
@@ -140,7 +140,7 @@ not2
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Sleep    3s
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification is sent
 
@@ -155,7 +155,7 @@ not2
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Sleep    3s
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification recovery is not sent
 
@@ -234,7 +234,7 @@ not3
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Sleep    1s
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification is not sent
 
@@ -310,7 +310,7 @@ not4
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Sleep    10s
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification is not sent
 
@@ -387,11 +387,11 @@ not5
     ${result}=    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
     Sleep    5s
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification is not sent
 
-    ${content}=    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical;
+    ${content}=    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification is not sent
 
@@ -456,7 +456,7 @@ not6
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Sleep    5s
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification is not sent
 
@@ -483,7 +483,7 @@ not6
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
     Sleep    7s
 
-    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok;
+    ${content}=    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling that notification recovery is not sent
 
