@@ -37,7 +37,8 @@ dnf install -y cmake \
     perl \
     rpm-build \
     procps-ng \
-    zstd
+    zstd \
+    sudo
 
 pip3 install conan==1.57.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
