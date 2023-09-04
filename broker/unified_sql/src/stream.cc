@@ -114,6 +114,19 @@ constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /
     sizeof(stream::neb_processing_table[0]);
 
+/**
+ * @brief this function return a database_config equal to the parameter dbcfg
+ * except the connections_count witch is equal to 1
+ *
+ * @param dbcfg  config to copy to the return object
+ * @return database_config  copy of the parameter with connections_count = 1
+ */
+static database_config one_db_connection_config(const database_config& dbcfg) {
+  database_config ret(dbcfg);
+  ret.set_connections_count(1);
+  return ret;
+}
+
 stream::stream(const database_config& dbcfg,
                uint32_t rrd_len,
                uint32_t interval_length,
@@ -131,7 +144,7 @@ stream::stream(const database_config& dbcfg,
       _loop_timeout{loop_timeout},
       _max_pending_queries(dbcfg.get_queries_per_transaction()),
       _dbcfg{dbcfg},
-      _mysql{dbcfg},
+      _mysql{one_db_connection_config(dbcfg)},
       _instance_timeout{instance_timeout},
       _rebuilder{dbcfg, rrd_len ? rrd_len : 15552000, interval_length},
       _store_in_db{store_in_data_bin},
@@ -168,6 +181,34 @@ stream::stream(const database_config& dbcfg,
            "VALUES(value)"),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
+
+  // dedicated connections for data_bin and logs?
+  unsigned nb_dedicated_connexion = 0;
+  switch (dbcfg.get_connections_count()) {
+    case 1:  // only one connexion =>data_bin and logs are filled with the only
+             // connection
+      break;
+    case 2:
+      nb_dedicated_connexion = 1;
+      break;
+    case 3:
+    default:
+      nb_dedicated_connexion = store_in_data_bin ? 2 : 1;
+      break;
+  }
+
+  if (nb_dedicated_connexion > 0) {
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "use of {} dedicated connection for logs and data_bin tables",
+        nb_dedicated_connexion);
+    database_config dedicated_cfg(dbcfg);
+    dedicated_cfg.set_category(1);  // no shared with bam connection
+    dedicated_cfg.set_queries_per_transaction(1);
+    dedicated_cfg.set_connections_count(nb_dedicated_connexion);
+    _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
+  }
+
   stats::center::instance().execute([stats = _stats,
                                      loop_timeout = _loop_timeout,
                                      max_queries = _max_pending_queries] {
@@ -1095,12 +1136,12 @@ void stream::_start_loop_timer() {
 void stream::_init_statements() {
   if (_bulk_prepared_statement) {
     _perfdata_query = std::make_unique<database::bulk_or_multi>(
-        _mysql,
+        _dedicated_connections ? *_dedicated_connections : _mysql,
         "INSERT INTO data_bin (id_metric,ctime,status,value) VALUES (?,?,?,?)",
         _max_perfdata_queries, std::chrono::seconds(queue_timer_duration),
         _max_perfdata_queries);
     _logs = std::make_unique<database::bulk_or_multi>(
-        _mysql,
+        _dedicated_connections ? *_dedicated_connections : _mysql,
         "INSERT INTO logs "
         "(ctime,host_id,service_id,host_name,instance_name,type,msg_type,"
         "notification_cmd,notification_contact,retry,service_description,"

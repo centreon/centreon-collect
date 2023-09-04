@@ -86,7 +86,7 @@ BENCH_${nb_check}STATUS
     ...    10000
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
-BENCH_1000STATUS_100ENGINE
+BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
     Config Engine    ${100}    ${100}    ${20}
@@ -102,6 +102,7 @@ BENCH_1000STATUS_100ENGINE
     Broker Config Log    central    processing    error
     Config BBDO3    ${100}
     Config Broker Sql Output    central    unified_sql
+    Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${nb_conn}
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -152,12 +153,12 @@ BENCH_1000STATUS_100ENGINE
 
     ${success}    Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_1000STATUS_100POLLER
+    ...    BENCH_1000STATUS_100POLLER${suffixe}
     ...    broker
     ...    ${diff_broker}
     ...    ${broker_stat_after}
     ...    ${bench_data}
-    ...    central-broker-master-input-\\d+
+    ...    central-broker-master-input-[0-9]+
     ...    write
     ...    central-rrd-master-output
     ...    publish
@@ -166,7 +167,7 @@ BENCH_1000STATUS_100ENGINE
 
     ${success}    Store Result In Unqlite
     ...    bench.unqlite
-    ...    BENCH_1000STATUS_100POLLER
+    ...    BENCH_1000STATUS_100POLLER${suffixe}
     ...    engine
     ...    ${diff_engine}
     ...    ${engine_stat_after}
@@ -179,5 +180,10 @@ BENCH_1000STATUS_100ENGINE
     Should Be True    ${success}    "fail to save engine bench to database"
 
     Upload Database To S3    bench.unqlite
+
+    Examples:    suffixe    nb_conn    --
+    ...    ENGINE    1
+    ...    ENGINE_2    2
+    ...    ENGINE_3    3
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker

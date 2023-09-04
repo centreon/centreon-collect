@@ -47,7 +47,8 @@ CCB_END()
 database_config::database_config()
     : _queries_per_transaction(1),
       _check_replication(true),
-      _connections_count(1) {}
+      _connections_count(1),
+      _category(0) {}
 
 /**
  *  Constructor.
@@ -87,7 +88,8 @@ database_config::database_config(const std::string& type,
       _queries_per_transaction(queries_per_transaction),
       _check_replication(check_replication),
       _connections_count(connections_count),
-      _max_commit_delay(max_commit_delay) {}
+      _max_commit_delay(max_commit_delay),
+      _category(0) {}
 
 /**
  *  Build a database configuration from a configuration set.
@@ -419,6 +421,21 @@ unsigned database_config::get_max_commit_delay() const {
 }
 
 /**
+ * @brief get_category
+ * mysql_manager try to factorise mysql connections and share the same
+ * connection between clients that have the same configuration
+ * (mysql_connection::match_config method)
+ * category must be used if you don't want to use this sharing
+ * only client that have the same config host, port, user, password, socket,
+ * queries_per_transaction and category can share the same connection
+ *
+ * @return unsigned _category field
+ */
+unsigned database_config::get_category() const {
+  return _category;
+}
+
+/**
  *  Set type.
  *
  *  @param[in] type  The database type.
@@ -506,6 +523,16 @@ void database_config::set_connections_count(int count) {
  */
 void database_config::set_check_replication(bool check_replication) {
   _check_replication = check_replication;
+}
+
+/**
+ *  Set the category of the connections (connections in mysql_manager aren't
+ * shared if cfg have different category).
+ *
+ *  @param[in] category  Replication check flag.
+ */
+void database_config::set_category(unsigned category) {
+  _category = category;
 }
 
 /**

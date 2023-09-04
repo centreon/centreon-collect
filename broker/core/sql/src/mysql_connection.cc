@@ -1085,7 +1085,8 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _switch_point{std::time(nullptr)},
       _proto_stats{stats},
       _last_stats{std::time(nullptr)},
-      _qps(db_cfg.get_queries_per_transaction()) {
+      _qps(db_cfg.get_queries_per_transaction()),
+      _category(db_cfg.get_category()) {
   std::unique_lock<std::mutex> lck(_start_m);
   SPDLOG_LOGGER_INFO(log_v2::sql(),
                      "mysql_connection: starting connection {:p} to {}",
@@ -1202,7 +1203,9 @@ bool mysql_connection::match_config(database_config const& db_cfg) const {
   return db_cfg.get_host() == _host && db_cfg.get_socket() == _socket &&
          db_cfg.get_user() == _user && db_cfg.get_password() == _pwd &&
          db_cfg.get_name() == _name && db_cfg.get_port() == _port &&
-         db_cfg.get_queries_per_transaction() == _qps;
+         db_cfg.get_queries_per_transaction() == _qps &&
+         db_cfg.get_category() == _category;
+  ;
 }
 
 int mysql_connection::get_tasks_count() const {
