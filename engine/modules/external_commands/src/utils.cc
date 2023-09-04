@@ -73,7 +73,7 @@ int open_command_file(void) {
              "you are sure that another copy of Centreon Engine is not "
              "running, "
              "you should delete this file.";
-      log_v2::runtime()->error(
+      runtime_logger->error(
           "Error: Could not create external command file '{}' as named pipe: "
           "({}) -> {}.  If this file already exists and "
           "you are sure that another copy of Centreon Engine is not "
@@ -92,7 +92,7 @@ int open_command_file(void) {
         << "Error: Could not open external command file for reading "
            "via open(): ("
         << errno << ") -> " << strerror(errno);
-    log_v2::runtime()->error(
+    runtime_logger->error(
         "Error: Could not open external command file for reading "
         "via open(): ({}) -> {}",
         errno, strerror(errno));
@@ -108,7 +108,7 @@ int open_command_file(void) {
           << "Error: Could not get file descriptor flags on external "
              "command via fcntl(): ("
           << errno << ") -> " << strerror(errno);
-      log_v2::runtime()->error(
+      runtime_logger->error(
           "Error: Could not get file descriptor flags on external "
           "command via fcntl(): ({}) -> {}",
           errno, strerror(errno));
@@ -120,7 +120,7 @@ int open_command_file(void) {
           << "Error: Could not set close-on-exec flag on external "
              "command via fcntl(): ("
           << errno << ") -> " << strerror(errno);
-      log_v2::runtime()->error(
+      runtime_logger->error(
           "Error: Could not set close-on-exec flag on external "
           "command via fcntl(): ({}) -> {}",
           errno, strerror(errno));
@@ -134,7 +134,7 @@ int open_command_file(void) {
         << "Error: Could not open external command file for "
            "reading via fdopen(): ("
         << errno << ") -> " << strerror(errno);
-    log_v2::runtime()->error(
+    runtime_logger->error(
         "Error: Could not open external command file for "
         "reading via fdopen(): ({}) -> {}",
         errno, strerror(errno));
@@ -145,7 +145,7 @@ int open_command_file(void) {
   if (init_command_file_worker_thread() == ERROR) {
     engine_logger(log_runtime_error, basic)
         << "Error: Could not initialize command file worker thread.";
-    log_v2::runtime()->error(
+    runtime_logger->error(
         "Error: Could not initialize command file worker thread.");
     /* close the command file */
     fclose(command_file_fp);
@@ -188,7 +188,7 @@ int close_command_file(void) {
 
 /* worker thread - artificially increases buffer of named pipe */
 static void command_file_worker_thread() {
-  log_v2::external_command()->info("start command_file_worker_thread");
+  external_command_logger->info("start command_file_worker_thread");
 
   char input_buffer[MAX_EXTERNAL_COMMAND_LENGTH];
   struct pollfd pfd;
@@ -218,21 +218,21 @@ static void command_file_worker_thread() {
         case EBADF:
           engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): EBADF";
-          log_v2::external_command()->info(
+          external_command_logger->info(
               "command_file_worker_thread(): poll(): EBADF");
           break;
 
         case ENOMEM:
           engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): ENOMEM";
-          log_v2::external_command()->info(
+          external_command_logger->info(
               "command_file_worker_thread(): poll(): ENOMEM");
           break;
 
         case EFAULT:
           engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): EFAULT";
-          log_v2::external_command()->info(
+          external_command_logger->info(
               "command_file_worker_thread(): poll(): EFAULT");
           break;
 
@@ -247,7 +247,7 @@ static void command_file_worker_thread() {
         default:
           engine_logger(logging_options, basic)
               << "command_file_worker_thread(): poll(): Unknown errno value.";
-          log_v2::external_command()->info(
+          external_command_logger->info(
               "command_file_worker_thread(): poll(): Unknown errno value.");
           break;
       }
@@ -287,7 +287,7 @@ static void command_file_worker_thread() {
                    command_file_fp) != nullptr) {
         // Check if command is thread-safe (for immediate execution).
         if (commands::processing::is_thread_safe(input_buffer)) {
-          log_v2::external_command()->debug("direct execute {}", input_buffer);
+          external_command_logger->debug("direct execute {}", input_buffer);
           commands::processing::execute(input_buffer);
         }
         // Submit the external command for processing
@@ -299,7 +299,7 @@ static void command_file_worker_thread() {
             tv.tv_usec = 250000;
             select(0, nullptr, nullptr, nullptr, &tv);
           }
-          log_v2::external_command()->debug("push execute {}", input_buffer);
+          external_command_logger->debug("push execute {}", input_buffer);
           external_command_buffer.push(input_buffer);
           // Bail if the circular buffer is full.
           if (external_command_buffer.full())
@@ -308,7 +308,7 @@ static void command_file_worker_thread() {
       }
     }
   }
-  log_v2::external_command()->info("end command_file_worker_thread");
+  external_command_logger->info("end command_file_worker_thread");
 }
 
 /* initializes command file worker thread */

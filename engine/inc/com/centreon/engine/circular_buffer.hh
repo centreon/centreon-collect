@@ -25,6 +25,7 @@
 
 #include <boost/circular_buffer.hpp>
 #include <boost/optional.hpp>
+#include <mutex>
 
 template <class T>
 class circular_buffer : protected boost::circular_buffer<T> {

@@ -21,7 +21,7 @@
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -1267,7 +1267,7 @@ bool host::_set_event_handler_enabled(bool value) {
  */
 bool host::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  log_v2::config()->warn(
+  config_logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
   ++config_warnings;
@@ -1283,7 +1283,7 @@ bool host::_set_failure_prediction_enabled(bool value) {
  */
 bool host::_set_failure_prediction_options(std::string const& value) {
   (void)value;
-  log_v2::config()->warn(
+  config_logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
   ++config_warnings;
@@ -1736,8 +1736,8 @@ bool host::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostcategory);
     } else {
-      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
-                             _host_id, value);
+      config_logger->warn("Warning: host ({}) error for parsing tag {}",
+                          _host_id, value);
       ret = false;
     }
   }
@@ -1770,8 +1770,8 @@ bool host::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostgroup);
     } else {
-      log_v2::config()->warn("Warning: host ({}) error for parsing tag {}",
-                             _host_id, value);
+      config_logger->warn("Warning: host ({}) error for parsing tag {}",
+                          _host_id, value);
       ret = false;
     }
   }

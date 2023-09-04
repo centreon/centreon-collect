@@ -52,6 +52,7 @@ extern std::shared_ptr<spdlog::logger> checks_logger;
 extern std::shared_ptr<spdlog::logger> commands_logger;
 extern std::shared_ptr<spdlog::logger> config_logger;
 extern std::shared_ptr<spdlog::logger> downtimes_logger;
+extern std::shared_ptr<spdlog::logger> eventbroker_logger;
 extern std::shared_ptr<spdlog::logger> events_logger;
 extern std::shared_ptr<spdlog::logger> external_command_logger;
 extern std::shared_ptr<spdlog::logger> functions_logger;

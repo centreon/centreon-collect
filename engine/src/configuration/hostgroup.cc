@@ -18,7 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/hostgroup.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
@@ -89,42 +89,42 @@ hostgroup& hostgroup::operator=(hostgroup const& right) {
  */
 bool hostgroup::operator==(hostgroup const& right) const throw() {
   if (!object::operator==(right)) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => object don't match");
     return false;
   }
   if (_action_url != right._action_url) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => action url don't match");
     return false;
   }
   if (_alias != right._alias) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => alias don't match");
     return false;
   }
   if (_hostgroup_id != right._hostgroup_id) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => hostgroup id don't match");
     return false;
   }
   if (_hostgroup_name != right._hostgroup_name) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => hostgroup name don't match");
     return false;
   }
   if (_members != right._members) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => members don't match");
     return false;
   }
   if (_notes != right._notes) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => notes don't match");
     return false;
   }
   if (_notes_url != right._notes_url) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::hostgroup::equality => notes url don't match");
     return false;
   }

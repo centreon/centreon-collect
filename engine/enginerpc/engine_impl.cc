@@ -21,10 +21,12 @@
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 #include <future>
+#include "common/log_v2/log_v2.hh"
 
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
+using log_v3 = com::centreon::common::log_v3::log_v3;
 
 #include <absl/strings/str_join.h>
 
@@ -55,7 +57,6 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/hostdependency.hh"
 #include "com/centreon/engine/hostgroup.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/service.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/servicegroup.hh"
@@ -3051,28 +3052,26 @@ grpc::Status engine_impl::ShutdownProgram(
   return grpc::Status::OK;
 }
 
-#define HOST_METHOD_BEGIN                                                   \
-  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "{}({})", __FUNCTION__,   \
-                      *request);                                            \
-  auto host_info = get_host(*request);                                      \
-  if (!host_info.second.empty()) {                                          \
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),                         \
-                        "{}({}) : unknown host {}", __FUNCTION__, *request, \
-                        host_info.second);                                  \
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,               \
-                        host_info.second);                                  \
+#define HOST_METHOD_BEGIN                                                    \
+  SPDLOG_LOGGER_DEBUG(external_command_logger, "{}({})", __FUNCTION__,       \
+                      *request);                                             \
+  auto host_info = get_host(*request);                                       \
+  if (!host_info.second.empty()) {                                           \
+    SPDLOG_LOGGER_ERROR(external_command_logger, "{}({}) : unknown host {}", \
+                        __FUNCTION__, *request, host_info.second);           \
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,                \
+                        host_info.second);                                   \
   }
 
-#define SERV_METHOD_BEGIN                                                   \
-  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "{}({})", __FUNCTION__,   \
-                      *request);                                            \
-  auto serv_info = get_serv(*request);                                      \
-  if (!serv_info.second.empty()) {                                          \
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),                         \
-                        "{}({}) : unknown serv {}", __FUNCTION__, *request, \
-                        serv_info.second);                                  \
-    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,               \
-                        serv_info.second);                                  \
+#define SERV_METHOD_BEGIN                                                    \
+  SPDLOG_LOGGER_DEBUG(external_command_logger, "{}({})", __FUNCTION__,       \
+                      *request);                                             \
+  auto serv_info = get_serv(*request);                                       \
+  if (!serv_info.second.empty()) {                                           \
+    SPDLOG_LOGGER_ERROR(external_command_logger, "{}({}) : unknown serv {}", \
+                        __FUNCTION__, *request, serv_info.second);           \
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,                \
+                        serv_info.second);                                   \
   }
 
 ::grpc::Status engine_impl::EnableHostAndChildNotifications(
@@ -3151,17 +3150,17 @@ grpc::Status engine_impl::ShutdownProgram(
     ::grpc::ServerContext* context,
     const ::com::centreon::engine::ChangeServiceNumber* serv_and_value,
     ::com::centreon::engine::CommandSuccess* response) {
-  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "{}({})", __FUNCTION__,
+  SPDLOG_LOGGER_DEBUG(external_command_logger, "{}({})", __FUNCTION__,
                       serv_and_value->serv());
   auto serv_info = get_serv(serv_and_value->serv());
   if (!serv_info.second.empty()) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "{}({}) : unknown serv {}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "{}({}) : unknown serv {}",
                         __FUNCTION__, serv_and_value->serv(), serv_info.second);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, serv_info.second);
   }
 
   if (serv_info.first->get_service_type() != service_type::ANOMALY_DETECTION) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+    SPDLOG_LOGGER_ERROR(external_command_logger,
                         "{}({}) : {} is not an anomalydetection", __FUNCTION__,
                         serv_and_value->serv(), serv_info.second);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, serv_info.second);
@@ -3179,7 +3178,7 @@ grpc::Status engine_impl::ShutdownProgram(
     ano->set_sensitivity(serv_and_value->intval());
     return grpc::Status::OK;
   }
-  SPDLOG_LOGGER_ERROR(log_v2::external_command(), "{}({}) : no value provided",
+  SPDLOG_LOGGER_ERROR(external_command_logger, "{}({}) : no value provided",
                       __FUNCTION__, serv_and_value->serv());
   return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT,
                       "no value provided");
@@ -3282,32 +3281,18 @@ engine_impl::get_serv(
     ::grpc::ServerContext* context,
     const ::google::protobuf::Empty* request,
     ::com::centreon::engine::LogInfo* response) {
-  using logger_by_log =
-      std::map<log_v2_base*, std::vector<std::shared_ptr<spdlog::logger>>>;
+  std::vector<std::shared_ptr<spdlog::logger>> loggers;
 
-  logger_by_log summary;
+  spdlog::apply_all([&loggers](const std::shared_ptr<spdlog::logger>& logger) {
+    loggers.push_back(logger);
+  });
 
-  spdlog::apply_all(
-      [&summary](const std::shared_ptr<spdlog::logger>& logger_base) {
-        std::shared_ptr<log_v2_logger> logger =
-            std::dynamic_pointer_cast<log_v2_logger>(logger_base);
-        if (logger) {
-          summary[logger->get_parent()].push_back(logger);
-        }
-      });
-
-  for (const auto& by_parent_loggers : summary) {
-    LogInfo_LoggerInfo* loggers = response->add_loggers();
-    loggers->set_log_name(by_parent_loggers.first->log_name());
-    loggers->set_log_file(by_parent_loggers.first->file_path());
-    loggers->set_log_flush_period(
-        by_parent_loggers.first->get_flush_interval().count());
-    auto& levels = *loggers->mutable_level();
-    for (const std::shared_ptr<spdlog::logger>& logger :
-         by_parent_loggers.second) {
-      auto level = spdlog::level::to_string_view(logger->level());
-      levels[logger->name()] = std::string(level.data(), level.size());
-    }
+  response->set_log_file(log_v3::instance().filename());
+  response->set_log_flush_period(log_v3::instance().flush_interval().count());
+  auto levels = response->mutable_level();
+  for (const auto& logger : loggers) {
+    auto level = spdlog::level::to_string_view(logger->level());
+    (*levels)[logger->name()] = std::string(level.data(), level.size());
   }
   return grpc::Status::OK;
 }
@@ -3321,7 +3306,7 @@ grpc::Status engine_impl::SetLogLevel(grpc::ServerContext* context
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), err_detail);
+    SPDLOG_LOGGER_ERROR(external_command_logger, err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     logger->set_level(spdlog::level::level_enum(request->level()));
@@ -3334,18 +3319,7 @@ grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             const LogFlushPeriod* request,
                                             ::google::protobuf::Empty*) {
   // first get all log_v2 objects
-  std::set<log_v2_base*> loggers;
-  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
-    std::shared_ptr<log_v2_logger> logger_base =
-        std::dynamic_pointer_cast<log_v2_logger>(logger);
-    if (logger_base) {
-      loggers.insert(logger_base->get_parent());
-    }
-  });
-
-  for (log_v2_base* to_update : loggers) {
-    to_update->set_flush_interval(request->period());
-  }
+  log_v3::instance().set_flush_interval(request->period());
   return grpc::Status::OK;
 }
 
@@ -3365,8 +3339,7 @@ grpc::Status engine_impl::GetProcessStats(
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
-                        "fail to get process info: {}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "fail to get process info: {}",
                         boost::diagnostic_information(e));
 
     return grpc::Status(grpc::StatusCode::INTERNAL,
