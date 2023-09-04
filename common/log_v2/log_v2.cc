@@ -55,9 +55,9 @@ log_v3& log_v3::instance() {
   return *_instance;
 }
 
-// std::chrono::seconds log_v3::flush_interval() {
-//   return _flush_interval;
-// }
+std::chrono::seconds log_v3::flush_interval() {
+  return _flush_interval;
+}
 
 void log_v3::set_flush_interval(uint32_t second_flush_interval) {
   _flush_interval = std::chrono::seconds(second_flush_interval);

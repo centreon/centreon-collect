@@ -51,7 +51,6 @@ namespace asio = boost::asio;
 #include "com/centreon/engine/enginerpc.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -112,7 +111,6 @@ int main(int argc, char* argv[]) {
 #endif  // HAVE_GETOPT_H
 
   // Hack to instanciate the logger.
-  log_v2::load(g_io_context);
   log_v3::load({"core", "config", "process", "configuration", "functions",
                 "events", "checks", "notifications", "eventbroker",
                 "external_command", "commands", "downtimes", "comments",
@@ -569,7 +567,6 @@ int main(int argc, char* argv[]) {
         com::centreon::engine::events::loop::instance().run();
 
         if (sigshutdown) {
-          log_v2::instance()->stop_flush_timer();
           engine_logger(logging::log_process_info, logging::basic)
               << "Caught SIG" << sigs[sig_id] << ", shutting down ...";
           SPDLOG_LOGGER_INFO(process_logger, "Caught SIG {}, shutting down ...",

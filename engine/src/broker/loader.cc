@@ -147,8 +147,8 @@ void loader::unload_modules() {
     }
     engine_logger(dbg_eventbroker, basic)
         << "Module '" << (*it)->get_filename() << "' unloaded successfully.";
-    log_v2::eventbroker()->trace("Module '{}' unloaded successfully.",
-                                 (*it)->get_filename());
+    eventbroker_logger->trace("Module '{}' unloaded successfully.",
+                              (*it)->get_filename());
   }
   _modules.clear();
 }
