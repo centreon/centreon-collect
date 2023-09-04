@@ -48,7 +48,6 @@
 #include "com/centreon/engine/configuration/diff_state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
@@ -59,7 +58,6 @@
 #include "com/centreon/engine/xpddefault.hh"
 #include "com/centreon/engine/xsddefault.hh"
 #include "common/configuration/state-generated.pb.h"
-//#include "common/log_v2/config.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
@@ -513,7 +511,7 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
 
   // Check global event handler commands...
   if (verify_config) {
-    log_v2::events()->info("Checking global event handlers...");
+    events_logger->info("Checking global event handlers...");
   }
   if (!pb_config.global_host_event_handler().empty()) {
     // Check the event handler command.
@@ -551,8 +549,7 @@ void applier::state::_pb_apply(const configuration::State& new_cfg) {
 
   // Check obsessive processor commands...
   if (verify_config) {
-    log_v2::events()->info(
-        "Checking obsessive compulsive processor commands...");
+    events_logger->info("Checking obsessive compulsive processor commands...");
   }
   if (!pb_config.ocsp_command().empty()) {
     std::string temp_command_name(pb_config.ocsp_command().substr(
@@ -789,7 +786,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   if (verify_config) {
     engine_logger(log_info_message, basic)
         << "Checking global event handlers...";
-    log_v2::events()->info("Checking global event handlers...");
+    events_logger->info("Checking global event handlers...");
   }
   if (!config->global_host_event_handler().empty()) {
     // Check the event handler command.
@@ -834,8 +831,7 @@ void applier::state::_apply(configuration::state const& new_cfg) {
   if (verify_config) {
     engine_logger(log_info_message, basic)
         << "Checking obsessive compulsive processor commands...";
-    log_v2::events()->info(
-        "Checking obsessive compulsive processor commands...");
+    events_logger->info("Checking obsessive compulsive processor commands...");
   }
   if (!config->ocsp_command().empty()) {
     std::string temp_command_name(config->ocsp_command().substr(
@@ -904,7 +900,7 @@ void applier::state::_pb_apply(
         aplyr.modify_object(p.first, p.second);
       } catch (const std::exception& e) {
         ++config_errors;
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -919,7 +915,7 @@ void applier::state::_pb_apply(
         aplyr.remove_object(idx);
       } catch (const std::exception& e) {
         ++config_errors;
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -933,7 +929,7 @@ void applier::state::_pb_apply(
         aplyr.add_object(obj);
       } catch (const std::exception& e) {
         ++config_errors;
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -975,7 +971,7 @@ void applier::state::_apply(
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -992,7 +988,7 @@ void applier::state::_apply(
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -1009,7 +1005,7 @@ void applier::state::_apply(
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
   }
@@ -1796,10 +1792,6 @@ void applier::state::_processing(configuration::State& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    // FIXME DBO: This condition is useful during the migration of logs.
-    if (log_v2::instance())
-      log_v2::instance()->apply(new_cfg);
-
     apply_log_config(new_cfg);
 
     // Apply globals configurations.
@@ -1947,7 +1939,7 @@ void applier::state::_processing(configuration::State& new_cfg,
         _pb_apply(new_cfg);
       } catch (std::exception const& e) {
         ++config_errors;
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
 
@@ -2230,11 +2222,6 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    // FIXME DBO: This condition will disappear very soon when le migration will
-    // be over.
-    if (log_v2::instance())
-      log_v2::instance()->apply(new_cfg);
-
     apply_log_config(new_cfg);
 
     // Apply globals configurations.
@@ -2382,7 +2369,7 @@ void applier::state::_processing(configuration::state& new_cfg,
       } catch (std::exception const& e) {
         ++config_errors;
         engine_logger(log_info_message, basic) << e.what();
-        log_v2::events()->info(e.what());
+        events_logger->info(e.what());
       }
     }
 

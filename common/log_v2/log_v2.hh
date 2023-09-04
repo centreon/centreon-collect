@@ -78,6 +78,7 @@ class log_v3 {
   void apply(const config& conf);
   bool contains_logger(const std::string& logger) const;
   bool contains_level(const std::string& level) const;
+  const std::string& filename() const { return _file_path; }
 };
 }  // namespace com::centreon::common::log_v3
 #endif /* !CCC_LOG_V2_HH */

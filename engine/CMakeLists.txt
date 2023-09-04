@@ -494,10 +494,6 @@ add_subdirectory(enginerpc)
 include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src)
 
 # Library engine target.
-add_library(enginelog STATIC src/log_v2.cc)
-target_precompile_headers(enginelog PRIVATE ${PRECOMP_HEADER})
-set_target_properties(enginelog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(enginelog CONAN_PKG::spdlog)
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
@@ -527,7 +523,6 @@ target_link_libraries(
   centengine
   "-rdynamic"
   centreon_clib
-  enginelog
   log_v2
   "-Wl,-whole-archive"
   enginerpc

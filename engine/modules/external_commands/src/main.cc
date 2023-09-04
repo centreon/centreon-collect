@@ -17,10 +17,11 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
+#include <grpc/support/log.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/modules/external_commands/utils.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
@@ -30,23 +31,11 @@
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine;
 
-/**************************************
- *                                     *
- *           Global Objects            *
- *                                     *
- **************************************/
-
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
 
 // Module handle
 static void* gl_mod_handle(NULL);
-
-/**************************************
- *                                     *
- *         Callback Function           *
- *                                     *
- **************************************/
 
 /**
  *  @brief Function that process external command.
@@ -107,11 +96,11 @@ extern "C" int nebmodule_deinit(int flags, int reason) {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `" << e.what() << "'.";
-    log_v2::runtime()->error("external command runtime error '{}'.", e.what());
+    runtime_logger->error("external command runtime error '{}'.", e.what());
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'";
-    log_v2::runtime()->error("external command runtime error `unknown'");
+    runtime_logger->error("external command runtime error `unknown'");
   }
   return (0);
 }
@@ -156,27 +145,27 @@ extern "C" int nebmodule_init(int flags, char const* args, void* handle) {
           << "Bailing out due to errors encountered while trying to "
           << "initialize the external command file ... "
           << "(PID=" << getpid() << ")";
-      log_v2::process()->info(
+      process_logger->info(
           "Bailing out due to errors encountered while trying to initialize "
           "the external command file ... (PID={})",
           getpid());
-      return (1);
+      return 1;
     }
 
     // Register callbacks.
     if (neb_register_callback(NEBCALLBACK_EXTERNAL_COMMAND_DATA, gl_mod_handle,
                               0, callback_external_command)) {
-      throw(engine_error() << "register callback failed");
+      throw engine_error() << "register callback failed";
     }
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `" << e.what() << "'.";
-    log_v2::runtime()->error("external command runtime error '{}'.", e.what());
+    runtime_logger->error("external command runtime error '{}'.", e.what());
     return (1);
   } catch (...) {
     engine_logger(log_runtime_error, basic)
         << "external command runtime error `unknown'.";
-    log_v2::runtime()->error("external command runtime error `unknown'.");
+    runtime_logger->error("external command runtime error `unknown'.");
     return (1);
   }
 

@@ -190,7 +190,6 @@ if(WITH_TESTING)
     ut_engine_utils
     cce_core
     engine_config
-    enginelog
     pthread
     ${GCOV}
     CONAN_PKG::gtest
