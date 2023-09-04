@@ -18,9 +18,11 @@
 */
 
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "absl/hash/hash.h"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/configuration/state-generated.pb.h"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -133,70 +135,70 @@ bool serviceescalation::operator==(serviceescalation const& right) const
    * constructor in almost all cases, we can have two equal escalations
    * with different uuid.*/
   if (!object::operator==(right)) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => object don't match");
     return false;
   }
   if (_contactgroups != right._contactgroups) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::"
         "equality => contact groups don't match");
     return false;
   }
   if (_escalation_options != right._escalation_options) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => escalation options "
         "don't match");
     return false;
   }
   if (_escalation_period != right._escalation_period) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => escalation periods "
         "don't match");
     return false;
   }
   if (_first_notification != right._first_notification) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => first notifications "
         "don't match");
     return false;
   }
   if (_hostgroups != right._hostgroups) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::"
         "equality => host groups don't match");
     return false;
   }
   if (_hosts != right._hosts) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => hosts don't match");
     return false;
   }
   if (_last_notification != right._last_notification) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => last notification "
         "don't match");
     return false;
   }
   if (_notification_interval != right._notification_interval) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => notification "
         "interval don't match");
     return false;
   }
   if (_servicegroups != right._servicegroups) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::"
         "equality => service groups don't match");
     return false;
   }
   if (_service_description != right._service_description) {
-    log_v2::config()->debug(
+    config_logger->debug(
         "configuration::serviceescalation::equality => service descriptions "
         "don't match");
     return false;
   }
-  log_v2::config()->debug("configuration::serviceescalation::equality => OK");
+  config_logger->debug("configuration::serviceescalation::equality => OK");
   return true;
 }
 

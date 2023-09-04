@@ -45,6 +45,7 @@ std::shared_ptr<spdlog::logger> checks_logger;
 std::shared_ptr<spdlog::logger> commands_logger;
 std::shared_ptr<spdlog::logger> config_logger;
 std::shared_ptr<spdlog::logger> downtimes_logger;
+std::shared_ptr<spdlog::logger> eventbroker_logger;
 std::shared_ptr<spdlog::logger> events_logger;
 std::shared_ptr<spdlog::logger> external_command_logger;
 std::shared_ptr<spdlog::logger> functions_logger;
@@ -150,6 +151,8 @@ void init_loggers() {
       com::centreon::common::log_v3::log_v2_configuration);
   downtimes_logger = log_v3::instance().get(
       log_v3::instance().create_logger_or_get_id("downtimes"));
+  eventbroker_logger = log_v3::instance().get(
+      log_v3::instance().create_logger_or_get_id("eventbroker"));
   events_logger = log_v3::instance().get(
       log_v3::instance().create_logger_or_get_id("events"));
   external_command_logger = log_v3::instance().get(

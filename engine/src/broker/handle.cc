@@ -20,7 +20,7 @@
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/nebmodules.hh"
 
@@ -80,7 +80,7 @@ void handle::close() {
         engine_logger(log_info_message, basic)
             << "Cannot resolve symbole 'nebmodule_deinit' in module '"
             << _filename << "'.";
-        log_v2::process()->error(
+        process_logger->error(
             "Cannot resolve symbole 'nebmodule_deinit' in module '{}'.",
             _filename);
       } else
@@ -207,7 +207,7 @@ void handle::open() {
                               "returned an error");
 
   } catch (std::exception const& e) {
-    log_v2::process()->error("fail to load broker module {}", e.what());
+    process_logger->error("fail to load broker module {}", e.what());
     close();
     throw;
   }
