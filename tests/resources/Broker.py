@@ -649,7 +649,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     f.close()
 
 
-def config_broker_sql_output(name, output):
+def config_broker_sql_output(name, output, queries_per_transaction: int = 20000):
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
@@ -665,6 +665,7 @@ def config_broker_sql_output(name, output):
     for i, v in enumerate(output_dict):
         if v["type"] == "sql" or v["type"] == "storage" or v["type"] == "unified_sql":
             output_dict.pop(i)
+    str_queries_per_transaction = str(queries_per_transaction)
     if output == 'unified_sql':
         output_dict.append({
             "name": "central-broker-unified-sql",
@@ -676,7 +677,7 @@ def config_broker_sql_output(name, output):
             "db_name": DB_NAME_STORAGE,
             "interval": "60",
             "length": "15552000",
-            "queries_per_transaction": "20000",
+            "queries_per_transaction": str_queries_per_transaction,
             "connections_count": "4",
             "read_timeout": "60",
             "buffering_timeout": "0",
@@ -1098,6 +1099,70 @@ def get_indexes_to_delete(count: int):
     return retval
 
 
+def delete_all_rrd_metrics():
+    """! remove all rrd metrics files
+    """
+    with os.scandir(VAR_ROOT + "/lib/centreon/metrics/") as it:
+        for entry in it:
+            if entry.is_file():
+                os.remove(entry.path)
+
+
+def check_rrd_info(metric_id: int, key: str, value, timeout: int = 60):
+    """!  execute rrdtool info and check one value of the returned informations
+    @param metric_id
+    @param key key to search in the rrdtool info result
+    @param value value to search in the rrdtool info result fot key
+    @param timeout  timeout for metric file creation
+    @return True if key = value found
+    """
+
+    limit = time.time() + timeout
+    while time.time() < limit:
+        res = getoutput(
+            f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric_id}.rrd")
+        escaped_key = key.replace("[", "\\[").replace("]", "\\]")
+        line_search = re.compile(
+            f"{escaped_key}\s*=\s*{value}")
+        for line in res.splitlines():
+            if (line_search.match(line)):
+                return True
+        time.sleep(5)
+    return False
+
+
+def get_metrics_for_service(service_id: int, metric_name: str = "%", timeout: int = 60):
+    """! scan data base every 5s to extract metric ids for a service
+
+    @param service_id id of the service
+    @param timeout  timeout in second
+    @return array of metric ids
+    """
+    limit = time.time() + timeout
+
+    select_request = f"SELECT metric_id FROM metrics JOIN index_data ON index_id=id WHERE service_id={service_id} and metric_name like '{metric_name}'"
+    while time.time() < limit:
+        # Connect to the database
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(select_request)
+                result = cursor.fetchall()
+                metric_array = [r['metric_id'] for r in result]
+                if len(metric_array) > 0:
+                    logger.console(
+                        f"metrics {metric_array} found for service {service_id}")
+                    return metric_array
+                time.sleep(10)
+    logger.console(f"no metric found for service_id={service_id}")
+    return None
+
+
 ##
 # @brief Gets count metrics that does not exist.
 #
@@ -1167,13 +1232,12 @@ def get_metrics_to_delete(count: int):
     inter = list(set(ids) & set(ids_db))
     return inter[:count]
 
+
 ##
 # @brief creat metrics from available ones.
 #
 # @param count:int The number of metrics to create.
 #
-
-
 def create_metrics(count: int):
     files = [os.path.basename(x) for x in glob.glob(
         VAR_ROOT + "/lib/centreon/metrics/[0-9]*.rrd")]
@@ -1609,14 +1673,36 @@ def compare_rrd_average_value(metric, value: float):
         return True
 
 
-##
-# @brief Call the GetSqlManagerStats function by gRPC and checks there are
-# count active connections.
-#
-# @param count The expected number of active connections.
-#
-# @return A boolean.
+def compare_rrd_average_value_with_grpc(metric, key, value: float):
+    """! Compare the average value for an RRD metric.
+    @param metric The metric id
+    @param key The key to search in the rrd info
+    @param float The value to compare with.
+    @return True if value pointed by key is equal to value param.
+    """
+    res = getoutput(
+        f"rrdtool info {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd"
+    )
+    lst = res.split('\n')
+    if len(lst) >= 2:
+        for l in lst:
+            if key in l:
+                last_update = int(l.split('=')[1])
+                logger.console(f"{key}: {last_update}")
+                return last_update == value*60
+    else:
+        logger.console(
+            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/metrics/{metric}.rrd")
+        return False
+
+
 def check_sql_connections_count_with_grpc(port, count, timeout=TIMEOUT):
+    """!Call the GetSqlManagerStats function by gRPC and checks there are count active connections.
+    @param port grpc port
+    @param count number of expected connections
+    @param timeout timeout in seconds
+    @return  True is nb connections is equal to count
+    """
     limit = time.time() + timeout
     while time.time() < limit:
         time.sleep(1)
