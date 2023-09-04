@@ -35,6 +35,10 @@ Config BBDO3
     END
 
 Clean Before Suite
+    Clear Db    resources
+    Clear Db    hosts
+    Clear Db    services
+    Clear Db    tags
     Stop Processes
     Clear Engine Logs
     Clear Broker Logs
@@ -88,8 +92,8 @@ Kindly Stop Broker
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
-        IF  ${result.rc} != 0
-            Coredump info    b1  /usr/sbin/cbd  broker_central
+        IF    ${result.rc} != 0
+            Coredump info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    msg=Central Broker not correctly stopped
         END
     END
@@ -102,8 +106,8 @@ Kindly Stop Broker
             Send Signal To Process    SIGKILL    b2
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
-            IF  ${result.rc} != 0
-                Coredump info    b2  /usr/sbin/cbd  broker_rrd
+            IF    ${result.rc} != 0
+                Coredump info    b2    /usr/sbin/cbd    broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    msg=RRD Broker not correctly stopped
             END
         END
@@ -240,14 +244,21 @@ Dump Process
     Log To Console    Done...
 
 Coredump Info
-    [Arguments]    ${process_name}  ${binary_path}   ${name}
+    [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}=    Get Process Id    ${process_name}
     ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
-    ${output}=    Catenate    SEPARATOR=    ${failDir}    /coreinfo-    ${name}  -${pid}  .txt
+    ${output}=    Catenate    SEPARATOR=    ${failDir}    /coreinfo-    ${name}    -${pid}    .txt
     Log To Console    info of core saved in ${output}
-    Run Process  gdb  -batch  -ex   thread apply all bt 20  ${binary_path}  /tmp/core.${pid}  stdout=${output}  stderr=${output}
-
+    Run Process
+    ...    gdb
+    ...    -batch
+    ...    -ex
+    ...    thread apply all bt 20
+    ...    ${binary_path}
+    ...    /tmp/core.${pid}
+    ...    stdout=${output}
+    ...    stderr=${output}
 
 Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${timeout}

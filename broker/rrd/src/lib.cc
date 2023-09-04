@@ -120,7 +120,8 @@ void lib::remove(std::string const& filename) {
   if (::remove(filename.c_str())) {
     char const* msg(strerror(errno));
     log_v2::rrd()->error("RRD: could not remove file '{}': {}", filename, msg);
-  }
+  } else
+    SPDLOG_LOGGER_INFO(log_v2::rrd(), "remove file {}", filename);
 }
 
 /**

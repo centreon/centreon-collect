@@ -108,11 +108,9 @@ add_library(
   "storage/index_mapping.cc"
   "storage/metric_mapping.cc"
   "storage/metric.cc"
-  "storage/rebuild.cc"
   "storage/remove_graph.cc"
   "storage/status.cc"
   "storage/metric.hh"
-  "storage/rebuild.hh"
   "storage/remove_graph.hh"
   "storage/status.hh")
 set_target_properties(bbdo_storage PROPERTIES POSITION_INDEPENDENT_CODE ON)

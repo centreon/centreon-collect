@@ -23,6 +23,7 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
+#include <com/centreon/common/defer.hh>
 
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
@@ -35,6 +36,7 @@ using duration = system_clock::duration;
 #include "com/centreon/broker/http_client/http_client.hh"
 
 using namespace com::centreon::broker;
+using namespace com::centreon::common;
 using namespace com::centreon::broker::http_client;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
@@ -71,7 +73,9 @@ class connection_ok : public connection_base {
   void connect(connect_callback_type&& callback) override {
     _state = e_idle;
     ++_connect_counter;
-    _io_context->post([cb = std::move(callback)]() { cb({}, {}); });
+
+    defer(_io_context, std::chrono::milliseconds(5),
+          [cb = std::move(callback)]() { cb({}, {}); });
   }
 
   void send(request_ptr request, send_callback_type&& callback) override {

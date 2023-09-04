@@ -21,7 +21,6 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -88,9 +87,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric), "metric",
                        &storage::metric::operations, storage::metric::entries,
                        "rt_metrics");
-      e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
-                       &storage::rebuild::operations,
-                       storage::rebuild::entries);
       e.register_event(make_type(io::storage, storage::de_remove_graph),
                        "remove_graph", &storage::remove_graph::operations,
                        storage::remove_graph::entries);

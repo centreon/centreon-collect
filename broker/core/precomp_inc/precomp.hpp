@@ -75,5 +75,6 @@
 #include <boost/exception/diagnostic_information.hpp>
 
 namespace asio = boost::asio;
+#include <boost/container/flat_map.hpp>
 
 #endif

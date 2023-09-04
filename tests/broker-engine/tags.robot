@@ -109,7 +109,6 @@ BEUTAG1
 BEUTAG2
     [Documentation]    Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
     [Tags]    broker    engine    protobuf    bbdo    tags    unified_sql
-    Clear Db    resources
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg

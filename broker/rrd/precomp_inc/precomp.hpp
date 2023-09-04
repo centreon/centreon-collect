@@ -30,6 +30,7 @@
 #include <absl/container/flat_hash_set.h>
 
 #include <boost/asio.hpp>
+#include <boost/container/flat_map.hpp>
 #include <boost/system/system_error.hpp>
 
 namespace asio = boost::asio;
