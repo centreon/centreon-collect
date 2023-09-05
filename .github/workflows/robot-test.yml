@@ -21,7 +21,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: List features
         id: list-features
@@ -45,7 +45,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install RPM packages
         uses: actions/cache@v3
@@ -65,6 +65,9 @@ jobs:
           mv tests/log.html reports/$FILE_PREFIX-log.html
           mv tests/output.xml reports/$FILE_PREFIX-output.xml
           mv tests/report.html reports/$FILE_PREFIX-report.html
+          if [ -d tests/failed ] ; then
+            mv tests/failed reports/$FILE_PREFIX-failed
+          fi
 
       - name: Upload Test Results
         if: ${{ !cancelled() }}
@@ -80,7 +83,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Download Artifacts
         uses: actions/download-artifact@v3
