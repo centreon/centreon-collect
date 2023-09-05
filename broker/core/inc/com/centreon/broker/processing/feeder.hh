@@ -55,7 +55,7 @@ class feeder : public stat_visitable,
   asio::system_timer _read_from_stream_timer;
   std::shared_ptr<asio::io_context> _io_context;
 
-  mutable std::mutex _protect;
+  mutable misc::shared_mutex _protect;
 
  protected:
   feeder(const std::string& name,
@@ -68,7 +68,6 @@ class feeder : public stat_visitable,
   void _forward_statistic(nlohmann::json& tree) override;
   uint32_t _get_queued_events() const override;
 
-  template <bool to_lock>
   void _start_stat_timer();
   void _stat_timer_handler(const boost::system::error_code& err);
 

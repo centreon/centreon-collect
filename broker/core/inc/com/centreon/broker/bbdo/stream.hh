@@ -158,7 +158,7 @@ class stream : public io::stream {
 
   stream(bool is_input,
          const std::list<std::shared_ptr<io::extension>>& extensions = {});
-  ~stream() noexcept = default;
+  ~stream();
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;
   int32_t stop() override;

@@ -87,7 +87,6 @@ class muxer : public io::stream {
         const muxer_filter& w_filter,
         bool persistent = false);
 
-
  public:
   static std::string queue_file(const std::string& name);
   static std::string memory_file(const std::string& name);
@@ -118,6 +117,7 @@ class muxer : public io::stream {
   const std::string& name() const;
   void set_read_filter(const muxer_filter& w_filter);
   void set_write_filter(const muxer_filter& w_filter);
+  void clear_read_handler();
 };
 }  // namespace multiplexing
 

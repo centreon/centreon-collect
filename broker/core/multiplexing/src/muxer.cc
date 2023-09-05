@@ -749,3 +749,12 @@ void muxer::set_write_filter(const muxer_filter& w_filter) {
   _write_filter = w_filter;
   _write_filters_str = misc::dump_filters(w_filter);
 }
+
+/**
+ * @brief clear readhandler in case of caller owning this object has terminate
+ *
+ */
+void muxer::clear_read_handler() {
+  std::unique_lock<std::mutex> lock(_mutex);
+  _read_handler = nullptr;
+}

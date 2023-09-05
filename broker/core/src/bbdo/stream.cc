@@ -614,7 +614,19 @@ stream::stream(bool is_input,
       _events_received_since_last_ack(0),
       _last_sent_ack(time(nullptr)),
       _extensions{extensions},
-      _bbdo_version(config::applier::state::instance().get_bbdo_version()) {}
+      _bbdo_version(config::applier::state::instance().get_bbdo_version()) {
+  SPDLOG_LOGGER_DEBUG(log_v2::core(), "create bbdo stream {:p}",
+                      static_cast<const void*>(this));
+}
+
+/**
+ * @brief Destroy the stream::stream object
+ *
+ */
+stream::~stream() {
+  SPDLOG_LOGGER_DEBUG(log_v2::core(), "destroy bbdo stream {:p}",
+                      static_cast<const void*>(this));
+}
 
 /**
  * @brief All the mecanism behind this stream is stopped once this method is
@@ -1004,7 +1016,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
 
   bool timed_out(!_read_any(d, deadline));
   uint32_t event_id(!d ? 0 : d->type());
-
 
   while (!timed_out && ((event_id >> 16) == io::bbdo)) {
     switch (event_id) {
