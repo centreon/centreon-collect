@@ -1715,6 +1715,30 @@ def compare_rrd_average_value(metric, value: float):
         return True
 
 
+def compare_rrd_status_average_value(index_id, value: int):
+    """Compare the average value for an RRD metric on the last 30 days with a value.
+    index_id is the index of the status
+    average value expected is 100 if value=0, 75 if value=1, 0 if value=2
+    """
+    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
+                    " DEF:x=" + VAR_ROOT +
+                    "/lib/centreon/status/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
+                    .format(index_id))
+    lst = res.split('\n')
+    if len(lst) >= 2:
+        res = float(lst[1].replace(',', '.'))
+        expected = 100
+        if (value == 1):
+            expected = 75
+        elif(value == 2):
+            expected = 0
+        return expected == res
+    else:
+        logger.console(
+            f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/statuss/{index_id}.rrd from the last 30 days")
+        return True
+
+
 def compare_rrd_average_value_with_grpc(metric, key, value: float):
     """! Compare the average value for an RRD metric.
     @param metric The metric id

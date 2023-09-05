@@ -93,7 +93,7 @@ Kindly Stop Broker
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
         IF    ${result.rc} != 0
-            Coredump info    b1    /usr/sbin/cbd    broker_central
+            Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    msg=Central Broker not correctly stopped
         END
     END
@@ -259,6 +259,13 @@ Coredump Info
     ...    /tmp/core.${pid}
     ...    stdout=${output}
     ...    stderr=${output}
+
+Copy Coredump In Failed Dir
+    [Arguments]    ${process_name}    ${binary_path}    ${name}
+    ${pid}=    Get Process Id    ${process_name}
+    ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}
+    Create Directory    ${failDir}
+    Copy File    /tmp/core.${pid}    ${failDir}
 
 Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${timeout}

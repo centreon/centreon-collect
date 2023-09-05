@@ -340,7 +340,7 @@ BRRDRM1
         ${result}    Compare RRD Status Average Value    ${index_id}    ${value}
         Should Be True
         ...    ${result}
-        ...    msg= index_id=${index_id} Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 50 if modulo==2 .
+        ...    msg= index_id=${index_id} Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
     END
 
 BRRDRMU1
@@ -399,7 +399,7 @@ BRRDRMU1
         ${result}    Compare RRD Status Average Value    ${index_id}    ${value}
         Should Be True
         ...    ${result}
-        ...    msg=Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 50 if modulo==2 .
+        ...    msg=Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
     END
 
 
