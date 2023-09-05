@@ -2152,20 +2152,6 @@ def remove_tags_from_hosts(poller: int, type: str):
     with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
         ff.writelines(lines)
 
-
-# def add_template_to_services(poller: int, tmpl: str, svc_lst):
-#     with open(f"{CONF_DIR}/config{poller}/services.cfg", "r") as ff:
-#         lines = ff.readlines()
-#     r = re.compile(r"^\s*_SERVICE_ID\s*(\d+)$")
-#     for i in range(len(lines)):
-#         m = r.match(lines[i])
-#         if m is not None and m[1] in svc_lst:
-#             lines.insert(i + 1, f"    use                     {tmpl}\n")
-
-#     with open(f"{CONF_DIR}/config{poller}/services.cfg", "w") as ff:
-#         ff.writelines(lines)
-
-
 def add_template_to_hosts(poller: int, tmpl: str, hst_lst):
     """Run the command to add template to hosts
 
@@ -2321,6 +2307,11 @@ def del_host_comment(comment_id):
 
 @external_command
 def change_host_check_command(hst: str, Check_Command: str):
+    """Update the check command of a host
+
+    Example:
+    | `Change Host Check Command` | host_1 | check-host-alive |
+    """
     return f"CHANGE_HOST_CHECK_COMMAND;{hst};{Check_Command}\n"
 
 

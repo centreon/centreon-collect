@@ -24,8 +24,7 @@ VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
 
 def check_connection(port: int, pid1: int, pid2: int):
     limit = time.time() + TIMEOUT
-    r = re.compile(
-        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+    r = re.compile(f"^ESTAB.*127\.0\.0\.1\]*:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
     p = re.compile(
         r"127\.0\.0\.1\]*:(\d+)\s+.*127\.0\.0\.1\]*:(\d+)\s+.*,pid=(\d+)")
     p_v6 = re.compile(
@@ -39,15 +38,15 @@ def check_connection(port: int, pid1: int, pid2: int):
             for l in estab_port:
                 m = p.search(l)
                 if m is not None:
-                    if pid1 == int(m.group(3)):
+                    if pid1 == int(m[3]):
                         ok[0] = True
-                    if pid2 == int(m.group(3)):
+                    if pid2 == int(m[3]):
                         ok[1] = True
                 m = p_v6.search(l)
                 if m is not None:
-                    if pid1 == int(m.group(3)):
+                    if pid1 == int(m[3]):
                         ok[0] = True
-                    if pid2 == int(m.group(3)):
+                    if pid2 == int(m[3]):
                         ok[1] = True
             if ok[0] and ok[1]:
                 return True
@@ -64,7 +63,8 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     """
     limit = time.time() + timeout
     r = re.compile(
-        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+        f"^ESTAB.*127\.0\.0\.1\]*:{port}\s|^ESTAB.*\[::1\]*:{port}\s"
+    )
 
     while time.time() < limit:
         out = getoutput("ss -plant")
@@ -87,7 +87,7 @@ def get_date(d: str):
     """
     try:
         ts = int(d)
-        retval = datetime.fromtimestamp(int(ts))
+        retval = datetime.fromtimestamp(ts)
     except ValueError:
         retval = parser.parse(d[:-6])
     return retval
@@ -99,7 +99,7 @@ def extract_date_from_log(line: str):
     if m is None:
         return None
     try:
-        return get_date(m.group(1))
+        return get_date(m[1])
     except parser.ParserError:
         logger.console(f"Unable to parse the date from the line {line}")
         return None
@@ -171,19 +171,15 @@ def find_in_log(log: str, date, content, regex=False):
     res = []
 
     try:
-        f = open(log, "r", encoding="latin1")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r", encoding="latin1") as f:
+            lines = f.readlines()
         idx = find_line_from(lines, date)
 
         for c in content:
             found = False
             for i in range(idx, len(lines)):
                 line = lines[i]
-                if regex:
-                    match = re.search(c, line)
-                else:
-                    match = c in line
+                match = re.search(c, line) if regex else c in line
                 if match:
                     logger.console(f"\"{c}\" found at line {i} from {idx}")
                     found = True
@@ -194,7 +190,7 @@ def find_in_log(log: str, date, content, regex=False):
 
         return True, res
     except IOError:
-        logger.console("The file '{}' does not exist".format(log))
+        logger.console(f"The file '{log}' does not exist")
         return False, content[0]
 
 
@@ -210,18 +206,18 @@ def get_hostname():
 
 
 def create_key_and_certificate(host: str, key: str, cert: str):
-    if len(key) > 0:
+    if key != "":
         os.makedirs(os.path.dirname(key), mode=0o777, exist_ok=True)
-    if len(cert) > 0:
+    if cert != "":
         os.makedirs(os.path.dirname(cert), mode=0o777, exist_ok=True)
-    if len(key) > 0:
+    if key != "":
         retval = getoutput(
-            "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {} -out {} -subj '/CN={}'".format(key,
-                                                                                                                cert,
-                                                                                                                host))
+            f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout {key} -out {cert} -subj '/CN={host}'"
+        )
     else:
         retval = getoutput(
-            "openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {} -subj '/CN={}'".format(key, cert, host))
+            f"openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -out {key} -subj '/CN={cert}'"
+        )
 
 
 def create_certificate(host: str, cert: str):
@@ -260,49 +256,48 @@ def stop_mysql():
         logger.console("Stopping Mariadb with systemd")
         getoutput("systemctl stop mysql")
         logger.console("Mariadb stopped with systemd")
-    else:
-        if os.path.exists("/usr/libexec/mysqldtoto"):
-            logger.console("Stopping directly mysqld")
-            for proc in psutil.process_iter():
-                if ('mysqldtoto' in proc.name()):
-                    logger.console(
-                        f"process '{proc.name()}' containing mysqld found: stopping it")
-                    proc.terminate()
-                    try:
-                        logger.console("Waiting for 30s mysqld to stop")
-                        proc.wait(30)
-                    except:
-                        logger.console("mysqld don't want to stop => kill")
-                        proc.kill()
-
-            for proc in psutil.process_iter():
-                if ('mysqldtoto' in proc.name()):
-                    logger.console(f"process '{proc.name()}' still alive")
+    elif os.path.exists("/usr/libexec/mysqldtoto"):
+        logger.console("Stopping directly mysqld")
+        for proc in psutil.process_iter():
+            if ('mysqldtoto' in proc.name()):
+                logger.console(
+                    f"process '{proc.name()}' containing mysqld found: stopping it")
+                proc.terminate()
+                try:
+                    logger.console("Waiting for 30s mysqld to stop")
+                    proc.wait(30)
+                except Exception:
                     logger.console("mysqld don't want to stop => kill")
                     proc.kill()
 
-            logger.console("mysqld directly stopped")
-        else:
-            logger.console("Stopping directly MariaDB")
-            for proc in psutil.process_iter():
-                if ('mariadbd' in proc.name()):
-                    logger.console(
-                        f"process '{proc.name()}' containing mariadbd found: stopping it")
-                    proc.terminate()
-                    try:
-                        logger.console("Waiting for 30s mariadbd to stop")
-                        proc.wait(30)
-                    except:
-                        logger.console("mariadb don't want to stop => kill")
-                        proc.kill()
-
-            for proc in psutil.process_iter():
-                if ('mariadbd' in proc.name()):
-                    logger.console(f"process '{proc.name()}' still alive")
+        for proc in psutil.process_iter():
+            if ('mysqldtoto' in proc.name()):
+                _logs_stop_mysql(proc, "mysqld don't want to stop => kill")
+        logger.console("mysqld directly stopped")
+    else:
+        logger.console("Stopping directly MariaDB")
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                logger.console(
+                    f"process '{proc.name()}' containing mariadbd found: stopping it")
+                proc.terminate()
+                try:
+                    logger.console("Waiting for 30s mariadbd to stop")
+                    proc.wait(30)
+                except Exception:
                     logger.console("mariadb don't want to stop => kill")
                     proc.kill()
 
-            logger.console("Mariadb directly stopped")
+        for proc in psutil.process_iter():
+            if ('mariadbd' in proc.name()):
+                _logs_stop_mysql(proc, "mariadb don't want to stop => kill")
+        logger.console("Mariadb directly stopped")
+
+
+def _logs_stop_mysql(proc, arg1):
+    logger.console(f"process '{proc.name()}' still alive")
+    logger.console(arg1)
+    proc.kill()
 
 
 def stop_rrdcached():
@@ -336,18 +331,13 @@ def clear_cache():
 
 
 def engine_log_table_duplicate(result: list):
-    dup = True
-    for i in result:
-        if (i[0] % 2) != 0:
-            dup = False
-    return dup
+    return all(i[0] % 2 == 0 for i in result)
 
 
 def check_engine_logs_are_duplicated(log: str, date):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
         idx = find_line_from(lines, date)
         count_true = 0
         count_false = 0
@@ -359,37 +349,33 @@ def check_engine_logs_are_duplicated(log: str, date):
         for l in lines[idx:]:
             mo = old_log.match(l)
             mn = new_log.match(l)
-            if mo is not None:
-                if mo.group(1) in logs_new:
-                    logs_new.remove(mo.group(1))
-                else:
-                    logs_old.append(mo.group(1))
-            else:
+            if mo is None:
                 mn = new_log.match(l)
                 if mn is not None:
-                    if mn.group(1) in logs_old:
-                        logs_old.remove(mn.group(1))
+                    if mn[1] in logs_old:
+                        logs_old.remove(mn[1])
                     else:
-                        logs_new.append(mn.group(1))
+                        logs_new.append(mn[1])
+            elif mo[1] in logs_new:
+                logs_new.remove(mo[1])
+            else:
+                logs_old.append(mo[1])
         if len(logs_old) <= 1:
             # It is possible to miss one log because of the initial split of the
             # file.
             return True
-        else:
-            logger.console(
-                "{} old logs are not duplicated".format(len(logs_old)))
-            for l in logs_old:
-                logger.console(l)
-            # We don't care about new logs not duplicated, in a future, we won't have any old logs
+        logger.console(f"{len(logs_old)} old logs are not duplicated")
+        for l in logs_old:
+            logger.console(l)
     except IOError:
-        logger.console("The file '{}' does not exist".format(log))
+        logger.console(f"The file '{log}' does not exist")
         return False
 
 
 def find_line_from(lines, date):
     try:
         my_date = parser.parse(date)
-    except:
+    except Exception:
         my_date = datetime.fromtimestamp(date)
 
     # Let's find my_date
@@ -400,8 +386,9 @@ def find_line_from(lines, date):
         idx = (start + end) // 2
         idx_d = extract_date_from_log(lines[idx])
         while idx_d is None:
-            logger.console("Unable to parse the date ({} <= {} <= {}): <<{}>>".format(
-                start, idx, end, lines[idx]))
+            logger.console(
+                f"Unable to parse the date ({start} <= {idx} <= {end}): <<{lines[idx]}>>"
+            )
             idx -= 1
             if idx >= 0:
                 idx_d = extract_date_from_log(lines[idx])
@@ -419,9 +406,8 @@ def find_line_from(lines, date):
 
 def check_reschedule(log: str, date, content: str):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
         idx = find_line_from(lines, date)
 
         retry_check = False
@@ -430,16 +416,14 @@ def check_reschedule(log: str, date, content: str):
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
-                logger.console(
-                    "\"{}\" found at line {} from {}".format(content, i, idx))
-                m = r.match(line)
-                if m:
+                logger.console(f'\"{content}\" found at line {i} from {idx}')
+                if m := r.match(line):
                     delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
                         datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
-                    if delta == 60:
-                        retry_check = True
-                    elif delta == 300:
+                    if delta == 300:
                         normal_check = True
+                    elif delta == 60:
+                        retry_check = True
                 else:
                     logger.console(
                         f"Unable to find last check and next check in the line '{line}'")
@@ -447,7 +431,7 @@ def check_reschedule(log: str, date, content: str):
         logger.console(f"loop finished with {retry_check}, {normal_check}")
         return retry_check, normal_check
     except IOError:
-        logger.console("The file '{}' does not exist".format(log))
+        logger.console(f"The file '{log}' does not exist")
         return False, False
 
 
@@ -473,21 +457,20 @@ def set_command_status(cmd, status):
         lines = f.readlines()
     else:
         lines = []
-    p = re.compile("{}=>(.*)$".format(cmd))
+    p = re.compile(f"{cmd}=>(.*)$")
     done = False
     for i in range(len(lines)):
         m = p.match(lines[i])
         if m is not None:
-            if int(m.group(1)) != status:
-                lines[i] = "{}=>{}\n".format(cmd, status)
+            if int(m[1]) != status:
+                lines[i] = f"{cmd}=>{status}\n"
             done = True
             break
 
     if not done:
-        lines.append("{}=>{}\n".format(cmd, status))
-    f = open("/tmp/states", "w")
-    f.writelines(lines)
-    f.close()
+        lines.append(f"{cmd}=>{status}\n")
+    with open("/tmp/states", "w") as f:
+        f.writelines(lines)
 
 
 def truncate_resource_host_service():
@@ -523,15 +506,15 @@ def check_service_resource_status_with_timeout(hostname: str, service_desc: str,
                 cursor.execute(
                     f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
                 result = cursor.fetchall()
-                logger.console(
-                    f"result: {int(result[0]['status'])} status: {int(status)}")
-                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                logger.console(f"result: {int(result[0]['status'])} status: {status}")
+                if (
+                    len(result) > 0
+                    and result[0]['status'] is not None
+                    and int(result[0]['status']) == status
+                ):
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
-                    if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
-                        return True
-                    else:
-                        return True
+                    return True
         time.sleep(1)
     return False
 
@@ -552,7 +535,12 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
                 cursor.execute(
                     f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time}")
                 result = cursor.fetchall()
-                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None:
+                if (
+                    len(result) > 0
+                    and result[0]['state'] is not None
+                    and int(result[0]['state']) == status
+                    and result[0]['deletion_time'] is None
+                ):
                     logger.console(
                         f"status={result[0]['state']} and state_type={result[0]['type']}")
                     if state_type == 'HARD' and int(result[0]['type']) == 1:
@@ -608,7 +596,11 @@ def check_service_status_with_timeout(hostname: str, service_desc: str, status: 
                 cursor.execute(
                     f"SELECT s.state, s.state_type FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description=\"{service_desc}\" AND h.name=\"{hostname}\"")
                 result = cursor.fetchall()
-                if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status):
+                if (
+                    len(result) > 0
+                    and result[0]['state'] is not None
+                    and int(result[0]['state']) == status
+                ):
                     logger.console(
                         f"status={result[0]['state']} and state_type={result[0]['state_type']}")
                     if state_type == 'HARD' and int(result[0]['state_type']) == 1:
@@ -658,12 +650,10 @@ def check_severity_with_timeout(name: str, level, icon_id, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT level, icon_id FROM severities WHERE name='{}'".format(name))
+                cursor.execute(f"SELECT level, icon_id FROM severities WHERE name='{name}'")
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['level']) == int(level) and int(result[0]['icon_id']) == int(icon_id):
-                        return True
+                if len(result) > 0 and (int(result[0]['level']) == int(level) and int(result[0]['icon_id']) == int(icon_id)):
+                    return True
         time.sleep(1)
     return False
 
@@ -680,12 +670,10 @@ def check_tag_with_timeout(name: str, typ, timeout: int):
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT type FROM tags WHERE name='{}'".format(name))
+                cursor.execute(f"SELECT type FROM tags WHERE name='{name}'")
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['type']) == int(typ):
-                        return True
+                if len(result) > 0 and int(result[0]['type']) == int(typ):
+                    return True
         time.sleep(1)
     return False
 
@@ -704,9 +692,8 @@ def check_severities_count(value: int, timeout: int):
             with connection.cursor() as cursor:
                 cursor.execute("SELECT count(*) FROM severities")
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['count(*)']) == int(value):
-                        return True
+                if len(result) > 0 and int(result[0]['count(*)']) == value:
+                    return True
         time.sleep(1)
     return False
 
@@ -725,9 +712,8 @@ def check_tags_count(value: int, timeout: int):
             with connection.cursor() as cursor:
                 cursor.execute("SELECT count(*) FROM tags")
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['count(*)']) == int(value):
-                        return True
+                if len(result) > 0 and int(result[0]['count(*)']) == value:
+                    return True
         time.sleep(1)
     return False
 
@@ -779,6 +765,32 @@ def check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: in
     return False
 
 
+def check_ba_output_with_timeout(ba_name: str, expected_output: str, timeout: int):
+    """ check if the expected is written in mod_bam.comment column
+    @param ba_name   name of the ba
+    @param expected_output  output that we should find in comment column
+    @param timeout  timeout in second
+    """
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_CONF,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
+                result = cursor.fetchall()
+                logger.console(f"ba: {result[0]}")
+                if result[0]['current_status'] is not None and result[0]['comment'] == expected_output:
+                    return True
+        time.sleep(5)
+    return False
+
+
 def check_downtimes_with_timeout(nb: int, timeout: int):
     limit = time.time() + timeout
     while time.time() < limit:
@@ -794,8 +806,8 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
                 cursor.execute(
                     "SELECT count(*) FROM downtimes WHERE deletion_time IS NULL")
                 result = cursor.fetchall()
-                if len(result) > 0 and not result[0]['count(*)'] is None:
-                    if result[0]['count(*)'] == int(nb):
+                if len(result) > 0 and result[0]['count(*)'] is not None:
+                    if result[0]['count(*)'] == nb:
                         return True
                     else:
                         logger.console(
@@ -817,22 +829,39 @@ def check_service_downtime_with_timeout(hostname: str, service_desc: str, enable
         with connection:
             with connection.cursor() as cursor:
                 if enabled != '0':
-                    cursor.execute("SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{}' AND h.name='{}'".format(
-                        service_desc, hostname))
+                    cursor.execute(
+                        f"SELECT s.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.description='{service_desc}' AND h.name='{hostname}'"
+                    )
                     result = cursor.fetchall()
-                    if len(result) == int(enabled) and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+                    if (
+                        len(result) == int(enabled)
+                        and result[0]['scheduled_downtime_depth'] is not None
+                        and result[0]['scheduled_downtime_depth']
+                        == int(enabled)
+                    ):
                         return True
                     if (len(result) > 0):
-                        logger.console("{} downtimes for serv {} scheduled_downtime_depth={}".format(
-                            len(result), service_desc, result[0]['scheduled_downtime_depth']))
+                        logger.console(
+                            f"{len(result)} downtimes for serv {service_desc} scheduled_downtime_depth={result[0]['scheduled_downtime_depth']}"
+                        )
                     else:
-                        logger.console("{} downtimes for serv {} scheduled_downtime_depth=None".format(
-                            len(result), service_desc))
+                        logger.console(
+                            f"{len(result)} downtimes for serv {service_desc} scheduled_downtime_depth=None"
+                        )
                 else:
-                    cursor.execute("SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{}' AND h.name='{}'".format(
-                        service_desc, hostname))
+                    cursor.execute(
+                        f"SELECT s.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM services s INNER JOIN hosts h on s.host_id = h.host_id LEFT JOIN downtimes d ON s.host_id = d.host_id AND s.service_id = d.service_id WHERE s.description='{service_desc}' AND h.name='{hostname}'"
+                    )
                     result = cursor.fetchall()
-                    if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or not result[0]['deletion_time'] is None):
+                    if (
+                        len(result) > 0
+                        and result[0]['scheduled_downtime_depth'] is not None
+                        and result[0]['scheduled_downtime_depth'] == 0
+                        and (
+                            result[0]['downtime_id'] is None
+                            or result[0]['deletion_time'] is not None
+                        )
+                    ):
                         return True
         time.sleep(2)
     return False
@@ -898,8 +927,7 @@ def show_downtimes():
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute(
-                f"select * FROM downtimes WHERE deletion_time is null")
+            cursor.execute("select * FROM downtimes WHERE deletion_time is null")
             result = cursor.fetchall()
 
     for r in result:
@@ -928,9 +956,8 @@ def delete_service_downtime(hst: str, svc: str):
 
     logger.console(f"delete downtime internal_id={did}")
     cmd = f"[{now}] DEL_SVC_DOWNTIME;{did}\n"
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+        f.write(cmd)
 
 
 def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
@@ -949,7 +976,7 @@ def number_of_downtimes_is(nb: int, timeout: int = TIMEOUT):
                     "SELECT count(*) FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id INNER JOIN services s ON d.service_id=s.service_id WHERE d.deletion_time is null AND s.enabled='1' AND s.scheduled_downtime_depth='1'")
                 result = cursor.fetchall()
                 logger.console(f"count(*) = {result[0]['count(*)']}")
-                if int(result[0]['count(*)']) == int(nb):
+                if int(result[0]['count(*)']) == nb:
                     return True
         time.sleep(1)
     return False
@@ -965,7 +992,21 @@ def clear_db(table: str):
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM {}".format(table))
+            cursor.execute(f"DELETE FROM {table}")
+        connection.commit()
+
+
+def clear_db_conf(table: str):
+    connection = pymysql.connect(host=DB_HOST,
+                                 user=DB_USER,
+                                 password=DB_PASS,
+                                 database=DB_NAME_CONF,
+                                 charset='utf8mb4',
+                                 cursorclass=pymysql.cursors.DictCursor)
+
+    with connection:
+        with connection.cursor() as cursor:
+            cursor.execute(f"DELETE FROM {table}")
         connection.commit()
 
 
@@ -995,14 +1036,17 @@ def check_service_severity_with_timeout(host_id: int, service_id: int, severity_
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute("select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = {} and r.id={}".format(
-                    host_id, service_id))
+                cursor.execute(
+                    f"select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = {host_id} and r.id={service_id}"
+                )
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if severity_id == 'None':
                         if result[0]['id'] is None:
                             return True
-                    elif not result[0]['id'] is None and int(result[0]['id']) == int(severity_id):
+                    elif result[0]['id'] is not None and int(
+                        result[0]['id']
+                    ) == int(severity_id):
                         return True
         time.sleep(1)
     return False
@@ -1022,25 +1066,28 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = T
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(host_id))
+                    f"select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={host_id}"
+                )
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if severity_id == 'None':
                         if result[0]['id'] is None:
                             return True
-                    elif not result[0]['id'] is None and int(result[0]['id']) == int(severity_id):
+                    elif result[0]['id'] is not None and int(
+                        result[0]['id']
+                    ) == int(severity_id):
                         return True
         time.sleep(1)
     return False
 
 
 def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_ids: list, timeout: int, enabled: bool = True):
-    if typ == 'servicegroup':
-        t = 0
-    elif typ == 'hostgroup':
+    if typ == 'hostgroup':
         t = 1
     elif typ == 'servicecategory':
         t = 2
+    elif typ == 'servicegroup':
+        t = 0
     else:
         t = 3
     limit = time.time() + timeout
@@ -1054,33 +1101,32 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
 
         with connection:
             with connection.cursor() as cursor:
-                logger.console("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
-                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
+                logger.console(
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}"
+                )
+                cursor.execute(
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}"
+                )
                 result = cursor.fetchall()
                 logger.console(result)
                 if not enabled:
-                    if len(result) == 0:
-                        return True
-                    else:
+                    if len(result) != 0:
                         for r in result:
                             if r['id'] in tag_ids:
-                                logger.console(
-                                    "id {} is in tag ids".format(r['id']))
+                                logger.console(f"id {r['id']} is in tag ids")
                                 break
-                        return True
-                elif enabled and len(result) > 0:
+                    return True
+                elif len(result) > 0:
                     if len(result) == len(tag_ids):
                         for r in result:
                             if r['id'] not in tag_ids:
-                                logger.console(
-                                    "id {} is not in tag ids".format(r['id']))
+                                logger.console(f"id {r['id']} is not in tag ids")
                                 break
                         return True
                     else:
-                        logger.console("different sizes: result:{} and tag_ids:{}".format(
-                            len(result), len(tag_ids)))
+                        logger.console(
+                            f"different sizes: result:{len(result)} and tag_ids:{len(tag_ids)}"
+                        )
                 else:
                     logger.console("result")
                     logger.console(result)
@@ -1101,11 +1147,11 @@ def check_host_tags_with_timeout(host_id: int, tag_id: int, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={} and t.id={}".format(host_id, tag_id))
+                    f"SELECT t.id FROM resources_tags rt, tags t WHERE rt.tag_id = t.tag_id and resource_id={host_id} and t.id={tag_id}"
+                )
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['id']) == tag_id:
-                        return True
+                if len(result) > 0 and int(result[0]['id']) == tag_id:
+                    return True
         time.sleep(1)
     return False
 
@@ -1123,11 +1169,11 @@ def check_number_of_resources_monitored_by_poller_is(poller: int, value: int, ti
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM resources WHERE poller_id={} AND enabled=1".format(poller))
+                    f"SELECT count(*) FROM resources WHERE poller_id={poller} AND enabled=1"
+                )
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['count(*)']) == value:
-                        return True
+                if len(result) > 0 and int(result[0]['count(*)']) == value:
+                    return True
         time.sleep(1)
     return False
 
@@ -1145,11 +1191,11 @@ def check_number_of_downtimes(expected: int, start, timeout: int):
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM downtimes WHERE start_time >= {} AND deletion_time IS NULL".format(d))
+                    f"SELECT count(*) FROM downtimes WHERE start_time >= {d} AND deletion_time IS NULL"
+                )
                 result = cursor.fetchall()
                 if len(result) > 0:
-                    logger.console(
-                        "{}/{} active downtimes".format(result[0]['count(*)'], expected))
+                    logger.console(f"{result[0]['count(*)']}/{expected} active downtimes")
                     if int(result[0]['count(*)']) == expected:
                         return True
         time.sleep(1)
@@ -1169,11 +1215,11 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={}".format(hostgroup))
+                    f"SELECT count(*) FROM hosts_hostgroups WHERE hostgroup_id={hostgroup}"
+                )
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['count(*)']) == value:
-                        return True
+                if len(result) > 0 and int(result[0]['count(*)']) == value:
+                    return True
         time.sleep(1)
     return False
 
@@ -1191,11 +1237,11 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    "SELECT count(*) FROM services_servicegroups WHERE servicegroup_id={}".format(servicegroup))
+                    f"SELECT count(*) FROM services_servicegroups WHERE servicegroup_id={servicegroup}"
+                )
                 result = cursor.fetchall()
-                if len(result) > 0:
-                    if int(result[0]['count(*)']) == value:
-                        return True
+                if len(result) > 0 and int(result[0]['count(*)']) == value:
+                    return True
         time.sleep(1)
     return False
 
@@ -1239,12 +1285,12 @@ def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout
                 confirmed = ''
                 if in_resources:
                     cursor.execute(
-                        "SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{}'".format(host))
+                        f"SELECT status, status_confirmed FROM resources WHERE parent_id=0 AND name='{host}'"
+                    )
                     key = 'status'
                     confirmed = 'status_confirmed'
                 else:
-                    cursor.execute(
-                        "SELECT state, state_type FROM hosts WHERE name='{}'".format(host))
+                    cursor.execute(f"SELECT state, state_type FROM hosts WHERE name='{host}'")
                     key = 'state'
                     confirmed = 'state_type'
                 result = cursor.fetchall()
@@ -1252,8 +1298,9 @@ def check_host_status(host: str, value: int, t: int, in_resources: bool, timeout
                     if int(result[0][key]) == value and int(result[0][confirmed]) == t:
                         return True
                     else:
-                        logger.console("Host '{}' has status '{}' with confirmed '{}'".format(
-                            host, result[0][key], result[0][confirmed]))
+                        logger.console(
+                            f"Host '{host}' has status '{result[0][key]}' with confirmed '{result[0][confirmed]}'"
+                        )
         time.sleep(1)
     return False
 
@@ -1273,9 +1320,11 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
         with connection:
             with connection.cursor() as cursor:
                 logger.console(
-                    "select internal_id from comments where entry_time >= {} and deletion_time is null".format(my_date))
+                    f"select internal_id from comments where entry_time >= {my_date} and deletion_time is null"
+                )
                 cursor.execute(
-                    "select internal_id from comments where entry_time >= {} and deletion_time is null".format(my_date))
+                    f"select internal_id from comments where entry_time >= {my_date} and deletion_time is null"
+                )
                 result = cursor.fetchall()
                 if len(result) > 0 and exists:
                     return result[0]['internal_id']
@@ -1288,24 +1337,23 @@ def find_internal_id(date, exists=True, timeout: int = TIMEOUT):
 
 
 def create_bad_queue(filename: str):
-    f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb')
-    buffer = bytearray(10000)
-    buffer[0] = 0
-    buffer[1] = 0
-    buffer[2] = 0
-    buffer[3] = 0
-    buffer[4] = 0
-    buffer[5] = 0
-    buffer[6] = 8
-    buffer[7] = 0
-    t = 0
-    for i in range(8, 10000):
-        buffer[i] = t
-        t += 1
-        if t > 100:
-            t = 0
-    f.write(buffer)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", 'wb') as f:
+        buffer = bytearray(10000)
+        buffer[0] = 0
+        buffer[1] = 0
+        buffer[2] = 0
+        buffer[3] = 0
+        buffer[4] = 0
+        buffer[5] = 0
+        buffer[6] = 8
+        buffer[7] = 0
+        t = 0
+        for i in range(8, 10000):
+            buffer[i] = t
+            t += 1
+            if t > 100:
+                t = 0
+        f.write(buffer)
 
 
 def check_types_in_resources(lst: list):
@@ -1347,9 +1395,8 @@ def grep(file_path: str, pattern: str):
 
 
 def get_version():
-    f = open("../CMakeLists.txt", "r")
-    lines = f.readlines()
-    f.close()
+    with open("../CMakeLists.txt", "r") as f:
+        lines = f.readlines()
     filtered = filter(lambda l: l.startswith("set(COLLECT_"), lines)
 
     rmaj = re.compile(r"set\(COLLECT_MAJOR\s*([0-9]+)")
@@ -1360,11 +1407,11 @@ def get_version():
         m2 = rmin.match(l)
         m3 = rpatch.match(l)
         if m1:
-            maj = m1.group(1)
+            maj = m1[1]
         if m2:
-            mini = m2.group(1)
+            mini = m2[1]
         if m3:
-            patch = m3.group(1)
+            patch = m3[1]
     return f"{maj}.{mini}.{patch}"
 
 
@@ -1377,7 +1424,7 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
     """
     try:
         my_date = parser.parse(date).timestamp()
-    except:
+    except Exception:
         my_date = datetime.fromtimestamp(date).timestamp()
     limit = time.time() + timeout
     while time.time() < limit:
@@ -1386,7 +1433,7 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
             if stat_result.st_mtime > my_date:
                 return True
             time.sleep(5)
-        except:
+        except Exception:
             time.sleep(5)
 
     logger.console(f"{path} not modified since {date}")
