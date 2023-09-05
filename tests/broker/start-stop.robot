@@ -91,6 +91,7 @@ START_STOP_CBD
     [Documentation]    restart cbd with unified_sql services state must not be null after restart
     [Tags]    broker    start-stop    unified_sql
     Config Broker    central
+    Config Broker    module
     Config Broker    rrd
     Config Broker    module    ${1}
     Config BBDO3    nbEngine=1
