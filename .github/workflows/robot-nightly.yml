@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - run: |
           gh workflow run robot-nightly.yml -r "dev-23.04.x"
@@ -71,7 +71,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
@@ -94,7 +94,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
