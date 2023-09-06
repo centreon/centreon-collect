@@ -176,7 +176,7 @@ class EngineInstance:
             "_SNMPVERSION                   2c\n    _HOST_ID                       {0}\n}}\n".format(
                 hid, a, b, c, d
             ),
-            "hid": hid,
+            "hid": hid
         }
 
     def create_service(self, host_id: int, cmd_ids: int):
@@ -656,9 +656,8 @@ define contact {
         | `Centengine Conf Add Bam` |
         """
         config_dir = f"{CONF_DIR}/config0"
-        f = open(f"{config_dir}/centengine.cfg", "r")
-        lines = f.readlines()
-        f.close
+        with open(f"{config_dir}/centengine.cfg", "r") as f:
+            f.readlines()
         lines_to_prep = [
             f"cfg_file={ETC_ROOT}"
             + "/centreon-engine/config0/centreon-bam-command.cfg\n",
@@ -675,9 +674,8 @@ define contact {
 
     def centengine_conf_add_anomaly(self):
         config_dir = f"{CONF_DIR}/config0"
-        f = open(f"{config_dir}/centengine.cfg", "r")
-        lines = f.readlines()
-        f.close
+        with open(f"{config_dir}/centengine.cfg", "r") as f:
+            lines = f.readlines()
         with open(f"{config_dir}/centengine.cfg", "w") as f:
             f.writelines((f"cfg_file={config_dir}" + "/anomaly_detection.cfg\n"))
             f.writelines(lines)
@@ -721,7 +719,7 @@ def get_engines_count():
 #
 def engine_config_set_value(idx: int, key: str, value: str, force: bool = False):
     """Run a command to set a value in the centengine.cfg for the config idx.
-    
+
     Example:
     | `Engine Config Set Value` | ${0} | log_v2_enabled | ${1} |
     """
@@ -882,9 +880,8 @@ def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: s
 # @param new_command
 #
 def engine_config_change_command(idx: int, command_index: str, new_command: str):
-    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
-    lines = f.readlines()
-    f.close
+    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "r") as f:
+        lines = f.readlines()
     new_lines = []
     r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
     found = 0
@@ -897,9 +894,8 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
             new_lines.append(line)
         if r.match(line) is not None:
             found = 1
-    f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
-    f.writelines(new_lines)
-    f.close
+    with open(f"{CONF_DIR}/config0/commands.cfg", "w") as f:
+        f.writelines(new_lines)
 
 
 ##
