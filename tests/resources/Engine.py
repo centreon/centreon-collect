@@ -159,25 +159,22 @@ class EngineInstance:
     def create_host(self):
         self.last_host_id += 1
         hid = self.last_host_id
-        a = hid % 255
-        q = hid // 255
+        q, a = divmod(hid, 255)
         b = q % 255
         q //= 255
         c = q % 255
         q //= 255
         d = q % 255
 
-        return {
-            "config": "define host {{\n"
-            "    host_name                      host_{0}\n    alias                          "
-            "host_{0}\n    address                        {1}.{2}.{3}.{4}\n    check_command                "
-            "  checkh{0}\n    check_period                   24x7\n    register                       1\n    "
-            "_KEY{0}                      VAL{0}\n    _SNMPCOMMUNITY                 public\n    "
-            "_SNMPVERSION                   2c\n    _HOST_ID                       {0}\n}}\n".format(
-                hid, a, b, c, d
-            ),
-            "hid": hid
-        }
+        retval = {
+            "config": "define host {{\n" "    host_name                      host_{0}\n    alias                          "
+                      "host_{0}\n    address                        {1}.{2}.{3}.{4}\n    check_command                "
+                      "  checkh{0}\n    check_period                   24x7\n    register                       1\n    "
+                      "_KEY{0}                      VAL{0}\n    _SNMPCOMMUNITY                 public\n    "
+                      "_SNMPVERSION                   2c\n    _HOST_ID                       {0}\n}}\n".format(
+                          hid, a, b, c, d),
+            "hid": hid}
+        return retval
 
     def create_service(self, host_id: int, cmd_ids: int):
         self.last_service_id += 1
