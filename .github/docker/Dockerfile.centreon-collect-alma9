@@ -40,6 +40,7 @@ dnf install -y cmake \
     perl-Thread-Queue \
     rpm-build \
     rrdtool-devel \
+    selinux-policy-devel \
     yum-utils \
     perl \
     rpm-build \
