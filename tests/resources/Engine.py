@@ -556,8 +556,8 @@ define timeperiod {
 """)
             f = open(f"{config_dir}/hostgroups.cfg", "w")
             f.close()
-            f = open(config_dir + "/contacts.cfg", "w")
-            f.write("""define contact {
+            with open(f"{config_dir}/contacts.cfg", "w") as f:
+                f.write("""define contact {
     contact_name                   John_Doe
     alias                          admin
     email                          admin@admin.tld
@@ -653,8 +653,9 @@ define contact {
         | `Centengine Conf Add Bam` |
         """
         config_dir = f"{CONF_DIR}/config0"
-        with open(f"{config_dir}/centengine.cfg", "r") as f:
-            f.readlines()
+        f = open(f"{config_dir}/centengine.cfg", "r")
+        lines = f.readlines()
+        f.close
         lines_to_prep = [
             f"cfg_file={ETC_ROOT}"
             + "/centreon-engine/config0/centreon-bam-command.cfg\n",
@@ -671,8 +672,9 @@ define contact {
 
     def centengine_conf_add_anomaly(self):
         config_dir = f"{CONF_DIR}/config0"
-        with open(f"{config_dir}/centengine.cfg", "r") as f:
-            lines = f.readlines()
+        f = open(f"{config_dir}/centengine.cfg", "r")
+        lines = f.readlines()
+        f.close
         with open(f"{config_dir}/centengine.cfg", "w") as f:
             f.writelines((f"cfg_file={config_dir}" + "/anomaly_detection.cfg\n"))
             f.writelines(lines)
@@ -877,8 +879,9 @@ def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: s
 # @param new_command
 #
 def engine_config_change_command(idx: int, command_index: str, new_command: str):
-    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "r") as f:
-        lines = f.readlines()
+    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
+    lines = f.readlines()
+    f.close()
     new_lines = []
     r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
     found = 0
@@ -891,8 +894,9 @@ def engine_config_change_command(idx: int, command_index: str, new_command: str)
             new_lines.append(line)
         if r.match(line) is not None:
             found = 1
-    with open(f"{CONF_DIR}/config0/commands.cfg", "w") as f:
-        f.writelines(new_lines)
+    f = open(f"{CONF_DIR}/config0/commands.cfg", "w")
+    f.writelines(new_lines)
+    f.close
 
 
 ##
