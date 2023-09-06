@@ -64,7 +64,7 @@ jobs:
           cd selinux
           for MODULE in "centreon-engine" "centreon-broker"; do
             cd $MODULE
-            sed -i "s/@VERSION@/${{ inputs.version }}/g" centreon-plugins.te
+            sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
             make -f /usr/share/selinux/devel/Makefile
             cd -
           done
