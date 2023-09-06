@@ -264,9 +264,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         at_least_one_push_to_queue = true;
         _push_to_queue(*evt);
       }
-    }
-    if (evt == event_queue.end()) {
-      return;
+      if (evt == event_queue.end()) {
+        _update_stats();
+        return;
+      }
     }
     // we have stopped insertion because of full queue => retry
     if (at_least_one_push_to_queue) {
@@ -303,8 +304,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         _file.reset();
       }
     }
+    _update_stats();
   }
-  _update_stats();
 }
 
 /**
