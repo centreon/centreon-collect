@@ -339,6 +339,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
     }
 
     if (evt == event_queue.end()) {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _update_stats();
       return;
     }
     // we have stopped insertion because of full queue => retry
@@ -381,8 +383,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         _file.reset();
       }
     }
+    _update_stats();
   }
-  _update_stats();
 }
 
 /**
