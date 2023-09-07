@@ -608,6 +608,7 @@ std::shared_ptr<pb_ba_status> ba::_generate_ba_status(
   status.set_level_nominal(_normalize(_level_hard));
   status.set_state(com::centreon::broker::State(get_state_hard()));
   status.set_state_changed(state_changed);
+  status.set_output(get_output());
   SPDLOG_LOGGER_DEBUG(
       log_v2::bam(),
       "BAM: generating status of BA {} '{}' (state {}, in downtime {}, "
