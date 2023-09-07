@@ -6,6 +6,7 @@ Library             Process
 Library             DateTime
 Library             OperatingSystem
 Library             DateTime
+Library             Examples
 Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
@@ -426,3 +427,47 @@ BESSBQ1
     Should Be True    ${result}    msg=Services should be updated after the ingestion of the queue file
     Stop Engine
     Kindly Stop Broker
+
+Start_Stop_Broker_Engine
+    [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
+    [Tags]    broker    engine    start-stop
+    Config Engine    ${1}    ${1}    ${1}
+    Config Broker    central
+    Config Broker    module
+    Config Broker    rrd
+    Broker Config Flush Log    central    0
+    Broker Config Log    central    core    error
+    Config Broker Sql Output    central    unified_sql
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer 127.0.0.1:59990 on a closing socket
+    ${result}    Check Connections
+    Should Be True    ${result}
+    Sleep    10s
+    Stop Engine
+    Log To Console    \n30S
+    Sleep    10s
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    [Teardown]    Kindly Stop Broker
+
+Start_Stop_Broker_Engine_1
+    [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
+    [Tags]    broker    engine    start-stop
+    Config Engine    ${1}    ${1}    ${1}
+    Config Broker    central
+    Config Broker    module
+    Config Broker    rrd
+    Broker Config Flush Log    central    0
+    Broker Config Log    central    core    error
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer 127.0.0.1:59990 on a closing socket
+    ${result}    Check Connections
+    Should Be True    ${result}
+    Kindly Stop Broker
+    Log To Console    \n30S
+    Sleep    30s
+    # ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    [Teardown]    Stop Engine
