@@ -21,7 +21,6 @@
 
 #include <climits>
 
-#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
@@ -55,7 +54,7 @@ class feeder : public stat_visitable,
   asio::system_timer _read_from_stream_timer;
   std::shared_ptr<asio::io_context> _io_context;
 
-  mutable misc::shared_mutex _protect;
+  mutable std::timed_mutex _protect;
 
  protected:
   feeder(const std::string& name,
@@ -75,7 +74,8 @@ class feeder : public stat_visitable,
   void _read_from_stream_timer_handler(const boost::system::error_code& err);
 
   void _read_from_muxer();
-  void _on_event_from_muxer(const std::shared_ptr<io::data>& event);
+  unsigned _on_event_from_muxer(
+      const std::vector<std::shared_ptr<io::data>>& events);
 
  public:
   static std::shared_ptr<feeder> create(

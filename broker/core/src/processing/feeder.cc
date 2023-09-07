@@ -33,6 +33,8 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
 
+constexpr unsigned max_event_queue_size = 0x100000;
+
 /**
  *  feeder is an enable_shared_from_this, this static method ensures that object
  * is created by a new
@@ -126,13 +128,16 @@ std::string const& feeder::_get_write_filters() const {
  *  @param[in] tree  The statistic tree.
  */
 void feeder::_forward_statistic(nlohmann::json& tree) {
-  if (_protect.try_lock_for(300)) {
+  if (_protect.try_lock_for(std::chrono::milliseconds(300))) {
     _client->statistics(tree);
     _muxer->statistics(tree);
     _protect.unlock();
   }
 }
 
+/*****************************************************************************
+ * muxer => client
+ *****************************************************************************/
 /**
  * @brief read event from muxer (both synchronous or asynchronous)
  * if an event is available => call _on_event_from_muxer
@@ -140,36 +145,66 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
  */
 void feeder::_read_from_muxer() {
   bool have_to_terminate = false;
-  std::shared_ptr<io::data> event;
-  try {
-    std::unique_lock<misc::shared_mutex> l(_protect);
+  std::vector<std::shared_ptr<io::data>> events;
+  events.reserve(_muxer->get_event_queue_size());
+  bool other_event_to_read = true;
+  std::chrono::system_clock::time_point timeout_read =
+      std::chrono::system_clock::now() + std::chrono::milliseconds(100);
+
+  {
+    std::unique_lock<std::timed_mutex> l(_protect);
     if (_state != state::running) {
       return;
     }
-    event =
-        _muxer->read([me = shared_from_this()]() { me->_read_from_muxer(); });
-  } catch (exceptions::shutdown const&) {
-    // Normal termination.
-    SPDLOG_LOGGER_INFO(log_v2::core(), "from muxer feeder '{}' shutdown",
-                       _name);
-    have_to_terminate = true;
-  } catch (const std::exception& e) {
-    set_last_error(e.what());
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "from muxer feeder '{}' error:{} ", _name, e.what());
-    have_to_terminate = true;
-  } catch (...) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "from muxer feeder: unknown error occured while "
-                        "processing client '{}'",
-                        _name);
-    have_to_terminate = true;
-  }
-  if (event) {
-    _on_event_from_muxer(event);
+    while (other_event_to_read && !have_to_terminate &&
+           std::chrono::system_clock::now() < timeout_read) {
+      try {
+        std::shared_ptr<io::data> event;
+        while (events.size() < max_event_queue_size) {
+          event = _muxer->read(
+              [me = shared_from_this()]() { me->_read_from_muxer(); });
+          if (!event)
+            break;
+          events.push_back(event);
+        }
+      } catch (exceptions::shutdown const&) {
+        // Normal termination.
+        SPDLOG_LOGGER_INFO(log_v2::core(), "from muxer feeder '{}' shutdown",
+                           _name);
+        have_to_terminate = true;
+      } catch (const std::exception& e) {
+        set_last_error(e.what());
+        SPDLOG_LOGGER_ERROR(log_v2::processing(),
+                            "from muxer feeder '{}' error:{} ", _name,
+                            e.what());
+        have_to_terminate = true;
+      } catch (...) {
+        SPDLOG_LOGGER_ERROR(log_v2::processing(),
+                            "from muxer feeder: unknown error occured while "
+                            "processing client '{}'",
+                            _name);
+        have_to_terminate = true;
+      }
+      if (!events.empty() && !have_to_terminate) {
+        unsigned written = _on_event_from_muxer(events);
+        if (written > 0) {
+          l.unlock();
+          _muxer->ack_events(written);
+          l.lock();
+        }
+        if (written != events.size())  //_client fails to write all events
+          have_to_terminate = true;
+      }
+      other_event_to_read = events.size() >= max_event_queue_size;
+      events.clear();
+    }
   }
   if (have_to_terminate) {
     stop();
+    return;
+  } else if (other_event_to_read) {  // other events to read => give time to
+                                     // asio to work
+    _io_context->post([me = shared_from_this()]() { me->_read_from_muxer(); });
   }
 }
 
@@ -177,48 +212,42 @@ void feeder::_read_from_muxer() {
  * @brief called when muxer event is available
  * write event to client stream
  * @param event
+ * @return number of events written
  */
-void feeder::_on_event_from_muxer(const std::shared_ptr<io::data>& event) {
-  if (log_v2::processing()->level() == spdlog::level::trace)
-    SPDLOG_LOGGER_TRACE(log_v2::processing(),
-                        "feeder '{}': sending 1 event {} from muxer to stream",
-                        _name, *event);
-  else
-    SPDLOG_LOGGER_DEBUG(
-        log_v2::processing(),
-        "feeder '{}': sending 1 event {:x} from muxer to stream", _name,
-        event->type());
-  bool have_to_terminate = false;
+unsigned feeder::_on_event_from_muxer(
+    const std::vector<std::shared_ptr<io::data>>& events) {
+  unsigned written;
   try {
-    {
-      std::unique_lock<misc::shared_mutex> l(_protect);
-      if (_state != state::running)
-        return;
+    for (const std::shared_ptr<io::data>& event : events) {
+      if (log_v2::processing()->level() == spdlog::level::trace) {
+        SPDLOG_LOGGER_TRACE(
+            log_v2::processing(),
+            "feeder '{}': sending 1 event {} from muxer to stream", _name,
+            *event);
+      } else {
+        SPDLOG_LOGGER_DEBUG(
+            log_v2::processing(),
+            "feeder '{}': sending 1 event {:x} from muxer to stream", _name,
+            event->type());
+      }
       _client->write(event);
+      ++written;
     }
-    _muxer->ack_events(1);
   } catch (exceptions::shutdown const&) {
     // Normal termination.
     SPDLOG_LOGGER_INFO(log_v2::core(), "from muxer feeder '{}' shutdown",
                        _name);
-    have_to_terminate = true;
   } catch (const std::exception& e) {
     set_last_error(e.what());
     SPDLOG_LOGGER_ERROR(log_v2::processing(),
                         "from muxer feeder '{}' error:{} ", _name, e.what());
-    have_to_terminate = true;
   } catch (...) {
-    SPDLOG_LOGGER_ERROR(
-        log_v2::processing(),
-        "from muxer feeder: unknown error occured while processing client '{}'",
-        _name);
-    have_to_terminate = true;
+    SPDLOG_LOGGER_ERROR(log_v2::processing(),
+                        "from muxer feeder: unknown error occured while "
+                        "processing client '{}'",
+                        _name);
   }
-  if (have_to_terminate) {
-    stop();
-  } else {  // another event to read?
-    _read_from_muxer();
-  }
+  return written;
 }
 
 void feeder::stop() {
@@ -229,7 +258,7 @@ void feeder::stop() {
 
   set_state("disconnected");
 
-  std::unique_lock<misc::shared_mutex> l(_protect);
+  std::unique_lock<std::timed_mutex> l(_protect);
   // muxer should not receive events
   multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
   _stat_timer.cancel();
@@ -257,12 +286,12 @@ uint32_t feeder::_get_queued_events() const {
 }
 
 bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
-  std::unique_lock<misc::shared_mutex> l(_protect);
+  std::unique_lock<std::timed_mutex> l(_protect);
   return _client->wait_for_all_events_written(ms_timeout);
 }
 
 void feeder::_start_stat_timer() {
-  std::unique_lock<misc::shared_mutex> l(_protect);
+  std::unique_lock<std::timed_mutex> l(_protect);
   _stat_timer.expires_from_now(std::chrono::seconds(5));
   _stat_timer.async_wait(
       [me = shared_from_this()](const boost::system::error_code& err) {
@@ -278,8 +307,12 @@ void feeder::_stat_timer_handler(const boost::system::error_code& err) {
   _start_stat_timer();
 }
 
+/*****************************************************************************
+ * client  => muxer
+ *****************************************************************************/
+
 void feeder::_start_read_from_stream_timer() {
-  std::unique_lock<misc::shared_mutex> l(_protect);
+  std::unique_lock<std::timed_mutex> l(_protect);
   _read_from_stream_timer.expires_from_now(
       std::chrono::microseconds(idle_microsec_wait_idle_thread_delay));
   _read_from_stream_timer.async_wait(
@@ -299,11 +332,12 @@ void feeder::_read_from_stream_timer_handler(
     std::chrono::system_clock::time_point timeout_read =
         std::chrono::system_clock::now() + std::chrono::milliseconds(100);
     {
-      std::unique_lock<misc::shared_mutex> l(_protect);
+      std::unique_lock<std::timed_mutex> l(_protect);
       if (_state != state::running)
         return;
       while (_client->read(event, 0) &&
-             std::chrono::system_clock::now() < timeout_read) {
+             std::chrono::system_clock::now() < timeout_read &&
+             events_to_publish.size() < max_event_queue_size) {
         if (event) {  // event is null if not decoded by bbdo stream
           if (log_v2::processing()->level() == spdlog::level::trace)
             SPDLOG_LOGGER_TRACE(
