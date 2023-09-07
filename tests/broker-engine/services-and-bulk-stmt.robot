@@ -30,20 +30,21 @@ EBBPS1
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Log    central    core    error
+    Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
     Broker Config Log    central    perfdata    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}=    Get Current Date
+    ${start_broker}=    Get Current Date
     Start Broker
     Start Engine
     ${content}=    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
-    ...    msg=An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check result    host_1    service_${i+1}    1    warning${i}
     END
@@ -51,7 +52,7 @@ EBBPS1
     ...    connected to 'MariaDB' Server
     ...    it supports column-wise binding in prepared statements
     ${result}=    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=Prepared statements should be supported with this version of MariaDB.
+    Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}=    Get Current Date    result_format=epoch
@@ -68,11 +69,19 @@ EBBPS1
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
+            ${first_service_status_content}=    Create List    unified_sql service_status processing
+            ${result}=    Find In Log with timeout
+            ...    ${centralLog}
+            ...    ${start_broker}
+            ...    ${first_service_status_content}
+            ...    30
+            Should Be True    ${result}    No service_status processing found.
             Log to Console    Stopping Broker
             Kindly Stop Broker
             Log to Console    Waiting for 5s
             Sleep    5s
             Log to Console    Restarting Broker
+            ${start_broker}=    Get Current Date
             Start Broker
         END
     END
@@ -80,7 +89,7 @@ EBBPS1
     ...    connected to 'MariaDB' Server
     ...    it supports column-wise binding in prepared statements
     ${result}=    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=Prepared statements should be supported with this version of MariaDB.
+    Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}=    Get Current Date    result_format=epoch
@@ -106,20 +115,21 @@ EBBPS2
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Log    central    core    error
+    Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
     Broker Config Log    central    perfdata    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}=    Get Current Date
+    ${start_broker}=    Get Current Date
     Start Broker
     Start Engine
     ${content}=    Create List    INITIAL SERVICE STATE: host_1;service_1000;
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
-    ...    msg=An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check result    host_1    service_${i+1}    1    warning${i}
     END
@@ -127,7 +137,7 @@ EBBPS2
     ...    connected to 'MariaDB' Server
     ...    it supports column-wise binding in prepared statements
     ${result}=    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=Prepared statements should be supported with this version of MariaDB.
+    Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}=    Get Current Date    result_format=epoch
@@ -142,13 +152,20 @@ EBBPS2
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check result    host_1    service_${i+1}    2    warning${i}
+        Process Service Check result    host_1    service_${i+1}    2    critical${i}
         IF    ${i} % 200 == 0
-            Log to Console    Stopping Broker
+            ${first_service_status_content}=    Create List    unified_sql service_status processing
+            ${result}=    Find In Log with timeout
+            ...    ${centralLog}
+            ...    ${start_broker}
+            ...    ${first_service_status_content}
+            ...    30
+            Should Be True    ${result}    No service_status processing found.
             Kindly Stop Broker
             Log to Console    Waiting for 5s
             Sleep    5s
             Log to Console    Restarting Broker
+            ${start_broker}=    Get Current Date
             Start Broker
         END
     END
@@ -156,7 +173,7 @@ EBBPS2
     ...    connected to 'MariaDB' Server
     ...    it supports column-wise binding in prepared statements
     ${result}=    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=Prepared statements should be supported with this version of MariaDB.
+    Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}=    Get Current Date    result_format=epoch
@@ -196,7 +213,7 @@ EBMSSM
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${start}=    Get Round Current Date
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
@@ -244,7 +261,7 @@ EBPS2
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
@@ -253,7 +270,7 @@ EBPS2
     ${start}=    Get Current Date
     ${content}=    create list    Check if some statements are ready,    sscr_bind connections
     ${result}=    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling that statements are available should be displayed
+    Should Be True    ${result}    A message telling that statements are available should be displayed
     Stop mysql
     Stop Engine
     Start mysql
@@ -300,11 +317,11 @@ RLCode
 
     ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${content}=    Create List    lua: initializing the Lua virtual machine
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg="lua logs produced"
+    Should Be True    ${result}    "lua logs produced"
 
     # Define the new content to take place of the first one
     ${new_content}=    Catenate
@@ -325,7 +342,7 @@ RLCode
 
     ${content}=    Create List    lua: initializing the Lua virtual machine
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=lua file not initialized
+    Should Be True    ${result}    lua file not initialized
 
 
 *** Keywords ***
