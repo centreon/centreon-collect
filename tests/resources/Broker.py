@@ -1951,6 +1951,22 @@ def rebuild_rrd_graphs_from_db(indexes):
                 connection.commit()
 
 
+def compare_rrd_status_average_value(index_id, value: int):
+    """Compare the average value for an RRD metric on the last 30 days with a value.
+    index_id is the index of the status
+    average value expected is 100 if value=0, 75 if value=1, 0 if value=2
+    """
+    res = getoutput(f"rrdtool graph dummy --start=end-180d --end=now DEF:x={VAR_ROOT}/lib/centreon/status/{index_id}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf")
+    lst = res.split('\n')
+    if len(lst) >= 2:
+        res = float(lst[1].replace(',', '.'))
+        expected = {0: 100, 1: 75, 2: 0}.get(value, 100)
+        return expected == res
+    else:
+        logger.console(f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/statuss/{index_id}.rrd from the last 30 days")
+        return True
+
+
 ##
 # @brief Compare the average value for an RRD metric on the last 30 days with
 # a value.
