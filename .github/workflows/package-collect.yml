@@ -133,11 +133,10 @@ jobs:
 
       - name: Cleaning not needed packages
         shell: bash
-        run: |
-          rm -rf *-debuginfo*.${{ matrix.package_extension }}
+        run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
       # set condition to true if artifacts are needed
-      - if: ${{ true }}
+      - if: ${{ false }}
         name: Upload package artifacts
         uses: actions/upload-artifact@v3
         with:
