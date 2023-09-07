@@ -17,7 +17,6 @@
  *
  */
 #include "com/centreon/engine/configuration/diff_state.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;

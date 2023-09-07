@@ -112,7 +112,7 @@ bool command::operator<(command const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void command::check_validity() const {
+void command::check_validity(error_info* err [[maybe_unused]]) const {
   if (_command_name.empty())
     throw exceptions::msg_fmt("Command has no name (property 'command_name')");
   if (_command_line.empty())

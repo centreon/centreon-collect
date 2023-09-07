@@ -18,18 +18,17 @@
 */
 
 #include "com/centreon/engine/configuration/host.hh"
+#include <absl/strings/ascii.h>
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
-#include "absl/strings/string_view.h"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-extern int config_warnings;
-extern int config_errors;
+#include "common/configuration/state-generated.pb.h"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 #define SETTER(type, method) &object::setter<host, type, &host::method>::generic
 
@@ -429,7 +428,7 @@ bool host::operator<(host const& other) const noexcept {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void host::check_validity() const {
+void host::check_validity(error_info* err [[maybe_unused]]) const {
   if (_host_name.empty())
     throw exceptions::msg_fmt("Host has no name (property 'host_name')");
   if (_address.empty())
@@ -1173,18 +1172,17 @@ bool host::_set_contacts(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_2d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 2)
     return false;
 
   int x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtoi(coords.front(), &x))
     return false;
   coords.pop_front();
 
   int y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtoi(coords.front(), &y))
     return false;
 
   _coords_2d = point_2d(x, y);
@@ -1199,23 +1197,22 @@ bool host::_set_coords_2d(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_coords_3d(std::string const& value) {
-  std::list<std::string> coords;
-  string::split(value, coords, ',');
+  std::list<std::string> coords = absl::StrSplit(value, ',');
   if (coords.size() != 3)
     return false;
 
   double x;
-  if (!string::to(string::trim(coords.front()).c_str(), x))
+  if (!absl::SimpleAtod(coords.front(), &x))
     return false;
   coords.pop_front();
 
   double y;
-  if (!string::to(string::trim(coords.front()).c_str(), y))
+  if (!absl::SimpleAtod(coords.front(), &y))
     return false;
   coords.pop_front();
 
   double z;
-  if (!string::to(string::trim(coords.front()).c_str(), z))
+  if (!absl::SimpleAtod(coords.front(), &z))
     return false;
 
   _coords_3d = point_3d(x, y, z);
@@ -1267,10 +1264,11 @@ bool host::_set_event_handler_enabled(bool value) {
  */
 bool host::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  config_logger->warn(
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
+  auto logger = log_v3::instance().get(logger_id);
+  logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -1283,10 +1281,11 @@ bool host::_set_failure_prediction_enabled(bool value) {
  */
 bool host::_set_failure_prediction_options(std::string const& value) {
   (void)value;
-  config_logger->warn(
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
+  auto logger = log_v3::instance().get(logger_id);
+  logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -1323,20 +1322,18 @@ bool host::_set_flap_detection_enabled(bool value) {
  */
 bool host::_set_flap_detection_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;
@@ -1533,24 +1530,22 @@ bool host::_set_notification_interval(unsigned int value) {
  */
 bool host::_set_notification_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "d" || *it == "down")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= up;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = down | unreachable | up | flapping | downtime;
     else
       return false;
@@ -1664,20 +1659,18 @@ bool host::_set_recovery_notification_delay(unsigned int value) {
  */
 bool host::_set_stalking_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable;
     else
       return false;
@@ -1736,8 +1729,10 @@ bool host::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostcategory);
     } else {
-      config_logger->warn("Warning: host ({}) error for parsing tag {}",
-                          _host_id, value);
+      uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
+      auto logger = log_v3::instance().get(logger_id);
+      logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
+                   value);
       ret = false;
     }
   }
@@ -1770,8 +1765,10 @@ bool host::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostgroup);
     } else {
-      config_logger->warn("Warning: host ({}) error for parsing tag {}",
-                          _host_id, value);
+      uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
+      auto logger = log_v3::instance().get(logger_id);
+      logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
+                   value);
       ret = false;
     }
   }

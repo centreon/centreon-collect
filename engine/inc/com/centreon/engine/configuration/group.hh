@@ -37,22 +37,22 @@ class group {
  public:
   group(bool inherit = false);
   group(group const& other);
-  ~group() throw();
+  ~group() noexcept;
   group& operator=(group const& other);
   group& operator=(std::string const& other);
   group& operator+=(group const& other);
-  bool operator==(group const& other) const throw();
-  bool operator!=(group const& other) const throw();
-  bool operator<(group const& other) const throw();
-  T& operator*() throw() { return (_data); }
-  T const& operator*() const throw() { return (_data); }
-  T* operator->() throw() { return (&_data); }
-  T const* operator->() const throw() { return (&_data); }
-  T& get() throw() { return (_data); }
-  T const& get() const throw() { return (_data); }
-  bool is_inherit() const throw() { return (_is_inherit); }
-  void is_inherit(bool enable) throw() { _is_inherit = enable; }
-  bool is_set() const throw() { return (_is_set); }
+  bool operator==(group const& other) const noexcept;
+  bool operator!=(group const& other) const noexcept;
+  bool operator<(group const& other) const noexcept;
+  T& operator*() noexcept { return (_data); }
+  T const& operator*() const noexcept { return (_data); }
+  T* operator->() noexcept { return (&_data); }
+  T const* operator->() const noexcept { return (&_data); }
+  T& get() noexcept { return (_data); }
+  T const& get() const noexcept { return (_data); }
+  bool is_inherit() const noexcept { return (_is_inherit); }
+  void is_inherit(bool enable) noexcept { _is_inherit = enable; }
+  bool is_set() const noexcept { return (_is_set); }
   void reset();
 
  private:

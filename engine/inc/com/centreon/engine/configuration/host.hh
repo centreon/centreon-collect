@@ -50,7 +50,7 @@ class host : public object {
   bool operator==(host const& other) const noexcept;
   bool operator!=(host const& other) const noexcept;
   bool operator<(host const& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;

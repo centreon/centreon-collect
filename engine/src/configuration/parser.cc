@@ -19,11 +19,10 @@
 
 #include "com/centreon/engine/configuration/parser.hh"
 #include <absl/container/flat_hash_set.h>
+#include <absl/strings/ascii.h>
 #include <filesystem>
 #include <memory>
 #include "absl/strings/numbers.h"
-#include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/configuration/anomalydetection_helper.hh"
 #include "common/configuration/command_helper.hh"
@@ -915,6 +914,30 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
 }
 
 /**
+ *  Get the next valid line.
+ *
+ *  @param[in, out] stream The current stream to read new line.
+ *  @param[out]     line   The line to fill.
+ *  @param[in, out] pos    The current position.
+ *
+ *  @return True if data is available, false if no data.
+ */
+static bool get_next_line(std::ifstream& stream,
+                          std::string& line,
+                          uint32_t& pos) {
+  while (std::getline(stream, line, '\n')) {
+    ++pos;
+    line = absl::StripAsciiWhitespace(line);
+    if (!line.empty()) {
+      char c = line[0];
+      if (c != '#' && c != ';' && c != '\x0')
+        return true;
+    }
+  }
+  return false;
+}
+
+/**
  *  Parse the global configuration file.
  *
  *  @param[in] path The configuration path.
@@ -933,14 +956,20 @@ void parser::_parse_global_configuration(const std::string& path) {
   _current_path = path;
 
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
-    char const* key;
-    char const* value;
-    if (!string::split(input, &key, &value, '=') || !_config->set(key, value))
-      throw msg_fmt(
-          "Parsing of global configuration failed in file '{}' on line {}: "
-          "Invalid line '{}'",
-          path, _current_line, input);
+  while (get_next_line(stream, input, _current_line)) {
+    std::list<std::string> values = absl::StrSplit(input, '=');
+    if (values.size() == 2) {
+      auto it = values.begin();
+      char const* key = it->c_str();
+      ++it;
+      char const* value = it->c_str();
+      if (_config->set(key, value))
+        continue;
+    }
+    throw msg_fmt(
+        "Parsing of global configuration failed in file '{}' on line {}: "
+        "Invalid line '{}'",
+        path, _current_line, input);
   }
 }
 
@@ -963,12 +992,12 @@ void parser::_parse_object_definitions(std::string const& path) {
   bool parse_object = false;
   object_ptr obj;
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
+  while (get_next_line(stream, input, _current_line)) {
     // Multi-line.
     while ('\\' == input[input.size() - 1]) {
       input.resize(input.size() - 1);
       std::string addendum;
-      if (!string::get_next_line(stream, addendum, _current_line))
+      if (!get_next_line(stream, addendum, _current_line))
         break;
       input.append(addendum);
     }
@@ -980,20 +1009,22 @@ void parser::_parse_object_definitions(std::string const& path) {
             "Parsing of object definition failed "
             "in file '{}' on line {}: Unexpected start definition",
             _current_path, _current_line);
-      string::trim_left(input.erase(0, 6));
-      std::size_t last(input.size() - 1);
+      input.erase(0, 6);
+      absl::StripLeadingAsciiWhitespace(&input);
+      std::size_t last = input.size() - 1;
       if (input.empty() || input[last] != '{')
         throw msg_fmt(
             "Parsing of object definition failed in file '{}' on line {}: "
             "Unexpected start definition",
             _current_path, _current_line);
-      std::string const& type(string::trim_right(input.erase(last)));
-      obj = object::create(type);
+      input.erase(last);
+      absl::StripTrailingAsciiWhitespace(&input);
+      obj = object::create(input);
       if (obj == nullptr)
         throw msg_fmt(
             "Parsing of object definition failed in file '{}' on line {}: "
             "Unknown object type name '{}'",
-            _current_path, _current_line, type);
+            _current_path, _current_line, input);
       parse_object = (_read_options & (1 << obj->type()));
       _objects_info.emplace(obj.get(), file_info(path, _current_line));
     }
@@ -1037,16 +1068,20 @@ void parser::_parse_resource_file(std::string const& path) {
   _current_path = path;
 
   std::string input;
-  while (string::get_next_line(stream, input, _current_line)) {
+  while (get_next_line(stream, input, _current_line)) {
     try {
-      std::string key;
-      std::string value;
-      if (!string::split(input, key, value, '='))
+      std::list<std::string> key_value = absl::StrSplit(input, '=');
+      if (key_value.size() == 2) {
+        auto it = key_value.begin();
+        std::string& key = *it;
+        ++it;
+        std::string value = *it;
+        _config->user(key, value);
+      } else
         throw msg_fmt(
             "Parsing of resource file '{}' failed on line {}; Invalid line "
             "'{}'",
             _current_path, _current_line, input);
-      _config->user(key, value);
     } catch (std::exception const& e) {
       (void)e;
       throw msg_fmt(
@@ -1355,8 +1390,11 @@ void parser::_resolve_template() {
                                end = _lst_objects[i].end();
          it != end; ++it) {
       (*it)->resolve_template(templates);
+      object::error_info err;
       try {
-        (*it)->check_validity();
+        (*it)->check_validity(&err);
+        _config_warnings += err.config_warnings;
+        _config_errors += err.config_errors;
       } catch (std::exception const& e) {
         throw engine_error() << "Configuration parsing failed "
                              << _get_file_info(it->get()) << ": " << e.what();
@@ -1371,8 +1409,11 @@ void parser::_resolve_template() {
          it != end; ++it) {
       it->second->resolve_template(templates);
       try {
-        it->second->check_validity();
-      } catch (std::exception const& e) {
+        object::error_info err;
+        it->second->check_validity(&err);
+        _config_warnings += err.config_warnings;
+        _config_errors += err.config_errors;
+      } catch (const std::exception& e) {
         throw engine_error()
             << "Configuration parsing failed "
             << _get_file_info(it->second.get()) << ": " << e.what();

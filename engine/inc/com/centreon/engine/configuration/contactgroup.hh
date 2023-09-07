@@ -33,22 +33,22 @@ class contactgroup : public object {
 
   contactgroup(key_type const& key = "");
   contactgroup(contactgroup const& right);
-  ~contactgroup() throw() override;
+  ~contactgroup() noexcept override;
   contactgroup& operator=(contactgroup const& right);
-  bool operator==(contactgroup const& right) const throw();
-  bool operator!=(contactgroup const& right) const throw();
-  bool operator<(contactgroup const& right) const throw();
-  void check_validity() const override;
-  key_type const& key() const throw();
+  bool operator==(contactgroup const& right) const noexcept;
+  bool operator!=(contactgroup const& right) const noexcept;
+  bool operator<(contactgroup const& right) const noexcept;
+  void check_validity(error_info* err) const override;
+  key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
-  std::string const& alias() const throw();
-  set_string& contactgroup_members() throw();
-  set_string const& contactgroup_members() const throw();
-  std::string const& contactgroup_name() const throw();
-  set_string& members() throw();
-  set_string const& members() const throw();
+  std::string const& alias() const noexcept;
+  set_string& contactgroup_members() noexcept;
+  set_string const& contactgroup_members() const noexcept;
+  std::string const& contactgroup_name() const noexcept;
+  set_string& members() noexcept;
+  set_string const& members() const noexcept;
 
  private:
   typedef bool (*setter_func)(contactgroup&, char const*);

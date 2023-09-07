@@ -18,7 +18,8 @@
 */
 
 #include "com/centreon/engine/configuration/group.hh"
-#include "com/centreon/engine/string.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/str_split.h>
 
 using namespace com::centreon::engine::configuration;
 
@@ -73,17 +74,52 @@ group<T>& group<T>::operator=(group const& other) {
  *  @return This object.
  */
 template <typename T>
-group<T>& group<T>::operator=(std::string const& other) {
+group<T>& group<T>::operator=(const std::string& other) {
   _data.clear();
   if (!other.empty()) {
     if (other[0] == '+') {
       _is_inherit = true;
-      string::split(other.substr(1), _data, ',');
+      std::string_view sv = other;
+      _data = absl::StrSplit(sv.substr(1), ',');
     } else if (other == "null")
       _is_null = true;
     else {
       _is_inherit = false;
-      string::split(other, _data, ',');
+      _data = absl::StrSplit(other, ',');
+    }
+  }
+  _is_set = true;
+  return *this;
+}
+
+using set_pair_str = std::set<std::pair<std::string, std::string>>;
+template <>
+group<set_pair_str>& group<set_pair_str>::operator=(const std::string& other) {
+  _data.clear();
+  auto spl = [this](std::string_view sv) {
+    auto values = absl::StrSplit(sv, ',');
+    for (auto it = values.begin(); it != values.end(); ++it) {
+      auto key = *it;
+      key = absl::StripAsciiWhitespace(key);
+      ++it;
+      if (it == values.end())
+        break;
+      auto value = *it;
+      value = absl::StripAsciiWhitespace(value);
+      _data.insert({std::string(key.data(), key.size()),
+                    std::string(value.data(), value.size())});
+    }
+  };
+  if (!other.empty()) {
+    if (other[0] == '+') {
+      _is_inherit = true;
+      std::string_view sv = other;
+      spl(sv.substr(1));
+    } else if (other == "null")
+      _is_null = true;
+    else {
+      _is_inherit = false;
+      spl(other);
     }
   }
   _is_set = true;

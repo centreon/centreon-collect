@@ -49,7 +49,7 @@ class service : public object {
   bool operator==(service const& other) const noexcept;
   bool operator!=(service const& other) const noexcept;
   bool operator<(service const& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type key() const;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;

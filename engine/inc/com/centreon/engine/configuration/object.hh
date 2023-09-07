@@ -31,6 +31,10 @@ namespace com::centreon::engine {
 namespace configuration {
 class object {
  public:
+  struct error_info {
+    uint32_t config_warnings = 0;
+    uint32_t config_errors = 0;
+  };
   enum object_type {
     command = 0,
     connector = 1,
@@ -58,7 +62,7 @@ class object {
   object& operator=(object const& right);
   bool operator==(object const& right) const noexcept;
   bool operator!=(object const& right) const noexcept;
-  virtual void check_validity() const = 0;
+  virtual void check_validity(error_info* err) const = 0;
   static std::shared_ptr<object> create(std::string const& type_name);
   virtual void merge(object const& obj) = 0;
   const std::string& name() const noexcept;

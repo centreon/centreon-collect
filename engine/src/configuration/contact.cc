@@ -230,7 +230,7 @@ bool contact::operator<(contact const& other) const noexcept {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void contact::check_validity() const {
+void contact::check_validity(error_info* err) const {
   if (_contact_name.empty())
     throw exceptions::msg_fmt("Contact has no name (property 'contact_name')");
 }

@@ -47,7 +47,6 @@ class ApplierHost : public ::testing::Test {
 // Then the applier add_object throws an exception.
 TEST_F(ApplierHost, NewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::applier::service svc_aply;
   configuration::service svc;
   configuration::host hst;
   ASSERT_TRUE(hst.parse("host_name", "test_host"));
@@ -57,7 +56,6 @@ TEST_F(ApplierHost, NewHostWithoutHostId) {
 
 TEST_F(ApplierHost, PbNewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::applier::service svc_aply;
   configuration::Service svc;
   configuration::service_helper svc_hlp(&svc);
   configuration::Host hst;

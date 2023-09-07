@@ -60,7 +60,7 @@ servicegroup::servicegroup(servicegroup const& right) : object(right) {
 /**
  *  Destructor.
  */
-servicegroup::~servicegroup() throw() {}
+servicegroup::~servicegroup() noexcept {}
 
 /**
  *  Copy constructor.
@@ -91,7 +91,7 @@ servicegroup& servicegroup::operator=(servicegroup const& right) {
  *
  *  @return True if is the same servicegroup, otherwise false.
  */
-bool servicegroup::operator==(servicegroup const& right) const throw() {
+bool servicegroup::operator==(servicegroup const& right) const noexcept {
   return (object::operator==(right) && _action_url == right._action_url &&
           _alias == right._alias && _members == right._members &&
           _notes == right._notes && _notes_url == right._notes_url &&
@@ -107,7 +107,7 @@ bool servicegroup::operator==(servicegroup const& right) const throw() {
  *
  *  @return True if is not the same servicegroup, otherwise false.
  */
-bool servicegroup::operator!=(servicegroup const& right) const throw() {
+bool servicegroup::operator!=(servicegroup const& right) const noexcept {
   return !operator==(right);
 }
 
@@ -118,7 +118,7 @@ bool servicegroup::operator!=(servicegroup const& right) const throw() {
  *
  *  @return True if this object is less than right.
  */
-bool servicegroup::operator<(servicegroup const& right) const throw() {
+bool servicegroup::operator<(servicegroup const& right) const noexcept {
   // servicegroup_name has to be first in this operator.
   // The configuration diff mechanism relies on this.
   if (_servicegroup_name != right._servicegroup_name)
@@ -141,7 +141,7 @@ bool servicegroup::operator<(servicegroup const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void servicegroup::check_validity() const {
+void servicegroup::check_validity(error_info* err [[maybe_unused]]) const {
   if (_servicegroup_name.empty())
     throw exceptions::msg_fmt(
         "Service group has no name (property 'servicegroup_name')");
@@ -198,7 +198,7 @@ bool servicegroup::parse(char const* key, char const* value) {
  *
  *  @return The action_url.
  */
-std::string const& servicegroup::action_url() const throw() {
+std::string const& servicegroup::action_url() const noexcept {
   return _action_url;
 }
 
@@ -207,7 +207,7 @@ std::string const& servicegroup::action_url() const throw() {
  *
  *  @return The alias.
  */
-std::string const& servicegroup::alias() const throw() {
+std::string const& servicegroup::alias() const noexcept {
   return _alias;
 }
 
@@ -216,7 +216,7 @@ std::string const& servicegroup::alias() const throw() {
  *
  *  @return The members.
  */
-set_pair_string& servicegroup::members() throw() {
+set_pair_string& servicegroup::members() noexcept {
   return *_members;
 }
 
@@ -225,7 +225,7 @@ set_pair_string& servicegroup::members() throw() {
  *
  *  @return The members.
  */
-set_pair_string const& servicegroup::members() const throw() {
+set_pair_string const& servicegroup::members() const noexcept {
   return *_members;
 }
 
@@ -234,7 +234,7 @@ set_pair_string const& servicegroup::members() const throw() {
  *
  *  @return The notes.
  */
-std::string const& servicegroup::notes() const throw() {
+std::string const& servicegroup::notes() const noexcept {
   return _notes;
 }
 
@@ -243,7 +243,7 @@ std::string const& servicegroup::notes() const throw() {
  *
  *  @return The notes_url.
  */
-std::string const& servicegroup::notes_url() const throw() {
+std::string const& servicegroup::notes_url() const noexcept {
   return _notes_url;
 }
 
@@ -252,7 +252,7 @@ std::string const& servicegroup::notes_url() const throw() {
  *
  *  @return  The service groupd id.
  */
-unsigned int servicegroup::servicegroup_id() const throw() {
+unsigned int servicegroup::servicegroup_id() const noexcept {
   return _servicegroup_id;
 }
 
@@ -261,7 +261,7 @@ unsigned int servicegroup::servicegroup_id() const throw() {
  *
  *  @return The servicegroup_members.
  */
-set_string& servicegroup::servicegroup_members() throw() {
+set_string& servicegroup::servicegroup_members() noexcept {
   return *_servicegroup_members;
 }
 
@@ -270,7 +270,7 @@ set_string& servicegroup::servicegroup_members() throw() {
  *
  *  @return The servicegroup_members.
  */
-set_string const& servicegroup::servicegroup_members() const throw() {
+set_string const& servicegroup::servicegroup_members() const noexcept {
   return *_servicegroup_members;
 }
 
@@ -279,7 +279,7 @@ set_string const& servicegroup::servicegroup_members() const throw() {
  *
  *  @return The servicegroup_name.
  */
-std::string const& servicegroup::servicegroup_name() const throw() {
+std::string const& servicegroup::servicegroup_name() const noexcept {
   return _servicegroup_name;
 }
 

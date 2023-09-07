@@ -74,7 +74,7 @@ class serviceescalation : public object {
   bool operator==(serviceescalation const& right) const noexcept;
   bool operator!=(serviceescalation const& right) const noexcept;
   bool operator<(serviceescalation const& right) const;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;

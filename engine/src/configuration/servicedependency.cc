@@ -18,16 +18,14 @@
 */
 
 #include "com/centreon/engine/configuration/servicedependency.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/string.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/str_split.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-extern int config_warnings;
-extern int config_errors;
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 #define SETTER(type, method) \
   &object::setter<servicedependency, type, &servicedependency::method>::generic
@@ -213,7 +211,7 @@ bool servicedependency::operator<(servicedependency const& right) const {
     return (_execution_failure_options < right._execution_failure_options);
   else if (_inherits_parent != right._inherits_parent)
     return _inherits_parent < right._inherits_parent;
-  return (_notification_failure_options < right._notification_failure_options);
+  return _notification_failure_options < right._notification_failure_options;
 }
 
 /**
@@ -221,7 +219,10 @@ bool servicedependency::operator<(servicedependency const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void servicedependency::check_validity() const {
+void servicedependency::check_validity(error_info* err) const {
+  uint32_t logger_id =
+      log_v3::instance().create_logger_or_get_id("configuration");
+  auto logger = log_v3::instance().get(logger_id);
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())
@@ -251,7 +252,7 @@ void servicedependency::check_validity() const {
 
   // With no execution or failure options this dependency is useless.
   if (!_execution_failure_options && !_notification_failure_options) {
-    ++config_warnings;
+    ++err->config_warnings;
     std::ostringstream msg;
     msg << "Warning: Ignoring lame service dependency of ";
     if (!_dependent_servicegroups->empty())
@@ -273,7 +274,7 @@ void servicedependency::check_validity() const {
       else
         msg << "host '" << _hosts->front() << "'";
     }
-    config_logger->warn(msg.str());
+    logger->warn(msg.str());
   }
 }
 
@@ -638,24 +639,22 @@ bool servicedependency::_set_dependent_service_description(
 bool servicedependency::_set_execution_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& v : values) {
+    std::string_view sv = absl::StripAsciiWhitespace(v);
+    if (sv == "o" || sv == "ok")
       options |= ok;
-    else if (*it == "u" || *it == "unknown")
+    else if (sv == "u" || sv == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (sv == "w" || sv == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (sv == "c" || sv == "critical")
       options |= critical;
-    else if (*it == "p" || *it == "pending")
+    else if (sv == "p" || sv == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (sv == "n" || sv == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (sv == "a" || sv == "all")
       options = ok | unknown | warning | critical | pending;
     else
       return false;
@@ -710,24 +709,22 @@ bool servicedependency::_set_hosts(std::string const& value) {
 bool servicedependency::_set_notification_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& v : values) {
+    std::string_view sv = absl::StripAsciiWhitespace(v);
+    if (sv == "o" || sv == "ok")
       options |= ok;
-    else if (*it == "u" || *it == "unknown")
+    else if (sv == "u" || sv == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (sv == "w" || sv == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (sv == "c" || sv == "critical")
       options |= critical;
-    else if (*it == "p" || *it == "pending")
+    else if (sv == "p" || sv == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (sv == "n" || sv == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (sv == "a" || sv == "all")
       options = ok | unknown | warning | critical | pending;
     else
       return false;
