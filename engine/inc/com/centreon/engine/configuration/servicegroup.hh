@@ -35,26 +35,26 @@ class servicegroup : public object {
 
   servicegroup(key_type const& key = "");
   servicegroup(servicegroup const& right);
-  ~servicegroup() throw() override;
+  ~servicegroup() noexcept override;
   servicegroup& operator=(servicegroup const& right);
-  bool operator==(servicegroup const& right) const throw();
-  bool operator!=(servicegroup const& right) const throw();
-  bool operator<(servicegroup const& right) const throw();
-  void check_validity() const override;
-  key_type const& key() const throw();
+  bool operator==(servicegroup const& right) const noexcept;
+  bool operator!=(servicegroup const& right) const noexcept;
+  bool operator<(servicegroup const& right) const noexcept;
+  void check_validity(error_info* err) const override;
+  key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
-  std::string const& action_url() const throw();
-  std::string const& alias() const throw();
-  set_pair_string& members() throw();
-  set_pair_string const& members() const throw();
-  std::string const& notes() const throw();
-  std::string const& notes_url() const throw();
-  unsigned int servicegroup_id() const throw();
-  set_string& servicegroup_members() throw();
-  set_string const& servicegroup_members() const throw();
-  std::string const& servicegroup_name() const throw();
+  std::string const& action_url() const noexcept;
+  std::string const& alias() const noexcept;
+  set_pair_string& members() noexcept;
+  set_pair_string const& members() const noexcept;
+  std::string const& notes() const noexcept;
+  std::string const& notes_url() const noexcept;
+  unsigned int servicegroup_id() const noexcept;
+  set_string& servicegroup_members() noexcept;
+  set_string const& servicegroup_members() const noexcept;
+  std::string const& servicegroup_name() const noexcept;
 
  private:
   typedef bool (*setter_func)(servicegroup&, char const*);

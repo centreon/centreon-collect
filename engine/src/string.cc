@@ -36,20 +36,20 @@ static char const* whitespaces(" \t\r\n");
  *
  *  @return True if data is available, false if no data.
  */
-bool string::get_next_line(std::ifstream& stream,
-                           std::string& line,
-                           unsigned int& pos) {
-  while (std::getline(stream, line, '\n')) {
-    ++pos;
-    string::trim(line);
-    if (!line.empty()) {
-      char c(line[0]);
-      if (c != '#' && c != ';' && c != '\x0')
-        return true;
-    }
-  }
-  return false;
-}
+// bool string::get_next_line(std::ifstream& stream,
+//                            std::string& line,
+//                            unsigned int& pos) {
+//   while (std::getline(stream, line, '\n')) {
+//     ++pos;
+//     string::trim(line);
+//     if (!line.empty()) {
+//       char c(line[0]);
+//       if (c != '#' && c != ';' && c != '\x0')
+//         return true;
+//     }
+//   }
+//   return false;
+// }
 
 /**
  *  Get key and value from line.

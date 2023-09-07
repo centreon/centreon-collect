@@ -55,7 +55,7 @@ class tag : public object {
   bool operator==(const tag& other) const noexcept;
   bool operator!=(const tag& other) const noexcept;
   bool operator<(const tag& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   const key_type& key() const noexcept;
   void merge(const object& obj) override;
   bool parse(const char* key, const char* value) override;

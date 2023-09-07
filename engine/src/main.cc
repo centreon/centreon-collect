@@ -280,6 +280,8 @@ int main(int argc, char* argv[]) {
           {
             configuration::parser p;
             p.parse(config_file, config);
+            config_warnings += p.config_warnings();
+            config_errors += p.config_errors();
           }
           configuration::applier::state::instance().apply(config);
         } else {

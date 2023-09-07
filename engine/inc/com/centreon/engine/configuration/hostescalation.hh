@@ -48,7 +48,7 @@ class hostescalation : public object {
   bool operator==(hostescalation const& right) const throw();
   bool operator!=(hostescalation const& right) const throw();
   bool operator<(hostescalation const& right) const;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const throw();
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
