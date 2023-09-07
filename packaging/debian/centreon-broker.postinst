@@ -8,6 +8,9 @@ if [ "$1" = "configure" ] ; then
     usermod -a -G centreon-broker centreon
     usermod -a -G centreon centreon-broker
   fi
+  if [ "$(getent passwd www-data)" ]; then
+    usermod -a -G centreon-broker www-data
+  fi
   chown -vR centreon-broker:centreon-broker \
     /etc/centreon-broker \
     /var/lib/centreon-broker \

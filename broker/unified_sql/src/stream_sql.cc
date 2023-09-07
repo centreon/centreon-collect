@@ -310,11 +310,19 @@ void stream::_update_hosts_and_services_of_instance(uint32_t id,
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::instances);
     query = fmt::format(
-        "UPDATE hosts AS h LEFT JOIN services AS s ON h.host_id=s.host_id "
-        "SET h.state=h.real_state,s.state=s.real_state WHERE h.instance_id={}",
+        "UPDATE hosts AS h "
+        "SET h.state=h.real_state WHERE h.instance_id={} and h.real_state IS "
+        "NOT NULL",
         id);
     _mysql.run_query(query, database::mysql_error::restore_instances, conn);
     _add_action(conn, actions::hosts);
+    query = fmt::format(
+        "UPDATE services AS s JOIN hosts as h ON h.host_id=s.host_id "
+        "SET s.state=s.real_state WHERE h.instance_id={} and s.real_state IS "
+        "NOT NULL",
+        id);
+    _mysql.run_query(query, database::mysql_error::restore_instances, conn);
+    _add_action(conn, actions::services);
   } else {
     query = fmt::format(
         "UPDATE instances SET outdated=TRUE WHERE instance_id={}", id);
