@@ -97,7 +97,7 @@ while not connected:
 
         while len(buffer) >= 16:
             if not current:
-                header = buffer[0:16]
+                header = buffer[:16]
                 chksum, size, typ, src, dst = get_header(header)
 
             if size + 16 < len(buffer):
