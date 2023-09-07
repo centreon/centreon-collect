@@ -1,0 +1,66 @@
+name: Centreon collect build docker
+
+on:
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+    paths:
+      - 'ci/docker/**'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'ci/docker/**'
+
+jobs:
+  create-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - run: |
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
+        id: imgversion
+      - run: |
+          echo "Version based on conanfile is ${{ steps.imgversion.outputs.imgversion }}"
+    outputs:
+      imgversion: ${{ steps.imgversion.outputs.imgversion }}
+
+
+  create-and-push-docker:
+    needs: create-version
+    runs-on: [self-hosted, collect]
+    continue-on-error: false
+    env:
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        distrib: [centos7]
+        include:
+          - project: collect
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - uses: docker/setup-buildx-action@v2
+
+      - uses: docker/build-push-action@v3
+        with:
+          file: ci/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
+          context: .
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ env.imgversion }}

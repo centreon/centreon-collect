@@ -1,24 +1,22 @@
 #!/bin/bash
 set -e
+set -x
 
 export RUN_ENV=docker
 
-USERNAME="$1"
-TOKENJENKINS="$2"
-BRANCH="$3"
-
-echo "########################### configure and start sshd ############################"
-ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key
-ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key
-ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key
+echo "########################### Configure and start sshd ###########################"
+ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
+ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
+ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -P ""
 /usr/sbin/sshd > /dev/null 2>&1 &
 
-echo "########################### start mariadb ############################"
+echo "########################### Start MariaDB ######################################"
 mariadbd --user=root > /dev/null 2>&1 &
 sleep 5
 
-echo "########################### init centreon database ############################"
+echo "########################### Init centreon database ############################"
 
+cd /src/tests/
 mysql -e "CREATE USER IF NOT EXISTS 'centreon'@'localhost' IDENTIFIED BY 'centreon';"
 
 mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
@@ -26,29 +24,43 @@ mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,
 mysql -u centreon -pcentreon < resources/centreon_storage.sql
 mysql -u centreon -pcentreon < resources/centreon.sql
 
-echo "########################### download and install centreon collect ############################"
+echo "########################## Install centreon collect ###########################"
 
-curl https://$USERNAME:$TOKENJENKINS@jenkins.int.centreon.com/job/centreon-collect/job/$BRANCH/lastSuccessfulBuild/artifact/*zip*/myfile.zip --output artifact.zip
-unzip artifact.zip
-yum install -y  https://yum.centreon.com/standard/22.04/el7/stable/noarch/RPMS/centreon-release-22.04-3.el7.centos.noarch.rpm
-yum install -y centreon-common
-cd artifacts
-rpm -i centreon-broker*.el7.x86_64.rpm \
-       centreon-clib*.el7.x86_64.rpm \
-       centreon-engine*.el7.x86_64.rpm \
-       centreon-connector*.el7.x86_64.rpm \
-       centreon-collect-client*.el7.x86_64.rpm
+echo "Installation..."
+/usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
-echo "########################### install robot framework ############################"
+echo "########################### Install Robot Framework ###########################"
 cd /src/tests/
 pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
 
-yum install "Development Tools" python3-devel -y
+yum groupinstall "Development Tools" -y
+yum install python3-devel -y
 
-pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+# Get OS version id
+VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:digit:]])\.[[:digit:]]"/\1/p')
+
+# Force version for el7 only
+if [ -f /etc/os-release ]; then
+    case "$VERSION_ID" in
+        7)
+            pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
+            ;;
+        8)
+            pip3 install grpcio grpcio_tools
+            ;;
+        *)
+            echo "OS Version is neither 7 or 8"
+            ;;
+    esac
+fi
 
 ./init-proto.sh
 
-echo "########################### run centreon collect test robot ############################"
+echo "####################### Run Centreon Collect Robot Tests #######################"
 cd /src/tests/
 robot --nostatusrc .
+
+echo "########################### Generate Folder Report #############################"
+mkdir reports
+cp log.html output.xml report.html reports
+

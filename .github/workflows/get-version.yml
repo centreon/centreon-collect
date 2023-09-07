@@ -1,0 +1,81 @@
+on:
+  workflow_call:
+    outputs:
+      img_version:
+        description: "docker image version (conan checksum)"
+        value: ${{ jobs.get-version.outputs.img_version }}
+      version:
+        description: "major version"
+        value: ${{ jobs.get-version.outputs.version }}
+      patch:
+        description: "patch version"
+        value: ${{ jobs.get-version.outputs.patch }}
+      release:
+        description: "release"
+        value: ${{ jobs.get-version.outputs.release }}
+      stability:
+        description: "branch stability (stable, testing, unstable, canary)"
+        value: ${{ jobs.get-version.outputs.stability }}
+      environment:
+        description: "branch stability (stable, testing, unstable, canary)"
+        value: ${{ jobs.get-version.outputs.environment }}
+jobs:
+  get-version:
+    runs-on: ubuntu-22.04
+    outputs:
+      img_version: ${{ steps.get_version.outputs.img_version }}
+      version: ${{ steps.get_version.outputs.version }}
+      patch: ${{ steps.get_version.outputs.patch }}
+      release: ${{ steps.get_version.outputs.release }}
+      stability: ${{ steps.get_version.outputs.stability }}
+      environment: ${{ steps.get_version.outputs.env }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: get_version
+        run: |
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
+          PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+          echo "img_version=$IMG_VERSION" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "patch=$PATCH" >> $GITHUB_OUTPUT
+
+          if [[ -z "$GITHUB_HEAD_REF" ]]; then
+            BRANCHNAME="$GITHUB_REF_NAME"
+          else
+            BRANCHNAME="$GITHUB_HEAD_REF"
+          fi
+
+          case "$BRANCHNAME" in
+            master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
+              echo "release=1" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+          case "$BRANCHNAME" in
+            develop | dev-[2-9][0-9].[0-9][0-9].x)
+              STABILITY="unstable"
+              ENV="development"
+              ;;
+            release* | hotfix*)
+              STABILITY="testing"
+              ENV="testing"
+              ;;
+            master | [2-9][0-9].[0-9][0-9].x)
+              STABILITY="stable"
+              ENV="production"
+              ;;
+            *)
+              STABILITY="canary"
+              ENV="development"
+              ;;
+          esac
+          echo "stability=$STABILITY" >> $GITHUB_OUTPUT
+          echo "env=$MAJOR-$ENV" >> $GITHUB_OUTPUT
+          echo "GH_ENV: $ENV"
+        shell: bash

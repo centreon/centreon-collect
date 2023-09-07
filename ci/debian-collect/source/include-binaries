@@ -1,0 +1,8 @@
+debian/tmp-centreon-collect/usr/bin/ccc
+debian/tmp-centreon-collect/usr/lib64/centreon-connector/centreon_connector_perl
+debian/tmp-centreon-collect/usr/lib64/centreon-connector/centreon_connector_ssh
+debian/tmp-centreon-collect/usr/sbin/cbd
+debian/tmp-centreon-collect/usr/sbin/cbwd
+debian/tmp-centreon-collect/usr/sbin/centengine
+debian/tmp-centreon-collect/usr/sbin/centengine_bench_passive
+debian/tmp-centreon-collect/usr/sbin/centenginestats

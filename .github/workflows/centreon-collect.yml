@@ -1,0 +1,253 @@
+name: Centreon collect
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - dev-[2-9][0-9].[0-9][0-9].x
+      - master
+      - "[2-9][0-9].[0-9][0-9].x"
+
+jobs:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
+#  veracode-analysis:
+#    needs: [get-version]
+#    uses: ./.github/workflows/veracode-analysis.yml
+#    with:
+#      module_name: centreon-collect
+#      major_version: ${{ needs.get-version.outputs.version }}
+#      minor_version: ${{ needs.get-version.outputs.patch }}
+#      stability: ${{ needs.get-version.outputs.stability }}
+#      img_version: ${{ needs.get-version.outputs.img_version }}
+#    secrets:
+#      veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
+#      veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
+#      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
+#      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
+#      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+  create-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - id: version
+        run: |
+          IMG_VERSION=$(md5sum conanfile.txt | awk '{print substr($1, 0, 8)}')
+          echo "imgversion=$IMG_VERSION" >> $GITHUB_OUTPUT
+          VERSION=$(awk '$1 ~ "COLLECT_MAJOR" {maj=substr($2, 1, length($2)-1)} $1 ~ "COLLECT_MINOR" {min=substr($2, 1, length($2)-1) ; print maj "." min}' CMakeLists.txt)
+          PATCH=$(awk '$1 ~ "COLLECT_PATCH" {print substr($2, 1, length($2) - 1)}' CMakeLists.txt)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "patch=$PATCH" >> $GITHUB_OUTPUT
+
+          if [[ -z "$GITHUB_HEAD_REF" ]] ; then
+            BRANCHNAME="$GITHUB_REF_NAME"
+          else
+            BRANCHNAME="$GITHUB_HEAD_REF"
+          fi
+          case "$BRANCHNAME" in
+            master | [2-9][0-9].[0-9][0-9].x | release* | hotfix*)
+              echo "release=1" >> $GITHUB_OUTPUT
+              ;;
+            *)
+              echo "release=`date +%s`.`echo ${{ github.sha }} | cut -c -7`" >> $GITHUB_OUTPUT
+              ;;
+          esac
+
+        shell: bash
+      - run: |
+          echo "ImgVersion is ${{ steps.version.outputs.imgversion }}"
+          echo "Version is ${{ steps.version.outputs.version }}.${{ steps.version.outputs.patch }}"
+          echo "Release is ${{ steps.version.outputs.release }}"
+    outputs:
+      imgversion: ${{ steps.version.outputs.imgversion }}
+      version: ${{ steps.version.outputs.version }}
+      patch: ${{ steps.version.outputs.patch }}
+      release: ${{ steps.version.outputs.release }}
+
+  centreon-collect-test:
+    needs: [create-version, get-version]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    runs-on: [self-hosted, collect]
+    env:
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
+      version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
+      release: ${{ needs.create-version.outputs.release }}
+
+    strategy:
+      matrix:
+        image: [centos7]
+    name: unit test ${{ matrix.image }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: Test ${{ matrix.image }}
+        uses: ./.github/actions/runner-docker
+        with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          script_name: /src/ci/scripts/collect-unit-tests
+          image_name: centreon-collect-${{ matrix.image }}
+          image_version: ${{ env.imgversion }}
+
+  rpm-packaging:
+    needs: [create-version, get-version]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    runs-on: [self-hosted, collect]
+    env:
+      version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
+      imgversion: ${{ needs.create-version.outputs.imgversion }}
+      release: ${{ needs.create-version.outputs.release }}
+
+    strategy:
+      matrix:
+        include:
+          - image: centos7
+            distrib: el7
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: make rpm ${{ matrix.image }}
+        uses: ./.github/actions/runner-docker
+        with:
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          script_name: /src/ci/scripts/collect-rpm-package
+          image_name: centreon-collect-${{ matrix.image }}
+          image_version: ${{ env.imgversion }}
+          env_variable: -e DISTRIB="${{ matrix.distrib }}" -e VERSION="${{ env.version }}" -e RELEASE="${{ env.release }}"
+
+      - name: sign rpm ${{ matrix.image }}
+        uses: ./.github/actions/package-sign
+        with:
+          script_name: rpm-signing
+          image_name: rpm-signing
+          image_version: ubuntu
+          registry_url: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+          registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+
+      - name: Use cache RPM files
+        uses: actions/cache@v3
+        with:
+          path: ./*.rpm
+          key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+
+      - name: Cleaning not needed rpm packages
+        shell: bash
+        run: |
+          rm -rf *-devel*.rpm
+          rm -rf *-debuginfo*.rpm
+          rm -rf *-debugsource*.rpm
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: packages-rpm-${{ matrix.distrib }}
+          path: ./*.rpm
+          retention-days: 1
+
+
+  deliver-sources:
+    runs-on: [self-hosted, common]
+    needs: [get-version, rpm-packaging]
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          path: centreon-collect
+
+      - name: Deliver sources
+        uses: ./centreon-collect/.github/actions/release-sources
+        with:
+          bucket_directory: centreon-collect
+          module_directory: centreon-collect
+          module_name: centreon-collect
+          major_version: ${{ needs.get-version.outputs.version }}
+          minor_version: ${{ needs.get-version.outputs.patch }}
+          token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
+
+  delivery-centos:
+    needs: [rpm-packaging, create-version,get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
+    env:
+      version: ${{ needs.create-version.outputs.version }}
+    environment: ${{ needs.get-version.outputs.environment }}
+    runs-on: [self-hosted, common]
+    name: Delivery
+    strategy:
+      matrix:
+        distrib: [el7, el8]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/delivery
+        with:
+          distrib: ${{ matrix.distrib }}
+          version: ${{ env.version }}
+          minor_version: ${{ needs.create-version.outputs.patch }}
+          release: ${{ needs.create-version.outputs.release }}
+          module_name: centreon-collect
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
+          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+
+  promote:
+    needs: [get-version]
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, bullseye]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Promote ${{ matrix.distrib }} to stable
+        uses: ./.github/actions/promote-to-stable
+        with:
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          module_name: centreon-collect
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-version.outputs.version }}
+          minor_version: ${{ needs.get-version.outputs.patch }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          repository_name: standard
+          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
+          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
+          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
+          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
+          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+          nexus_username: ${{ secrets.NEXUS_USERNAME }}
+          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
