@@ -33,6 +33,7 @@ EBBPS1
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
+    Broker Config Log    central    perfdata    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}=    Get Current Date
@@ -108,6 +109,7 @@ EBBPS2
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
+    Broker Config Log    central    perfdata    trace
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     ${start}=    Get Current Date
@@ -237,7 +239,7 @@ EBPS2
     Clear Retention
 
     ${start}=    Get Current Date
-    Start Broker    
+    Start Broker
     Start Engine
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
@@ -277,15 +279,15 @@ RLCode
 
     ${INITIAL_SCRIPT_CONTENT}=    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters('/tmp/toto.log', 2)
+    ...    broker_log:set_parameters('/tmp/toto.log', 2)
     ...    end
     ...
     ...    function write(d)
-    ...        broker_log:info(0, "toto")
-    ...        return true
+    ...    broker_log:info(0, "toto")
+    ...    return true
     ...    end
 
-     # Create the initial LUA script file
+    # Create the initial LUA script file
     Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
 
     Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
@@ -295,7 +297,6 @@ RLCode
 
     Start Broker
     Start Engine
-
 
     ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -308,14 +309,13 @@ RLCode
     # Define the new content to take place of the first one
     ${new_content}=    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters('/tmp/titi.log', 2)
+    ...    broker_log:set_parameters('/tmp/titi.log', 2)
     ...    end
     ...
     ...    function write(d)
-    ...        broker_log:info(0, "titi")
-    ...        return true
+    ...    broker_log:info(0, "titi")
+    ...    return true
     ...    end
-
 
     # Create the second LUA script file
     Create File    /tmp/toto.lua    ${new_content}
@@ -326,7 +326,6 @@ RLCode
     ${content}=    Create List    lua: initializing the Lua virtual machine
     ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    msg=lua file not initialized
-
 
 
 *** Keywords ***
