@@ -23,14 +23,15 @@
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/engine/utils.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
+using com::centreon::common::log_v3::log_v3;
 
 contactgroup_map contactgroup::contactgroups;
 
@@ -123,6 +124,8 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
 void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
   int errors{0};
 
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
+  auto logger = log_v3::instance().get(logger_id);
   for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
        it != end; ++it) {
     /* Check members */
@@ -130,7 +133,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Contact '" << it->first << "' specified in contact group '"
           << _name << "' is not defined anywhere!";
-      config_logger->error(
+      logger->error(
           "Error: Contact '{}' specified in contact group '{}' is not defined "
           "anywhere!",
           it->first, _name);
@@ -144,7 +147,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of contact group '" << _name
         << "' contains one or more illegal characters.";
-    config_logger->error(
+    logger->error(
         "Error: The name of contact group '{}' contains one or more illegal "
         "characters.",
         _name);

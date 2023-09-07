@@ -40,7 +40,8 @@ class ConfigContact : public ::testing::Test {
 // Then an exception is thrown.
 TEST_F(ConfigContact, NewContactWithNoName) {
   configuration::contact ctct("");
-  ASSERT_THROW(ctct.check_validity(), std::exception);
+  object::error_info err;
+  ASSERT_THROW(ctct.check_validity(&err), std::exception);
 }
 
 // When I create a configuration::Contact with an empty name

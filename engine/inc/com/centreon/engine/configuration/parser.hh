@@ -48,6 +48,9 @@ using pb_map_helper =
     absl::flat_hash_map<Message*, std::unique_ptr<message_helper>>;
 
 class parser {
+  uint32_t _config_warnings = 0;
+  uint32_t _config_errors = 0;
+
   void _parse_global_configuration(std::string const& path, State* pb_config);
   void _check_validity(const Message& msg, const char* const* mandatory) const;
   bool _is_registered(const Message& msg) const;
@@ -76,6 +79,9 @@ class parser {
   ~parser() noexcept = default;
   void parse(const std::string& path, state& config);
   void parse(const std::string& path, State* pb_config);
+
+  uint32_t config_warnings() const { return _config_warnings; }
+  uint32_t config_errors() const { return _config_errors; }
 
  private:
   typedef void (parser::*store)(object_ptr obj);
