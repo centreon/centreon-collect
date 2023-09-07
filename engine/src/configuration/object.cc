@@ -18,6 +18,8 @@
 */
 
 #include "com/centreon/engine/configuration/object.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/str_split.h>
 #include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
@@ -34,7 +36,6 @@
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
@@ -198,7 +199,7 @@ bool object::parse(std::string const& line) {
     key.assign(line, 0, pos);
     value.assign(line, pos + 1, std::string::npos);
   }
-  string::trim(value);
+  value = absl::StripAsciiWhitespace(value);
   if (!parse(key.c_str(), value.c_str()))
     return object::parse(key.c_str(), value.c_str());
   return true;
@@ -301,6 +302,6 @@ bool object::_set_should_register(bool value) {
  */
 bool object::_set_templates(std::string const& value) {
   _templates.clear();
-  string::split(value, _templates, ',');
+  _templates = absl::StrSplit(value, ',');
   return true;
 }

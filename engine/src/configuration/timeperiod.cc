@@ -18,8 +18,10 @@
 */
 
 #include "com/centreon/engine/configuration/timeperiod.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
@@ -55,7 +57,7 @@ timeperiod::timeperiod(timeperiod const& right) : object(right) {
 /**
  *  Destructor.
  */
-timeperiod::~timeperiod() throw() {}
+timeperiod::~timeperiod() noexcept {}
 
 /**
  *  Copy constructor.
@@ -125,7 +127,7 @@ bool timeperiod::operator<(timeperiod const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void timeperiod::check_validity() const {
+void timeperiod::check_validity(error_info* err [[maybe_unused]]) const {
   if (_timeperiod_name.empty())
     throw exceptions::msg_fmt(
         "Time period has no name (property 'timeperiod_name')");
@@ -136,7 +138,7 @@ void timeperiod::check_validity() const {
  *
  *  @return The time period name.
  */
-timeperiod::key_type const& timeperiod::key() const throw() {
+timeperiod::key_type const& timeperiod::key() const noexcept {
   return _timeperiod_name;
 }
 
@@ -196,12 +198,11 @@ bool timeperiod::parse(std::string const& line) {
   if (pos == std::string::npos)
     return false;
   std::string key(line.substr(0, pos));
-  std::string value(line.substr(pos + 1));
-  string::trim(value);
+  std::string value(absl::StripAsciiWhitespace(line.substr(pos + 1)));
 
   if (object::parse(key.c_str(), value.c_str()) ||
-      parse(key.c_str(), string::trim(value).c_str()) ||
-      _add_calendar_date(line) || _add_other_date(line))
+      parse(key.c_str(), value.c_str()) || _add_calendar_date(line) ||
+      _add_other_date(line))
     return true;
   return false;
 }
@@ -211,7 +212,7 @@ bool timeperiod::parse(std::string const& line) {
  *
  *  @return The alias value.
  */
-std::string const& timeperiod::alias() const throw() {
+std::string const& timeperiod::alias() const noexcept {
   return _alias;
 }
 
@@ -220,7 +221,7 @@ std::string const& timeperiod::alias() const throw() {
  *
  *  @return The exceptions value.
  */
-exception_array const& timeperiod::exceptions() const throw() {
+exception_array const& timeperiod::exceptions() const noexcept {
   return _exceptions;
 }
 
@@ -229,7 +230,7 @@ exception_array const& timeperiod::exceptions() const throw() {
  *
  *  @return The exclude value.
  */
-set_string const& timeperiod::exclude() const throw() {
+set_string const& timeperiod::exclude() const noexcept {
   return *_exclude;
 }
 
@@ -238,7 +239,7 @@ set_string const& timeperiod::exclude() const throw() {
  *
  *  @return The timeperiod_name value.
  */
-std::string const& timeperiod::timeperiod_name() const throw() {
+std::string const& timeperiod::timeperiod_name() const noexcept {
   return _timeperiod_name;
 }
 
@@ -261,8 +262,7 @@ days_array const& timeperiod::timeranges() const {
  */
 bool timeperiod::_build_timeranges(std::string const& line,
                                    timerange_list& timeranges) {
-  list_string timeranges_str;
-  string::split(line, timeranges_str, ',');
+  list_string timeranges_str = absl::StrSplit(line, ',');
   for (list_string::const_iterator it(timeranges_str.begin()),
        end(timeranges_str.end());
        it != end; ++it) {
@@ -294,10 +294,10 @@ bool timeperiod::_build_time_t(std::string const& time_str,
   if (pos == std::string::npos)
     return false;
   unsigned long hours;
-  if (!string::to(time_str.substr(0, pos).c_str(), hours))
+  if (!absl::SimpleAtoi(time_str.substr(0, pos), &hours))
     return false;
   unsigned long minutes;
-  if (!string::to(time_str.substr(pos + 1).c_str(), minutes))
+  if (!absl::SimpleAtoi(time_str.substr(pos + 1), &minutes))
     return false;
   ret = hours * 3600 + minutes * 60;
   return true;
@@ -313,7 +313,7 @@ bool timeperiod::_build_time_t(std::string const& time_str,
  *  @return True on success, otherwise false.
  */
 bool timeperiod::_has_similar_daterange(std::list<daterange> const& lst,
-                                        daterange const& range) throw() {
+                                        daterange const& range) noexcept {
   for (std::list<daterange>::const_iterator it(lst.begin()), end(lst.end());
        it != end; ++it)
     if (it->is_date_data_equal(range))

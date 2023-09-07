@@ -18,15 +18,14 @@
 */
 
 #include "com/centreon/engine/configuration/hostdependency.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/string.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/str_split.h>
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-extern int config_warnings;
-extern int config_errors;
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 #define SETTER(type, method) \
   &object::setter<hostdependency, type, &hostdependency::method>::generic
@@ -175,7 +174,7 @@ bool hostdependency::operator<(hostdependency const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostdependency::check_validity() const {
+void hostdependency::check_validity(error_info* err) const {
   if (_hosts->empty() && _hostgroups->empty())
     throw exceptions::msg_fmt(
         "Host dependency is not attached to any host or host group (properties "
@@ -188,13 +187,15 @@ void hostdependency::check_validity() const {
         "respectively)");
 
   if (!_execution_failure_options && !_notification_failure_options) {
-    ++config_warnings;
+    ++err->config_warnings;
     std::string host_name(!_hosts->empty() ? *_hosts->begin()
                                            : *_hostgroups->begin());
     std::string dependend_host_name(!_dependent_hosts->empty()
                                         ? *_dependent_hosts->begin()
                                         : *_dependent_hostgroups->begin());
-    config_logger->warn(
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
+    auto logger = log_v3::instance().get(logger_id);
+    logger->warn(
         "Warning: Ignoring lame host dependency of '{}' on host/hostgroups "
         "'{}'.",
         dependend_host_name, host_name);
@@ -458,22 +459,20 @@ bool hostdependency::_set_dependent_hosts(std::string const& value) {
  */
 bool hostdependency::_set_execution_failure_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "p" || *it == "pending")
+    else if (v == "p" || v == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable | pending;
     else
       return false;
@@ -528,22 +527,20 @@ bool hostdependency::_set_inherits_parent(bool value) {
 bool hostdependency::_set_notification_failure_options(
     std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "up")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "up")
       options |= up;
-    else if (*it == "d" || *it == "down")
+    else if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "p" || *it == "pending")
+    else if (v == "p" || v == "pending")
       options |= pending;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = up | down | unreachable | pending;
     else
       return false;

@@ -18,17 +18,14 @@
 */
 
 #include "com/centreon/engine/configuration/anomalydetection.hh"
+#include <absl/strings/ascii.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/configuration/state-generated.pb.h"
 #include "common/log_v2/log_v2.hh"
-
-extern int config_warnings;
-extern int config_errors;
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -762,7 +759,7 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
  *  @exception exceptions::msg_fmt if this anomalydetection is an invalid
  * object.
  */
-void anomalydetection::check_validity() const {
+void anomalydetection::check_validity(error_info* err) const {
   if (_service_description.empty())
     throw exceptions::msg_fmt(
         "Service has no description (property "
@@ -1627,7 +1624,6 @@ bool anomalydetection::_set_failure_prediction_enabled(bool value) {
   logger->warn(
       "Warning: anomalydetection failure_prediction_enabled is deprecated. "
       "This option will not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -1645,7 +1641,6 @@ bool anomalydetection::_set_failure_prediction_options(
   logger->warn(
       "Warning: anomalydetection failure_prediction_options is deprecated. "
       "This option will not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -1682,22 +1677,20 @@ bool anomalydetection::_set_flap_detection_enabled(bool value) {
  */
 bool anomalydetection::_set_flap_detection_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "ok")
       options |= ok;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "u" || *it == "unknown")
+    else if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = ok | warning | unknown | critical;
     else
       return false;
@@ -1872,26 +1865,24 @@ bool anomalydetection::_set_notifications_enabled(bool value) {
  */
 bool anomalydetection::_set_notification_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "u" || *it == "unknown")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= ok;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = unknown | warning | critical | ok | flapping | downtime;
     else
       return false;
@@ -1949,7 +1940,6 @@ bool anomalydetection::_set_parallelize_check(bool value) {
   logger->warn(
       "Warning: anomalydetection parallelize_check is deprecated This option "
       "will not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -2084,22 +2074,20 @@ bool anomalydetection::set_dependent_service_id(uint64_t value) {
  */
 bool anomalydetection::_set_stalking_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "ok")
       options |= ok;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "u" || *it == "unknown")
+    else if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = ok | warning | unknown | critical;
     else
       return false;

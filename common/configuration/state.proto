@@ -45,6 +45,12 @@ enum InterleaveFactor {
   ilf_smart = 1;  // smart interleave
 }
 
+message SchedInfoConfig {
+  double host_inter_check_delay = 1;
+  double service_inter_check_delay = 2;
+  int32 service_interleave_factor = 3;
+}
+
 message State {
   string cfg_main = 1;
   repeated string cfg_file = 2;
@@ -177,23 +183,25 @@ message State {
   string host_perfdata_command = 127;
   string service_perfdata_command = 128;
 
-  repeated Command commands = 129;
-  repeated Connector connectors = 130;
-  repeated Contact contacts = 131;
-  repeated Contactgroup contactgroups = 132;
-  repeated Hostdependency hostdependencies = 133;
-  repeated Hostescalation hostescalations = 134;
-  repeated Hostgroup hostgroups = 135;
-  repeated Host hosts = 136;
-  repeated Servicedependency servicedependencies = 137;
-  repeated Serviceescalation serviceescalations = 138;
-  repeated Servicegroup servicegroups = 139;
-  repeated Service services = 140;
-  repeated Anomalydetection anomalydetections = 141;
-  repeated Timeperiod timeperiods = 142;
-  repeated Severity severities = 143;
-  repeated Tag tags = 144;
-  map<string, string> user = 145;
+  SchedInfoConfig scheduling_info_config = 129;
+
+  repeated Command commands = 130;
+  repeated Connector connectors = 131;
+  repeated Contact contacts = 132;
+  repeated Contactgroup contactgroups = 133;
+  repeated Hostdependency hostdependencies = 134;
+  repeated Hostescalation hostescalations = 135;
+  repeated Hostgroup hostgroups = 136;
+  repeated Host hosts = 137;
+  repeated Servicedependency servicedependencies = 138;
+  repeated Serviceescalation serviceescalations = 139;
+  repeated Servicegroup servicegroups = 140;
+  repeated Service services = 141;
+  repeated Anomalydetection anomalydetections = 142;
+  repeated Timeperiod timeperiods = 143;
+  repeated Severity severities = 144;
+  repeated Tag tags = 145;
+  map<string, string> user = 146;
 }
 
 message Value {

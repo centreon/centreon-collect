@@ -18,11 +18,12 @@
 */
 
 #include "com/centreon/engine/configuration/hostgroup.hh"
-#include "com/centreon/engine/globals.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 #define SETTER(type, method) \
   &object::setter<hostgroup, type, &hostgroup::method>::generic
@@ -88,43 +89,41 @@ hostgroup& hostgroup::operator=(hostgroup const& right) {
  *  @return True if is the same hostgroup, otherwise false.
  */
 bool hostgroup::operator==(hostgroup const& right) const throw() {
+  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
+  auto logger = log_v3::instance().get(logger_id);
   if (!object::operator==(right)) {
-    config_logger->debug(
-        "configuration::hostgroup::equality => object don't match");
+    logger->debug("configuration::hostgroup::equality => object don't match");
     return false;
   }
   if (_action_url != right._action_url) {
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => action url don't match");
     return false;
   }
   if (_alias != right._alias) {
-    config_logger->debug(
-        "configuration::hostgroup::equality => alias don't match");
+    logger->debug("configuration::hostgroup::equality => alias don't match");
     return false;
   }
   if (_hostgroup_id != right._hostgroup_id) {
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => hostgroup id don't match");
     return false;
   }
   if (_hostgroup_name != right._hostgroup_name) {
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => hostgroup name don't match");
     return false;
   }
   if (_members != right._members) {
-    config_logger->debug(
-        "configuration::hostgroup::equality => members don't match");
+    logger->debug("configuration::hostgroup::equality => members don't match");
     return false;
   }
   if (_notes != right._notes) {
-    config_logger->debug(
-        "configuration::hostgroup::equality => notes don't match");
+    logger->debug("configuration::hostgroup::equality => notes don't match");
     return false;
   }
   if (_notes_url != right._notes_url) {
-    config_logger->debug(
+    logger->debug(
         "configuration::hostgroup::equality => notes url don't match");
     return false;
   }
@@ -172,7 +171,7 @@ bool hostgroup::operator<(hostgroup const& right) const throw() {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostgroup::check_validity() const {
+void hostgroup::check_validity(error_info* err) const {
   if (_hostgroup_name.empty())
     throw exceptions::msg_fmt(
         "Host group has no name (property 'hostgroup_name')");
