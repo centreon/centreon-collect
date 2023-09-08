@@ -585,7 +585,8 @@ void parser::_parse_global_configuration(const std::string& path,
     absl::string_view l = absl::StripAsciiWhitespace(*it);
     if (l.empty() || l[0] == '#')
       continue;
-    std::pair<absl::string_view, absl::string_view> p = absl::StrSplit(l, '=');
+    std::pair<absl::string_view, absl::string_view> p =
+        absl::StrSplit(l, absl::MaxSplits('=', 1));
     p.first = absl::StripTrailingAsciiWhitespace(p.first);
     p.second = absl::StripLeadingAsciiWhitespace(p.second);
     bool retval = false;
@@ -899,7 +900,8 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
     absl::string_view l = absl::StripLeadingAsciiWhitespace(*it);
     if (l.empty() || l[0] == '#' || l[0] == ';')
       continue;
-    std::pair<absl::string_view, absl::string_view> p = absl::StrSplit(l, '=');
+    std::pair<absl::string_view, absl::string_view> p =
+        absl::StrSplit(l, absl::MaxSplits('=', 1));
     p.first = absl::StripTrailingAsciiWhitespace(p.first);
     p.second = absl::StripLeadingAsciiWhitespace(p.second);
     if (p.first.size() >= 3 && p.first[0] == '$' &&
@@ -957,7 +959,8 @@ void parser::_parse_global_configuration(const std::string& path) {
 
   std::string input;
   while (get_next_line(stream, input, _current_line)) {
-    std::list<std::string> values = absl::StrSplit(input, '=');
+    std::list<std::string> values =
+        absl::StrSplit(input, absl::MaxSplits('=', 1));
     if (values.size() == 2) {
       auto it = values.begin();
       char const* key = it->c_str();
@@ -1070,7 +1073,8 @@ void parser::_parse_resource_file(std::string const& path) {
   std::string input;
   while (get_next_line(stream, input, _current_line)) {
     try {
-      std::list<std::string> key_value = absl::StrSplit(input, '=');
+      std::list<std::string> key_value =
+          absl::StrSplit(input, absl::MaxSplits('=', 1));
       if (key_value.size() == 2) {
         auto it = key_value.begin();
         std::string& key = *it;

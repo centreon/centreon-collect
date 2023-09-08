@@ -156,7 +156,7 @@ void log_v3::apply(const config& log_conf) {
 
   switch (log_conf.log_type()) {
     case config::logger_type::LOGGER_FILE: {
-      std::string _file_path = log_conf.log_path();
+      _file_path = log_conf.log_path();
       if (log_conf.max_size())
         file_sink = std::make_shared<sinks::rotating_file_sink_mt>(
             _file_path, log_conf.max_size(), 99);
@@ -229,9 +229,12 @@ void log_v3::apply(const config& log_conf) {
 
   std::lock_guard<std::shared_mutex> lck(_loggers_m);
 
+  /* We get all the loggers to work with */
   for (auto& l : _loggers)
     logger_names.insert(l->name());
 
+  /* For each one, in the conf, it is updated. Then its name is removed from
+   * the logger_names set. */
   for (auto it = log_conf.loggers().begin(), end = log_conf.loggers().end();
        it != end; ++it) {
     update_logger(it->first, level::from_str(it->second));
@@ -239,6 +242,8 @@ void log_v3::apply(const config& log_conf) {
       logger_names.erase(it->first);
   }
 
+  /* If logger_names is not empty, the remaining loggers have just their log
+   * level set to off. */
   for (auto& n : logger_names)
     update_logger(n, level::off);
 
