@@ -975,8 +975,8 @@ BEEXTCMD_REVERSE_GRPC1
             ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
-            Sleep    1s
             IF    "${output}" == "((10.0,),)"    BREAK
+            Sleep    1s
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine

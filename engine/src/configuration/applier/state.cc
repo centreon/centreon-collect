@@ -50,6 +50,7 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging.hh"
+#include "com/centreon/engine/logging/broker_sink.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
@@ -66,6 +67,7 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
 using com::centreon::common::log_v3::log_v3;
+using com::centreon::engine::logging::broker_sink_mt;
 
 static bool has_already_been_loaded(false);
 
@@ -2053,6 +2055,13 @@ void applier::state::apply_log_config(configuration::State& new_cfg) {
     log_cfg.set_log_path(new_cfg.log_file());
     log_cfg.set_max_size(new_cfg.max_log_file_size());
   }
+  auto broker_sink = std::make_shared<broker_sink_mt>();
+  log_cfg.add_custom_sink(broker_sink);
+
+  log_cfg.apply_custom_sinks({"functions", "configuration", "events", "checks",
+                              "notifications", "eventbroker",
+                              "external_command", "commands", "downtimes",
+                              "comments", "macros", "process", "runtime"});
   log_cfg.set_level("functions", new_cfg.log_level_functions());
   log_cfg.set_level("configuration", new_cfg.log_level_config());
   log_cfg.set_level("events", new_cfg.log_level_events());
@@ -2087,6 +2096,13 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_log_path(new_cfg.log_file());
     log_cfg.set_max_size(new_cfg.max_log_file_size());
   }
+  auto broker_sink = std::make_shared<broker_sink_mt>();
+  log_cfg.add_custom_sink(broker_sink);
+
+  log_cfg.apply_custom_sinks({"functions", "configuration", "events", "checks",
+                              "notifications", "eventbroker",
+                              "external_command", "commands", "downtimes",
+                              "comments", "macros", "process", "runtime"});
   log_cfg.set_level("functions", new_cfg.log_level_functions());
   log_cfg.set_level("configuration", new_cfg.log_level_config());
   log_cfg.set_level("events", new_cfg.log_level_events());
