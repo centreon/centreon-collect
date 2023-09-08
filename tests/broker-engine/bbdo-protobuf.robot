@@ -184,8 +184,8 @@ BEPBCVS
         ${output}    Query
         ...    SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name in ('KEY1','KEY_SERV1_1') ORDER BY service_id
         Log To Console    ${output}
-        Sleep    1s
         IF    "${output}" == "(('VAL1',), ('VAL_SERV1',))"            BREAK
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 

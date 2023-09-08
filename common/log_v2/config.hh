@@ -18,6 +18,7 @@
 #ifndef CCC_LOG_V2_CONFIG_HH
 #define CCC_LOG_V2_CONFIG_HH
 #include <absl/container/flat_hash_map.h>
+#include <absl/container/flat_hash_set.h>
 #include <fmt/format.h>
 #include <filesystem>
 #include <string>
@@ -41,6 +42,11 @@ class config {
   bool _log_source;
   /* logger name => level */
   absl::flat_hash_map<std::string, std::string> _loggers;
+
+  /* custom sinks needed by some loggers */
+  std::vector<spdlog::sink_ptr> _custom_sinks;
+  /* which loggers need custom sinks */
+  absl::flat_hash_set<std::string> _loggers_with_custom_sinks;
 
  public:
   config(logger_type log_type,
@@ -100,6 +106,18 @@ class config {
   const std::string& filename() const { return _filename; }
   void set_filename(const std::string& filename) { _filename = filename; }
   void set_max_size(const std::size_t max_size) { _max_size = max_size; }
+  void add_custom_sink(const spdlog::sink_ptr& sink) {
+    _custom_sinks.push_back(sink);
+  }
+  const std::vector<spdlog::sink_ptr>& custom_sinks() const {
+    return _custom_sinks;
+  }
+  void apply_custom_sinks(std::initializer_list<std::string> ilist) {
+    _loggers_with_custom_sinks = ilist;
+  }
+  const absl::flat_hash_set<std::string>& loggers_with_custom_sinks() const {
+    return _loggers_with_custom_sinks;
+  }
 };
 }  // namespace com::centreon::common::log_v3
 #endif

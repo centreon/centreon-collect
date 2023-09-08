@@ -89,7 +89,7 @@ LOGV2EBU1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
