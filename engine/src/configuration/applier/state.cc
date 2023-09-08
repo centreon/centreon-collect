@@ -2052,7 +2052,21 @@ void applier::state::apply_log_config(configuration::State& new_cfg) {
     log_cfg.set_log_path(new_cfg.log_file());
     log_cfg.set_max_size(new_cfg.max_log_file_size());
   }
+  log_cfg.set_level("functions", new_cfg.log_level_functions());
+  log_cfg.set_level("configuration", new_cfg.log_level_config());
+  log_cfg.set_level("events", new_cfg.log_level_events());
+  log_cfg.set_level("checks", new_cfg.log_level_checks());
+  log_cfg.set_level("notifications", new_cfg.log_level_notifications());
+  log_cfg.set_level("eventbroker", new_cfg.log_level_eventbroker());
+  log_cfg.set_level("external_command", new_cfg.log_level_external_command());
+  log_cfg.set_level("commands", new_cfg.log_level_commands());
+  log_cfg.set_level("downtimes", new_cfg.log_level_downtimes());
+  log_cfg.set_level("comments", new_cfg.log_level_comments());
+  log_cfg.set_level("macros", new_cfg.log_level_macros());
+  log_cfg.set_level("process", new_cfg.log_level_process());
+  log_cfg.set_level("runtime", new_cfg.log_level_runtime());
   log_v3::instance().apply(log_cfg);
+  init_loggers();
 }
 
 void applier::state::apply_log_config(configuration::state& new_cfg) {
@@ -2072,7 +2086,21 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_log_path(new_cfg.log_file());
     log_cfg.set_max_size(new_cfg.max_log_file_size());
   }
+  log_cfg.set_level("functions", new_cfg.log_level_functions());
+  log_cfg.set_level("configuration", new_cfg.log_level_config());
+  log_cfg.set_level("events", new_cfg.log_level_events());
+  log_cfg.set_level("checks", new_cfg.log_level_checks());
+  log_cfg.set_level("notifications", new_cfg.log_level_notifications());
+  log_cfg.set_level("eventbroker", new_cfg.log_level_eventbroker());
+  log_cfg.set_level("external_command", new_cfg.log_level_external_command());
+  log_cfg.set_level("commands", new_cfg.log_level_commands());
+  log_cfg.set_level("downtimes", new_cfg.log_level_downtimes());
+  log_cfg.set_level("comments", new_cfg.log_level_comments());
+  log_cfg.set_level("macros", new_cfg.log_level_macros());
+  log_cfg.set_level("process", new_cfg.log_level_process());
+  log_cfg.set_level("runtime", new_cfg.log_level_runtime());
   log_v3::instance().apply(log_cfg);
+  init_loggers();
 }
 
 /**
