@@ -86,13 +86,13 @@ LOGV2EBU1
     Start Broker
     Start Engine
     ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result1}    msg=No message telling configuration loaded.
+    Should Be True    ${result1}    No message telling configuration loaded.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    after connection

@@ -177,15 +177,15 @@ BEPBCVS
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    300
         ${output}=    Query
         ...    SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name in ('KEY1','KEY_SERV1_1') ORDER BY service_id
         Log To Console    ${output}
-        Sleep    1s
         IF    "${output}" == "(('VAL1',), ('VAL_SERV1',))"            BREAK
+        Sleep    1s
     END
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 

@@ -982,7 +982,7 @@ BEEXTCMD_REVERSE_GRPC1
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -990,11 +990,11 @@ BEEXTCMD_REVERSE_GRPC1
         FOR    ${index}    IN RANGE    300
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
-            Sleep    1s
             IF    "${output}" == "((10.0,),)"    BREAK
+            Sleep    1s
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
