@@ -103,7 +103,10 @@ class muxer : public io::stream {
   void ack_events(int count);
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
-  std::shared_ptr<io::data> read(read_handler&& handler);
+  template <class container>
+  bool read(container& to_fill,
+            size_t max_to_read,
+            read_handler&& handler) noexcept;
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
   uint32_t get_event_queue_size() const;
@@ -119,6 +122,43 @@ class muxer : public io::stream {
   void set_write_filter(const muxer_filter& w_filter);
   void clear_read_handler();
 };
+
+/**
+ * @brief read data from queue and store in to_fill with the push_back method
+ * It tries to write max_to_read events in to_fill. If there are no more
+ * events in the queue, it stores handler and will call it as soon as events are
+ * pushed in queue (publish only not transferred from retention to queue)
+ *
+ * @tparam container list<std::shared_ptr<io::data>> or
+ * vector<std::shared_ptr<io::data>>
+ * @param to_fill container to  fill
+ * @param max_to_read max events to read from muxer and to push_back in to_fill
+ * @param handler handler that will be called if we can't read max_to_read
+ * events as soon as data will be available
+ */
+template <class container>
+bool muxer::read(container& to_fill,
+                 size_t max_to_read,
+                 read_handler&& handler) noexcept {
+  std::unique_lock<std::mutex> lock(_mutex);
+
+  size_t nb_readden = 0;
+  while (_pos != _events.end() && nb_readden < max_to_read) {
+    to_fill.push_back(*_pos);
+    ++_pos;
+    ++nb_readden;
+  }
+  // no more data => store handler to call when data will be available
+  if (_pos == _events.end()) {
+    _read_handler = std::move(handler);
+    _update_stats();
+    return false;
+  } else {
+    _update_stats();
+    return true;
+  }
+}
+
 }  // namespace multiplexing
 
 CCB_END()

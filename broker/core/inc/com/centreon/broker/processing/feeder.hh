@@ -74,8 +74,12 @@ class feeder : public stat_visitable,
   void _read_from_stream_timer_handler(const boost::system::error_code& err);
 
   void _read_from_muxer();
-  unsigned _on_event_from_muxer(
+  unsigned _write_to_client(
       const std::vector<std::shared_ptr<io::data>>& events);
+
+  void _stop_no_lock();
+
+  void _ack_event_to_muxer(unsigned count) noexcept;
 
  public:
   static std::shared_ptr<feeder> create(

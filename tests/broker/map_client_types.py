@@ -93,6 +93,9 @@ while not connected:
     current = False
     while True:
         tmp = s.recv(4096)
+        if tmp == b'':
+            print("connection end")
+            break
         buffer.extend(tmp)
 
         while len(buffer) >= 16:

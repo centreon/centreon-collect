@@ -204,7 +204,6 @@ void muxer::ack_events(int count) {
       log_v2::core(),
       "multiplexing: acknowledging {} events from {} event queue", count,
       _name);
-  read_handler async_handler;
 
   if (count) {
     SPDLOG_LOGGER_DEBUG(
@@ -235,10 +234,6 @@ void muxer::ack_events(int count) {
       _get_event_from_file(e);
       if (!e)
         break;
-      if (_read_handler) {
-        async_handler = std::move(_read_handler);
-        _read_handler = nullptr;
-      }
       _push_to_queue(e);
     }
     _update_stats();
@@ -246,9 +241,6 @@ void muxer::ack_events(int count) {
     SPDLOG_LOGGER_TRACE(
         log_v2::core(),
         "multiplexing: acknowledging no events from {} event queue", _name);
-  }
-  if (async_handler) {
-    async_handler();
   }
 }
 
@@ -437,30 +429,6 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
     }
   }
   return !timed_out;
-}
-
-/**
- * @brief asynchronous version of read
- * if data is available, it returns first event and handler is neither called
- * if no data is available, handler is stored and will be called as soon a event
- * is available
- *
- * @param handler handler called later when event arrives
- * @return std::shared_ptr<io::data> event available otherwise nullptr
- */
-std::shared_ptr<io::data> muxer::read(read_handler&& handler) {
-  std::unique_lock<std::mutex> lock(_mutex);
-
-  std::shared_ptr<io::data> event;
-  // No data is directly available.
-  if (_pos == _events.end()) {
-    _read_handler = std::move(handler);
-  } else {
-    event = *_pos;
-    ++_pos;
-  }
-  _update_stats();
-  return event;
 }
 
 /**
