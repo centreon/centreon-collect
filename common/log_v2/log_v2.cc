@@ -151,29 +151,38 @@ std::shared_ptr<spdlog::logger> log_v3::get(const std::string& name) {
  */
 void log_v3::apply(const config& log_conf) {
   auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
-  // std::shared_ptr<sinks::base_sink<std::mutex>> file_sink;
-  sink_ptr file_sink;
+  sink_ptr my_sink;
 
   switch (log_conf.log_type()) {
     case config::logger_type::LOGGER_FILE: {
       _file_path = log_conf.log_path();
       if (log_conf.max_size())
-        file_sink = std::make_shared<sinks::rotating_file_sink_mt>(
+        my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
             _file_path, log_conf.max_size(), 99);
       else
-        file_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+        my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
     } break;
     case config::logger_type::LOGGER_SYSLOG:
-      file_sink = std::make_shared<sinks::syslog_sink_mt>(log_conf.filename(),
-                                                          0, 0, true);
+      my_sink = std::make_shared<sinks::syslog_sink_mt>(log_conf.filename(), 0,
+                                                        0, true);
       break;
     case config::logger_type::LOGGER_STDOUT:
-      file_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+      my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
       break;
   }
 
+  std::vector<spdlog::sink_ptr> sinks;
+  if (!log_conf.custom_sinks().empty()) {
+    sinks = log_conf.custom_sinks();
+    sinks.push_back(my_sink);
+  }
+
   auto update_logger = [&](const std::string& name, level::level_enum lvl) {
-    auto logger = std::make_shared<spdlog::logger>(name, file_sink);
+    std::shared_ptr<spdlog::logger> logger;
+    if (!sinks.empty() && log_conf.loggers_with_custom_sinks().contains(name))
+      logger = std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
+    else
+      logger = std::make_shared<spdlog::logger>(name, my_sink);
     logger->set_level(lvl);
     if (lvl != level::off) {
       if (log_conf.flush_interval() > 0)
