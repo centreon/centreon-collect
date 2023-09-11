@@ -218,7 +218,7 @@ void muxer::ack_events(int count) {
             "more events than available in {} event queue: {} size: {}, "
             "requested, {} "
             "acknowledged",
-            _name, _events.size(), count, i);
+            _name, _events_size, count, i);
         break;
       }
       _events.pop_front();
@@ -286,7 +286,6 @@ uint32_t muxer::event_queue_max_size() noexcept {
  */
 void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
   auto evt = event_queue.begin();
-  read_handler async_handler;
   while (evt != event_queue.end()) {
     bool at_least_one_push_to_queue = false;
     {  // we stop this first loop when mux queue is full on order to release
@@ -316,16 +315,21 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
 
           at_least_one_push_to_queue = true;
 
-          // async handler waiting?
-          std::lock_guard<std::mutex> lock(_mutex);
-          if (_read_handler) {
-            async_handler = std::move(_read_handler);
-            _read_handler = nullptr;
-          }
           _push_to_queue(*evt);
         }
-        if (async_handler) {
-          async_handler();
+        if (at_least_one_push_to_queue) {
+          read_handler async_handler;
+          {
+            // async handler waiting?
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (_read_handler) {
+              async_handler = std::move(_read_handler);
+              _read_handler = nullptr;
+            }
+          }
+          if (async_handler) {
+            async_handler();
+          }
         }
       }
     }

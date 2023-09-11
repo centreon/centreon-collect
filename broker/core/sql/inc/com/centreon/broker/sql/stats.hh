@@ -69,9 +69,8 @@ class stats {
                    : query;
     }
     ~query_span() noexcept {
-      uint32_t top_q = config::applier::state::instance()
-                           .stats_conf()
-                           .sql_slowest_queries_count;
+      uint32_t top_q =
+          config::applier::state::stats_conf().sql_slowest_queries_count;
       auto end_time = std::chrono::system_clock::now();
       float s = std::chrono::duration_cast<std::chrono::milliseconds>(
                     end_time - _start_time)
@@ -116,9 +115,8 @@ class stats {
                      ? fmt::format("{}...", fmt::string_view(query.data(), 50))
                      : query} {}
     ~stmt_span() noexcept {
-      uint32_t top_s = config::applier::state::instance()
-                           .stats_conf()
-                           .sql_slowest_statements_count;
+      uint32_t top_s =
+          config::applier::state::stats_conf().sql_slowest_statements_count;
       auto end_time = std::chrono::system_clock::now();
       float s = std::chrono::duration_cast<std::chrono::milliseconds>(
                     end_time - _start_time)

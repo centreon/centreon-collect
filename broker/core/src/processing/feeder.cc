@@ -147,13 +147,13 @@ void feeder::_read_from_muxer() {
   bool have_to_terminate = false;
   bool other_event_to_read = true;
   std::vector<std::shared_ptr<io::data>> events;
-  events.reserve(_muxer->get_event_queue_size());
   std::chrono::system_clock::time_point timeout_read =
       std::chrono::system_clock::now() + std::chrono::milliseconds(100);
   std::unique_lock<std::timed_mutex> l(_protect);
   if (_state != state::running) {
     return;
   }
+  events.reserve(_muxer->get_event_queue_size());
   while (other_event_to_read && !have_to_terminate &&
          std::chrono::system_clock::now() < timeout_read) {
     other_event_to_read =
@@ -161,7 +161,7 @@ void feeder::_read_from_muxer() {
                      [me = shared_from_this()]() { me->_read_from_muxer(); });
 
     SPDLOG_LOGGER_TRACE(log_v2::processing(),
-                        "feeder '{}': {} events readden from muxer", _name,
+                        "feeder '{}': {} events read from muxer", _name,
                         events.size());
 
     // if !other_event_to_read callback is stored and will be called as soon as
@@ -196,7 +196,7 @@ void feeder::_read_from_muxer() {
  */
 unsigned feeder::_write_to_client(
     const std::vector<std::shared_ptr<io::data>>& events) {
-  unsigned written;
+  unsigned written = 0;
   try {
     for (const std::shared_ptr<io::data>& event : events) {
       if (log_v2::processing()->level() == spdlog::level::trace) {
@@ -397,7 +397,8 @@ void feeder::_read_from_stream_timer_handler(
     SPDLOG_LOGGER_INFO(log_v2::core(), "from client feeder '{}' shutdown",
                        _name);
     _muxer->write(events_to_publish);
-    stop();
+    // _client->read shutdown => we stop read and don't restart the read from
+    // stream timer
     return;
   } catch (const std::exception& e) {
     set_last_error(e.what());

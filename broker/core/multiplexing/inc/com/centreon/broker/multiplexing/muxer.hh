@@ -142,11 +142,11 @@ bool muxer::read(container& to_fill,
                  read_handler&& handler) noexcept {
   std::unique_lock<std::mutex> lock(_mutex);
 
-  size_t nb_readden = 0;
-  while (_pos != _events.end() && nb_readden < max_to_read) {
+  size_t nb_read = 0;
+  while (_pos != _events.end() && nb_read < max_to_read) {
     to_fill.push_back(*_pos);
     ++_pos;
-    ++nb_readden;
+    ++nb_read;
   }
   // no more data => store handler to call when data will be available
   if (_pos == _events.end()) {
