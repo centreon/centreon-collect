@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());
 
-  log_v3::load({"core", "config"});
+  log_v3::load("test", {"core", "config"});
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   spdlog::shutdown();

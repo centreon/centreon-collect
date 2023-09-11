@@ -135,6 +135,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       com::centreon::broker::config::applier::init(s);
       try {
         log_v2::instance()->apply(s.log_conf());
+        log_v3::instance().apply(s.log_conf());
       } catch (const std::exception& e) {
         log_v3::instance().get(0)->error("main: {}", e.what());
       }
@@ -164,12 +165,14 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       log_v3::instance().get(0)->error("main: {}", e.what());
       return -1;
     } catch (...) {
-      log_v3::instance().get(0)->error("main: configuration file parsing failed");
+      log_v3::instance().get(0)->error(
+          "main: configuration file parsing failed");
       return -1;
     }
 
   } catch (std::exception const& e) {
-    log_v3::instance().get(0)->error("main: cbmod loading failed: {}", e.what());
+    log_v3::instance().get(0)->error("main: cbmod loading failed: {}",
+                                     e.what());
     nebmodule_deinit(0, 0);
     return -1;
   } catch (...) {

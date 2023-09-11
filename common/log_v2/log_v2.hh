@@ -55,16 +55,18 @@ constexpr uint32_t log_v2_configuration = 3;
  */
 class log_v3 {
   static log_v3* _instance;
+  std::string _log_name;
   std::chrono::seconds _flush_interval;
   std::string _file_path;
-  std::shared_mutex _loggers_m;
+  mutable std::shared_mutex _loggers_m;
   std::vector<std::shared_ptr<spdlog::logger>> _loggers;
 
  public:
-  static void load(std::initializer_list<std::string> ilist);
+  static void load(const std::string& name,
+                   std::initializer_list<std::string> ilist);
   static void unload();
   static log_v3& instance();
-  log_v3(std::initializer_list<std::string> ilist);
+  log_v3(const std::string& name, std::initializer_list<std::string> ilist);
   log_v3(const log_v3&) = delete;
   log_v3& operator=(const log_v3&) = delete;
   ~log_v3() noexcept;
@@ -79,6 +81,8 @@ class log_v3 {
   bool contains_logger(const std::string& logger) const;
   bool contains_level(const std::string& level) const;
   const std::string& filename() const { return _file_path; }
+  std::vector<std::pair<std::string, spdlog::level::level_enum>> levels() const;
+  const std::string& log_name() const;
 };
 }  // namespace com::centreon::common::log_v3
 #endif /* !CCC_LOG_V2_HH */

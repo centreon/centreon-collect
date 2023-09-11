@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
@@ -31,7 +30,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  * @brief Return the Broker's version.
@@ -304,18 +303,19 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
                                      LogInfo* response) {
   auto& name{request->str_arg()};
   auto& map = *response->mutable_level();
-  auto lvs = log_v2::instance()->levels();
-  response->set_log_name(log_v2::instance()->log_name());
-  response->set_log_file(log_v2::instance()->file_path());
-  response->set_log_flush_period(
-      log_v2::instance()->get_flush_interval().count());
+  auto lvs = log_v3::instance().levels();
+  response->set_log_name(log_v3::instance().log_name());
+  response->set_log_file(log_v3::instance().filename());
+  response->set_log_flush_period(log_v3::instance().flush_interval().count());
   if (!name.empty()) {
-    auto found = std::find_if(lvs.begin(), lvs.end(),
-                              [&name](std::pair<std::string, std::string>& p) {
-                                return p.first == name;
-                              });
+    auto found = std::find_if(
+        lvs.begin(), lvs.end(),
+        [&name](std::pair<std::string, spdlog::level::level_enum>& p) {
+          return p.first == name;
+        });
     if (found != lvs.end()) {
-      map[name] = std::move(found->second);
+      auto level = to_string_view(found->second);
+      map[name] = std::string(level.data(), level.size());
       return grpc::Status::OK;
     } else {
       std::string msg{fmt::format("'{}' is not a logger in broker", name)};
@@ -349,18 +349,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             [[maybe_unused]],
                                             const LogFlushPeriod* request,
                                             ::google::protobuf::Empty*) {
-  bool done = false;
-  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
-    if (!done) {
-      std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
-          std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(
-              logger);
-      if (logger_base) {
-        logger_base->get_parent()->set_flush_interval(request->period());
-        done = true;
-      }
-    }
-  });
+  log_v3::instance().set_flush_interval(request->period());
   return grpc::Status::OK;
 }
 
@@ -380,7 +369,8 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v3::instance().get(0), "fail to get process info: {}",
+    SPDLOG_LOGGER_ERROR(log_v3::instance().get(0),
+                        "fail to get process info: {}",
                         boost::diagnostic_information(e));
 
     return grpc::Status(grpc::StatusCode::INTERNAL,
