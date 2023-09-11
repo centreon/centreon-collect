@@ -103,7 +103,8 @@ static void hup_handler(int signum [[maybe_unused]]) {
       /* We update the logger, since the conf has been applied */
       core_logger = log_v3::instance().get(0);
     } catch (const std::exception& e) {
-      log_v3::instance().get(0)->error("problem while reloading cbd: {}", e.what());
+      log_v3::instance().get(0)->error("problem while reloading cbd: {}",
+                                       e.what());
       core_logger->error("problem while reloading cbd: {}", e.what());
     }
 
@@ -125,7 +126,8 @@ static void hup_handler(int signum [[maybe_unused]]) {
       config::applier::state::instance().apply(gl_state);
     }
   } catch (const std::exception& e) {
-    log_v3::instance().get(0)->info("main: configuration update failed: {}", e.what());
+    log_v3::instance().get(0)->info("main: configuration update failed: {}",
+                                    e.what());
     core_logger->info("main: configuration update failed: {}", e.what());
   } catch (...) {
     core_logger->info("main: configuration update failed: unknown exception");
@@ -166,7 +168,7 @@ int main(int argc, char* argv[]) {
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
 
-  log_v3::load({"core", "config"});
+  log_v3::load("cbd", {"core", "config"});
   log_v2::load(g_io_context);
   auto core_logger = log_v3::instance().get(0);
 
