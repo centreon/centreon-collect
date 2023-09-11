@@ -4,7 +4,7 @@ sed -i -r 's/(\$\{DBUserRoot\}\s*)root_centreon/\1root/g' resources/db_variables
 ulimit -c unlimited
 sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t
 
-robot $*
+robot -L TRACE $*
 rep=$(date +%s)
 mkdir $rep
 mv report.html log.html output.xml $rep

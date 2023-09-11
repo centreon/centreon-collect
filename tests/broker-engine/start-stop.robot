@@ -428,7 +428,7 @@ BESSBQ1
     Stop Engine
     Kindly Stop Broker
 
-Start_Stop_Broker_Engine
+Start_Stop_Broker_Engine_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
     [Tags]    broker    engine    start-stop
     Config Engine    ${1}    ${1}    ${1}
@@ -438,21 +438,30 @@ Start_Stop_Broker_Engine
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Config Broker Sql Output    central    unified_sql
+    IF    ${grpc}
+        Change Broker tcp output to grpc    central
+        Change Broker tcp input to grpc    rrd
+    END
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer 127.0.0.1:59990 on a closing socket
+    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer
     ${result}    Check Connections
     Should Be True    ${result}
     Sleep    10s
     Stop Engine
-    Log To Console    \n30S
+    Log To Console    \n10s\n
     Sleep    10s
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}
     [Teardown]    Kindly Stop Broker
 
+    Examples:    id       grpc    --
+    ...           1       False
+    ...           2       True
+
 Start_Stop_Broker_Engine_1
-    [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
+    [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
     Config Engine    ${1}    ${1}    ${1}
     Config Broker    central
@@ -463,11 +472,12 @@ Start_Stop_Broker_Engine_1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer 127.0.0.1:59990 on a closing socket
+    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer
     ${result}    Check Connections
     Should Be True    ${result}
     Kindly Stop Broker
     Log To Console    \n30S
     Sleep    30s
-    # ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    # Should Be True    ${result}
     [Teardown]    Stop Engine
