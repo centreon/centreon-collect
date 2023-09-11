@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
   com::centreon::common::log_v3::log_v3::load(
-      {"core", "config", "process", "configuration"});
+      "engine-tests", {"core", "config", "process", "configuration"});
   init_loggers();
   // Run all tests.
   int ret = RUN_ALL_TESTS();

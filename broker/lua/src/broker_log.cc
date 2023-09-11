@@ -17,10 +17,11 @@
 */
 
 #include "com/centreon/broker/lua/broker_log.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  The broker_log destructor
@@ -58,27 +59,30 @@ int _log_func(int log_level, lua_State* L, const char* header) {
   broker_log* bl(
       *static_cast<broker_log**>(luaL_checkudata(L, 1, "lua_broker_log")));
   int level(lua_tointeger(L, 2));
-  char const* text(lua_tostring(L, 3));
+  const char* text = lua_tostring(L, 3);
   if (level <= bl->get_level()) {
     if (bl->get_file().empty()) {
+      uint32_t logger_id = log_v3::instance().create_logger_or_get_id("lua");
+      auto logger = log_v3::instance().get(logger_id);
       switch (log_level) {
         case 0:
-          log_v2::lua()->info(text);
+          logger->info(text);
           break;
         case 1:
-          log_v2::lua()->warn(text);
+          logger->warn(text);
           break;
-        case 2:
-          log_v2::lua()->error(text);
+        default:
+          logger->error(text);
           break;
       }
     } else {
       std::ofstream of;
       of.open(bl->get_file().c_str(), std::ios_base::app);
-      if (of.fail())
-        log_v2::lua()->error("Unable to open the log file '{}'",
-                             bl->get_file());
-      else {
+      if (of.fail()) {
+        uint32_t logger_id = log_v3::instance().create_logger_or_get_id("lua");
+        auto logger = log_v3::instance().get(logger_id);
+        logger->error("Unable to open the log file '{}'", bl->get_file());
+      } else {
         time_t now(time(nullptr));
         struct tm tmp;
         localtime_r(&now, &tmp);
