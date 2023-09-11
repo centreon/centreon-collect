@@ -60,9 +60,9 @@ void init_config_state(const config_type type) {
     config->log_file_line(true);
     config->log_file("");
 
-    log_v3_config log_conf(log_v3_config::logger_type::LOGGER_STDOUT,
-                           config->log_flush_period(), config->log_pid(),
-                           config->log_file_line());
+    log_v3_config log_conf(
+        "engine-tests", log_v3_config::logger_type::LOGGER_STDOUT,
+        config->log_flush_period(), config->log_pid(), config->log_file_line());
 
     log_v3::instance().apply(log_conf);
 
@@ -77,7 +77,8 @@ void init_config_state(const config_type type) {
     pb_config.set_log_file_line(true);
     pb_config.set_log_file("");
 
-    log_v3_config log_conf(log_v3_config::logger_type::LOGGER_STDOUT,
+    log_v3_config log_conf("engine-tests",
+                           log_v3_config::logger_type::LOGGER_STDOUT,
                            pb_config.log_flush_period(), pb_config.log_pid(),
                            pb_config.log_file_line());
 

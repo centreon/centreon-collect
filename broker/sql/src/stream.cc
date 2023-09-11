@@ -60,7 +60,7 @@ stream::stream(database_config const& dbcfg,
                uint32_t cleanup_check_interval,
                uint32_t loop_timeout,
                uint32_t instance_timeout,
-               bool with_state_events)
+               bool with_state_events [[maybe_unused]])
     : io::stream("SQL"),
       _mysql(dbcfg),
       //      _cleanup_thread(dbcfg.get_type(),
@@ -93,7 +93,8 @@ int32_t stream::stop() {
   int32_t retval = storage::conflict_manager::instance().unload(
       storage::conflict_manager::sql);
   _stopped = true;
-  log_v3::instance().get(0)->info("sql stream stopped with {} ackowledged events", retval);
+  log_v3::instance().get(0)->info(
+      "sql stream stopped with {} ackowledged events", retval);
   return retval;
 }
 

@@ -30,8 +30,9 @@ using namespace spdlog;
 
 log_v3* log_v3::_instance = nullptr;
 
-void log_v3::load(std::initializer_list<std::string> ilist) {
-  _instance = new log_v3(ilist);
+void log_v3::load(const std::string& name,
+                  std::initializer_list<std::string> ilist) {
+  _instance = new log_v3(name, ilist);
 }
 
 void log_v3::unload() {
@@ -43,7 +44,9 @@ void log_v3::unload() {
   }
 }
 
-log_v3::log_v3(std::initializer_list<std::string> ilist) {
+log_v3::log_v3(const std::string& name,
+               std::initializer_list<std::string> ilist)
+    : _log_name{name} {
   for (auto& s : ilist)
     create_logger_or_get_id(s, true);
 }
@@ -150,6 +153,7 @@ std::shared_ptr<spdlog::logger> log_v3::get(const std::string& name) {
  * @param log_conf
  */
 void log_v3::apply(const config& log_conf) {
+  std::lock_guard<std::shared_mutex> lck(_loggers_m);
   auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
   sink_ptr my_sink;
 
@@ -234,9 +238,8 @@ void log_v3::apply(const config& log_conf) {
     return logger;
   };
 
+  _log_name = log_conf.name();
   absl::flat_hash_set<std::string> logger_names;
-
-  std::lock_guard<std::shared_mutex> lck(_loggers_m);
 
   /* We get all the loggers to work with */
   for (auto& l : _loggers)
@@ -294,4 +297,20 @@ bool log_v3::contains_level(const std::string& level) const {
 
   level::level_enum l = level::from_str(level);
   return l != level::off;
+}
+
+std::vector<std::pair<std::string, spdlog::level::level_enum>> log_v3::levels()
+    const {
+  std::vector<std::pair<std::string, spdlog::level::level_enum>> retval;
+  std::shared_lock lck(_loggers_m);
+  retval.reserve(_loggers.size());
+  for (auto& l : _loggers) {
+    auto level = l->level();
+    retval.emplace_back(l->name(), level);
+  }
+  return retval;
+}
+
+const std::string& log_v3::log_name() const {
+  return _log_name;
 }

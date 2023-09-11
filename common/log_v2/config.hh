@@ -33,6 +33,7 @@ class config {
   };
 
  private:
+  const std::string _name;
   logger_type _log_type;
   std::string _dirname;
   std::string _filename;
@@ -49,17 +50,20 @@ class config {
   absl::flat_hash_set<std::string> _loggers_with_custom_sinks;
 
  public:
-  config(logger_type log_type,
+  config(const std::string& name,
+         logger_type log_type,
          uint32_t flush_interval,
          bool log_pid,
          bool log_source)
-      : _log_type{log_type},
+      : _name{name},
+        _log_type{log_type},
         _flush_interval{flush_interval},
         _log_pid{log_pid},
         _log_source{log_source} {}
 
   config(const config& other)
-      : _log_type{other._log_type},
+      : _name{other._name},
+        _log_type{other._log_type},
         _dirname{other._dirname},
         _filename{other._filename},
         _max_size{other._max_size},
@@ -118,6 +122,7 @@ class config {
   const absl::flat_hash_set<std::string>& loggers_with_custom_sinks() const {
     return _loggers_with_custom_sinks;
   }
+  const std::string& name() const { return _name; }
 };
 }  // namespace com::centreon::common::log_v3
 #endif

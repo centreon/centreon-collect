@@ -39,7 +39,7 @@ state::state()
       _event_queue_max_size{10000},
       _poller_id{0},
       _pool_size{0},
-      _log_conf{log_v3_config::logger_type::LOGGER_FILE, 5u, false, false} {
+      _log_conf{"", log_v3_config::logger_type::LOGGER_FILE, 5u, false, false} {
   _log_conf.set_dirname("/var/log/centreon-broker");
   _log_conf.set_filename("");
   _log_conf.set_max_size(0);

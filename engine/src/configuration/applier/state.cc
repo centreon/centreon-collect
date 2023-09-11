@@ -2049,8 +2049,8 @@ void applier::state::apply_log_config(configuration::State& new_cfg) {
   } else
     log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
 
-  log_v3_config log_cfg(log_type, new_cfg.log_flush_period(), new_cfg.log_pid(),
-                        new_cfg.log_file_line());
+  log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                        new_cfg.log_pid(), new_cfg.log_file_line());
   if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
     log_cfg.set_log_path(new_cfg.log_file());
     log_cfg.set_max_size(new_cfg.max_log_file_size());
@@ -2090,8 +2090,8 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
   } else
     log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
 
-  log_v3_config log_cfg(log_type, new_cfg.log_flush_period(), new_cfg.log_pid(),
-                        new_cfg.log_file_line());
+  log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                        new_cfg.log_pid(), new_cfg.log_file_line());
   if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
     log_cfg.set_log_path(new_cfg.log_file());
     log_cfg.set_max_size(new_cfg.max_log_file_size());
