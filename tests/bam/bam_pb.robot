@@ -9,6 +9,7 @@ Library             OperatingSystem
 Library             String
 Library             ../resources/Broker.py
 Library             ../resources/Engine.py
+Library             Telnet
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -20,17 +21,7 @@ Test Teardown       Save logs If Failed
 BAPBSTATUS
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with one service is configured. The BA is in critical state, because of its service.
     [Tags]    broker    downtime    engine    bam
-    Clear Commands Status
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
+    BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create BA With Services    test    worst    ${svc}
@@ -67,18 +58,7 @@ BAPBSTATUS
 BABEST_SERVICE_CRITICAL
     [Documentation]    With bbdo version 3.0.1, a BA of type 'best' with 2 serv, ba is critical only if the 2 services are critical
     [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
+    BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
     Create BA With Services    test    best    ${svc}
@@ -131,21 +111,7 @@ BABEST_SERVICE_CRITICAL
 BA_IMPACT_2KPI_SERVICES
     [Documentation]    With bbdo version 3.0.1, a BA of type 'impact' with 2 serv, ba is critical only if the 2 services are critical
     [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-    # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    BAM Init
 
     ${id_ba__sid}    create_ba    test    impact    20    35
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
@@ -235,22 +201,7 @@ BA_IMPACT_2KPI_SERVICES
 BA_RATIO_PERCENT_BA_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio percent' with 2 serv an 1 ba with one service
     [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    1
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-    # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    BAM Init
 
     ${id_ba__sid}    create_ba    test    ratio_percent    67    49
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
@@ -338,22 +289,7 @@ BA_RATIO_PERCENT_BA_SERVICE
 BA_RATIO_NUMBER_BA_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 2 services and one ba with 1 service
     [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    1
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-    # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    BAM Init
 
     ${id_ba__sid}    create_ba    test    ratio_number    3    2
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
@@ -445,20 +381,7 @@ BA_RATIO_NUMBER_BA_SERVICE
 BA_BOOL_KPI
     [Documentation]    With bbdo version 3.0.1, a BA of type 'worst' with 1 boolean kpi
     [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    1
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    BAM Init
 
     ${id_ba__sid}    create_ba    test    worst    100    100
     add_boolean_kpi
@@ -507,20 +430,9 @@ BA_BOOL_KPI
 BEPB_DIMENSION_BV_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_bv_event message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+    BAM Init
 
     Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
-
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -547,21 +459,9 @@ BEPB_DIMENSION_BV_EVENT
 BEPB_DIMENSION_BA_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_ba_event message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+    BAM Init
 
     Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
-
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
-    Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create BA With Services    test    worst    ${svc}
@@ -591,22 +491,13 @@ BEPB_DIMENSION_BA_EVENT
 BEPB_DIMENSION_BA_BV_RELATION_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_ba_bv_relation_event message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+    BAM Init
 
     Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
 
     Clear Db    mod_bam_reporting_relations_ba_bv
-    Clone Engine Config To DB
-    Add Bam Config To Engine
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+
     Create BA With Services    test    worst    ${svc}
 
     Add Bam Config To Broker    central
@@ -640,23 +531,9 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
 BEPB_DIMENSION_TIMEPERIOD
     [Documentation]    use of pb_dimension_timeperiod message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+    BAM Init
 
     Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    lua    trace
-    Broker Config Log    central    core    trace
-    broker_config_source_log    central    1
-    Config Broker Sql Output    central    unified_sql
-
-    Clone Engine Config To DB
-    # Add Bam Config To Engine
-    Add Bam Config To Broker    central
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -682,22 +559,7 @@ BEPB_DIMENSION_TIMEPERIOD
 BEPB_DIMENSION_KPI_EVENT
     [Documentation]    bbdo_version 3 use pb_dimension_kpi_event message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
-
-    Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
-    broker_config_source_log    central    1
-
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
-    Add Bam Config To Engine
+    BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${baid_svcid}    create_ba_with_services    test    worst    ${svc}
@@ -729,22 +591,8 @@ BEPB_DIMENSION_KPI_EVENT
 BEPB_KPI_STATUS
     [Documentation]    bbdo_version 3 use kpi_status message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
 
-    Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
-    broker_config_source_log    central    1
-
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
-    Add Bam Config To Engine
+    BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     create_ba_with_services    test    worst    ${svc}
@@ -779,21 +627,7 @@ BEPB_KPI_STATUS
 BEPB_BA_DURATION_EVENT
     [Documentation]    use of pb_ba_duration_event message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
-
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    core    trace
-    broker_config_source_log    central    1
-    Config Broker Sql Output    central    unified_sql
-
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
-    Add Bam Config To Engine
+    BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     create_ba_with_services    test    worst    ${svc}
@@ -840,21 +674,7 @@ BEPB_BA_DURATION_EVENT
 BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
     [Documentation]    use of pb_dimension_ba_timeperiod_relation message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
-
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    core    trace
-    broker_config_source_log    central    1
-    Config Broker Sql Output    central    unified_sql
-
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
-    Add Bam Config To Engine
+    BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     create_ba_with_services    test    worst    ${svc}
@@ -885,22 +705,10 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
 BEPB_DIMENSION_TRUNCATE_TABLE
     [Documentation]    use of pb_dimension_timeperiod message.
     [Tags]    broker    engine    protobuf    bam    bbdo
-    Clear Commands Status
-    Clear Retention
+    BAM Init
 
     Remove File    /tmp/all_lua_event.log
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config BBDO3    ${1}
-    Broker Config Log    central    bam    trace
     Broker Config Log    central    lua    trace
-    Broker Config Log    central    core    trace
-    broker_config_source_log    central    1
-    Config Broker Sql Output    central    unified_sql
-
-    Clone Engine Config To DB
-    Add Bam Config To Broker    central
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -926,22 +734,7 @@ BEPB_DIMENSION_TRUNCATE_TABLE
 BA_RATIO_NUMBER_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
     [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    1
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-    # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    BAM Init
 
     ${id_ba__sid}    create_ba    test    ratio_number    2    1
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
@@ -1002,22 +795,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 BA_RATIO_PERCENT_BA_4_SERVICE
     [Documentation]    With bbdo version 3.0.1, a BA of type 'ratio number' with 4 serv
     [Tags]    broker    engine    bam
-    Clear Commands Status
-    Clear Retention
-    Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
-    Broker Config Log    central    bam    trace
-    Broker Config Log    central    sql    trace
-    Broker Config Source Log    central    1
-    Config BBDO3    ${1}
-    Config Engine    ${1}
-    # This is to avoid parasite status.
-    Set Services Passive    ${0}    service_30.
-
-    Clone Engine Config To DB
-    Add Bam Config To Engine
-    Add Bam Config To Broker    central
+    BAM Init
 
     ${id_ba__sid}    create_ba    test    ratio_percent    50    25
     Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
@@ -1087,3 +865,22 @@ BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+
+BAM Init
+    Clear Commands Status
+    Clear Retention
+    Config Broker    module
+    Config Broker    central
+    Config Broker    rrd
+    Broker Config Log    central    bam    trace
+    Broker Config Log    central    sql    trace
+    Broker Config Source Log    central    1
+    Config BBDO3    ${1}
+    Config Engine    ${1}
+    # This is to avoid parasite status.
+    Set Services Passive    ${0}    service_30.
+
+    Config Broker Sql Output    central    unified_sql
+    Clone Engine Config To DB
+    Add Bam Config To Engine
+    Add Bam Config To Broker    central
