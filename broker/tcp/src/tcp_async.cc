@@ -17,7 +17,6 @@
 */
 #include "com/centreon/broker/tcp/tcp_async.hh"
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -77,8 +76,10 @@ tcp_async& tcp_async::instance() {
 void tcp_async::load() {
   if (!_instance)
     _instance = std::shared_ptr<tcp_async>(new tcp_async);
-  else
-    log_v2::tcp()->error("tcp_async instance already started.");
+  else {
+    auto logger = log_v3::instance().get(_instance->_logger_id);
+    logger->error("tcp_async instance already started.");
+  }
 }
 
 /**
