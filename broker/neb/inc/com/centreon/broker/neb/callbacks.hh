@@ -23,6 +23,9 @@
 
 CCB_BEGIN()
 
+extern uint32_t neb_logger_id;
+extern std::shared_ptr<spdlog::logger> neb_logger;
+
 namespace neb {
 extern unsigned gl_mod_flags;
 extern void* gl_mod_handle;
