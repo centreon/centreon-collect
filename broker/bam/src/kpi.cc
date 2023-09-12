@@ -19,7 +19,6 @@
 #include "com/centreon/broker/bam/kpi.hh"
 
 #include "com/centreon/broker/bam/ba.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
@@ -68,7 +67,7 @@ timestamp kpi::get_last_state_change() const {
  *  @param[in] e  The kpi event.
  */
 void kpi::set_initial_event(const KpiEvent& e) {
-  log_v2::bam()->trace("bam: kpi::set_initial_event");
+  _logger->trace("bam: kpi::set_initial_event");
   if (!_event) {
     _event = e;
     impact_values impacts;
