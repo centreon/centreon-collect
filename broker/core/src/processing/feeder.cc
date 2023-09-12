@@ -364,7 +364,7 @@ void feeder::_read_from_stream_timer_handler(
   if (err) {
     return;
   }
-  std::list<std::shared_ptr<io::data>> events_to_publish;
+  std::deque<std::shared_ptr<io::data>> events_to_publish;
   std::shared_ptr<io::data> event;
   std::chrono::system_clock::time_point timeout_read =
       std::chrono::system_clock::now() + std::chrono::milliseconds(100);

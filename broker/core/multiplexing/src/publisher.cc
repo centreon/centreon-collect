@@ -68,7 +68,7 @@ int32_t publisher::write(const std::shared_ptr<io::data>& d) {
  *
  * @return The number of events published.
  */
-int publisher::write(const std::list<std::shared_ptr<io::data>>& to_publish) {
+int publisher::write(const std::deque<std::shared_ptr<io::data>>& to_publish) {
   engine::instance_ptr()->publish(to_publish);
   return to_publish.size();
 }

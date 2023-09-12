@@ -539,7 +539,7 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
  *
  * @param to_publish list of event where not allowed event will be erased
  */
-void muxer::write(std::list<std::shared_ptr<io::data>>& to_publish) {
+void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
   for (auto list_iter = to_publish.begin();
        !to_publish.empty() && list_iter != to_publish.end();) {
     const std::shared_ptr<io::data>& d = *list_iter;

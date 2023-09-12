@@ -115,7 +115,7 @@ class muxer : public io::stream {
   void statistics(nlohmann::json& tree) const override;
   void wake();
   int32_t write(std::shared_ptr<io::data> const& d) override;
-  void write(std::list<std::shared_ptr<io::data>>& to_publish);
+  void write(std::deque<std::shared_ptr<io::data>>& to_publish);
   int32_t stop() override;
   const std::string& name() const;
   void set_read_filter(const muxer_filter& w_filter);
