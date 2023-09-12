@@ -33,7 +33,6 @@
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
-using com::centreon::common::log_v3::log_v3;
 
 #include "com/centreon/broker/http_client/http_client.hh"
 
@@ -54,8 +53,9 @@ class http_client_test : public ::testing::Test {
   static void SetUpTestSuite() {
     srand(time(nullptr));
     pool::load(g_io_context, 1);
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
-    _logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id =
+        log_v3::log_v3::instance().create_logger_or_get_id("tcp");
+    _logger = log_v3::log_v3::instance().get(logger_id);
     _logger->set_level(spdlog::level::debug);
   };
 };
