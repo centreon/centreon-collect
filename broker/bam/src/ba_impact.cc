@@ -191,7 +191,7 @@ std::string ba_impact::get_output() const {
         auto lst = impacting_kpis();
         uint32_t nb_imp = lst.size();
         retval = fmt::format(
-            "Status is OK - Level = {} (warn: {} - crit: {} - {} KPI{} out of "
+            "Status is OK - Level = {} (warn: {} - crit: {}) - {} KPI{} out of "
             "{} impact{} the BA: {}",
             level, _level_warning, _level_critical, nb_imp,
             nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",

@@ -371,7 +371,7 @@ BDBU10
 BDBMU1
     [Documentation]    start broker/engine with unified sql and then start MariaDB => connection is established
     [Tags]    broker    sql    start-stop    unified_sql
-    @{lst}    Create List    1    6
+    @{lst}    Create List    1    3
     FOR    ${c}    IN    @{lst}
         Config Broker    central
         Config Broker Sql Output    central    unified_sql

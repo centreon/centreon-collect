@@ -158,7 +158,7 @@ std::string ba_ratio_number::get_output() const {
  *  @return Performance data.
  */
 std::string ba_ratio_number::get_perfdata() const {
-  return fmt::format("BA_Level={};{};{};0;100", static_cast<int>(_level_hard),
+  return fmt::format("BA_Level={};{};{};0;{}", static_cast<int>(_level_hard),
                      static_cast<int>(_level_warning),
-                     static_cast<int>(_level_critical));
+                     static_cast<int>(_level_critical), _impacts.size());
 }

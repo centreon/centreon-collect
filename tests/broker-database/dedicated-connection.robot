@@ -10,7 +10,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Test Clean
 
 
 *** Test Cases ***
@@ -33,7 +33,7 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
 
     IF    ${nb_conn} > 1
         ${nb_dedicated}    Evaluate    ${nb_conn_expected} - 1
-        ${content}    Create List    use of ${nb_dedicated} dedicated connection for logs and data_bin tables
+        ${content}    Create List    use of ${nb_dedicated} dedicated toto connection for logs and data_bin tables
         ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    5
         Should Be True    ${result}    No dedicated message
     END
@@ -46,4 +46,9 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     ...    2    2    yes
     ...    3    3    yes
     ...    3    2    no
-    [Teardown]    Stop Broker    only_central=${True}
+
+
+*** Keywords ***
+Test Clean
+    Kindly Stop Broker    only_central=${True}
+    Save logs If Failed

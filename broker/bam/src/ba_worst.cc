@@ -154,7 +154,9 @@ std::string ba_worst::get_output() const {
   state state = get_state_hard();
   switch (state) {
     case state_unknown:
-      retval = "Status is unknown";
+      retval = fmt::format(
+          "Status is UNKNOWN - At least one KPI is in an UNKNOWN state: {}",
+          fmt::join(not_ok_kpis(), ", "));
       break;
     case state_ok:
       retval = "Status is OK - All KPIs are in an OK state";
