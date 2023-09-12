@@ -35,9 +35,7 @@ class host;
 class service;
 }  // namespace neb
 
-namespace bam {
-namespace configuration {
-namespace applier {
+namespace bam::configuration::applier {
 /**
  *  @class ba ba.hh "com/centreon/broker/bam/configuration/applier/ba.hh"
  *  @brief Apply BA configuration.
@@ -45,22 +43,12 @@ namespace applier {
  *  Take the configuration of BAs and apply it.
  */
 class ba {
- public:
-  ba();
-  ba(ba const& other);
-  ~ba();
-  ba& operator=(ba const& other);
-  void apply(configuration::state::bas const& my_bas, service_book& book);
-  std::shared_ptr<bam::ba> find_ba(uint32_t id);
-  void visit(io::stream* visitor);
-  void save_to_cache(persistent_cache& cache);
-  void load_from_cache(persistent_cache& cache);
-
- private:
+  std::shared_ptr<spdlog::logger> _logger;
   struct applied {
     configuration::ba cfg;
     std::shared_ptr<bam::ba> obj;
   };
+  std::map<uint32_t, applied> _applied;
 
   std::shared_ptr<neb::host> _ba_host(uint32_t host_id);
   std::shared_ptr<neb::pb_host> _ba_pb_host(uint32_t host_id);
@@ -76,11 +64,18 @@ class ba {
   std::shared_ptr<bam::ba> _new_ba(configuration::ba const& cfg,
                                    service_book& book);
 
-  std::map<uint32_t, applied> _applied;
+ public:
+  ba();
+  ba(const ba& other);
+  ~ba();
+  ba& operator=(ba const& other);
+  void apply(configuration::state::bas const& my_bas, service_book& book);
+  std::shared_ptr<bam::ba> find_ba(uint32_t id);
+  void visit(io::stream* visitor);
+  void save_to_cache(persistent_cache& cache);
+  void load_from_cache(persistent_cache& cache);
 };
-}  // namespace applier
-}  // namespace configuration
-}  // namespace bam
+}  // namespace bam::configuration::applier
 
 CCB_END()
 
