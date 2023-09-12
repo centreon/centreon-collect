@@ -77,7 +77,7 @@ class log_v3 {
                                    bool activate = false);
   std::shared_ptr<spdlog::logger> get(const std::string& name);
   std::shared_ptr<spdlog::logger> get(const uint32_t idx);
-  void apply(const config& conf);
+  void apply(const config& conf, bool cleanup = true);
   bool contains_logger(const std::string& logger) const;
   bool contains_level(const std::string& level) const;
   const std::string& filename() const { return _file_path; }
