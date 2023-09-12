@@ -34,9 +34,7 @@ class host;
 class service;
 }  // namespace neb
 
-namespace bam {
-namespace configuration {
-namespace applier {
+namespace bam::configuration::applier {
 /**
  *  @class ba ba.hh "com/centreon/broker/bam/configuration/applier/ba.hh"
  *  @brief Apply BA configuration.
@@ -44,6 +42,7 @@ namespace applier {
  *  Take the configuration of BAs and apply it.
  */
 class ba {
+  std::shared_ptr<spdlog::logger> _logger;
   struct applied {
     configuration::ba cfg;
     std::shared_ptr<bam::ba> obj;
@@ -75,9 +74,7 @@ class ba {
   void save_to_cache(persistent_cache& cache);
   void load_from_cache(persistent_cache& cache);
 };
-}  // namespace applier
-}  // namespace configuration
-}  // namespace bam
+}  // namespace bam::configuration::applier
 
 }
 

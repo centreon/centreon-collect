@@ -27,8 +27,7 @@ namespace com::centreon::broker {
 // Forward declaration.
 class mysql;
 
-namespace bam {
-namespace configuration {
+namespace bam::configuration {
 /**
  *  @class reader_v2 reader_v2.hh
  * "com/centreon/broker/bam/configuration/reader_v2.hh"
@@ -39,6 +38,8 @@ namespace configuration {
  *  the BAM engine.
  */
 class reader_v2 {
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   reader_v2(mysql& centreon_db, const database_config& storage_cfg);
   ~reader_v2() noexcept = default;
@@ -57,8 +58,7 @@ class reader_v2 {
   mysql& _mysql;
   database_config _storage_cfg;
 };
-}  // namespace configuration
-}  // namespace bam
+}  // namespace bam::configuration
 
 }
 

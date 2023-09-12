@@ -24,18 +24,21 @@
 #include "com/centreon/broker/bam/ba_ratio_percent.hh"
 #include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/service.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Default constructor.
  */
-applier::ba::ba() {}
+applier::ba::ba()
+    : _logger{log_v3::instance().get(
+          log_v3::instance().create_logger_or_get_id("bam"))} {}
 
 /**
  *  Copy constructor.
@@ -121,7 +124,7 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
   for (std::map<uint32_t, applied>::iterator it = to_delete.begin(),
                                              end = to_delete.end();
        it != end; ++it) {
-    log_v2::bam()->info("BAM: removing BA {}", it->first);
+    _logger->info("BAM: removing BA {}", it->first);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled) {
       auto bs = _ba_pb_service(it->first, it->second.cfg.get_host_id(),
@@ -145,8 +148,8 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
   for (bam::configuration::state::bas::iterator it = to_create.begin(),
                                                 end = to_create.end();
        it != end; ++it) {
-    log_v2::bam()->info("BAM: creating BA {} ('{}')", it->first,
-                        it->second.get_name());
+    _logger->info("BAM: creating BA {} ('{}')", it->first,
+                  it->second.get_name());
     std::shared_ptr<bam::ba> new_ba(_new_ba(it->second, book));
     applied& content(_applied[it->first]);
     content.cfg = it->second;
@@ -172,14 +175,14 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
   for (auto& b : to_modify) {
     std::map<uint32_t, applied>::iterator pos = _applied.find(b.get_id());
     if (pos != _applied.end()) {
-      log_v2::bam()->info("BAM: modifying BA {}", b.get_id());
+      _logger->info("BAM: modifying BA {}", b.get_id());
       pos->second.obj->set_name(b.get_name());
       assert(pos->second.obj->get_state_source() == b.get_state_source());
       pos->second.obj->set_level_warning(b.get_warning_level());
       pos->second.obj->set_level_critical(b.get_critical_level());
       pos->second.cfg = b;
     } else
-      log_v2::bam()->error(
+      _logger->error(
           "BAM: attempting to modify BA {}, however associated object was not "
           "found. This is likely a software bug that you should report to "
           "Centreon Broker developers",
@@ -267,8 +270,8 @@ std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
                                                        uint32_t host_id,
                                                        uint32_t service_id,
                                                        bool in_downtime) {
-  log_v2::bam()->trace("_ba_service ba {}, service {}:{} with downtime {}",
-                       ba_id, host_id, service_id, in_downtime);
+  _logger->trace("_ba_service ba {}, service {}:{} with downtime {}", ba_id,
+                 host_id, service_id, in_downtime);
   auto s{std::make_shared<neb::service>()};
   s->host_id = host_id;
   s->service_id = service_id;
@@ -293,8 +296,8 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
     uint32_t host_id,
     uint32_t service_id,
     bool in_downtime) {
-  log_v2::bam()->trace("_ba_pb_service ba {}, service {}:{} with downtime {}",
-                       ba_id, host_id, service_id, in_downtime);
+  _logger->trace("_ba_pb_service ba {}, service {}:{} with downtime {}", ba_id,
+                 host_id, service_id, in_downtime);
   auto s{std::make_shared<neb::pb_service>()};
   auto& o = s->mut_obj();
   o.set_host_id(host_id);
@@ -333,27 +336,27 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
     case configuration::ba::state_source_impact:
       obj = std::make_shared<bam::ba_impact>(cfg.get_id(), cfg.get_host_id(),
                                              cfg.get_service_id(), false,
-                                             log_v2::bam());
+                                             _logger);
       break;
     case configuration::ba::state_source_best:
-      obj = std::make_shared<bam::ba_best>(cfg.get_id(), cfg.get_host_id(),
-                                           cfg.get_service_id(), false,
-                                           log_v2::bam());
+      obj =
+          std::make_shared<bam::ba_best>(cfg.get_id(), cfg.get_host_id(),
+                                         cfg.get_service_id(), false, _logger);
       break;
     case configuration::ba::state_source_worst:
-      obj = std::make_shared<bam::ba_worst>(cfg.get_id(), cfg.get_host_id(),
-                                            cfg.get_service_id(), false,
-                                            log_v2::bam());
+      obj =
+          std::make_shared<bam::ba_worst>(cfg.get_id(), cfg.get_host_id(),
+                                          cfg.get_service_id(), false, _logger);
       break;
     case configuration::ba::state_source_ratio_percent:
       obj = std::make_shared<bam::ba_ratio_percent>(
           cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false,
-          log_v2::bam());
+          _logger);
       break;
     case configuration::ba::state_source_ratio_number:
       obj = std::make_shared<bam::ba_ratio_number>(
           cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false,
-          log_v2::bam());
+          _logger);
       break;
     default:
       /* Should not arrive */
@@ -391,7 +394,7 @@ void applier::ba::save_to_cache(persistent_cache& cache) {
  *  @param[in] cache  The cache.
  */
 void applier::ba::load_from_cache(persistent_cache& cache) {
-  log_v2::bam()->trace("BAM: loading inherited downtimes from cache");
+  _logger->trace("BAM: loading inherited downtimes from cache");
   auto bbdo = config::applier::state::instance().get_bbdo_version();
   bool bbdo3_enabled = bbdo.major_v >= 3;
   std::shared_ptr<io::data> d;
@@ -402,8 +405,8 @@ void applier::ba::load_from_cache(persistent_cache& cache) {
           *std::static_pointer_cast<inherited_downtime const>(d);
       std::map<uint32_t, applied>::iterator found = _applied.find(dwn.ba_id);
       if (found != _applied.end()) {
-        log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                             found->first);
+        _logger->debug("BAM: found an inherited downtime for BA {}",
+                       found->first);
         found->second.obj->set_inherited_downtime(dwn);
         std::shared_ptr<io::data> s;
         if (bbdo3_enabled)
@@ -422,8 +425,8 @@ void applier::ba::load_from_cache(persistent_cache& cache) {
       std::map<uint32_t, applied>::iterator found =
           _applied.find(dwn.obj().ba_id());
       if (found != _applied.end()) {
-        log_v2::bam()->debug("BAM: found an inherited downtime for BA {}",
-                             found->first);
+        _logger->debug("BAM: found an inherited downtime for BA {}",
+                       found->first);
         found->second.obj->set_inherited_downtime(dwn);
         std::shared_ptr<io::data> s;
         if (bbdo3_enabled)
