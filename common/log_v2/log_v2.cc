@@ -150,9 +150,11 @@ std::shared_ptr<spdlog::logger> log_v3::get(const std::string& name) {
  * New loggers are created with the good configuration, and if a logger already
  * exists and is missing in the configuration, it is disabled.
  *
- * @param log_conf
+ * @param log_conf The configuration to apply
+ * @param cleanup A boolean specifying if we have to switch off loggers already
+ * configured but not in the new configuration.
  */
-void log_v3::apply(const config& log_conf) {
+void log_v3::apply(const config& log_conf, bool cleanup) {
   std::lock_guard<std::shared_mutex> lck(_loggers_m);
   auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
   sink_ptr my_sink;
@@ -254,10 +256,12 @@ void log_v3::apply(const config& log_conf) {
       logger_names.erase(it->first);
   }
 
-  /* If logger_names is not empty, the remaining loggers have just their log
-   * level set to off. */
-  for (auto& n : logger_names)
-    update_logger(n, level::off);
+  if (cleanup) {
+    /* If logger_names is not empty, the remaining loggers have just their log
+     * level set to off. */
+    for (auto& n : logger_names)
+      update_logger(n, level::off);
+  }
 
   _flush_interval = std::chrono::seconds(
       log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
