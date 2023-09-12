@@ -378,8 +378,8 @@ define command {
     def create_escalations_file(poller: int, name: int, SG: string, contactgroup: string):
         config_file = "{}/config{}/escalations.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "a+")
-        content = """define escalations {{
-    escalation_name                esc{0}
+        content = """define serviceescalation {{
+    ;escalation_name                esc{0}
     escalation_period              24x7
     escalation_options             w,c,r
     servicegroup_name              {1}
@@ -923,6 +923,17 @@ def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: st
     f.writelines(lines)
     f.close()
 
+
+def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None:
+            lines.insert(i + 1, f"    {key}                     {value}\n")
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
+        ff.writelines(lines)
 
 def engine_config_remove_service_host(idx: int, host: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
@@ -1675,7 +1686,7 @@ def create_service_dependency_file(poller: int, name: str, exc: str, notf: str,d
             notify_on_critical = False
     engine.create_service_dependency(poller, name, exc, notf, dephost, host, descs, sr)
 
-def create_escalations_file(poller: int, name: string, SG: string, contactgroup: string):
+def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
 
@@ -2227,4 +2238,3 @@ def send_bench(id: int, port: int):
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
-
