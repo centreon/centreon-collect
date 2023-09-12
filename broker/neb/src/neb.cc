@@ -21,7 +21,6 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/callbacks.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
@@ -36,6 +35,12 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
 
 extern std::shared_ptr<asio::io_context> g_io_context;
+
+namespace com::centreon::broker {
+uint32_t neb_logger_id = 0;
+std::shared_ptr<spdlog::logger> neb_logger =
+    log_v3::instance().get(neb_logger_id);
+}  // namespace com::centreon::broker
 
 extern "C" {
 /**
@@ -58,9 +63,6 @@ int nebmodule_deinit(int flags, int reason) {
     // Unregister callbacks.
     neb::unregister_callbacks();
 
-    // Unload singletons.
-    log_v2::instance()
-        ->stop_flush_timer();  // beware at the order of these two calls
     com::centreon::broker::config::applier::deinit();
   }
   // Avoid exception propagation in C code.
@@ -86,6 +88,8 @@ int nebmodule_deinit(int flags, int reason) {
  *  @return 0 on success, any other value on failure.
  */
 int nebmodule_init(int flags, char const* args, void* handle) {
+  neb_logger_id = log_v3::instance().create_logger_or_get_id("neb");
+
   try {
     // Save module handle and flags for future use.
     neb::gl_mod_flags = flags;
@@ -115,7 +119,6 @@ int nebmodule_init(int flags, char const* args, void* handle) {
     setlocale(LC_NUMERIC, "C");
 
     try {
-      log_v2::load(g_io_context);
       // Set configuration file.
       if (args) {
         char const* config_file("config_file=");
@@ -134,8 +137,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Initialization.
       com::centreon::broker::config::applier::init(s);
       try {
-        log_v2::instance()->apply(s.log_conf());
-        log_v3::instance().apply(s.log_conf());
+        log_v3::instance().apply(s.log_conf(), false);
       } catch (const std::exception& e) {
         log_v3::instance().get(0)->error("main: {}", e.what());
       }
