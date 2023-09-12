@@ -109,7 +109,9 @@ void creator::create(std::string const& filename,
     if (it != _fds.end() && it->first.is_length_step_type_equal(info) &&
         it->first.from <= from) {
       _duplicate(filename, it->second);
-      log_v2::rrd()->debug("reuse {} for {}", it->second.path, filename);
+      log_v3::instance()
+          .get(_logger_id)
+          ->debug("reuse {} for {}", it->second.path, filename);
     }
     // Not in the cache, but we have enough space in the cache.
     // Create new entry.
