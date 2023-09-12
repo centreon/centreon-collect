@@ -1727,11 +1727,7 @@ def compare_rrd_status_average_value(index_id, value: int):
     lst = res.split('\n')
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))
-        expected = 100
-        if (value == 1):
-            expected = 75
-        elif(value == 2):
-            expected = 0
+        expected = {1: 75, 2: 0}.get(value, 100)
         return expected == res
     else:
         logger.console(
