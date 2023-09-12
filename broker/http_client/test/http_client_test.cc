@@ -23,10 +23,9 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
-#include <com/centreon/common/defer.hh>
+#include "com/centreon/common/defer.hh"
 
 #include "com/centreon/broker/pool.hh"
-#include "com/centreon/common/defer.hh"
 #include "common/log_v2/log_v2.hh"
 
 using system_clock = std::chrono::system_clock;
@@ -36,8 +35,8 @@ using duration = system_clock::duration;
 #include "com/centreon/broker/http_client/http_client.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::common;
 using namespace com::centreon::broker::http_client;
+using namespace com::centreon::common;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
