@@ -440,6 +440,8 @@ Start_Stop_Broker_Engine_${id}
     Config Broker Sql Output    central    unified_sql
     IF    ${grpc}
         Change Broker tcp output to grpc    central
+        Change Broker tcp output to grpc    module0
+        Change Broker tcp input to grpc    central
         Change Broker tcp input to grpc    rrd
     END
     ${start}    Get Current Date
