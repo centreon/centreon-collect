@@ -721,8 +721,8 @@ void monitoring_stream::_rebuild() {
 void monitoring_stream::_explicitly_send_forced_svc_checks(
     const boost::system::error_code& ec) {
   static int count = 0;
-  SPDLOG_LOGGER_DEBUG(log_v2::bam(),
-                      "BAM: time to send forced service checks {}", count++);
+  SPDLOG_LOGGER_DEBUG(_logger, "BAM: time to send forced service checks {}",
+                      count++);
   if (!ec) {
     if (_timer_forced_svc_checks.empty()) {
       std::lock_guard<std::mutex> lck(_forced_svc_checks_m);
