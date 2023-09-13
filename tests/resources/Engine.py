@@ -745,7 +745,6 @@ def engine_config_set_value(idx: int, key: str, value: str, force: bool = False)
 # @param value the new value to set to the key variable.
 #
 
-
 def engine_config_add_value(idx: int, key: str, value: str):
     """Run a command to add a value in the centengine.cfg for the config idx.
 
@@ -879,9 +878,8 @@ def engine_config_replace_value_in_hosts(idx: int, desc: str, key: str, value: s
 # @param new_command
 #
 def engine_config_change_command(idx: int, command_index: str, new_command: str):
-    f = open(f"{CONF_DIR}/config{idx}/commands.cfg", "r")
-    lines = f.readlines()
-    f.close()
+    with open(f"{CONF_DIR}/config{idx}/commands.cfg", "r") as f:
+        lines = f.readlines()
     new_lines = []
     r = re.compile(f"^\\s+command_name\\s+command_{command_index}$")
     found = 0
