@@ -166,6 +166,12 @@ std::shared_ptr<muxer> muxer::create(std::string name,
                               name);
       retval->set_read_filter(r_filter);
       retval->set_write_filter(w_filter);
+      SPDLOG_LOGGER_INFO(log_v2::core(),
+                         "multiplexing: reuse '{}' starts with {} in queue and "
+                         "the queue file is {}",
+                         name, retval->_events_size,
+                         retval->_file ? "enable" : "disable");
+
     } else {
       log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
       retval = std::shared_ptr<muxer>(
@@ -202,8 +208,8 @@ void muxer::ack_events(int count) {
   // Remove acknowledged events.
   SPDLOG_LOGGER_TRACE(
       log_v2::core(),
-      "multiplexing: acknowledging {} events from {} event queue", count,
-      _name);
+      "multiplexing: acknowledging {} events from {} event queue size: {}",
+      count, _name, _events_size);
 
   if (count) {
     SPDLOG_LOGGER_DEBUG(
@@ -309,9 +315,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                                io::data::dump_json{*event});
           }
 
-          SPDLOG_LOGGER_TRACE(log_v2::core(),
-                              "muxer {} event of type {:x} written", _name,
-                              event->type());
+          SPDLOG_LOGGER_TRACE(
+              log_v2::core(),
+              "muxer {} event of type {:x} written queue size: {}", _name,
+              event->type(), _events_size);
 
           at_least_one_push_to_queue = true;
 
@@ -368,9 +375,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       }
       try {
         _file->write(event);
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "{} publish one event of type {:x} to file {}",
-                            _name, event->type(), _queue_file_name);
+        SPDLOG_LOGGER_TRACE(
+            log_v2::core(),
+            "{} publish one event of type {:x} to file {} queue size:{}", _name,
+            event->type(), _queue_file_name, _events_size);
       } catch (const std::exception& ex) {
         // in case of exception, we lost event. It's mandatory to avoid
         // infinite loop in case of permanent disk problem
@@ -424,13 +432,17 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   _update_stats();
 
   if (event) {
-    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {}", _name, *event);
+    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {} queue size {}", _name,
+                        *event, _events_size);
     if (event->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                       "read");
       SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench read {}", _name,
                          io::data::dump_json{*event});
     }
+  } else {
+    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} queue size {} no event available",
+                        _name, _events_size);
   }
   return !timed_out;
 }
@@ -467,10 +479,10 @@ uint32_t muxer::get_event_queue_size() const {
  *  Reprocess non-acknowledged events.
  */
 void muxer::nack_events() {
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::core(),
-      "multiplexing: reprocessing unacknowledged events from {} event queue",
-      _name);
+  SPDLOG_LOGGER_DEBUG(log_v2::core(),
+                      "multiplexing: reprocessing unacknowledged events from "
+                      "{} event queue with {} waiting events",
+                      _name, _events_size);
   std::lock_guard<std::mutex> lock(_mutex);
   _pos = _events.begin();
   _update_stats();
