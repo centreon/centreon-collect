@@ -17,8 +17,7 @@ from datetime import datetime
 #
 # @return A boolean True on success
 def files_contain_same_json(file_e: str, file_b: str):
-    new_inst = {"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1,
-                "broker_name": "", "enabled": True, "poller_id": 1, "poller_name": "Central"}
+    new_inst = '{"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1, "broker_name": "", "enabled": True, "poller_id": 1, "poller_name": "Central"}'.upper()
 
     f1 = open(file_e)
     content1 = f1.readlines()
@@ -34,6 +33,8 @@ def files_contain_same_json(file_e: str, file_b: str):
         m1 = r.match(content1[idx1])
         if m1 is not None:
             c1 = m1.group(1)
+            if c1.upper() == new_inst:
+                continue
         else:
             logger.console("content at line {} of '{}' is not JSON: {}".format(
                 idx1, file_e, content1[idx1]))
@@ -42,6 +43,8 @@ def files_contain_same_json(file_e: str, file_b: str):
         m2 = r.match(content2[idx2])
         if m2 is not None:
             c2 = m2.group(1)
+            if c2.upper() == new_inst:
+                continue
         else:
             logger.console("content at line {} of '{}' is not JSON: {}".format(
                 idx2, file_b, content2[idx2]))

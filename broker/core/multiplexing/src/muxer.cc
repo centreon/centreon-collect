@@ -294,51 +294,46 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
   auto evt = event_queue.begin();
   while (evt != event_queue.end()) {
     bool at_least_one_push_to_queue = false;
-    {  // we stop this first loop when mux queue is full on order to release
-       // mutex to let read do his job before write to file
+    read_handler async_handler;
+    {
+      // we stop this first loop when mux queue is full on order to release
+      // mutex to let read do his job before write to file
+      std::lock_guard<std::mutex> lock(_mutex);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
-        {
-          auto event = *evt;
-          if (!_write_filter.allows(event->type())) {
-            SPDLOG_LOGGER_TRACE(
-                log_v2::core(),
-                "muxer {} event of type {:x} rejected by write filter", _name,
-                event->type());
-            continue;
-          }
-
-          if (event->type() == bbdo::pb_bench::static_type()) {
-            add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
-                            _name, "publish");
-            SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench publish {}", _name,
-                               io::data::dump_json{*event});
-          }
-
+        auto event = *evt;
+        if (!_write_filter.allows(event->type())) {
           SPDLOG_LOGGER_TRACE(
               log_v2::core(),
-              "muxer {} event of type {:x} written queue size: {}", _name,
-              event->type(), _events_size);
-
-          at_least_one_push_to_queue = true;
-
-          _push_to_queue(*evt);
+              "muxer {} event of type {:x} rejected by write filter", _name,
+              event->type());
+          continue;
         }
-        if (at_least_one_push_to_queue) {
-          read_handler async_handler;
-          {
-            // async handler waiting?
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_read_handler) {
-              async_handler = std::move(_read_handler);
-              _read_handler = nullptr;
-            }
-          }
-          if (async_handler) {
-            async_handler();
-          }
+
+        if (event->type() == bbdo::pb_bench::static_type()) {
+          add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
+                          _name, "publish");
+          SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench publish {}", _name,
+                             io::data::dump_json{*event});
         }
+
+        SPDLOG_LOGGER_TRACE(
+            log_v2::core(),
+            "muxer {} event of type {:x} written queue size: {}", _name,
+            event->type(), _events_size);
+
+        at_least_one_push_to_queue = true;
+
+        _push_to_queue(event);
       }
+      if (at_least_one_push_to_queue &&
+          _read_handler) {  // async handler waiting?
+        async_handler = std::move(_read_handler);
+        _read_handler = nullptr;
+      }
+    }
+    if (async_handler) {
+      async_handler();
     }
 
     if (evt == event_queue.end()) {

@@ -1720,10 +1720,9 @@ def compare_rrd_status_average_value(index_id, value: int):
     index_id is the index of the status
     average value expected is 100 if value=0, 75 if value=1, 0 if value=2
     """
-    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
+    res = getoutput(f"rrdtool graph dummy --start=end-180d --end=now"
                     " DEF:x=" + VAR_ROOT +
-                    "/lib/centreon/status/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
-                    .format(index_id))
+                    "/lib/centreon/status/{index_id}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf")
     lst = res.split('\n')
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))
