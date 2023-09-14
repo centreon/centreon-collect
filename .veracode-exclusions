@@ -14,6 +14,7 @@ broker/script/misc/view-retention/view-retention.py
 broker/script/misc/view-retention/compression.py
 broker/script/misc/check_broker_config.py
 broker/script/update-master-ta.pl
+broker/grpc/src/grpc_stream.pb.cc
 clib/test
 connectors/ssh/test
 connectors/test
@@ -35,3 +36,4 @@ engine/src/simumod/coder.pl
 grpc/centreon-rpc-client.py
 tests
 packaging
+/root/.conan/
