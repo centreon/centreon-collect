@@ -44,6 +44,8 @@ class endpoint;
  */
 class database_config {
  public:
+  enum category { SHARED = 0, DATA_BIN_LOGS = 1 };
+
   database_config();
   database_config(std::string const& type,
                   std::string const& host,

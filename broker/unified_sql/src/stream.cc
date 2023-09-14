@@ -116,7 +116,7 @@ constexpr size_t neb_processing_table_size =
 
 /**
  * @brief this function return a database_config equal to the parameter dbcfg
- * except the connections_count witch is equal to 1
+ * except that the connections_count is equal to 1
  *
  * @param dbcfg  config to copy to the return object
  * @return database_config  copy of the parameter with connections_count = 1
@@ -183,29 +183,29 @@ stream::stream(const database_config& dbcfg,
   SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?
-  unsigned nb_dedicated_connexion = 0;
+  unsigned nb_dedicated_connection = 0;
   switch (dbcfg.get_connections_count()) {
-    case 1:  // only one connexion =>data_bin and logs are filled with the only
+    case 1:  // only one connection =>data_bin and logs are filled with the only
              // connection
       break;
     case 2:
-      nb_dedicated_connexion = 1;
+      nb_dedicated_connection = 1;
       break;
-    case 3:
     default:
-      nb_dedicated_connexion = store_in_data_bin ? 2 : 1;
+      nb_dedicated_connection = store_in_data_bin ? 2 : 1;
       break;
   }
 
-  if (nb_dedicated_connexion > 0) {
+  if (nb_dedicated_connection > 0) {
     SPDLOG_LOGGER_INFO(
         log_v2::sql(),
         "use of {} dedicated connection for logs and data_bin tables",
-        nb_dedicated_connexion);
+        nb_dedicated_connection);
     database_config dedicated_cfg(dbcfg);
-    dedicated_cfg.set_category(1);  // no shared with bam connection
+    dedicated_cfg.set_category(
+        database_config::DATA_BIN_LOGS);  // no shared with bam connection
     dedicated_cfg.set_queries_per_transaction(1);
-    dedicated_cfg.set_connections_count(nb_dedicated_connexion);
+    dedicated_cfg.set_connections_count(nb_dedicated_connection);
     _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
   }
 

@@ -48,7 +48,7 @@ database_config::database_config()
     : _queries_per_transaction(1),
       _check_replication(true),
       _connections_count(1),
-      _category(0) {}
+      _category(SHARED) {}
 
 /**
  *  Constructor.
@@ -89,7 +89,7 @@ database_config::database_config(const std::string& type,
       _check_replication(check_replication),
       _connections_count(connections_count),
       _max_commit_delay(max_commit_delay),
-      _category(0) {}
+      _category(SHARED) {}
 
 /**
  *  Build a database configuration from a configuration set.
