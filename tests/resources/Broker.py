@@ -1734,6 +1734,8 @@ def compare_rrd_status_average_value(index_id, value: int):
         return True
 
 
+
+
 def compare_rrd_average_value_with_grpc(metric, key, value: float):
     """! Compare the average value for an RRD metric.
     @param metric The metric id

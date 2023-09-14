@@ -1754,6 +1754,9 @@ void reporting_stream::_dimension_dispatch(
                                bam::de_dimension_ba_bv_relation_event>::value:
       _process_dimension_ba_bv_relation(data);
       break;
+    case bam::pb_dimension_ba_bv_relation_event::static_type():
+      _process_pb_dimension_ba_bv_relation(data);
+      break;
     case bam::dimension_kpi_event::static_type():
     case bam::pb_dimension_kpi_event::static_type():
       _process_dimension_kpi(data);
