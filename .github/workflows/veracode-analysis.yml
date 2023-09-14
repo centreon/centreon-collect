@@ -113,6 +113,10 @@ jobs:
 
           echo "[DEBUG] - current location"
           pwd
+
+          echo "[DEBUG] - hh files left"
+          find ./build -type f -name "*.hh"
+          
           echo "[DEBUG] - current location files"
           ls -la
           echo "[DEBUG] - All current location files"
