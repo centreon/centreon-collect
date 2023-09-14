@@ -76,6 +76,7 @@ BENCH_${nb_check}STATUS
     Examples:    nb_check    --
     ...    1000
     ...    10000
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
