@@ -339,8 +339,8 @@ not5
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
-    engine_config_add_value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    engine_config_add_command
+    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    Engine Config Add Command
     ...    0
     ...    command_notif
     ...    /usr/bin/true
