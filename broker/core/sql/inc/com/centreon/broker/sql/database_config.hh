@@ -34,9 +34,18 @@ class endpoint;
  *  @brief Database configuration.
  *
  *  Hold the database information.
+ * a spot on _category attribute:
+ * mysql_manager try to factorise mysql connections and share the same
+ * connection between clients that have the same configuration
+ * (mysql_connection::match_config method)
+ * category must be used if you don't want to use this sharing
+ * only client that have the same config host, port, user, password, socket,
+ * queries_per_transaction and category can share the same connection
  */
 class database_config {
  public:
+  enum category { SHARED = 0, DATA_BIN_LOGS = 1 };
+
   database_config();
   database_config(std::string const& type,
                   std::string const& host,
@@ -67,6 +76,7 @@ class database_config {
   bool get_check_replication() const;
   int get_connections_count() const;
   unsigned get_max_commit_delay() const;
+  unsigned get_category() const;
 
   void set_type(std::string const& type);
   void set_host(std::string const& host);
@@ -78,6 +88,7 @@ class database_config {
   void set_connections_count(int count);
   void set_queries_per_transaction(int qpt);
   void set_check_replication(bool check_replication);
+  void set_category(unsigned category);
 
   database_config auto_commit_conf() const;
 
@@ -95,6 +106,7 @@ class database_config {
   bool _check_replication;
   int _connections_count;
   unsigned _max_commit_delay;
+  unsigned _category;
 };
 
 std::ostream& operator<<(std::ostream& s, const database_config cfg);

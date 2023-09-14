@@ -101,6 +101,7 @@ class mysql_connection {
   SqlConnectionStats* _proto_stats;
   std::time_t _last_stats;
   uint32_t _qps;
+  unsigned _category;
 
   sql::stats _stats;
 

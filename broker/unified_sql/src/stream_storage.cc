@@ -902,7 +902,8 @@ void stream::_check_queues(boost::system::error_code ec) {
       if (_perfdata_query->ready()) {
         SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new perfdata inserted",
                             _perfdata_query->row_count());
-        _perfdata_query->execute(_mysql);
+        _perfdata_query->execute(
+            _dedicated_connections ? *_dedicated_connections : _mysql);
         perfdata_done = true;
       }
     }
@@ -972,10 +973,14 @@ void stream::_check_queues(boost::system::error_code ec) {
     {
       std::lock_guard<database::bulk_or_multi> lck(*_logs);
       if (_logs->ready()) {
-        int32_t conn = special_conn::log % _mysql.connections_count();
         SPDLOG_LOGGER_DEBUG(log_v2::sql(), "{} new logs inserted",
                             _logs->row_count());
-        _logs->execute(_mysql, database::mysql_error::update_logs, conn);
+        if (_dedicated_connections)
+          _logs->execute(*_dedicated_connections,
+                         database::mysql_error::update_logs);
+        else
+          _logs->execute(_mysql, database::mysql_error::update_logs,
+                         special_conn::log % _mysql.connections_count());
         logs_done = true;
       }
     }

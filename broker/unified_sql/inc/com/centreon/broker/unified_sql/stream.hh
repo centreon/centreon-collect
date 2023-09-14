@@ -255,6 +255,7 @@ class stream : public io::stream {
   uint32_t _max_pending_queries;
   database_config _dbcfg;
   mysql _mysql;
+  std::unique_ptr<mysql> _dedicated_connections;
   uint32_t _instance_timeout;
   rebuilder _rebuilder;
   bool _store_in_db = true;
