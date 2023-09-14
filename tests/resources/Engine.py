@@ -1679,13 +1679,6 @@ def create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def create_service_dependency_file(poller: int, name: str, exc: str, notf: str,dephost: str, host: str, descs: str, sr: str):
-    notify_on_critical = True
-    if exc == "c" and notf == "c" and sr == "critical":
-        if descs == "critical":
-            notify_on_critical = False
-    engine.create_service_dependency(poller, name, exc, notf, dephost, host, descs, sr)
-
 def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
@@ -2031,8 +2024,7 @@ def del_host_comment(comment_id):
 
 @external_command
 def change_host_check_command(hst: str, Check_Command: str):
-    return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
-        now, hst, Check_Command)
+    return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(now, hst, Check_Command)
 
 
 @external_command
