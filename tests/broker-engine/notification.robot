@@ -229,7 +229,7 @@ not3
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling downtime has not finished .
 
-    Process Service Check result    host_1    service_1    2    critical
+    Process Service Check Result    host_1    service_1    2    critical
 
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Sleep    1s
