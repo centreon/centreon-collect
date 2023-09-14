@@ -745,7 +745,7 @@ not10
     Sleep    1s
     END
 
-   Delete host downtimes    ${0}    host_1
+   Delete Host Downtimes    ${0}    host_1
 
     ${content}=    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;host_1 DOWN;
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
