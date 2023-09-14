@@ -37,8 +37,8 @@ opener::opener(int32_t level, size_t size)
  *
  *  @return New compression object.
  */
-std::unique_ptr<io::stream> opener::open() {
-  std::unique_ptr<io::stream> retval;
+std::shared_ptr<io::stream> opener::open() {
+  std::shared_ptr<io::stream> retval;
   if (_from)
     retval = _open(_from->open());
   return retval;
@@ -49,10 +49,10 @@ std::unique_ptr<io::stream> opener::open() {
  *
  *  @return New compression object.
  */
-std::unique_ptr<io::stream> opener::_open(std::shared_ptr<io::stream> base) {
-  std::unique_ptr<io::stream> retval;
+std::shared_ptr<io::stream> opener::_open(std::shared_ptr<io::stream> base) {
+  std::shared_ptr<io::stream> retval;
   if (base) {
-    retval = std::make_unique<stream>(_level, _size);
+    retval = std::make_shared<stream>(_level, _size);
     retval->set_substream(base);
   }
   return retval;

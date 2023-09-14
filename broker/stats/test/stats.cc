@@ -137,7 +137,7 @@ class st : public io::stream {
 class endp : public io::endpoint {
  public:
   endp() : io::endpoint{false, {}} {}
-  std::unique_ptr<io::stream> open() override {
+  std::shared_ptr<io::stream> open() override {
     static int count = 0;
     if (++count < 2)
       return std::unique_ptr<st>(new st);

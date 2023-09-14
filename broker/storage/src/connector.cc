@@ -51,7 +51,7 @@ void connector::connect_to(database_config const& dbcfg,
  *
  * @return Storage connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   return std::make_unique<stream>(_dbcfg, _rrd_len, _interval_length,
                                   _store_in_data_bin);
 }

@@ -32,11 +32,11 @@ acceptor::~acceptor() {
   _grpc_instance->shutdown();
 }
 
-std::unique_ptr<io::stream> acceptor::open() {
+std::shared_ptr<io::stream> acceptor::open() {
   return _grpc_instance->open(system_clock::now() + std::chrono::seconds(3));
 }
 
-std::unique_ptr<io::stream> acceptor::open(
+std::shared_ptr<io::stream> acceptor::open(
     const system_clock::time_point& dead_line) {
   return _grpc_instance->open(dead_line);
 }

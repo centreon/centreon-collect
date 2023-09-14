@@ -105,7 +105,7 @@ void engine::publish(const std::shared_ptr<io::data>& e) {
   }
 }
 
-void engine::publish(const std::list<std::shared_ptr<io::data>>& to_publish) {
+void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
   bool have_to_send = false;
   {
     std::lock_guard<std::mutex> lock(_engine_m);

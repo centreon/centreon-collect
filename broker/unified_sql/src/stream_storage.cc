@@ -153,7 +153,7 @@ void stream::_unified_sql_process_pb_service_status(
       std::list<misc::perfdata> pds{misc::parse_perfdata(
           ss.host_id(), ss.service_id(), ss.perfdata().c_str())};
 
-      std::list<std::shared_ptr<io::data>> to_publish;
+      std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});
@@ -523,7 +523,7 @@ void stream::_unified_sql_process_service_status(
       std::list<misc::perfdata> pds{misc::parse_perfdata(
           ss.host_id, ss.service_id, ss.perf_data.c_str())};
 
-      std::list<std::shared_ptr<io::data>> to_publish;
+      std::deque<std::shared_ptr<io::data>> to_publish;
       for (auto& pd : pds) {
         misc::read_lock rlck(_metric_cache_m);
         auto it_index_cache = _metric_cache.find({index_id, pd.name()});

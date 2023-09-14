@@ -30,7 +30,7 @@ Config BBDO3
     Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
     FOR    ${i}    IN RANGE    ${nbEngine}
-        ${mod}=    Catenate    SEPARATOR=    module    ${i}
+        ${mod}    Catenate    SEPARATOR=    module    ${i}
         Broker Config Add Item    ${mod}    bbdo_version    3.0.1
     END
 
@@ -85,7 +85,7 @@ Kindly Stop Broker
     [Arguments]    ${only_central}=False
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
-    ${result}=    Wait For Process    b1    timeout=60s
+    ${result}    Wait For Process    b1    timeout=60s
     # In case of process not stopping
     IF    "${result}" == "${None}"
         Dump Process    b1    broker-central
@@ -93,13 +93,13 @@ Kindly Stop Broker
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
         IF    ${result.rc} != 0
-            Coredump info    b1    /usr/sbin/cbd    broker_central
+            Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    msg=Central Broker not correctly stopped
         END
     END
 
     IF    not ${only_central}
-        ${result}=    Wait For Process    b2    timeout=60s    on_timeout=kill
+        ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
         # In case of process not stopping
         IF    "${result}" == "${None}"
             Dump Process    b2    broker-rrd
@@ -115,10 +115,10 @@ Kindly Stop Broker
 
 Stop Broker
     [Arguments]    ${only_central}=False
-    ${result}=    Terminate Process    b1    kill=False
+    ${result}    Terminate Process    b1    kill=False
     Should Be Equal As Integers    ${result.rc}    0
     IF    not ${only_central}
-        ${result}=    Terminate Process    b2    kill=False
+        ${result}    Terminate Process    b2    kill=False
         Should Be Equal As Integers    ${result.rc}    0
     END
 
@@ -128,12 +128,12 @@ Stop Processes
     Kill Engine
 
 Start Engine
-    ${count}=    Get Engines Count
+    ${count}    Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}=    Catenate    SEPARATOR=    e    ${idx}
-        ${conf}=    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
-        ${log}=    Catenate    SEPARATOR=    ${VarRoot}    /log/centreon-engine/config    ${idx}
-        ${lib}=    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${conf}    Catenate    SEPARATOR=    ${EtcRoot}    /centreon-engine/config    ${idx}    /centengine.cfg
+        ${log}    Catenate    SEPARATOR=    ${VarRoot}    /log/centreon-engine/config    ${idx}
+        ${lib}    Catenate    SEPARATOR=    ${VarRoot}    /lib/centreon-engine/config    ${idx}
         Create Directory    ${log}
         Create Directory    ${lib}
         TRY
@@ -154,22 +154,22 @@ Start Custom Engine
 
 Stop Custom Engine
     [Arguments]    ${process_alias}
-    ${result}=    Terminate Process    ${process_alias}
+    ${result}    Terminate Process    ${process_alias}
     Should Be True
     ...    ${result.rc} == -15 or ${result.rc} == 0
     ...    msg=Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Stop Engine
-    ${count}=    Get Engines Count
+    ${count}    Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}=    Catenate    SEPARATOR=    e    ${idx}
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGTERM    ${alias}
     END
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}=    Catenate    SEPARATOR=    e    ${idx}
-        ${result}=    Wait For Process    ${alias}    timeout=60s
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${result}    Wait For Process    ${alias}    timeout=60s
         IF    "${result}" == "${None}"
-            ${name}=    Catenate    SEPARATOR=    centengine    ${idx}
+            ${name}    Catenate    SEPARATOR=    centengine    ${idx}
             Dump Process    ${alias}    ${name}
             Send Signal To Process    SIGKILL    ${alias}
             Fail    ${name} not correctly stopped (coredump generated)
@@ -182,29 +182,29 @@ Stop Engine
 
 Get Engine Pid
     [Arguments]    ${process_alias}
-    ${pid}=    Get Process Id    ${process_alias}
+    ${pid}    Get Process Id    ${process_alias}
     RETURN    ${pid}
 
 Reload Engine
-    ${count}=    Get Engines Count
+    ${count}    Get Engines Count
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}=    Catenate    SEPARATOR=    e    ${idx}
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
         Send Signal To Process    SIGHUP    ${alias}
     END
 
 Check Connections
-    ${count}=    Get Engines Count
-    ${pid1}=    Get Process Id    b1
+    ${count}    Get Engines Count
+    ${pid1}    Get Process Id    b1
     FOR    ${idx}    IN RANGE    0    ${count}
-        ${alias}=    Catenate    SEPARATOR=    e    ${idx}
-        ${pid2}=    Get Process Id    ${alias}
+        ${alias}    Catenate    SEPARATOR=    e    ${idx}
+        ${pid2}    Get Process Id    ${alias}
         Log to console    Check Connection 5669 ${pid1} ${pid2}
-        ${retval}=    Check Connection    5669    ${pid1}    ${pid2}
+        ${retval}    Check Connection    5669    ${pid1}    ${pid2}
         IF    ${retval} == ${False}    RETURN    ${False}
     END
-    ${pid2}=    Get Process Id    b2
+    ${pid2}    Get Process Id    b2
     Log to console    Check Connection 5670 ${pid1} ${pid2}
-    ${retval}=    Check Connection    5670    ${pid1}    ${pid2}
+    ${retval}    Check Connection    5670    ${pid1}    ${pid2}
     RETURN    ${retval}
 
 Disable Eth Connection On Port
@@ -222,7 +222,7 @@ Save Logs If failed
 
 Save Logs
     Create Directory    failed
-    ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
     Copy files    ${centralLog}    ${failDir}
     Copy files    ${rrdLog}    ${failDir}
@@ -235,20 +235,20 @@ Save Logs
 
 Dump Process
     [Arguments]    ${process_name}    ${name}
-    ${pid}=    Get Process Id    ${process_name}
-    ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${pid}    Get Process Id    ${process_name}
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
-    ${output}=    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}
+    ${output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}
     Log To Console    Creation of core ${output}.${pid} to debug
     Run Process    gcore    -o    ${output}    ${pid}
     Log To Console    Done...
 
 Coredump Info
     [Arguments]    ${process_name}    ${binary_path}    ${name}
-    ${pid}=    Get Process Id    ${process_name}
-    ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${pid}    Get Process Id    ${process_name}
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
-    ${output}=    Catenate    SEPARATOR=    ${failDir}    /coreinfo-    ${name}    -${pid}    .txt
+    ${output}    Catenate    SEPARATOR=    ${failDir}    /coreinfo-    ${name}    -${pid}    .txt
     Log To Console    info of core saved in ${output}
     Run Process
     ...    gdb
@@ -260,14 +260,21 @@ Coredump Info
     ...    stdout=${output}
     ...    stderr=${output}
 
+Copy Coredump In Failed Dir
+    [Arguments]    ${process_name}    ${binary_path}    ${name}
+    ${pid}    Get Process Id    ${process_name}
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+    Create Directory    ${failDir}
+    Copy File    /tmp/core.${pid}    ${failDir}
+
 Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${timeout}
-    ${result}=    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
-    ${test_none}=    Set Variable If    $result is None    "not killed"    "killed"
+    ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
+    ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
     IF    ${test_none} == "not killed"
-        ${pid}=    Get Process Id    ${process_name}
+        ${pid}    Get Process Id    ${process_name}
         Run Process    gcore    -o    ${ENGINE_LOG}/config0/gcore_${process_name}    ${pid}
-        ${result}=    Wait For Process    ${process_name}    timeout=1s    on_timeout=kill
+        ${result}    Wait For Process    ${process_name}    timeout=1s    on_timeout=kill
     END
     RETURN    ${result}
 

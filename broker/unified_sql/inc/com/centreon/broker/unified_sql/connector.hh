@@ -56,7 +56,7 @@ class connector : public io::endpoint {
                   bool store_in_data_bin = true,
                   bool store_in_resources = true,
                   bool store_in_hosts_services = true);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace unified_sql
 

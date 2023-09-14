@@ -32,7 +32,6 @@ namespace detail {
 class callback_caller;
 }  // namespace detail
 
-
 /**
  *  @class engine engine.hh "com/centreon/broker/multiplexing/engine.hh"
  *  @brief Multiplexing engine.
@@ -109,7 +108,7 @@ class engine : public std::enable_shared_from_this<engine> {
 
   void clear();
   void publish(const std::shared_ptr<io::data>& d);
-  void publish(const std::list<std::shared_ptr<io::data>>& to_publish);
+  void publish(const std::deque<std::shared_ptr<io::data>>& to_publish);
   void start();
   void stop();
   void subscribe(const std::shared_ptr<muxer>& subscriber);

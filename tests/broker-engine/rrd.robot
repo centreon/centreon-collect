@@ -54,7 +54,7 @@ BRRDDM1
     FOR    ${l}    IN    @{result[1]}
         # We check all the metrics are in this line
         FOR    ${m}    IN    @{metrics}
-            Should Be True    "${m}" in """${l}"""    msg=${m} is not in the line ${l}
+            Should Be True    "${m}" in """${l}"""    ${m} is not in the line ${l}
         END
     END
     FOR    ${m}    IN    @{metrics}
@@ -80,12 +80,12 @@ BRRDWM1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     ${content}    Create List    RRD: new pb data for metric
 
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    120
-    Should Be True    ${result}    msg=No protobuf metric sent to cbd RRD for 60s.
+    Should Be True    ${result}    No protobuf metric sent to cbd RRD for 60s.
 
 BRRDDID1
     [Documentation]    RRD metrics deletion from index ids.
@@ -104,7 +104,7 @@ BRRDDID1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Indexes To Delete    2
     ${metrics}    Get Metrics Matching Indexes    ${indexes}
@@ -116,12 +116,12 @@ BRRDDID1
     ${content}    Create List    indexes .* erased from database
 
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result[0]}    msg=No log message telling about indexes ${indexes_str} deletion.
+    Should Be True    ${result[0]}    No log message telling about indexes ${indexes_str} deletion.
     # We should have one line, but stored in an array.
     FOR    ${l}    IN    @{result[1]}
         # We check all the indexes are in this line
         FOR    ${ii}    IN    @{indexes}
-            Should Be True    "${ii}" in """${l}"""    msg=${ii} is not in the line ${l}
+            Should Be True    "${ii}" in """${l}"""    ${ii} is not in the line ${l}
         END
     END
 
@@ -151,7 +151,7 @@ BRRDDMID1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Not Existing Indexes    2
     ${metrics}    Get Not Existing Metrics    2
@@ -162,7 +162,7 @@ BRRDDMID1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
-    ...    msg=A message telling indexes nor metrics appear in the storage database should appear.
+    ...    A message telling indexes nor metrics appear in the storage database should appear.
 
 BRRDDMU1
     [Documentation]    RRD metric deletion on table metric with unified sql output
@@ -183,7 +183,7 @@ BRRDDMU1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     # We choose 3 metrics to remove.
     ${metrics}    Get Metrics To Delete    3
@@ -195,13 +195,13 @@ BRRDDMU1
     ${content}    Create List    metrics .* erased from database
 
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    50
-    Should Be True    ${result[0]}    msg=No log message telling about metrics ${metrics_str} deletion.
+    Should Be True    ${result[0]}    No log message telling about metrics ${metrics_str} deletion.
 
     # We should have one line, but stored in an array.
     FOR    ${l}    IN    @{result[1]}
         # We check all the metrics are in this line
         FOR    ${m}    IN    @{metrics}
-            Should Be True    "${m}" in """${l}"""    msg=${m} is not in the line ${l}
+            Should Be True    "${m}" in """${l}"""    ${m} is not in the line ${l}
         END
     END
     FOR    ${m}    IN    @{metrics}
@@ -227,7 +227,7 @@ BRRDDIDU1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Indexes To Delete    2
     ${metrics}    Get Metrics Matching Indexes    ${indexes}
@@ -239,12 +239,12 @@ BRRDDIDU1
     ${content}    Create List    indexes .* erased from database
 
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result[0]}    msg=No log message telling about indexes ${indexes_str} deletion.
+    Should Be True    ${result[0]}    No log message telling about indexes ${indexes_str} deletion.
     # We should have one line, but stored in an array.
     FOR    ${l}    IN    @{result[1]}
         # We check all the indexes are in this line
         FOR    ${ii}    IN    @{indexes}
-            Should Be True    "${ii}" in """${l}"""    msg=${ii} is not in the line ${l}
+            Should Be True    "${ii}" in """${l}"""    ${ii} is not in the line ${l}
         END
     END
 
@@ -273,7 +273,7 @@ BRRDDMIDU1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     ${indexes}    Get Not Existing Indexes    2
     ${metrics}    Get Not Existing Metrics    2
@@ -284,7 +284,7 @@ BRRDDMIDU1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
-    ...    msg=A message telling indexes nor metrics appear in the storage database should appear.
+    ...    A message telling indexes nor metrics appear in the storage database should appear.
 
 BRRDRM1
     [Documentation]    RRD metric rebuild with gRPC API. 3 indexes are selected then a message to rebuild them is sent. This is done with storage/sql sql output.
@@ -304,7 +304,7 @@ BRRDRM1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
     ${index}    Get Indexes To Rebuild    3
@@ -314,25 +314,25 @@ BRRDRM1
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=Central did not send metrics to rebuild
+    Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
-    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild START
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
-    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild DATA
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
-    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild END
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
         ${result}    Compare RRD Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
     END
 
     FOR    ${index_id}    IN    @{index}
@@ -340,7 +340,7 @@ BRRDRM1
         ${result}    Compare RRD Status Average Value    ${index_id}    ${value}
         Should Be True
         ...    ${result}
-        ...    msg= index_id=${index_id} Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 50 if modulo==2 .
+        ...    index_id=${index_id} Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
     END
 
 BRRDRMU1
@@ -363,7 +363,7 @@ BRRDRMU1
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    Should Be True    ${result}    Engine and Broker not connected
 
     # We get 3 indexes to rebuild
     ${index}    Get Indexes To Rebuild    3
@@ -373,25 +373,25 @@ BRRDRMU1
     Log To Console    Metrics to rebuild: ${metrics}
     ${content}    Create List    Metric rebuild: metric    is sent to rebuild
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=Central did not send metrics to rebuild
+    Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    RRD: Starting to rebuild metrics
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
-    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild START
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild START
 
     ${content1}    Create List    RRD: Rebuilding metric
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
-    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild DATA
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild DATA
 
     ${content1}    Create List    RRD: Finishing to rebuild metrics
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
-    Should Be True    ${result}    msg=RRD cbd did not receive metrics to rebuild END
+    Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
     FOR    ${m}    IN    @{metrics}
         ${value}    Evaluate    ${m} / 2
         ${result}    Compare RRD Average Value    ${m}    ${value}
         Should Be True
         ...    ${result}
-        ...    msg=Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
+        ...    Data before RRD rebuild contain alternatively the metric ID and 0. The expected average is metric_id / 2.
     END
 
     FOR    ${index_id}    IN    @{index}
@@ -399,7 +399,7 @@ BRRDRMU1
         ${result}    Compare RRD Status Average Value    ${index_id}    ${value}
         Should Be True
         ...    ${result}
-        ...    msg=Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 50 if modulo==2 .
+        ...    Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
     END
 
 

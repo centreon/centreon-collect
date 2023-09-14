@@ -49,7 +49,11 @@ namespace multiplexing {
  *
  *  @see engine
  */
-class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
+class muxer : public io::stream {
+ public:
+  using read_handler = std::function<void()>;
+
+ private:
   static uint32_t _event_queue_max_size;
 
   const std::string _name;
@@ -59,6 +63,7 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   std::string _read_filters_str;
   std::string _write_filters_str;
   const bool _persistent;
+  read_handler _read_handler;
 
   std::unique_ptr<persistent_file> _file;
   std::condition_variable _cv;
@@ -82,7 +87,6 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
         const muxer_filter& w_filter,
         bool persistent = false);
 
-
  public:
   static std::string queue_file(const std::string& name);
   static std::string memory_file(const std::string& name);
@@ -99,6 +103,10 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void ack_events(int count);
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
+  template <class container>
+  bool read(container& to_fill,
+            size_t max_to_read,
+            read_handler&& handler) noexcept;
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
   uint32_t get_event_queue_size() const;
@@ -107,11 +115,50 @@ class muxer : public io::stream, public std::enable_shared_from_this<muxer> {
   void statistics(nlohmann::json& tree) const override;
   void wake();
   int32_t write(std::shared_ptr<io::data> const& d) override;
+  void write(std::deque<std::shared_ptr<io::data>>& to_publish);
   int32_t stop() override;
   const std::string& name() const;
   void set_read_filter(const muxer_filter& w_filter);
   void set_write_filter(const muxer_filter& w_filter);
+  void clear_read_handler();
 };
+
+/**
+ * @brief read data from queue and store in to_fill with the push_back method
+ * It tries to write max_to_read events in to_fill. If there are no more
+ * events in the queue, it stores handler and will call it as soon as events are
+ * pushed in queue (publish only not transferred from retention to queue)
+ *
+ * @tparam container list<std::shared_ptr<io::data>> or
+ * vector<std::shared_ptr<io::data>>
+ * @param to_fill container to  fill
+ * @param max_to_read max events to read from muxer and to push_back in to_fill
+ * @param handler handler that will be called if we can't read max_to_read
+ * events as soon as data will be available
+ */
+template <class container>
+bool muxer::read(container& to_fill,
+                 size_t max_to_read,
+                 read_handler&& handler) noexcept {
+  std::unique_lock<std::mutex> lock(_mutex);
+
+  size_t nb_read = 0;
+  while (_pos != _events.end() && nb_read < max_to_read) {
+    to_fill.push_back(*_pos);
+    ++_pos;
+    ++nb_read;
+  }
+  // no more data => store handler to call when data will be available
+  if (_pos == _events.end()) {
+    _read_handler = std::move(handler);
+    _update_stats();
+    return false;
+  } else {
+    _update_stats();
+    return true;
+  }
+}
+
 }  // namespace multiplexing
 
 CCB_END()

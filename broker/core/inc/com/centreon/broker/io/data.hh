@@ -91,6 +91,8 @@ inline std::ostream& operator<<(std::ostream& s, const data::dump_json& d) {
   return s;
 }
 
+using data_read_handler = std::function<void(const std::shared_ptr<data>&)>;
+
 }  // namespace io
 
 CCB_END()

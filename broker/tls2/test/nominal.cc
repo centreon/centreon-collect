@@ -59,7 +59,7 @@ TEST_F(TcpAcceptor, QuestionAnswer) {
     std::unique_ptr<io::endpoint> endp(a.release());
 
     /* Nominal case, cbd is acceptor and read on the socket */
-    std::unique_ptr<io::stream> u_cbd;
+    std::shared_ptr<io::stream> u_cbd;
     do {
       u_cbd = endp->open();
     } while (!u_cbd);

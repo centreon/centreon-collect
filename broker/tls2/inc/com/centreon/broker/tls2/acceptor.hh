@@ -49,8 +49,8 @@ class acceptor : public io::endpoint {
   ~acceptor() noexcept = default;
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
-  std::unique_ptr<io::stream> open() override;
-  std::unique_ptr<io::stream> open(std::shared_ptr<io::stream> lower);
+  std::shared_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open(std::shared_ptr<io::stream> lower);
 };
 }  // namespace tls2
 

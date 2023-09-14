@@ -255,7 +255,7 @@ TEST_F(OutputTest, ShortPersistentFile) {
   }
   svc->last_time_ok = timestamp(0x55667788);  // 0x1cbe991a83
 
-  std::unique_ptr<io::stream> mf(
+  std::shared_ptr<io::stream> mf(
       new persistent_file("/tmp/test_output", nullptr));
   mf->write(svc);
 
@@ -300,7 +300,7 @@ TEST_F(OutputTest, LongPersistentFile) {
   }
   svc->last_time_ok = timestamp(0x55667788);  // 0x1cbe991a83
 
-  std::unique_ptr<io::stream> mf(new persistent_file("/tmp/long_output"));
+  std::shared_ptr<io::stream> mf(new persistent_file("/tmp/long_output"));
   mf->write(svc);
 
   std::shared_ptr<io::data> e;

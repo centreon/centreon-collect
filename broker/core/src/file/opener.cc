@@ -51,11 +51,9 @@ opener::~opener() {}
  *
  *  @return Opened stream.
  */
-std::unique_ptr<io::stream> opener::open() {
+std::shared_ptr<io::stream> opener::open() {
   // Open splitted file.
-  std::unique_ptr<io::stream> retval{
-      std::make_unique<stream>(_filename, nullptr, _max_size, _auto_delete)};
-  return retval;
+  return std::make_shared<stream>(_filename, nullptr, _max_size, _auto_delete);
 }
 
 /**

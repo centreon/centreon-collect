@@ -28,6 +28,7 @@
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/pool.hh"
+#include "com/centreon/common/defer.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
@@ -73,9 +74,9 @@ class connection_ok : public connection_base {
   void connect(connect_callback_type&& callback) override {
     _state = e_idle;
     ++_connect_counter;
-
-    defer(_io_context, std::chrono::milliseconds(5),
-          [cb = std::move(callback)]() { cb({}, {}); });
+    com::centreon::common::defer(
+        _io_context, std::chrono::milliseconds(5),
+        [me = shared_from_this(), cb = std::move(callback)]() { cb({}, {}); });
   }
 
   void send(request_ptr request, send_callback_type&& callback) override {
@@ -85,12 +86,14 @@ class connection_ok : public connection_base {
       });
     } else {
       _keep_alive_end = system_clock::now() + std::chrono::hours(1);
-      _io_context->post([cb = std::move(callback)]() {
-        auto resp = std::make_shared<response_type>();
-        resp->keep_alive(true);
+      com::centreon::common::defer(
+          _io_context, std::chrono::milliseconds(5),
+          [me = shared_from_this(), cb = std::move(callback)]() {
+            auto resp = std::make_shared<response_type>();
+            resp->keep_alive(true);
 
-        cb({}, "", resp);
-      });
+            cb({}, "", resp);
+          });
     }
     ++_request_counter;
   }

@@ -51,7 +51,7 @@ class connector : public io::endpoint {
                   uint32_t instance_timeout = 15,
                   bool with_state_events = false,
                   bool enable_command_cache = false);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace sql
 

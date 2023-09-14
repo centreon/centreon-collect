@@ -166,6 +166,12 @@ std::shared_ptr<muxer> muxer::create(std::string name,
                               name);
       retval->set_read_filter(r_filter);
       retval->set_write_filter(w_filter);
+      SPDLOG_LOGGER_INFO(log_v2::core(),
+                         "multiplexing: reuse '{}' starts with {} in queue and "
+                         "the queue file is {}",
+                         name, retval->_events_size,
+                         retval->_file ? "enable" : "disable");
+
     } else {
       log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
       retval = std::shared_ptr<muxer>(
@@ -202,8 +208,9 @@ void muxer::ack_events(int count) {
   // Remove acknowledged events.
   SPDLOG_LOGGER_TRACE(
       log_v2::core(),
-      "multiplexing: acknowledging {} events from {} event queue", count,
-      _name);
+      "multiplexing: acknowledging {} events from {} event queue size: {}",
+      count, _name, _events_size);
+
   if (count) {
     SPDLOG_LOGGER_DEBUG(
         log_v2::core(),
@@ -214,9 +221,10 @@ void muxer::ack_events(int count) {
       if (_events.begin() == _pos) {
         log_v2::core()->error(
             "multiplexing: attempt to acknowledge "
-            "more events than available in {} event queue: {} requested, {} "
+            "more events than available in {} event queue: {} size: {}, "
+            "requested, {} "
             "acknowledged",
-            _name, count, i);
+            _name, _events_size, count, i);
         break;
       }
       _events.pop_front();
@@ -286,8 +294,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
   auto evt = event_queue.begin();
   while (evt != event_queue.end()) {
     bool at_least_one_push_to_queue = false;
-    {  // we stop this first loop when mux queue is full on order to release
-       // mutex to let read do his job before write to file
+    read_handler async_handler;
+    {
+      // we stop this first loop when mux queue is full on order to release
+      // mutex to let read do his job before write to file
       std::lock_guard<std::mutex> lock(_mutex);
       for (; evt != event_queue.end() && _events_size < event_queue_max_size();
            ++evt) {
@@ -307,15 +317,28 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
                              io::data::dump_json{*event});
         }
 
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "muxer {} event of type {:x} written", _name,
-                            event->type());
+        SPDLOG_LOGGER_TRACE(
+            log_v2::core(),
+            "muxer {} event of type {:x} written queue size: {}", _name,
+            event->type(), _events_size);
 
         at_least_one_push_to_queue = true;
+
         _push_to_queue(event);
       }
+      if (at_least_one_push_to_queue &&
+          _read_handler) {  // async handler waiting?
+        async_handler = std::move(_read_handler);
+        _read_handler = nullptr;
+      }
     }
+    if (async_handler) {
+      async_handler();
+    }
+
     if (evt == event_queue.end()) {
+      std::lock_guard<std::mutex> lock(_mutex);
+      _update_stats();
       return;
     }
     // we have stopped insertion because of full queue => retry
@@ -347,9 +370,10 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       }
       try {
         _file->write(event);
-        SPDLOG_LOGGER_TRACE(log_v2::core(),
-                            "{} publish one event of type {:x} to file {}",
-                            _name, event->type(), _queue_file_name);
+        SPDLOG_LOGGER_TRACE(
+            log_v2::core(),
+            "{} publish one event of type {:x} to file {} queue size:{}", _name,
+            event->type(), _queue_file_name, _events_size);
       } catch (const std::exception& ex) {
         // in case of exception, we lost event. It's mandatory to avoid
         // infinite loop in case of permanent disk problem
@@ -358,8 +382,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         _file.reset();
       }
     }
+    _update_stats();
   }
-  _update_stats();
 }
 
 /**
@@ -403,13 +427,17 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   _update_stats();
 
   if (event) {
-    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {}", _name, *event);
+    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {} queue size {}", _name,
+                        *event, _events_size);
     if (event->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                       "read");
       SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench read {}", _name,
                          io::data::dump_json{*event});
     }
+  } else {
+    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} queue size {} no event available",
+                        _name, _events_size);
   }
   return !timed_out;
 }
@@ -446,10 +474,10 @@ uint32_t muxer::get_event_queue_size() const {
  *  Reprocess non-acknowledged events.
  */
 void muxer::nack_events() {
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::core(),
-      "multiplexing: reprocessing unacknowledged events from {} event queue",
-      _name);
+  SPDLOG_LOGGER_DEBUG(log_v2::core(),
+                      "multiplexing: reprocessing unacknowledged events from "
+                      "{} event queue with {} waiting events",
+                      _name, _events_size);
   std::lock_guard<std::mutex> lock(_mutex);
   _pos = _events.begin();
   _update_stats();
@@ -511,6 +539,32 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
                         _name, d->type());
   }
   return 1;
+}
+
+/**
+ * @brief send events to multiplexing
+ *
+ * @param to_publish list of event where not allowed event will be erased
+ */
+void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
+  for (auto list_iter = to_publish.begin();
+       !to_publish.empty() && list_iter != to_publish.end();) {
+    const std::shared_ptr<io::data>& d = *list_iter;
+    if (_read_filter.allows(d->type())) {
+      if (d->type() == bbdo::pb_bench::static_type()) {
+        add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
+                        "write");
+        SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench write {}", _name,
+                           io::data::dump_json{*d});
+      }
+      ++list_iter;
+    } else {
+      list_iter = to_publish.erase(list_iter);
+    }
+  }
+  if (!to_publish.empty()) {
+    engine::instance_ptr()->publish(to_publish);
+  }
 }
 
 /**
@@ -675,4 +729,13 @@ void muxer::set_write_filter(const muxer_filter& w_filter) {
   log_v2::config()->trace("multiplexing: '{}' set write filter...", _name);
   _write_filter = w_filter;
   _write_filters_str = misc::dump_filters(w_filter);
+}
+
+/**
+ * @brief clear readhandler in case of caller owning this object has terminate
+ *
+ */
+void muxer::clear_read_handler() {
+  std::unique_lock<std::mutex> lock(_mutex);
+  _read_handler = nullptr;
 }

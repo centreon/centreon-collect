@@ -44,7 +44,7 @@ class publisher : public io::stream {
   bool read(std::shared_ptr<io::data>& d,
             time_t deadline = (time_t)-1) override;
   int32_t write(const std::shared_ptr<io::data>& d) override;
-  int32_t write(const std::list<std::shared_ptr<io::data>>& to_publish);
+  int32_t write(const std::deque<std::shared_ptr<io::data>>& to_publish);
   int32_t stop() override;
 };
 }  // namespace multiplexing

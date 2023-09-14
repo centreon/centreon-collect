@@ -81,12 +81,10 @@ BENCH_${nb_check}STATUS
 
     Upload Database To S3    bench.unqlite
 
-    Stop Engine
-    Stop Broker
-
     Examples:    nb_check    --
     ...    1000
     ...    10000
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BENCH_1000STATUS_100ENGINE
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
@@ -182,5 +180,4 @@ BENCH_1000STATUS_100ENGINE
 
     Upload Database To S3    bench.unqlite
 
-    Stop Engine
-    Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
