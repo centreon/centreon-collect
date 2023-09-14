@@ -73,6 +73,20 @@ jobs:
 
           sudo ninja
 
+          echo "[DEBUG] - current location"
+          pwd
+          echo "[DEBUG] - current location files"
+          ls -la
+          echo "[DEBUG] - All current location files"
+          ls -laR
+
+          echo "[DEBUG] - Current size"
+          du -sh ./* | sort -rh
+
+          echo "[DEBUG] - Build size"
+          du -sh ./build/* | sort -rh
+
+
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
@@ -97,8 +111,18 @@ jobs:
             echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
 
-          echo "[INFO] - Generating the tarball"
-          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+          echo "[DEBUG] - current location"
+          pwd
+          echo "[DEBUG] - current location files"
+          ls -la
+          echo "[DEBUG] - All current location files"
+          ls -laR
+          echo "[DEBUG] - Current size"
+          du -sh ./* | sort -rh
+
+          echo "[DEBUG] - Build size"
+          du -sh ./build/* | sort -rh
+
 
       - name: Cache
         uses: actions/cache/save@v3
@@ -114,7 +138,7 @@ jobs:
     steps:
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
-        if: github.ref_name == 'develop'
+        if: github.ref_name == 'disabled_develop' # disable promote for now
 
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
