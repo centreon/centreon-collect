@@ -128,7 +128,7 @@ not2
     # Let's wait for the external command check start
     ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
 ## Time to set the service to CRITICAL HARD.
 
