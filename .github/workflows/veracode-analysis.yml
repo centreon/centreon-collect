@@ -73,13 +73,6 @@ jobs:
 
           sudo ninja
 
-          echo "[DEBUG] - current location"
-          pwd
-          echo "[DEBUG] - current location files"
-          ls -la
-          echo "[DEBUG] - All current location files"
-          ls -laR
-
           echo "[DEBUG] - Current size"
           du -sh ./* | sort -rh
 
@@ -90,7 +83,7 @@ jobs:
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
-          find ./build -type f -not \( -name "*.so" -o -name "*.h" -o -name "*.cc" -o -name "*.hpp" \) -delete
+          find ./build -type f -not \( -name "*.so" -o -name "*.cc" -o -name "*.hpp" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -110,13 +103,15 @@ jobs:
           else
             echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
+          echo "[INFO] - Keeping only non empty folders"
+          find ./build -empty -type d -delete
 
           echo "[DEBUG] - current location"
           pwd
 
           echo "[DEBUG] - hh files left"
           find ./build -type f -name "*.hh"
-          
+
           echo "[DEBUG] - current location files"
           ls -la
           echo "[DEBUG] - All current location files"
