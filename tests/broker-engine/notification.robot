@@ -290,7 +290,7 @@ not4
 
     # Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    2    critical
+        Process Service Check Result    host_1    service_1    2    critical
     Sleep    1s
     END
 
