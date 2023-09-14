@@ -73,7 +73,7 @@ not1
     Sleep    1s
     END
 
-    ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Sleep    1s
 
 
