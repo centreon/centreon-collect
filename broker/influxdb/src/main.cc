@@ -23,12 +23,13 @@
 #include "com/centreon/broker/influxdb/stream.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v3::log_v3;
 
 // Load count.
-static uint32_t instances(0);
+static uint32_t instances = 0;
 
 extern "C" {
 /**
@@ -69,8 +70,10 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // Storage module.
-    log_v2::influxdb()->info("influxdb: module for Centreon Broker {}",
-                             CENTREON_BROKER_VERSION);
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("influxdb");
+    auto logger = log_v3::instance().get(logger_id);
+    logger->info("influxdb: module for Centreon Broker {}",
+                 CENTREON_BROKER_VERSION);
 
     io::events& e(io::events::instance());
 

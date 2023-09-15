@@ -17,7 +17,6 @@
 */
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -31,16 +30,6 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
  * @param name a string representing the stream.
  */
 stream::stream(const std::string& name) : _name(name) {}
-
-/**
- * @brief This method provides a mecanism to stop threads behind the stream and
- * to flush pending events. It returns the number of acknowledged events.
- *
- * @return The number of acknowledged events.
- */
-// int32_t stream::stop() {
-//  return 0;
-//}
 
 /**
  *  Flush data.

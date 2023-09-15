@@ -19,7 +19,6 @@
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -31,9 +30,11 @@ using namespace com::centreon::broker::influxdb;
  *
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
-macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
+macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache,
+                         const uint32_t logger_id)
     : _cache(cache) {
   if (_cache != nullptr) {
+    _cache->set_logger_id(logger_id);
     std::shared_ptr<io::data> d;
     do {
       _cache->get(d);
@@ -50,7 +51,7 @@ macro_cache::~macro_cache() {
     try {
       _save_to_disk();
     } catch (std::exception const& e) {
-      log_v2::influxdb()->error(
+      _cache->logger()->error(
           "influxdb: macro cache couldn't save data to disk: '{}'", e.what());
     }
   }

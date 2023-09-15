@@ -20,7 +20,6 @@
 #include <gtest/gtest.h>
 
 #include "com/centreon/broker/cache/global_cache_data.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;

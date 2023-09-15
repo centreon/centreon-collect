@@ -29,7 +29,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -140,8 +139,8 @@ std::vector<directory_event> directory_watcher::get_events() {
     throw msg_fmt("directory_watcher: couldn't read events: '{}'",
                   ::strerror(err));
   }
-  log_v3::instance().get(0)->debug("file: directory watcher getting events of size {}",
-                        buf_size);
+  log_v3::instance().get(0)->debug(
+      "file: directory watcher getting events of size {}", buf_size);
   char* buf = (char*)alloca(buf_size);
   int len = ::read(_inotify_instance_id, buf, buf_size);
   if (len == -1) {

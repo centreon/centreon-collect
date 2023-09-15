@@ -37,9 +37,12 @@ class mysql_bulk_bind : public mysql_bind_base {
 
  public:
   /**
-   * @brief Default constructor
+   * @brief Base constructor. It just needs a logger.
+   *
+   * @param logger The logger to use within.
    */
-  mysql_bulk_bind() = default;
+  mysql_bulk_bind(const std::shared_ptr<spdlog::logger>& logger)
+      : mysql_bind_base(logger) {}
   /**
    * @brief Constructor
    *
@@ -47,7 +50,9 @@ class mysql_bulk_bind : public mysql_bind_base {
    * @param row_count Number of rows to reserve. Columns are not allocated with
    * a such size, they are just reserved.
    */
-  mysql_bulk_bind(int size, size_t reserved_rows_count);
+  mysql_bulk_bind(int size,
+                  size_t reserved_rows_count,
+                  const std::shared_ptr<spdlog::logger>& logger);
   ~mysql_bulk_bind() noexcept = default;
 
   /**

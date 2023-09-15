@@ -30,7 +30,6 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
-
 using log_v3 = com::centreon::common::log_v3::log_v3;
 
 /**

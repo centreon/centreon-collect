@@ -18,10 +18,13 @@
 
 #include "com/centreon/broker/io/raw.hh"
 
-#include "com/centreon/broker/log_v2.hh"
-
 namespace com::centreon::broker::io {
 
+==== BASE ====
+CCB_BEGIN()
+
+namespace io {
+==== BASE ====
 std::ostream& operator<<(std::ostream& s, const raw& d) {
   s << static_cast<const data&>(d) << " buffer_length:" << d.size();
   return s;

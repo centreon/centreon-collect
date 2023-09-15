@@ -51,6 +51,10 @@ class stream : public io::stream {
   bool _stopped;
 
   void _process_log_issue(std::shared_ptr<io::data> const& e);
+  uint32_t _logger_sql_id;
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  uint32_t _logger_storage_id;
+  std::shared_ptr<spdlog::logger> _logger_storage;
 
  public:
   stream(database_config const& dbcfg,

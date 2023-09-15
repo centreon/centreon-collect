@@ -59,16 +59,18 @@ stream::stream(database_config const& dbcfg,
                uint32_t rrd_len,
                uint32_t interval_length,
                bool store_in_db)
-    : io::stream("storage"), _pending_events(0), _stopped(false),
-_logger_id{log_v3::instance().create_logger_or_get_id("storage")},
-  _logger{log_v3::instance().get(_logger_id)} {
-  log_v2::sql()->debug("storage stream instanciation");
+    : io::stream("storage"),
+      _pending_events(0),
+      _stopped(false),
+      _logger_sql_id{log_v3::instance().create_logger_or_get_id("storage")},
+      _logger_sql{log_v3::instance().get(_logger_sql_id)} {
+  _logger_sql->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;
 
   if (!conflict_manager::init_storage(store_in_db, rrd_len, interval_length,
                                       dbcfg)) {
-    log_v2::sql()->error("storage stream instanciation failed");
+    _logger_sql->error("storage stream instanciation failed");
     throw msg_fmt(
         "storage: Unable to initialize the storage connection to the database");
   }
@@ -78,8 +80,8 @@ int32_t stream::stop() {
   // Stop cleanup thread.
   int32_t retval =
       conflict_manager::instance().unload(conflict_manager::storage);
-  log_v3::instance().get(0)->info("storage stream stopped with {} acknowledged events",
-                       retval);
+  log_v3::instance().get(0)->info(
+      "storage stream stopped with {} acknowledged events", retval);
   _stopped = true;
   return retval;
 }
@@ -90,7 +92,7 @@ int32_t stream::stop() {
 stream::~stream() {
   assert(_stopped);
   // Stop cleanup thread.
-  log_v2::sql()->debug("storage: stream destruction");
+  _logger_sql->debug("storage: stream destruction");
 }
 
 /**
@@ -104,8 +106,8 @@ int32_t stream::flush() {
   _pending_events -= retval;
 
   // Event acknowledgement.
-  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", retval,
-                            _pending_events);
+  _logger_storage->debug("storage: {} / {} events acknowledged", retval,
+                         _pending_events);
   return retval;
 }
 
@@ -144,7 +146,8 @@ void stream::statistics(nlohmann::json& tree) const {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& data) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger_storage = log_v3::instance().get(_logger_storage_id);
+  _logger_sql = log_v3::instance().get(_logger_sql_id);
   ++_pending_events;
 
   assert(data);
@@ -152,8 +155,8 @@ int32_t stream::write(std::shared_ptr<io::data> const& data) {
       conflict_manager::instance().send_event(conflict_manager::storage, data);
   _pending_events -= ack;
   // Event acknowledgement.
-  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", ack,
-                            _pending_events);
+  _logger_storage->debug("storage: {} / {} events acknowledged", ack,
+                         _pending_events);
   return ack;
 }
 

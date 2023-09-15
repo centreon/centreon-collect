@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/stats_exporter/exporter.hh"
 #include "com/centreon/broker/config/endpoint.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/center.hh"
@@ -166,11 +165,13 @@ exporter::~exporter() noexcept {
 void exporter::_check_connections(
     std::shared_ptr<metrics_api::MeterProvider> provider,
     const boost::system::error_code& ec) {
-  if (ec)
-    log_v2::sql()->error(
+  if (ec) {
+    int32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
+    auto logger = log_v3::instance().get(logger_id);
+    logger->error(
         "stats_exporter: Sql connections checker has been interrupted: {}",
         ec.message());
-  else {
+  } else {
     size_t count = mysql_manager::instance().connections_count();
     while (_conn.size() < count) {
       _conn.push_back({});

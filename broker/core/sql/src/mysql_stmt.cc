@@ -63,8 +63,8 @@ mysql_stmt::mysql_stmt(const std::string& query,
  * @return An unique pointer to a mysql_bind.
  */
 std::unique_ptr<mysql_bind> mysql_stmt::create_bind() {
-  log_v2::sql()->trace("new mysql bind of stmt {}", get_id());
-  auto retval = std::make_unique<mysql_bind>(get_param_count());
+  _logger->trace("new mysql bind of stmt {}", get_id());
+  auto retval = std::make_unique<mysql_bind>(get_param_count(), _logger);
   return retval;
 }
 
@@ -107,7 +107,7 @@ mysql_stmt& mysql_stmt::operator=(mysql_stmt&& other) {
  */
 std::unique_ptr<mysql_bind> mysql_stmt::get_bind() {
   if (_bind)
-    log_v2::sql()->trace("mysql bind of stmt {} returned", get_id());
+    _logger->trace("mysql bind of stmt {} returned", get_id());
   return std::move(_bind);
 }
 
@@ -162,7 +162,7 @@ void mysql_stmt::operator<<(io::data const& d) {
               const std::string& v(current_entry->get_string(d, &max_len));
               fmt::string_view sv;
               if (max_len > 0 && v.size() > max_len) {
-                log_v2::sql()->trace(
+                _logger->trace(
                     "column '{}' should admit a longer string, it is cut to {} "
                     "characters to be stored anyway.",
                     current_entry->get_name_v2(), max_len);
@@ -279,7 +279,7 @@ void mysql_stmt::operator<<(io::data const& d) {
             std::string v(refl->GetString(*p, f));
             fmt::string_view sv;
             if (max_len > 0 && v.size() > max_len) {
-              log_v2::sql()->trace(
+              _logger->trace(
                   "column '{}' should admit a longer string, it is cut to {} "
                   "characters to be stored anyway.",
                   field, max_len);
@@ -310,7 +310,7 @@ void mysql_stmt::operator<<(io::data const& d) {
 
 void mysql_stmt::bind_value_as_f32(size_t range, float value) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count());
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), _logger);
 
   if (std::isinf(value) || std::isnan(value))
     _bind->set_null_f32(range);
@@ -320,13 +320,13 @@ void mysql_stmt::bind_value_as_f32(size_t range, float value) {
 
 void mysql_stmt::bind_null_f32(size_t range) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count());
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), _logger);
   _bind->set_null_f32(range);
 }
 
 void mysql_stmt::bind_value_as_f64(size_t range, double value) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count());
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), _logger);
 
   if (std::isinf(value) || std::isnan(value))
     _bind->set_null_f64(range);
@@ -336,21 +336,23 @@ void mysql_stmt::bind_value_as_f64(size_t range, double value) {
 
 void mysql_stmt::bind_null_f64(size_t range) {
   if (!_bind)
-    _bind = std::make_unique<database::mysql_bind>(get_param_count());
+    _bind = std::make_unique<database::mysql_bind>(get_param_count(), _logger);
   _bind->set_null_f64(range);
 }
 
-#define BIND_VALUE(ftype, vtype)                                         \
-  void mysql_stmt::bind_value_as_##ftype(size_t range, vtype value) {    \
-    if (!_bind)                                                          \
-      _bind = std::make_unique<database::mysql_bind>(get_param_count()); \
-    _bind->set_value_as_##ftype(range, value);                           \
-  }                                                                      \
-                                                                         \
-  void mysql_stmt::bind_null_##ftype(size_t range) {                     \
-    if (!_bind)                                                          \
-      _bind = std::make_unique<database::mysql_bind>(get_param_count()); \
-    _bind->set_null_##ftype(range);                                      \
+#define BIND_VALUE(ftype, vtype)                                              \
+  void mysql_stmt::bind_value_as_##ftype(size_t range, vtype value) {         \
+    if (!_bind)                                                               \
+      _bind =                                                                 \
+          std::make_unique<database::mysql_bind>(get_param_count(), _logger); \
+    _bind->set_value_as_##ftype(range, value);                                \
+  }                                                                           \
+                                                                              \
+  void mysql_stmt::bind_null_##ftype(size_t range) {                          \
+    if (!_bind)                                                               \
+      _bind =                                                                 \
+          std::make_unique<database::mysql_bind>(get_param_count(), _logger); \
+    _bind->set_null_##ftype(range);                                           \
   }
 
 BIND_VALUE(i32, int32_t)

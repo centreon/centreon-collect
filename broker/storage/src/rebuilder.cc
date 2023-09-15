@@ -22,7 +22,6 @@
 #include <cfloat>
 #include <cmath>
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/time.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/sql/mysql_error.hh"
@@ -30,10 +29,12 @@
 #include "com/centreon/broker/storage/internal.hh"
 #include "com/centreon/broker/storage/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -45,7 +46,11 @@ using namespace com::centreon::broker::storage;
 rebuilder::rebuilder(const database_config& db_cfg,
                      uint32_t rrd_length,
                      uint32_t interval_length)
-    : _db_cfg(db_cfg), _interval_length(interval_length), _rrd_len(rrd_length) {
+    : _db_cfg(db_cfg),
+      _interval_length(interval_length),
+      _rrd_len(rrd_length),
+      _logger{log_v3::instance().get(
+          log_v3::instance().create_logger_or_get_id("sql"))} {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
 }
@@ -62,7 +67,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
 
     std::string ids_str{
         fmt::format("{}", fmt::join(ids.obj().index_ids(), ","))};
-    log_v2::sql()->debug(
+    _logger->debug(
         "Metric rebuild: Rebuild metrics event received for metrics ({})",
         ids_str);
 
@@ -84,7 +89,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
         "i ON m.index_id=i.id LEFT JOIN services s ON i.host_id=s.host_id AND "
         "i.service_id=s.service_id WHERE i.id IN ({})",
         ids_str)};
-    log_v2::sql()->trace("Metric rebuild: Executed query << {} >>", query);
+    _logger->trace("Metric rebuild: Executed query << {} >>", query);
     ms.run_query_and_get_result(query, std::move(promise), conn);
     std::map<uint64_t, metric_info> ret_inter;
     std::list<int64_t> mids;
@@ -96,8 +101,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
         uint64_t mid = res.value_as_u64(0);
         uint64_t index_id = res.value_as_u64(5);
         mids.push_back(mid);
-        log_v2::sql()->trace("Metric rebuild: metric {} is sent to rebuild",
-                             mid);
+        _logger->trace("Metric rebuild: metric {} is sent to rebuild", mid);
         (*start_rebuild->mut_obj().mutable_metric_to_index_id())[mid] =
             index_id;
         auto ret = ret_inter.emplace(mid, metric_info());
@@ -128,8 +132,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
         int32_t db_retention_day1 = res.value_as_i32(1);
         if (db_retention_day1 < db_retention_day)
           db_retention_day = db_retention_day1;
-        log_v2::sql()->debug("Storage retention on RRD: {} days",
-                             db_retention_day);
+        _logger->debug("Storage retention on RRD: {} days", db_retention_day);
       }
       if (db_retention_day) {
         /* Let's get the start of this day */
@@ -143,8 +146,8 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
           tmv.tm_mday -= db_retention_day;
           start = mktime(&tmv);
           while (db_retention_day >= 0) {
-            log_v2::sql()->trace("Metrics rebuild: db_retention_day = {}",
-                                 db_retention_day);
+            _logger->trace("Metrics rebuild: db_retention_day = {}",
+                           db_retention_day);
             tmv.tm_mday++;
             end = mktime(&tmv);
             db_retention_day--;
@@ -155,8 +158,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
                 "ctime>={} AND "
                 "ctime<{} AND id_metric IN ({}) ORDER BY ctime ASC",
                 start, end, mids_str)};
-            log_v2::sql()->trace("Metrics rebuild: Query << {} >> executed",
-                                 query);
+            _logger->trace("Metrics rebuild: Query << {} >> executed", query);
             ms.run_query_and_get_result(query, std::move(promise), conn);
             auto data_rebuild = std::make_shared<storage::pb_rebuild_message>();
             data_rebuild->mut_obj().set_state(RebuildMessage_State_DATA);
@@ -188,8 +190,8 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
           throw msg_fmt("Metrics rebuild: Cannot get the date structure.");
       }
     } catch (const std::exception& e) {
-      log_v2::sql()->error("Metrics rebuild: Error during metrics rebuild: {}",
-                           e.what());
+      _logger->error("Metrics rebuild: Error during metrics rebuild: {}",
+                     e.what());
     }
     auto end_rebuild = std::make_shared<storage::pb_rebuild_message>();
     end_rebuild->set_obj(std::move(start_rebuild->mut_obj()));
@@ -200,7 +202,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
             "UPDATE index_data SET must_be_rebuild='0' WHERE id IN ({})",
             ids_str),
         database::mysql_error::update_index_state, false);
-    log_v2::sql()->debug(
+    _logger->debug(
         "Metric rebuild: Rebuild of metrics from the following indexes ({}) "
         "finished",
         ids_str);

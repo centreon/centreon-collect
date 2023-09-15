@@ -54,11 +54,18 @@ stream::stream(std::string const& user,
       _pending_queries(0),
       _actual_query(0),
       _commit(false),
-      _cache(cache),
-      _logger_id{log_v3::instance().create_logger_or_get_id("influxdb")} {
-  _influx_db.reset(new influxdb(user, passwd, addr, port, db, status_ts,
-                                status_cols, metric_ts, metric_cols, _cache));
-}
+      _logger_id{log_v3::instance().create_logger_or_get_id("influxdb")},
+      _cache(cache, _logger_id),
+      _influx_db{std::make_unique<influxdb>(user,
+                                            passwd,
+                                            addr,
+                                            port,
+                                            db,
+                                            status_ts,
+                                            status_cols,
+                                            metric_ts,
+                                            metric_cols,
+                                            _cache)} {}
 
 /**
  *  Flush the stream.

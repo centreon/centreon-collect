@@ -40,7 +40,6 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"

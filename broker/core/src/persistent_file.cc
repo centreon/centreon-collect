@@ -22,7 +22,7 @@
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/file/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/stats/center.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -98,8 +98,8 @@ int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
  */
 int32_t persistent_file::stop() {
   int32_t retval = _substream->stop();
-  log_v3::instance().get(0)->info("persistent file stopped with {} acknowledged events",
-                       retval);
+  log_v3::instance().get(0)->info(
+      "persistent file stopped with {} acknowledged events", retval);
   return retval;
 }
 

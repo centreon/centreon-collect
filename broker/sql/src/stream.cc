@@ -20,7 +20,6 @@
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
@@ -71,17 +70,21 @@ stream::stream(database_config const& dbcfg,
       //                      dbcfg.get_name(),
       //                      cleanup_check_interval),
       _pending_events{0},
-      _stopped(false) {
+      _stopped(false),
+      _logger_sql_id{log_v3::instance().create_logger_or_get_id("sql")},
+      _logger_sql{log_v3::instance().get(_logger_sql_id)},
+      _logger_storage_id{log_v3::instance().create_logger_or_get_id("storage")},
+      _logger_storage{log_v3::instance().get(_logger_storage_id)} {
   // FIXME DBR
   (void)cleanup_check_interval;
   //  // Get oudated instances.
   //
   //  // Run cleanup thread.
   //  _cleanup_thread.start();
-  log_v2::sql()->debug("sql stream instanciation");
+  _logger_sql->debug("sql stream instanciation");
   if (!storage::conflict_manager::init_sql(dbcfg, loop_timeout,
                                            instance_timeout)) {
-    log_v2::sql()->error("sql stream instanciation failed");
+    _logger_sql->error("sql stream instanciation failed");
     throw msg_fmt(
         "SQL: Unable to initialize the sql connection to the database");
   }
@@ -116,8 +119,8 @@ int stream::flush() {
   _pending_events -= retval;
 
   // Event acknowledgement.
-  log_v2::sql()->trace("SQL: {} / {} events acknowledged", retval,
-                       _pending_events);
+  _logger_sql->trace("SQL: {} / {} events acknowledged", retval,
+                     _pending_events);
   return retval;
 }
 
@@ -159,8 +162,8 @@ int32_t stream::write(std::shared_ptr<io::data> const& data) {
       storage::conflict_manager::sql, data);
   _pending_events -= ack;
   // Event acknowledgement.
-  log_v2::perfdata()->debug("storage: {} / {} events acknowledged", ack,
-                            _pending_events);
+  _logger_storage->debug("storage: {} / {} events acknowledged", ack,
+                         _pending_events);
   return ack;
 }
 

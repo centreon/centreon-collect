@@ -20,7 +20,6 @@
 #define CCB_MYSQL_STMT_BASE_HH
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/mysql_bind.hh"
 
 namespace com::centreon::broker {
@@ -44,6 +43,12 @@ class mysql_stmt_base {
    */
   std::vector<std::tuple<std::string, uint32_t, uint16_t>> _pb_mapping;
 
+ protected:
+  /* Logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
+ private:
   size_t _compute_param_count(const std::string& query);
 
  public:

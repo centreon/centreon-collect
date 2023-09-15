@@ -45,16 +45,15 @@ class mysql_bind : public mysql_bind_base {
   /**
    * @brief Default constructor
    */
-  mysql_bind() = default;
+  mysql_bind(const std::shared_ptr<spdlog::logger>& logger)
+      : mysql_bind_base(logger) {}
+
   /**
    * @brief Constructor
    *
    * @param size Number of columns in this bind
-   * @param length Size to reserve for each column's buffer. This is useful when
-   *               the column contains strings. By default, this value is 0 and
-   *               no reservation are made.
    */
-  mysql_bind(int size);  //, int length = 0);
+  mysql_bind(int size, const std::shared_ptr<spdlog::logger>& logger);
   ~mysql_bind() noexcept = default;
 
   /**

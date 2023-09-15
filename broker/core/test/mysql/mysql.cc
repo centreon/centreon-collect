@@ -25,7 +25,6 @@
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/host.hh"
@@ -48,12 +47,18 @@
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
+using com::centreon::common::log_v3::log_v3;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class DatabaseStorageTest : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   void SetUp() override {
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
+    _logger = log_v3::instance().get(logger_id);
     g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
@@ -2081,7 +2086,7 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   ms->commit();
   std::chrono::system_clock::time_point end_insert =
       std::chrono::system_clock::now();
-  SPDLOG_LOGGER_INFO(log_v2::sql(),
+  SPDLOG_LOGGER_INFO(_logger,
                      " insert {} rows in {} requests duration: {} seconds",
                      data_index, nb_request,
                      std::chrono::duration_cast<std::chrono::seconds>(
@@ -2131,7 +2136,7 @@ TEST_F(DatabaseStorageTest, MySqlMultiInsert) {
   nb_request = inserter2.execute_queries(*ms);
   ms->commit();
   end_insert = std::chrono::system_clock::now();
-  SPDLOG_LOGGER_INFO(log_v2::sql(),
+  SPDLOG_LOGGER_INFO(_logger,
                      " insert {} rows in {} requests duration: {} seconds",
                      data_index, nb_request,
                      std::chrono::duration_cast<std::chrono::seconds>(
@@ -2221,10 +2226,10 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_bulk) {
   inserter->execute(*ms);
   ms->commit();
 
-  log_v2::sql()->info("100000 rows inserted in {} ms",
-                      std::chrono::duration_cast<std::chrono::milliseconds>(
-                          std::chrono::system_clock::now() - begin)
-                          .count());
+  _logger->info("100000 rows inserted in {} ms",
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now() - begin)
+                    .count());
 
   std::promise<mysql_result> select_prom;
   std::future<mysql_result> select_fut = select_prom.get_future();
@@ -2272,10 +2277,10 @@ TEST_F(DatabaseStorageTest, bulk_or_multi_bbdo_event_multi) {
   inserter->execute(*ms);
   ms->commit();
 
-  log_v2::sql()->info("100000 rows inserted in {} ms",
-                      std::chrono::duration_cast<std::chrono::milliseconds>(
-                          std::chrono::system_clock::now() - begin)
-                          .count());
+  _logger->info("100000 rows inserted in {} ms",
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::system_clock::now() - begin)
+                    .count());
 
   std::promise<mysql_result> select_prom;
   std::future<mysql_result> select_fut = select_prom.get_future();

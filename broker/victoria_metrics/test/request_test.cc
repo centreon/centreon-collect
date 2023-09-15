@@ -102,7 +102,7 @@ TEST_F(victoria_request_test, request_body_test) {
 
   http_tsdb::line_protocol_query dummy;
   victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
-                                "/", 0, dummy, dummy, "toto");
+                                "/", _logger, 0, dummy, dummy, "toto");
 
   Metric metric;
   metric.set_metric_id(123);
@@ -172,18 +172,17 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(
           victoria_metrics::factory::default_extra_metric_column),
-      http_tsdb::line_protocol_query::data_type::status,
-      _logger);
+      http_tsdb::line_protocol_query::data_type::status, _logger);
 
   http_tsdb::line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(
           victoria_metrics::factory::default_extra_status_column),
-      http_tsdb::line_protocol_query::data_type::status,
-      _logger);
+      http_tsdb::line_protocol_query::data_type::status, _logger);
 
   victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
-                                "/", 0, metric_columns, status_columns, "toto");
+                                "/", _logger, 0, metric_columns, status_columns,
+                                "toto");
 
   Metric metric;
   metric.set_metric_id(123);
@@ -273,17 +272,16 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
   http_tsdb::line_protocol_query metric_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(column),
-      http_tsdb::line_protocol_query::data_type::status,
-      _logger);
+      http_tsdb::line_protocol_query::data_type::status, _logger);
 
   http_tsdb::line_protocol_query status_columns(
       victoria_metrics::stream::allowed_macros,
       http_tsdb::factory::get_columns(column),
-      http_tsdb::line_protocol_query::data_type::status,
-      _logger);
+      http_tsdb::line_protocol_query::data_type::status, _logger);
 
   victoria_metrics::request req(boost::beast::http::verb::post, "localhost",
-                                "/", 0, metric_columns, status_columns, "toto");
+                                "/", _logger, 0, metric_columns, status_columns,
+                                "toto");
 
   Metric metric;
   metric.set_metric_id(123);

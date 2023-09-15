@@ -21,7 +21,6 @@
 #include "com/centreon/broker/generator/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;
@@ -65,7 +64,7 @@ void broker_module_init(void const* arg) {
   if (!instances++) {
     // generator module.
     log_v3::instance().get(0)->info("generator: module for Centreon Broker {}",
-                         CENTREON_BROKER_VERSION);
+                                    CENTREON_BROKER_VERSION);
 
     // Register storage layer.
     io::protocols::instance().reg(generator_module,

@@ -27,12 +27,13 @@
 #include <sstream>
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/stats/builder.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::stats;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Default constructor.
@@ -151,12 +152,14 @@ void worker::_run() {
       }
     }
   } catch (std::exception const& e) {
-    log_v2::stats()->error(
-        "stats: FIFO thread will exit due to the following error: {}",
-        e.what());
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("stats");
+    auto logger = log_v3::instance().get(logger_id);
+    logger->error("stats: FIFO thread will exit due to the following error: {}",
+                  e.what());
   } catch (...) {
-    log_v2::stats()->error(
-        "stats: FIFO thread will exit due to an unknown error");
+    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("stats");
+    auto logger = log_v3::instance().get(logger_id);
+    logger->error("stats: FIFO thread will exit due to an unknown error");
   }
   ::unlink(_fifo.c_str());
 }

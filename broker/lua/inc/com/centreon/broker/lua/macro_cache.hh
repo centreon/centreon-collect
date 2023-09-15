@@ -67,12 +67,8 @@ class macro_cache {
   absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_bv_event>>
       _dimension_bv_events;
 
-  /* Logger */
-  const uint32_t _logger_id;
-  std::shared_ptr<spdlog::logger> _logger;
-
  public:
-  macro_cache(std::shared_ptr<persistent_cache> const& cache,
+  macro_cache(const std::shared_ptr<persistent_cache>& cache,
               const uint32_t logger_id);
   macro_cache(const macro_cache&) = delete;
   ~macro_cache();

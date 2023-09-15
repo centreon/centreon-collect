@@ -44,15 +44,11 @@ class stream : public io::stream {
   const std::string _address;
   const std::string _db;
   uint32_t _queries_per_transaction;
-  std::unique_ptr<influxdb> _influx_db;
 
   // Internal working members
   int _pending_queries;
   uint32_t _actual_query;
   bool _commit;
-
-  // Cache
-  macro_cache _cache;
 
   // Status members
   std::string _status;
@@ -60,6 +56,11 @@ class stream : public io::stream {
 
   /* Logger */
   uint32_t _logger_id;
+
+  // Cache
+  macro_cache _cache;
+
+  std::unique_ptr<influxdb> _influx_db;
 
  public:
   stream(std::string const& user,

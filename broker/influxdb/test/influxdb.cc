@@ -21,13 +21,19 @@
 #include <gtest/gtest.h>
 #include "../../core/test/test_server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+using com::centreon::common::log_v3::log_v3;
 
 class InfluxDB12 : public testing::Test {
+ protected:
+  uint32_t _logger_id;
+
  public:
   void SetUp() override {
+    _logger_id = log_v3::instance().create_logger_or_get_id("influxdb");
     _server.init();
     _thread = std::thread(&test_server::run, &_server);
 
@@ -44,7 +50,7 @@ class InfluxDB12 : public testing::Test {
 
 TEST_F(InfluxDB12, BadConnection) {
   std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
+  influxdb::macro_cache mcache{cache, _logger_id};
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
 
@@ -56,7 +62,7 @@ TEST_F(InfluxDB12, BadConnection) {
 
 TEST_F(InfluxDB12, Empty) {
   std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
+  influxdb::macro_cache mcache{cache, _logger_id};
   std::vector<influxdb::column> mcolumns;
   std::vector<influxdb::column> scolumns;
 
@@ -69,7 +75,7 @@ TEST_F(InfluxDB12, Empty) {
 
 TEST_F(InfluxDB12, Simple) {
   std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
+  influxdb::macro_cache mcache{cache, _logger_id};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 
@@ -135,7 +141,7 @@ TEST_F(InfluxDB12, Simple) {
 
 TEST_F(InfluxDB12, BadServerResponse1) {
   std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
+  influxdb::macro_cache mcache{cache, _logger_id};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
   std::vector<influxdb::column> mcolumns;
@@ -184,7 +190,7 @@ TEST_F(InfluxDB12, BadServerResponse1) {
 
 TEST_F(InfluxDB12, BadServerResponse2) {
   std::shared_ptr<persistent_cache> cache;
-  influxdb::macro_cache mcache{cache};
+  influxdb::macro_cache mcache{cache, _logger_id};
   storage::pb_metric pb_m1, pb_m2, pb_m3;
   Metric &m1 = pb_m1.mut_obj(), &m2 = pb_m2.mut_obj(), &m3 = pb_m3.mut_obj();
 

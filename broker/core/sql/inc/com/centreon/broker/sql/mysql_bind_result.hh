@@ -47,8 +47,11 @@ class mysql_bind_result : public mysql_bind_base {
    * @param length Size to reserve for each column's buffer. This is useful when
    *               the column contains strings. By default, this value is 0 and
    *               no reservation is made.
+   * @param logger The logger to use by this object.
    */
-  mysql_bind_result(int size, int length);
+  mysql_bind_result(int size,
+                    int length,
+                    const std::shared_ptr<spdlog::logger>& logger);
   ~mysql_bind_result() noexcept = default;
 
   /**

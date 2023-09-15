@@ -19,7 +19,6 @@
 #include "com/centreon/broker/bam/service_book.hh"
 
 #include "com/centreon/broker/bam/service_listener.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
