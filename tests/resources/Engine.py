@@ -2024,7 +2024,7 @@ def del_host_comment(comment_id):
 
 @external_command
 def change_host_check_command(hst: str, Check_Command: str):
-    return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(now, hst, Check_Command)
+    return f"CHANGE_HOST_CHECK_COMMAND;{hst};{Check_Command}\n"
 
 
 @external_command
