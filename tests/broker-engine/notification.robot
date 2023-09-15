@@ -1052,7 +1052,7 @@ not13
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check result    host_2    service_2    2    critical
-    Sleep    1s
+        Sleep    1s
     END
 
     # Let's wait for the first notification of the contact group 3 U4
