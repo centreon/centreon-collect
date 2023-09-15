@@ -46,7 +46,6 @@ using unique_lock = std::unique_lock<std::mutex>;
 #include "com/centreon/broker/grpc/acceptor.hh"
 #include "com/centreon/broker/grpc/stream.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

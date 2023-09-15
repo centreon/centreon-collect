@@ -57,9 +57,6 @@ class stream : public io::stream {
   std::string _status;
   mutable std::mutex _statusm;
 
-  // Cache
-  macro_cache _cache;
-
   // Query
   query _metric_query;
   query _status_query;
@@ -70,6 +67,9 @@ class stream : public io::stream {
 
   // Logger
   uint32_t _logger_id;
+
+  // Cache
+  macro_cache _cache;
 
   // Process metric/status and generate query.
   bool _process_metric(storage::metric const& me);

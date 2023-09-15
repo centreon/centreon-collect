@@ -58,7 +58,8 @@ class macro_cache {
   void _save_to_disk();
 
  public:
-  macro_cache(std::shared_ptr<persistent_cache> const& cache);
+  macro_cache(const std::shared_ptr<persistent_cache>& cache,
+              const uint32_t logger_id);
   macro_cache(macro_cache const& f) = delete;
   macro_cache& operator=(macro_cache const& f) = delete;
   ~macro_cache();

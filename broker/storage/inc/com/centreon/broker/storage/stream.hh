@@ -37,6 +37,10 @@ namespace storage {
  *  metrics table of a centstorage DB.
  */
 class stream : public io::stream {
+  uint32_t _logger_storage_id;
+  std::shared_ptr<spdlog::logger> _logger_storage;
+  uint32_t _logger_sql_id;
+  std::shared_ptr<spdlog::logger> _logger_sql;
   struct index_info {
     std::string host_name;
     uint32_t index_id;

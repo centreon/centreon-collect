@@ -19,14 +19,15 @@
 #include "com/centreon/broker/sql/query_preparator.hh"
 
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Constructor.
@@ -39,7 +40,11 @@ query_preparator::query_preparator(
     uint32_t event_id,
     query_preparator::event_unique const& unique,
     query_preparator::excluded_fields const& excluded)
-    : _event_id(event_id), _excluded(excluded), _unique(unique) {}
+    : _event_id(event_id),
+      _excluded(excluded),
+      _unique(unique),
+      _logger{log_v3::instance().get(
+          log_v3::instance().create_logger_or_get_id("sql"))} {}
 
 /**
  *  Constructor.
@@ -125,7 +130,7 @@ mysql_stmt query_preparator::prepare_insert_into(
   query.resize(query.size() - 1);
   query.append(")");
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", query);
+  _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -216,7 +221,7 @@ mysql_stmt query_preparator::prepare_insert(mysql& ms, bool ignore) {
     query.resize(query.size() - 1);
     query.append(")");
   }
-  log_v2::sql()->debug("mysql: query_preparator: {}", query);
+  _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -293,7 +298,7 @@ mysql_stmt query_preparator::prepare_insert_or_update(mysql& ms) {
     insert_bind_mapping.insert(
         std::make_pair(it->first, it->second + insert_size));
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", insert);
+  _logger->debug("mysql: query_preparator: {}", insert);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -400,7 +405,7 @@ mysql_stmt query_preparator::prepare_insert_or_update_table(
     insert_bind_mapping.insert(
         std::make_pair(it->first, it->second + insert_size));
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", insert);
+  _logger->debug("mysql: query_preparator: {}", insert);
   // Prepare statement.
   mysql_stmt retval;
   try {
@@ -670,7 +675,7 @@ mysql_stmt query_preparator::prepare_delete_table(mysql& ms,
   }
   query.resize(query.size() - 5);
 
-  log_v2::sql()->debug("mysql: query_preparator: {}", query);
+  _logger->debug("mysql: query_preparator: {}", query);
   // Prepare statement.
   mysql_stmt retval;
   try {

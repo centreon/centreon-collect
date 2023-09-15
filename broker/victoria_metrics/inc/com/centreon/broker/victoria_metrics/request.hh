@@ -27,6 +27,7 @@ CCB_BEGIN()
 
 namespace victoria_metrics {
 class request : public http_tsdb::request {
+  std::shared_ptr<spdlog::logger> _logger;
   const http_tsdb::line_protocol_query& _metric_formatter;
   const http_tsdb::line_protocol_query& _status_formatter;
 
@@ -38,6 +39,7 @@ class request : public http_tsdb::request {
   request(boost::beast::http::verb method,
           const std::string& server_name,
           boost::beast::string_view target,
+          const std::shared_ptr<spdlog::logger>& logger,
           unsigned size_to_reserve,
           const http_tsdb::line_protocol_query& metric_formatter,
           const http_tsdb::line_protocol_query& status_formatter,

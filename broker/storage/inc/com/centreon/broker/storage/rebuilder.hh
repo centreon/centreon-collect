@@ -50,6 +50,7 @@ class rebuilder {
   std::shared_ptr<mysql_connection> _connection;
   uint32_t _interval_length;
   uint32_t _rrd_len;
+  std::shared_ptr<spdlog::logger> _logger;
 
   // Local types.
   struct metric_info {

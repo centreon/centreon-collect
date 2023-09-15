@@ -57,11 +57,11 @@ stream::stream(std::string const& metric_naming,
       _pending_queries{0},
       _actual_query{0},
       _commit_flag{false},
-      _cache{cache},
       _metric_query{_metric_naming, escape_string, query::metric, _cache},
       _status_query{_status_naming, escape_string, query::status, _cache},
       _socket{_io_context},
-      _logger_id{log_v3::instance().create_logger_or_get_id("graphite")} {
+      _logger_id{log_v3::instance().create_logger_or_get_id("graphite")},
+      _cache{cache, _logger_id} {
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
     std::string auth{_db_user};

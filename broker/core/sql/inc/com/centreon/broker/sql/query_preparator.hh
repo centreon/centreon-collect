@@ -64,6 +64,8 @@ CCB_BEGIN()
  *   Where hg is of type neb::host_group.
  */
 class query_preparator {
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   using excluded_fields = absl::btree_set<std::string>;
   using doubled_fields = absl::btree_set<std::string>;
