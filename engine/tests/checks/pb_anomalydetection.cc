@@ -38,7 +38,6 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "helper.hh"
 
 using namespace com::centreon;

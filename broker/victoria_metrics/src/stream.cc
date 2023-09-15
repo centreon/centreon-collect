@@ -39,10 +39,7 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
                const std::string& account_id,
                http_client::client::connection_creator conn_creator)
-    : http_tsdb::stream("victoria_metrics",
-                        io_context,
-                        conf,
-                        conn_creator),
+    : http_tsdb::stream("victoria_metrics", io_context, conf, conn_creator),
       _metric_formatter(allowed_macros,
                         conf->get_metric_columns(),
                         http_tsdb::line_protocol_query::data_type::metric,
@@ -75,8 +72,8 @@ std::shared_ptr<stream> stream::load(
 http_tsdb::request::pointer stream::create_request() const {
   auto ret = std::make_shared<request>(
       boost::beast::http::verb::post, _conf->get_server_name(),
-      _conf->get_http_target(), _body_size_to_reserve, _metric_formatter,
-      _status_formatter, _authorization);
+      _conf->get_http_target(), _logger, _body_size_to_reserve,
+      _metric_formatter, _status_formatter, _authorization);
 
   ret->set(boost::beast::http::field::content_type, "text/plain");
   ret->set(boost::beast::http::field::accept, "application/json");

@@ -132,7 +132,7 @@ target_link_libraries(
   test_util
   roker
   rokerbase
-  rokerlog
+  # rokerlog
   "-Wl,--whole-archive"
   log_v2
   "-Wl,--no-whole-archive"
@@ -153,7 +153,7 @@ add_dependencies(
   test_util
   roker
   rokerbase
-  rokerlog
+  log_v2
   multiplexing
   conflictmgr
   centreon_common)

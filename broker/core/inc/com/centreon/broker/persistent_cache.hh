@@ -38,6 +38,12 @@ class persistent_cache {
   std::shared_ptr<io::stream> _read_file;
   std::shared_ptr<io::stream> _write_file;
 
+ protected:
+  /* Logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
+ private:
   std::string _new_file() const;
   std::string _old_file() const;
   void _open();
@@ -51,6 +57,9 @@ class persistent_cache {
   void commit();
   void get(std::shared_ptr<io::data>& d);
   void transaction();
+  void set_logger_id(const uint32_t logger_id);
+  std::shared_ptr<spdlog::logger> logger() const;
+  void update_logger();
 
   const std::string& get_cache_file() const;
 };

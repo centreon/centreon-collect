@@ -109,6 +109,10 @@ class mysql_connection {
   mutable std::mutex _error_m;
   database::mysql_error _error;
 
+  /* Logger */
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
+
   /**************************************************************************/
   /*                    Methods executed by this thread                     */
   /**************************************************************************/

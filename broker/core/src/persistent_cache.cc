@@ -22,7 +22,6 @@
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/opener.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -36,7 +35,9 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
  *  @param[in] cache_file  Path to the cache file.
  */
 persistent_cache::persistent_cache(const std::string& cache_file)
-    : _cache_file(cache_file) {
+    : _cache_file(cache_file),
+      _logger_id{0},
+      _logger{log_v3::instance().get(_logger_id)} {
   _open();
 }
 
@@ -82,8 +83,7 @@ void persistent_cache::commit() {
     }
     // No error checking, this is a secondary issue.
     if (unlink(_old_file().c_str()))
-      log_v3::instance().get(0)->error("removing persistent cache '{}' failed",
-                            _old_file());
+      _logger->error("removing persistent cache '{}' failed", _old_file());
   }
 }
 
@@ -179,4 +179,25 @@ void persistent_cache::_open() {
 
   // We will access only the BBDO layer.
   _read_file = std::static_pointer_cast<io::stream>(bs);
+}
+
+void persistent_cache::set_logger_id(const uint32_t logger_id) {
+  _logger_id = logger_id;
+  _logger = log_v3::instance().get(_logger_id);
+}
+
+/**
+ * @brief Accessor to the logger.
+ *
+ * @return A shared pointer to the logger.
+ */
+std::shared_ptr<spdlog::logger> persistent_cache::logger() const {
+  return _logger;
+}
+
+/**
+ * @brief Reload the logger shared pointer from its ID.
+ */
+void persistent_cache::update_logger() {
+  _logger = log_v3::instance().get(_logger_id);
 }

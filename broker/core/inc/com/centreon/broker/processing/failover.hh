@@ -55,6 +55,8 @@ class failover : public endpoint {
   _running_state _state;
   mutable std::mutex _state_m;
   std::condition_variable _state_cv;
+  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
   void _run();
 
  public:

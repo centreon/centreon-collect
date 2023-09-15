@@ -1,5 +1,85 @@
 # Broker documentation {#mainpage}
 
+## Processing
+
+There are two main classes in the broker Processing:
+
+* **failover**: This is mainly used to get events from broker and send them to a
+  stream.
+* **feeder**: This is mainly the reverse of a failover. Data are read from a stream
+  and published into broker. This class provides a mechanism of retention to
+  keep events until they are handled correctly.
+
+### Feeder
+
+A feeder has two roles:
+
+1. The feeder can read events from its muxer. This is the case with a reverse
+   connections, the feeder gets its events from the broker engine through the
+   muxer and writes them to the stream client.
+
+2. The feeder can also read events from its stream client. This is more usual.
+
+
+#### Initialization
+
+A feeder is created with a static function `feeder::create()`. This function:
+
+* calls the constructor.
+* starts the statistics timer
+* starts its main loop.
+
+The main loop runs with a thread pool managed by ASIO so don't expect to see
+an std::thread somewhere.
+
+A feeder is initialized with:
+
+* name: name of the feeder.
+* client: the stream to exchange events with.
+* read\_filters: read filters, that is to say events allowed to be read by the
+  feeder. Events that don't obey to these filters are ignored and thrown away
+  by the feeder.
+* write\_filters: same as read filters, but concerning writing.
+
+After the construction, the feeder has its statistics started.
+Statistics are handled by an ASIO timer, every 5s the handler `feeder::_stat_timer_handler()` is called.
+
+Then, it is time for the feeder to start its main loop.
+the `feeder::_read_from_muxer()` method is called and this last one will be called until the end of the feeder.
+
+And there is a last loop to start, the one concerning stream reading. The feeder constructor calls `feeder::_start_read_from_stream_timer()` that starts a timer, each time its duration is reached, the `feeder::_read_from_stream_timer_handler()` method is called.
+
+#### Reading the muxer
+
+Let's describe a little more the `feeder::_read_from_muxer()` method and its mechanisms.
+
+When called, this function:
+
+* The feeder mutex is locked: then if a second call to this function call arrives, it will wait.
+* creates a vector and initializes its size with the number of events in the muxer queue.
+* if the state of the feeder is not set to running, the function execution is interrupted.
+* the main loop of the method is then started here, it will be stopped on timeout, on a the feeder interruption or if there are no more events to read.
+* this loop calls a `muxer::read()` asynchronous method. This method tries to fill the vector with as many events as it can store in it. If there is not suffisantly events, it keeps a callback so it will be ready to fill it again when new events will arrive. This method returns **true** if there are still events to send, otherwise it returns **false**.
+* if some events have been retrieved, they are written to the feeder stream.
+* Some checks on errors are made.
+* The loop continues until one of its conditions is true.
+* And if we have to continue, the function is post again to the ASIO mechanism.
+
+#### Reading the stream
+
+The method used here is `feeder::_read_from_stream_timer_handler()`.
+
+While events are not null, they are pushed into a list.
+Once this is done, this list is published to the muxer (specific muxer method used
+for that `muxer::write(std::list<std::shared_ptr<io::data>>&)` and a new call to
+`feeder::_start_read_from_stream_timer()` is made. And the loop starts again.
+
+#### Concurrency
+
+Events order is very important. So we can not make two calls to the `_read_from_muxer` method at the same time. It is almost the same when reading from the stream.
+
+The easiest way was then to lock the feeder mutex
+
 ## BAM
 
 There are five types of BA.
