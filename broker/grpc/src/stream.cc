@@ -22,6 +22,7 @@
 #include "com/centreon/broker/grpc/stream.hh"
 
 #include "com/centreon/broker/grpc/client.hh"
+#include "com/centreon/broker/grpc/grpc_bridge.hh"
 #include "com/centreon/broker/grpc/server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -62,7 +63,8 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
       SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
                           *std::static_pointer_cast<io::raw>(d));             \
     } else {                                                                  \
-      return false;                                                           \
+      d = protobuf_to_event(to_convert);                                      \
+      return d ? true : false;                                                \
     }                                                                         \
   } else {                                                                    \
     if (_channel->is_down()) {                                                \
@@ -92,11 +94,16 @@ int32_t com::centreon::broker::grpc::stream::write(
   if (_channel->is_down())
     throw msg_fmt("Connection lost");
 
-  event_ptr to_send(std::make_shared<grpc_event_type>());
+  channel::event_with_data::pointer to_send =
+      std::make_shared<channel::event_with_data>(d);
 
-  std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
-  to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
-                                    raw_src->_buffer.end());
+  if (get_no_bbdo_encode()) {
+    event_to_protobuf(*d, to_send->grpc_event);
+  } else {
+    std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
+    to_send->grpc_event.mutable_buffer()->assign(raw_src->_buffer.begin(),
+                                                 raw_src->_buffer.end());
+  }
   return _channel->write(to_send);
 }
 

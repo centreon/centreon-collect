@@ -52,7 +52,7 @@ class accepted_service
 
   void start();
   void start_read(event_ptr&, bool first_read) override;
-  void start_write(const event_ptr&) override;
+  void start_write(const event_with_data::pointer&) override;
   int stop() override;
   void shutdown() override;
 

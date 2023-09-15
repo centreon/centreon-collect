@@ -69,23 +69,41 @@ constexpr uint32_t calc_accept_all_compression_mask() {
  *
  */
 class channel : public std::enable_shared_from_this<channel> {
+ public:
+  /**
+   * @brief the goal of this structure is to avoid copy from bbdo event to grpc
+   * protobuf message
+   *
+   */
+  struct event_with_data {
+    using pointer = std::shared_ptr<event_with_data>;
+
+    event_with_data() {}
+    event_with_data(const std::shared_ptr<io::data>& bbdo_evt)
+        : bbdo_event(bbdo_evt) {}
+
+    grpc_event_type grpc_event;
+    std::shared_ptr<io::data> bbdo_event;
+  };
+
  private:
   channel& operator=(const channel&) = delete;
   channel(const channel&) = delete;
 
  protected:
-  using event_queue = std::list<event_ptr>;
+  using read_queue = std::deque<event_ptr>;
+  using write_queue = std::deque<event_with_data::pointer>;
 
   const std::string _class_name;
 
   /// read section
-  event_queue _read_queue;
+  read_queue _read_queue;
   bool _read_pending;
   event_ptr _read_current;
 
   // write section
-  event_queue _write_queue;
-  event_ptr _write_current;
+  write_queue _write_queue;
+  event_with_data::pointer _write_current;
   bool _write_pending;
 
   bool _error;
@@ -101,7 +119,7 @@ class channel : public std::enable_shared_from_this<channel> {
   void start_read(bool first_read);
   void start_write();
 
-  virtual void start_write(const event_ptr&) = 0;
+  virtual void start_write(const event_with_data::pointer&) = 0;
   virtual void start_read(event_ptr&, bool first_read) = 0;
 
   void on_write_done(bool ok);
@@ -127,7 +145,7 @@ class channel : public std::enable_shared_from_this<channel> {
   }
   std::pair<event_ptr, bool> read(const system_clock::time_point& deadline);
 
-  int write(const event_ptr&);
+  int write(const event_with_data::pointer&);
   int flush();
   virtual int stop();
 

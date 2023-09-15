@@ -75,7 +75,7 @@ void accepted_service::OnReadDone(bool ok) {
   on_read_done(ok);
 }
 
-void accepted_service::start_write(const event_ptr& to_send) {
+void accepted_service::start_write(const event_with_data::pointer& to_send) {
   if (*_server_finished || _thrown) {
     bool expected = false;
     if (_finished_called.compare_exchange_strong(expected, true)) {
@@ -84,7 +84,7 @@ void accepted_service::start_write(const event_ptr& to_send) {
       Finish(::grpc::Status(::grpc::CANCELLED, "start_write server finished"));
     }
   } else {
-    StartWrite(to_send.get());
+    StartWrite(&to_send->grpc_event);
   }
 }
 

@@ -54,6 +54,8 @@ namespace io {
 class stream {
   const std::string _name;
 
+  bool _no_bbdo_encode = false;
+
  protected:
   std::shared_ptr<stream> _substream;
 
@@ -76,6 +78,10 @@ class stream {
   const std::string& get_name() const { return _name; }
 
   virtual bool wait_for_all_events_written(unsigned ms_timeout);
+
+  bool get_no_bbdo_encode() const { return _no_bbdo_encode; }
+
+  void set_no_bbdo_encode(bool no_bbdo_encode);
 };
 }  // namespace io
 

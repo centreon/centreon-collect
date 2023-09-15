@@ -48,7 +48,7 @@ class client : public channel,
   client(const grpc_config::pointer& conf);
 
   void start_read(event_ptr& to_read, bool first_read) override;
-  void start_write(const event_ptr& to_send) override;
+  void start_write(const event_with_data::pointer& to_send) override;
 
   void remove_hold();
 

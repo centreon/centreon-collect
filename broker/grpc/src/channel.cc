@@ -175,7 +175,7 @@ void channel::on_read_done(bool ok) {
 /***************************************************************
  *    write section
  ***************************************************************/
-int channel::write(const event_ptr& to_send) {
+int channel::write(const event_with_data::pointer& to_send) {
   if (is_down()) {
     throw(exceptions::connection_closed("{} connection is down",
                                         __PRETTY_FUNCTION__));
@@ -189,7 +189,7 @@ int channel::write(const event_ptr& to_send) {
 }
 
 void channel::start_write() {
-  event_ptr write_current;
+  event_with_data::pointer write_current;
   {
     lock_guard l(_protect);
     if (_write_pending) {
@@ -201,7 +201,7 @@ void channel::start_write() {
     _write_pending = true;
     write_current = _write_current = _write_queue.front();
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write: {}", *write_current);
+  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write: {}", *write_current->bbdo_event);
   start_write(write_current);
 }
 
@@ -211,7 +211,8 @@ void channel::on_write_done(bool ok) {
     {
       lock_guard l(_protect);
       _write_pending = false;
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done: {}", *_write_current);
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done: {}",
+                          *_write_current->bbdo_event);
 
       _write_queue.pop_front();
       data_to_write = !_write_queue.empty();
@@ -222,7 +223,8 @@ void channel::on_write_done(bool ok) {
     }
   } else {
     lock_guard l(_protect);
-    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}", *_write_current);
+    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}",
+                        *_write_current->bbdo_event);
     _error = true;
   }
 }
