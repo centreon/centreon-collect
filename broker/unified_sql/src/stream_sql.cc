@@ -1083,7 +1083,7 @@ void stream::_process_pb_host_check(const std::shared_ptr<io::data>& d) {
   // Cast object.
   const neb::pb_host_check& hc_obj =
       *static_cast<neb::pb_host_check const*>(d.get());
-  const Check& hc = hc_obj.obj();
+  const HostCheck& hc = hc_obj.obj();
   if (!_host_instance_known(hc.host_id())) {
     SPDLOG_LOGGER_WARN(
         log_v2::sql(),
@@ -2744,7 +2744,7 @@ void stream::_process_pb_service_check(const std::shared_ptr<io::data>& d) {
   // Cast object.
   const neb::pb_service_check& pb_sc(
       *static_cast<neb::pb_service_check const*>(d.get()));
-  const Check& sc(pb_sc.obj());
+  const ServiceCheck& sc(pb_sc.obj());
 
   if (!_host_instance_known(sc.host_id())) {
     SPDLOG_LOGGER_WARN(

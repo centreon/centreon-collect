@@ -29,12 +29,14 @@ enum State {
     UNKNOWN = 3;  
 }
 
+/*io::bam, io::bam, bam::de_pb_inherited_downtime*/
 message InheritedDowntime {
     BBDOHeader header = 1;
     uint32 ba_id = 2;
     bool in_downtime = 3;
 }
 
+/*io::bam, bam::de_pb_ba_status*/
 message BaStatus {
     uint32 ba_id = 2;
     bool in_downtime = 3;
@@ -47,6 +49,7 @@ message BaStatus {
     string output = 10;
 }
 
+/*io::bam, bam::de_pb_ba_event*/
 message BaEvent {
     uint32 ba_id = 1;
     double first_level = 2;
@@ -56,6 +59,7 @@ message BaEvent {
     State status = 6; 
 }
 
+/*io::bam, bam::de_pb_kpi_event*/
 message KpiEvent {
     uint32 ba_id = 1;
     uint64 start_time = 2;
@@ -68,17 +72,20 @@ message KpiEvent {
     State status = 9;
 }
 
+/*io::bam, bam::de_pb_dimension_bv_event*/
 message DimensionBvEvent {
     uint32 bv_id = 1;
     string bv_name = 2;
     string bv_description = 3;
 }
 
+/*io::bam, bam::de_pb_dimension_ba_bv_relation_event*/
 message DimensionBaBvRelationEvent {
     uint32 ba_id = 1;
     uint32 bv_id = 2;
 }
 
+/*io::bam, bam::de_pb_dimension_timeperiod*/
 message DimensionTimeperiod {
     uint32 id = 1;
     string name = 2;
@@ -91,6 +98,7 @@ message DimensionTimeperiod {
     string sunday = 9;
 }
 
+/*io::bam, bam::de_pb_dimension_ba_event*/
 message DimensionBaEvent {
     uint32 ba_id = 1;
     string ba_name = 2;
@@ -101,6 +109,7 @@ message DimensionBaEvent {
     uint32 sla_duration_warn = 7;
 }
 
+/*io::bam, bam::de_pb_dimension_kpi_event*/
 message DimensionKpiEvent {
     uint32 kpi_id = 1;
     uint32 ba_id = 2;
@@ -120,6 +129,7 @@ message DimensionKpiEvent {
     double impact_unknown = 16;
 }
 
+/*io::bam, bam::de_pb_kpi_status*/
 message KpiStatus {
     uint32 kpi_id = 1;
     bool in_downtime = 2;
@@ -136,6 +146,7 @@ message KpiStatus {
     bool valid = 13;
 }
 
+/*io::bam, bam::de_pb_ba_duration_event*/
 message BaDurationEvent {
     uint32 ba_id = 1;
     int64 real_start_time = 2;
@@ -147,12 +158,14 @@ message BaDurationEvent {
     bool timeperiod_is_default = 8;
 }
 
+/*io::bam, bam::de_pb_dimension_ba_timeperiod_relation*/
 message DimensionBaTimeperiodRelation {
     uint32 ba_id = 1;
     uint32 timeperiod_id = 2;
     bool is_default = 3;  
 }
 
+/*io::bam, bam::de_pb_dimension_truncate_table_signal*/
 message DimensionTruncateTableSignal {
     bool update_started = 1;
 }

@@ -41,6 +41,7 @@ enum AckType {
   STICKY = 2;
 }
 
+/*io::neb, neb::de_pb_service*/
 message Service {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -159,6 +160,7 @@ message Service {
 /**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
+/*io::neb, neb::de_pb_service_status*/
 message ServiceStatus {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -225,6 +227,7 @@ message ServiceStatus {
  *
  * Only used with BBDO 3.0
  */
+/*io::neb, neb::de_pb_adaptive_service*/
 message AdaptiveService {
   uint64 host_id = 1;
   uint64 service_id = 2;
@@ -246,6 +249,7 @@ message AdaptiveService {
   optional string notification_period = 17;
 }
 
+/*io::neb, neb::de_pb_host*/
 message Host {
   uint64 host_id = 1;
 
@@ -352,6 +356,7 @@ message Host {
 /**
  * @brief Message sent in BBDO 3.0.0 instead of neb::service_status
  */
+/*io::neb, neb::de_pb_host_status*/
 message HostStatus {
   uint64 host_id = 1;
 
@@ -408,6 +413,7 @@ message HostStatus {
  *
  * Only used with BBDO 3.0
  */
+/*io::neb, neb::de_pb_adaptive_host*/
 message AdaptiveHost {
   uint64 host_id = 1;
 
@@ -428,6 +434,7 @@ message AdaptiveHost {
   optional string notification_period  = 16;
 }
 
+/*io::neb, neb::de_pb_comment*/
 message Comment {
   BBDOHeader header = 1;
 
@@ -470,6 +477,7 @@ message Comment {
  * @brief A downtime is applied on a resource when we don't want notifications
  * concerning bad states on this resource.
  */
+/*io::neb, neb::de_pb_downtime*/
 message Downtime {
   enum DowntimeType {
   NOT_USED = 0;
@@ -497,6 +505,7 @@ message Downtime {
   bool fixed = 18;
 }
 
+/*io::neb, neb::de_pb_custom_variable*/
 message CustomVariable {
   enum VarType {
     HOST = 0;
@@ -521,7 +530,8 @@ enum CheckType {
     CheckPassive = 1;
 }
 
-message Check {
+/*io::neb, neb::de_pb_host_check*/
+message HostCheck {
     BBDOHeader header = 1;
 
     bool active_checks_enabled = 2;
@@ -532,6 +542,19 @@ message Check {
     uint64 service_id = 7;
 }
 
+/*io::neb, neb::de_pb_service_check*/
+message ServiceCheck {
+  BBDOHeader header = 1;
+
+  bool active_checks_enabled = 2;
+  CheckType check_type = 3;
+  string command_line = 4;
+  uint64 host_id = 5;
+  uint64 next_check = 6;
+  uint64 service_id = 7;
+}
+
+/*io::neb, neb::de_pb_log_entry*/
 message LogEntry {
   enum LogType {
     SOFT = 0;
@@ -569,6 +592,7 @@ message LogEntry {
   int32 retry = 13;
 }
 
+/*io::neb, neb::de_pb_instance_status*/
 message InstanceStatus {
   BBDOHeader header = 1;
 
@@ -590,6 +614,7 @@ message InstanceStatus {
   uint64 instance_id = 17;
 }
 
+/*io::neb, neb::de_pb_instance*/
 message Instance {
   BBDOHeader header = 1;
 
@@ -603,6 +628,7 @@ message Instance {
   string version = 9;
 }
 
+/*io::neb, neb::de_pb_responsive_instance*/
 message ResponsiveInstance {
   BBDOHeader header = 1;
 
@@ -610,6 +636,7 @@ message ResponsiveInstance {
   bool responsive = 3;
 }
 
+/*io::neb, neb::de_pb_acknowledgement*/
 message Acknowledgement {
   uint64 host_id = 1;
   uint64 service_id = 2;

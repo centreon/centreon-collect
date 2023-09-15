@@ -16,30 +16,25 @@
 ** For more information : contact@centreon.com
 */
 
-syntax = "proto3";
+#ifndef CCB_GRPC_BRIDGE_HH
+#define CCB_GRPC_BRIDGE_HH
 
-package com.centreon.broker;
+#include "com/centreon/broker/io/protobuf.hh"
+#include "com/centreon/broker/namespace.hh"
+#include "grpc_stream.pb.h"
 
+CCB_BEGIN()
 
-message Bbdo {
-  uint32 major = 1;
-  uint32 minor = 2;
-  uint32 patch = 3;
-}
+namespace grpc {
+std::shared_ptr<io::data> protobuf_to_event(
+    const com::centreon::broker::stream::centreon_event& stream_content);
 
-/*io::bbdo, bbdo::de_welcome*/
-message Welcome {
-  Bbdo version = 1;
-  string extensions = 2;
-  uint64 poller_id = 3;
-  string poller_name = 4;
-}
+void event_to_protobuf(
+    io::data& event,
+    com::centreon::broker::stream::centreon_event& stream_content);
 
-/*io::bbdo, bbdo::de_pb_ack*/
-message Ack {
-  uint32 acknowledged_events = 1;
-}
+};  // namespace grpc
 
-/*io::bbdo, bbdo::de_pb_stop*/
-message Stop {
-}
+CCB_END()
+
+#endif

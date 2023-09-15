@@ -21,7 +21,7 @@ set(MODULE_DIR "${PROJECT_SOURCE_DIR}/grpc")
 set(INC_DIR "${MODULE_DIR}/inc/com/centreon/broker/grpc")
 set(SRC_DIR "${MODULE_DIR}/src")
 set(TEST_DIR "${MODULE_DIR}/test")
-include_directories(${MODULE_DIR}/inc ${SRC_DIR})
+include_directories(${MODULE_DIR}/inc ${SRC_DIR} ${CMAKE_SOURCE_DIR}/bbdo)
 
 # Sources.
 set(SOURCES
@@ -34,7 +34,8 @@ set(SOURCES
     "${SRC_DIR}/server.cc"
     "${SRC_DIR}/stream.cc"
     "${SRC_DIR}/grpc_stream.grpc.pb.cc"
-    "${SRC_DIR}/grpc_stream.pb.cc")
+    "${SRC_DIR}/grpc_stream.pb.cc"
+    "${SRC_DIR}/grpc_bridge.cc")
 # Headers.
 set(HEADERS
     "${INC_DIR}/acceptor.hh"
@@ -57,14 +58,30 @@ set_target_properties(${GRPC} PROPERTIES PREFIX "")
 target_link_libraries(${GRPC} CONAN_PKG::spdlog)
 
 target_precompile_headers(${GRPC} PRIVATE precomp_inc/precomp.hh)
-# include_directories($(Boost_INCLUDE_DIRS))
+
+file(
+  GLOB bbdo_files
+  LIST_DIRECTORIES false
+  ${CMAKE_SOURCE_DIR}/bbdo/*.proto)
+
+add_custom_command(
+  OUTPUT ${MODULE_DIR}/grpc_stream.proto ${MODULE_DIR}/src/grpc_bridge.cc
+  COMMENT "Generating grpc_stream.proto from bbdo protobuf files"
+  DEPENDS ${bbdo_files}
+  COMMAND
+    python3 ARGS ${MODULE_DIR}/generate_proto.py -f
+    ${MODULE_DIR}/grpc_stream.proto -c ${MODULE_DIR}/src/grpc_bridge.cc -d
+    ${CMAKE_SOURCE_DIR}/bbdo
+  VERBATIM)
 
 add_custom_command(
   OUTPUT "${SRC_DIR}/grpc_stream.pb.cc" "${SRC_DIR}/grpc_stream.pb.h"
   DEPENDS ${MODULE_DIR}/grpc_stream.proto
   COMMENT "Generating interface files of grpc_stream.proto"
-  COMMAND ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
-          --proto_path=${MODULE_DIR} grpc_stream.proto
+  COMMAND
+    ${Protobuf_PROTOC_EXECUTABLE} ARGS --cpp_out=${SRC_DIR}
+    --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    grpc_stream.proto
   VERBATIM)
 
 add_custom_command(
@@ -74,7 +91,8 @@ add_custom_command(
   COMMAND
     ${Protobuf_PROTOC_EXECUTABLE} ARGS --grpc_out=${SRC_DIR}
     --plugin=protoc-gen-grpc=${CONAN_BIN_DIRS_GRPC}/grpc_cpp_plugin
-    --proto_path=${MODULE_DIR} grpc_stream.proto
+    --proto_path=${MODULE_DIR} --proto_path=${CMAKE_SOURCE_DIR}/bbdo
+    grpc_stream.proto
   VERBATIM)
 
 # Testing.
