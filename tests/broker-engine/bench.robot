@@ -16,8 +16,7 @@ BENCH_${nb_check}STATUS
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info

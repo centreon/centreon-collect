@@ -186,8 +186,7 @@ EBMSSM
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
@@ -233,8 +232,7 @@ EBPS2
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services passive    ${0}    service_.*
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1

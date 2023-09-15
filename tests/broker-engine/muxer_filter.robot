@@ -112,8 +112,7 @@ BAM_STREAM_FILTER
     [Tags]    broker    engine    bam    filter
     Clear Commands Status
     Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Broker Config Log    central    core    trace
     Broker Config Log    central    config    trace
     Config BBDO3    ${1}
@@ -204,8 +203,7 @@ UNIFIED_SQL_FILTER
     [Tags]    broker    engine    bam    filter
     Clear Retention
     Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Broker Config Log    central    core    trace
     Config BBDO3    ${1}
     Config Engine    ${1}
@@ -240,8 +238,7 @@ CBD_RELOAD_AND_FILTERS
 
     Clear Retention
     Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Broker Config Log    central    config    trace
     Broker Config Log    rrd    rrd    debug
     Config BBDO3    ${1}
@@ -339,8 +336,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     Clear Retention
     Config Broker    module    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Broker Config Input Set    rrd    central-rrd-master-input    host    localhost

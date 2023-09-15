@@ -16,8 +16,7 @@ BETAG1
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
@@ -43,8 +42,7 @@ BETAG2
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
@@ -71,8 +69,7 @@ BEUTAG1
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -102,8 +99,7 @@ BEUTAG2
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -148,8 +144,7 @@ BEUTAG3
     Config Engine    ${1}
     Create Tags File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    tags.cfg
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -183,8 +178,7 @@ BEUTAG4
     Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Services    ${0}    group_tags    4,5    [1, 3]
     Add Tags To Services    ${0}    category_tags    2,4    [3, 5, 6]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -222,8 +216,7 @@ BEUTAG5
     Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
     Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -263,8 +256,7 @@ BEUTAG6
     Add Tags To Hosts    ${0}    category_tags    1,5    [1, 2, 3, 4]
     Add Tags To Services    ${0}    group_tags    2,4    [1, 2, 3, 4]
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -307,8 +299,7 @@ BEUTAG7
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -378,8 +369,7 @@ BEUTAG8
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2]
     Add Tags To Services    ${1}    group_tags    1,4    [501, 502]
 
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -435,8 +425,7 @@ BEUTAG9
     Add Template To Hosts    0    host_template_2    [11, 12]
     Add Template To Hosts    1    host_template_1    [30, 31]
     Add Template To Hosts    1    host_template_2    [32, 33]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -498,8 +487,7 @@ BEUTAG10
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -569,8 +557,7 @@ BEUTAG11
     Add Tags To Services    ${0}    category_tags    3,5    [1, 2, 3, 4]
     Add Tags To Services    ${1}    group_tags    3,5    [501, 502, 503, 504]
     Add Tags To Services    ${1}    category_tags    2,4    [501, 502, 503, 504]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -635,8 +622,7 @@ BEUTAG12
     Config Engine Add Cfg File    ${0}    tags.cfg
     Add Tags To Hosts    ${0}    group_tags    2,3    [1, 2]
     Add Tags To Hosts    ${0}    category_tags    2,3    [2, 3, 4]
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Item    module0    bbdo_version    3.0.0

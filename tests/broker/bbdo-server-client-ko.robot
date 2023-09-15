@@ -13,8 +13,7 @@ Library    Examples
 BSCSSK${id}
     [Documentation]    Start-Stop two instances of broker, server configured with tcp and client with grpc. No connection established and error raised on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp

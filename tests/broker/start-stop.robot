@@ -12,8 +12,7 @@ Test Setup          Stop Processes
 BSS1
     [Documentation]    Start-Stop two instances of broker and no coredump
     [Tags]    broker    start-stop
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Repeat Keyword    5 times    Start Stop Service    0
 
 BSS2
@@ -45,8 +44,7 @@ BSS5
 BSSU1
     [Documentation]    Start-Stop with unified_sql two instances of broker and no coredump
     [Tags]    broker    start-stop    unified_sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker Sql Output    central    unified_sql
     Repeat Keyword    5 times    Start Stop Service    0
 

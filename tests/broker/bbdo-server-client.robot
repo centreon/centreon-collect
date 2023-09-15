@@ -12,8 +12,7 @@ Test Setup          Stop Processes
 BSCSS1
     [Documentation]    Start-Stop two instances of broker and no coredump
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
@@ -23,8 +22,7 @@ BSCSS1
 BSCSSP1
     [Documentation]    Start-Stop two instances of broker and no coredump. The server contains a listen address
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp    localhost
@@ -58,8 +56,7 @@ BSCSS4
 BSCSSG1
     [Documentation]    Start-Stop two instances of broker and no coredump
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    gRPC    localhost
     Config Broker BBDO Output    central    bbdo_client    5670    gRPC    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    gRPC
@@ -93,8 +90,7 @@ BSCSSG4
 BSCSST1
     [Documentation]    Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
@@ -112,8 +108,7 @@ BSCSST1
 BSCSST2
     [Documentation]    Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
@@ -148,8 +143,7 @@ BSCSST2
 BSCSSTG1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    gRPC
     Config Broker BBDO Output    central    bbdo_client    5670    gRPC    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    gRPC
@@ -174,8 +168,7 @@ BSCSSTG1
 BSCSSTG2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
@@ -223,8 +216,7 @@ BSCSSTG2
 BSCSSTG3
     [Documentation]    Start-Stop two instances of broker. The connection cannot be established if the server private key is missing and an error message explains this issue.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
@@ -276,8 +268,7 @@ BSCSSTG3
 BSCSSC1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
@@ -296,8 +287,7 @@ BSCSSC1
 BSCSSC2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
@@ -317,8 +307,7 @@ BSCSSC2
 BSCSSCG1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on client side.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
@@ -340,8 +329,7 @@ BSCSSCG1
 BSCSSGA1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server. Error messages are raised.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
@@ -363,8 +351,7 @@ BSCSSGA1
 BSCSSGA2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. An authorization token is added on the server and also on the client. All looks ok.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc

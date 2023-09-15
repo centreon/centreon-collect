@@ -14,8 +14,7 @@ BEPBBEE1
     [Documentation]    central-module configured with bbdo_version 3.0 but not others. Unable to establish connection.
     [Tags]    broker    engine    protobuf    bbdo
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Log    module0    bbdo    debug

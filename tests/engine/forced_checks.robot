@@ -13,8 +13,7 @@ EFHC1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo2
     [Tags]    engine    external_cmd    log-v2
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -56,8 +55,7 @@ EFHC2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo2
     [Tags]    engine    external_cmd    log-v2
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -95,8 +93,7 @@ EFHCU1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
     [Tags]    engine    external_cmd
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -143,8 +140,7 @@ EFHCU2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
     [Tags]    engine    external_cmd
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -190,8 +186,7 @@ EMACROS
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in check outputs
     [Tags]    engine    external_cmd    macros
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
@@ -224,8 +219,7 @@ EMACROS_NOTIF
     [Documentation]    macros ADMINEMAIL and ADMINPAGER are replaced in notification commands
     [Tags]    engine    external_cmd    macros
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}

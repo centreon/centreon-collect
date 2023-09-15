@@ -12,8 +12,7 @@ Test Setup          Stop Processes
 BDB1
     [Documentation]    Access denied when database name exists but is not the good one for sql output
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-sql    db_name    centreon
     FOR    ${i}    IN RANGE    0    5
@@ -49,8 +48,7 @@ BDB2
 BDB3
     [Documentation]    Access denied when database name does not exist for sql output
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
@@ -65,8 +63,7 @@ BDB3
 BDB4
     [Documentation]    Access denied when database name does not exist for storage and sql outputs
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-perfdata    db_name    centreon1
     Broker Config Output set    central    central-broker-master-sql    db_name    centreon1
@@ -84,8 +81,7 @@ BDB4
 BDB5
     [Documentation]    cbd does not crash if the storage/sql db_host is wrong
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-perfdata    db_host    1.2.3.4
     Broker Config Output set    central    central-broker-master-sql    db_host    1.2.3.4
@@ -101,8 +97,7 @@ BDB5
 BDB6
     [Documentation]    cbd does not crash if the sql db_host is wrong
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
@@ -117,8 +112,7 @@ BDB6
 BDB7
     [Documentation]    access denied when database user password is wrong for perfdata/sql
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-sql    db_password    centreon1
     Broker Config Output set    central    central-broker-master-perfdata    db_password    centreon1
@@ -132,8 +126,7 @@ BDB7
 BDB8
     [Documentation]    access denied when database user password is wrong for perfdata/sql
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-perfdata    db_password    centreon1
     Broker Config Output set    central    central-broker-master-sql    db_password    centreon1
@@ -147,8 +140,7 @@ BDB8
 BDB9
     [Documentation]    access denied when database user password is wrong for sql
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Output set    central    central-broker-master-sql    db_password    centreon1
     ${start}    Get Current Date
@@ -161,8 +153,7 @@ BDB9
 BDB10
     [Documentation]    connection should be established when user password is good for sql/perfdata
     [Tags]    broker    sql
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Log    central    sql    debug
     ${start}    Get Current Date
@@ -175,8 +166,7 @@ BDB10
 BEDB2
     [Documentation]    start broker/engine and then start MariaDB => connection is established
     [Tags]    broker    sql    start-stop
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Engine    ${1}
     ${start}    Get Current Date
@@ -194,8 +184,7 @@ BEDB2
 BEDB3
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
     [Tags]    broker    sql    start-stop    grpc
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Engine    ${1}
     ${start}    Get Current Date
@@ -225,8 +214,7 @@ BEDB3
 BEDB4
     [Documentation]    start broker/engine, then stop MariaDB and then start it again. The gRPC API should give informations about SQL connections.
     [Tags]    broker    sql    start-stop    grpc
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Config Engine    ${1}
     ${start}    Get Current Date

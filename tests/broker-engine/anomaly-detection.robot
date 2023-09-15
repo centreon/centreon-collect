@@ -157,8 +157,7 @@ AOUTLU1
     [Documentation]    an anomaly detection with a perfdata upper than upper limit make a critical state with bbdo 3
     [Tags]    broker    engine    anomaly    bbdo
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
@@ -191,8 +190,7 @@ ANO_DT1
     [Documentation]    downtime on dependent service is inherited by ano
     [Tags]    broker    engine    anomaly
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
@@ -227,8 +225,7 @@ ANO_DT2
     [Documentation]    delete downtime on dependent service delete one on ano serv
     [Tags]    broker    engine    anomaly
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
@@ -267,8 +264,7 @@ ANO_DT3
     [Documentation]    delete downtime on anomaly don t delete dependent service one
     [Tags]    broker    engine    anomaly
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
@@ -308,8 +304,7 @@ ANO_DT4
     [Documentation]    set dt on anomaly and on dependent service, delete last one don t delete first one
     [Tags]    broker    engine    anomaly
     Config Engine    ${1}    ${50}    ${20}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql

@@ -1037,8 +1037,7 @@ BAM Init
     Clear Retention
     Clear Db Conf    mod_bam
     Config Broker    module
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Broker Config Log    central    bam    trace
     Broker Config Log    central    sql    trace
     Broker Config Log    central    config    trace

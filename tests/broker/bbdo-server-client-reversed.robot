@@ -13,8 +13,7 @@ Test Teardown       Save logs If Failed
 BSCSSR1
     [Documentation]    Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client and reversed.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
@@ -24,8 +23,7 @@ BSCSSR1
 BSCSSRR1
     [Documentation]    Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client, reversed and retention. central-broker-master-output is then a failover.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Broker Config Output set    central    central-broker-master-output    retention    yes
@@ -40,8 +38,7 @@ BSCSSRR1
 BSCSSPRR1
     [Documentation]    Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. central-broker-master-output is then a failover.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_server    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
@@ -61,8 +58,7 @@ BSCSSRR2
 BSCSSGRR1
     [Documentation]    Start-Stop two instances of broker and no coredump, reversed and retention, with transport protocol grpc, start-stop 5 times.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Input    central    bbdo_server    5669    grpc    localhost
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
     Broker Config Output set    central    central-broker-master-output    retention    yes
@@ -79,8 +75,7 @@ BSCSSGRR1
 BSCSSTRR1
     [Documentation]    Start-Stop two instances of broker and no coredump. Encryption is enabled. transport protocol is tcp, reversed and retention.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
     Broker Config Output set    central    central-broker-master-output    encryption    yes
@@ -98,8 +93,7 @@ BSCSSTRR1
 BSCSSTRR2
     [Documentation]    Start-Stop two instances of broker and no coredump. Encryption is enabled.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
     Broker Config Output set    central    central-broker-master-output    encryption    yes
@@ -134,8 +128,7 @@ BSCSSTRR2
 BSCSSTGRR2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys. Reversed grpc connection with retention.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    grpc    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
     Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
     Broker Config Output set    central    central-broker-master-output    encryption    yes
@@ -184,8 +177,7 @@ BSCSSTGRR2
 BSCSSCRR1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side. Connection reversed with retention.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
     Broker Config Output set    central    central-broker-master-output    compression    yes
@@ -204,8 +196,7 @@ BSCSSCRR1
 BSCSSCRR2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is disabled on client side. Connection reversed with retention.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
     Broker Config Output set    central    central-broker-master-output    compression    no
@@ -225,8 +216,7 @@ BSCSSCRR2
 BSCSSCGRR1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
     Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
     Broker Config Output set    central    central-broker-master-output    compression    yes
@@ -247,8 +237,7 @@ BSCSSCGRR1
 BSCSSCGRR2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with grpc transport protocol. Compression is enabled on output side. Reversed connection with retention and grpc transport protocol.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    compression    tls
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
     Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
     Broker Config Output set    central    central-broker-master-output    compression    no

@@ -29,11 +29,15 @@ ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 
 
 *** Keywords ***
+Init Config
+    [Documentation]    Init Config
+    Config Broker    central
+    Config Broker    rrd
+
 Config Service
     [Documentation]    Configuration of Broker and Engine
     [Arguments]    ${core_log}=info    ${bbdo_version}=3.0.0
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module    ${1}
     Broker Config Log    central    sql    error
     Broker Config Log    central    core    info

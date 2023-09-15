@@ -389,8 +389,7 @@ BESSBQ1
     [Documentation]    A very bad queue file is written for broker. Broker and Engine are then started, Broker must read the file raising an error because of that file and then get data sent by Engine.
     [Tags]    broker    engine    start-stop    queue
     Config Engine    ${1}
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker    module
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error

@@ -13,8 +13,7 @@ Test Teardown       Save logs If Failed
 BGRPCSS1
     [Documentation]    Start-Stop two instances of broker configured with grpc stream and no coredump
     [Tags]    broker    start-stop    grpc
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Change Broker tcp output to grpc    central
     Change Broker tcp input to grpc    rrd
     Repeat Keyword    5 times    Start Stop Service    100ms
@@ -52,8 +51,7 @@ BGRPCSS5
 BGRPCSSU1
     [Documentation]    Start-Stop with unified_sql two instances of broker with grpc stream and no coredump
     [Tags]    broker    start-stop    unified_sql    grpc
-    Config Broker    central
-    Config Broker    rrd
+    Init Config
     Config Broker Sql Output    central    unified_sql
     Change Broker tcp output to grpc    central
     Change Broker tcp input to grpc    rrd
