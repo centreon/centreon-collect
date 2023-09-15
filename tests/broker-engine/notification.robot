@@ -209,10 +209,10 @@ not3
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # It's time to schedule a downtime
-    Schedule service downtime    host_1    service_1    ${60}
+    Schedule Service Downtime    host_1    service_1    ${60}
 
-    ${result}    check number of downtimes    ${1}    ${start}    ${60}
-    Should be true    ${result}    We should have 1 downtime enabled.
+    ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
+    Should Be True    ${result}    We should have 1 downtime enabled.
 
 ## Time to set the service to CRITICAL HARD.
 
