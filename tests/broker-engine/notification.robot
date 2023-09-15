@@ -19,7 +19,7 @@ Test Teardown       Save logs If Failed
 
 *** Test Cases ***
 not1
-    [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
+    [Documentation]    One service ID is configured with a normal notification, a non-ok state triggers the notification.
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
