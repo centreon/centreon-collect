@@ -1,5 +1,5 @@
 *** Settings ***
-Documentation       Centreon Broker and Engine progressively add services
+Documentation       Centreon notification
 
 Resource            ../resources/resources.robot
 Library             Process
@@ -19,8 +19,8 @@ Test Teardown       Save logs If Failed
 
 *** Test Cases ***
 not1
-    [Documentation]    One service ID is configured with a normal notification, a non-ok state triggers the notification.
-    [Tags]    broker    engine    services    unified_sql
+    [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -30,13 +30,13 @@ not1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -64,29 +64,24 @@ not1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-
-
-## Time to set the service to CRITICAL HARD.
-
+    ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check Result    host_1    service_1    2    critical
         Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    1s
-
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is sent
+    Should Be True    ${result}    A message telling that notification is not sent
 
     Stop Engine
     Kindly Stop Broker
 
 not2
     [Documentation]    1 services id configurd and,checking that the recovery notification is sent.
-    [Tags]    broker    engine    services    unified_sql
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -96,13 +91,13 @@ not2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -130,7 +125,7 @@ not2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-## Time to set the service to CRITICAL HARD.
+    ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_1    service_1    2    critical
@@ -138,14 +133,12 @@ not2
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    3s
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that notification is sent
 
-## Time to set the service to UP  hard
-
+    ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_1    service_1    0    ok
@@ -153,7 +146,6 @@ not2
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Sleep    3s
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -164,7 +156,7 @@ not2
 
 not3
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent after the downtimes is finished.
-    [Tags]    broker    engine    services    unified_sql
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -174,13 +166,13 @@ not3
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -214,15 +206,14 @@ not3
     ${result}    Check Number Of Downtimes    ${1}    ${start}    ${60}
     Should Be True    ${result}    We should have 1 downtime enabled.
 
-## Time to set the service to CRITICAL HARD.
+     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_1    service_1    2    critical
     Sleep    10s
     END
 
-    ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    10s
+    ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
 
     # Let's wait for the external command check start
     ${content}    Create List    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
@@ -232,7 +223,6 @@ not3
     Process Service Check Result    host_1    service_1    2    critical
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Sleep    1s
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -243,7 +233,7 @@ not3
 
 not4
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent when the acknowledge is finished.
-    [Tags]    broker    engine    services    unified_sql
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -254,13 +244,13 @@ not4
     Config Broker    rrd
     Config Broker    module    ${1}
     Config BBDO3    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -295,7 +285,6 @@ not4
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    5s
 
     # Acknowledge the service with critical status
     Acknowledge Service Problem    host_1    service_1    STICKY
@@ -308,7 +297,6 @@ not4
     Process Service Check Result    host_1    service_1    0    ok
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Sleep    10s
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -319,7 +307,7 @@ not4
 
 not5
     [Documentation]    2 services with 2 different users beeing notified when the services turn into critical state.
-    [Tags]    broker    engine    services    unified_sql
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${2}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -329,13 +317,13 @@ not5
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -381,11 +369,9 @@ not5
     Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    5s
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Sleep    5s
+    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -400,7 +386,7 @@ not5
 
 not6
     [Documentation]    timeperiod null
-    [Tags]    broker    engine    services    unified_sql
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -410,13 +396,13 @@ not6
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -444,17 +430,13 @@ not6
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
 
-
-
-## Time to set the service to CRITICAL HARD.
-
+    ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_1    service_1    2    critical
     Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    5s
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -467,7 +449,7 @@ not6
     Reload Broker
     Reload Engine
 
-## Time to set the service to UP  hard
+    ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_1    service_1    0    ok
@@ -475,13 +457,11 @@ not6
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
-    Sleep    7s
 
     Engine Config Set Value In Services    0    service_1    notification_period    24x7
     Sleep    5s
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
-    Sleep    7s
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -492,7 +472,7 @@ not6
 
 not7
     [Documentation]    host alert
-    [Tags]    broker    engine    host    unified_sql
+    [Tags]    broker    engine    host    hosts    notification
     Config Engine    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -502,13 +482,13 @@ not7
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -534,7 +514,7 @@ not7
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process host check result    host_1    1    host_1 DOWN
@@ -555,7 +535,7 @@ not7
 
 not8
     [Documentation]    critical host notification
-    [Tags]    broker    engine    host    unified_sql
+    [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -565,13 +545,13 @@ not8
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -597,7 +577,7 @@ not8
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process host check result    host_1    1    host_1 DOWN
@@ -618,7 +598,7 @@ not8
 
 not9
    [Documentation]    recovery host notification
-    [Tags]    broker    engine    host    unified_sql
+    [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -628,13 +608,13 @@ not9
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -660,7 +640,7 @@ not9
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process host check result    host_1    1    host_1 DOWN
@@ -681,7 +661,7 @@ not9
 
 not10
     [Documentation]    downtime on a down host and after the downtimes is finished and the host is still critical we should recieve a critical notification
-    [Tags]    broker    engine    host    unified_sql
+    [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -691,13 +671,13 @@ not10
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -723,7 +703,7 @@ not10
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process host check result    host_1    0    host_1 UP
@@ -756,7 +736,7 @@ not10
 
 not11
     [Documentation]    downtime on a down host that already had a critical notification then put it on up state after the downtimes is finished and the host is up we should recieve a recovery notification
-    [Tags]    broker    engine    host    unified_sql
+    [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -766,13 +746,13 @@ not11
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -798,7 +778,7 @@ not11
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
-## Time to set the host to UP HARD.
+    ## Time to set the host to UP HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process host check result    host_1    1    host_1 DOWN
@@ -814,7 +794,7 @@ not11
     Schedule host downtime    ${0}    host_1    ${3600}
 
     Sleep    10s
-## Time to set the host to CRITICAL HARD.
+    ## Time to set the host to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
         Process host check result    host_1    0    host_1 UP
     Sleep    1s
@@ -836,7 +816,7 @@ not11
 
 not12
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
-    [Tags]    broker    engine    services    unified_sql
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -846,13 +826,13 @@ not12
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -880,7 +860,7 @@ not12
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-## Time to set the service to CRITICAL HARD.
+    ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_1    service_1    2    critical
@@ -888,8 +868,6 @@ not12
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    1s
-
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -909,7 +887,7 @@ not12
 
 not13
     [Documentation]    escalations
-    [Tags]    broker    engine    services    unified_sql
+    [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${2}    ${1}
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -920,13 +898,13 @@ not13
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    trace
+    Broker Config Log    central    sql    error
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
@@ -993,7 +971,6 @@ not13
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    2s
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check result    host_2    service_2    2    critical
@@ -1001,7 +978,6 @@ not13
     END
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Sleep    2s
 
     # Let's wait for the first notification of the user U1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical_0;
@@ -1073,7 +1049,6 @@ not13
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Sleep    2s
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check result    host_2    service_2    2    critical
