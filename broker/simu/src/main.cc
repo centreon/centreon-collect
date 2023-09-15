@@ -22,7 +22,6 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/simu/factory.hh"
 #include "com/centreon/broker/simu/stream.hh"
 #include "common/log_v2/log_v2.hh"
@@ -74,7 +73,7 @@ void broker_module_init(void const* arg) {
   if (!instances++) {
     // generic simu module.
     log_v3::instance().get(0)->info("simu: module for Centreon Broker {}",
-                         CENTREON_BROKER_VERSION);
+                                    CENTREON_BROKER_VERSION);
 
     io::events& e(io::events::instance());
 

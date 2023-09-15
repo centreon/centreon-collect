@@ -21,11 +21,12 @@
 #include <absl/strings/match.h>
 
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/connector.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::sql;
+using com::centreon::common::log_v3::log_v3;
 
 /**
  *  Check if an endpoint match a configuration.
@@ -66,7 +67,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("cleanup_check_interval")};
     if (it != cfg.params.end() &&
         !absl::SimpleAtoi(it->second, &cleanup_check_interval)) {
-      log_v2::sql()->error(
+      log_v3::instance().get(0)->error(
           "sql: the 'cleanup_check_interval' value must be a positive integer. "
           "Otherwise, 0 is used for its value.");
       cleanup_check_interval = 0u;
@@ -79,7 +80,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("enable_command_cache"));
     if (it != cfg.params.end() &&
         !absl::SimpleAtob(it->second, &enable_cmd_cache)) {
-      log_v2::sql()->error(
+      log_v3::instance().get(0)->error(
           "sql: the 'enable_command_cache' value must be a boolean. Otherwise "
           "'false' is used for its value.");
       enable_cmd_cache = false;
@@ -100,7 +101,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("instance_timeout"));
     if (it != cfg.params.end() &&
         !absl::SimpleAtoi(it->second, &instance_timeout)) {
-      log_v2::sql()->error(
+      log_v3::instance().get(0)->error(
           "sql: the 'instance_timeout' value must be a positive integer. "
           "Otherwise, 300 is used for its value.");
       instance_timeout = 300;
@@ -114,7 +115,7 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("with_state_events"));
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &wse)) {
-        log_v2::rrd()->error(
+        log_v3::instance().get(0)->error(
             "factory: cannot parse the 'with_state_events' boolean: the "
             "content is '{}'",
             it->second);

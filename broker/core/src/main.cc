@@ -51,7 +51,6 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -98,7 +97,6 @@ static void hup_handler(int signum [[maybe_unused]]) {
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
     auto& log_conf = conf.log_conf();
     try {
-      log_v2::instance()->apply(log_conf);
       log_v3::instance().apply(log_conf);
       /* We update the logger, since the conf has been applied */
       core_logger = log_v3::instance().get(0);
@@ -169,7 +167,6 @@ int main(int argc, char* argv[]) {
   std::string default_listen_address{"localhost"};
 
   log_v3::load("cbd", {"core", "config"});
-  log_v2::load(g_io_context);
   auto core_logger = log_v3::instance().get(0);
 
   // Set configuration update handler.
@@ -275,7 +272,6 @@ int main(int argc, char* argv[]) {
         config::state conf{parsr.parse(gl_mainconfigfiles.front())};
         auto& log_conf = conf.log_conf();
         try {
-          log_v2::instance()->apply(log_conf);
           log_v3::instance().apply(log_conf);
           /* The core_logger is reloaded just after the configuration is applied
            */
@@ -319,7 +315,6 @@ int main(int argc, char* argv[]) {
         core_logger->info("main: termination request received by process {}",
                           getpid());
       }
-      log_v2::instance()->stop_flush_timer();
       //  Unload endpoints.
       config::applier::deinit();
       cache::global_cache::unload();

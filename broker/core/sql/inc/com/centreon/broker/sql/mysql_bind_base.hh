@@ -35,6 +35,7 @@ class mysql_bind_base {
 
  protected:
   std::vector<MYSQL_BIND> _bind;
+  std::shared_ptr<spdlog::logger> _logger;
 
   bool _prepared(size_t range) const;
   void _set_typed(uint32_t range);
@@ -43,8 +44,9 @@ class mysql_bind_base {
   /**
    * @brief Default constructor
    */
-  mysql_bind_base() = default;
-  mysql_bind_base(int size);
+  mysql_bind_base(const std::shared_ptr<spdlog::logger>& logger)
+      : _logger{logger} {}
+  mysql_bind_base(int size, const std::shared_ptr<spdlog::logger>& logger);
   /**
    * @brief Destructor
    */

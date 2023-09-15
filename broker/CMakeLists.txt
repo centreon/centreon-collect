@@ -439,11 +439,10 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/vars.hh
     ${INC_DIR}/version.hh)
 
-# Static libraries.
-add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
-set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerlog REUSE_FROM multiplexing)
-target_link_libraries(rokerlog CONAN_PKG::spdlog)
+# Static libraries. add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
+# set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
+# target_precompile_headers(rokerlog REUSE_FROM multiplexing)
+# target_link_libraries(rokerlog CONAN_PKG::spdlog)
 
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -474,7 +473,7 @@ add_dependencies(cbd multiplexing centreon_common)
 target_link_libraries(
   cbd
   "-rdynamic"
-  rokerlog
+  # rokerlog
   "-Wl,--whole-archive"
   log_v2
   sql

@@ -23,7 +23,6 @@
 #include "com/centreon/broker/compression/opener.hh"
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;

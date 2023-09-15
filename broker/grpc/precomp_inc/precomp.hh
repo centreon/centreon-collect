@@ -52,7 +52,6 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using system_clock = std::chrono::system_clock;

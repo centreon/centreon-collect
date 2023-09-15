@@ -21,7 +21,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -89,7 +88,7 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
 
   // Base information about the software.
   log_v3::instance().get(0)->info("diagnostic: Centreon Broker {}",
-                       CENTREON_BROKER_VERSION);
+                                  CENTREON_BROKER_VERSION);
 
   // df.
   log_v3::instance().get(0)->info("diagnostic: getting disk usage");
@@ -148,7 +147,8 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
   }
 
   // netstat.
-  log_v3::instance().get(0)->info("diagnostic: getting network connections information");
+  log_v3::instance().get(0)->info(
+      "diagnostic: getting network connections information");
   {
     std::string netstat_log_path;
     netstat_log_path = tmp_dir;
@@ -208,7 +208,8 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
        end(cfg_files.end());
        it != end; ++it) {
     // Configuration file.
-    log_v3::instance().get(0)->info("diagnostic: getting configuration file '{}'", *it);
+    log_v3::instance().get(0)->info(
+        "diagnostic: getting configuration file '{}'", *it);
     std::string cfg_path;
     {
       cfg_path = tmp_dir;
@@ -228,7 +229,8 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     config::parser parsr;
     config::state conf;
     try {
-      log_v3::instance().get(0)->info("diagnostic: reading configuration file.");
+      log_v3::instance().get(0)->info(
+          "diagnostic: reading configuration file.");
       conf = parsr.parse(*it);
     } catch (std::exception const& e) {
       log_v3::instance().get(0)->error(
@@ -274,7 +276,8 @@ void diagnostic::generate(std::vector<std::string> const& cfg_files,
     my_out_file = out_file;
 
   // Create tarball.
-  log_v3::instance().get(0)->info("diagnostic: creating tarball '{}'", my_out_file);
+  log_v3::instance().get(0)->info("diagnostic: creating tarball '{}'",
+                                  my_out_file);
   {
     std::string cmd{fmt::format("tar czf {} {}", my_out_file, tmp_dir)};
     std::string output{misc::exec(cmd)};
