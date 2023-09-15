@@ -52,10 +52,7 @@ class mysql_stmt_base {
   size_t _compute_param_count(const std::string& query);
 
  public:
-  /**
-   * @brief Default constructor.
-   */
-  mysql_stmt_base(bool bulk) : _bulk(bulk) {}
+  mysql_stmt_base(bool bulk);
   mysql_stmt_base(const std::string& query, bool named, bool bulk);
   mysql_stmt_base(
       const std::string& query,

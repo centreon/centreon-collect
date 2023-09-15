@@ -33,6 +33,14 @@ using namespace com::centreon::broker::database;
 using com::centreon::common::log_v3::log_v3;
 
 /**
+ * @brief Default constructor.
+ */
+mysql_stmt_base::mysql_stmt_base(bool bulk)
+    : _bulk(bulk),
+      _logger_id{log_v3::instance().create_logger_or_get_id("sql")},
+      _logger{log_v3::instance().get(_logger_id)} {}
+
+/**
  * @brief Constructor of a mysql_stmt_base from a SQL query template. This
  * template can be named or not, i.e. respectively like UPDATE foo SET
  * a=:a_value or UPDATE foo SET a=?
@@ -128,7 +136,9 @@ mysql_stmt_base::mysql_stmt_base(const std::string& query,
     : _bulk(bulk),
       _id(std::hash<std::string>{}(query)),
       _query(query),
-      _bind_mapping(bind_mapping) {
+      _bind_mapping(bind_mapping),
+      _logger_id{log_v3::instance().create_logger_or_get_id("sql")},
+      _logger{log_v3::instance().get(_logger_id)} {
   if (bind_mapping.empty())
     _param_count = _compute_param_count(query);
   else
@@ -144,7 +154,9 @@ mysql_stmt_base::mysql_stmt_base(mysql_stmt_base&& other)
       _param_count(std::move(other._param_count)),
       _query(std::move(other._query)),
       _bind_mapping(std::move(other._bind_mapping)),
-      _pb_mapping(std::move(other._pb_mapping)) {}
+      _pb_mapping(std::move(other._pb_mapping)),
+      _logger_id{log_v3::instance().create_logger_or_get_id("sql")},
+      _logger{log_v3::instance().get(_logger_id)} {}
 
 /**
  * @brief Move copy
