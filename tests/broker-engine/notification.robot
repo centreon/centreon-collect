@@ -70,7 +70,7 @@ not1
 
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check Result    host_1    service_1    2    critical
-    Sleep    1s
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
