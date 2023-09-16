@@ -38,14 +38,14 @@ LOGV2EB1
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content}    Create List    [info] [:] [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result1}    msg=No message telling configuration loaded.
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result1}    No message telling configuration loaded in logs file.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    after connection
@@ -58,7 +58,7 @@ LOGV2EB1
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
-    Should Be Equal As Strings    ${output}    ((1,),)
+    Should Be Equal As Strings    ${output}    ((1,),)    No message about the loaded configuration in the database
     Stop Engine
     Kindly Stop Broker
 
@@ -85,7 +85,7 @@ LOGV2EBU1
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
@@ -105,7 +105,7 @@ LOGV2EBU1
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
-    Should Be Equal As Strings    ${output}    ((1,),)
+    Should Be Equal As Strings    ${output}    ((1,),)    No message about the loaded configuration in the database.
     Stop Engine
     Kindly Stop Broker
 
@@ -122,37 +122,37 @@ LOGV2DB1
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date    exclude_millis=yes
-    ${time_stamp}=    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}=    evaluate    int(${time_stamp})
+    ${start}    Get Current Date    exclude_millis=yes
+    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
+    ${time_stamp2}    evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_old}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
-    Should Not Be True    ${result1}
-    Should Be True    ${result2}    msg=Old logs should be enabled.
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
+    ${result2}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
+    Should Not Be True    ${result1}    No message with log v2 should appear here
+    Should Be True    ${result2}    Old logs should be enabled and we should see a message 'Configuration loaded...'
 
     Log To Console    after connection
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
-    Should Be Equal As Strings    ${output}    ((1,),)
+    Should Be Equal As Strings    ${output}    ((1,),)    No message in the database about the loaded configuration.
     Stop Engine
     Kindly Stop Broker
 
@@ -178,13 +178,13 @@ LOGV2DB2
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
-    Should Not Be True    ${result1}
-    Should Not Be True    ${result2}
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result2}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
+    Should Not Be True    ${result1}    Log_v2 should be disabled
+    Should Not Be True    ${result2[0]}    Legacy logs should be disabled
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    after connection
@@ -224,13 +224,13 @@ LOGV2EB2
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
-    Should Be True    ${result1}
-    Should Be True    ${result2}
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result2}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
+    Should Be True    ${result1}    Log_v2 should be enabled
+    Should Be True    ${result2}    Legacy logs should be enabled
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    after connection
@@ -272,13 +272,13 @@ LOGV2EBU2
     Should Be True    ${result}    msg=Engine and Broker not connected
 
     ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
-    Should Be True    ${result1}
-    Should Be True    ${result2}
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result2}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    30
+    Should Be True    ${result1}    Log_v2 should be enabled
+    Should Be True    ${result2}    Legacy logs should be enabled
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    after connection
@@ -314,7 +314,7 @@ LOGV2EF1
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
     ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
@@ -333,19 +333,19 @@ LOGV2DF1
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
-    ${pid}=    Get Process Id    e0
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content_hold}    Create List    \\[\\d+\\] \\[${pid}\\] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    \\[info\\] .* \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    Should Be True    ${result1}
-    Should Not Be True    ${result2}
+    ${result1}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    10
+    Should Be True    ${result1}    Log about configuration loaded not available with legacy logs
+    Should Not Be True    ${result2[0]}    Log about configuration loaded should not be available with log_v2.
     Stop Engine
     Kindly Stop Broker
 
@@ -367,13 +367,13 @@ LOGV2DF2
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
     ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
-    Should Not Be True    ${result1}
-    Should Not Be True    ${result2}
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
+    ${result2}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
+    Should Not Be True    ${result1}    Log_v2 should be disabled
+    Should Not Be True    ${result2[0]}    Legacy logs should be disabled
     Stop Engine
     Kindly Stop Broker
 
@@ -395,13 +395,13 @@ LOGV2EF2
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
     ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
-    Should Be True    ${result1}
-    Should Be True    ${result2}
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
+    ${result2}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
+    Should Be True    ${result1}    Log_v2 should be enabled
+    Should Be True    ${result2}    Legacy logs should be disabled
     Stop Engine
     Kindly Stop Broker
 
@@ -425,12 +425,12 @@ LOGV2FE2
     ${result}=    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
     ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     Sleep    2m
 
     ${res}=    check engine logs are duplicated    ${engineLog0}    ${start}
-    Should Be True    ${res}    msg=one or other log are not duplicate in logsfile
+    Should Be True    ${res}    One or other log are not duplicated in logsfile
     Stop Engine
     Kindly Stop Broker
