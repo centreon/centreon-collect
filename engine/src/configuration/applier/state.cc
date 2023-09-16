@@ -2040,82 +2040,88 @@ DiffState applier::state::build_difference(
 void applier::state::apply_log_config(configuration::State& new_cfg) {
   using log_v3_config = com::centreon::common::log_v3::config;
   log_v3_config::logger_type log_type;
-  if (new_cfg.log_v2_logger() == "file") {
-    if (!new_cfg.log_file().empty())
-      log_type = log_v3_config::logger_type::LOGGER_FILE;
-    else
-      log_type = log_v3_config::logger_type::LOGGER_STDOUT;
+  if (new_cfg.log_v2_enabled()) {
+    if (new_cfg.log_v2_logger() == "file") {
+      if (!new_cfg.log_file().empty())
+        log_type = log_v3_config::logger_type::LOGGER_FILE;
+      else
+        log_type = log_v3_config::logger_type::LOGGER_STDOUT;
+    } else
+      log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
+
+    log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                          new_cfg.log_pid(), new_cfg.log_file_line());
+    if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
+      log_cfg.set_log_path(new_cfg.log_file());
+      log_cfg.set_max_size(new_cfg.max_log_file_size());
+    }
+    auto broker_sink = std::make_shared<broker_sink_mt>();
+    log_cfg.add_custom_sink(broker_sink);
+
+    log_cfg.apply_custom_sinks({"functions", "configuration", "events",
+                                "checks", "notifications", "eventbroker",
+                                "external_command", "commands", "downtimes",
+                                "comments", "macros", "process", "runtime"});
+    log_cfg.set_level("functions", new_cfg.log_level_functions());
+    log_cfg.set_level("configuration", new_cfg.log_level_config());
+    log_cfg.set_level("events", new_cfg.log_level_events());
+    log_cfg.set_level("checks", new_cfg.log_level_checks());
+    log_cfg.set_level("notifications", new_cfg.log_level_notifications());
+    log_cfg.set_level("eventbroker", new_cfg.log_level_eventbroker());
+    log_cfg.set_level("external_command", new_cfg.log_level_external_command());
+    log_cfg.set_level("commands", new_cfg.log_level_commands());
+    log_cfg.set_level("downtimes", new_cfg.log_level_downtimes());
+    log_cfg.set_level("comments", new_cfg.log_level_comments());
+    log_cfg.set_level("macros", new_cfg.log_level_macros());
+    log_cfg.set_level("process", new_cfg.log_level_process());
+    log_cfg.set_level("runtime", new_cfg.log_level_runtime());
+    log_v3::instance().apply(log_cfg);
   } else
-    log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
-
-  log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
-                        new_cfg.log_pid(), new_cfg.log_file_line());
-  if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
-    log_cfg.set_log_path(new_cfg.log_file());
-    log_cfg.set_max_size(new_cfg.max_log_file_size());
-  }
-  auto broker_sink = std::make_shared<broker_sink_mt>();
-  log_cfg.add_custom_sink(broker_sink);
-
-  log_cfg.apply_custom_sinks({"functions", "configuration", "events", "checks",
-                              "notifications", "eventbroker",
-                              "external_command", "commands", "downtimes",
-                              "comments", "macros", "process", "runtime"});
-  log_cfg.set_level("functions", new_cfg.log_level_functions());
-  log_cfg.set_level("configuration", new_cfg.log_level_config());
-  log_cfg.set_level("events", new_cfg.log_level_events());
-  log_cfg.set_level("checks", new_cfg.log_level_checks());
-  log_cfg.set_level("notifications", new_cfg.log_level_notifications());
-  log_cfg.set_level("eventbroker", new_cfg.log_level_eventbroker());
-  log_cfg.set_level("external_command", new_cfg.log_level_external_command());
-  log_cfg.set_level("commands", new_cfg.log_level_commands());
-  log_cfg.set_level("downtimes", new_cfg.log_level_downtimes());
-  log_cfg.set_level("comments", new_cfg.log_level_comments());
-  log_cfg.set_level("macros", new_cfg.log_level_macros());
-  log_cfg.set_level("process", new_cfg.log_level_process());
-  log_cfg.set_level("runtime", new_cfg.log_level_runtime());
-  log_v3::instance().apply(log_cfg);
+    log_v3::instance().disable();
   init_loggers();
 }
 
 void applier::state::apply_log_config(configuration::state& new_cfg) {
   using log_v3_config = com::centreon::common::log_v3::config;
   log_v3_config::logger_type log_type;
-  if (new_cfg.log_v2_logger() == "file") {
-    if (!new_cfg.log_file().empty())
-      log_type = log_v3_config::logger_type::LOGGER_FILE;
-    else
-      log_type = log_v3_config::logger_type::LOGGER_STDOUT;
+  if (new_cfg.log_v2_enabled()) {
+    if (new_cfg.log_v2_logger() == "file") {
+      if (!new_cfg.log_file().empty())
+        log_type = log_v3_config::logger_type::LOGGER_FILE;
+      else
+        log_type = log_v3_config::logger_type::LOGGER_STDOUT;
+    } else
+      log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
+
+    log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                          new_cfg.log_pid(), new_cfg.log_file_line());
+    if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
+      log_cfg.set_log_path(new_cfg.log_file());
+      log_cfg.set_max_size(new_cfg.max_log_file_size());
+    }
+    auto broker_sink = std::make_shared<broker_sink_mt>();
+    log_cfg.add_custom_sink(broker_sink);
+
+    log_cfg.apply_custom_sinks({"functions", "configuration", "events",
+                                "checks", "notifications", "eventbroker",
+                                "external_command", "commands", "downtimes",
+                                "comments", "macros", "process", "runtime"});
+    log_cfg.set_level("functions", new_cfg.log_level_functions());
+    log_cfg.set_level("configuration", new_cfg.log_level_config());
+    log_cfg.set_level("events", new_cfg.log_level_events());
+    log_cfg.set_level("checks", new_cfg.log_level_checks());
+    log_cfg.set_level("notifications", new_cfg.log_level_notifications());
+    log_cfg.set_level("eventbroker", new_cfg.log_level_eventbroker());
+    log_cfg.set_level("external_command", new_cfg.log_level_external_command());
+    log_cfg.set_level("commands", new_cfg.log_level_commands());
+    log_cfg.set_level("downtimes", new_cfg.log_level_downtimes());
+    log_cfg.set_level("comments", new_cfg.log_level_comments());
+    log_cfg.set_level("macros", new_cfg.log_level_macros());
+    log_cfg.set_level("process", new_cfg.log_level_process());
+    log_cfg.set_level("runtime", new_cfg.log_level_runtime());
+    log_v3::instance().apply(log_cfg);
   } else
-    log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
-
-  log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
-                        new_cfg.log_pid(), new_cfg.log_file_line());
-  if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
-    log_cfg.set_log_path(new_cfg.log_file());
-    log_cfg.set_max_size(new_cfg.max_log_file_size());
-  }
-  auto broker_sink = std::make_shared<broker_sink_mt>();
-  log_cfg.add_custom_sink(broker_sink);
-
-  log_cfg.apply_custom_sinks({"functions", "configuration", "events", "checks",
-                              "notifications", "eventbroker",
-                              "external_command", "commands", "downtimes",
-                              "comments", "macros", "process", "runtime"});
-  log_cfg.set_level("functions", new_cfg.log_level_functions());
-  log_cfg.set_level("configuration", new_cfg.log_level_config());
-  log_cfg.set_level("events", new_cfg.log_level_events());
-  log_cfg.set_level("checks", new_cfg.log_level_checks());
-  log_cfg.set_level("notifications", new_cfg.log_level_notifications());
-  log_cfg.set_level("eventbroker", new_cfg.log_level_eventbroker());
-  log_cfg.set_level("external_command", new_cfg.log_level_external_command());
-  log_cfg.set_level("commands", new_cfg.log_level_commands());
-  log_cfg.set_level("downtimes", new_cfg.log_level_downtimes());
-  log_cfg.set_level("comments", new_cfg.log_level_comments());
-  log_cfg.set_level("macros", new_cfg.log_level_macros());
-  log_cfg.set_level("process", new_cfg.log_level_process());
-  log_cfg.set_level("runtime", new_cfg.log_level_runtime());
-  log_v3::instance().apply(log_cfg);
+    log_v3::instance().disable();
   init_loggers();
 }
 
