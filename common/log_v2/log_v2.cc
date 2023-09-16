@@ -318,3 +318,9 @@ std::vector<std::pair<std::string, spdlog::level::level_enum>> log_v3::levels()
 const std::string& log_v3::log_name() const {
   return _log_name;
 }
+
+void log_v3::disable() {
+  std::lock_guard<std::shared_mutex> lck(_loggers_m);
+  for (auto& l : _loggers)
+    l->set_level(spdlog::level::level_enum::off);
+}
