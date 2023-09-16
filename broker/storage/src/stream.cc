@@ -63,7 +63,9 @@ stream::stream(database_config const& dbcfg,
       _pending_events(0),
       _stopped(false),
       _logger_sql_id{log_v3::instance().create_logger_or_get_id("storage")},
-      _logger_sql{log_v3::instance().get(_logger_sql_id)} {
+      _logger_sql{log_v3::instance().get(_logger_sql_id)},
+      _logger_storage_id{log_v3::instance().create_logger_or_get_id("storage")},
+      _logger_storage{log_v3::instance().get(_logger_storage_id)} {
   _logger_sql->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;

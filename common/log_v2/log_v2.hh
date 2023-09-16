@@ -83,6 +83,7 @@ class log_v3 {
   const std::string& filename() const { return _file_path; }
   std::vector<std::pair<std::string, spdlog::level::level_enum>> levels() const;
   const std::string& log_name() const;
+  void disable();
 };
 }  // namespace com::centreon::common::log_v3
 #endif /* !CCC_LOG_V2_HH */
