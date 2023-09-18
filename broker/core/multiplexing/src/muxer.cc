@@ -163,18 +163,19 @@ std::shared_ptr<muxer> muxer::create(std::string name,
                    });
     retval = _running_muxers[name].lock();
     if (retval) {
-      log_v3::instance().get(1)->debug("muxer: muxer '{}' already exists, reusing it",
-                              name);
+      log_v3::instance().get(1)->debug(
+          "muxer: muxer '{}' already exists, reusing it", name);
       retval->set_read_filter(r_filter);
       retval->set_write_filter(w_filter);
-      SPDLOG_LOGGER_INFO(log_v2::core(),
+      SPDLOG_LOGGER_INFO(log_v3::instance().get(0),
                          "multiplexing: reuse '{}' starts with {} in queue and "
                          "the queue file is {}",
                          name, retval->_events_size,
                          retval->_file ? "enable" : "disable");
 
     } else {
-      log_v3::instance().get(1)->debug("muxer: muxer '{}' unknown, creating it", name);
+      log_v3::instance().get(1)->debug("muxer: muxer '{}' unknown, creating it",
+                                       name);
       retval = std::shared_ptr<muxer>(
           new muxer(name, r_filter, w_filter, persistent));
       _running_muxers[name] = retval;
@@ -314,8 +315,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         if (event->type() == bbdo::pb_bench::static_type()) {
           add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
                           _name, "publish");
-          SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "{} bench publish {}", _name,
-                             io::data::dump_json{*event});
+          SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "{} bench publish {}",
+                             _name, io::data::dump_json{*event});
         }
 
         SPDLOG_LOGGER_TRACE(
@@ -378,8 +379,9 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       } catch (const std::exception& ex) {
         // in case of exception, we lost event. It's mandatory to avoid
         // infinite loop in case of permanent disk problem
-        SPDLOG_LOGGER_ERROR(log_v3::instance().get(0), "{} fail to write event to {}: {}",
-                            _name, _queue_file_name, ex.what());
+        SPDLOG_LOGGER_ERROR(log_v3::instance().get(0),
+                            "{} fail to write event to {}: {}", _name,
+                            _queue_file_name, ex.what());
         _file.reset();
       }
     }
@@ -428,8 +430,8 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   _update_stats();
 
   if (event) {
-    SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "{} read {} queue size {}", _name,
-                        *event, _events_size);
+    SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "{} read {} queue size {}",
+                        _name, *event, _events_size);
     if (event->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                       "read");
@@ -437,8 +439,9 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
                          io::data::dump_json{*event});
     }
   } else {
-    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} queue size {} no event available",
-                        _name, _events_size);
+    SPDLOG_LOGGER_TRACE(log_v3::instance().get(0),
+                        "{} queue size {} no event available", _name,
+                        _events_size);
   }
   return !timed_out;
 }
@@ -555,8 +558,8 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
       if (d->type() == bbdo::pb_bench::static_type()) {
         add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
                         "write");
-        SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench write {}", _name,
-                           io::data::dump_json{*d});
+        SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "{} bench write {}",
+                           _name, io::data::dump_json{*d});
       }
       ++list_iter;
     } else {
@@ -580,8 +583,9 @@ void muxer::_clean() {
   //  });
   if (_persistent && !_events.empty()) {
     try {
-      SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "muxer: sending {} events to {}",
-                          _events_size, memory_file(_name));
+      SPDLOG_LOGGER_TRACE(log_v3::instance().get(0),
+                          "muxer: sending {} events to {}", _events_size,
+                          memory_file(_name));
       auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
       while (!_events.empty()) {
         mf->write(_events.front());
@@ -656,8 +660,9 @@ std::string muxer::queue_file(std::string const& name) {
  */
 void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
   bool pos_has_no_more_to_read(_pos == _events.end());
-  SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "muxer {} event of type {:x} pushed",
-                      _name, event->type());
+  SPDLOG_LOGGER_TRACE(log_v3::instance().get(0),
+                      "muxer {} event of type {:x} pushed", _name,
+                      event->type());
   _events.push_back(event);
   ++_events_size;
 
@@ -715,7 +720,8 @@ const std::string& muxer::name() const {
  * @param r_filter        The read filter.
  */
 void muxer::set_read_filter(const muxer_filter& r_filter) {
-  log_v3::instance().get(1)->trace("multiplexing: '{}' set read filter...", _name);
+  log_v3::instance().get(1)->trace("multiplexing: '{}' set read filter...",
+                                   _name);
   _read_filter = r_filter;
   _read_filters_str = misc::dump_filters(r_filter);
 }
@@ -727,7 +733,8 @@ void muxer::set_read_filter(const muxer_filter& r_filter) {
  * @param r_filter        The write filter.
  */
 void muxer::set_write_filter(const muxer_filter& w_filter) {
-  log_v3::instance().get(1)->trace("multiplexing: '{}' set write filter...", _name);
+  log_v3::instance().get(1)->trace("multiplexing: '{}' set write filter...",
+                                   _name);
   _write_filter = w_filter;
   _write_filters_str = misc::dump_filters(w_filter);
 }
