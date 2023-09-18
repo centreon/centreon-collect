@@ -198,10 +198,10 @@ static uint32_t set_ulong(io::data& t,
  *  @return Event.
  */
 io::data* stream::unserialize(uint32_t event_type,
-                             uint32_t source_id,
-                             uint32_t destination_id,
-                             const char* buffer,
-                             uint32_t size) {
+                              uint32_t source_id,
+                              uint32_t destination_id,
+                              const char* buffer,
+                              uint32_t size) {
   // Get event info (operations and mapping).
   io::event_info const* info(io::events::instance().get_event_info(event_type));
   if (info) {
@@ -582,8 +582,8 @@ stream::stream(bool is_input,
       _events_received_since_last_ack(0),
       _last_sent_ack(time(nullptr)),
       _extensions{extensions},
-      _bbdo_version(config::applier::state::instance().get_bbdo_version(),
-      _logger_id{log_v3::instance').create_logger_or_get_it("bbdo")},
+      _bbdo_version(config::applier::state::instance().get_bbdo_version()),
+      _logger_id{log_v3::instance().create_logger_or_get_it("bbdo")},
       _logger{log_v3::instance().get(_logger_id)},
       _grpc_serialized(grpc_serialized) {
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "create bbdo stream {:p}",
@@ -624,8 +624,9 @@ int32_t stream::stop() {
   _substream->stop();
 
   /* We acknowledge peer about received events. */
-  log_v3::instance().get(0)->info("bbdo stream stopped with {} events acknowledged",
-                       _events_received_since_last_ack);
+  log_v3::instance().get(0)->info(
+      "bbdo stream stopped with {} events acknowledged",
+      _events_received_since_last_ack);
   if (_events_received_since_last_ack)
     send_event_acknowledgement();
 
@@ -656,8 +657,7 @@ int stream::flush() {
 void stream::_send_event_stop_and_wait_for_ack() {
   if (!_coarse) {
     if (_bbdo_version.major_v >= 3) {
-      SPDLOG_LOGGER_DEBUG(_logger,
-                          "BBDO: sending pb stop packet to peer");
+      SPDLOG_LOGGER_DEBUG(_logger, "BBDO: sending pb stop packet to peer");
       std::shared_ptr<bbdo::pb_stop> stop_packet{
           std::make_shared<bbdo::pb_stop>()};
       _write(stop_packet);
@@ -667,8 +667,7 @@ void stream::_send_event_stop_and_wait_for_ack() {
       _write(stop_packet);
     }
 
-    SPDLOG_LOGGER_DEBUG(_logger,
-                        "BBDO: retrieving ack packet from peer");
+    SPDLOG_LOGGER_DEBUG(_logger, "BBDO: retrieving ack packet from peer");
     std::shared_ptr<io::data> d;
     time_t deadline = time(nullptr) + 5;
 
@@ -750,8 +749,8 @@ void stream::negotiate(stream::negotiation_type neg) {
   // Send our own packet if we should be first.
   if (neg == negotiate_first) {
     SPDLOG_LOGGER_DEBUG(
-        _logger,
-        "BBDO: sending welcome packet (available extensions: {})", extensions);
+        _logger, "BBDO: sending welcome packet (available extensions: {})",
+        extensions);
     /* if _negotiate, we send all the extensions we would like to have,
      * otherwise we only send the mandatory extensions */
     if (_bbdo_version.total_version <= v300.total_version) {
@@ -773,8 +772,7 @@ void stream::negotiate(stream::negotiation_type neg) {
   }
 
   // Read peer packet.
-  SPDLOG_LOGGER_DEBUG(_logger,
-                      "BBDO: retrieving welcome packet of peer");
+  SPDLOG_LOGGER_DEBUG(_logger, "BBDO: retrieving welcome packet of peer");
   std::shared_ptr<io::data> d;
   time_t deadline;
   if (_timeout == (time_t)-1)
@@ -831,8 +829,7 @@ void stream::negotiate(stream::negotiation_type neg) {
     // Send our own packet if we should be second.
     if (neg == negotiate_second) {
       SPDLOG_LOGGER_DEBUG(
-          _logger,
-          "BBDO: sending welcome packet (available extensions: {})",
+          _logger, "BBDO: sending welcome packet (available extensions: {})",
           extensions);
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
@@ -868,8 +865,7 @@ void stream::negotiate(stream::negotiation_type neg) {
     // Send our own packet if we should be second.
     if (neg == negotiate_second) {
       SPDLOG_LOGGER_DEBUG(
-          _logger,
-          "BBDO: sending welcome packet (available extensions: {})",
+          _logger, "BBDO: sending welcome packet (available extensions: {})",
           extensions);
       /* if _negotiate, we send all the extensions we would like to have,
        * otherwise we only send the mandatory extensions */
@@ -896,8 +892,7 @@ void stream::negotiate(stream::negotiation_type neg) {
 
   // Apply negotiated extensions.
   SPDLOG_LOGGER_INFO(
-      _logger, "BBDO: we have extensions '{}' and peer has '{}'",
-      extensions,
+      _logger, "BBDO: we have extensions '{}' and peer has '{}'", extensions,
       fmt::string_view(peer_extensions.data(), peer_extensions.size()));
   std::list<absl::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
   for (auto& ext : _extensions) {
@@ -922,8 +917,7 @@ void stream::negotiate(stream::negotiation_type neg) {
           }
         }
       } else
-        SPDLOG_LOGGER_INFO(_logger,
-                           "BBDO: extension '{}' already configured",
+        SPDLOG_LOGGER_INFO(_logger, "BBDO: extension '{}' already configured",
                            ext->name());
     } else {
       if (ext->is_mandatory()) {
@@ -935,8 +929,8 @@ void stream::negotiate(stream::negotiation_type neg) {
       }
       if (std::find(running_config.begin(), running_config.end(),
                     ext->name()) != running_config.end()) {
-        SPDLOG_LOGGER_INFO(_logger,
-                           "BBDO: extension '{}' no more needed", ext->name());
+        SPDLOG_LOGGER_INFO(_logger, "BBDO: extension '{}' no more needed",
+                           ext->name());
         auto substream = get_substream();
         if (substream->get_name() == ext->name()) {
           auto subsubstream = substream->get_substream();
@@ -1178,8 +1172,7 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       std::vector<char> content;
       if (_packet.size() == BBDO_HEADER_SIZE + packet_size) {
         SPDLOG_LOGGER_TRACE(
-            _logger,
-            "packet matches header + content => extracting content");
+            _logger, "packet matches header + content => extracting content");
         // We remove the header from the packet: FIXME DBR this is not
         // beautiful...
 
@@ -1445,7 +1438,8 @@ void stream::send_event_acknowledgement() {
           _events_received_since_last_ack);
       _write(acknowledgement);
     } else {
-      SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "send acknowledgement for {} events",
+      SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0),
+                          "send acknowledgement for {} events",
                           _events_received_since_last_ack);
       std::shared_ptr<ack> acknowledgement(
           std::make_shared<ack>(_events_received_since_last_ack));

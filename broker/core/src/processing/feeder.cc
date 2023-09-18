@@ -105,7 +105,6 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
-  stop();
   SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "destroy feeder {}, {:p}", get_name(),
                       static_cast<const void*>(this));
   stop();
@@ -158,6 +157,7 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
 void feeder::_read_from_muxer() {
   bool have_to_terminate = false;
   bool other_event_to_read = true;
+  auto logger = log_v3::instance().get(_logger_id);
   std::vector<std::shared_ptr<io::data>> events;
   std::chrono::system_clock::time_point timeout_read =
       std::chrono::system_clock::now() + std::chrono::milliseconds(100);
@@ -172,8 +172,7 @@ void feeder::_read_from_muxer() {
         _muxer->read(events, max_event_queue_size,
                      [me = shared_from_this()]() { me->_read_from_muxer(); });
 
-    SPDLOG_LOGGER_TRACE(log_v2::processing(),
-                        "feeder '{}': {} events read from muxer", _name,
+    SPDLOG_LOGGER_TRACE(logger, "feeder '{}': {} events read from muxer", _name,
                         events.size());
 
     // if !other_event_to_read callback is stored and will be called as soon as
@@ -209,36 +208,35 @@ void feeder::_read_from_muxer() {
 unsigned feeder::_write_to_client(
     const std::vector<std::shared_ptr<io::data>>& events) {
   unsigned written = 0;
+  auto logger = log_v3::instance().get(_logger_id);
   try {
     for (const std::shared_ptr<io::data>& event : events) {
-      if (log_v2::processing()->level() == spdlog::level::trace) {
+      if (logger->level() == spdlog::level::trace) {
         SPDLOG_LOGGER_TRACE(
-            log_v2::processing(),
-            "feeder '{}': sending 1 event {:x} from muxer to stream {}", _name,
-            event->type(), *event);
+            logger, "feeder '{}': sending 1 event {:x} from muxer to stream {}",
+            _name, event->type(), *event);
       } else {
         SPDLOG_LOGGER_DEBUG(
-            log_v2::processing(),
-            "feeder '{}': sending 1 event {:x} from muxer to stream", _name,
-            event->type());
+            logger, "feeder '{}': sending 1 event {:x} from muxer to stream",
+            _name, event->type());
       }
       _client->write(event);
       ++written;
     }
   } catch (exceptions::shutdown const&) {
     // Normal termination.
-    SPDLOG_LOGGER_INFO(log_v2::core(), "from muxer feeder '{}' shutdown",
+    SPDLOG_LOGGER_INFO(logger, "from muxer feeder '{}' shutdown",
                        _name);
   } catch (const exceptions::connection_closed&) {
     set_last_error("");
-    SPDLOG_LOGGER_INFO(log_v2::processing(), "feeder '{}' connection closed",
+    SPDLOG_LOGGER_INFO(logger, "feeder '{}' connection closed",
                        _name);
   } catch (const std::exception& e) {
     set_last_error(e.what());
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "from muxer feeder '{}' error:{} ", _name, e.what());
+    SPDLOG_LOGGER_ERROR(logger, "from muxer feeder '{}' error:{} ", _name,
+                        e.what());
   } catch (...) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
+    SPDLOG_LOGGER_ERROR(logger,
                         "from muxer feeder: unknown error occured while "
                         "processing client '{}'",
                         _name);
@@ -252,11 +250,12 @@ unsigned feeder::_write_to_client(
  * @param count
  */
 void feeder::_ack_event_to_muxer(unsigned count) noexcept {
+  auto logger = log_v3::instance().get(_logger_id);
   try {
     _muxer->ack_events(count);
   } catch (const std::exception&) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        " {} fail to acknowledge {} events", _name, count);
+    SPDLOG_LOGGER_ERROR(logger, " {} fail to acknowledge {} events", _name,
+                        count);
   }
 }
 
@@ -289,20 +288,21 @@ void feeder::_stop_no_lock() {
   _stat_timer.cancel();
   _read_from_stream_timer.cancel();
 
+  auto logger = log_v3::instance().get(_logger_id);
+
   /* We don't get back the return value of stop() because it has non sense,
    * the only interest in calling stop() is to send an acknowledgement to the
    * peer. */
   try {
     _client->stop();
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "{} Failed to send stop event to client: {}", _name,
-                        e.what());
+    SPDLOG_LOGGER_ERROR(logger, "{} Failed to send stop event to client: {}",
+                        _name, e.what());
   }
-  SPDLOG_LOGGER_INFO(log_v2::core(),
-                     "feeder: queue files of client '{}' removed", _name);
+  SPDLOG_LOGGER_INFO(logger, "feeder: queue files of client '{}' removed",
+                     _name);
   _muxer->remove_queue_files();
-  SPDLOG_LOGGER_INFO(log_v2::core(), "feeder: {} terminated", _name);
+  SPDLOG_LOGGER_INFO(logger, "feeder: {} terminated", _name);
   // in order to avoid circular owning
   _muxer->clear_read_handler();
 }
@@ -387,6 +387,7 @@ void feeder::_read_from_stream_timer_handler(
   std::shared_ptr<io::data> event;
   std::chrono::system_clock::time_point timeout_read =
       std::chrono::system_clock::now() + std::chrono::milliseconds(100);
+  auto logger = log_v3::instance().get(_logger_id);
   try {
     std::unique_lock<std::timed_mutex> l(_protect);
     if (_state != state::running)
@@ -397,24 +398,21 @@ void feeder::_read_from_stream_timer_handler(
         break;
       }
       if (event) {  // event is null if not decoded by bbdo stream
-        if (log_v2::processing()->level() == spdlog::level::trace)
+        if (logger->level() == spdlog::level::trace)
           SPDLOG_LOGGER_TRACE(
-              log_v2::processing(),
-              "feeder '{}': sending 1 event {} from stream to muxer", _name,
-              *event);
+              logger, "feeder '{}': sending 1 event {} from stream to muxer",
+              _name, *event);
         else
           SPDLOG_LOGGER_DEBUG(
-              log_v2::processing(),
-              "feeder '{}': sending 1 event {} from stream to muxer", _name,
-              event->type());
+              logger, "feeder '{}': sending 1 event {} from stream to muxer",
+              _name, event->type());
 
         events_to_publish.push_back(event);
       }
     }
   } catch (exceptions::shutdown const&) {
     // Normal termination.
-    SPDLOG_LOGGER_INFO(log_v2::core(), "from client feeder '{}' shutdown",
-                       _name);
+    SPDLOG_LOGGER_INFO(logger, "from client feeder '{}' shutdown", _name);
     _muxer->write(events_to_publish);
     // _client->read shutdown => we stop read and don't restart the read from
     // stream timer
@@ -428,13 +426,13 @@ void feeder::_read_from_stream_timer_handler(
     return;
   } catch (const std::exception& e) {
     set_last_error(e.what());
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
-                        "from client feeder '{}' error:{} ", _name, e.what());
+    SPDLOG_LOGGER_ERROR(logger, "from client feeder '{}' error:{} ", _name,
+                        e.what());
     _muxer->write(events_to_publish);
     stop();
     return;
   } catch (...) {
-    SPDLOG_LOGGER_ERROR(log_v2::processing(),
+    SPDLOG_LOGGER_ERROR(logger,
                         "from client feeder: unknown error occured while "
                         "processing client '{}'",
                         _name);
