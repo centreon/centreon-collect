@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2015, 2020-2021 Centreon
+ * Copyright 2009-2013,2015, 2020-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,6 +44,7 @@ std::mutex engine::_load_m;
  *  @return Class instance.
  */
 std::shared_ptr<engine> engine::instance_ptr() {
+  assert(_instance);
   return _instance;
 }
 
@@ -62,12 +63,12 @@ void engine::load() {
  *  Unload class instance.
  */
 void engine::unload() {
+  log_v3::instance().get(0)->trace("multiplexing: unloading engine");
   if (!_instance)
     return;
   if (_instance->_state != stopped)
     _instance->stop();
 
-  log_v3::instance().get(0)->trace("multiplexing: unloading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   // Commit the cache file, if needed.
   if (_instance && _instance->_cache_file)
@@ -82,7 +83,6 @@ void engine::unload() {
  *  @param[in] e  Event to publish.
  */
 void engine::publish(const std::shared_ptr<io::data>& e) {
-  // Lock mutex.
   bool have_to_send = false;
   {
     std::lock_guard<std::mutex> lock(_engine_m);
@@ -212,7 +212,7 @@ void engine::stop() {
         lock.unlock();
         std::promise<void> promise;
         if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-          promise.get_future().get();
+          promise.get_future().wait();
         } else {  // nothing to send or no muxer
           break;
         }
@@ -318,13 +318,13 @@ namespace com::centreon::broker::multiplexing::detail {
  *
  */
 class callback_caller {
-  engine::send_to_mux_callback_type _callback;
+  std::function<void()> _callback;
   std::shared_ptr<engine> _parent;
 
  public:
-  callback_caller(engine::send_to_mux_callback_type&& callback,
+  callback_caller(std::function<void()>&& callback,
                   const std::shared_ptr<engine>& parent)
-      : _callback(callback), _parent(parent) {}
+      : _callback(std::move(callback)), _parent(parent) {}
 
   /**
    * @brief Destroy the callback caller object and do the completion job
@@ -351,15 +351,15 @@ class callback_caller {
  * the sending of data to each. callback is called only if _kiew is not empty
  * @param callback
  * @return true data sent
- * @return false nothing to sent or sent in progress
+ * @return false nothing to send or currently sending.
  */
-bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
+bool engine::_send_to_subscribers(std::function<void()>&& callback) {
   // is _send_to_subscriber working? (_sending_to_subscribers=false)
   bool expected = false;
   if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
     return false;
   }
-  // now we continue and _sending_to_subscribers = true
+  // Now we continue and _sending_to_subscribers is true.
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
@@ -380,10 +380,11 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 
     kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
     std::swap(_kiew, *kiew);
-    // completion object
-    // it will be destroyed at the end of the scope of this function and at the
-    // end of lambdas posted
-    cb = std::make_shared<detail::callback_caller>(std::move(callback),
+    // completion object (class callback_caller at the top of this file).
+    // This object is stored in a shared_ptr and shared by all the subscribers
+    // while data are sent to them. Once the last muxer finishes to handle its
+    // publication, cc is destroyed. And it is then that its callback is called.
+    cc = std::make_shared<detail::callback_caller>(std::move(callback),
                                                    _instance);
     last_muxer = _muxers.rbegin()->lock();
     if (_muxers.size() > 1) {
@@ -396,7 +397,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       /* We use the thread pool for the muxers from the first one to the
        * second to last */
       for (auto it = _muxers.begin(); it != it_last; ++it) {
-        pool::io_context().post([kiew, m = it->lock(), cb]() {
+        pool::io_context().post([kiew, m = it->lock(), cc]() {
           try {
             m->publish(*kiew);
           }  // pool threads protection
