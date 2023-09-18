@@ -36,7 +36,7 @@ ANO_NOFILE
     Stop Engine
 
 ANO_TOO_OLD_FILE
-    [Documentation]    an anomaly detection with an oldest threshold file must be in unknown state
+    [Documentation]    An anomaly detection with an oldest threshold file must be in unknown state
     [Tags]    broker    engine    anomaly
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
