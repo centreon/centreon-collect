@@ -14,7 +14,7 @@ Library             ../resources/Bench.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Test Clean
 
 
 *** Test Cases ***
@@ -84,7 +84,6 @@ BENCH_${nb_check}STATUS
     Examples:    nb_check    --
     ...    1000
     ...    10000
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
@@ -186,4 +185,13 @@ BENCH_1000STATUS_100${suffixe}
     ...    ENGINE_2    2
     ...    ENGINE_3    3
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+
+*** Keywords ***
+Test Clean
+    TRY
+        Stop Engine
+        Kindly Stop Broker
+    EXCEPT
+        Log    can't kindly stop broker or engine
+    END
+    Save logs If Failed

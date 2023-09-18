@@ -64,19 +64,10 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     """
     limit = time.time() + timeout
     r = re.compile(
-        r"^ESTAB\s+\d+\s+\d+\s+127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
 
     while time.time() < limit:
         out = getoutput("ss -plant")
-#
-#
-#
-# TO REMOVE
-#
-        logger.console(f"output of ss -plant: {out}")
-#
-#
-#
         lst = out.split('\n')
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= nb:
@@ -988,7 +979,7 @@ def clear_db_conf(table: str):
 
     with connection:
         with connection.cursor() as cursor:
-            cursor.execute("DELETE FROM {}".format(table))
+            cursor.execute(f"DELETE FROM {table}")
         connection.commit()
 
 

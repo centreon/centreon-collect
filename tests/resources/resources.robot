@@ -88,12 +88,13 @@ Kindly Stop Broker
     ${result}    Wait For Process    b1    timeout=60s
     # In case of process not stopping
     IF    "${result}" == "${None}"
-        Dump Process    b1    broker-central
+        Dump Process    b1    /usr/sbin/cbd    broker-central
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
         IF    ${result.rc} != 0
             Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
+            Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    msg=Central Broker not correctly stopped
         END
     END
@@ -102,11 +103,12 @@ Kindly Stop Broker
         ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
         # In case of process not stopping
         IF    "${result}" == "${None}"
-            Dump Process    b2    broker-rrd
+            Dump Process    b2    /usr/sbin/cbd    broker-rrd
             Send Signal To Process    SIGKILL    b2
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0
+                Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
                 Coredump info    b2    /usr/sbin/cbd    broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    msg=RRD Broker not correctly stopped
             END
@@ -170,10 +172,14 @@ Stop Engine
         ${result}    Wait For Process    ${alias}    timeout=60s
         IF    "${result}" == "${None}"
             ${name}    Catenate    SEPARATOR=    centengine    ${idx}
-            Dump Process    ${alias}    ${name}
+            Dump Process    ${alias}    /usr/sbin/centengine    ${name}
             Send Signal To Process    SIGKILL    ${alias}
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
+            IF    ${result.rc} != 0 and ${result.rc} != -15
+                Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
+                Coredump info    ${alias}    /usr/sbin/centengine    ${alias}
+            END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
             ...    msg=Engine badly stopped with ${count} instances - code returned ${result.rc}.
@@ -228,19 +234,28 @@ Save Logs
     Copy files    ${rrdLog}    ${failDir}
     Copy files    ${moduleLog0}    ${failDir}
     Copy files    ${engineLog0}    ${failDir}
-    Copy files    ${ENGINE_LOG}/config0/gcore_*    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}
 
 Dump Process
-    [Arguments]    ${process_name}    ${name}
+    [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
-    ${output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}
+    ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
+    ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
     Log To Console    Creation of core ${output}.${pid} to debug
     Run Process    gcore    -o    ${output}    ${pid}
+    Run Process
+    ...    gdb
+    ...    -batch
+    ...    -ex
+    ...    thread apply all bt 20
+    ...    ${binary_path}
+    ...    ${output}.${pid}
+    ...    stdout=${gdb_output}
+    ...    stderr=${gdb_output}
     Log To Console    Done...
 
 Coredump Info
@@ -262,10 +277,13 @@ Coredump Info
 
 Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
-    ${pid}    Get Process Id    ${process_name}
-    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
-    Create Directory    ${failDir}
-    Copy File    /tmp/core.${pid}    ${failDir}
+    ${docker_env}    Get Environment Variable    RUN_ENV    ${None}
+    IF    ${docker_env} is None
+        ${pid}    Get Process Id    ${process_name}
+        ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+        Create Directory    ${failDir}
+        Copy File    /tmp/core.${pid}    ${failDir}
+    END
 
 Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${timeout}

@@ -62,6 +62,7 @@ brokerrpc::brokerrpc(const std::string& address,
  * @brief The shutdown() method, to stop the gRPC server.
  */
 void brokerrpc::shutdown() {
-  _server->Shutdown(std::chrono::system_clock::now() +
-                    std::chrono::seconds(15));
+  if (_server)
+    _server->Shutdown(std::chrono::system_clock::now() +
+                      std::chrono::seconds(15));
 }

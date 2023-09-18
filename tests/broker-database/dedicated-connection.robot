@@ -33,7 +33,7 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
 
     IF    ${nb_conn} > 1
         ${nb_dedicated}    Evaluate    ${nb_conn_expected} - 1
-        ${content}    Create List    use of ${nb_dedicated} dedicated toto connection for logs and data_bin tables
+        ${content}    Create List    use of ${nb_dedicated} dedicated connection for logs and data_bin tables
         ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    5
         Should Be True    ${result}    No dedicated message
     END
@@ -50,5 +50,9 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
 
 *** Keywords ***
 Test Clean
-    Kindly Stop Broker    only_central=${True}
+    TRY
+        Kindly Stop Broker    only_central=${True}
+    EXCEPT
+        Log    can't kindly stop broker
+    END
     Save logs If Failed
