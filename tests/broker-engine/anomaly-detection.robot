@@ -47,15 +47,15 @@ ANO_NOFILE
 #    log to console    Step 5
 
 ANO_TOO_OLD_FILE
-    [Documentation]    an anomaly detection with an oldest threshold file must be in unknown state
+    [Documentation]    An anomaly detection with an oldest threshold file must be in unknown state
     [Tags]    broker    engine    anomaly
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    ${serv_id}=    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
-    ${predict_data}=    Evaluate    [[0,0,2],[1648812678,0,3]]
+    ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
+    ${predict_data}    Evaluate    [[0,0,2],[1648812678,0,3]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
     Clear Retention
     Clear Db    services

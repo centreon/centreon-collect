@@ -94,20 +94,36 @@ connect all the muxers is the multiplexing::engine.
 This class has a unique instance initialized with the static method `load()`.
 And to destroy this instance, we use the static method `unload()`.
 
-The engine instance is a shared pointer to make easier its use with asynchronous
-functions call.
+The engine instance is a shared pointer to make easier its use with asynchronous functions call.
+
+#### publish
+
+When a muxer receives data from a stream, it publishes it to the engine. The goal here is to transmit data to all the muxers attached to the engine. This is done with the `engine::publish()` method we can find in two declinations:
+
+* A first one with only one argument
+* A second one with an `std::deque` of events
+
+The second works faster than the first one as we send data in bulk.
+
+The engine has an internal queue named `_kiew` that is an `std::deque` of shared pointers of events.
 
 The engine has three possible states that are:
 
-* **not\_started** The state is applied only just after the `load()` function
-  and before it is changed to **running** or **stopped**. If some events are
-  published while the engine is *not started*, these events are lost.
-* **running** Usually this is the commonly used state.
-* **stopped** The state just after the call to the `stop()` method. Events
-  published to the engine while it is *stopped*, are stored in a retention file
-  with the *unprocessed* extention. These events will be played when **cbd**
-  will restart.
+* **not\_started** The state is applied only just after the `load()` function and before it is changed to **running** or **stopped**. If some events are published while the engine is *not started*, these events are just stacked in the engine.
+* **running** Usually this is the commonly used state. Events are also stacked on the queue, but then they are sent to subscribers (the muxers).
+* **stopped** The state just after the call to the `stop()` method. Events published to the engine while it is *stopped*, are directly stored in a retention file with the *unprocessed* extension. These events will be played when **cbd** will restart. With this state, the engine doesn't use its internal queue.
 
+`engine::publish()` stacks events in *_kiew* and then calls the internal function `engine::_send_to_subscribers()` which we are going to describe here. This last method can be called with a callback or type `std::function<void()>`.
+
+In this function, we check **_sending_to_subscribers**, if it is true, the function returns, otherwise it was **false** and we set it to **true**.
+
+If there are no muxer or the current **_kiew** is empty, then **_sending_to_subscribers** is set to **false** and the function return **false**.
+
+Now, we are in the case where there are muxers and a non empty **_kiew**. A local kiew is created and we swap the contents of the two queues.
+
+A callback_caller is instantiated with the given lambda. Its goal is to be called when the publication to muxers is over. And at this point, it calls the lambda.
+
+The only possible callback is a lambda with a promise. Its goal is to make the publish method to be synchronous, it is useful when the `engine::stop()` method is called.
 
 ## BAM
 
