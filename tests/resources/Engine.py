@@ -375,10 +375,10 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_escalations_file(poller: int, name: int, SG: string, contactgroup: string):
-        config_file = "{}/config{}/escalations.cfg".format(CONF_DIR, poller)
-        ff = open(config_file, "a+")
-        content = """define serviceescalation {{
+    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+        config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define serviceescalation {{
     ;escalation_name                esc{0}
     escalation_period              24x7
     escalation_options             w,c,r
@@ -386,8 +386,7 @@ define command {
     contact_groups                 {2}
     }}
     """.format(name, SG, contactgroup)
-        ff.write(content)
-        ff.close()
+            ff.write(content)
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
@@ -753,23 +752,6 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     f.close()
 
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
-
-    r = re.compile(r"^\s*service_description\s+" + desc + "\s*$")
-    for i in range(len(lines)):
-        if r.match(lines[i]):
-            logger.co
-            lines.replace(lines[i], "    {}              {}\n".format(key, value))
-
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
-
-
-def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """! Function to update a value in the services.cfg for the config idx.
     @param idx index of the configuration (from 0)
     @param desc service description of the service to modify.
@@ -1068,11 +1050,9 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.close()
 
 def add_contact_group(index: int, id_contact_group: int, members: list):
-    f = open(
-        ETC_ROOT + "/centreon-engine/config{}/contactgroups.cfg".format(index), "a+")
-    logger.console(members)
-    f.write(engine.create_contact_group(id_contact_group, members))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
+        logger.console(members)
+        f.write(engine.create_contact_group(id_contact_group, members))
 
 def create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")

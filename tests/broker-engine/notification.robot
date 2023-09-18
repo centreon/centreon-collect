@@ -22,29 +22,7 @@ not1
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -83,29 +61,7 @@ not2
     [Documentation]    1 services id configurd and,checking that the recovery notification is sent.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -128,8 +84,8 @@ not2
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -141,8 +97,8 @@ not2
     ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    0    ok
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    0    ok
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
@@ -158,29 +114,7 @@ not3
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent after the downtimes is finished.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -209,8 +143,8 @@ not3
      ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    10s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    10s
     END
 
     ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
@@ -235,30 +169,7 @@ not4
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent when the acknowledge is finished.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Config BBDO3    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -281,7 +192,7 @@ not4
     # Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check Result    host_1    service_1    2    critical
-    Sleep    1s
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -309,29 +220,7 @@ not5
     [Documentation]    2 services with 2 different users beeing notified when the services turn into critical state.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${2}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -363,10 +252,10 @@ not5
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    1s
-        Process Service Check result    host_2    service_2    2    critical
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
+        Process Service Check Result    host_2    service_2    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
@@ -388,29 +277,7 @@ not6
     [Documentation]    timeperiod null
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -432,8 +299,8 @@ not6
 
     ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -452,8 +319,8 @@ not6
     ## Time to set the service to UP  hard
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    0    ok
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    0    ok
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
@@ -474,29 +341,7 @@ not7
     [Documentation]    host alert
     [Tags]    broker    engine    host    hosts    notification
     Config Engine    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -517,8 +362,8 @@ not7
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process host check result    host_1    1    host_1 DOWN
-    Sleep    1s
+        Process Host Check Result    host_1    1    host_1 DOWN
+        Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
@@ -537,29 +382,7 @@ not8
     [Documentation]    critical host notification
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -580,8 +403,8 @@ not8
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process host check result    host_1    1    host_1 DOWN
-    Sleep    1s
+        Process Host Check Result    host_1    1    host_1 DOWN
+        Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
@@ -597,32 +420,10 @@ not8
     Kindly Stop Broker
 
 not9
-   [Documentation]    recovery host notification
+    [Documentation]    recovery host notification
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -643,8 +444,8 @@ not9
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process host check result    host_1    1    host_1 DOWN
-    Sleep    1s
+        Process Host Check Result    host_1    1    host_1 DOWN
+        Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
@@ -653,7 +454,7 @@ not9
     END
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;Host
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that notification is not sent
 
     Stop Engine
@@ -663,29 +464,7 @@ not10
     [Documentation]    downtime on a down host and after the downtimes is finished and the host is still critical we should recieve a critical notification
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -698,7 +477,7 @@ not10
     Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -706,8 +485,8 @@ not10
     ## Time to set the host to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process host check result    host_1    0    host_1 UP
-    Sleep    1s
+        Process Host Check Result    host_1    0    host_1 UP
+        Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
@@ -716,19 +495,19 @@ not10
     END
 
 
-    Schedule host downtime    ${0}    host_1    ${3600}
+    Schedule Host Downtime    ${0}    host_1    ${3600}
 
     Sleep    10s
 
     FOR   ${i}    IN RANGE    ${3}
-        Process host check result    host_1    1    host_1 DOWN
-    Sleep    1s
+        Process Host Check Result    host_1    1    host_1 DOWN
+        Sleep    1s
     END
 
-    Delete host downtimes    ${0}    host_1
+    Delete Host Downtimes    ${0}    host_1
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;host_1 DOWN;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that notification is not sent
 
     Stop Engine
@@ -738,29 +517,7 @@ not11
     [Documentation]    downtime on a down host that already had a critical notification then put it on up state after the downtimes is finished and the host is up we should recieve a recovery notification
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -773,7 +530,7 @@ not11
     Start Engine
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -781,8 +538,8 @@ not11
     ## Time to set the host to UP HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process host check result    host_1    1    host_1 DOWN
-    Sleep    1s
+        Process Host Check Result    host_1    1    host_1 DOWN
+        Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
@@ -791,23 +548,23 @@ not11
     END
 
 
-    Schedule host downtime    ${0}    host_1    ${3600}
+    Schedule Host Downtime    ${0}    host_1    ${3600}
 
     Sleep    10s
     ## Time to set the host to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
-        Process host check result    host_1    0    host_1 UP
-    Sleep    1s
+        Process Host Check Result    host_1    0    host_1 UP
+        Sleep    1s
     END
 
     FOR    ${i}    IN RANGE    ${4}
         Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
-    Delete host downtimes    ${0}    host_1
+    Delete Host Downtimes    ${0}    host_1
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;Host
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that notification is not sent
 
     Stop Engine
@@ -818,29 +575,7 @@ not12
     [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
+    Configure The Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -857,28 +592,28 @@ not12
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ## Time to set the service to CRITICAL HARD.
 
     FOR   ${i}    IN RANGE    ${3}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that an alert is sent
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;2;critical
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that an alert is sent
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;HARD;3;critical
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that an alert is sent
 
     Stop Engine
@@ -961,47 +696,47 @@ not13
 
   # Let's wait for the external command check start
     ${content}    Create List    check
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check result    host_2    service_2    2    critical
-    Sleep    1s
+        Process Service Check Result    host_2    service_2    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
 
     # Let's wait for the first notification of the user U1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that notification is not sent
     # Let's wait for the first notification of the contact group 1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that notification is not sent
 
-    Process Service Check result    host_2    service_2    2    critical
-    Process Service Check result    host_1    service_1    2    critical
+    Process Service Check Result    host_2    service_2    2    critical
+    Process Service Check Result    host_1    service_1    2    critical
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
-    Process Service Check result    host_2    service_2    2    critical
-    Process Service Check result    host_1    service_1    2    critical
+    Process Service Check Result    host_2    service_2    2    critical
+    Process Service Check Result    host_1    service_1    2    critical
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
-    Process Service Check result    host_2    service_2    2    critical
-    Process Service Check result    host_1    service_1    2    critical
+    Process Service Check Result    host_2    service_2    2    critical
+    Process Service Check Result    host_1    service_1    2    critical
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -1012,23 +747,23 @@ not13
     # Let's wait for the first notification of the contact group 2 U3 ET U2
 
     ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
 
     ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check result    host_2    service_2    2    critical
-    Sleep    1s
+        Process Service Check Result    host_2    service_2    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
@@ -1036,31 +771,60 @@ not13
     # Let's wait for the second notification of the contact group 2 U3 ET U2
 
     ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
 
     ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check result    host_1    service_1    2    critical
-    Sleep    1s
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     FOR   ${i}    IN RANGE    ${4}
-        Process Service Check result    host_2    service_2    2    critical
-        Sleep    1s
+        Process Service Check Result    host_2    service_2    2    critical
+            Sleep    1s
     END
 
     # Let's wait for the first notification of the contact group 3 U4
 
     ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
 
     ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;critical_0;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
+
+
+*** Keywords ***
+
+Configure The Notifications
+    [Documentation]    Configuring engine notification settings.
+    Engine Config Set Value    0    enable_notifications    1    True
+    Engine Config Set Value    0    execute_host_checks    1    True
+    Engine Config Set Value    0    execute_service_checks    1    True
+    Engine Config Set Value    0    log_notifications    1    True
+    Engine Config Set Value    0    log_level_notifications    trace    True
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Flush Log    central    0
+    Broker Config Log    central    core    error
+    Broker Config Log    central    tcp    error
+    Broker Config Log    central    sql    error
+    Config Broker Sql Output    central    unified_sql
+    Config Broker Remove Rrd Output    central
+    Clear Retention
+    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    Engine Config Add Command
+    ...    0
+    ...    command_notif
+    ...    /usr/bin/true
