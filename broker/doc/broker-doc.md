@@ -80,9 +80,39 @@ Events order is very important. So we can not make two calls to the `_read_from_
 
 The easiest way was then to lock the feeder mutex
 
+## Multiplexing
+
+Each feeder and failover contains one or more muxer. This is this object that
+has a queue to stack events.
+
+A muxer can receive data from its associated stream or from the other side:
+others muxers. And it can also send data to the same peers. The object used to
+connect all the muxers is the multiplexing::engine.
+
+### multiplexing::engine
+
+This class has a unique instance initialized with the static method `load()`.
+And to destroy this instance, we use the static method `unload()`.
+
+The engine instance is a shared pointer to make easier its use with asynchronous
+functions call.
+
+The engine has three possible states that are:
+
+* **not\_started** The state is applied only just after the `load()` function
+  and before it is changed to **running** or **stopped**. If some events are
+  published while the engine is *not started*, these events are lost.
+* **running** Usually this is the commonly used state.
+* **stopped** The state just after the call to the `stop()` method. Events
+  published to the engine while it is *stopped*, are stored in a retention file
+  with the *unprocessed* extention. These events will be played when **cbd**
+  will restart.
+
+
 ## BAM
 
 There are five types of BA.
+
 * impact BA
 * best BA
 * worst BA
