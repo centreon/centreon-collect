@@ -107,6 +107,7 @@ bool stream::validate(std::shared_ptr<io::data> const& d,
  * @return false timeout expires
  */
 bool stream::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v3::instance().get(0)->info("io::stream::wait_for_all_events_written");
   if (_substream) {
     return _substream->wait_for_all_events_written(ms_timeout);
   }

@@ -88,7 +88,8 @@ void persistent_file::statistics(nlohmann::json& tree) const {
  *  @param[in] d  Input data.
  */
 int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
-  log_v3::instance().get(0)->trace("persistent file: write");
+  log_v3::instance().get(0)->trace("persistent file: write '{}'",
+                                   _splitter->get_name());
   return _substream->write(d);
 }
 
