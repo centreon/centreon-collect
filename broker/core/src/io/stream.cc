@@ -127,9 +127,9 @@ bool stream::wait_for_all_events_written(unsigned ms_timeout) {
  *
  * @param no_bbdo_encode
  */
-void stream::set_no_bbdo_encode(bool no_bbdo_encode) {
-  _no_bbdo_encode = no_bbdo_encode;
+void stream::set_bbdo_encoding(bool bbdo_encoding) {
+  _bbdo_encoding = bbdo_encoding;
   if (_substream) {
-    _substream->set_no_bbdo_encode(no_bbdo_encode);
+    _substream->set_bbdo_encoding(bbdo_encoding);
   }
 }

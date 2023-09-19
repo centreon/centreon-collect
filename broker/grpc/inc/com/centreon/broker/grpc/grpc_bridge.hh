@@ -29,9 +29,8 @@ namespace grpc {
 std::shared_ptr<io::data> protobuf_to_event(
     const com::centreon::broker::stream::centreon_event& stream_content);
 
-void event_to_protobuf(
-    io::data& event,
-    com::centreon::broker::stream::centreon_event& stream_content);
+std::shared_ptr<channel::event_with_data> create_event_with_data(
+    std::shared_ptr<io::data> event);
 
 };  // namespace grpc
 

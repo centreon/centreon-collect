@@ -78,6 +78,19 @@ add_library(pb_extcmd_lib STATIC extcmd.pb.cc extcmd.pb.h)
 add_dependencies(pb_extcmd_lib target_extcmd target_header)
 set_target_properties(pb_extcmd_lib PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+add_library(pb_rebuild_message_lib STATIC rebuild_message.pb.cc
+                                          rebuild_message.pb.h)
+add_dependencies(pb_rebuild_message_lib target_rebuild_message target_header)
+set_target_properties(pb_rebuild_message_lib
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+add_library(pb_remove_graph_message_lib STATIC remove_graph_message.pb.cc
+                                               remove_graph_message.pb.h)
+add_dependencies(pb_remove_graph_message_lib target_remove_graph_message
+                 target_header)
+set_target_properties(pb_remove_graph_message_lib
+                      PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
 macro(get_protobuf_files name)
   set_source_files_properties("${CMAKE_SOURCE_DIR}/bbdo/${name}.pb.cc"
                               PROPERTIES GENERATED TRUE)

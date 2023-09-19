@@ -47,6 +47,7 @@ class acceptor : public io::endpoint {
   time_t _timeout;
   uint32_t _ack_limit;
   std::list<std::shared_ptr<io::extension>> _extensions;
+  const bool _bbdo_encoding;
 
  public:
   acceptor(std::string name,
@@ -55,7 +56,8 @@ class acceptor : public io::endpoint {
            bool one_peer_retention_mode = false,
            bool coarse = false,
            uint32_t ack_limit = 1000,
-           std::list<std::shared_ptr<io::extension>>&& extensions = {});
+           std::list<std::shared_ptr<io::extension>>&& extensions = {},
+           bool bbdo_encoding = true);
   ~acceptor() noexcept;
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
