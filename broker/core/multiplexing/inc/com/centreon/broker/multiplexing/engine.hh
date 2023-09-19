@@ -63,7 +63,7 @@ class callback_caller;
  *
  *  @see muxer
  */
-class engine : public std::enable_shared_from_this<engine> {
+class engine {
   static std::mutex _load_m;
   static std::shared_ptr<engine> _instance;
 

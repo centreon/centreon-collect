@@ -18,6 +18,7 @@
 
 #include "common/log_v2/log_v2.hh"
 #include <absl/container/flat_hash_set.h>
+#include <grpc/impl/codegen/log.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <spdlog/sinks/null_sink.h>
 #include <spdlog/sinks/rotating_file_sink.h>
@@ -29,6 +30,51 @@ using namespace com::centreon::common::log_v3;
 using namespace spdlog;
 
 log_v3* log_v3::_instance = nullptr;
+static uint32_t grpc_id = -1;
+
+/**
+ * @brief this function is passed to grpc in order to log grpc layer's events to
+ * logv2
+ *
+ * @param args grpc logging params
+ */
+static void grpc_logger(gpr_log_func_args* args) {
+  if (grpc_id == static_cast<uint32_t>(-1))
+    return;
+
+  auto logger = log_v3::instance().get(grpc_id);
+  spdlog::level::level_enum grpc_level = logger->level();
+  const char* start;
+  if (grpc_level == spdlog::level::off)
+    return;
+  else if (grpc_level > spdlog::level::debug) {
+    start = strstr(args->message, "}: ");
+    if (!start)
+      return;
+    start += 3;
+  } else
+    start = args->message;
+  switch (args->severity) {
+    case GPR_LOG_SEVERITY_DEBUG:
+      if (grpc_level == spdlog::level::trace ||
+          grpc_level == spdlog::level::debug) {
+        SPDLOG_LOGGER_DEBUG(logger, "{} ({}:{})", start, args->file,
+                            args->line);
+      }
+      break;
+    case GPR_LOG_SEVERITY_INFO:
+      if (grpc_level == spdlog::level::trace ||
+          grpc_level == spdlog::level::debug ||
+          grpc_level == spdlog::level::info) {
+        if (start)
+          SPDLOG_LOGGER_INFO(logger, "{}", start);
+      }
+      break;
+    case GPR_LOG_SEVERITY_ERROR:
+      SPDLOG_LOGGER_ERROR(logger, "{}", start);
+      break;
+  }
+}
 
 void log_v3::load(const std::string& name,
                   std::initializer_list<std::string> ilist) {
@@ -113,6 +159,12 @@ uint32_t log_v3::create_logger_or_get_id(const std::string& name,
   }
   spdlog::register_logger(logger);
   _loggers.push_back(logger);
+
+  /* Hook for gRPC, not beautiful, but no idea how to do better. */
+  if (name == "grpc") {
+    grpc_id = idx;
+    gpr_set_log_function(grpc_logger);
+  }
   return idx;
 }
 
@@ -209,21 +261,21 @@ void log_v3::apply(const config& log_conf, bool cleanup) {
       }
     }
 
-    //    if (name == "grpc") {
-    //      switch (lvl) {
-    //        case level::level_enum::trace:
-    //        case level::level_enum::debug:
-    //          gpr_set_log_verbosity(GPR_LOG_SEVERITY_DEBUG);
-    //          break;
-    //        case level::level_enum::info:
-    //        case level::level_enum::warn:
-    //          gpr_set_log_verbosity(GPR_LOG_SEVERITY_INFO);
-    //          break;
-    //        default:
-    //          gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
-    //          break;
-    //      }
-    //    }
+    if (name == "grpc") {
+      switch (lvl) {
+        case level::level_enum::trace:
+        case level::level_enum::debug:
+          gpr_set_log_verbosity(GPR_LOG_SEVERITY_DEBUG);
+          break;
+        case level::level_enum::info:
+        case level::level_enum::warn:
+          gpr_set_log_verbosity(GPR_LOG_SEVERITY_INFO);
+          break;
+        default:
+          gpr_set_log_verbosity(GPR_LOG_SEVERITY_ERROR);
+          break;
+      }
+    }
 
     bool done = false;
     for (auto it = _loggers.begin(); it != _loggers.end(); ++it) {
@@ -234,8 +286,15 @@ void log_v3::apply(const config& log_conf, bool cleanup) {
         break;
       }
     }
-    if (!done)
+    if (!done) {
       _loggers.push_back(logger);
+
+      /* Hook for gRPC, not beautiful, but no idea how to do better. */
+      if (name == "grpc") {
+        grpc_id = _loggers.size() - 1;
+        gpr_set_log_function(grpc_logger);
+      }
+    }
     spdlog::register_logger(logger);
     return logger;
   };

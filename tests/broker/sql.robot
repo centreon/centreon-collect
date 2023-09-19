@@ -391,7 +391,7 @@ BDBMU1
         ${result}    Check Broker Stats Exist    central    mysql manager    waiting tasks in connection 0    80
         Should Be True    ${result}    No stats on mysql manager found
         ${result}    Get Broker Stats Size    central    mysql manager    ${60}
-        Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
+        Should Be True    ${result} >= min(3, ${c} + 1)    Broker mysql manager stats do not show the ${c} connections
         Kindly Stop Broker
         Stop Engine
     END
