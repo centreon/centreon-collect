@@ -25,7 +25,6 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/pool.hh"
 #include "common/log_v2/log_v2.hh"
@@ -115,7 +114,7 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
     switch (_state) {
       case stopped:
         log_v3::instance().get(0)->trace("engine::publish {} event to file",
-                              to_publish.size());
+                                         to_publish.size());
         for (auto& e : to_publish) {
           _cache_file->add(e);
           _unprocessed_events++;
@@ -123,13 +122,13 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
         break;
       case not_started:
         log_v3::instance().get(0)->trace("engine::publish {} event to queue",
-                              to_publish.size());
+                                         to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
         break;
       default:
         log_v3::instance().get(0)->trace("engine::publish {} event to queue_",
-                              to_publish.size());
+                                         to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
         have_to_send = true;
@@ -228,8 +227,8 @@ void engine::stop() {
       _cache_file = std::make_unique<persistent_cache>(_cache_file_path());
       _cache_file->transaction();
     } catch (const std::exception& e) {
-      log_v3::instance().get(0)->error("multiplexing: could not open cache file: {}",
-                                e.what());
+      log_v3::instance().get(0)->error(
+          "multiplexing: could not open cache file: {}", e.what());
       _cache_file.reset();
     }
 
@@ -249,15 +248,16 @@ void engine::stop() {
  */
 void engine::subscribe(muxer* subscriber) {
   log_v3::instance().get(1)->debug("engine: muxer {} subscribes to engine",
-                          subscriber->name());
+                                   subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
+  muxer* s = subscriber.get();
   for (auto& m : _muxers)
     if (m.lock() == subscriber) {
       log_v3::instance().get(1)->debug("engine: muxer {} already subscribed",
-                              subscriber->name());
+                                       s->name());
       return;
     }
-  _muxers.push_back(subscriber);
+  _muxers.push_back(s);
 }
 
 /**
@@ -270,8 +270,8 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     auto w = it->lock();
     if (!w || w.get() == subscriber) {
-      log_v3::instance().get(1)->debug("engine: muxer {} unsubscribes to engine",
-                              subscriber->name());
+      log_v3::instance().get(1)->debug(
+          "engine: muxer {} unsubscribes to engine", subscriber->name());
       _muxers.erase(it);
       return;
     }
@@ -364,7 +364,7 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
   muxer* last_muxer;
-  std::shared_ptr<detail::callback_caller> cb;
+  std::shared_ptr<detail::callback_caller> cc;
   {
     std::lock_guard<std::mutex> lck(_engine_m);
     if (_muxers.empty() || _kiew.empty()) {
@@ -402,9 +402,11 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
             m->publish(*kiew);
           }  // pool threads protection
           catch (const std::exception& ex) {
-            log_v3::instance().get(0)->error("publish caught exception: {}", ex.what());
+            log_v3::instance().get(0)->error("publish caught exception: {}",
+                                             ex.what());
           } catch (...) {
-            log_v3::instance().get(0)->error("publish caught unknown exception");
+            log_v3::instance().get(0)->error(
+                "publish caught unknown exception");
           }
         });
       }
