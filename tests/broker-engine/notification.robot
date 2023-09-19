@@ -19,10 +19,10 @@ Test Teardown       Save logs If Failed
 
 *** Test Cases ***
 not1
-    [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
+    [Documentation]    This test case configures a single service and verifies that a notification is sent when the service is in a non-OK state.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -48,7 +48,7 @@ not1
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -58,10 +58,10 @@ not1
     Kindly Stop Broker
 
 not2
-    [Documentation]    1 services id configurd and,checking that the recovery notification is sent.
+    [Documentation]    This test case configures a single service and verifies that a recovery notification is sent after a service recovers from a non-OK state.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -88,7 +88,7 @@ not2
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -101,7 +101,7 @@ not2
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -111,10 +111,10 @@ not2
     Kindly Stop Broker
 
 not3
-    [Documentation]    1 services id configurd and,checking that the non-ok notification is sent after the downtimes is finished.
+    [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent after the service exits downtime.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -147,7 +147,7 @@ not3
         Sleep    10s
     END
 
-    ${result}=    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
 
     # Let's wait for the external command check start
     ${content}    Create List    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
@@ -156,7 +156,7 @@ not3
 
     Process Service Check Result    host_1    service_1    2    critical
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -166,10 +166,10 @@ not3
     Kindly Stop Broker
 
 not4
-    [Documentation]    1 services id configurd and,checking that the non-ok notification is sent when the acknowledge is finished.
+    [Documentation]    This test case configures a single service and verifies that a non-OK notification is sent when the acknowledgement is completed.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -195,7 +195,7 @@ not4
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     # Acknowledge the service with critical status
     Acknowledge Service Problem    host_1    service_1    STICKY
@@ -207,7 +207,7 @@ not4
 
     Process Service Check Result    host_1    service_1    0    ok
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -217,10 +217,10 @@ not4
     Kindly Stop Broker
 
 not5
-    [Documentation]    2 services with 2 different users beeing notified when the services turn into critical state.
+    [Documentation]    This test case configures two services with two different users being notified when the services transition to a critical state.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${2}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -258,9 +258,9 @@ not5
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
+    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -274,10 +274,10 @@ not5
     Kindly Stop Broker
 
 not6
-    [Documentation]    timeperiod null
+    [Documentation]     This test case validates the behavior when the notification time period is set to null.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -303,7 +303,7 @@ not6
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -323,12 +323,12 @@ not6
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
+    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
 
     Engine Config Set Value In Services    0    service_1    notification_period    24x7
     Sleep    5s
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
+    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -341,7 +341,7 @@ not7
     [Documentation]    host alert
     [Tags]    broker    engine    host    hosts    notification
     Config Engine    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -382,7 +382,7 @@ not8
     [Documentation]    critical host notification
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -423,7 +423,7 @@ not9
     [Documentation]    recovery host notification
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -461,10 +461,10 @@ not9
     Kindly Stop Broker
 
 not10
-    [Documentation]    downtime on a down host and after the downtimes is finished and the host is still critical we should recieve a critical notification
+    [Documentation]    This test case involves scheduling downtime on a down host. After the downtime is finished and the host is still critical, we should receive a critical notification.
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -514,10 +514,10 @@ not10
     Kindly Stop Broker
 
 not11
-    [Documentation]    downtime on a down host that already had a critical notification then put it on up state after the downtimes is finished and the host is up we should recieve a recovery notification
+    [Documentation]    This test case involves scheduling downtime on a down host that already had a critical notification. After putting it in the UP state when the downtime is finished and the host is UP, we should receive a recovery notification.
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    notification_period    24x7
@@ -572,10 +572,10 @@ not11
 
 
 not12
-    [Documentation]    1 services id configurd and,checking that the non-ok notification is sent.
+    [Documentation]    This test case involves configuring one service and checking that three alerts are sent for it.
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Configure The Notifications
+    Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
     Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
@@ -602,7 +602,7 @@ not12
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -621,14 +621,14 @@ not12
 
 
 not13
-    [Documentation]    escalations
+    [Documentation]    Escalations
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${2}    ${1}
     Engine Config Set Value    0    interval_length    10    True
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Add service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
-    Configure The Notifications
-    Conf Escalations
+    Config Notifications
+    Config Escalations
 
     Add Contact Group    ${0}    ${1}    ["U1"]
     Add Contact Group    ${0}    ${2}    ["U2","U3"]
@@ -659,14 +659,14 @@ not13
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check Result    host_2    service_2    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
 
     # Let's wait for the first notification of the user U1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical_0;
@@ -680,23 +680,23 @@ not13
     Process Service Check Result    host_2    service_2    2    critical
     Process Service Check Result    host_1    service_1    2    critical
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     Process Service Check Result    host_2    service_2    2    critical
     Process Service Check Result    host_1    service_1    2    critical
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     Process Service Check Result    host_2    service_2    2    critical
     Process Service Check Result    host_1    service_1    2    critical
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     # Let's wait for the first notification of the contact group 2 U3 ET U2
 
@@ -713,14 +713,14 @@ not13
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check Result    host_2    service_2    2    critical
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
 
     # Let's wait for the second notification of the contact group 2 U3 ET U2
 
@@ -737,7 +737,7 @@ not13
         Sleep    1s
     END
 
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check Result    host_2    service_2    2    critical
@@ -755,9 +755,10 @@ not13
     Should Be True    ${result}    A message telling that notification is not sent
 
 
-*** Keywords ***
 
-Configure The Notifications
+
+*** Keywords ***
+Config Notifications
     [Documentation]    Configuring engine notification settings.
     Engine Config Set Value    0    enable_notifications    1    True
     Engine Config Set Value    0    execute_host_checks    1    True
@@ -783,8 +784,8 @@ Configure The Notifications
     ...    command_notif
     ...    /usr/bin/true
 
-Conf Escalations
-    [Documentation]    Configuring engine notification escalationssettings.
+Config Escalations
+    [Documentation]    Configuring engine notification escalations settings.
     Engine Config Set Value In Services    0    service_1    notification_options    c
     Engine Config Set Value In Services    0    service_1    notifications_enabled    1
     Engine Config Set Value In Services    0    service_1    first_notification_delay    0

@@ -2210,3 +2210,4 @@ def send_bench(id: int, port: int):
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
+        
