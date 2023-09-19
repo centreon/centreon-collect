@@ -71,11 +71,13 @@ absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
  *                        events in a persistent storage.
  */
 muxer::muxer(std::string name,
+             const std::shared_ptr<engine>& parent,
              const muxer_filter& r_filter,
              const muxer_filter& w_filter,
              bool persistent)
     : io::stream("muxer"),
       _name(std::move(name)),
+      _parent{parent},
       _queue_file_name{queue_file(_name)},
       _read_filter{r_filter},
       _write_filter{w_filter},
@@ -85,6 +87,7 @@ muxer::muxer(std::string name,
       _events_size{0u},
       _last_stats{std::time(nullptr)} {
   // Load head queue file back in memory.
+  assert(_parent);
   std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
@@ -151,6 +154,7 @@ muxer::muxer(std::string name,
  * @return std::shared_ptr<muxer>
  */
 std::shared_ptr<muxer> muxer::create(std::string name,
+                                     const std::shared_ptr<engine>& parent,
                                      const muxer_filter& r_filter,
                                      const muxer_filter& w_filter,
                                      bool persistent) {
@@ -177,12 +181,12 @@ std::shared_ptr<muxer> muxer::create(std::string name,
       log_v3::instance().get(1)->debug("muxer: muxer '{}' unknown, creating it",
                                        name);
       retval = std::shared_ptr<muxer>(
-          new muxer(name, r_filter, w_filter, persistent));
+          new muxer(name, parent, r_filter, w_filter, persistent));
       _running_muxers[name] = retval;
     }
   }
 
-  engine::instance_ptr()->subscribe(retval);
+  parent->subscribe(retval);
   return retval;
 }
 
@@ -191,9 +195,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
  */
 muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
-  auto eng = engine::instance_ptr();
-  if (eng)
-    eng->unsubscribe(this);
+  _parent->unsubscribe(this);
   std::lock_guard<std::mutex> lock(_mutex);
   SPDLOG_LOGGER_INFO(log_v3::instance().get(0),
                      "Destroying muxer {}: number of events in the queue: {}",
@@ -536,7 +538,7 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
       SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "{} bench write {}", _name,
                          io::data::dump_json{*d});
     }
-    engine::instance_ptr()->publish(d);
+    _parent->publish(d);
   } else {
     SPDLOG_LOGGER_TRACE(log_v3::instance().get(0),
                         "muxer {} event of type {:x} rejected by read filter",
@@ -567,7 +569,7 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
     }
   }
   if (!to_publish.empty()) {
-    engine::instance_ptr()->publish(to_publish);
+    _parent->publish(to_publish);
   }
 }
 

@@ -113,7 +113,7 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
     switch (_state) {
       case stopped:
         log_v3::instance().get(0)->trace("engine::publish {} event to file",
-                              to_publish.size());
+                                         to_publish.size());
         for (auto& e : to_publish) {
           _cache_file->add(e);
           _unprocessed_events++;
@@ -121,13 +121,13 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
         break;
       case not_started:
         log_v3::instance().get(0)->trace("engine::publish {} event to queue",
-                              to_publish.size());
+                                         to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
         break;
       default:
         log_v3::instance().get(0)->trace("engine::publish {} event to queue_",
-                              to_publish.size());
+                                         to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
         have_to_send = true;
@@ -226,8 +226,8 @@ void engine::stop() {
       _cache_file = std::make_unique<persistent_cache>(_cache_file_path());
       _cache_file->transaction();
     } catch (const std::exception& e) {
-      log_v3::instance().get(0)->error("multiplexing: could not open cache file: {}",
-                                e.what());
+      log_v3::instance().get(0)->error(
+          "multiplexing: could not open cache file: {}", e.what());
       _cache_file.reset();
     }
 
@@ -246,15 +246,16 @@ void engine::stop() {
  */
 void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
   log_v3::instance().get(1)->debug("engine: muxer {} subscribes to engine",
-                          subscriber->name());
+                                   subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
+  muxer* s = subscriber.get();
   for (auto& m : _muxers)
-    if (m == subscriber) {
+    if (m == s) {
       log_v3::instance().get(1)->debug("engine: muxer {} already subscribed",
-                              subscriber->name());
+                                       s->name());
       return;
     }
-  _muxers.push_back(subscriber);
+  _muxers.push_back(s);
 }
 
 /**
@@ -265,9 +266,9 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
 void engine::unsubscribe(const muxer* subscriber) {
   std::lock_guard<std::mutex> l(_engine_m);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
-    if (it->get() == subscriber) {
-      log_v3::instance().get(1)->debug("engine: muxer {} unsubscribes to engine",
-                              subscriber->name());
+    if (*it == subscriber) {
+      log_v3::instance().get(1)->debug(
+          "engine: muxer {} unsubscribes to engine", subscriber->name());
       _muxers.erase(it);
       return;
     }
@@ -360,7 +361,7 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
-  std::shared_ptr<muxer> last_muxer;
+  muxer* last_muxer;
   std::shared_ptr<detail::callback_caller> cc;
   {
     std::lock_guard<std::mutex> lck(_engine_m);
@@ -399,9 +400,11 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
             m->publish(*kiew);
           }  // pool threads protection
           catch (const std::exception& ex) {
-            log_v3::instance().get(0)->error("publish caught exception: {}", ex.what());
+            log_v3::instance().get(0)->error("publish caught exception: {}",
+                                             ex.what());
           } catch (...) {
-            log_v3::instance().get(0)->error("publish caught unknown exception");
+            log_v3::instance().get(0)->error(
+                "publish caught unknown exception");
           }
         });
       }

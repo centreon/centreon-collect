@@ -107,9 +107,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
     std::vector<std::string> eps;
     for (auto& ep : endpoints)
       eps.push_back(ep.name);
-    log_v3::instance().get(1)->debug("endpoint applier: {} endpoints to apply: {}",
-                            endpoints.size(),
-                            fmt::format("{}", fmt::join(eps, ", ")));
+    log_v3::instance().get(1)->debug(
+        "endpoint applier: {} endpoints to apply: {}", endpoints.size(),
+        fmt::format("{}", fmt::join(eps, ", ")));
   }
 
   // Copy endpoint configurations and apply eventual modifications.
@@ -129,8 +129,8 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
       // resources that might be used by other endpoints.
       auto it = _endpoints.find(ep);
       if (it != _endpoints.end()) {
-        log_v3::instance().get(1)->debug("endpoint applier: removing old endpoint {}",
-                                it->first.name);
+        log_v3::instance().get(1)->debug(
+            "endpoint applier: removing old endpoint {}", it->first.name);
         /* failover::exit() is called. */
         it->second->exit();
         delete it->second;
@@ -142,13 +142,13 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
   // Update existing endpoints.
   for (auto it = _endpoints.begin(), end = _endpoints.end(); it != end; ++it) {
     log_v3::instance().get(1)->debug("endpoint applier: updating endpoint {}",
-                            it->first.name);
+                                     it->first.name);
     it->second->update();
   }
 
   // Debug message.
   log_v3::instance().get(1)->debug("endpoint applier: {} endpoints to create",
-                          endp_to_create.size());
+                                   endp_to_create.size());
 
   // Create new endpoints.
   for (config::endpoint& ep : endp_to_create) {
@@ -158,7 +158,7 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
         std::find_if(endp_to_create.begin(), endp_to_create.end(),
                      name_match_failover(ep.name)) == endp_to_create.end()) {
       log_v3::instance().get(1)->debug("endpoint applier: creating endpoint {}",
-                              ep.name);
+                                       ep.name);
       bool is_acceptor;
       std::shared_ptr<io::endpoint> e{_create_endpoint(ep, is_acceptor)};
       std::unique_ptr<processing::endpoint> endp;
@@ -207,8 +207,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
               "endpoint applier: filters {} for endpoint '{}' applied.",
               w_filter.get_allowed_categories(), ep.name);
 
-        auto mux =
-            multiplexing::muxer::create(ep.name, r_filter, w_filter, true);
+        auto mux = multiplexing::muxer::create(
+            ep.name, multiplexing::engine::instance_ptr(), r_filter, w_filter,
+            true);
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
       }
       {
@@ -238,7 +239,8 @@ void endpoint::_discard() {
   ::usleep(processing::idle_microsec_wait_idle_thread_delay + 100000);
   // Exit threads.
   {
-    log_v3::instance().get(1)->debug("endpoint applier: requesting threads termination");
+    log_v3::instance().get(1)->debug(
+        "endpoint applier: requesting threads termination");
     std::unique_lock<std::timed_mutex> lock(_endpointsm);
 
     // Send termination requests.
@@ -258,7 +260,8 @@ void endpoint::_discard() {
 
   // Exit threads.
   {
-    log_v3::instance().get(1)->debug("endpoint applier: requesting threads termination");
+    log_v3::instance().get(1)->debug(
+        "endpoint applier: requesting threads termination");
     std::unique_lock<std::timed_mutex> lock(_endpointsm);
 
     // We continue with failovers
@@ -271,7 +274,8 @@ void endpoint::_discard() {
       it = _endpoints.erase(it);
     }
 
-    log_v3::instance().get(1)->debug("endpoint applier: all threads are terminated");
+    log_v3::instance().get(1)->debug(
+        "endpoint applier: all threads are terminated");
   }
 
   // Stop multiplexing: we must stop the engine after failovers otherwise
@@ -280,7 +284,7 @@ void endpoint::_discard() {
     multiplexing::engine::instance_ptr()->stop();
   } catch (const std::exception& e) {
     log_v3::instance().get(1)->warn("multiplexing engine stop interrupted: {}",
-                           e.what());
+                                    e.what());
   }
 }
 
@@ -363,8 +367,8 @@ processing::failover* endpoint::_create_failover(
     std::shared_ptr<io::endpoint> endp,
     std::list<config::endpoint>& l) {
   // Debug message.
-  log_v3::instance().get(1)->info("endpoint applier: creating new failover '{}'",
-                         cfg.name);
+  log_v3::instance().get(1)->info(
+      "endpoint applier: creating new failover '{}'", cfg.name);
 
   // Check that failover is configured.
   std::shared_ptr<processing::failover> failovr;
@@ -447,8 +451,8 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
 
       endp = std::shared_ptr<io::endpoint>(
           it->second.endpntfactry->new_endpoint(cfg, is_acceptor, cache));
-      log_v3::instance().get(1)->info(" create endpoint {} for endpoint '{}'", it->first,
-                             cfg.name);
+      log_v3::instance().get(1)->info(" create endpoint {} for endpoint '{}'",
+                                      it->first, cfg.name);
       level = it->second.osi_to + 1;
       break;
     }
@@ -470,7 +474,7 @@ std::shared_ptr<io::endpoint> endpoint::_create_endpoint(config::endpoint& cfg,
         std::shared_ptr<io::endpoint> current(
             it->second.endpntfactry->new_endpoint(cfg, is_acceptor));
         log_v3::instance().get(1)->info(" create endpoint {} for endpoint '{}'",
-                               it->first, cfg.name);
+                                        it->first, cfg.name);
         current->from(endp);
         endp = current;
         level = it->second.osi_to;
@@ -570,8 +574,8 @@ multiplexing::muxer_filter endpoint::parse_filters(
              it = tmp_elements.cbegin(),
              end = tmp_elements.cend();
          it != end; ++it) {
-      log_v3::instance().get(1)->trace("endpoint applier: new filtering element: {}",
-                              it->first);
+      log_v3::instance().get(1)->trace(
+          "endpoint applier: new filtering element: {}", it->first);
       elements.insert(it->first);
       retval = true;
     }
@@ -600,6 +604,6 @@ multiplexing::muxer_filter endpoint::parse_filters(
     }
   }
   log_v3::instance().get(1)->info("Filters applied on endpoint:{}",
-                         fmt::join(applied_filters, ", "));
+                                  fmt::join(applied_filters, ", "));
   return elements;
 }

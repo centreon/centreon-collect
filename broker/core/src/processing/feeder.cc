@@ -47,11 +47,12 @@ constexpr unsigned max_event_queue_size = 0x10000;
  */
 std::shared_ptr<feeder> feeder::create(
     const std::string& name,
+    const std::shared_ptr<multiplexing::engine>& parent,
     std::shared_ptr<io::stream>& client,
     const multiplexing::muxer_filter& read_filters,
     const multiplexing::muxer_filter& write_filters) {
   std::shared_ptr<feeder> ret(
-      new feeder(name, client, read_filters, write_filters));
+      new feeder(name, parent, client, read_filters, write_filters));
   ret->_start_stat_timer();
 
   ret->_read_from_muxer();
@@ -68,6 +69,7 @@ std::shared_ptr<feeder> feeder::create(
  *  @param[in] write_filters  Write filters.
  */
 feeder::feeder(const std::string& name,
+               const std::shared_ptr<multiplexing::engine>& parent,
                std::shared_ptr<io::stream>& client,
                const multiplexing::muxer_filter& read_filters,
                const multiplexing::muxer_filter& write_filters)
@@ -75,6 +77,7 @@ feeder::feeder(const std::string& name,
       _state{state::running},
       _client(std::move(client)),
       _muxer(multiplexing::muxer::create(name,
+                                         parent,
                                          std::move(read_filters),
                                          std::move(write_filters),
                                          false)),
