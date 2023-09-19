@@ -107,6 +107,18 @@ class protobuf : public protobuf_base {
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
 
+  /**
+   * @brief Construct a new protobuf object
+   * same as previous constructor except that it accepts two more parameters
+   * @param o
+   * @param src_id source_id
+   * @param dest_id destination_id
+   */
+  protobuf(const T& o, uint32_t src_id, uint32_t dest_id) : protobuf(o) {
+    source_id = src_id;
+    destination_id = dest_id;
+  }
+
   protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
     _obj.CopyFrom(to_clone._obj);
   }

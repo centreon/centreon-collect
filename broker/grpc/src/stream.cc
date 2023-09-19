@@ -94,12 +94,12 @@ int32_t com::centreon::broker::grpc::stream::write(
   if (_channel->is_down())
     throw msg_fmt("Connection lost");
 
-  channel::event_with_data::pointer to_send =
-      std::make_shared<channel::event_with_data>(d);
+  channel::event_with_data::pointer to_send;
 
-  if (get_no_bbdo_encode()) {
-    event_to_protobuf(*d, to_send->grpc_event);
+  if (!get_bbdo_encoding() && std::dynamic_pointer_cast<io::protobuf_base>(d)) { //no bbdo encoded object
+    to_send = create_event_with_data(d);
   } else {
+    to_send = std::make_shared<channel::event_with_data>();
     std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
     to_send->grpc_event.mutable_buffer()->assign(raw_src->_buffer.begin(),
                                                  raw_src->_buffer.end());

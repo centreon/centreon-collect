@@ -45,7 +45,8 @@ connector::connector(bool negotiate,
                      bool connector_is_input,
                      bool coarse,
                      uint32_t ack_limit,
-                     std::list<std::shared_ptr<io::extension>>&& extensions)
+                     std::list<std::shared_ptr<io::extension>>&& extensions,
+                     bool bbdo_encoding)
     : io::endpoint{false, {}},
       _is_input{connector_is_input},
       _coarse{coarse},
@@ -53,7 +54,8 @@ connector::connector(bool negotiate,
       // FIXME DBR: why this trick?
       _timeout(timeout == -1 || timeout == 0 ? 3 : timeout),
       _ack_limit{ack_limit},
-      _extensions{std::move(extensions)} {}
+      _extensions{std::move(extensions)},
+      _bbdo_encoding(bbdo_encoding) {}
 
 /**
  *  Open the connector.
@@ -68,7 +70,8 @@ std::shared_ptr<io::stream> connector::open() {
   if (_from)
     // Open lower layer connection and add our own layer.
     retval = _open(_from->open());
-
+  if (!_bbdo_encoding)
+    retval->set_bbdo_encoding(_bbdo_encoding);
   return retval;
 }
 
@@ -87,6 +90,8 @@ std::shared_ptr<io::stream> connector::_open(
     bbdo_stream->set_coarse(_coarse);
     bbdo_stream->set_negotiate(_negotiate);
     bbdo_stream->set_timeout(_timeout);
+    if (!_bbdo_encoding)
+      bbdo_stream->set_bbdo_encoding(_bbdo_encoding);
     try {
       bbdo_stream->negotiate(bbdo::stream::negotiate_first);
     } catch (std::exception& e) {

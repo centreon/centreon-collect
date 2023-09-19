@@ -52,7 +52,8 @@ acceptor::acceptor(std::string name,
                    bool one_peer_retention_mode,
                    bool coarse,
                    uint32_t ack_limit,
-                   std::list<std::shared_ptr<io::extension>>&& extensions)
+                   std::list<std::shared_ptr<io::extension>>&& extensions,
+                   bool bbdo_encoding)
     : io::endpoint(!one_peer_retention_mode, {}),
       _coarse(coarse),
       _name(std::move(name)),
@@ -60,7 +61,8 @@ acceptor::acceptor(std::string name,
       _is_output(one_peer_retention_mode),
       _timeout(timeout),
       _ack_limit(ack_limit),
-      _extensions{extensions} {
+      _extensions{extensions},
+      _bbdo_encoding(bbdo_encoding) {
   if (_timeout == (time_t)-1 || _timeout == 0)
     _timeout = 3;
 }
@@ -93,6 +95,8 @@ std::shared_ptr<io::stream> acceptor::open() {
       my_bbdo->set_negotiate(_negotiate);
       my_bbdo->set_timeout(_timeout);
       my_bbdo->set_ack_limit(_ack_limit);
+      if (!_bbdo_encoding)
+        my_bbdo->set_bbdo_encoding(_bbdo_encoding);
       try {
         my_bbdo->negotiate(bbdo::stream::negotiate_second);
       } catch (const std::exception& e) {

@@ -79,11 +79,23 @@ class channel : public std::enable_shared_from_this<channel> {
     using pointer = std::shared_ptr<event_with_data>;
 
     event_with_data() {}
-    event_with_data(const std::shared_ptr<io::data>& bbdo_evt)
-        : bbdo_event(bbdo_evt) {}
+
+    template <class sub_message_release>
+    event_with_data(const std::shared_ptr<io::data>& bbdo_evt,
+                    sub_message_release&& cleaner_lambda)
+        : bbdo_event(bbdo_evt), cleaner(cleaner_lambda) {}
+
+    event_with_data(const event_with_data&) = delete;
+    event_with_data& operator=(const event_with_data&) = delete;
+
+    ~event_with_data() {
+      if (cleaner)
+        cleaner(grpc_event);
+    }
 
     grpc_event_type grpc_event;
     std::shared_ptr<io::data> bbdo_event;
+    std::function<void(grpc_event_type&)> cleaner;
   };
 
  private:

@@ -139,6 +139,13 @@ class stream : public io::stream {
   time_t _last_sent_ack;
 
   /**
+   * @brief when we bypass bbdo encoding, we store object received by grpc layer
+   * in this queue
+   *
+   */
+  std::deque<std::shared_ptr<io::data>> _read_queue;
+
+  /**
    * It is possible to mix bbdo stream with others like tls or compression.
    * This list of extensions provides a simple access to others ones with
    * their configuration.

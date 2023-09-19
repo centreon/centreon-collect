@@ -25,9 +25,6 @@ include_directories("${PROJECT_SOURCE_DIR}/neb/inc")
 include_directories("${CMAKE_SOURCE_DIR}")
 set(INC_DIR "${INC_DIR}/com/centreon/broker/unified_sql")
 
-get_protobuf_files(rebuild_message)
-get_protobuf_files(remove_graph_message)
-
 # Storage module.
 set(UNIFIED_SQL "20-unified_sql")
 set(UNIFIED_SQL
@@ -46,8 +43,6 @@ add_library(
   ${SRC_DIR}/stream.cc
   ${SRC_DIR}/stream_sql.cc
   ${SRC_DIR}/stream_storage.cc
-  ${proto_rebuild_message}
-  ${proto_remove_graph_message}
   # Headers.
   ${INC_DIR}/bulk_queries.hh
   ${INC_DIR}/bulk_bind.hh
@@ -63,8 +58,15 @@ set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
 add_dependencies("${UNIFIED_SQL}" target_rebuild_message
                  target_remove_graph_message target_neb)
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
-target_link_libraries(${UNIFIED_SQL} rokerbase bbdo_storage CONAN_PKG::spdlog
-                      CONAN_PKG::abseil pb_storage_lib)
+target_link_libraries(
+  ${UNIFIED_SQL}
+  rokerbase
+  bbdo_storage
+  pb_storage_lib
+  pb_rebuild_message_lib
+  pb_remove_graph_message_lib
+  CONAN_PKG::spdlog
+  CONAN_PKG::abseil)
 
 # Testing.
 if(WITH_TESTING)

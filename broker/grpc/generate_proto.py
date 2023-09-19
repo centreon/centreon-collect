@@ -62,6 +62,8 @@ cc_file_begin_content = """
 #include "grpc_stream.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
+#include "com/centreon/broker/grpc/channel.hh"
+
 using namespace com::centreon::broker;
 
 CCB_BEGIN()
@@ -70,21 +72,23 @@ namespace grpc {
 
 """
 
-cc_file_event_to_protobuf_function = """
-/**
- * @brief this function set the content of a protobuf message that will be send
- * on grpc.
- * stream_content don't have a copy of event, so event mustn't be
- * deleted before stream_content
- * event is not const due to protobuf exigences,
- * nevertheless, this object won't be modified by grpc layers
- *
- * @param event to send
- * @param stream_content object sent on the wire
- */
-void event_to_protobuf(io::data & event, stream::centreon_event & stream_content) {
-    switch(event.type()) {
-"""
+# cc_file_event_to_protobuf_function = """
+# /**
+#  * @brief this function set the content of a protobuf message that will be send
+#  * on grpc.
+#  * stream_content don't have a copy of event, so event mustn't be
+#  * deleted before stream_content
+#  * event is not const due to protobuf exigences,
+#  * nevertheless, this object won't be modified by grpc layers
+#  *
+#  * @param event to send
+#  * @param stream_content object sent on the wire
+#  */
+# void event_to_protobuf(io::data & event, stream::centreon_event & stream_content) {
+#     stream_content.set_destination_id(event.destination_id);
+#     stream_content.set_source_id(event.source_id);
+#     switch(event.type()) {
+# """
 
 cc_file_protobuf_to_event_function = """
 /**
@@ -96,6 +100,31 @@ cc_file_protobuf_to_event_function = """
  */
 std::shared_ptr<io::data> protobuf_to_event(const stream::centreon_event & stream_content) {
     switch(stream_content.content_case()) {
+"""
+
+cc_file_create_event_with_data_function = """
+/**
+ * @brief this function create a event_with_data structure that will be send on grpc.
+ * stream_content don't have a copy of event, so event mustn't be
+ * deleted before stream_content
+ * event is not const due to protobuf exigences,
+ * nevertheless, this object won't be modified by grpc layers
+ *
+ * @param event to send
+ * @return object used for send on the wire
+ */
+std::shared_ptr<channel::event_with_data> create_event_with_data(std::shared_ptr<io::data> event) {
+    std::shared_ptr<channel::event_with_data> ret;
+    switch(event->type()) {
+"""
+cc_file_create_event_with_data_function_end = """
+    default:
+        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown event type: {}", *event);
+    }
+    ret->grpc_event.set_destination_id(event->destination_id);
+    ret->grpc_event.set_source_id(event->source_id);
+    return ret;
+}
 """
 
 
@@ -138,9 +167,19 @@ for directory in args.proto_directory:
                     one_of_index += 1
                     lower_mess = mess.lower()
                     # cc file
-                    cc_file_protobuf_to_event_function += f"        case ::stream::centreon_event::k{mess}:\n            return std::make_shared<io::protobuf<{mess}, make_type({id})>>(stream_content.{lower_mess}_());\n"
-                    cc_file_event_to_protobuf_function += f"        case make_type({id}):\n            stream_content.unsafe_arena_set_allocated_{lower_mess}_(&static_cast<io::protobuf<{mess}, make_type({id})> &>(event).mut_obj());\n            break;\n"
+                    cc_file_protobuf_to_event_function += f"""        case ::stream::centreon_event::k{mess}:
+            return std::make_shared<io::protobuf<{mess}, make_type({id})>>(stream_content.{lower_mess}_(), stream_content.source_id(), stream_content.destination_id());
+"""
+#                     cc_file_event_to_protobuf_function += f"""        case make_type({id}):
+#             stream_content.set_allocated_{lower_mess}_(&static_cast<io::protobuf<{mess}, make_type({id})> &>(event).mut_obj());
+#             break;
+# """
+                    cc_file_create_event_with_data_function += f"""        case make_type({id}):
+            ret = std::make_shared<channel::event_with_data>(event, [](grpc_event_type & to_clean) {{ to_clean.release_{lower_mess}_(); }});
+            ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
+            break;
 
+"""
 
 with open(args.proto_file, 'w', encoding="utf-8") as fp:
     fp.write(file_begin_content)
@@ -152,6 +191,8 @@ package com.centreon.broker.stream;
     fp.write(file_message_centreon_event)
     fp.write("""
     }
+    uint32 destination_id = 126;
+    uint32 source_id = 127;
 }
 
 service centreon_bbdo {
@@ -173,12 +214,9 @@ with open(args.cc_file, 'w') as fp:
 
 
 """)
-    fp.write(cc_file_event_to_protobuf_function)
-    fp.write("""        default:
-            SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown type {} for message {}", event.type(), io::data::dump_detail{event});
-            break;
-    }
-}
+    fp.write(cc_file_create_event_with_data_function)
+    fp.write(cc_file_create_event_with_data_function_end)
+    fp.write("""
 
 } //namespace grpc
 

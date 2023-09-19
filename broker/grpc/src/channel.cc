@@ -48,6 +48,13 @@ std::ostream& operator<<(std::ostream& st,
       st << "buff: "
          << com::centreon::broker::misc::string::debug_buf(
                 to_dump.buffer().data(), to_dump.buffer().length(), 20);
+    } else {
+      std::string dump{to_dump.ShortDebugString()};
+      if (dump.size() > 200) {
+        dump.resize(200);
+        st << fmt::format(" content:'{}...'", dump);
+      } else
+        st << " content:'" << dump << '\'';
     }
   }
   return st;
@@ -62,6 +69,8 @@ std::ostream& operator<<(std::ostream& st,
          << com::centreon::broker::misc::string::debug_buf(
                 to_dump.to_dump.buffer().data(),
                 to_dump.to_dump.buffer().length(), 100);
+    } else {
+      st << " content:'" << to_dump.to_dump.ShortDebugString() << '\'';
     }
   }
   return st;
@@ -201,7 +210,12 @@ void channel::start_write() {
     _write_pending = true;
     write_current = _write_current = _write_queue.front();
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write: {}", *write_current->bbdo_event);
+  if (write_current->bbdo_event)
+    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}",
+                        *write_current->bbdo_event);
+  else
+    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}", write_current->grpc_event);
+
   start_write(write_current);
 }
 
@@ -211,8 +225,12 @@ void channel::on_write_done(bool ok) {
     {
       lock_guard l(_protect);
       _write_pending = false;
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "write done: {}",
-                          *_write_current->bbdo_event);
+      if (_write_current->bbdo_event)
+        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}",
+                            *_write_current->bbdo_event);
+      else
+        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}",
+                            _write_current->grpc_event);
 
       _write_queue.pop_front();
       data_to_write = !_write_queue.empty();
