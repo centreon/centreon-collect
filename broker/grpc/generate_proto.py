@@ -70,6 +70,37 @@ CCB_BEGIN()
 
 namespace grpc {
 
+
+namespace detail {
+/**
+ * @brief we pass our protobuf objects to grpc_event without copy
+ * so we must avoid that grpc_event delete message of protobuf object
+ * This the goal of this struct.
+ * At destruction, it releases protobuf object from grpc_event.
+ * Destruction of protobuf object is the job of shared_ptr<io::protobuf>
+ * @tparam grpc_event_releaser lambda that have to release submessage
+ */
+template <typename grpc_event_releaser>
+struct event_with_data : public channel::event_with_data {
+  grpc_event_releaser _releaser;
+
+  event_with_data(const std::shared_ptr<io::data>& bbdo_evt,
+                  grpc_event_releaser&& cleaner_lambda)
+      : channel::event_with_data(bbdo_evt), _releaser(cleaner_lambda) {}
+
+  ~event_with_data() { _releaser(grpc_event); }
+};
+
+template <typename grpc_event_releaser>
+std::shared_ptr<event_with_data<grpc_event_releaser>> create_event_with_data(
+    std::shared_ptr<io::data> event,
+    grpc_event_releaser&& cleaner_lambda) {
+  return std::make_shared<event_with_data<grpc_event_releaser>>(
+      event, std::move(cleaner_lambda));
+}
+
+}  // namespace detail
+
 """
 
 # cc_file_event_to_protobuf_function = """
@@ -103,6 +134,9 @@ std::shared_ptr<io::data> protobuf_to_event(const stream::centreon_event & strea
 """
 
 cc_file_create_event_with_data_function = """
+
+#pragma GCC diagnostic ignored "-Wunused-result"
+
 /**
  * @brief this function create a event_with_data structure that will be send on grpc.
  * stream_content don't have a copy of event, so event mustn't be
@@ -113,7 +147,7 @@ cc_file_create_event_with_data_function = """
  * @param event to send
  * @return object used for send on the wire
  */
-std::shared_ptr<channel::event_with_data> create_event_with_data(std::shared_ptr<io::data> event) {
+std::shared_ptr<channel::event_with_data> create_event_with_data(const std::shared_ptr<io::data> & event) {
     std::shared_ptr<channel::event_with_data> ret;
     switch(event->type()) {
 """
@@ -121,8 +155,10 @@ cc_file_create_event_with_data_function_end = """
     default:
         SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown event type: {}", *event);
     }
-    ret->grpc_event.set_destination_id(event->destination_id);
-    ret->grpc_event.set_source_id(event->source_id);
+    if (ret) {
+        ret->grpc_event.set_destination_id(event->destination_id);
+        ret->grpc_event.set_source_id(event->source_id);
+    }
     return ret;
 }
 """
@@ -175,7 +211,7 @@ for directory in args.proto_directory:
 #             break;
 # """
                     cc_file_create_event_with_data_function += f"""        case make_type({id}):
-            ret = std::make_shared<channel::event_with_data>(event, [](grpc_event_type & to_clean) {{ to_clean.release_{lower_mess}_(); }});
+            ret = detail::create_event_with_data(event, [](grpc_event_type & to_clean) {{ (void)to_clean.release_{lower_mess}_(); }});
             ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
             break;
 
