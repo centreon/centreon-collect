@@ -223,10 +223,12 @@ void acceptor::_callback() noexcept {
     {
       std::lock_guard<std::mutex> lock(_stat_mutex);
       for (auto it = _feeders.begin(), end = _feeders.end(); it != end;) {
-        SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "acceptor '{}' feeder '{}'", _name,
+        SPDLOG_LOGGER_TRACE(log_v3::instance().get(0),
+                            "acceptor '{}' feeder '{}'", _name,
                             (*it)->get_name());
         if ((*it)->is_finished()) {
-          SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "removing '{}' from acceptor '{}'",
+          SPDLOG_LOGGER_INFO(log_v3::instance().get(0),
+                             "removing '{}' from acceptor '{}'",
                              (*it)->get_name(), _name);
           it = _feeders.erase(it);
         } else
@@ -234,8 +236,8 @@ void acceptor::_callback() noexcept {
       }
     }
   }
-  SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "processing acceptor '{}' finished",
-                     _name);
+  SPDLOG_LOGGER_INFO(log_v3::instance().get(0),
+                     "processing acceptor '{}' finished", _name);
   _set_listening(false);
 
   lock.lock();
