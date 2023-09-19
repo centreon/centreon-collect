@@ -324,6 +324,8 @@ uint32_t feeder::_get_queued_events() const {
  * @return false
  */
 bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v3::instance().get(0)->info(
+      "processing::feeder::wait_for_all_events_written");
   std::unique_lock<std::timed_mutex> l(_protect);
   return _client->wait_for_all_events_written(ms_timeout);
 }

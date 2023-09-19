@@ -44,8 +44,10 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/time/timezone_manager.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v3::log_v3;
 
 std::atomic<config::applier::applier_state> config::applier::mode{not_started};
 
@@ -81,18 +83,26 @@ void config::applier::init(size_t n_thread,
  */
 void config::applier::deinit() {
   mode = finished;
+  log_v3::instance().get(0)->info("unloading applier::endpoint");
   config::applier::endpoint::unload();
   {
     auto eng = multiplexing::engine::instance_ptr();
     if (eng) {
+      log_v3::instance().get(0)->info("unloading multiplexing::engine");
       multiplexing::engine::unload();
     }
   }
+  log_v3::instance().get(0)->info("unloading state");
   config::applier::state::unload();
+  log_v3::instance().get(0)->info("unloading io::events");
   io::events::unload();
+  log_v3::instance().get(0)->info("unloading io::protocols");
   io::protocols::unload();
+  log_v3::instance().get(0)->info("unloading io::mysql_manager");
   mysql_manager::unload();
+  log_v3::instance().get(0)->info("unloading stats::center");
   stats::center::unload();
+  log_v3::instance().get(0)->info("unloading file::disk_accessor");
   file::disk_accessor::unload();
 
   pool::unload();

@@ -253,6 +253,8 @@ void acceptor::_callback() noexcept {
  * @return false
  */
 bool acceptor::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v3::instance().get(0)->info(
+      "processing::acceptor::wait_for_all_events_written");
   std::lock_guard<std::mutex> lock(_stat_mutex);
   bool ret = true;
   for (std::shared_ptr<feeder> to_wait : _feeders) {

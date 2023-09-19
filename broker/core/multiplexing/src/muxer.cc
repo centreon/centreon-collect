@@ -329,8 +329,8 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
 
         SPDLOG_LOGGER_TRACE(
             log_v3::instance().get(0),
-            "muxer {} event of type {:x} written queue size: {}", _name,
-            event->type(), _events_size);
+            "muxer {} event of type {:x} : {} written queue size: {}", _name,
+            event->type(), *event, _events_size);
 
         at_least_one_push_to_queue = true;
 
