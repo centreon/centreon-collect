@@ -132,6 +132,7 @@ bool com::centreon::broker::grpc::stream::is_down() const {
  */
 bool com::centreon::broker::grpc::stream::wait_for_all_events_written(
     unsigned ms_timeout) {
+  log_v3::instance().get(0)->info("grpc::stream::wait_for_all_events_written");
   if (_channel->is_down()) {
     return true;
   }

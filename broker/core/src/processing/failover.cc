@@ -611,6 +611,8 @@ bool failover::should_exit() const {
 }
 
 bool failover::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v3::instance().get(0)->info(
+      "processing::failover::wait_for_all_events_written");
   std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
   if (_stream) {
     return _stream->wait_for_all_events_written(ms_timeout);
