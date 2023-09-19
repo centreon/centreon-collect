@@ -624,57 +624,11 @@ not13
     [Documentation]    escalations
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${2}    ${1}
-    Engine Config Set Value    0    enable_notifications    1    True
-    Engine Config Set Value    0    execute_host_checks    1    True
-    Engine Config Set Value    0    execute_service_checks    1    True
-    Engine Config Set Value    0    log_notifications    1    True
-    Engine Config Set Value    0    log_level_notifications    trace    True
     Engine Config Set Value    0    interval_length    10    True
-    Config Broker    central
-    Config Broker    rrd
-    Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
-    Broker Config Log    central    tcp    error
-    Broker Config Log    central    sql    error
-    Config Broker Sql Output    central    unified_sql
-    Config Broker Remove Rrd Output    central
-    Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Add service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
-    Engine Config Add Command
-    ...    0
-    ...    command_notif
-    ...    /usr/bin/true
-    Engine Config Set Value In Services    0    service_1    notification_options    c
-    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_1    first_notification_delay    0
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Engine Config Set Value In Services    0    service_1    contact_groups    contactgroup_1
-    Engine Config Replace Value In Services    0    service_1    active_checks_enabled    0
-    Engine Config Replace Value In Services    0    service_1    max_check_attempts     1
-    Engine Config Replace Value In Services    0    service_1    retry_interval     1
-    Engine Config Set Value In Services    0    service_1    notification_interval    1
-    Engine Config Replace Value In Services    0    service_1    check_interval     1
-    Engine Config Replace Value In Services    0    service_1    check_command    command_4
-    Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
-    Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
-    Engine Config Set Value In Services    0    service_2    notification_options    c
-    Engine Config Set Value In Services    0    service_2    notifications_enabled    1
-    Engine Config Set Value In Services    0    service_2    first_notification_delay    0
-    Engine Config Set Value In Services    0    service_2    notification_period    24x7
-    Engine Config Set Value In Services    0    service_2    notification_interval    1
-    Engine Config Replace Value In Services    0    service_2    first_notification_delay    0
-    Engine Config Replace Value In Services    0    service_2    check_interval     1
-    Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
-    Engine Config Replace Value In Services    0    service_2    retry_interval     1
-    Engine Config Replace Value In Services    0    service_2    check_command    command_4
-    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
-    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Configure The Notifications
+    Conf Escalations
 
     Add Contact Group    ${0}    ${1}    ["U1"]
     Add Contact Group    ${0}    ${2}    ["U2","U3"]
@@ -787,7 +741,7 @@ not13
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check Result    host_2    service_2    2    critical
-            Sleep    1s
+        Sleep    1s
     END
 
     # Let's wait for the first notification of the contact group 3 U4
@@ -828,3 +782,31 @@ Configure The Notifications
     ...    0
     ...    command_notif
     ...    /usr/bin/true
+
+Conf Escalations
+    [Documentation]    Configuring engine notification escalationssettings.
+    Engine Config Set Value In Services    0    service_1    notification_options    c
+    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Engine Config Set Value In Services    0    service_1    first_notification_delay    0
+    Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Engine Config Set Value In Services    0    service_1    contact_groups    contactgroup_1
+    Engine Config Replace Value In Services    0    service_1    active_checks_enabled    0
+    Engine Config Replace Value In Services    0    service_1    max_check_attempts     1
+    Engine Config Replace Value In Services    0    service_1    retry_interval     1
+    Engine Config Set Value In Services    0    service_1    notification_interval    1
+    Engine Config Replace Value In Services    0    service_1    check_interval     1
+    Engine Config Replace Value In Services    0    service_1    check_command    command_4
+    Engine Config Set Value In Services    0    service_2    contact_groups    contactgroup_1
+    Engine Config Replace Value In Services    0    service_2    max_check_attempts     1
+    Engine Config Set Value In Services    0    service_2    notification_options    c
+    Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Engine Config Set Value In Services    0    service_2    first_notification_delay    0
+    Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Engine Config Set Value In Services    0    service_2    notification_interval    1
+    Engine Config Replace Value In Services    0    service_2    first_notification_delay    0
+    Engine Config Replace Value In Services    0    service_2    check_interval     1
+    Engine Config Replace Value In Services    0    service_2    active_checks_enabled    0
+    Engine Config Replace Value In Services    0    service_2    retry_interval     1
+    Engine Config Replace Value In Services    0    service_2    check_command    command_4
+    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
