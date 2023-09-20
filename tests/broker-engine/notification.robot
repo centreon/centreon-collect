@@ -367,7 +367,7 @@ not7
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
@@ -449,7 +449,7 @@ not9
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
@@ -490,7 +490,7 @@ not10
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
@@ -543,7 +543,7 @@ not11
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
@@ -558,7 +558,7 @@ not11
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
     Delete Host Downtimes    ${0}    host_1
