@@ -46,11 +46,9 @@ EBBPS1
 	FOR	${i}	IN RANGE	${1000}
 	  Process Service Check result	host_1	service_${i+1}	1	warning${i}
 	END
-    ${content}    Create List
-    ...    connected to 'MariaDB' Server
-    ...    it supports column-wise binding in prepared statements
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
+	${content}    Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
+	${result}    Find In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	Prepared statements should be supported with this version of MariaDB.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
     ${date}    Get Current Date    result_format=epoch
@@ -131,11 +129,9 @@ EBBPS2
 	FOR	${i}	IN RANGE	${1000}
 	  Process Service Check result	host_1	service_${i+1}	1	warning${i}
 	END
-    ${content}    Create List
-    ...    connected to 'MariaDB' Server
-    ...    it supports column-wise binding in prepared statements
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
+	${content}    Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
+	${result}    Find In Log with Timeout	${centralLog}	${start}	${content}    30
+	Should Be True	${result}	Prepared statements should be supported with this version of MariaDB.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
     ${date}    Get Current Date    result_format=epoch
