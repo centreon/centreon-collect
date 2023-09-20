@@ -72,54 +72,22 @@ namespace grpc {
 
 
 namespace detail {
-/**
- * @brief we pass our protobuf objects to grpc_event without copy
- * so we must avoid that grpc_event delete message of protobuf object
- * This the goal of this struct.
- * At destruction, it releases protobuf object from grpc_event.
- * Destruction of protobuf object is the job of shared_ptr<io::protobuf>
- * @tparam grpc_event_releaser lambda that have to release submessage
- */
-template <typename grpc_event_releaser>
-struct event_with_data : public channel::event_with_data {
-  grpc_event_releaser _releaser;
 
-  event_with_data(const std::shared_ptr<io::data>& bbdo_evt,
-                  grpc_event_releaser&& cleaner_lambda)
-      : channel::event_with_data(bbdo_evt), _releaser(cleaner_lambda) {}
+template <typename T,
+          uint32_t Typ,
+          typename SubMessageAccessor,
+          typename MutableSubMessageAccessor>
+class protobuf : io::protobuf<T, Typ> {
+  event_ptr _received;
 
-  ~event_with_data() { _releaser(grpc_event); }
+ public:
+  protobuf();
 };
-
-template <typename grpc_event_releaser>
-std::shared_ptr<event_with_data<grpc_event_releaser>> create_event_with_data(
-    std::shared_ptr<io::data> event,
-    grpc_event_releaser&& cleaner_lambda) {
-  return std::make_shared<event_with_data<grpc_event_releaser>>(
-      event, std::move(cleaner_lambda));
-}
-
+  
 }  // namespace detail
 
 """
 
-# cc_file_event_to_protobuf_function = """
-# /**
-#  * @brief this function set the content of a protobuf message that will be send
-#  * on grpc.
-#  * stream_content don't have a copy of event, so event mustn't be
-#  * deleted before stream_content
-#  * event is not const due to protobuf exigences,
-#  * nevertheless, this object won't be modified by grpc layers
-#  *
-#  * @param event to send
-#  * @param stream_content object sent on the wire
-#  */
-# void event_to_protobuf(io::data & event, stream::centreon_event & stream_content) {
-#     stream_content.set_destination_id(event.destination_id);
-#     stream_content.set_source_id(event.source_id);
-#     switch(event.type()) {
-# """
 
 cc_file_protobuf_to_event_function = """
 /**
@@ -135,14 +103,10 @@ std::shared_ptr<io::data> protobuf_to_event(const stream::centreon_event & strea
 
 cc_file_create_event_with_data_function = """
 
-#pragma GCC diagnostic ignored "-Wunused-result"
-
 /**
  * @brief this function create a event_with_data structure that will be send on grpc.
  * stream_content don't have a copy of event, so event mustn't be
  * deleted before stream_content
- * event is not const due to protobuf exigences,
- * nevertheless, this object won't be modified by grpc layers
  *
  * @param event to send
  * @return object used for send on the wire
@@ -206,12 +170,10 @@ for directory in args.proto_directory:
                     cc_file_protobuf_to_event_function += f"""        case ::stream::centreon_event::k{mess}:
             return std::make_shared<io::protobuf<{mess}, make_type({id})>>(stream_content.{lower_mess}_(), stream_content.source_id(), stream_content.destination_id());
 """
-#                     cc_file_event_to_protobuf_function += f"""        case make_type({id}):
-#             stream_content.set_allocated_{lower_mess}_(&static_cast<io::protobuf<{mess}, make_type({id})> &>(event).mut_obj());
-#             break;
-# """
                     cc_file_create_event_with_data_function += f"""        case make_type({id}):
-            ret = detail::create_event_with_data(event, [](grpc_event_type & to_clean) {{ (void)to_clean.release_{lower_mess}_(); }});
+            ret = std::make_shared<channel::event_with_data>(
+                event, reinterpret_cast<channel::event_with_data::releaser_type>(
+                &grpc_event_type::release_{lower_mess}_));
             ret->grpc_event.set_allocated_{lower_mess}_(&std::static_pointer_cast<io::protobuf<{mess}, make_type({id})>>(event)->mut_obj());
             break;
 

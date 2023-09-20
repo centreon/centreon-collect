@@ -71,25 +71,33 @@ constexpr uint32_t calc_accept_all_compression_mask() {
 class channel : public std::enable_shared_from_this<channel> {
  public:
   /**
-   * @brief the goal of this structure is to avoid copy from bbdo event to grpc
-   * protobuf message
-   *
+   * @brief we pass our protobuf objects to grpc_event without copy
+   * so we must avoid that grpc_event delete message of protobuf object
+   * This the goal of this struct.
+   * At destruction, it releases protobuf object from grpc_event.
+   * Destruction of protobuf object is the job of shared_ptr<io::protobuf>
    */
   struct event_with_data {
     using pointer = std::shared_ptr<event_with_data>;
+    grpc_event_type grpc_event;
+    std::shared_ptr<io::data> bbdo_event;
+    typedef google::protobuf::Message* (grpc_event_type::*releaser_type)();
+    releaser_type releaser;
 
-    event_with_data() {}
+    event_with_data() : releaser(nullptr) {}
 
-    event_with_data(const std::shared_ptr<io::data>& bbdo_evt)
-        : bbdo_event(bbdo_evt) {}
+    event_with_data(const std::shared_ptr<io::data>& bbdo_evt,
+                    releaser_type relser)
+        : bbdo_event(bbdo_evt), releaser(relser) {}
 
     event_with_data(const event_with_data&) = delete;
     event_with_data& operator=(const event_with_data&) = delete;
 
-    virtual ~event_with_data() {}
-
-    grpc_event_type grpc_event;
-    std::shared_ptr<io::data> bbdo_event;
+    ~event_with_data() {
+      if (releaser) {
+        (grpc_event.*releaser)();
+      }
+    }
   };
 
  private:
