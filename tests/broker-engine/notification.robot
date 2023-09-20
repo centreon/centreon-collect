@@ -338,7 +338,7 @@ not6
     Kindly Stop Broker
 
 not7
-    [Documentation]    host alert
+    [Documentation]    This test case simulates a host alert scenario.
     [Tags]    broker    engine    host    hosts    notification
     Config Engine    ${1}    ${1}
     Config Notifications
@@ -379,7 +379,7 @@ not7
     Kindly Stop Broker
 
 not8
-    [Documentation]    critical host notification
+    [Documentation]    This test validates the critical host notification.
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
     Config Notifications
@@ -420,7 +420,7 @@ not8
     Kindly Stop Broker
 
 not9
-    [Documentation]    recovery host notification
+    [Documentation]    This test case configures a single host and verifies that a recovery notification is sent after the host recovers from a non-OK state.
     [Tags]    broker    engine    host    notification
     Config Engine    ${1}    ${1}
     Config Notifications
