@@ -226,10 +226,10 @@ void channel::on_write_done(bool ok) {
       lock_guard l(_protect);
       _write_pending = false;
       if (_write_current->bbdo_event)
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}",
+        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write done: {}",
                             *_write_current->bbdo_event);
       else
-        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}",
+        SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write done: {}",
                             _write_current->grpc_event);
 
       _write_queue.pop_front();
