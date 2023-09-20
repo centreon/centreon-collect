@@ -408,7 +408,7 @@ not8
     END
 
     FOR    ${i}    IN RANGE    ${4}
-        Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
 
