@@ -2480,7 +2480,7 @@ void stream::_process_pb_instance_status(const std::shared_ptr<io::data>& d) {
   SPDLOG_LOGGER_DEBUG(
       log_v2::sql(),
       "SQL: processing poller status event (id: {}, last alive: {} {})",
-      is.instance_id(), is.last_alive(), is.DebugString());
+      is.instance_id(), is.last_alive(), is.ShortDebugString());
 
   // Processing.
   if (_is_valid_poller(is.instance_id())) {

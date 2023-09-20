@@ -73,15 +73,53 @@ namespace grpc {
 
 namespace detail {
 
-template <typename T,
-          uint32_t Typ,
-          typename SubMessageAccessor,
-          typename MutableSubMessageAccessor>
-class protobuf : io::protobuf<T, Typ> {
+/**
+ * @brief the goal of this class is to not copy protobuf object
+ * event created by grpc receive layer is embedded in this object subclass of
+ * io::protobuf
+ *
+ * @tparam T A Protobuf message
+ * @tparam Typ The type to associate to this class as a BBDO type.
+ */
+template <typename T, uint32_t Typ>
+class received_protobuf : public io::protobuf<T, Typ> {
+ public:
+  typedef const T& (grpc_event_type::*const_accessor)() const;
+  typedef T* (grpc_event_type::*mutable_accessor)();
+
+ private:
   event_ptr _received;
+  const_accessor _const_access;
+  mutable_accessor _mutable_access;
 
  public:
-  protobuf();
+  /**
+   * @brief Construct a new received protobuf object
+   *
+   * @param received object created by grpc layer
+   * @param const_access accessor to const T such as grpc_event_type::welcome_()
+   * @param mutable_access accessor to T such as
+   * grpc_event_type::mutable_welcome_()
+   */
+  received_protobuf(const event_ptr received,
+                    const_accessor const_access,
+                    mutable_accessor mutable_access)
+      : _received(received),
+        _const_access(const_access),
+        _mutable_access(mutable_access) {
+    io::data::source_id = received->source_id();
+    io::data::destination_id = received->destination_id();
+    io::protobuf_base::set_message(((*_received).*_mutable_access)());
+  }
+
+  virtual const T& obj() const { return ((*_received).*_const_access)(); }
+
+  virtual T& mut_obj() { return *((*_received).*_mutable_access)(); }
+
+  virtual void set_obj(T&& obj) {
+    throw com::centreon::exceptions::msg_fmt("unauthorized usage {}",
+                                             typeid(*this).name());
+  }
 };
   
 }  // namespace detail
@@ -97,8 +135,8 @@ cc_file_protobuf_to_event_function = """
  * @return std::shared_ptr<io::data> shared_ptr<io::protobuf<xxx>>, null if
  * unknown content received
  */
-std::shared_ptr<io::data> protobuf_to_event(const stream::centreon_event & stream_content) {
-    switch(stream_content.content_case()) {
+std::shared_ptr<io::data> protobuf_to_event(const event_ptr & stream_content) {
+    switch(stream_content->content_case()) {
 """
 
 cc_file_create_event_with_data_function = """
@@ -168,7 +206,10 @@ for directory in args.proto_directory:
                     lower_mess = mess.lower()
                     # cc file
                     cc_file_protobuf_to_event_function += f"""        case ::stream::centreon_event::k{mess}:
-            return std::make_shared<io::protobuf<{mess}, make_type({id})>>(stream_content.{lower_mess}_(), stream_content.source_id(), stream_content.destination_id());
+            return std::make_shared<detail::received_protobuf<
+                {mess}, make_type({id})>>(
+                stream_content, &grpc_event_type::{lower_mess}_,
+                &grpc_event_type::mutable_{lower_mess}_);
 """
                     cc_file_create_event_with_data_function += f"""        case make_type({id}):
             ret = std::make_shared<channel::event_with_data>(
@@ -205,7 +246,7 @@ with open(args.cc_file, 'w') as fp:
     fp.write(cc_file_protobuf_to_event_function)
     fp.write("""        default:
       SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown content type: {} => ignored",
-                          stream_content.content_case());
+                          stream_content->content_case());
       return std::shared_ptr<io::data>();
     }
 }

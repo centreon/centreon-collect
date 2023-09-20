@@ -241,8 +241,12 @@ void channel::on_write_done(bool ok) {
     }
   } else {
     lock_guard l(_protect);
-    SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}",
-                        *_write_current->bbdo_event);
+    if (_write_current->bbdo_event)
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}",
+                          *_write_current->bbdo_event);
+    else
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "write failed: {}",
+                          _write_current->grpc_event);
     _error = true;
   }
 }
