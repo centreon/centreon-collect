@@ -63,7 +63,7 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
       SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
                           *std::static_pointer_cast<io::raw>(d));             \
     } else {                                                                  \
-      d = protobuf_to_event(to_convert);                                      \
+      d = protobuf_to_event(read_res.first);                                  \
       return d ? true : false;                                                \
     }                                                                         \
   } else {                                                                    \
@@ -96,7 +96,8 @@ int32_t com::centreon::broker::grpc::stream::write(
 
   channel::event_with_data::pointer to_send;
 
-  if (!get_bbdo_encoding() && std::dynamic_pointer_cast<io::protobuf_base>(d)) { //no bbdo encoded object
+  if (!get_bbdo_encoding() && std::dynamic_pointer_cast<io::protobuf_base>(
+                                  d)) {  // no bbdo encoded object
     to_send = create_event_with_data(d);
   } else {
     to_send = std::make_shared<channel::event_with_data>();

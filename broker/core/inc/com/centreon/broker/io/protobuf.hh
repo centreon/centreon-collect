@@ -54,6 +54,8 @@ class protobuf_base : public data {
   protobuf_base(uint32_t typ, google::protobuf::Message* msg)
       : data(typ), _msg{msg} {}
 
+  void set_message(google::protobuf::Message* msg) { _msg = msg; }
+
  public:
   enum attribute {
     always_valid = 0,
