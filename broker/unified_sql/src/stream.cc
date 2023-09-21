@@ -41,7 +41,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 const std::string stream::_index_data_insert_request(
     "INSERT INTO index_data "
@@ -170,10 +170,10 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _group_clean_timer{pool::io_context()},
       _loop_timer{pool::io_context()},
-      _logger_sql_id{log_v3::instance().create_logger_or_get_id("sql")},
-      _logger_sto_id{log_v3::instance().create_logger_or_get_id("storage")},
-      _logger_sql{log_v3::instance().get(_logger_sql_id)},
-      _logger_sto{log_v3::instance().get(_logger_sto_id)},
+      _logger_sql_id{log_v2::instance().create_logger_or_get_id("sql")},
+      _logger_sto_id{log_v2::instance().create_logger_or_get_id("storage")},
+      _logger_sql{log_v2::instance().get(_logger_sql_id)},
+      _logger_sto{log_v2::instance().get(_logger_sto_id)},
       _cv(queue_timer_duration,
           _max_pending_queries,
           "INSERT INTO customvariables "
@@ -264,7 +264,7 @@ stream::~stream() noexcept {
   _group_clean_timer.cancel();
   _queues_timer.cancel();
   _loop_timer.cancel();
-  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(_logger_sql_id),
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(_logger_sql_id),
                       "unified sql: stream destruction");
 }
 
@@ -280,7 +280,7 @@ void stream::_load_deleted_instances() {
       int32_t instance_id = res.value_as_i32(0);
       if (instance_id <= 0)
         SPDLOG_LOGGER_ERROR(
-            log_v3::instance().get(_logger_sql_id),
+            log_v2::instance().get(_logger_sql_id),
             "unified_sql: The 'instances' table contains rows with instance_id "
             "<= 0 ; you should remove them.");
       else
@@ -714,8 +714,8 @@ void stream::statistics(nlohmann::json& tree) const {
 int32_t stream::write(const std::shared_ptr<io::data>& data) {
   ++_pending_events;
   assert(data);
-  _logger_sql = log_v3::instance().get(_logger_sql_id);
-  _logger_sto = log_v3::instance().get(_logger_sto_id);
+  _logger_sql = log_v2::instance().get(_logger_sql_id);
+  _logger_sto = log_v2::instance().get(_logger_sto_id);
 
   SPDLOG_LOGGER_TRACE(
       _logger_sql, "unified sql: write event category:{}, element:{}",
@@ -1133,7 +1133,7 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
 }
 
 void stream::update() {
-  SPDLOG_LOGGER_INFO(log_v3::instance().get(_logger_sql_id),
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(_logger_sql_id),
                      "unified_sql stream update");
   _check_deleted_index();
   _check_rebuild_index();

@@ -47,7 +47,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using msg_fmt = com::centreon::exceptions::msg_fmt;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 using Descriptor = ::google::protobuf::Descriptor;
 using FieldDescriptor = ::google::protobuf::FieldDescriptor;
@@ -83,7 +83,7 @@ parser::store parser::_store[] = {
 parser::parser(unsigned int read_options)
     : _config(NULL),
       _read_options(read_options),
-      _logger{log_v3::instance().get(common::log_v3::log_v2_configuration)} {}
+      _logger{log_v2::instance().get(common::log_v2::log_v2_configuration)} {}
 
 void parser::parse(const std::string& path, State* pb_config) {
   /* Parse the global configuration file. */

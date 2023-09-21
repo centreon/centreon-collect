@@ -27,7 +27,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) \
   &object::setter<serviceescalation, type, &serviceescalation::method>::generic
@@ -133,8 +133,8 @@ serviceescalation& serviceescalation::operator=(
 bool serviceescalation::operator==(
     serviceescalation const& right) const noexcept {
   uint32_t logger_id =
-      log_v3::instance().create_logger_or_get_id("configuration");
-  auto logger = log_v3::instance().get(logger_id);
+      log_v2::instance().create_logger_or_get_id("configuration");
+  auto logger = log_v2::instance().get(logger_id);
   /* No comparison is made on the UUID because it is used between the
    * configuration object and the object. Since this object is randomly
    * constructor in almost all cases, we can have two equal escalations

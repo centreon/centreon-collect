@@ -22,7 +22,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::time;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -196,7 +196,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   const char* begin_str = time_str.data();
   char* endptr;
   char* endptr1;
-  auto logger = log_v3::instance().get(0);
+  auto logger = log_v2::instance().get(0);
 
   // move cursor while we meet blanks
   while (std::isspace(*begin_str)) {
@@ -206,18 +206,16 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   uint64_t hours = strtoull(begin_str, &endptr, 10);
 
   if (endptr == begin_str || endptr + 2 >= endc || *endptr != ':') {
-    logger->error(
-        "parser timeranges: error while reading hours '{}' at {}.", begin_str,
-        endptr - begin_str);
+    logger->error("parser timeranges: error while reading hours '{}' at {}.",
+                  begin_str, endptr - begin_str);
     return false;
   }
 
   uint64_t minutes = strtoull(endptr + 1, &endptr1, 10);
 
   if (endptr1 == endptr + 1) {
-    logger->error(
-        "parser timeranges: error while reading minutes '{}' at {}.", begin_str,
-        endptr1 - begin_str);
+    logger->error("parser timeranges: error while reading minutes '{}' at {}.",
+                  begin_str, endptr1 - begin_str);
     return false;
   }
 

@@ -41,7 +41,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 #define FILE1 CENTREON_BROKER_LUA_SCRIPT_PATH "/test1.lua"
 #define FILE2 CENTREON_BROKER_LUA_SCRIPT_PATH "/test2.lua"
@@ -56,10 +56,10 @@ class LuaTest : public ::testing::Test {
 
  public:
   void SetUp() override {
-    // log_v3::load({"core", "config", "lua"});
+    // log_v2::load({"core", "config", "lua"});
     const uint32_t logger_id =
-        log_v3::instance().create_logger_or_get_id("lua");
-    _logger = log_v3::instance().get(logger_id);
+        log_v2::instance().create_logger_or_get_id("lua");
+    _logger = log_v2::instance().get(logger_id);
 
     g_io_context->restart();
     try {
@@ -76,7 +76,7 @@ class LuaTest : public ::testing::Test {
     _cache.reset();
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
-    // log_v3::unload();
+    // log_v2::unload();
   }
 
   void CreateScript(std::string const& filename, std::string const& content) {

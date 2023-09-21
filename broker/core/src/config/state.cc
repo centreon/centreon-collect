@@ -25,8 +25,8 @@ using namespace com::centreon::broker::config;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
-using log_v3_config = com::centreon::common::log_v3::config;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+using log_v2_config = com::centreon::common::log_v2::config;
 
 /**
  *  Default constructor.
@@ -39,7 +39,7 @@ state::state()
       _event_queue_max_size{10000},
       _poller_id{0},
       _pool_size{0},
-      _log_conf{"", log_v3_config::logger_type::LOGGER_FILE, 5u, false, false} {
+      _log_conf{"", log_v2_config::logger_type::LOGGER_FILE, 5u, false, false} {
   _log_conf.set_dirname("/var/log/centreon-broker");
   _log_conf.set_filename("");
   _log_conf.set_max_size(0);
@@ -259,7 +259,7 @@ std::string const& state::command_protocol() const noexcept {
  * @param out The endpoint is moved to the configuration.
  */
 void state::add_endpoint(endpoint&& out) noexcept {
-  log_v3::instance().get(0)->trace("endpoint {} added to state", out.name);
+  log_v2::instance().get(0)->trace("endpoint {} added to state", out.name);
   _endpoints.emplace_back(std::move(out));
 }
 
@@ -453,11 +453,11 @@ const std::string& state::listen_address() const noexcept {
   return _listen_address;
 }
 
-log_v3_config& state::mut_log_conf() {
+log_v2_config& state::mut_log_conf() {
   return _log_conf;
 }
 
-const log_v3_config& state::log_conf() const {
+const log_v2_config& state::log_conf() const {
   return _log_conf;
 }
 

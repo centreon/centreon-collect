@@ -29,7 +29,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -51,10 +51,10 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _next_timeout(0),
       _muxer(mux),
       _update(false),
-      _logger_id{log_v3::instance().create_logger_or_get_id("processing")},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("processing")},
+      _logger{log_v2::instance().get(_logger_id)} {
   DEBUG(fmt::format("CONSTRUCTOR failover {:p} {} - muxer: {:p}", static_cast<void*>(this), name, static_cast<void*>(mux.get())));
-  SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "failover '{}' construction.",
+  SPDLOG_LOGGER_TRACE(log_v2::instance().get(0), "failover '{}' construction.",
                       _name);
 }
 
@@ -92,7 +92,7 @@ void failover::add_secondary_endpoint(std::shared_ptr<io::endpoint> endp) {
  *  writing to the same files.
  */
 void failover::exit() {
-  SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "failover '{}' exit.", _name);
+  SPDLOG_LOGGER_TRACE(log_v2::instance().get(0), "failover '{}' exit.", _name);
   std::unique_lock<std::mutex> lck(_state_m);
   if (_state != not_started) {
     if (!_should_exit) {
@@ -106,7 +106,7 @@ void failover::exit() {
       _thread.join();
   }
   _muxer->wake();
-  SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "failover '{}' exited.",
+  SPDLOG_LOGGER_TRACE(log_v2::instance().get(0), "failover '{}' exited.",
                       _name);
 }
 
@@ -402,18 +402,18 @@ void failover::_run() {
             we = _stream->flush();
           }
           _muxer->ack_events(we);
-          _logger = log_v3::instance().get(_logger_id);
+          _logger = log_v2::instance().get(_logger_id);
           ::usleep(idle_microsec_wait_idle_thread_delay);
         }
       }
     }
     // Some real error occured.
     catch (const exceptions::connection_closed&) {
-      SPDLOG_LOGGER_INFO(log_v3::instance().get(0), "failover {}: connection closed",
+      SPDLOG_LOGGER_INFO(log_v2::instance().get(0), "failover {}: connection closed",
                          _name);
       on_exception_handler();
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v3::instance().get(0), "failover: global error: {}",
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0), "failover: global error: {}",
                           e.what());
       on_exception_handler();
     } catch (...) {
@@ -435,7 +435,7 @@ void failover::_run() {
         try {
           ack_events = _stream->stop();
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(log_v3::instance().get(0),
+          SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
                               "Failed to send stop event to stream: {}",
                               e.what());
         }
@@ -597,7 +597,7 @@ void failover::start() {
     pthread_setname_np(_thread.native_handle(), "proc_failover");
     _state_cv.wait(lck, [this] { return _state != not_started; });
   }
-  SPDLOG_LOGGER_TRACE(log_v3::instance().get(0), "failover '{}' started.",
+  SPDLOG_LOGGER_TRACE(log_v2::instance().get(0), "failover '{}' started.",
                       _name);
 }
 
@@ -611,7 +611,7 @@ bool failover::should_exit() const {
 }
 
 bool failover::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "processing::failover::wait_for_all_events_written");
   std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
   if (_stream) {

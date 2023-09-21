@@ -34,7 +34,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::storage;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 const std::array<std::string, 5> conflict_manager::metric_type_name{
     "GAUGE", "COUNTER", "DERIVE", "ABSOLUTE", "AUTOMATIC"};
@@ -102,10 +102,10 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _ref_count{0},
       _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()},
-_logger_sql_id{log_v3::instance().create_logger_or_get_id("sql")},
-_logger_sql{log_v3::instance().get(_logger_sql_id)},
-_logger_storage_id{log_v3::instance().create_logger_or_get_id("storage")},
-_logger_storage{log_v3::instance().get(_logger_storage_id)} {
+      _logger_sql_id{log_v2::instance().create_logger_or_get_id("sql")},
+      _logger_sql{log_v2::instance().get(_logger_sql_id)},
+      _logger_storage_id{log_v2::instance().create_logger_or_get_id("storage")},
+      _logger_storage{log_v2::instance().get(_logger_storage_id)} {
   _logger_sql->debug("conflict_manager: class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
                                    _stats, _loop_timeout);
@@ -137,7 +137,8 @@ bool conflict_manager::init_storage(bool store_in_db,
                                     uint32_t rrd_len,
                                     uint32_t interval_length,
                                     const database_config& dbcfg) {
-  log_v3::instance().get(0)->debug("conflict_manager: storage stream initialization");
+  log_v2::instance().get(0)->debug(
+      "conflict_manager: storage stream initialization");
   int count;
 
   std::unique_lock<std::mutex> lk(_init_m);
@@ -150,11 +151,12 @@ bool conflict_manager::init_storage(bool store_in_db,
         })) {
       if (_state == finished ||
           config::applier::mode == config::applier::finished) {
-        log_v3::instance().get(0)->info("Conflict manager not started because cbd stopped");
+        log_v2::instance().get(0)->info(
+            "Conflict manager not started because cbd stopped");
         return false;
       }
       if (_singleton->_mysql.get_config() != dbcfg) {
-        log_v3::instance().get(0)->error(
+        log_v2::instance().get(0)->error(
             "Conflict manager: storage and sql streams do not have the same "
             "database configuration");
         return false;
@@ -174,15 +176,15 @@ bool conflict_manager::init_storage(bool store_in_db,
       _singleton->_thread =
           std::thread(&conflict_manager::_callback, _singleton);
       pthread_setname_np(_singleton->_thread.native_handle(), "conflict_mngr");
-      log_v3::instance().get(0)->info("Conflict manager running");
+      log_v2::instance().get(0)->info("Conflict manager running");
       return true;
     }
-    log_v3::instance().get(0)->info(
+    log_v2::instance().get(0)->info(
         "conflict_manager: Waiting for the sql stream initialization for {} "
         "seconds",
         count);
   }
-  log_v3::instance().get(0)->error(
+  log_v2::instance().get(0)->error(
       "conflict_manager: not initialized after 60s. Probably "
       "an issue in the sql output configuration.");
   return false;
@@ -206,7 +208,8 @@ bool conflict_manager::init_storage(bool store_in_db,
 bool conflict_manager::init_sql(database_config const& dbcfg,
                                 uint32_t loop_timeout,
                                 uint32_t instance_timeout) {
-  log_v3::instance().get(0)->debug("conflict_manager: sql stream initialization");
+  log_v2::instance().get(0)->debug(
+      "conflict_manager: sql stream initialization");
   std::lock_guard<std::mutex> lk(_init_m);
   _singleton = new conflict_manager(dbcfg, loop_timeout, instance_timeout);
   if (!_singleton) {
@@ -624,7 +627,7 @@ void conflict_manager::_callback() {
                 (this->*fn)(tpl);
               else {
                 _logger_sql->warn("SQL: no function defined for event {}:{}",
-                                    cat, elem);
+                                  cat, elem);
                 *std::get<2>(tpl) = true;
               }
             } else if (std::get<1>(tpl) == storage && cat == io::neb &&
@@ -706,7 +709,7 @@ void conflict_manager::_callback() {
       }
     } catch (std::exception const& e) {
       _logger_sql->error("conflict_manager: error in the main loop: {}",
-                           e.what());
+                         e.what());
       if (strstr(e.what(), "server has gone away")) {
         // The case where we must restart the connector.
         _broken = true;
@@ -816,7 +819,7 @@ void conflict_manager::_finish_actions() {
   _fifo.clean(storage);
 
   _logger_sql->debug("conflict_manager: still {} not acknowledged",
-                       _fifo.get_pending_elements());
+                     _fifo.get_pending_elements());
 }
 
 /**

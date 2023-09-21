@@ -27,7 +27,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _rrd_stream_filter = {
     storage::metric::static_type(),
@@ -48,7 +48,8 @@ connector::connector()
       _cached_port(0),
       _ignore_update_errors(true),
       _write_metrics(true),
-      _write_status(true), _logger_id{log_v3::instance().create_logger_or_get_id("rrd")} {}
+      _write_status(true),
+      _logger_id{log_v2::instance().create_logger_or_get_id("rrd")} {}
 
 /**
  *  Connect.
@@ -162,7 +163,7 @@ std::string connector::_real_path_of(std::string const& path) {
   // Variables.
   std::string retval;
   char* real_path{realpath(path.c_str(), nullptr)};
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
 
   // Resolution success.
   if (real_path) {
@@ -178,8 +179,8 @@ std::string connector::_real_path_of(std::string const& path) {
   // Resolution failure.
   else {
     char const* msg{strerror(errno)};
-    logger->error(
-        "RRD: could not resolve path '{}', using it as such: {}", path, msg);
+    logger->error("RRD: could not resolve path '{}', using it as such: {}",
+                  path, msg);
     retval = path;
   }
 

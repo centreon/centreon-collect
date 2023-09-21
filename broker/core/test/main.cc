@@ -20,7 +20,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "common/log_v2/log_v2.hh"
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
@@ -52,7 +52,7 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());
 
-  log_v3::load("test", {"core", "config"});
+  log_v2::load("test", {"core", "config"});
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   spdlog::shutdown();

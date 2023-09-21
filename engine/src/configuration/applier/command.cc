@@ -31,7 +31,7 @@
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Add new command.
@@ -40,7 +40,7 @@ using com::centreon::common::log_v3::log_v3;
  */
 void applier::command::add_object(const configuration::Command& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
@@ -74,7 +74,7 @@ void applier::command::add_object(const configuration::Command& obj) {
  */
 void applier::command::add_object(configuration::command const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
@@ -130,7 +130,7 @@ void applier::command::expand_objects(configuration::state& s
 void applier::command::modify_object(configuration::Command* to_modify,
                                      const configuration::Command& new_obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying command '{}'.", new_obj.command_name());
 
   // Find command object.
@@ -183,7 +183,7 @@ void applier::command::modify_object(configuration::Command* to_modify,
  */
 void applier::command::modify_object(const configuration::command& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying command '{}'.", obj.command_name());
 
   // Find old configuration.
@@ -244,7 +244,7 @@ void applier::command::modify_object(const configuration::command& obj) {
 void applier::command::remove_object(ssize_t idx) {
   const configuration::Command& obj = pb_config.commands()[idx];
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing command '{}'.", obj.command_name());
 
   // Find command.
@@ -275,7 +275,7 @@ void applier::command::remove_object(ssize_t idx) {
  */
 void applier::command::remove_object(configuration::command const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing command '{}'.", obj.command_name());
 
   // Find command.

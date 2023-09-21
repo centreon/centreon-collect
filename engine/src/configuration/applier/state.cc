@@ -66,7 +66,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::logging;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 using com::centreon::engine::logging::broker_sink_mt;
 
 static bool has_already_been_loaded(false);
@@ -2039,24 +2039,25 @@ DiffState applier::state::build_difference(
 }
 
 void applier::state::apply_log_config(configuration::State& new_cfg) {
-  using log_v3_config = com::centreon::common::log_v3::config;
-  log_v3_config::logger_type log_type;
+  using log_v2_config = com::centreon::common::log_v2::config;
+  log_v2_config::logger_type log_type;
   if (new_cfg.log_v2_enabled()) {
     if (new_cfg.log_v2_logger() == "file") {
       if (!new_cfg.log_file().empty())
-        log_type = log_v3_config::logger_type::LOGGER_FILE;
+        log_type = log_v2_config::logger_type::LOGGER_FILE;
       else
-        log_type = log_v3_config::logger_type::LOGGER_STDOUT;
+        log_type = log_v2_config::logger_type::LOGGER_STDOUT;
     } else
-      log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
+      log_type = log_v2_config::logger_type::LOGGER_SYSLOG;
 
-    log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+    log_v2_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
                           new_cfg.log_pid(), new_cfg.log_file_line());
-    if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
+    if (log_type == log_v2_config::logger_type::LOGGER_FILE) {
       log_cfg.set_log_path(new_cfg.log_file());
       log_cfg.set_max_size(new_cfg.max_log_file_size());
     }
     auto broker_sink = std::make_shared<broker_sink_mt>();
+    broker_sink->set_level(spdlog::level::info);
     log_cfg.add_custom_sink(broker_sink);
 
     log_cfg.apply_custom_sinks({"functions", "configuration", "events",
@@ -2076,31 +2077,32 @@ void applier::state::apply_log_config(configuration::State& new_cfg) {
     log_cfg.set_level("macros", new_cfg.log_level_macros());
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
-    log_v3::instance().apply(log_cfg);
+    log_v2::instance().apply(log_cfg);
   } else
-    log_v3::instance().disable();
+    log_v2::instance().disable();
   init_loggers();
 }
 
 void applier::state::apply_log_config(configuration::state& new_cfg) {
-  using log_v3_config = com::centreon::common::log_v3::config;
-  log_v3_config::logger_type log_type;
+  using log_v2_config = com::centreon::common::log_v2::config;
+  log_v2_config::logger_type log_type;
   if (new_cfg.log_v2_enabled()) {
     if (new_cfg.log_v2_logger() == "file") {
       if (!new_cfg.log_file().empty())
-        log_type = log_v3_config::logger_type::LOGGER_FILE;
+        log_type = log_v2_config::logger_type::LOGGER_FILE;
       else
-        log_type = log_v3_config::logger_type::LOGGER_STDOUT;
+        log_type = log_v2_config::logger_type::LOGGER_STDOUT;
     } else
-      log_type = log_v3_config::logger_type::LOGGER_SYSLOG;
+      log_type = log_v2_config::logger_type::LOGGER_SYSLOG;
 
-    log_v3_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+    log_v2_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
                           new_cfg.log_pid(), new_cfg.log_file_line());
-    if (log_type == log_v3_config::logger_type::LOGGER_FILE) {
+    if (log_type == log_v2_config::logger_type::LOGGER_FILE) {
       log_cfg.set_log_path(new_cfg.log_file());
       log_cfg.set_max_size(new_cfg.max_log_file_size());
     }
     auto broker_sink = std::make_shared<broker_sink_mt>();
+    broker_sink->set_level(spdlog::level::info);
     log_cfg.add_custom_sink(broker_sink);
 
     log_cfg.apply_custom_sinks({"functions", "configuration", "events",
@@ -2120,9 +2122,9 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_level("macros", new_cfg.log_level_macros());
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
-    log_v3::instance().apply(log_cfg);
+    log_v2::instance().apply(log_cfg);
   } else
-    log_v3::instance().disable();
+    log_v2::instance().disable();
   init_loggers();
 }
 

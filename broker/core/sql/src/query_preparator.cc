@@ -27,7 +27,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -43,8 +43,8 @@ query_preparator::query_preparator(
     : _event_id(event_id),
       _excluded(excluded),
       _unique(unique),
-      _logger{log_v3::instance().get(
-          log_v3::instance().create_logger_or_get_id("sql"))} {}
+      _logger{log_v2::instance().get(
+          log_v2::instance().create_logger_or_get_id("sql"))} {}
 
 /**
  *  Constructor.
@@ -57,8 +57,8 @@ query_preparator::query_preparator(
     const query_preparator::event_pb_unique& pb_unique)
     : _event_id(event_id),
       _pb_unique(pb_unique),
-      _logger{log_v3::instance().get(
-          log_v3::instance().create_logger_or_get_id("sql"))} {}
+      _logger{log_v2::instance().get(
+          log_v2::instance().create_logger_or_get_id("sql"))} {}
 
 /**
  * @brief Prepare an INSERT query. The function waits for the table to insert

@@ -26,7 +26,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats_exporter;
 namespace metric_sdk = opentelemetry::sdk::metrics;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Default constructor.
@@ -46,7 +46,7 @@ void exporter::init_metrics(
   double timeout = s.get_stats_exporter().export_timeout;
 
   // Initialize and set the periodic metrics reader
-  log_v3::instance().get(1)->info(
+  log_v2::instance().get(1)->info(
       "stats_exporter: export configured with an interval of {}s and a timeout "
       "of {}s",
       interval, timeout);
@@ -166,8 +166,8 @@ void exporter::_check_connections(
     std::shared_ptr<metrics_api::MeterProvider> provider,
     const boost::system::error_code& ec) {
   if (ec) {
-    int32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
-    auto logger = log_v3::instance().get(logger_id);
+    int32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
+    auto logger = log_v2::instance().get(logger_id);
     logger->error(
         "stats_exporter: Sql connections checker has been interrupted: {}",
         ec.message());

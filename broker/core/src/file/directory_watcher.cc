@@ -35,7 +35,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * Default constructor.
@@ -139,7 +139,7 @@ std::vector<directory_event> directory_watcher::get_events() {
     throw msg_fmt("directory_watcher: couldn't read events: '{}'",
                   ::strerror(err));
   }
-  log_v3::instance().get(0)->debug(
+  log_v2::instance().get(0)->debug(
       "file: directory watcher getting events of size {}", buf_size);
   char* buf = (char*)alloca(buf_size);
   int len = ::read(_inotify_instance_id, buf, buf_size);
@@ -191,7 +191,7 @@ std::vector<directory_event> directory_watcher::get_events() {
     }
 
     ret.push_back(directory_event(name, event_type, ft));
-    log_v3::instance().get(0)->debug(
+    log_v2::instance().get(0)->debug(
         "file: directory watcher getting an event for path '{}' and type {}",
         name, event_type);
   }

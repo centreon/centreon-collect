@@ -29,7 +29,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Extract a real value from a perfdata string.
@@ -125,10 +125,11 @@ static inline void extract_range(double* low,
  *
  * @return A list of perfdata
  */
-std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
-                                         uint32_t service_id,
-                                         const char* str,
-                                         std::shared_ptr<spdlog::logger> logger) {
+std::list<perfdata> misc::parse_perfdata(
+    uint32_t host_id,
+    uint32_t service_id,
+    const char* str,
+    std::shared_ptr<spdlog::logger> logger) {
   std::list<perfdata> retval;
   auto id = [host_id, service_id] {
     if (host_id || service_id)
@@ -141,8 +142,7 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
   const char* buf = str + start;
 
   // Debug message.
-  logger->debug("storage: parsing service {} perfdata string '{}'",
-                            id(), buf);
+  logger->debug("storage: parsing service {} perfdata string '{}'", id(), buf);
 
   char const* tmp = buf;
 
@@ -211,9 +211,8 @@ std::list<perfdata> misc::parse_perfdata(uint32_t host_id,
           name, get_metrics_col_size(metrics_metric_name)));
       p.name(std::move(name));
     } else {
-      logger->error(
-          "In service {}, metric name empty before '{}...'", id(),
-          fmt::string_view(s, 10));
+      logger->error("In service {}, metric name empty before '{}...'", id(),
+                    fmt::string_view(s, 10));
       error = true;
     }
 

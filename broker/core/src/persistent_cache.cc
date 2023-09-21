@@ -27,7 +27,7 @@
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -37,7 +37,7 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
 persistent_cache::persistent_cache(const std::string& cache_file)
     : _cache_file(cache_file),
       _logger_id{0},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(_logger_id)} {
   _open();
 }
 
@@ -183,7 +183,7 @@ void persistent_cache::_open() {
 
 void persistent_cache::set_logger_id(const uint32_t logger_id) {
   _logger_id = logger_id;
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 }
 
 /**
@@ -199,5 +199,5 @@ std::shared_ptr<spdlog::logger> persistent_cache::logger() const {
  * @brief Reload the logger shared pointer from its ID.
  */
 void persistent_cache::update_logger() {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 }

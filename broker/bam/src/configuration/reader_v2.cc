@@ -34,7 +34,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -43,8 +43,8 @@ using com::centreon::common::log_v3::log_v3;
  *  @param[in] storage_cfg  Storage database configuration.
  */
 reader_v2::reader_v2(mysql& centreon_db, const database_config& storage_cfg)
-    : _logger{log_v3::instance().get(
-          log_v3::instance().create_logger_or_get_id("bam"))},
+    : _logger{log_v2::instance().get(
+          log_v2::instance().create_logger_or_get_id("bam"))},
       _mysql(centreon_db),
       _storage_cfg(storage_cfg) {}
 

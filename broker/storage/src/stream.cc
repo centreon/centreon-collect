@@ -42,7 +42,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::broker::storage;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -62,10 +62,10 @@ stream::stream(database_config const& dbcfg,
     : io::stream("storage"),
       _pending_events(0),
       _stopped(false),
-      _logger_sql_id{log_v3::instance().create_logger_or_get_id("storage")},
-      _logger_sql{log_v3::instance().get(_logger_sql_id)},
-      _logger_storage_id{log_v3::instance().create_logger_or_get_id("storage")},
-      _logger_storage{log_v3::instance().get(_logger_storage_id)} {
+      _logger_sql_id{log_v2::instance().create_logger_or_get_id("storage")},
+      _logger_sql{log_v2::instance().get(_logger_sql_id)},
+      _logger_storage_id{log_v2::instance().create_logger_or_get_id("storage")},
+      _logger_storage{log_v2::instance().get(_logger_storage_id)} {
   _logger_sql->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;
@@ -82,7 +82,7 @@ int32_t stream::stop() {
   // Stop cleanup thread.
   int32_t retval =
       conflict_manager::instance().unload(conflict_manager::storage);
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "storage stream stopped with {} acknowledged events", retval);
   _stopped = true;
   return retval;
@@ -148,8 +148,8 @@ void stream::statistics(nlohmann::json& tree) const {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& data) {
-  _logger_storage = log_v3::instance().get(_logger_storage_id);
-  _logger_sql = log_v3::instance().get(_logger_sql_id);
+  _logger_storage = log_v2::instance().get(_logger_storage_id);
+  _logger_sql = log_v2::instance().get(_logger_sql_id);
   ++_pending_events;
 
   assert(data);

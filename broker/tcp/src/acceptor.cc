@@ -27,7 +27,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Acceptor constructor. It needs the port used to listen and a read
@@ -39,13 +39,13 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
 acceptor::acceptor(const tcp_config::pointer& conf)
     : io::endpoint(true, {}),
       _conf(conf),
-      _logger_id{log_v3::instance().create_logger_or_get_id("tcp")} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")} {}
 
 /**
  *  Destructor.
  */
 acceptor::~acceptor() noexcept {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   logger->trace("acceptor destroyed");
   if (_acceptor) {
     tcp_async::instance().stop_acceptor(_acceptor);
@@ -77,7 +77,7 @@ std::shared_ptr<io::stream> acceptor::open() {
   auto conn = tcp_async::instance().get_connection(_acceptor, timeout_s);
   if (conn) {
     assert(conn->port());
-    auto logger = log_v3::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(_logger_id);
     logger->info("acceptor gets a new connection from {}", conn->peer());
     return std::make_shared<stream>(conn, _conf);
   }

@@ -30,7 +30,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Return the Broker's version.
@@ -300,7 +300,7 @@ grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        __attribute__((unused)),
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
-  log_v3::instance().get(0)->info("Remove poller...");
+  log_v2::instance().get(0)->info("Remove poller...");
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
   pblshr.write(e);
@@ -313,10 +313,10 @@ grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
                                      LogInfo* response) {
   auto& name{request->str_arg()};
   auto& map = *response->mutable_level();
-  auto lvs = log_v3::instance().levels();
-  response->set_log_name(log_v3::instance().log_name());
-  response->set_log_file(log_v3::instance().filename());
-  response->set_log_flush_period(log_v3::instance().flush_interval().count());
+  auto lvs = log_v2::instance().levels();
+  response->set_log_name(log_v2::instance().log_name());
+  response->set_log_file(log_v2::instance().filename());
+  response->set_log_flush_period(log_v2::instance().flush_interval().count());
   if (!name.empty()) {
     auto found = std::find_if(
         lvs.begin(), lvs.end(),
@@ -347,7 +347,7 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v3::instance().get(0), err_detail);
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(0), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     logger->set_level(spdlog::level::level_enum(request->level()));
@@ -359,7 +359,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             [[maybe_unused]],
                                             const LogFlushPeriod* request,
                                             ::google::protobuf::Empty*) {
-  log_v3::instance().set_flush_interval(request->period());
+  log_v2::instance().set_flush_interval(request->period());
   return grpc::Status::OK;
 }
 
@@ -379,7 +379,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v3::instance().get(0),
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
                         "fail to get process info: {}",
                         boost::diagnostic_information(e));
 

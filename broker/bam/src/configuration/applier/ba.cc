@@ -31,14 +31,14 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
  */
 applier::ba::ba()
-    : _logger{log_v3::instance().get(
-          log_v3::instance().create_logger_or_get_id("bam"))} {}
+    : _logger{log_v2::instance().get(
+          log_v2::instance().create_logger_or_get_id("bam"))} {}
 
 /**
  *  Copy constructor.

@@ -29,7 +29,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
@@ -39,7 +39,7 @@ extern std::shared_ptr<asio::io_context> g_io_context;
 namespace com::centreon::broker {
 uint32_t neb_logger_id = 0;
 std::shared_ptr<spdlog::logger> neb_logger =
-    log_v3::instance().get(neb_logger_id);
+    log_v2::instance().get(neb_logger_id);
 }  // namespace com::centreon::broker
 
 extern "C" {
@@ -88,7 +88,7 @@ int nebmodule_deinit(int flags, int reason) {
  *  @return 0 on success, any other value on failure.
  */
 int nebmodule_init(int flags, char const* args, void* handle) {
-  neb_logger_id = log_v3::instance().create_logger_or_get_id("neb");
+  neb_logger_id = log_v2::instance().create_logger_or_get_id("neb");
 
   try {
     // Save module handle and flags for future use.
@@ -137,9 +137,9 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Initialization.
       com::centreon::broker::config::applier::init(s);
       try {
-        log_v3::instance().apply(s.log_conf(), false);
+        log_v2::instance().apply(s.log_conf(), false);
       } catch (const std::exception& e) {
-        log_v3::instance().get(0)->error("main: {}", e.what());
+        log_v2::instance().get(0)->error("main: {}", e.what());
       }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
@@ -164,21 +164,21 @@ int nebmodule_init(int flags, char const* args, void* handle) {
                 NEBCALLBACK_LOG_DATA, neb::gl_mod_handle, &neb::callback_log));
       }
     } catch (std::exception const& e) {
-      log_v3::instance().get(0)->error("main: {}", e.what());
+      log_v2::instance().get(0)->error("main: {}", e.what());
       return -1;
     } catch (...) {
-      log_v3::instance().get(0)->error(
+      log_v2::instance().get(0)->error(
           "main: configuration file parsing failed");
       return -1;
     }
 
   } catch (std::exception const& e) {
-    log_v3::instance().get(0)->error("main: cbmod loading failed: {}",
+    log_v2::instance().get(0)->error("main: cbmod loading failed: {}",
                                      e.what());
     nebmodule_deinit(0, 0);
     return -1;
   } catch (...) {
-    log_v3::instance().get(0)->error(
+    log_v2::instance().get(0)->error(
         "main: cbmod loading failed due to an unknown exception");
     nebmodule_deinit(0, 0);
     return -1;

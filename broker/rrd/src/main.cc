@@ -30,7 +30,7 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances(0);
@@ -69,18 +69,17 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
-  auto logger = log_v3::instance().get(0);
+  auto logger = log_v2::instance().get(0);
 
   // Increment instance number.
   if (!instances++) {
     // RRD module.
-    logger->info("RRD: module for Centreon Broker {}",
-                        CENTREON_BROKER_VERSION);
+    logger->info("RRD: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
 
     // Print RRDtool version.
     char const* rrdversion(rrd_strversion());
     logger->info("RRD: using rrdtool {}",
-                        (rrdversion ? rrdversion : "(unknown)"));
+                 (rrdversion ? rrdversion : "(unknown)"));
 
     io::events& e(io::events::instance());
 

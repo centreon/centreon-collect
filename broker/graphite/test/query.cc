@@ -26,12 +26,12 @@
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 TEST(graphiteQuery, ComplexMetric) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("graphite");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("graphite");
+  auto logger = log_v2::instance().get(logger_id);
   graphite::macro_cache cache(pcache, logger_id);
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
@@ -86,8 +86,8 @@ TEST(graphiteQuery, ComplexMetric) {
 
 TEST(graphiteQuery, ComplexStatus) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("graphite");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("graphite");
+  auto logger = log_v2::instance().get(logger_id);
   graphite::macro_cache cache(pcache, logger_id);
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
@@ -140,8 +140,8 @@ TEST(graphiteQuery, ComplexStatus) {
 
 TEST(graphiteQuery, ComplexPbMetric) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("graphite");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("graphite");
+  auto logger = log_v2::instance().get(logger_id);
   graphite::macro_cache cache(pcache, logger_id);
   storage::pb_metric m_event;
   Metric& m = m_event.mut_obj();
@@ -195,8 +195,8 @@ TEST(graphiteQuery, ComplexPbMetric) {
 
 TEST(graphiteQuery, ComplexPbStatus) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("graphite");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("graphite");
+  auto logger = log_v2::instance().get(logger_id);
   graphite::macro_cache cache(pcache, logger_id);
   storage::pb_status s_event;
   Status& s = s_event.mut_obj();
@@ -248,8 +248,8 @@ TEST(graphiteQuery, ComplexPbStatus) {
 
 TEST(graphiteQuery, Except) {
   std::shared_ptr<persistent_cache> pcache{nullptr};
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("graphite");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("graphite");
+  auto logger = log_v2::instance().get(logger_id);
   graphite::macro_cache cache(pcache, logger_id);
   storage::pb_status s;
   storage::pb_metric m;

@@ -38,7 +38,7 @@ using duration = system_clock::duration;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace nlohmann;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -50,8 +50,8 @@ class http_tsdb_stream_test : public ::testing::Test {
   static void SetUpTestSuite() {
     srand(time(nullptr));
 
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
-    _logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
+    _logger = log_v2::instance().get(logger_id);
     _logger->set_level(spdlog::level::debug);
     file::disk_accessor::load(1000);
     pool::load(g_io_context, 1);
@@ -68,8 +68,8 @@ class request_test : public http_tsdb::request {
   static std::atomic_uint id_gen;
 
   request_test() : _request_id(id_gen.fetch_add(1)) {
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
-    _logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
+    _logger = log_v2::instance().get(logger_id);
     SPDLOG_LOGGER_TRACE(_logger, "create request {}", _request_id);
   }
 

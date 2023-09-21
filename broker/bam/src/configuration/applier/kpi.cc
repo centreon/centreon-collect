@@ -31,7 +31,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
@@ -41,7 +41,7 @@ applier::kpi::kpi()
       _book(nullptr),
       _boolexps(nullptr),
       _mapping(nullptr),
-      _logger_id{log_v3::instance().create_logger_or_get_id("bam")} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("bam")} {}
 
 /**
  *  Copy constructor.
@@ -80,7 +80,7 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
                          applier::ba& my_bas,
                          applier::bool_expression& my_boolexps,
                          bam::service_book& book) {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   // Set internal parameters.
   _mapping = &mapping;
   _bas = &my_bas;
@@ -189,7 +189,7 @@ void applier::kpi::apply(bam::configuration::state::kpis const& my_kpis,
  *  @param kpi The Kpi configuration.
  */
 void applier::kpi::_invalidate_ba(configuration::kpi const& kpi) {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   // Set KPI as invalid.
   {
     std::shared_ptr<pb_kpi_status> ks{std::make_shared<pb_kpi_status>()};
@@ -271,7 +271,7 @@ void applier::kpi::_internal_copy(applier::kpi const& other) {
  */
 std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
     configuration::kpi const& cfg) {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   // Create KPI according to its type.
   std::shared_ptr<bam::kpi> my_kpi;
   if (cfg.is_service()) {
@@ -326,7 +326,7 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
 void applier::kpi::_resolve_kpi(configuration::kpi const& cfg,
                                 const std::shared_ptr<bam::kpi>& kpi) {
   // Find target BA.
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   uint32_t ba_id = cfg.get_ba_id();
   std::shared_ptr<bam::ba> my_ba(_bas->find_ba(ba_id));
   if (!my_ba)

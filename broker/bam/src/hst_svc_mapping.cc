@@ -20,7 +20,7 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Get host ID by its name.
@@ -47,8 +47,8 @@ std::pair<uint32_t, uint32_t> hst_svc_mapping::get_service_id(
     std::string const& svc) const {
   auto it{_mapping.find(std::make_pair(hst, svc))};
   if (it == _mapping.end()) {
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("bam");
-    auto logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("bam");
+    auto logger = log_v2::instance().get(logger_id);
     logger->debug(
         "hst_svc_mapping: service id for host: {} ; service: {} not found", hst,
         svc);

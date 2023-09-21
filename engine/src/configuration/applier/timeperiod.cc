@@ -27,7 +27,7 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Add new time period.
@@ -36,7 +36,7 @@ using com::centreon::common::log_v3::log_v3;
  */
 void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new time period '{}'.", obj.timeperiod_name());
 
   if (obj.timeperiod_name().empty() || obj.alias().empty()) {
@@ -73,7 +73,7 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::add_object(const configuration::Timeperiod& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new time period '{}'.", obj.timeperiod_name());
 
   if (obj.timeperiod_name().empty() || obj.alias().empty()) {
@@ -128,7 +128,7 @@ void applier::timeperiod::modify_object(
     configuration::Timeperiod* to_modify,
     const configuration::Timeperiod& new_obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying time period '{}'.", to_modify->timeperiod_name());
 
   // Find time period object.
@@ -184,7 +184,7 @@ void applier::timeperiod::modify_object(
  */
 void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying time period '{}'.", obj.timeperiod_name());
 
   // Find old configuration.
@@ -242,7 +242,7 @@ void applier::timeperiod::modify_object(configuration::timeperiod const& obj) {
  */
 void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
@@ -265,7 +265,7 @@ void applier::timeperiod::remove_object(configuration::timeperiod const& obj) {
 void applier::timeperiod::remove_object(ssize_t idx) {
   /* obj is the object to remove */
   auto& obj = pb_config.timeperiods()[idx];
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
@@ -296,7 +296,7 @@ void applier::timeperiod::remove_object(ssize_t idx) {
  */
 void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
   // Find time period.
@@ -320,7 +320,7 @@ void applier::timeperiod::resolve_object(const configuration::Timeperiod& obj) {
  */
 void applier::timeperiod::resolve_object(configuration::timeperiod const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving time period '{}'.", obj.timeperiod_name());
 
   // Find time period.

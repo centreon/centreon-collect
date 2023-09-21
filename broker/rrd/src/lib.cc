@@ -130,12 +130,11 @@ void lib::remove(std::string const& filename) {
  *  @param[in] value Associated value.
  */
 void lib::update(time_t t, std::string const& value) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   // Build argument string.
   if (value == "") {
-    _logger->error(
-        "RRD: ignored update non-float value '{}' in file '{}'", value,
-        _filename);
+    _logger->error("RRD: ignored update non-float value '{}' in file '{}'",
+                   value, _filename);
     return;
   }
 
@@ -155,17 +154,17 @@ void lib::update(time_t t, std::string const& value) {
                    argv)) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
-      _logger->error("RRD: failed to update value in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
+                     msg);
 
     else
-      _logger->error("RRD: ignored update error in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+                     msg);
   }
 }
 
 void lib::update(const std::deque<std::string>& pts) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   const char* argv[pts.size() + 1];
   argv[pts.size()] = nullptr;
   auto it = pts.begin();
@@ -179,11 +178,11 @@ void lib::update(const std::deque<std::string>& pts) {
                    argv)) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
-      _logger->error("RRD: failed to update value in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
+                     msg);
 
     else
-      _logger->error("RRD: ignored update error in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+                     msg);
   }
 }

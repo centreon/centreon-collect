@@ -28,7 +28,7 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Add new host escalation.
@@ -44,7 +44,7 @@ void applier::hostescalation::add_object(
         << "Could not create host escalation with multiple hosts / host groups";
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new escalation for host '{}'.", obj.hosts().data(0));
 
   // Add escalation to the global configuration set.
@@ -96,7 +96,7 @@ void applier::hostescalation::add_object(
         << "Could not create host escalation with multiple hosts / host groups";
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new escalation for host '{}'.", *obj.hosts().begin());
 
   // Add escalation to the global configuration set.
@@ -254,7 +254,7 @@ void applier::hostescalation::modify_object(
 void applier::hostescalation::remove_object(ssize_t idx) {
   configuration::Hostescalation obj = pb_config.hostescalations(idx);
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing a host escalation.");
 
   // Find host escalation.
@@ -331,7 +331,7 @@ void applier::hostescalation::remove_object(ssize_t idx) {
 void applier::hostescalation::remove_object(
     configuration::hostescalation const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing a host escalation.");
 
   // Find host escalation.
@@ -412,7 +412,7 @@ void applier::hostescalation::remove_object(
 void applier::hostescalation::resolve_object(
     const configuration::Hostescalation& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving a host escalation.");
 
   // Find host escalation
@@ -447,7 +447,7 @@ void applier::hostescalation::resolve_object(
 void applier::hostescalation::resolve_object(
     configuration::hostescalation const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving a host escalation.");
 
   // Find host escalation

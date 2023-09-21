@@ -31,7 +31,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 contactgroup_map contactgroup::contactgroups;
 
@@ -124,8 +124,8 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
 void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
   int errors{0};
 
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
+  auto logger = log_v2::instance().get(logger_id);
   for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
        it != end; ++it) {
     /* Check members */

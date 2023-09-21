@@ -52,8 +52,8 @@ class http_client_test : public ::testing::Test {
     srand(time(nullptr));
     pool::load(g_io_context, 1);
     uint32_t logger_id =
-        log_v3::log_v3::instance().create_logger_or_get_id("tcp");
-    _logger = log_v3::log_v3::instance().get(logger_id);
+        log_v2::log_v2::instance().create_logger_or_get_id("tcp");
+    _logger = log_v2::log_v2::instance().get(logger_id);
     _logger->set_level(spdlog::level::debug);
   };
 };

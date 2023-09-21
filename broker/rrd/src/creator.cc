@@ -36,7 +36,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -47,8 +47,8 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
 creator::creator(std::string const& tmpl_path, uint32_t cache_size)
     : _cache_size(cache_size),
       _tmpl_path(tmpl_path),
-      _logger_id{log_v3::instance().create_logger_or_get_id("rrd")} {
-  log_v3::instance()
+      _logger_id{log_v2::instance().create_logger_or_get_id("rrd")} {
+  log_v2::instance()
       .get(_logger_id)
       ->debug("RRD: file creator will maintain at most {} templates in '{}'",
               _cache_size, _tmpl_path);
@@ -109,7 +109,7 @@ void creator::create(std::string const& filename,
     if (it != _fds.end() && it->first.is_length_step_type_equal(info) &&
         it->first.from <= from) {
       _duplicate(filename, it->second);
-      log_v3::instance()
+      log_v2::instance()
           .get(_logger_id)
           ->debug("reuse {} for {}", it->second.path, filename);
     }
@@ -269,7 +269,7 @@ void creator::_open(std::string const& filename,
 
   // Debug message.
   argv[argc] = nullptr;
-  log_v3::instance()
+  log_v2::instance()
       .get(_logger_id)
       ->debug("RRD: opening file '{}' ({}, {}, {}, step 1, from  {})", filename,
               argv[0], argv[1], (argv[2] ? argv[2] : "(null)"), from);

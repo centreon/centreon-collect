@@ -25,7 +25,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Constructor of the connector that will connect to the given host at
@@ -43,8 +43,8 @@ connector::connector(const grpc_config::pointer& conf)
  * @return std::unique_ptr<io::stream>
  */
 std::shared_ptr<io::stream> connector::open() {
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("grpc");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("grpc");
+  auto logger = log_v2::instance().get(logger_id);
   SPDLOG_LOGGER_INFO(logger, "Connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();

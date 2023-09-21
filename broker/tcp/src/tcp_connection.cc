@@ -25,7 +25,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
 using com::centreon::broker::misc::string::debug_buf;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static const boost::system::error_code _eof_error =
     boost::asio::error::make_error_code(boost::asio::error::misc_errors::eof);
@@ -53,8 +53,8 @@ tcp_connection::tcp_connection(asio::io_context& io_context,
       _closed(false),
       _address(host),
       _port(port),
-      _logger_id{log_v3::instance().create_logger_or_get_id("tcp")},
-      _logger{log_v3::instance().get(_logger_id)} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")},
+      _logger{log_v2::instance().get(_logger_id)} {}
 
 /**
  * @brief Destructor
@@ -128,7 +128,7 @@ int32_t tcp_connection::flush() {
  * side.
  */
 int32_t tcp_connection::write(const std::vector<char>& v) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   {
     std::lock_guard<std::mutex> lck(_error_m);
     if (_current_error) {
@@ -312,7 +312,7 @@ void tcp_connection::close() {
  * with a timeout.
  */
 std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   {
     std::lock_guard<std::mutex> lck(_error_m);
     if (_current_error) {

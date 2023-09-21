@@ -23,7 +23,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) \
   &object::setter<hostgroup, type, &hostgroup::method>::generic
@@ -89,8 +89,8 @@ hostgroup& hostgroup::operator=(hostgroup const& right) {
  *  @return True if is the same hostgroup, otherwise false.
  */
 bool hostgroup::operator==(hostgroup const& right) const throw() {
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
+  auto logger = log_v2::instance().get(logger_id);
   if (!object::operator==(right)) {
     logger->debug("configuration::hostgroup::equality => object don't match");
     return false;

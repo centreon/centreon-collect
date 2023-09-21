@@ -30,7 +30,7 @@ using namespace asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -60,7 +60,7 @@ stream::stream(std::string const& metric_naming,
       _metric_query{_metric_naming, escape_string, query::metric, _cache},
       _status_query{_status_naming, escape_string, query::status, _cache},
       _socket{_io_context},
-      _logger_id{log_v3::instance().create_logger_or_get_id("graphite")},
+      _logger_id{log_v2::instance().create_logger_or_get_id("graphite")},
       _cache{cache, _logger_id} {
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
@@ -117,7 +117,7 @@ stream::~stream() {}
  *  @return Number of events acknowledged.
  */
 int32_t stream::flush() {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   logger->debug("graphite: commiting {} queries", _actual_query);
   int32_t ret(_pending_queries);
   if (_actual_query != 0)
@@ -135,7 +135,7 @@ int32_t stream::flush() {
  */
 int32_t stream::stop() {
   int32_t retval = flush();
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "graphite stopped with {} events acknowledged", retval);
   return retval;
 }

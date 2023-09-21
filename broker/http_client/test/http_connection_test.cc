@@ -27,7 +27,7 @@
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #include "com/centreon/broker/http_client/http_connection.hh"
 #include "com/centreon/broker/http_client/https_connection.hh"
@@ -204,8 +204,8 @@ class dummy_connection : public connection_base {
 };
 
 TEST(http_keepalive_test, ConnectionClose) {
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
+  auto logger = log_v2::instance().get(logger_id);
   dummy_connection conn(
       g_io_context, logger,
       std::make_shared<http_config>(test_endpoint, "localhost"));
@@ -217,8 +217,8 @@ TEST(http_keepalive_test, ConnectionClose) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
+  auto logger = log_v2::instance().get(logger_id);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -235,8 +235,8 @@ TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithTimeout) {
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
+  auto logger = log_v2::instance().get(logger_id);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -460,8 +460,8 @@ class http_test : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
     create_client_certificate(client_cert_path);
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tcp");
-    _logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
+    _logger = log_v2::instance().get(logger_id);
     _logger->set_level(spdlog::level::debug);
     _listener = std::make_shared<listener>(port);
     _listener->start();

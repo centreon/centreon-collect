@@ -27,8 +27,8 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
-using log_v3 = com::centreon::common::log_v3::log_v3;
-using log_v3_config = com::centreon::common::log_v3::config;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+using log_v2_config = com::centreon::common::log_v2::config;
 
 extern configuration::state* config;
 extern configuration::State pb_config;
@@ -60,11 +60,11 @@ void init_config_state(const config_type type) {
     config->log_file_line(true);
     config->log_file("");
 
-    log_v3_config log_conf(
-        "engine-tests", log_v3_config::logger_type::LOGGER_STDOUT,
+    log_v2_config log_conf(
+        "engine-tests", log_v2_config::logger_type::LOGGER_STDOUT,
         config->log_flush_period(), config->log_pid(), config->log_file_line());
 
-    log_v3::instance().apply(log_conf);
+    log_v2::instance().apply(log_conf);
 
     // Hack to instanciate the logger.
     configuration::applier::logging::instance().apply(*config);
@@ -77,12 +77,12 @@ void init_config_state(const config_type type) {
     pb_config.set_log_file_line(true);
     pb_config.set_log_file("");
 
-    log_v3_config log_conf("engine-tests",
-                           log_v3_config::logger_type::LOGGER_STDOUT,
+    log_v2_config log_conf("engine-tests",
+                           log_v2_config::logger_type::LOGGER_STDOUT,
                            pb_config.log_flush_period(), pb_config.log_pid(),
                            pb_config.log_file_line());
 
-    log_v3::instance().apply(log_conf);
+    log_v2::instance().apply(log_conf);
 
     // Hack to instanciate the logger.
     configuration::applier::logging::instance().apply(pb_config);

@@ -27,7 +27,7 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -204,8 +204,8 @@ class MiscParserParsePerfdata : public testing::Test {
   void SetUp() override {
     g_io_context->restart();
     config::applier::init(0, "test_broker", 0);
-    uint32_t id = log_v3::instance().create_logger_or_get_id("perfdata");
-    _logger = log_v3::instance().get(id);
+    uint32_t id = log_v2::instance().create_logger_or_get_id("perfdata");
+    _logger = log_v2::instance().get(id);
   }
   void TearDown() override { config::applier::deinit(); };
 };
@@ -263,7 +263,8 @@ TEST_F(MiscParserParsePerfdata, Complex1) {
       0, 0,
       "time=2.45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "infotraffic=18x;;;; a[foo]=1234;10;11: c[bar]=1234;~:10;20:30 "
-      "baz=1234;@10:20; 'q u x'=9queries_per_second;@10:;@5:;0;100", _logger)};
+      "baz=1234;@10:20; 'q u x'=9queries_per_second;@10:;@5:;0;100",
+      _logger)};
 
   // Assertions.
   ASSERT_EQ(list.size(), 7u);
@@ -447,7 +448,8 @@ TEST_F(MiscParserParsePerfdata, Complex2) {
       "'  \n time'=2,45698s;;nan;;inf d[metric]=239765B/s;5;;-inf; "
       "g[test]=8x;;;;"
       " infotraffic=18,6x;;;; a[foo]=1234,17;10;11: "
-      "c[bar]=1234,147;~:10;20:30", _logger)};
+      "c[bar]=1234,147;~:10;20:30",
+      _logger)};
 
   // Assertions.
   ASSERT_EQ(list.size(), 6u);
@@ -564,7 +566,8 @@ TEST_F(MiscParserParsePerfdata, BadMetric) {
 }
 
 TEST_F(MiscParserParsePerfdata, BadMetric1) {
-  auto lst{misc::parse_perfdata(0, 0, "user1=1 user2=2 user4= user3=3", _logger)};
+  auto lst{
+      misc::parse_perfdata(0, 0, "user1=1 user2=2 user4= user3=3", _logger)};
 
   // Assertions.
   ASSERT_EQ(lst.size(), 3u);

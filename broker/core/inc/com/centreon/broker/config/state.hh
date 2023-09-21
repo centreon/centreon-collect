@@ -54,7 +54,7 @@ class state {
   std::string _poller_name;
   size_t _pool_size;
 
-  common::log_v3::config _log_conf;
+  common::log_v2::config _log_conf;
   //  struct log {
   //    std::string directory;
   //    std::string filename;
@@ -153,8 +153,8 @@ class state {
   int pool_size() const noexcept;
   void poller_name(std::string const& name);
   std::string const& poller_name() const noexcept;
-  common::log_v3::config& mut_log_conf();
-  const common::log_v3::config& log_conf() const;
+  common::log_v2::config& mut_log_conf();
+  const common::log_v2::config& log_conf() const;
   stats_exporter_conf& mut_stats_exporter();
   const stats_exporter_conf& get_stats_exporter() const;
   poller_conf& mut_poller_conf();

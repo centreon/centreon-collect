@@ -29,7 +29,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) &state::setter<type, &state::method>::generic
 
@@ -387,8 +387,8 @@ static const std::string default_rpc_listen_address("localhost");
  *  Default constructor.
  */
 state::state()
-    : _config_logger{log_v3::instance().get(
-          com::centreon::common::log_v3::log_v2_configuration)},
+    : _config_logger{log_v2::instance().get(
+          com::centreon::common::log_v2::log_v2_configuration)},
       _accept_passive_host_checks(default_accept_passive_host_checks),
       _accept_passive_service_checks(default_accept_passive_service_checks),
       _additional_freshness_latency(default_additional_freshness_latency),
@@ -3792,7 +3792,7 @@ std::string const& state::log_level_functions() const noexcept {
  *  @param[in] value The new log_level_functions value.
  */
 void state::log_level_functions(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_functions = value;
   else
     throw exceptions::msg_fmt(
@@ -3814,7 +3814,7 @@ std::string const& state::log_level_config() const noexcept {
  *  @param[in] value The new log_level_config value.
  */
 void state::log_level_config(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_config = value;
   else
     throw exceptions::msg_fmt("error wrong level setted for log_level_config");
@@ -3835,7 +3835,7 @@ std::string const& state::log_level_events() const noexcept {
  *  @param[in] value The new log_level_events value.
  */
 void state::log_level_events(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_events = value;
   else
     throw exceptions::msg_fmt("error wrong level setted for log_level_events");
@@ -3856,7 +3856,7 @@ std::string const& state::log_level_checks() const noexcept {
  *  @param[in] value The new log_level_checks value.
  */
 void state::log_level_checks(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_checks = value;
   else
     throw exceptions::msg_fmt("error wrong level setted for log_level_checks");
@@ -3877,7 +3877,7 @@ std::string const& state::log_level_notifications() const noexcept {
  *  @param[in] value The new log_level_notifications value.
  */
 void state::log_level_notifications(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_notifications = value;
   else
     throw exceptions::msg_fmt(
@@ -3899,7 +3899,7 @@ std::string const& state::log_level_eventbroker() const noexcept {
  *  @param[in] value The new log_level_eventbroker value.
  */
 void state::log_level_eventbroker(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_eventbroker = value;
   else
     throw exceptions::msg_fmt(
@@ -3921,7 +3921,7 @@ std::string const& state::log_level_external_command() const noexcept {
  *  @param[in] value The new log_level_external_command value.
  */
 void state::log_level_external_command(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_external_command = value;
   else
     throw exceptions::msg_fmt(
@@ -3943,7 +3943,7 @@ std::string const& state::log_level_commands() const noexcept {
  *  @param[in] value The new log_level_commands value.
  */
 void state::log_level_commands(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_commands = value;
   else
     throw exceptions::msg_fmt(
@@ -3965,7 +3965,7 @@ std::string const& state::log_level_downtimes() const noexcept {
  *  @param[in] value The new log_level_downtimes value.
  */
 void state::log_level_downtimes(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_downtimes = value;
   else
     throw exceptions::msg_fmt(
@@ -3987,7 +3987,7 @@ std::string const& state::log_level_comments() const noexcept {
  *  @param[in] value The new log_level_comments value.
  */
 void state::log_level_comments(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_comments = value;
   else
     throw exceptions::msg_fmt(
@@ -4009,7 +4009,7 @@ std::string const& state::log_level_macros() const noexcept {
  *  @param[in] value The new log_level_macros value.
  */
 void state::log_level_macros(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_macros = value;
   else
     throw exceptions::msg_fmt("error wrong level setted for log_level_macros");
@@ -4030,7 +4030,7 @@ std::string const& state::log_level_process() const noexcept {
  *  @param[in] value The new log_level_process value.
  */
 void state::log_level_process(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_process = value;
   else
     throw exceptions::msg_fmt("error wrong level setted for log_level_process");
@@ -4051,7 +4051,7 @@ std::string const& state::log_level_runtime() const noexcept {
  *  @param[in] value The new log_level_runtime value.
  */
 void state::log_level_runtime(std::string const& value) {
-  if (log_v3::instance().contains_level(value))
+  if (log_v2::instance().contains_level(value))
     _log_level_runtime = value;
   else
     throw exceptions::msg_fmt("error wrong level setted for log_level_runtime");

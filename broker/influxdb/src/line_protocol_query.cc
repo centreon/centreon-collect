@@ -24,7 +24,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Create an empty query.
@@ -32,7 +32,7 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
 line_protocol_query::line_protocol_query()
     : _type(line_protocol_query::unknown),
       _cache(nullptr),
-      _logger_id{log_v3::instance().create_logger_or_get_id("influxdb")} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("influxdb")} {}
 
 /**
  *  Constructor.
@@ -49,7 +49,7 @@ line_protocol_query::line_protocol_query(std::string const& timeseries,
     : _string_index{0},
       _type{type},
       _cache{&cache},
-      _logger_id{log_v3::instance().create_logger_or_get_id("influxdb")} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("influxdb")} {
   // Following implementation is based on
   // https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/
   // The base format is <measurement>,<tag_set> <field_set> <timestamp>.
@@ -199,7 +199,7 @@ std::string line_protocol_query::generate_metric(const storage::pb_metric& me) {
       }
     }
   } catch (std::exception const& e) {
-    auto logger = log_v3::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(_logger_id);
     logger->error("influxdb: could not generate query for metric {}: {}",
                   me.obj().metric_id(), e.what());
     return "";
@@ -235,7 +235,7 @@ std::string line_protocol_query::generate_status(const storage::pb_status& st) {
       }
     }
   } catch (std::exception const& e) {
-    auto logger = log_v3::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(_logger_id);
     logger->error("influxdb: could not generate query for status {}: {}",
                   st.obj().index_id(), e.what());
     return "";
@@ -335,7 +335,7 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(&line_protocol_query::_get_status_time,
                                 escaper);
     } else {
-      auto logger = log_v3::instance().get(_logger_id);
+      auto logger = log_v2::instance().get(_logger_id);
       logger->info("influxdb: unknown macro '{}': ignoring it", macro);
     }
 

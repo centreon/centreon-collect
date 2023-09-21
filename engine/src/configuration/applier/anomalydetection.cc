@@ -35,7 +35,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Add new anomalydetection.
@@ -53,7 +53,7 @@ void applier::anomalydetection::add_object(
         obj.host_name(), obj.service_description());
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger,
                       "Creating new anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
@@ -163,7 +163,7 @@ void applier::anomalydetection::add_object(
                          << obj.service_description() << "'";
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger,
                       "Creating new anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
@@ -317,7 +317,7 @@ void applier::anomalydetection::modify_object(
   const std::string& service_description(old_obj->service_description());
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger,
                       "Modifying new anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
@@ -513,7 +513,7 @@ void applier::anomalydetection::modify_object(
   std::string const& service_description(obj.service_description());
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger,
                       "Modifying new anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
@@ -710,7 +710,7 @@ void applier::anomalydetection::remove_object(ssize_t idx) {
   const std::string& service_description(obj.service_description());
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger, "Removing anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
 
@@ -763,7 +763,7 @@ void applier::anomalydetection::remove_object(
 
   assert(obj.key().first);
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger, "Removing anomalydetection '{}' of host '{}'.",
                       service_description, host_name);
 
@@ -810,7 +810,7 @@ void applier::anomalydetection::remove_object(
 void applier::anomalydetection::resolve_object(
     const configuration::Anomalydetection& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger, "Resolving anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 
@@ -846,7 +846,7 @@ void applier::anomalydetection::resolve_object(
 void applier::anomalydetection::resolve_object(
     configuration::anomalydetection const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   SPDLOG_LOGGER_DEBUG(logger, "Resolving anomalydetection '{}' of host '{}'.",
                       obj.service_description(), obj.host_name());
 

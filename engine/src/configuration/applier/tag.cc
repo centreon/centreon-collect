@@ -30,7 +30,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Add a new tag.
@@ -39,7 +39,7 @@ using com::centreon::common::log_v3::log_v3;
  */
 void applier::tag::add_object(const configuration::Tag& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new tag ({},{}).", obj.key().id(), obj.key().type());
 
   // Add tag to the global configuration set.
@@ -73,7 +73,7 @@ void applier::tag::add_object(const configuration::Tag& obj) {
  */
 void applier::tag::add_object(const configuration::tag& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new tag ({},{}).", obj.key().first, obj.key().second);
 
   // Add tag to the global configuration set.
@@ -124,7 +124,7 @@ void applier::tag::expand_objects(configuration::state&) {}
 void applier::tag::modify_object(configuration::Tag* to_modify,
                                  const configuration::Tag& new_object) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying tag ({},{}).", to_modify->key().id(),
                 to_modify->key().type());
 
@@ -158,7 +158,7 @@ void applier::tag::modify_object(configuration::Tag* to_modify,
  */
 void applier::tag::modify_object(const configuration::tag& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying tag ({},{}).", obj.key().first, obj.key().second);
 
   // Find old configuration.
@@ -200,7 +200,7 @@ void applier::tag::remove_object(ssize_t idx) {
   const configuration::Tag& obj = pb_config.tags().at(idx);
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing tag ({},{}).", obj.key().id(), obj.key().type());
 
   // Find tag.
@@ -227,7 +227,7 @@ void applier::tag::remove_object(ssize_t idx) {
  */
 void applier::tag::remove_object(const configuration::tag& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing tag ({},{}).", obj.key().first, obj.key().second);
 
   // Find tag.

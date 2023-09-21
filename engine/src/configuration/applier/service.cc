@@ -36,7 +36,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Add a new service.
@@ -57,7 +57,7 @@ void applier::service::add_object(const configuration::Service& obj) {
         obj.host_name(), obj.service_description());
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new service '{}' of host '{}'.",
                 obj.service_description(), obj.host_name());
 
@@ -189,7 +189,7 @@ void applier::service::add_object(configuration::service const& obj) {
                          << obj.service_description() << "'";
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new service '{}' of host '{}'.",
                 obj.service_description(), obj.host_name());
 
@@ -391,7 +391,7 @@ void applier::service::modify_object(configuration::Service* old_obj,
   const std::string& service_description(old_obj->service_description());
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying service '{}' of host '{}'.", service_description,
                 host_name);
 
@@ -618,7 +618,7 @@ void applier::service::modify_object(configuration::service const& obj) {
   std::string const& service_description(obj.service_description());
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Modifying new service '{}' of host '{}'.", service_description,
                 host_name);
 
@@ -843,7 +843,7 @@ void applier::service::remove_object(configuration::service const& obj) {
 
   assert(obj.key().first);
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing service '{}' of host '{}'.", service_description,
                 host_name);
 
@@ -903,7 +903,7 @@ void applier::service::remove_object(ssize_t idx) {
   const std::string& service_description = obj.service_description();
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing service '{}' of host '{}'.", service_description,
                 host_name);
 
@@ -960,7 +960,7 @@ void applier::service::remove_object(ssize_t idx) {
  */
 void applier::service::resolve_object(const configuration::Service& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving service '{}' of host '{}'.",
                 obj.service_description(), obj.host_name());
 
@@ -995,7 +995,7 @@ void applier::service::resolve_object(const configuration::Service& obj) {
  */
 void applier::service::resolve_object(configuration::service const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving service '{}' of host '{}'.",
                 obj.service_description(), obj.host_name());
 
