@@ -24,7 +24,7 @@
 
 CCB_BEGIN()
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace rrd {
 /**
@@ -43,8 +43,9 @@ class backend {
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  backend() : _logger_id{log_v3::instance().create_logger_or_get_id("rrd")},
-    _logger{log_v3::instance().get(_logger_id)} {}
+  backend()
+      : _logger_id{log_v2::instance().create_logger_or_get_id("rrd")},
+        _logger{log_v2::instance().get(_logger_id)} {}
   backend(backend const& b) = delete;
   virtual ~backend() noexcept = default;
   backend& operator=(backend const& b) = delete;

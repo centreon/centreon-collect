@@ -28,7 +28,7 @@ using namespace com::centreon::broker::misc;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::lua;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -41,8 +41,8 @@ stream::stream(const std::string& lua_script,
                const std::shared_ptr<persistent_cache>& cache)
     : io::stream("lua"),
       _luabinding(lua_script, conf_params, _cache),
-      _logger_id{log_v3::instance().create_logger_or_get_id("lua")},
-      _logger{log_v3::instance().get(_logger_id)},
+      _logger_id{log_v2::instance().create_logger_or_get_id("lua")},
+      _logger{log_v2::instance().get(_logger_id)},
       _cache{cache, _logger_id} {}
 
 stream::~stream() noexcept {
@@ -71,7 +71,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 int stream::write(std::shared_ptr<io::data> const& data) {
   assert(data);
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 
   // Give data to cache.
   _cache.write(data);

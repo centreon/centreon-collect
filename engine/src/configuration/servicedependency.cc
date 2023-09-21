@@ -25,7 +25,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) \
   &object::setter<servicedependency, type, &servicedependency::method>::generic
@@ -221,8 +221,8 @@ bool servicedependency::operator<(servicedependency const& right) const {
  */
 void servicedependency::check_validity(error_info* err) const {
   uint32_t logger_id =
-      log_v3::instance().create_logger_or_get_id("configuration");
-  auto logger = log_v3::instance().get(logger_id);
+      log_v2::instance().create_logger_or_get_id("configuration");
+  auto logger = log_v2::instance().get(logger_id);
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())

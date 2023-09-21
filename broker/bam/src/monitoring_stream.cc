@@ -47,7 +47,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -64,8 +64,8 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
                                      std::shared_ptr<persistent_cache> cache)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
-      _logger_id{log_v3::instance().create_logger_or_get_id("bam")},
-      _logger{log_v3::instance().get(_logger_id)},
+      _logger_id{log_v2::instance().create_logger_or_get_id("bam")},
+      _logger{log_v2::instance().get(_logger_id)},
       _applier(_logger_id),
       _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
@@ -124,7 +124,7 @@ int32_t monitoring_stream::flush() {
  */
 int32_t monitoring_stream::stop() {
   int32_t retval = flush();
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "monitoring stream: stopped with {} events acknowledged", retval);
   /* I want to be sure the timer is really stopped. */
   std::promise<void> p;
@@ -355,7 +355,7 @@ struct kpi_binder {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;

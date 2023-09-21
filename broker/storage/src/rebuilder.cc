@@ -34,7 +34,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -49,8 +49,8 @@ rebuilder::rebuilder(const database_config& db_cfg,
     : _db_cfg(db_cfg),
       _interval_length(interval_length),
       _rrd_len(rrd_length),
-      _logger{log_v3::instance().get(
-          log_v3::instance().create_logger_or_get_id("sql"))} {
+      _logger{log_v2::instance().get(
+          log_v2::instance().create_logger_or_get_id("sql"))} {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
 }

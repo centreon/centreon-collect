@@ -23,7 +23,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -73,8 +73,8 @@ class grpc_test_server : public ::testing::TestWithParam<test_param> {
 
  public:
   static void SetUpTestSuite() {
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("grpc");
-    _logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("grpc");
+    _logger = log_v2::instance().get(logger_id);
     //_logger->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf);
     std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -168,8 +168,8 @@ class grpc_comm_failure : public ::testing::TestWithParam<test_param> {
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("grpc");
-    _logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("grpc");
+    _logger = log_v2::instance().get(logger_id);
     //_logger->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf_relay_out);
     relay = std::make_unique<test_util::tcp_relais>(
@@ -374,8 +374,8 @@ class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
 
  public:
   static void SetUpTestSuite() {
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("grpc");
-    _logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("grpc");
+    _logger = log_v2::instance().get(logger_id);
     //_logger->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(
         conf_crypted_server1234);

@@ -59,7 +59,7 @@ namespace asio = boost::asio;
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
@@ -88,7 +88,7 @@ static void hup_handler(int signum [[maybe_unused]]) {
   signal(SIGHUP, SIG_IGN);
 
   // Log message.
-  auto core_logger = log_v3::instance().get(0);
+  auto core_logger = log_v2::instance().get(0);
   core_logger->info("main: configuration update requested");
 
   try {
@@ -97,11 +97,11 @@ static void hup_handler(int signum [[maybe_unused]]) {
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
     auto& log_conf = conf.log_conf();
     try {
-      log_v3::instance().apply(log_conf);
+      log_v2::instance().apply(log_conf);
       /* We update the logger, since the conf has been applied */
-      core_logger = log_v3::instance().get(0);
+      core_logger = log_v2::instance().get(0);
     } catch (const std::exception& e) {
-      log_v3::instance().get(0)->error("problem while reloading cbd: {}",
+      log_v2::instance().get(0)->error("problem while reloading cbd: {}",
                                        e.what());
       core_logger->error("problem while reloading cbd: {}", e.what());
     }
@@ -124,7 +124,7 @@ static void hup_handler(int signum [[maybe_unused]]) {
       config::applier::state::instance().apply(gl_state);
     }
   } catch (const std::exception& e) {
-    log_v3::instance().get(0)->info("main: configuration update failed: {}",
+    log_v2::instance().get(0)->info("main: configuration update failed: {}",
                                     e.what());
     core_logger->info("main: configuration update failed: {}", e.what());
   } catch (...) {
@@ -166,8 +166,8 @@ int main(int argc, char* argv[]) {
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
 
-  log_v3::load("cbd", {"core", "config"});
-  auto core_logger = log_v3::instance().get(0);
+  log_v2::load("cbd", {"core", "config"});
+  auto core_logger = log_v2::instance().get(0);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -272,10 +272,10 @@ int main(int argc, char* argv[]) {
         config::state conf{parsr.parse(gl_mainconfigfiles.front())};
         auto& log_conf = conf.log_conf();
         try {
-          log_v3::instance().apply(log_conf);
+          log_v2::instance().apply(log_conf);
           /* The core_logger is reloaded just after the configuration is applied
            */
-          core_logger = log_v3::instance().get(0);
+          core_logger = log_v2::instance().get(0);
         } catch (const std::exception& e) {
           core_logger->error("{}", e.what());
         }
@@ -334,6 +334,6 @@ int main(int argc, char* argv[]) {
   core_logger->info("main: process {} pid:{} end exit_code:{}", argv[0],
                     getpid(), retval);
 
-  log_v3::unload();
+  log_v2::unload();
   return retval;
 }

@@ -24,7 +24,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 mysql_manager* mysql_manager::_instance{nullptr};
 
@@ -59,9 +59,10 @@ void mysql_manager::unload() {
 /**
  *  The default constructor
  */
-mysql_manager::mysql_manager() : _stats_connections_timestamp(time(nullptr)),
-  _logger_id{log_v3::instance().create_logger_or_get_id("sql")} {
-    log_v3::instance().get(_logger_id)->trace("mysql_manager instanciation");
+mysql_manager::mysql_manager()
+    : _stats_connections_timestamp(time(nullptr)),
+      _logger_id{log_v2::instance().create_logger_or_get_id("sql")} {
+  log_v2::instance().get(_logger_id)->trace("mysql_manager instanciation");
 }
 
 /**
@@ -71,7 +72,7 @@ mysql_manager::mysql_manager() : _stats_connections_timestamp(time(nullptr)),
  *  pending.
  */
 mysql_manager::~mysql_manager() {
-  log_v3::instance().get(_logger_id)->trace("mysql_manager destruction");
+  log_v2::instance().get(_logger_id)->trace("mysql_manager destruction");
   // If connections are still active but unique here, we can remove them
   std::lock_guard<std::mutex> cfg_lock(_cfg_mutex);
 
@@ -95,7 +96,7 @@ mysql_manager::~mysql_manager() {
  */
 std::vector<std::shared_ptr<mysql_connection>> mysql_manager::get_connections(
     database_config const& db_cfg) {
-  log_v3::instance().get(_logger_id)->trace("mysql_manager::get_connections");
+  log_v2::instance().get(_logger_id)->trace("mysql_manager::get_connections");
   std::vector<std::shared_ptr<mysql_connection>> retval;
   uint32_t connection_count(db_cfg.get_connections_count());
 
@@ -148,11 +149,12 @@ void mysql_manager::clear() {
       try {
         conn->finish();
       } catch (const std::exception& e) {
-        log_v3::instance().get(_logger_id)->info("mysql_manager: Unable to stop a connection: {}",
-                            e.what());
+        log_v2::instance()
+            .get(_logger_id)
+            ->info("mysql_manager: Unable to stop a connection: {}", e.what());
       }
   }
-  log_v3::instance().get(_logger_id)->debug("mysql_manager: clear finished");
+  log_v2::instance().get(_logger_id)->debug("mysql_manager: clear finished");
 }
 
 /**
@@ -166,12 +168,16 @@ void mysql_manager::update_connections() {
   while (it != _connection.end()) {
     if (it->unique() || (*it)->is_finished()) {
       it = _connection.erase(it);
-      log_v3::instance().get(_logger_id)->debug("mysql_manager: one connection removed");
+      log_v2::instance()
+          .get(_logger_id)
+          ->debug("mysql_manager: one connection removed");
     } else
       ++it;
   }
-  log_v3::instance().get(_logger_id)->info("mysql_manager: currently {} active connection{}",
-                      _connection.size(), _connection.size() > 1 ? "s" : "");
+  log_v2::instance()
+      .get(_logger_id)
+      ->info("mysql_manager: currently {} active connection{}",
+             _connection.size(), _connection.size() > 1 ? "s" : "");
 
   if (_connection.size() == 0)
     mysql_library_end();

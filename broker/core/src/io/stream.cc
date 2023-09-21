@@ -21,7 +21,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::io;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Constructor. The name is chosen by the developer. This name is
@@ -88,7 +88,7 @@ void stream::update() {}
 bool stream::validate(std::shared_ptr<io::data> const& d,
                       std::string const& error) {
   if (!d) {
-    log_v3::instance().get(0)->error(
+    log_v2::instance().get(0)->error(
         "{}: received a null event. This should never happen. "
         "This is likely a software bug that you should report "
         "to Centreon Broker developers.",
@@ -107,7 +107,7 @@ bool stream::validate(std::shared_ptr<io::data> const& d,
  * @return false timeout expires
  */
 bool stream::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v3::instance().get(0)->info("io::stream::wait_for_all_events_written");
+  log_v2::instance().get(0)->info("io::stream::wait_for_all_events_written");
   if (_substream) {
     return _substream->wait_for_all_events_written(ms_timeout);
   }

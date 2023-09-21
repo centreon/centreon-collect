@@ -32,7 +32,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 constexpr unsigned max_event_queue_size = 0x10000;
 
@@ -84,14 +84,14 @@ feeder::feeder(const std::string& name,
       _stat_timer(pool::io_context()),
       _read_from_stream_timer(pool::io_context()),
       _io_context(pool::io_context_ptr()),
-      _logger_id{log_v3::instance().create_logger_or_get_id("processing")} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("processing")} {
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
   set_last_connection_attempt(timestamp::now());
   set_last_connection_success(timestamp::now());
   set_state("connected");
-  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "create feeder {}, {:p}", name,
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "create feeder {}, {:p}", name,
                       static_cast<const void*>(this));
 }
 
@@ -99,7 +99,7 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
-  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "destroy feeder {}, {:p}",
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy feeder {}, {:p}",
                       get_name(), static_cast<const void*>(this));
 
   multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
@@ -151,7 +151,7 @@ void feeder::_forward_statistic(nlohmann::json& tree) {
 void feeder::_read_from_muxer() {
   bool have_to_terminate = false;
   bool other_event_to_read = true;
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   std::vector<std::shared_ptr<io::data>> events;
   std::chrono::system_clock::time_point timeout_read =
       std::chrono::system_clock::now() + std::chrono::milliseconds(100);
@@ -202,7 +202,7 @@ void feeder::_read_from_muxer() {
 unsigned feeder::_write_to_client(
     const std::vector<std::shared_ptr<io::data>>& events) {
   unsigned written = 0;
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   try {
     for (const std::shared_ptr<io::data>& event : events) {
       if (logger->level() == spdlog::level::trace) {
@@ -239,7 +239,7 @@ unsigned feeder::_write_to_client(
  * @param count
  */
 void feeder::_ack_event_to_muxer(unsigned count) noexcept {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   try {
     _muxer->ack_events(count);
   } catch (const std::exception&) {
@@ -274,7 +274,7 @@ void feeder::_stop_no_lock() {
   _stat_timer.cancel();
   _read_from_stream_timer.cancel();
 
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
 
   /* We don't get back the return value of stop() because it has non sense,
    * the only interest in calling stop() is to send an acknowledgement to the
@@ -310,7 +310,7 @@ uint32_t feeder::_get_queued_events() const {
  * @return false
  */
 bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "processing::feeder::wait_for_all_events_written");
   std::unique_lock<std::timed_mutex> l(_protect);
   return _client->wait_for_all_events_written(ms_timeout);
@@ -375,7 +375,7 @@ void feeder::_read_from_stream_timer_handler(
   std::shared_ptr<io::data> event;
   std::chrono::system_clock::time_point timeout_read =
       std::chrono::system_clock::now() + std::chrono::milliseconds(100);
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   try {
     std::unique_lock<std::timed_mutex> l(_protect);
     if (_state != state::running)

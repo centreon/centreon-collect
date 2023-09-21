@@ -41,7 +41,7 @@ void applier::bool_expression::apply(
     configuration::state::bool_exps const& my_bools,
     hst_svc_mapping const& mapping,
     service_book& book) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 
   //
   // DIFF

@@ -26,7 +26,7 @@
 #include <vector>
 #include "config.hh"
 
-namespace com::centreon::common::log_v3 {
+namespace com::centreon::common::log_v2 {
 
 constexpr uint32_t log_v2_core = 0;
 constexpr uint32_t log_v2_config = 1;
@@ -53,8 +53,8 @@ constexpr uint32_t log_v2_configuration = 3;
  * and when the changes are done, we newly get the logger. That's why it is
  * important not to store forever the logger's shared_ptr.
  */
-class log_v3 {
-  static log_v3* _instance;
+class log_v2 {
+  static log_v2* _instance;
   std::string _log_name;
   std::chrono::seconds _flush_interval;
   std::string _file_path;
@@ -65,11 +65,11 @@ class log_v3 {
   static void load(const std::string& name,
                    std::initializer_list<std::string> ilist);
   static void unload();
-  static log_v3& instance();
-  log_v3(const std::string& name, std::initializer_list<std::string> ilist);
-  log_v3(const log_v3&) = delete;
-  log_v3& operator=(const log_v3&) = delete;
-  ~log_v3() noexcept;
+  static log_v2& instance();
+  log_v2(const std::string& name, std::initializer_list<std::string> ilist);
+  log_v2(const log_v2&) = delete;
+  log_v2& operator=(const log_v2&) = delete;
+  ~log_v2() noexcept = default;
 
   std::chrono::seconds flush_interval();
   void set_flush_interval(uint32_t second_flush_interval);
@@ -85,5 +85,5 @@ class log_v3 {
   const std::string& log_name() const;
   void disable();
 };
-}  // namespace com::centreon::common::log_v3
+}  // namespace com::centreon::common::log_v2
 #endif /* !CCC_LOG_V2_HH */

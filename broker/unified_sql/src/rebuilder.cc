@@ -38,7 +38,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -53,13 +53,13 @@ rebuilder::rebuilder(const database_config& db_cfg,
     : _db_cfg(db_cfg),
       _interval_length(interval_length),
       _rrd_len(rrd_length),
-      _logger_id{log_v3::instance().create_logger_or_get_id("sql")} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("sql")} {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
 }
 
 rebuilder::~rebuilder() noexcept {
-  log_v3::instance().get(_logger_id)->debug("SQL: stopping rebuilder");
+  log_v2::instance().get(_logger_id)->debug("SQL: stopping rebuilder");
   std::unique_lock<std::mutex> lck(_rebuilding_m);
   _rebuilding_cv.wait_for(lck, std::chrono::seconds(20),
                           [this] { return _rebuilding == 0; });
@@ -77,7 +77,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
       _rebuilding++;
       _rebuilding_cv.notify_all();
     }
-    auto logger = log_v3::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(_logger_id);
     const bbdo::pb_rebuild_graphs& ids =
         *static_cast<const bbdo::pb_rebuild_graphs*>(data.get());
 
@@ -119,8 +119,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
           uint64_t mid = res.value_as_u64(0);
           uint64_t index_id = res.value_as_u64(5);
           mids.push_back(mid);
-          logger->trace("Metric rebuild: metric {} is sent to rebuild",
-                               mid);
+          logger->trace("Metric rebuild: metric {} is sent to rebuild", mid);
           (*start_rebuild->mut_obj().mutable_metric_to_index_id())[mid] =
               index_id;
           auto ret = ret_inter.emplace(mid, metric_info());

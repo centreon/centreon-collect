@@ -28,7 +28,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::commands;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 static void CreateFile(const std::string& filename,
                        const std::string& content) {
@@ -42,8 +42,8 @@ class PbSimpleCommand : public ::testing::Test {
 
  public:
   void SetUp() override {
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("commands");
-    logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("commands");
+    logger = log_v2::instance().get(logger_id);
     set_time(-1);
     init_config_state(PROTO);
     pb_config.set_interval_length(1);

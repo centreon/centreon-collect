@@ -30,7 +30,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using msg_fmt = com::centreon::exceptions::msg_fmt;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) \
   &object::setter<service, type, &service::method>::generic
@@ -298,7 +298,7 @@ service& service::operator=(service const& other) {
  *  @return True if is the same service, otherwise false.
  */
 bool service::operator==(service const& other) const noexcept {
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   if (!object::operator==(other)) {
     logger->debug("configuration::service::equality => object don't match");
     return false;
@@ -1486,7 +1486,7 @@ bool service::_set_event_handler_enabled(bool value) {
  */
 bool service::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->warn(
       "Warning: service failure_prediction_enabled is deprecated. This option "
       "will not be supported in 20.04.");
@@ -1502,7 +1502,7 @@ bool service::_set_failure_prediction_enabled(bool value) {
  */
 bool service::_set_failure_prediction_options(std::string const& value) {
   (void)value;
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->warn(
       "Warning: service failure_prediction_options is deprecated. This option "
       "will not be supported in 20.04.");
@@ -1801,7 +1801,7 @@ bool service::_set_obsess_over_service(bool value) {
  */
 bool service::_set_parallelize_check(bool value) {
   (void)value;
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->warn(
       "Warning: service parallelize_check is deprecated This option will not "
       "be supported in 20.04.");
@@ -1968,7 +1968,7 @@ bool service::_set_category_tags(const std::string& value) {
       ++it;
   }
 
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;
@@ -2003,7 +2003,7 @@ bool service::_set_group_tags(const std::string& value) {
       ++it;
   }
 
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;

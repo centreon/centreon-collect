@@ -26,7 +26,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Get BA identifier for circular path search.
@@ -78,7 +78,7 @@ static std::string service_node_id(uint32_t host_id, uint32_t service_id) {
  */
 applier::state::state(const uint32_t logger_id)
     : _logger_id{logger_id},
-      _logger{log_v3::instance().get(_logger_id)},
+      _logger{log_v2::instance().get(_logger_id)},
       _bool_exp_applier(_logger_id) {}
 
 /**

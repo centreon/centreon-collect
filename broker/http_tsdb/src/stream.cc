@@ -28,7 +28,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::http_tsdb;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /************************************************************************
  *      request
@@ -127,8 +127,8 @@ stream::stream(const std::string& name,
       _failed_request_stat{{0, 0}, {0, 0}},
       _metric_stat{{0, 0}, {0, 0}},
       _status_stat{{0, 0}, {0, 0}},
-_logger_id{log_v3::instance().create_logger_or_get_id(name)},
-_logger{log_v3::instance().get(_logger_id)} {
+      _logger_id{log_v2::instance().create_logger_or_get_id(name)},
+      _logger{log_v2::instance().get(_logger_id)} {
   _http_client =
       http_client::client::load(io_context, _logger, conf, conn_creator);
 }
@@ -229,7 +229,7 @@ int stream::write(std::shared_ptr<io::data> const& data) {
     return 0;
   }
 
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 
   request::pointer to_send;
   {

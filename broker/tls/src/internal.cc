@@ -33,7 +33,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Those 2048-bits wide Diffie-Hellman parameters were generated the
@@ -76,8 +76,8 @@ void tls::initialize() {
                               sizeof(dh_params_2048)};
   int ret;
 
-  uint32_t logger_id = log_v3::instance().create_logger_or_get_id("tls");
-  auto logger = log_v3::instance().get(logger_id);
+  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tls");
+  auto logger = log_v2::instance().get(logger_id);
 
   // Eventually initialize libgcrypt.
 #if GNUTLS_VERSION_NUMBER < 0x030000
@@ -93,8 +93,7 @@ void tls::initialize() {
 
   // Log GNU TLS version.
   {
-    logger->info("TLS: compiled with GNU TLS version {}",
-                        GNUTLS_VERSION);
+    logger->info("TLS: compiled with GNU TLS version {}", GNUTLS_VERSION);
     char const* v(gnutls_check_version(GNUTLS_VERSION));
     if (!v) {
       logger->error(
@@ -114,16 +113,15 @@ void tls::initialize() {
   // Load Diffie-Hellman parameters.
   ret = gnutls_dh_params_init(&dh_params);
   if (ret != GNUTLS_E_SUCCESS) {
-    logger->error(
-        "TLS: could not load TLS Diffie-Hellman parameters: {}",
-        gnutls_strerror(ret));
+    logger->error("TLS: could not load TLS Diffie-Hellman parameters: {}",
+                  gnutls_strerror(ret));
     throw msg_fmt("TLS: could not load TLS Diffie-Hellman parameters: {}",
                   gnutls_strerror(ret));
   }
   ret = gnutls_dh_params_import_pkcs3(dh_params, &dhp, GNUTLS_X509_FMT_PEM);
   if (ret != GNUTLS_E_SUCCESS) {
     logger->error("TLS: could not import PKCS #3 parameters: ",
-                         gnutls_strerror(ret));
+                  gnutls_strerror(ret));
     throw msg_fmt("TLS: could not import PKCS #3 parameters: {}",
                   gnutls_strerror(ret));
   }

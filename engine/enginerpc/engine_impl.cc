@@ -26,7 +26,7 @@
 #include <boost/asio.hpp>
 
 namespace asio = boost::asio;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 #include <absl/strings/str_join.h>
 
@@ -3287,8 +3287,8 @@ engine_impl::get_serv(
     loggers.push_back(logger);
   });
 
-  response->set_log_file(log_v3::instance().filename());
-  response->set_log_flush_period(log_v3::instance().flush_interval().count());
+  response->set_log_file(log_v2::instance().filename());
+  response->set_log_flush_period(log_v2::instance().flush_interval().count());
   auto levels = response->mutable_level();
   for (const auto& logger : loggers) {
     auto level = spdlog::level::to_string_view(logger->level());
@@ -3319,7 +3319,7 @@ grpc::Status engine_impl::SetLogFlushPeriod(grpc::ServerContext* context
                                             const LogFlushPeriod* request,
                                             ::google::protobuf::Empty*) {
   // first get all log_v2 objects
-  log_v3::instance().set_flush_interval(request->period());
+  log_v2::instance().set_flush_interval(request->period());
   return grpc::Status::OK;
 }
 

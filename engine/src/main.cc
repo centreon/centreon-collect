@@ -69,7 +69,7 @@ namespace asio = boost::asio;
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context(
     std::make_shared<asio::io_context>());
@@ -111,12 +111,12 @@ int main(int argc, char* argv[]) {
 #endif  // HAVE_GETOPT_H
 
   // Hack to instanciate the logger.
-  log_v3::load("centengine", {"core", "config", "process", "configuration",
+  log_v2::load("centengine", {"core", "config", "process", "configuration",
                               "functions", "events", "checks", "notifications",
                               "eventbroker", "external_command", "commands",
                               "downtimes", "comments", "macros", "runtime"});
-  auto config_logger = log_v3::instance().get(3);
-  auto process_logger = log_v3::instance().get(2);
+  auto config_logger = log_v2::instance().get(3);
+  auto process_logger = log_v2::instance().get(2);
   init_loggers();
   configuration::applier::logging::instance();
 

@@ -29,7 +29,7 @@
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace fmt {
 
@@ -42,8 +42,8 @@ struct formatter<io::raw> : ostream_formatter {};
 com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
     : io::stream("GRPC"),
       _accept(false),
-      _logger_id{log_v3::instance().create_logger_or_get_id("grpc")},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("grpc")},
+      _logger{log_v2::instance().get(_logger_id)} {
   _channel = client::create(conf);
 }
 
@@ -52,8 +52,8 @@ com::centreon::broker::grpc::stream::stream(
     : io::stream("GRPC"),
       _accept(true),
       _channel(accepted),
-      _logger_id{log_v3::instance().create_logger_or_get_id("grpc")},
-      _logger{log_v3::instance().get(_logger_id)} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("grpc")},
+      _logger{log_v2::instance().get(_logger_id)} {}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
   if (_channel)
@@ -61,7 +61,7 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
 }
 
 #define READ_IMPL                                                             \
-  _logger = log_v3::instance().get(_logger_id);                               \
+  _logger = log_v2::instance().get(_logger_id);                               \
   std::pair<event_ptr, bool> read_res = _channel->read(duration_or_deadline); \
   if (read_res.second) {                                                      \
     const grpc_event_type& to_convert = *read_res.first;                      \
@@ -99,7 +99,7 @@ bool com::centreon::broker::grpc::stream::read(
 
 int32_t com::centreon::broker::grpc::stream::write(
     std::shared_ptr<io::data> const& d) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   if (_channel->is_down())
     throw msg_fmt("Connection lost");
 
@@ -132,7 +132,7 @@ bool com::centreon::broker::grpc::stream::is_down() const {
  */
 bool com::centreon::broker::grpc::stream::wait_for_all_events_written(
     unsigned ms_timeout) {
-  log_v3::instance().get(0)->info("grpc::stream::wait_for_all_events_written");
+  log_v2::instance().get(0)->info("grpc::stream::wait_for_all_events_written");
   if (_channel->is_down()) {
     return true;
   }

@@ -26,7 +26,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -42,8 +42,8 @@ availability_thread::availability_thread(database_config const& db_cfg,
       _mutex{},
       _should_exit(false),
       _should_rebuild_all(false),
-      _logger_id{log_v3::instance().create_logger_or_get_id("bam")},
-      _logger{log_v3::instance().get(_logger_id)} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("bam")},
+      _logger{log_v2::instance().get(_logger_id)} {}
 
 /**
  *  Destructor.
@@ -64,7 +64,7 @@ void availability_thread::run() {
     return;
 
   for (;;) {
-    _logger = log_v3::instance().get(_logger_id);
+    _logger = log_v2::instance().get(_logger_id);
     try {
       // Calculate the duration until next midnight.
       time_t midnight = _compute_next_midnight();

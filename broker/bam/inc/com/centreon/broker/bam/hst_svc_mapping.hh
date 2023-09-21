@@ -26,7 +26,7 @@
 
 namespace com::centreon::broker::bam {
 
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  @class hst_svc_mapping hst_svc_mapping.hh
@@ -45,8 +45,8 @@ class hst_svc_mapping {
 
  public:
   hst_svc_mapping()
-      : _logger{log_v3::instance().get(
-            log_v3::instance().create_logger_or_get_id("bam"))} {}
+      : _logger{log_v2::instance().get(
+            log_v2::instance().create_logger_or_get_id("bam"))} {}
   ~hst_svc_mapping() noexcept = default;
   hst_svc_mapping(const hst_svc_mapping&) = delete;
   hst_svc_mapping& operator=(const hst_svc_mapping&) = delete;

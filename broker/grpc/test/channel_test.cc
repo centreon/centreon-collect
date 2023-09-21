@@ -25,7 +25,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -57,7 +57,7 @@ class channel_test : public channel {
   channel_test(const grpc_config::pointer& conf)
       : channel("channel_test",
                 conf,
-                log_v3::instance().create_logger_or_get_id("grpc")) {}
+                log_v2::instance().create_logger_or_get_id("grpc")) {}
 
   void start_write(const event_ptr& to_send [[maybe_unused]]) override {
     pool::io_context().post(

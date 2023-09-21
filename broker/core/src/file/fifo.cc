@@ -33,7 +33,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Fifo constructor.
@@ -114,7 +114,7 @@ void fifo::_open_fifo() {
   // Stat failed, probably because of inexistant file.
   if (::stat(_path.c_str(), &s) != 0) {
     char const* msg(strerror(errno));
-    log_v3::instance().get(1)->info("stats: cannot stat() '{}': {}", _path,
+    log_v2::instance().get(1)->info("stats: cannot stat() '{}': {}", _path,
                                     msg);
 
     // Create FIFO.
