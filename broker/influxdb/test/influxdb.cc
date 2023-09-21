@@ -25,7 +25,7 @@
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 class InfluxDB12 : public testing::Test {
  protected:
@@ -33,7 +33,7 @@ class InfluxDB12 : public testing::Test {
 
  public:
   void SetUp() override {
-    _logger_id = log_v3::instance().create_logger_or_get_id("influxdb");
+    _logger_id = log_v2::instance().create_logger_or_get_id("influxdb");
     _server.init();
     _thread = std::thread(&test_server::run, &_server);
 

@@ -23,7 +23,7 @@
 #include <filesystem>
 #include <string>
 
-namespace com::centreon::common::log_v3 {
+namespace com::centreon::common::log_v2 {
 class config {
  public:
   enum class logger_type {
@@ -124,5 +124,5 @@ class config {
   }
   const std::string& name() const { return _name; }
 };
-}  // namespace com::centreon::common::log_v3
+}  // namespace com::centreon::common::log_v2
 #endif

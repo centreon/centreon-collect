@@ -27,7 +27,7 @@
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief this memory leak is mandatory
@@ -88,7 +88,7 @@ channel::channel(const std::string& class_name,
       _thrown(false),
       _conf(conf),
       _logger_id{logger_id},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(_logger_id)} {
   SPDLOG_LOGGER_TRACE(_logger, "channel::channel this={:p}",
                       static_cast<void*>(this));
 }
@@ -144,7 +144,7 @@ std::pair<event_ptr, bool> channel::read(
 }
 
 void channel::start_read(bool first_read) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   event_ptr to_read;
   {
     lock_guard l(_protect);
@@ -264,7 +264,7 @@ int channel::flush() {
  * @return false if timeout expires
  */
 bool channel::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v3::instance().get(0)->info("grpc::channel::wait_for_all_events_written");
+  log_v2::instance().get(0)->info("grpc::channel::wait_for_all_events_written");
   unique_lock l(_protect);
   _logger->trace("wait_for_all_events_written _write_queue.size()={}",
                  _write_queue.size());

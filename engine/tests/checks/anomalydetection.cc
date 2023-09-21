@@ -44,7 +44,7 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 class AnomalydetectionCheck : public TestEngine {
  protected:
@@ -55,11 +55,11 @@ class AnomalydetectionCheck : public TestEngine {
   void SetUp() override {
     init_config_state(LEGACY);
 
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("checks");
-    _checks_logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("checks");
+    _checks_logger = log_v2::instance().get(logger_id);
     _checks_logger->set_level(spdlog::level::trace);
-    logger_id = log_v3::instance().create_logger_or_get_id("commands");
-    _commands_logger = log_v3::instance().get(logger_id);
+    logger_id = log_v2::instance().create_logger_or_get_id("commands");
+    _commands_logger = log_v2::instance().get(logger_id);
     _commands_logger->set_level(spdlog::level::trace);
 
     configuration::applier::contact ct_aply;

@@ -33,7 +33,7 @@ namespace metric_sdk = opentelemetry::sdk::metrics;
 namespace metrics_api = opentelemetry::metrics;
 
 using namespace com::centreon::broker;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances = 0;
@@ -68,12 +68,12 @@ void broker_module_init(const void* arg) {
     const auto& conf = s->get_stats_exporter();
     const auto& exporters = conf.exporters;
     // Stats module.
-    log_v3::instance().get(1)->info(
+    log_v2::instance().get(1)->info(
         "stats_exporter: module for Centreon Broker {}",
         CENTREON_BROKER_VERSION);
 
     for (const auto& e : exporters) {
-      log_v3::instance().get(1)->info("stats_exporter: with exporter '{}'",
+      log_v2::instance().get(1)->info("stats_exporter: with exporter '{}'",
                                       e.protocol);
       switch (e.protocol) {
         case config::state::stats_exporter::HTTP:

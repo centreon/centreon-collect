@@ -27,7 +27,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::influxdb;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -54,7 +54,7 @@ stream::stream(std::string const& user,
       _pending_queries(0),
       _actual_query(0),
       _commit(false),
-      _logger_id{log_v3::instance().create_logger_or_get_id("influxdb")},
+      _logger_id{log_v2::instance().create_logger_or_get_id("influxdb")},
       _cache(cache, _logger_id),
       _influx_db{std::make_unique<influxdb>(user,
                                             passwd,
@@ -73,7 +73,7 @@ stream::stream(std::string const& user,
  *  @return Number of events acknowledged.
  */
 int32_t stream::flush() {
-  log_v3::instance()
+  log_v2::instance()
       .get(_logger_id)
       ->debug("influxdb: commiting {} queries", _actual_query);
   int ret(_pending_queries);
@@ -91,7 +91,7 @@ int32_t stream::flush() {
  */
 int32_t stream::stop() {
   int32_t retval = flush();
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "influxdb stream stopped with {} acknowledged events", retval);
   return retval;
 }

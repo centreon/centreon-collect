@@ -31,7 +31,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 const size_t stream::max_data_size = 100000000u;
 
@@ -93,7 +93,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
           unsigned char const* buff((unsigned char const*)_rbuffer.data());
           size = static_cast<uint32_t>((buff[0] << 24) | (buff[1] << 16) |
                                        (buff[2] << 8) | (buff[3]));
-          log_v3::instance().get(0)->trace(
+          log_v2::instance().get(0)->trace(
               "extract size: {} from {:02X} {:02X} {:02X} {:02X}", size,
               buff[0], buff[1], buff[2], buff[3]);
         }
@@ -101,18 +101,19 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
         // Check if size is within bounds.
         if (size <= 0 || size > max_data_size) {
           // Skip corrupted data, one byte at a time.
-          log_v3::instance().get(0)->error(
+          log_v2::instance().get(0)->error(
               "compression: stream got corrupted packet size of {} bytes, not "
               "in "
               "the 0-{} range, skipping next byte",
               size, max_data_size);
           if (!skipped)
-            log_v3::instance().get(0)->error(
+            log_v2::instance().get(0)->error(
                 "compression: peer {} is sending corrupted data", peer());
           ++skipped;
           _rbuffer.pop(1);
         } else {
-          log_v3::instance().get(0)->trace("compression: reading {} bytes", size);
+          log_v2::instance().get(0)->trace("compression: reading {} bytes",
+                                           size);
           corrupted = false;
         }
       }
@@ -132,22 +133,22 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
                                    (_rbuffer.data() + sizeof(int32_t))),
                                size);
         } catch (exceptions::corruption const& e) {
-          log_v3::instance().get(0)->debug("corrupted data: {}", e.what());
+          log_v2::instance().get(0)->debug("corrupted data: {}", e.what());
         }
       }
       if (!r->size()) {  // No data or uncompressed size of 0 means corrupted
                          // input.
-        log_v3::instance().get(0)->error(
+        log_v2::instance().get(0)->error(
             "compression: stream got corrupted compressed data, skipping next "
             "byte");
         if (!skipped)
-          log_v3::instance().get(0)->error(
+          log_v2::instance().get(0)->error(
               "compression: peer {} is sending corrupted data", peer());
         ++skipped;
         _rbuffer.pop(1);
         corrupted = true;
       } else {
-        log_v3::instance().get(0)->debug(
+        log_v2::instance().get(0)->debug(
             "compression: stream uncompressed {} bytes to {} bytes",
             size + sizeof(int32_t), r->size());
         data = r;
@@ -156,7 +157,7 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
       }
     }
     if (skipped)
-      log_v3::instance().get(0)->info(
+      log_v2::instance().get(0)->info(
           "compression: peer {} sent {} corrupted compressed bytes, resuming "
           "processing",
           peer(), skipped);
@@ -241,7 +242,8 @@ int stream::write(std::shared_ptr<io::data> const& d) {
           "this error to Centreon Broker developers",
           max_data_size);
     else if (r.size() > 0) {
-      log_v3::instance().get(0)->trace("compression: writing {} bytes", r.size());
+      log_v2::instance().get(0)->trace("compression: writing {} bytes",
+                                       r.size());
       // Append data to write buffer.
       std::copy(r.get_buffer().begin(), r.get_buffer().end(),
                 std::back_inserter(_wbuffer));
@@ -268,7 +270,7 @@ void stream::_flush() {
     auto compressed{std::make_shared<io::raw>()};
     std::vector<char>& data(compressed->get_buffer());
     data = zlib::compress(_wbuffer, _level);
-    log_v3::instance().get(0)->debug(
+    log_v2::instance().get(0)->debug(
         "compression: stream compressed {} bytes to {} bytes (level {})",
         _wbuffer.size(), compressed->size(), _level);
     _wbuffer.clear();

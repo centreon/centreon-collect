@@ -50,7 +50,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 // List of Nagios modules.
 extern nebmodule* neb_module_list;
@@ -2236,7 +2236,7 @@ int neb::callback_pb_log(int callback_type [[maybe_unused]], void* data) {
  *  @return 0 on success.
  */
 int neb::callback_process(int, void* data) {
-  neb_logger = log_v3::instance().get(neb_logger_id);
+  neb_logger = log_v2::instance().get(neb_logger_id);
 
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: process event callback");

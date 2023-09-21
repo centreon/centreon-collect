@@ -45,7 +45,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker::database;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -58,8 +58,8 @@ reporting_stream::reporting_stream(database_config const& db_cfg)
       _pending_events(0),
       _mysql(db_cfg),
       _processing_dimensions(false),
-      _logger_id{log_v3::instance().create_logger_or_get_id("bam")},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("bam")},
+      _logger{log_v2::instance().get(_logger_id)} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream constructor");
   // Prepare queries.
   _prepare();
@@ -138,7 +138,7 @@ int32_t reporting_stream::flush() {
  */
 int32_t reporting_stream::stop() {
   int32_t retval = flush();
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "reporting stream stopped with {} events acknowledged", retval);
   return retval;
 }
@@ -154,7 +154,7 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_events;
   assert(data);
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 
   if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(

@@ -31,7 +31,7 @@ using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
 using namespace com::centreon::exceptions;
 
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #ifdef LUA51
 static int l_pairs(lua_State* L) {
@@ -58,14 +58,14 @@ luabinding::luabinding(std::string const& lua_script,
       _cache(cache),
       _total{0},
       _broker_api_version{1},
-      _logger_id{log_v3::instance().create_logger_or_get_id("lua")},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("lua")},
+      _logger{log_v2::instance().get(_logger_id)} {
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();
   _update_lua_path(path);
 
-  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(_logger_id),
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(_logger_id),
                       "lua: initializing the Lua virtual machine");
 
   try {
@@ -298,7 +298,7 @@ void luabinding::_init_script(
  */
 int luabinding::write(std::shared_ptr<io::data> const& data) noexcept {
   int retval = 0;
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 
   if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(_logger, "lua: luabinding::write call {}", *data);

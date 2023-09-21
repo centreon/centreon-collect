@@ -28,13 +28,13 @@ using namespace com::centreon::exceptions;
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 client::client(const grpc_config::pointer& conf, const uint32_t logger_id)
     : channel("client", conf, logger_id),
       _hold_to_remove(false),
       _logger_id{logger_id} {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   SPDLOG_LOGGER_TRACE(logger, "this={:p}", static_cast<void*>(this));
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
@@ -104,7 +104,7 @@ client::client(const grpc_config::pointer& conf, const uint32_t logger_id)
 
 client::pointer client::create(const grpc_config::pointer& conf) {
   client::pointer newClient(
-      new client(conf, log_v3::instance().create_logger_or_get_id("grpc")));
+      new client(conf, log_v2::instance().create_logger_or_get_id("grpc")));
   newClient->start();
   return newClient;
 }
@@ -148,7 +148,7 @@ void client::start_write(const event_with_data::pointer& to_send) {
 void client::OnWriteDone(bool ok) {
   on_write_done(ok);
   if (!ok) {
-    auto logger = log_v3::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(_logger_id);
     SPDLOG_LOGGER_ERROR(logger,
                         "Write failed, server logs should help to understand "
                         "what's gone wrong");
