@@ -41,7 +41,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bbdo;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Set a boolean within an object.
@@ -578,9 +578,9 @@ stream::stream(bool is_input,
       _last_sent_ack(time(nullptr)),
       _extensions{extensions},
       _bbdo_version(config::applier::state::instance().get_bbdo_version()),
-      _logger_id{log_v3::instance().create_logger_or_get_id("bbdo")},
-      _logger{log_v3::instance().get(_logger_id)} {
-  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "create bbdo stream {:p}",
+      _logger_id{log_v2::instance().create_logger_or_get_id("bbdo")},
+      _logger{log_v2::instance().get(_logger_id)} {
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "create bbdo stream {:p}",
                       static_cast<const void*>(this));
 }
 
@@ -589,7 +589,7 @@ stream::stream(bool is_input,
  *
  */
 stream::~stream() {
-  SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0), "destroy bbdo stream {:p}",
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy bbdo stream {:p}",
                       static_cast<const void*>(this));
 }
 
@@ -608,7 +608,7 @@ int32_t stream::stop() {
     try {
       _send_event_stop_and_wait_for_ack();
     } catch (const std::exception& e) {
-      log_v3::instance().get(0)->info(
+      log_v2::instance().get(0)->info(
           "BBDO: unable to send stop message to peer, it is already stopped: "
           "{}",
           e.what());
@@ -618,7 +618,7 @@ int32_t stream::stop() {
   _substream->stop();
 
   /* We acknowledge peer about received events. */
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "bbdo stream stopped with {} events acknowledged",
       _events_received_since_last_ack);
   if (_events_received_since_last_ack)
@@ -1383,7 +1383,7 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& d) {
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
   _write(d);
 
   int32_t retval = _acknowledged_events;
@@ -1406,7 +1406,7 @@ void stream::acknowledge_events(uint32_t events) {
 void stream::send_event_acknowledgement() {
   if (!_coarse) {
     if (_bbdo_version.total_version >= 0x0300000001) {
-      SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0),
+      SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0),
                           "send pb acknowledgement for {} events",
                           _events_received_since_last_ack);
       std::shared_ptr<pb_ack> acknowledgement(std::make_shared<pb_ack>());
@@ -1414,7 +1414,7 @@ void stream::send_event_acknowledgement() {
           _events_received_since_last_ack);
       _write(acknowledgement);
     } else {
-      SPDLOG_LOGGER_DEBUG(log_v3::instance().get(0),
+      SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0),
                           "send acknowledgement for {} events",
                           _events_received_since_last_ack);
       std::shared_ptr<ack> acknowledgement(

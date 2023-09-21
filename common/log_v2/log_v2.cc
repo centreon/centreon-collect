@@ -26,10 +26,10 @@
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 
-using namespace com::centreon::common::log_v3;
+using namespace com::centreon::common::log_v2;
 using namespace spdlog;
 
-log_v3* log_v3::_instance = nullptr;
+log_v2* log_v2::_instance;
 static uint32_t grpc_id = -1;
 
 /**
@@ -42,7 +42,7 @@ static void grpc_logger(gpr_log_func_args* args) {
   if (grpc_id == static_cast<uint32_t>(-1))
     return;
 
-  auto logger = log_v3::instance().get(grpc_id);
+  auto logger = log_v2::instance().get(grpc_id);
   spdlog::level::level_enum grpc_level = logger->level();
   const char* start;
   if (grpc_level == spdlog::level::off)
@@ -76,12 +76,12 @@ static void grpc_logger(gpr_log_func_args* args) {
   }
 }
 
-void log_v3::load(const std::string& name,
+void log_v2::load(const std::string& name,
                   std::initializer_list<std::string> ilist) {
-  _instance = new log_v3(name, ilist);
+  _instance = new log_v2(name, ilist);
 }
 
-void log_v3::unload() {
+void log_v2::unload() {
   if (_instance) {
     delete _instance;
     _instance = nullptr;
@@ -90,25 +90,22 @@ void log_v3::unload() {
   }
 }
 
-log_v3::log_v3(const std::string& name,
+log_v2::log_v2(const std::string& name,
                std::initializer_list<std::string> ilist)
     : _log_name{name} {
   for (auto& s : ilist)
     create_logger_or_get_id(s, true);
 }
 
-log_v3::~log_v3() noexcept {}
-
-log_v3& log_v3::instance() {
-  assert(_instance);
+log_v2& log_v2::instance() {
   return *_instance;
 }
 
-std::chrono::seconds log_v3::flush_interval() {
+std::chrono::seconds log_v2::flush_interval() {
   return _flush_interval;
 }
 
-void log_v3::set_flush_interval(uint32_t second_flush_interval) {
+void log_v2::set_flush_interval(uint32_t second_flush_interval) {
   _flush_interval = std::chrono::seconds(second_flush_interval);
   std::lock_guard lck(_loggers_m);
   if (second_flush_interval == 0) {
@@ -141,7 +138,7 @@ void log_v3::set_flush_interval(uint32_t second_flush_interval) {
  * @return The ID of the logger (created or found in the existing
  * configuration).
  */
-uint32_t log_v3::create_logger_or_get_id(const std::string& name,
+uint32_t log_v2::create_logger_or_get_id(const std::string& name,
                                          bool activate) {
   std::lock_guard<std::shared_mutex> lck(_loggers_m);
   uint32_t idx;
@@ -178,7 +175,7 @@ uint32_t log_v3::create_logger_or_get_id(const std::string& name,
  *
  * @return A shared pointer to the logger.
  */
-std::shared_ptr<spdlog::logger> log_v3::get(const uint32_t idx) {
+std::shared_ptr<spdlog::logger> log_v2::get(const uint32_t idx) {
   std::shared_lock lck(_loggers_m);
   return _loggers[idx];
 }
@@ -193,7 +190,7 @@ std::shared_ptr<spdlog::logger> log_v3::get(const uint32_t idx) {
  *
  * @return a shared pointer to the logger.
  */
-std::shared_ptr<spdlog::logger> log_v3::get(const std::string& name) {
+std::shared_ptr<spdlog::logger> log_v2::get(const std::string& name) {
   return spdlog::get(name);
 }
 
@@ -206,7 +203,7 @@ std::shared_ptr<spdlog::logger> log_v3::get(const std::string& name) {
  * @param cleanup A boolean specifying if we have to switch off loggers already
  * configured but not in the new configuration.
  */
-void log_v3::apply(const config& log_conf, bool cleanup) {
+void log_v2::apply(const config& log_conf, bool cleanup) {
   std::lock_guard<std::shared_mutex> lck(_loggers_m);
   auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
   sink_ptr my_sink;
@@ -335,7 +332,7 @@ void log_v3::apply(const config& log_conf, bool cleanup) {
  *
  * @return a boolean.
  */
-bool log_v3::contains_logger(const std::string& logger) const {
+bool log_v2::contains_logger(const std::string& logger) const {
   const absl::flat_hash_set<std::string> loggers{
       "bam",      "bbdo",         "config",
       "core",     "lua",          "influxdb",
@@ -353,7 +350,7 @@ bool log_v3::contains_logger(const std::string& logger) const {
  *
  * @return A boolean.
  */
-bool log_v3::contains_level(const std::string& level) const {
+bool log_v2::contains_level(const std::string& level) const {
   /* spdlog wants 'off' to disable a log but we tolerate 'disabled' */
   if (level == "disabled" || level == "off")
     return true;
@@ -362,7 +359,7 @@ bool log_v3::contains_level(const std::string& level) const {
   return l != level::off;
 }
 
-std::vector<std::pair<std::string, spdlog::level::level_enum>> log_v3::levels()
+std::vector<std::pair<std::string, spdlog::level::level_enum>> log_v2::levels()
     const {
   std::vector<std::pair<std::string, spdlog::level::level_enum>> retval;
   std::shared_lock lck(_loggers_m);
@@ -374,11 +371,11 @@ std::vector<std::pair<std::string, spdlog::level::level_enum>> log_v3::levels()
   return retval;
 }
 
-const std::string& log_v3::log_name() const {
+const std::string& log_v2::log_name() const {
   return _log_name;
 }
 
-void log_v3::disable() {
+void log_v2::disable() {
   std::lock_guard<std::shared_mutex> lck(_loggers_m);
   for (auto& l : _loggers)
     l->set_level(spdlog::level::level_enum::off);

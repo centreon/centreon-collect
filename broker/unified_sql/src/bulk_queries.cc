@@ -21,7 +21,7 @@
 
 using namespace com::centreon::broker::unified_sql;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Constructor
@@ -48,7 +48,7 @@ bulk_queries::bulk_queries(const uint32_t max_interval,
  * @return a string.
  */
 std::string bulk_queries::get_query() {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   std::deque<std::string> queue;
   {
     std::lock_guard<std::mutex> lck(_queue_m);

@@ -28,7 +28,7 @@
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /****************************************************************************
  * accepted_service
@@ -40,7 +40,7 @@ accepted_service::accepted_service(const grpc_config::pointer& conf,
       _server_finished(server_finished),
       _finished_called(false),
       _logger_id{logger_id},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(_logger_id)} {
   SPDLOG_LOGGER_TRACE(_logger, "accepted_service construction this={:p}",
                       static_cast<void*>(this));
 }
@@ -117,7 +117,7 @@ void accepted_service::shutdown() {
 server::server(const grpc_config::pointer& conf, uint32_t logger_id)
     : _conf(conf),
       _logger_id{logger_id},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(_logger_id)} {
   _server_finished = std::make_shared<bool>(false);
 }
 
@@ -196,7 +196,7 @@ void server::start() {
 
 server::pointer server::create(const grpc_config::pointer& conf) {
   server::pointer ret(
-      new server(conf, log_v3::instance().create_logger_or_get_id("grpc")));
+      new server(conf, log_v2::instance().create_logger_or_get_id("grpc")));
   ret->start();
   return ret;
 }

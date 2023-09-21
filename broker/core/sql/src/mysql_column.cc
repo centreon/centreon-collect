@@ -24,7 +24,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Destructor
@@ -84,8 +84,8 @@ void mysql_column::_free_vector() {
       delete vector;
     } break;
     default: {
-      uint32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
-      auto logger = log_v3::instance().get(logger_id);
+      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
+      auto logger = log_v2::instance().get(logger_id);
       logger->critical("mysql_column: unexpected type while vector is freed");
       assert(1 == 0);
     }
@@ -134,8 +134,8 @@ void* mysql_column::get_buffer() {
       return vector->data();
     } break;
     default: {
-      uint32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
-      auto logger = log_v3::instance().get(logger_id);
+      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
+      auto logger = log_v2::instance().get(logger_id);
       logger->critical("Unexpected type while getting the buffer value");
       assert(1 == 0);
     }
@@ -193,8 +193,8 @@ void mysql_column::clear() {
       vector->clear();
     } break;
     default: {
-      uint32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
-      auto logger = log_v3::instance().get(logger_id);
+      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
+      auto logger = log_v2::instance().get(logger_id);
       logger->critical(
           "mysql_column: unexpected type while clearing the vector");
       assert(1 == 0);
@@ -248,8 +248,8 @@ void mysql_column::reserve(size_t s) {
         vector->reserve(s);
       } break;
       default: {
-        uint32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
-        auto logger = log_v3::instance().get(logger_id);
+        uint32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
+        auto logger = log_v2::instance().get(logger_id);
         logger->critical(
             "mysql_column: Unexpected type while vector reservation");
         assert(1 == 0);
@@ -444,8 +444,8 @@ void mysql_column::set_type(int type) {
       _vector = vector;
     } break;
     default: {
-      uint32_t logger_id = log_v3::instance().create_logger_or_get_id("sql");
-      auto logger = log_v3::instance().get(logger_id);
+      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
+      auto logger = log_v2::instance().get(logger_id);
       logger->critical("mysql_column: unexpected type {} for column", type);
       assert(1 == 0);
     }

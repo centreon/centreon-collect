@@ -40,7 +40,7 @@
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 namespace {
@@ -89,13 +89,13 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
-  auto logger = log_v3::instance().get(0);
+  auto logger = log_v2::instance().get(0);
 
   // Increment instance number.
   if (!instances++) {
     // BAM module.
     logger->info("BAM: module for Centreon Broker {} ",
-                        CENTREON_BROKER_VERSION);
+                 CENTREON_BROKER_VERSION);
 
     io::protocols::instance().reg(bam_module, std::make_shared<bam::factory>(),
                                   1, 7);

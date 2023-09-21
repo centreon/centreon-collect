@@ -28,7 +28,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  @brief Constructor.
@@ -40,7 +40,11 @@ using log_v3 = com::centreon::common::log_v3::log_v3;
  *                   encryption that should be used.
  */
 stream::stream(gnutls_session_t* sess)
-    : io::stream("TLS"), _deadline((time_t)-1), _session(sess), _logger_id{log_v3::instance().create_logger_or_get_id("tls")}, _logger{log_v3::instance().get(_logger_id)} {}
+    : io::stream("TLS"),
+      _deadline((time_t)-1),
+      _session(sess),
+      _logger_id{log_v2::instance().create_logger_or_get_id("tls")},
+      _logger{log_v2::instance().get(_logger_id)} {}
 
 /**
  *  @brief Destructor.
@@ -87,8 +91,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   int ret(gnutls_record_recv(*_session, buffer->data(), buffer->size()));
   if (ret < 0) {
     if ((ret != GNUTLS_E_INTERRUPTED) && (ret != GNUTLS_E_AGAIN)) {
-      _logger->error("TLS: could not receive data: {}",
-                           gnutls_strerror(ret));
+      _logger->error("TLS: could not receive data: {}", gnutls_strerror(ret));
       throw msg_fmt("TLS: could not receive data: {} ", gnutls_strerror(ret));
     } else
       return false;
@@ -160,7 +163,7 @@ long long stream::read_encrypted(void* buffer, long long size) {
 int stream::write(std::shared_ptr<io::data> const& d) {
   if (!validate(d, get_name()))
     return 1;
-  _logger = log_v3::instance().get(_logger_id);
+  _logger = log_v2::instance().get(_logger_id);
 
   // Send data.
   if (d->type() == io::raw::static_type()) {
@@ -170,8 +173,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     while (size > 0) {
       int ret(gnutls_record_send(*_session, ptr, size));
       if (ret < 0) {
-        _logger->error("TLS: could not send data: {}",
-                             gnutls_strerror(ret));
+        _logger->error("TLS: could not send data: {}", gnutls_strerror(ret));
         throw msg_fmt("TLS: could not send data: {}", gnutls_strerror(ret));
       }
       ptr += ret;

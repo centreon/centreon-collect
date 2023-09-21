@@ -35,7 +35,7 @@ using namespace nlohmann;
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 using deprecated = com::centreon::broker::exceptions::deprecated;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 template <typename T, typename U>
 static bool get_conf(std::pair<std::string const, json> const& obj,
@@ -289,7 +289,7 @@ state parser::parse(std::string const& file) {
                 retval.add_module(std::move(module));
                 retval.add_endpoint(std::move(out));
               } catch (const deprecated& e) {
-                log_v3::instance().get(1)->warn(
+                log_v2::instance().get(1)->warn(
                     "Deprecated endpoint found in the output configuration: {}",
                     e.what());
               }
@@ -303,7 +303,7 @@ state parser::parse(std::string const& file) {
               retval.add_module(std::move(module));
               retval.add_endpoint(std::move(out));
             } catch (const deprecated& e) {
-              log_v3::instance().get(1)->warn(
+              log_v2::instance().get(1)->warn(
                   "Deprecated endpoint found in the output configuration: {}",
                   e.what());
             }
@@ -323,7 +323,7 @@ state parser::parse(std::string const& file) {
                 retval.add_module(std::move(module));
                 retval.add_endpoint(std::move(in));
               } catch (const deprecated& e) {
-                log_v3::instance().get(1)->warn(
+                log_v2::instance().get(1)->warn(
                     "Deprecated endpoint found in the input configuration: {}",
                     e.what());
               }
@@ -336,7 +336,7 @@ state parser::parse(std::string const& file) {
               retval.add_module(std::move(module));
               retval.add_endpoint(std::move(in));
             } catch (const deprecated& e) {
-              log_v3::instance().get(1)->warn(
+              log_v2::instance().get(1)->warn(
                   "Deprecated endpoint found in the input configuration: {}",
                   e.what());
             }
@@ -408,10 +408,10 @@ state parser::parse(std::string const& file) {
             conf.loggers().clear();
             for (auto it = conf_js["loggers"].begin();
                  it != conf_js["loggers"].end(); ++it) {
-              if (!log_v3::instance().contains_logger(it.key()))
+              if (!log_v2::instance().contains_logger(it.key()))
                 throw msg_fmt("'{}' is not available as logger", it.key());
-              if (!it.value().is_string() ||
-                  !log_v3::instance().contains_level(it.value().get<std::string>()))
+              if (!it.value().is_string() || !log_v2::instance().contains_level(
+                                                 it.value().get<std::string>()))
                 throw msg_fmt(
                     "The logger '{}' must contain a string among 'trace', "
                     "'debug', 'info', 'warning', 'error', 'critical', "
@@ -481,7 +481,7 @@ state parser::parse(std::string const& file) {
             }
             retval.add_module("15-stats_exporter.so");
           } else
-            log_v3::instance().get(1)->warn(
+            log_v2::instance().get(1)->warn(
                 "config parser: no exporters defined in the stats_exporter "
                 "configuration");
         } else if (it.key() == "poller_config") {
@@ -501,7 +501,8 @@ state parser::parse(std::string const& file) {
           }
           retval.mut_poller_conf().path = std::move(path);
         } else if (it.key() == "logger") {
-          log_v3::instance().get(1)->warn("logger object is deprecated on 21.10");
+          log_v2::instance().get(1)->warn(
+              "logger object is deprecated on 21.10");
         } else {
           if (it.key() == "stats")
             retval.add_module("15-stats.so");
@@ -631,7 +632,7 @@ void parser::_parse_endpoint(const json& elem,
     if (it.value().is_string())
       e.params[it.key()] = it.value().get<std::string>();
     else
-      log_v3::instance().get(1)->debug(
+      log_v2::instance().get(1)->debug(
           "config parser (while reading configuration file): "
           "for key: '{}' value is not a string.",
           it.key());

@@ -22,13 +22,13 @@
 #include <fstream>
 #include <regex>
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
-using config = com::centreon::common::log_v3::config;
+using log_v2 = com::centreon::common::log_v2::log_v2;
+using config = com::centreon::common::log_v2::config;
 
 class TestLogV3 : public ::testing::Test {
  public:
   void SetUp() override {}
-  void TearDown() override { log_v3::unload(); }
+  void TearDown() override { log_v2::unload(); }
 };
 
 static std::string read_file(const std::string& name) {
@@ -40,23 +40,23 @@ static std::string read_file(const std::string& name) {
 }
 
 TEST_F(TestLogV3, load) {
-  log_v3::load({"core", "config"});
-  ASSERT_EQ(log_v3::instance().get(0)->name(), std::string_view("core"));
-  ASSERT_EQ(log_v3::instance().get(1)->name(), std::string_view("config"));
+  log_v2::load({"core", "config"});
+  ASSERT_EQ(log_v2::instance().get(0)->name(), std::string_view("core"));
+  ASSERT_EQ(log_v2::instance().get(1)->name(), std::string_view("config"));
 }
 
 TEST_F(TestLogV3, LoggerUpdated) {
-  log_v3::load({"core"});
-  ASSERT_EQ(log_v3::instance().get(0)->level(), spdlog::level::info);
-  auto core_logger = log_v3::instance().get(0);
+  log_v2::load({"core"});
+  ASSERT_EQ(log_v2::instance().get(0)->level(), spdlog::level::info);
+  auto core_logger = log_v2::instance().get(0);
   testing::internal::CaptureStdout();
   core_logger->info("First log");
   config cfg("/tmp", "test.log", 10000, 0, false, false);
   cfg.set_level("core", "debug");
-  log_v3::instance().apply(cfg);
-  ASSERT_EQ(log_v3::instance().get(0)->level(), spdlog::level::debug);
+  log_v2::instance().apply(cfg);
+  ASSERT_EQ(log_v2::instance().get(0)->level(), spdlog::level::debug);
   core_logger->info("Second log with the old core logger version");
-  log_v3::instance().get(0)->info("Log with the new version");
+  log_v2::instance().get(0)->info("Log with the new version");
   std::string output = testing::internal::GetCapturedStdout();
   std::cout << "Captured stdout:\n" << output << std::endl;
   /* To match the output, we use regex because of the colored output. */
@@ -77,7 +77,7 @@ TEST_F(TestLogV3, LoggerUpdated) {
 }
 
 TEST_F(TestLogV3, LoggerUpdatedMt) {
-  log_v3::load({"core"});
+  log_v2::load({"core"});
   std::vector<std::thread> v;
   testing::internal::CaptureStdout();
   std::mutex m;
@@ -85,14 +85,14 @@ TEST_F(TestLogV3, LoggerUpdatedMt) {
   bool change_done = false;
   for (int i = 0; i < 5; i++) {
     std::thread t([i, &m, &cv, &change_done] {
-      auto core_logger = log_v3::instance().get(0);
+      auto core_logger = log_v2::instance().get(0);
       for (int j = 0; j < 10; j++) {
         core_logger->info("Log {} from thread {}", j, i);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
       std::unique_lock<std::mutex> lck(m);
       cv.wait(lck, [&change_done] { return change_done; });
-      core_logger = log_v3::instance().get(0);
+      core_logger = log_v2::instance().get(0);
       for (int j = 0; j < 10; j++)
         core_logger->info("New log {} from thread {}", j, i);
     });
@@ -101,7 +101,7 @@ TEST_F(TestLogV3, LoggerUpdatedMt) {
 
   config cfg("/tmp", "test.log", 10000, 0, false, false);
   cfg.set_level("core", "debug");
-  log_v3::instance().apply(cfg);
+  log_v2::instance().apply(cfg);
 
   {
     std::lock_guard<std::mutex> lck(m);
@@ -138,11 +138,11 @@ TEST_F(TestLogV3, LoggerUpdatedMt) {
 }
 
 TEST_F(TestLogV3, Flush) {
-  log_v3::load({"core"});
+  log_v2::load({"core"});
   config cfg("/tmp", "test.log", 10000, 3, false, false);
   cfg.set_level("core", "debug");
-  log_v3::instance().apply(cfg);
-  auto logger = log_v3::instance().get(0);
+  log_v2::instance().apply(cfg);
+  auto logger = log_v2::instance().get(0);
 
   logger->debug("log 1");
   std::string content = read_file("/tmp/test.log");
@@ -176,8 +176,8 @@ TEST_F(TestLogV3, Flush) {
 
   /* The flush is disabled */
   cfg.set_flush_interval(0);
-  log_v3::instance().apply(cfg);
-  logger = log_v3::instance().get(0);
+  log_v2::instance().apply(cfg);
+  logger = log_v2::instance().get(0);
 
   logger->debug("log 1");
   logger->debug("log 2");

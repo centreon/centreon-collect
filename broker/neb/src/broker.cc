@@ -26,7 +26,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static uint32_t neb_instances(0);
 
@@ -58,8 +58,8 @@ bool broker_module_deinit() {
 void broker_module_init(void const* arg) {
   (void)arg;
   if (!neb_instances++) {
-    log_v3::instance().get(0)->info("NEB: module for Centreon Broker {}",
-                         CENTREON_BROKER_VERSION);
+    log_v2::instance().get(0)->info("NEB: module for Centreon Broker {}",
+                                    CENTREON_BROKER_VERSION);
     io::events& e(io::events::instance());
 
     // Register events.

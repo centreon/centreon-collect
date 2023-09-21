@@ -29,7 +29,7 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Add new service escalation.
@@ -47,7 +47,7 @@ void applier::serviceescalation::add_object(
                             "hosts / host groups / services / service groups";
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new escalation for service '{}' of host '{}'",
                 obj.service_description().data()[0], obj.hosts().data()[0]);
 
@@ -109,7 +109,7 @@ void applier::serviceescalation::add_object(
                             "hosts / host groups / services / service groups";
 
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Creating new escalation for service '{}' of host '{}'",
                 obj.service_description().front(), obj.hosts().front());
 
@@ -164,7 +164,7 @@ void applier::serviceescalation::add_object(
 void applier::serviceescalation::expand_objects(configuration::State& s) {
   std::list<std::unique_ptr<Serviceescalation>> resolved;
   // Browse all escalations.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Expanding service escalations");
 
   for (auto& se : *s.mutable_serviceescalations()) {
@@ -230,7 +230,7 @@ void applier::serviceescalation::expand_objects(configuration::State& s) {
  */
 void applier::serviceescalation::expand_objects(configuration::state& s) {
   // Browse all escalations.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Expanding service escalations");
 
   configuration::set_serviceescalation expanded;
@@ -310,7 +310,7 @@ void applier::serviceescalation::modify_object(
  */
 void applier::serviceescalation::remove_object(ssize_t idx) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing a service escalation.");
 
   configuration::Serviceescalation& obj =
@@ -377,7 +377,7 @@ void applier::serviceescalation::remove_object(ssize_t idx) {
 void applier::serviceescalation::remove_object(
     configuration::serviceescalation const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Removing a service escalation.");
 
   // Find service escalation.
@@ -452,7 +452,7 @@ void applier::serviceescalation::remove_object(
 void applier::serviceescalation::resolve_object(
     const configuration::Serviceescalation& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving a service escalation.");
 
   // Find service escalation
@@ -485,7 +485,7 @@ void applier::serviceescalation::resolve_object(
 void applier::serviceescalation::resolve_object(
     configuration::serviceescalation const& obj) {
   // Logging.
-  auto logger = log_v3::instance().get(common::log_v3::log_v2_configuration);
+  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
   logger->debug("Resolving a service escalation.");
 
   // Find service escalation

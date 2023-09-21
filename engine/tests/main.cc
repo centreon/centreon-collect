@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonEngineEnvironment());
 
-  com::centreon::common::log_v3::log_v3::load(
+  com::centreon::common::log_v2::log_v2::load(
       "engine-tests", {"core", "config", "process", "configuration"});
   init_loggers();
   // Run all tests.

@@ -25,7 +25,7 @@
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using com::centreon::common::log_v3::log_v3;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) \
   &object::setter<hostdependency, type, &hostdependency::method>::generic
@@ -193,8 +193,8 @@ void hostdependency::check_validity(error_info* err) const {
     std::string dependend_host_name(!_dependent_hosts->empty()
                                         ? *_dependent_hosts->begin()
                                         : *_dependent_hostgroups->begin());
-    uint32_t logger_id = log_v3::instance().create_logger_or_get_id("config");
-    auto logger = log_v3::instance().get(logger_id);
+    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
+    auto logger = log_v2::instance().get(logger_id);
     logger->warn(
         "Warning: Ignoring lame host dependency of '{}' on host/hostgroups "
         "'{}'.",

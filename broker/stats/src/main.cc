@@ -23,7 +23,7 @@
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances(0);
@@ -52,12 +52,12 @@ bool broker_module_deinit() {
  *  @param[in] arg Configuration argument.
  */
 void broker_module_init(void const* arg) {
-  auto logger = log_v3::instance().get(0);
+  auto logger = log_v2::instance().get(0);
   // Increment instance number.
   if (!instances++) {
     // Stats module.
     logger->info("stats: module for Centreon Broker {}",
-                        CENTREON_BROKER_VERSION);
+                 CENTREON_BROKER_VERSION);
 
     // Check that stats are enabled.
     config::state const& base_cfg(*static_cast<config::state const*>(arg));

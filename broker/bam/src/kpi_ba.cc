@@ -23,7 +23,7 @@
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.

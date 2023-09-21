@@ -27,7 +27,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Fill a strings list with the files listed in the directory.
@@ -73,8 +73,8 @@ std::list<std::string> filesystem::dir_content(std::string const& path,
     }
     closedir(dir);
   } else
-    log_v3::instance().get(0)->error("directory_dumper: unable to read directory '{}'",
-                          path);
+    log_v2::instance().get(0)->error(
+        "directory_dumper: unable to read directory '{}'", path);
   return retval;
 }
 

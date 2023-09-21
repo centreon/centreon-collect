@@ -24,7 +24,7 @@
 #include "com/centreon/broker/namespace.hh"
 #include "common/log_v2/log_v2.hh"
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 CCB_BEGIN()
 
@@ -67,7 +67,7 @@ class bool_expression {
 
  public:
   bool_expression(const uint32_t logger_id)
-      : _logger_id{logger_id}, _logger{log_v3::instance().get(_logger_id)} {}
+      : _logger_id{logger_id}, _logger{log_v2::instance().get(_logger_id)} {}
   bool_expression(const bool_expression&) = delete;
   ~bool_expression() noexcept = default;
   bool_expression& operator=(const bool_expression&) = delete;

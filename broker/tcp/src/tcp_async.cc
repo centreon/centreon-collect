@@ -24,7 +24,7 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief this option set the interval in seconds between two keepalive sent
@@ -77,7 +77,7 @@ void tcp_async::load() {
   if (!_instance)
     _instance = std::shared_ptr<tcp_async>(new tcp_async);
   else {
-    auto logger = log_v3::instance().get(_instance->_logger_id);
+    auto logger = log_v2::instance().get(_instance->_logger_id);
     logger->error("tcp_async instance already started.");
   }
 }
@@ -100,13 +100,13 @@ void tcp_async::unload() {
  */
 tcp_async::tcp_async()
     : _clear_available_con_running(false),
-      _logger_id{log_v3::instance().create_logger_or_get_id("tcp")} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")} {}
 
 /**
  * @brief Stop the timer that clears available connections.
  */
 void tcp_async::stop_timer() {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   logger->trace("tcp_async::stop_timer");
   {
     std::lock_guard<std::mutex> l(_acceptor_available_con_m);
@@ -175,7 +175,7 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
     asio::ip::tcp::resolver resolver(pool::io_context());
     boost::system::error_code ec;
     asio::ip::tcp::resolver::iterator it = resolver.resolve(query, ec), end;
-    auto logger = log_v3::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(_logger_id);
     if (ec) {
       logger->error("TCP: error while resolving '{}' name: {}",
                     conf->get_host(), ec.message());
@@ -206,17 +206,17 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
  */
 void tcp_async::_clear_available_con(boost::system::error_code ec) {
   if (ec)
-    log_v3::instance().get(0)->info("Available connections cleaning: {}",
+    log_v2::instance().get(0)->info("Available connections cleaning: {}",
                                     ec.message());
   else {
     std::lock_guard<std::mutex> l(_acceptor_available_con_m);
     if (_clear_available_con_running) {
-      log_v3::instance().get(0)->debug("Available connections cleaning");
+      log_v2::instance().get(0)->debug("Available connections cleaning");
       std::time_t now = std::time(nullptr);
       for (auto it = _acceptor_available_con.begin();
            it != _acceptor_available_con.end();) {
         if (now >= it->second.second + 10) {
-          log_v3::instance()
+          log_v2::instance()
               .get(_logger_id)
               ->debug("Destroying connection to '{}'",
                       it->second.first->peer());
@@ -231,7 +231,7 @@ void tcp_async::_clear_available_con(boost::system::error_code ec) {
       } else
         _clear_available_con_running = false;
     } else
-      log_v3::instance().get(0)->debug(
+      log_v2::instance().get(0)->debug(
           "Available connections cleaner already stopped");
   }
 }
@@ -246,7 +246,7 @@ void tcp_async::_clear_available_con(boost::system::error_code ec) {
 void tcp_async::start_acceptor(
     const std::shared_ptr<asio::ip::tcp::acceptor>& acceptor,
     const tcp_config::pointer& conf) {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   logger->trace("Start acceptor");
   std::lock_guard<std::mutex> l(_acceptor_available_con_m);
   if (!_timer)
@@ -281,7 +281,7 @@ void tcp_async::start_acceptor(
  */
 void tcp_async::stop_acceptor(
     std::shared_ptr<asio::ip::tcp::acceptor> acceptor) {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   logger->debug("stop acceptor");
   std::lock_guard<std::mutex> l(_acceptor_available_con_m);
   boost::system::error_code ec;
@@ -305,7 +305,7 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
                               const boost::system::error_code& ec,
                               const tcp_config::pointer& conf) {
   /* If we got a connection, we store it */
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   if (!ec) {
     boost::system::error_code ecc;
     new_connection->update_peer(ecc);
@@ -339,7 +339,7 @@ void tcp_async::handle_accept(std::shared_ptr<asio::ip::tcp::acceptor> acceptor,
  */
 tcp_connection::pointer tcp_async::create_connection(
     const tcp_config::pointer& conf) {
-  auto logger = log_v3::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(_logger_id);
   logger->trace("create connection to host {}:{}", conf->get_host(),
                 conf->get_port());
   tcp_connection::pointer conn = std::make_shared<tcp_connection>(

@@ -34,7 +34,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 using namespace com::centreon::exceptions;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 std::atomic<size_t> stream::_total_tcp_count{0};
 
@@ -52,8 +52,8 @@ stream::stream(const tcp_config::pointer& conf)
       _conf(conf),
       _connection(tcp_async::instance().create_connection(_conf)),
       _parent(nullptr),
-      _logger_id{log_v3::instance().create_logger_or_get_id("tcp")},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")},
+      _logger{log_v2::instance().get(_logger_id)} {
   assert(_connection->port());
   _total_tcp_count++;
   _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
@@ -74,8 +74,8 @@ stream::stream(const tcp_connection::pointer& conn,
       _conf(conf),
       _connection(conn),
       _parent(nullptr),
-      _logger_id{log_v3::instance().create_logger_or_get_id("tcp")},
-      _logger{log_v3::instance().get(_logger_id)} {
+      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")},
+      _logger{log_v2::instance().get(_logger_id)} {
   assert(_connection->port());
   _total_tcp_count++;
   _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());
@@ -202,7 +202,7 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
  * @return false timeout expired
  */
 bool stream::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v3::instance().get(0)->info("tcp::stream::wait_for_all_events_written");
+  log_v2::instance().get(0)->info("tcp::stream::wait_for_all_events_written");
   if (_connection->is_closed()) {
     return true;
   }

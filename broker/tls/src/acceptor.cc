@@ -29,7 +29,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tls;
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
@@ -47,7 +47,7 @@ acceptor::acceptor(std::string const& cert,
       _cert(cert),
       _key(key),
       _tls_hostname(tls_hostname),
-_logger_id{log_v3::instance().create_logger_or_get_id("tls")} {}
+      _logger_id{log_v2::instance().create_logger_or_get_id("tls")} {}
 
 /**
  *  @brief Try to accept a new connection.
@@ -86,7 +86,7 @@ std::shared_ptr<io::stream> acceptor::open(
   std::shared_ptr<io::stream> u;
   if (lower) {
     int ret;
-    auto logger = log_v3::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(_logger_id);
 
     // Load parameters.
     params p(params::SERVER);
@@ -107,7 +107,7 @@ std::shared_ptr<io::stream> acceptor::open(
 #endif  // GNUTLS_NONBLOCK
       if (ret != GNUTLS_E_SUCCESS) {
         logger->error("TLS: cannot initialize session: {}",
-                             gnutls_strerror(ret));
+                      gnutls_strerror(ret));
         throw msg_fmt("TLS: cannot initialize session: {}",
                       gnutls_strerror(ret));
       }
@@ -145,8 +145,7 @@ std::shared_ptr<io::stream> acceptor::open(
     gnutls_protocol_t prot = gnutls_protocol_get_version(*session);
     gnutls_cipher_algorithm_t ciph = gnutls_cipher_get(*session);
     logger->debug("TLS: protocol and cipher  {} {} used",
-                         gnutls_protocol_get_name(prot),
-                         gnutls_cipher_get_name(ciph));
+                  gnutls_protocol_get_name(prot), gnutls_cipher_get_name(ciph));
 
     // Check certificate.
     p.validate_cert(*session);

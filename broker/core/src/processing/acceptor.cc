@@ -28,7 +28,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
 
-using log_v3 = com::centreon::common::log_v3::log_v3;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -48,7 +48,7 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
       _read_filters_str(misc::dump_filters(_read_filters)),
       _write_filters(w_filter),
       _write_filters_str(misc::dump_filters(_write_filters)) {
-  log_v3::instance().get(1)->trace(
+  log_v2::instance().get(1)->trace(
       "processing::acceptor '{}': read filter <<{}>> ; write filter <<{}>>",
       name, _read_filters_str, _write_filters_str);
 }
@@ -72,9 +72,9 @@ void acceptor::accept() {
   if (u) {
     // Create feeder thread.
     std::string name(fmt::format("{}-{}", _name, ++connection_id));
-    auto core_logger = log_v3::instance().get(0);
+    auto core_logger = log_v2::instance().get(0);
     SPDLOG_LOGGER_INFO(core_logger, "New incoming connection '{}'", name);
-    log_v3::instance().get(1)->debug(
+    log_v2::instance().get(1)->debug(
         "New feeder {} with read_filters {} and write_filters {}", name,
         _read_filters.get_allowed_categories(),
         _write_filters.get_allowed_categories());
@@ -88,7 +88,7 @@ void acceptor::accept() {
                         "Currently {} connections to acceptor '{}'",
                         _feeders.size(), _name);
   } else
-    log_v3::instance().get(0)->debug("accept ('{}') failed.", _name);
+    log_v2::instance().get(0)->debug("accept ('{}') failed.", _name);
 }
 
 /**
@@ -204,12 +204,12 @@ void acceptor::_callback() noexcept {
     } catch (std::exception const& e) {
       _set_listening(false);
       // Log error.
-      SPDLOG_LOGGER_ERROR(log_v3::instance().get(0),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
                           "acceptor: endpoint '{}' could not accept client: {}",
                           _name, e.what());
 
       // Sleep a while before reconnection.
-      log_v3::instance().get(0)->debug(
+      log_v2::instance().get(0)->debug(
           "acceptor: endpoint '{}' will wait {}s before attempting to accept a "
           "new client",
           _name, _retry_interval);
@@ -223,11 +223,11 @@ void acceptor::_callback() noexcept {
     {
       std::lock_guard<std::mutex> lock(_stat_mutex);
       for (auto it = _feeders.begin(), end = _feeders.end(); it != end;) {
-        SPDLOG_LOGGER_TRACE(log_v3::instance().get(0),
+        SPDLOG_LOGGER_TRACE(log_v2::instance().get(0),
                             "acceptor '{}' feeder '{}'", _name,
                             (*it)->get_name());
         if ((*it)->is_finished()) {
-          SPDLOG_LOGGER_INFO(log_v3::instance().get(0),
+          SPDLOG_LOGGER_INFO(log_v2::instance().get(0),
                              "removing '{}' from acceptor '{}'",
                              (*it)->get_name(), _name);
           it = _feeders.erase(it);
@@ -236,7 +236,7 @@ void acceptor::_callback() noexcept {
       }
     }
   }
-  SPDLOG_LOGGER_INFO(log_v3::instance().get(0),
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(0),
                      "processing acceptor '{}' finished", _name);
   _set_listening(false);
 
@@ -253,7 +253,7 @@ void acceptor::_callback() noexcept {
  * @return false
  */
 bool acceptor::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v3::instance().get(0)->info(
+  log_v2::instance().get(0)->info(
       "processing::acceptor::wait_for_all_events_written");
   std::lock_guard<std::mutex> lock(_stat_mutex);
   bool ret = true;
