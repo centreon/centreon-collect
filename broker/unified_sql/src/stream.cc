@@ -255,10 +255,15 @@ stream::stream(const database_config& dbcfg,
 }
 
 stream::~stream() noexcept {
-  std::lock_guard<std::mutex> l(_timer_m);
-  _group_clean_timer.cancel();
-  _queues_timer.cancel();
-  _loop_timer.cancel();
+  {
+    std::lock_guard<std::mutex> l(_timer_m);
+    _group_clean_timer.cancel();
+    _queues_timer.cancel();
+    _loop_timer.cancel();
+  }
+  /* Let's wait a little if one of the timers is working during the cancellation
+   */
+  std::lock_guard<std::shared_mutex> lck(_barrier_timer_m);
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(_logger_sql_id),
                       "unified sql: stream destruction");
 }
@@ -1140,6 +1145,7 @@ void stream::_start_loop_timer() {
     if (err) {
       return;
     }
+    std::shared_lock lck(_barrier_timer_m);
     _update_hosts_and_services_of_unresponsive_instances();
     _start_loop_timer();
   });
