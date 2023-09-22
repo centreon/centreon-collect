@@ -1,11 +1,7 @@
 *** Settings ***
-Resource	../resources/resources.robot
-Suite Setup	Clean Before Suite
-Suite Teardown	Clean After Suite
-Test Setup	Stop Processes
-Test Teardown	Save logs If Failed
 
 Documentation	Centreon Broker and Engine progressively add services
+Resource            ../resources/resources.robot
 Library	Process
 Library	OperatingSystem
 Library	DateTime
@@ -14,11 +10,15 @@ Library	DatabaseLibrary
 Library	../resources/Engine.py
 Library	../resources/Broker.py
 Library	../resources/Common.py
+Suite Setup         Clean Before Suite
+Suite Teardown      Clean After Suite
+Test Setup          Stop Processes
+Test Teardown       Test Clean
 
 *** Test Cases ***
 EBBPS1
 	[Documentation]	1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table resources.
-	[Tags]	Broker	Engine	services	unified_sql
+    [Tags]    broker    engine    services    unified_sql
 	Config Engine	${1}	${1}	${1000}
 	# We want all the services to be passive to avoid parasite checks during our test.
 	Set Services passive	${0}	service_.*
@@ -28,66 +28,78 @@ EBBPS1
 	Broker Config Add Item	module0	bbdo_version	3.0.1
 	Broker Config Add Item	central	bbdo_version	3.0.1
 	Broker Config Add Item	rrd	bbdo_version	3.0.1
-	Broker Config Log	central	core	error
+    Broker Config Log    central    core    info
 	Broker Config Log	central	tcp	error
 	Broker Config Log	central	sql	trace
+    Broker Config Log    central    perfdata    trace
 	Config Broker Sql Output	central	unified_sql
 	Clear Retention
-	${start}=	Get Current Date
+    ${start}    Get Current Date
+    ${start_broker}    Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1000;
-	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	30
-	Should Be True	${result}	msg=An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True
+    ...    ${result}
+    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
 	FOR	${i}	IN RANGE	${1000}
 	  Process Service Check result	host_1	service_${i+1}	1	warning${i}
 	END
-	${content}=	Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
-	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=Prepared statements should be supported with this version of MariaDB.
+	${content}    Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
+	${result}    Find In Log With Timeout	${centralLog}	${start}	${content}	30
+	Should Be True	${result}	Prepared statements should be supported with this version of MariaDB.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	${date}=	Get Current Date  result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
 	Log To Console    date=${date}
 	FOR	${index}	IN RANGE	60
-	  ${output}=	Query	SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
+        ${output}    Query
+        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
 	  Log To Console	${output}
 	  Sleep	1s
-	  EXIT FOR LOOP IF	"${output}" == "((0,),)"
+        IF    "${output}" == "((0,),)"    BREAK
 	END
 	Should Be Equal As Strings	${output}	((0,),)
 
 	FOR	${i}	IN RANGE	${1000}
 	  Process Service Check result	host_1	service_${i+1}	2	warning${i}
 	  IF	${i} % 200 == 0
+            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${result}    Find In Log with timeout
+            ...    ${centralLog}
+            ...    ${start_broker}
+            ...    ${first_service_status_content}
+            ...    30
+            Should Be True    ${result}    No service_status processing found.
 	    Log to Console	Stopping Broker
 	    Kindly Stop Broker
 	    Log to Console	Waiting for 5s
 	    Sleep	5s
 	    Log to Console	Restarting Broker
+            ${start_broker}    Get Current Date
 	    Start Broker
 	  END
 	END
-	${content}=	Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
-	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=Prepared statements should be supported with this version of MariaDB.
+    ${content}    Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
+    ${result}    Find In Log with timeout	${centralLog}	${start}	${content}	30
+    Should Be True	${result}	Prepared statements should be supported with this version of MariaDB.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	${date}=	Get Current Date  result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
 	Log To Console    date=${date}
 	FOR	${index}	IN RANGE	120
-	  ${output}=	Query	SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 2
+        ${output}    Query
+        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 2
 	  Log To Console	${output}
 	  Sleep	1s
-	  EXIT FOR LOOP IF	"${output}" == "((0,),)"
+        IF    "${output}" == "((0,),)"    BREAK
 	END
 	Should Be Equal As Strings	${output}	((0,),)
-	Stop Engine
-	Kindly Stop Broker
 
 EBBPS2
 	[Documentation]	1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
-	[Tags]	Broker	Engine	services	unified_sql
+    [Tags]    broker    engine    services    unified_sql
 	Config Engine	${1}	${1}	${1000}
 	# We want all the services to be passive to avoid parasite checks during our test.
 	Set Services passive	${0}	service_.*
@@ -97,71 +109,83 @@ EBBPS2
 	Broker Config Add Item	module0	bbdo_version	3.0.1
 	Broker Config Add Item	central	bbdo_version	3.0.1
 	Broker Config Add Item	rrd	bbdo_version	3.0.1
-	Broker Config Log	central	core	error
+    Broker Config Log    central    core    info
 	Broker Config Log	central	tcp	error
 	Broker Config Log	central	sql	trace
+    Broker Config Log    central    perfdata    trace
 	Config Broker Sql Output	central	unified_sql
 	Clear Retention
-	${start}=	Get Current Date
+    ${start}    Get Current Date
+    ${start_broker}    Get Current Date
 	Start Broker
 	Start Engine
-	${content}=	Create List	INITIAL SERVICE STATE: host_1;service_1000;
-	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	30
-	Should Be True	${result}	msg=An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True
+    ...    ${result}
+    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
 	FOR	${i}	IN RANGE	${1000}
 	  Process Service Check result	host_1	service_${i+1}	1	warning${i}
 	END
-	${content}=	Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
-	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=Prepared statements should be supported with this version of MariaDB.
+	${content}    Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
+	${result}    Find In Log with Timeout	${centralLog}	${start}	${content}    30
+	Should Be True	${result}	Prepared statements should be supported with this version of MariaDB.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	${date}=	Get Current Date  result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
 	Log To Console    date=${date}
 	FOR	${index}	IN RANGE	120
-	  ${output}=	Query	SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 1
+        ${output}    Query
+        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 1
 	  Log To Console	${output}
 	  Sleep	1s
-	  EXIT FOR LOOP IF	"${output}" == "((0,),)"
+        IF    "${output}" == "((0,),)"    BREAK
 	END
 	Should Be Equal As Strings	${output}	((0,),)
 
 	FOR	${i}	IN RANGE	${1000}
-	  Process Service Check result	host_1	service_${i+1}	2	warning${i}
+        Process Service Check result    host_1    service_${i+1}    2    critical${i}
 	  IF	${i} % 200 == 0
-	    Log to Console	Stopping Broker
+            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${result}    Find In Log with timeout
+            ...    ${centralLog}
+            ...    ${start_broker}
+            ...    ${first_service_status_content}
+            ...    30
+            Should Be True    ${result}    No service_status processing found.
 	    Kindly Stop Broker
 	    Log to Console	Waiting for 5s
 	    Sleep	5s
 	    Log to Console	Restarting Broker
+            ${start_broker}    Get Current Date
 	    Start Broker
 	  END
 	END
-	${content}=	Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
-	${result}=	Find In Log with timeout	${centralLog}	${start}	${content}	30
-	Should Be True	${result}	msg=Prepared statements should be supported with this version of MariaDB.
+    ${content}    Create List	connected to 'MariaDB' Server	Unified sql stream supports column-wise binding in prepared statements
+    ${result}    Find In Log with timeout	${centralLog}	${start}	${content}	30
+    Should Be True	${result}	Prepared statements should be supported with this version of MariaDB.
 
 	Connect To Database	pymysql	${DBName}	${DBUser}	${DBPass}	${DBHost}	${DBPort}
-	${date}=	Get Current Date  result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
 	Log To Console    date=${date}
 	FOR	${index}	IN RANGE	60
-	  ${output}=	Query	SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 2
+        ${output}    Query
+        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 2
 	  Log To Console	${output}
 	  Sleep	1s
-	  EXIT FOR LOOP IF	"${output}" == "((0,),)"
+        IF    "${output}" == "((0,),)"    BREAK
 	END
 	Should Be Equal As Strings	${output}	((0,),)
-	Stop Engine
-	Kindly Stop Broker
 
 EBMSSM
 	[Documentation]	1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
-	[Tags]	Broker	Engine	services	unified_sql	benchmark
+    [Tags]    broker    engine    services    unified_sql    benchmark
 	Clear Metrics
 	Config Engine	${1}	${1}	${1000}
 	# We want all the services to be passive to avoid parasite checks during our test.
 	Set Services passive	${0}	service_.*
 	Config Broker	central
+    Config Broker    rrd
 	Config Broker	module	${1}
 	Broker Config Add Item	module0	bbdo_version	3.0.1
 	Broker Config Add Item	central	bbdo_version	3.0.1
@@ -171,45 +195,44 @@ EBMSSM
 	Config Broker Sql Output	central	unified_sql
 	Config Broker Remove Rrd Output	central
 	Clear Retention
-	${start}=	Get Current Date
-	Start Broker	${True}
+    ${start}    Get Current Date
+    Start Broker
 	Start Engine
 	Broker Set Sql Manager Stats	51001	5	5
 
 	# Let's wait for the external command check start
-	${content}=	Create List	check_for_external_commands()
-	${result}=	Find In Log with Timeout	${engineLog0}	${start}	${content}	60
-	Should Be True	${result}	msg=A message telling check_for_external_commands() should be available.
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-	${start}=	Get Round Current Date
+    ${start}    Get Round Current Date
 	# Let's wait for one "INSERT INTO data_bin" to appear in stats.
 	FOR	${i}	IN RANGE	${1000}
 	  Process Service Check result with metrics	host_1	service_${i+1}	1	warning${i}	100
 	END
 
-	${duration}=	Broker Get Sql Manager Stats	51001	INSERT INTO data_bin	300
+    ${duration}    Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
 	Should Be True	${duration} > 0
 
     # Let's wait for all force checks to be in the storage database.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${500}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
         IF    ${output[0][0]} >= 100000    BREAK
         Sleep    1s
     END
     Should Be True    ${output[0][0]} >= 100000
-    Stop Engine
-    Kindly Stop Broker    True
 
 EBPS2
-    [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from
+    [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
     [Tags]    broker    engine    services    unified_sql    benchmark
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services passive    ${0}    service_.*
     Config Broker    central
+    Config Broker    rrd
     Config Broker    module    ${1}
     Broker Config Add Item    module0    bbdo_version    3.0.1
     Broker Config Add Item    central    bbdo_version    3.0.1
@@ -222,25 +245,30 @@ EBPS2
     Config Broker Remove Rrd Output    central
     Clear Retention
 
-    ${start}=    Get Current Date
-    Start Broker    ${True}
+    ${start}    Get Current Date
+    Start Broker
     Start Engine
     # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    # We send 3000 service status and during the 1500th, we kill the database. This crashed cbd before
-    # the new patch.
-    FOR    ${i}    IN RANGE    ${3000}
-        IF    ${i} == 1500    Kill Mysql
-        Process Service Check result with metrics    host_1    service_${${i}%1000+1}    1    warning${i}    20
-    END
+    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
 
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
+    ${start}    Get Current Date
+    ${content}    create list    Check if some statements are ready,    sscr_bind connections
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling that statements are available should be displayed
+    Stop mysql
     Stop Engine
     Start mysql
-    Kindly Stop Broker    ${True}
+
+*** Keywords ***
+Test Clean
+    Stop Engine
+    Kindly Stop Broker
+    Save logs If Failed
