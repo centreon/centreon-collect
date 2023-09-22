@@ -207,6 +207,7 @@ void stream::_clean_tables(uint32_t instance_id) {
   _group_clean_timer.expires_after(std::chrono::minutes(1));
   _group_clean_timer.async_wait([this](const boost::system::error_code& err) {
     if (!err) {
+      std::shared_lock lck(_barrier_timer_m);
       _clean_group_table();
     }
   });
@@ -4189,9 +4190,8 @@ void stream::_check_and_update_index_cache(const Service& ss) {
         conn);
     index_id = future.get();
     SPDLOG_LOGGER_DEBUG(
-        _logger_sql,
-        "sql: new index {} added for service ({}, {}), special {}", index_id,
-        ss.host_id(), ss.service_id(), special ? "1" : "0");
+        _logger_sql, "sql: new index {} added for service ({}, {}), special {}",
+        index_id, ss.host_id(), ss.service_id(), special ? "1" : "0");
     index_info info{
         .index_id = index_id,
         .host_name = ss.host_name(),
