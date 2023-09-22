@@ -25,6 +25,7 @@
 #include <deque>
 #include <list>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "bbdo/neb.pb.h"
@@ -302,6 +303,11 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
 
   mutable std::mutex _timer_m;
+  /* This is a barrier for timers. It must be locked in shared mode in the
+   * timers functions. So we can execute several timer functions at the same
+   * time. But it is locked in write mode in the stream destructor. So When
+   * executed, we are sure that all the timer functions have finished. */
+  mutable std::shared_mutex _barrier_timer_m;
   asio::system_timer _group_clean_timer;
   asio::system_timer _loop_timer;
 
