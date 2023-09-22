@@ -286,8 +286,7 @@ void stream::_unified_sql_process_pb_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            SPDLOG_LOGGER_DEBUG(_logger_sto,
-                                "new metric with metric_id={}",
+            SPDLOG_LOGGER_DEBUG(_logger_sto, "new metric with metric_id={}",
                                 it_index_cache->second.metric_id);
           }
         }
@@ -656,8 +655,7 @@ void stream::_unified_sql_process_service_status(
               _metrics[it_index_cache->second.metric_id] =
                   it_index_cache->second;
             }
-            SPDLOG_LOGGER_DEBUG(_logger_sto,
-                                "new metric with metric_id={}",
+            SPDLOG_LOGGER_DEBUG(_logger_sto, "new metric with metric_id={}",
                                 it_index_cache->second.metric_id);
           }
         }
@@ -972,7 +970,6 @@ void stream::_check_queues(boost::system::error_code ec) {
     {
       std::lock_guard<database::bulk_or_multi> lck(*_logs);
       if (_logs->ready()) {
-        int32_t conn = special_conn::log % _mysql.connections_count();
         SPDLOG_LOGGER_DEBUG(_logger_sql, "{} new logs inserted",
                             _logs->row_count());
         if (_dedicated_connections)
@@ -997,8 +994,10 @@ void stream::_check_queues(boost::system::error_code ec) {
     if (!_stop_check_queues) {
       std::lock_guard<std::mutex> l(_timer_m);
       _queues_timer.expires_after(std::chrono::seconds(5));
-      _queues_timer.async_wait(
-          [this](const boost::system::error_code& err) { _check_queues(err); });
+      _queues_timer.async_wait([this](const boost::system::error_code& err) {
+        std::shared_lock lck(_barrier_timer_m);
+        _check_queues(err);
+      });
     } else {
       SPDLOG_LOGGER_INFO(_logger_sql,
                          "SQL: check_queues correctly interrupted.");
