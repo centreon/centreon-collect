@@ -899,29 +899,29 @@ nlohmann::json conflict_manager::get_statistics() {
  * @brief Delete the conflict_manager singleton.
  */
 int32_t conflict_manager::unload(stream_type type) {
+  auto logger = log_v2::instance().get(_singleton->_logger_sql_id);
   if (!_singleton) {
-    _logger_sql->info("conflict_manager: already unloaded.");
+    logger->info("conflict_manager: already unloaded.");
     return 0;
   } else {
     uint32_t count = --_singleton->_ref_count;
     int retval;
     if (count == 0) {
-      __exit();
-      retval = _fifo.get_acks(type);
+      _singleton->__exit();
+      retval = _singleton->_fifo.get_acks(type);
       {
-        std::lock_guard<std::mutex> lck(_init_m);
+        std::lock_guard<std::mutex> lck(_singleton->_init_m);
         _state = finished;
         delete _singleton;
         _singleton = nullptr;
       }
-      _logger_sql->info(
-          "conflict_manager: no more user of the conflict manager.");
+      logger->info("conflict_manager: no more user of the conflict manager.");
     } else {
-      _logger_sql->info(
+      logger->info(
           "conflict_manager: still {} stream{} using the conflict manager.",
           count, count > 1 ? "s" : "");
-      retval = _fifo.get_acks(type);
-      _logger_sql->info(
+      retval = _singleton->_fifo.get_acks(type);
+      logger->info(
           "conflict_manager: still {} events handled but not acknowledged.",
           retval);
     }

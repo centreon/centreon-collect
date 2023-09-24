@@ -72,7 +72,7 @@ absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
  *                        events in a persistent storage.
  */
 muxer::muxer(std::string name,
-             const std::shared_ptr<engine>& parent,
+             std::unique_ptr<engine>& parent,
              const muxer_filter& r_filter,
              const muxer_filter& w_filter,
              bool persistent)
@@ -157,7 +157,7 @@ muxer::muxer(std::string name,
  * @return std::shared_ptr<muxer>
  */
 std::shared_ptr<muxer> muxer::create(std::string name,
-                                     const std::shared_ptr<engine>& parent,
+                                     std::unique_ptr<engine>& parent,
                                      const muxer_filter& r_filter,
                                      const muxer_filter& w_filter,
                                      bool persistent) {

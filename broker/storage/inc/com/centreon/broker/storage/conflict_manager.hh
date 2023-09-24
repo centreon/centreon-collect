@@ -246,7 +246,7 @@ class conflict_manager {
   database::mysql_stmt _custom_variable_delete;
   database::mysql_stmt _custom_variable_status_insupdate;
   database::mysql_stmt _event_handler_insupdate;
-  //database::mysql_stmt _flapping_status_insupdate;
+  // database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _host_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
@@ -374,7 +374,7 @@ class conflict_manager {
                            uint32_t interval_length,
                            const database_config& dbcfg);
   static conflict_manager& instance();
-  int32_t unload(stream_type type);
+  static int32_t unload(stream_type type);
   nlohmann::json get_statistics();
 
   int32_t send_event(stream_type c, std::shared_ptr<io::data> const& e);
