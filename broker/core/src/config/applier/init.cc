@@ -86,7 +86,7 @@ void config::applier::deinit() {
   log_v2::instance().get(0)->info("unloading applier::endpoint");
   config::applier::endpoint::unload();
   {
-    auto eng = multiplexing::engine::instance_ptr();
+    auto& eng = multiplexing::engine::instance_ptr();
     if (eng) {
       log_v2::instance().get(0)->info("unloading multiplexing::engine");
       multiplexing::engine::unload();
