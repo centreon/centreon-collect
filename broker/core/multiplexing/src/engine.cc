@@ -33,7 +33,7 @@ using namespace com::centreon::broker::multiplexing;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Class instance.
-std::shared_ptr<engine> engine::_instance{nullptr};
+std::unique_ptr<engine> engine::_instance{nullptr};
 std::mutex engine::_load_m;
 
 /**
@@ -41,7 +41,7 @@ std::mutex engine::_load_m;
  *
  *  @return Class instance.
  */
-std::shared_ptr<engine> engine::instance_ptr() {
+std::unique_ptr<engine>& engine::instance_ptr() {
   assert(_instance);
   return _instance;
 }
@@ -315,11 +315,11 @@ namespace detail {
  */
 class callback_caller {
   std::function<void()> _callback;
-  std::shared_ptr<engine> _parent;
+  std::unique_ptr<engine>& _parent;
 
  public:
   callback_caller(std::function<void()>&& callback,
-                  const std::shared_ptr<engine>& parent)
+                  std::unique_ptr<engine>& parent)
       : _callback(std::move(callback)), _parent(parent) {}
 
   /**

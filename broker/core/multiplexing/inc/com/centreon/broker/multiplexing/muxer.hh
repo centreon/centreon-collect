@@ -57,7 +57,7 @@ class muxer : public io::stream {
   static uint32_t _event_queue_max_size;
 
   const std::string _name;
-  std::shared_ptr<engine> _parent;
+  const std::unique_ptr<engine>& _parent;
   const std::string _queue_file_name;
   multiplexing::muxer_filter _read_filter;
   multiplexing::muxer_filter _write_filter;
@@ -84,7 +84,7 @@ class muxer : public io::stream {
   void _update_stats(void) noexcept;
 
   muxer(std::string name,
-        const std::shared_ptr<engine>& parent,
+        std::unique_ptr<engine>& parent,
         const muxer_filter& r_filter,
         const muxer_filter& w_filter,
         bool persistent = false);
@@ -96,7 +96,7 @@ class muxer : public io::stream {
   static uint32_t event_queue_max_size() noexcept;
 
   static std::shared_ptr<muxer> create(std::string name,
-                                       const std::shared_ptr<engine>& parent,
+                                       std::unique_ptr<engine>& parent,
                                        const muxer_filter& r_filter,
                                        const muxer_filter& w_filter,
                                        bool persistent = false);

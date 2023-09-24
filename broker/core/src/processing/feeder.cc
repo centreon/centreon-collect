@@ -47,7 +47,7 @@ constexpr unsigned max_event_queue_size = 0x10000;
  */
 std::shared_ptr<feeder> feeder::create(
     const std::string& name,
-    const std::shared_ptr<multiplexing::engine>& parent,
+    std::unique_ptr<multiplexing::engine>& parent,
     std::shared_ptr<io::stream>& client,
     const multiplexing::muxer_filter& read_filters,
     const multiplexing::muxer_filter& write_filters) {
@@ -69,7 +69,7 @@ std::shared_ptr<feeder> feeder::create(
  *  @param[in] write_filters  Write filters.
  */
 feeder::feeder(const std::string& name,
-               const std::shared_ptr<multiplexing::engine>& parent,
+               std::unique_ptr<multiplexing::engine>& parent,
                std::shared_ptr<io::stream>& client,
                const multiplexing::muxer_filter& read_filters,
                const multiplexing::muxer_filter& write_filters)
