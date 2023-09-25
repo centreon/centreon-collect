@@ -18,7 +18,7 @@
 
 # Enable unit tests or not .
 if(WITH_TESTING)
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  if("${OS_DISTRIBUTOR}" STREQUAL "CentOS" AND "${OS_VERSION}" EQUAL "8")
     add_definitions("-DGETTIMEOFDAY_WITH_TIMEZONE")
   endif()
 
