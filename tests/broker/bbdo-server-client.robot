@@ -236,7 +236,7 @@ BSCSSTG3
     Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
-    Broker Config Log    rrd    core    off
+    Broker Config Log    rrd    core    error
     Broker Config Log    central    tls    debug
     Broker Config Log    central    grpc    debug
     Broker Config Log    rrd    grpc    debug
@@ -275,7 +275,7 @@ BSCSSTG3
     ${content}=    Create List
     ...    Cannot open file '/tmp/etc/centreon-broker/missing-client.key': No such file or directory
     ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No information about the missing private key on server.
+    Should Be True    ${result}    No information about the missing private key on server.
 
 BSCSSC1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.

@@ -1,5 +1,36 @@
 # Broker documentation {#mainpage}
 
+## Architecture
+
+### Static instances
+
+Broker works with several singletons, `broker::engine`, `common::log\_v2` are
+such examples among others. These objects are **not** declared as shared
+pointers and should **not** become as such. If they are singletons, they can
+be called from everywhere and at everytime in the code. The shared pointer has
+a counter telling how many users hold it, when this counter is 0, it is removed.
+But in case of a static instance, we can still call the instance() object which
+became nullptr, otherwise we should test everywhere that the pointer exists
+which would be an aberation.
+
+So instance() are created at the start of cbd and destroyed at the end.
+
+### Shared pointers
+
+Broker works also with shared pointers. They are very useful during asynchronous
+calls ; cbd is heavily based on boost::asio. When a callback is posted to asio,
+it is very easy to capture shared pointer, so we are sure they are still alive
+when the function is executed.
+
+But we have to be careful with static instances since they are not shared
+pointers: Broker cannot stop before all the asynchronous calls are finished.
+The following steps must be done in the following order:
+
+1. Construction of static instances.
+2. Construction of shared pointers and life of cbd
+3. Asio work stopped correctly.
+4. When Asio is completely stopped, destruction of static instances.
+
 ## Processing
 
 There are two main classes in the broker Processing:
