@@ -39,7 +39,7 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     END
 
     ${connected}    Wait For Connections    3306    ${nb_conn_expected}
-    Should Be True    ${connected}    no ${nb_conn_expected} connections found
+    Should Be True    ${connected}    We should have ${nb_conn_expected} connections
 
     Examples:    nb_conn    nb_conn_expected    store_in_data_bin    --
     ...    1    1    yes
