@@ -312,20 +312,14 @@ extern "C" time_t time(time_t* t) __THROW {
   return (gl_now);
 }
 
-#ifdef __GNUG__
-extern "C" int gettimeofday(struct timeval* tv, struct timezone*) __THROW {
-  if (tv) {
-    tv->tv_sec = gl_now;
-    tv->tv_usec = 0;
-  }
-  return 0;
-}
-#else
+#ifdef __clang__
 extern "C" int gettimeofday(struct timeval* tv, void*) __THROW {
+#else
+extern "C" int gettimeofday(struct timeval* tv, struct timezone*) __THROW {
+#endif
   if (tv) {
     tv->tv_sec = gl_now;
     tv->tv_usec = 0;
   }
   return 0;
 }
-#endif
