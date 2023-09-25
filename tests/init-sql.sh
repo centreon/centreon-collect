@@ -30,7 +30,7 @@ else
     mysql --user="$DBUserRoot" --password="$DBPassRoot" < ../resources/centreon_storage.sql
 fi
 
-mkdir /tmp/mariadb_log
+mkdir -p /tmp/mariadb_log
 chown mysql: /tmp/mariadb_log
 
 #activate queries log
