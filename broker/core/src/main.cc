@@ -286,10 +286,15 @@ int main(int argc, char* argv[]) {
           conf.pool_size(n_thread);
         config::applier::init(conf);
 
-        // Apply resulting configuration totally or partially.
-        config::applier::state::instance().apply(conf, !check);
-        broker_name = conf.broker_name();
-        gl_state = conf;
+        try {
+          // Apply resulting configuration totally or partially.
+          config::applier::state::instance().apply(conf, !check);
+          broker_name = conf.broker_name();
+          gl_state = conf;
+        } catch (const std::exception& e) {
+          config::applier::deinit();
+          throw;
+        }
       }
 
       if (!gl_state.listen_address().empty())
