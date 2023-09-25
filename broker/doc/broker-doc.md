@@ -13,7 +13,11 @@ But in case of a static instance, we can still call the instance() object which
 became nullptr, otherwise we should test everywhere that the pointer exists
 which would be an aberation.
 
-So instance() are created at the start of cbd and destroyed at the end.
+So static instances are created at the start of cbd and destroyed at the end.
+This is essentially done using those calls:
+
+* `config::applier::init(conf);`
+* `config::applier::deinit();`
 
 ### Shared pointers
 
