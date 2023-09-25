@@ -71,7 +71,7 @@ contactgroup& contactgroup::operator=(contactgroup const& right) {
     _contactgroup_name = right._contactgroup_name;
     _members = right._members;
   }
-  return (*this);
+  return *this;
 }
 
 /**
@@ -233,7 +233,7 @@ set_string const& contactgroup::members() const throw() {
  */
 bool contactgroup::_set_alias(std::string const& value) {
   _alias = value;
-  return (true);
+  return true;
 }
 
 /**
@@ -245,7 +245,7 @@ bool contactgroup::_set_alias(std::string const& value) {
  */
 bool contactgroup::_set_contactgroup_members(std::string const& value) {
   _contactgroup_members = value;
-  return (true);
+  return true;
 }
 
 /**
