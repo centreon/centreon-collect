@@ -18,6 +18,11 @@
 
 # Enable unit tests or not .
 if(WITH_TESTING)
+  if(("${OS_DISTRIBUTOR}" MATCHES "debian")
+     OR ("${OS_DISTRIBUTOR}" MATCHES "centos" AND "${OS_VERSION}" GREATER 8))
+    add_definitions("-DGETTIMEOFDAY_WITH_TIMEZONE")
+  endif()
+
   # Tests directory. Add root inclusion direction.
   set(MODULE_DIR "${PROJECT_SOURCE_DIR}/modules/external_commands")
   set(INC_DIR "${MODULE_DIR}/inc/com/centreon/engine/modules/external_commands")
@@ -137,7 +142,6 @@ if(WITH_TESTING)
       "${TESTS_DIR}/timeperiod/get_next_valid_time/skip_interval.cc"
       "${TESTS_DIR}/timeperiod/get_next_valid_time/specific_month_date.cc"
       "${TESTS_DIR}/timeperiod/utils.cc"
-
       # Headers.
       "${TESTS_DIR}/test_engine.hh"
       "${TESTS_DIR}/test_engine.hh"
