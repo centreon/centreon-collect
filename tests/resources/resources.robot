@@ -25,13 +25,13 @@ ${engineLog3}       ${ENGINE_LOG}/config3/centengine.log
 
 *** Keywords ***
 Config BBDO3
-    [Arguments]    ${nbEngine}
+    [Arguments]    ${nbEngine}    ${version}=3.0.1
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    ${version}
+    Broker Config Add Item    central    bbdo_version    ${version}
     FOR    ${i}    IN RANGE    ${nbEngine}
         ${mod}    Catenate    SEPARATOR=    module    ${i}
-        Broker Config Add Item    ${mod}    bbdo_version    3.0.1
+        Broker Config Add Item    ${mod}    bbdo_version    ${version}
     END
 
 Clean Before Suite
@@ -186,6 +186,20 @@ Stop Engine
         END
     END
 
+Stop Engine Broker And Save Logs
+    [Arguments]    ${only_central}=False
+    TRY
+        Stop Engine
+    EXCEPT
+        Log    can't kindly stop engine
+    END
+    TRY
+        Kindly Stop Broker    only_central=${only_central}
+    EXCEPT
+        Log    can't kindly stop broker
+    END
+    Save Logs If failed
+
 Get Engine Pid
     [Arguments]    ${process_alias}
     ${pid}    Get Process Id    ${process_alias}
@@ -251,7 +265,7 @@ Dump Process
     ...    gdb
     ...    -batch
     ...    -ex
-    ...    thread apply all bt 20
+    ...    thread apply all bt 30
     ...    ${binary_path}
     ...    ${output}.${pid}
     ...    stdout=${gdb_output}
@@ -269,7 +283,7 @@ Coredump Info
     ...    gdb
     ...    -batch
     ...    -ex
-    ...    thread apply all bt 20
+    ...    thread apply all bt 30
     ...    ${binary_path}
     ...    /tmp/core.${pid}
     ...    stdout=${output}

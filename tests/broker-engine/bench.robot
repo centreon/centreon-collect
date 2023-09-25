@@ -14,7 +14,7 @@ Library             ../resources/Bench.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Test Clean
+Test Teardown       Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -89,12 +89,12 @@ BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
     Config Engine    ${100}    ${100}    ${20}
+    Config Broker    module    ${100}
+    Config Broker    central
     FOR    ${poller_index}    IN RANGE    100
         # We want all the services to be passive to avoid parasite checks during our test.
         Set Services Passive    ${poller_index}    service_.*
     END
-    Config Broker    module    ${100}
-    Config Broker    central
     Config Broker    rrd
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
@@ -184,14 +184,3 @@ BENCH_1000STATUS_100${suffixe}
     ...    ENGINE    1
     ...    ENGINE_2    2
     ...    ENGINE_3    3
-
-
-*** Keywords ***
-Test Clean
-    TRY
-        Stop Engine
-        Kindly Stop Broker
-    EXCEPT
-        Log    can't kindly stop broker or engine
-    END
-    Save logs If Failed

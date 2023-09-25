@@ -10,7 +10,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Test Clean
+Test Teardown       Stop Engine Broker And Save Logs    only_central=True
 
 
 *** Test Cases ***
@@ -46,13 +46,3 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     ...    2    2    yes
     ...    3    3    yes
     ...    3    2    no
-
-
-*** Keywords ***
-Test Clean
-    TRY
-        Kindly Stop Broker    only_central=${True}
-    EXCEPT
-        Log    can't kindly stop broker
-    END
-    Save logs If Failed

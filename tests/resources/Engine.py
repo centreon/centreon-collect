@@ -553,11 +553,15 @@ define timeperiod {
         f.close()
 
 
+engine = None
+
 ##
 # @brief Configure all the necessary files for num instances of centengine.
 #
 # @param num: How many engine configurations to start
 #
+
+
 def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
     global engine
     engine = EngineInstance(num, hosts, srv_by_host)
@@ -567,7 +571,10 @@ def config_engine(num: int, hosts: int = 50, srv_by_host: int = 20):
 # @brief Accessor to the number of centengine configurations
 #
 def get_engines_count():
-    return engine.instances
+    if engine is None:
+        return 0
+    else:
+        return engine.instances
 
 
 ##

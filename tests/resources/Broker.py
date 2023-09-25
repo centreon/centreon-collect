@@ -641,10 +641,12 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
 
+    output_name = f"{name}-broker-master-output"
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
+        output_name = 'central-module-master-output'
     else:
         filename = "central-rrd.json"
     f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
@@ -657,7 +659,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
         if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
             io_dict.pop(i)
     stream = {
-        "name": f"{name}-broker-master-output",
+        "name": f"{output_name}",
         "port": f"{port}",
         "transport_protocol": proto,
         "type": stream,
@@ -1732,8 +1734,6 @@ def compare_rrd_status_average_value(index_id, value: int):
         logger.console(
             f"It was impossible to get the average value from the file {VAR_ROOT}/lib/centreon/statuss/{index_id}.rrd from the last 30 days")
         return True
-
-
 
 
 def compare_rrd_average_value_with_grpc(metric, key, value: float):
