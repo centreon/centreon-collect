@@ -1,0 +1,155 @@
+# Veracode scans
+on:
+  workflow_call:
+    inputs:
+      module_name:
+        required: true
+        type: string
+      major_version:
+        required: true
+        type: string
+      minor_version:
+        required: true
+        type: string
+      stability:
+        required: true
+        type: string
+      img_version:
+        required: true
+        type: string
+    secrets:
+      veracode_api_id:
+        required: true
+      veracode_api_key:
+        required: true
+      veracode_srcclr_token:
+        required: true
+      docker_registry_id:
+        required: true
+      docker_registry_passwd:
+        required: true
+
+jobs:
+  build:
+    name: Binary preparation
+    runs-on: [self-hosted, collect]
+    if: github.event_name != 'pull_request' && (inputs.stability == 'stable' || inputs.stability == 'unstable')
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
+      credentials:
+        username: ${{ secrets.docker_registry_id }}
+        password: ${{ secrets.docker_registry_passwd }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Compiling Cpp sources
+        run: |
+          rm -rf build
+          mkdir build
+          cd build
+
+          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+
+          sudo cmake \
+            -G "Ninja" \
+            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+            -DWITH_TESTING=OFF \
+            -DWITH_BENCH=OFF \
+            -DWITH_MODULE_SIMU=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DWITH_STARTUP_SCRIPT=systemd \
+            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+            -DWITH_USER_BROKER=centreon-broker \
+            -DWITH_GROUP_BROKER=centreon-broker \
+            -DWITH_USER_ENGINE=centreon-engine \
+            -DWITH_GROUP_ENGINE=centreon-engine \
+            -DWITH_VAR_DIR=/var/log/centreon-engine \
+            -DWITH_DAEMONS=ON \
+            -DWITH_CREATE_FILES=OFF \
+            -DWITH_CONFIG_FILES=ON \
+            ..
+
+          sudo ninja
+
+      - name: Binary preparation
+        run: |
+          echo "[INFO] - Keeping only compiled files"
+          find ./build -type f -not \( -name "*.so" -o -name "*.h" -o -name "*.cc" -o -name "*.hpp" \) -delete
+
+          echo "[INFO] - Removing veracode exclusions"
+            if [[ -f ".veracode-exclusions" ]]; then
+            for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
+              if [[ -d "$LINE" ]]; then
+                rm -rf "$LINE"
+                echo "[INFO] - folder removed from analysis : '$LINE'"
+              elif [[ -e "$LINE" ]]; then
+                rm -f "$LINE"
+                echo "[INFO] - file removed from analysis : '$LINE'"
+              elif [[ -z "$LINE" ]]; then
+                echo "[INFO] - empty directive. Skipping this line"
+              else
+                echo "[WARN] - target to exclude not found. Skipping: '$LINE'"
+              fi
+            done
+          else
+            echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+          fi
+
+          echo "[INFO] - Generating the tarball"
+          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+
+      - name: Cache
+        uses: actions/cache/save@v3
+        with:
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
+
+  sandbox-scan:
+    needs: [build]
+    name: Sandbox scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Promote latest scan
+        # Only last develop should be promoted to policy scan
+        if: github.ref_name == 'develop'
+
+        env:
+          VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
+          VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
+
+        # Action forked as API calls hardcoded '.com' route
+        uses: sc979/veracode-sandboxes-helper@v0.2
+        # Promote should not fail if sandbox was not found.
+        continue-on-error: true
+        with:
+          activity: "promote-latest-scan"
+          app-name: "${{ inputs.module_name }}"
+          sandbox-name: "${{ github.ref_name }}"
+          delete-on-promote: false
+
+      - name: Get build binary
+        uses: actions/cache/restore@v3
+        with:
+          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
+
+      - name: Sandbox scan
+        uses: veracode/veracode-uploadandscan-action@0.2.6
+        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
+        with:
+          appname: "${{ inputs.module_name }}"
+          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
+          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          vid: "vera01ei-${{ secrets.veracode_api_id }}"
+          vkey: "vera01es-${{ secrets.veracode_api_key }}"
+          createprofile: true
+          createsandbox: true
+          sandboxname: "${{ github.ref_name }}"
+          #scantimeout: 120
+          includenewmodules: true
+          scanallnonfataltoplevelmodules: true
+          deleteincompletescan: 2
+          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
