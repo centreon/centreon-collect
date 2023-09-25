@@ -314,10 +314,10 @@ extern "C" time_t time(time_t* t) __THROW {
   return (gl_now);
 }
 
-#ifdef __clang__
-extern "C" int gettimeofday(struct timeval* tv, void*) __THROW {
-#else
+#ifdef GETTIMEOFDAY_WITH_TIMEZONE
 extern "C" int gettimeofday(struct timeval* tv, struct timezone*) __THROW {
+#else
+extern "C" int gettimeofday(struct timeval* tv, void*) __THROW {
 #endif
   if (tv) {
     tv->tv_sec = gl_now;
