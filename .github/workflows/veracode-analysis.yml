@@ -50,6 +50,7 @@ jobs:
 
           sudo cmake \
             -G "Ninja" \
+            -DNG=ON \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DWITH_TESTING=OFF \
             -DWITH_BENCH=OFF \
