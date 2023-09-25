@@ -80,12 +80,48 @@ group<T>& group<T>::operator=(const std::string& other) {
     if (other[0] == '+') {
       _is_inherit = true;
       std::string_view sv = other;
-      _data = absl::StrSplit(sv.substr(1), ',');
+      auto split = absl::StrSplit(sv.substr(1), ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.push_back(std::string(str.data(), str.size()));
+      }
     } else if (other == "null")
       _is_null = true;
     else {
       _is_inherit = false;
-      _data = absl::StrSplit(other, ',');
+      auto split = absl::StrSplit(other, ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.push_back(std::string(str.data(), str.size()));
+      }
+    }
+  }
+  _is_set = true;
+  return *this;
+}
+
+template <>
+group<std::set<std::string>>& group<std::set<std::string>>::operator=(
+    const std::string& other) {
+  _data.clear();
+  if (!other.empty()) {
+    if (other[0] == '+') {
+      _is_inherit = true;
+      std::string_view sv = other;
+      auto split = absl::StrSplit(sv.substr(1), ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.insert(std::string(str.data(), str.size()));
+      }
+    } else if (other == "null")
+      _is_null = true;
+    else {
+      _is_inherit = false;
+      auto split = absl::StrSplit(other, ',');
+      for (auto& s : split) {
+        std::string_view str = absl::StripAsciiWhitespace(s);
+        _data.insert(std::string(str.data(), str.size()));
+      }
     }
   }
   _is_set = true;
