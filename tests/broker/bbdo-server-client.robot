@@ -236,7 +236,7 @@ BSCSSTG3
     Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
-    Broker Config Log    rrd    core    off
+    Broker Config Log    rrd    core    error
     Broker Config Log    central    tls    debug
     Broker Config Log    central    grpc    debug
     Broker Config Log    rrd    grpc    debug
