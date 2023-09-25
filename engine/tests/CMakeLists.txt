@@ -18,6 +18,7 @@
 
 # Enable unit tests or not .
 if(WITH_TESTING)
+  message(STATUS "OS ${OS_DISTRIBUTOR} ${OS_VERSION}")
   if("${OS_DISTRIBUTOR}" STREQUAL "CentOS" AND "${OS_VERSION}" EQUAL "8")
     add_definitions("-DGETTIMEOFDAY_WITH_TIMEZONE")
   endif()
