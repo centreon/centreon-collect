@@ -19,6 +19,7 @@ on:
       - cmake.sh
       - CMakeLists.txt
       - conanfile.txt
+      - selinux/**
       - "!.veracode-exclusions"
   push:
     branches:
@@ -38,6 +39,7 @@ on:
       - cmake.sh
       - CMakeLists.txt
       - conanfile.txt
+      - selinux/**
       - "!.veracode-exclusions"
 
 jobs:

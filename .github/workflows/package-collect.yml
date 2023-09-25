@@ -58,6 +58,23 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
 
+      - name: Generate selinux binaries
+        if: ${{ matrix.package_extension == 'rpm' }}
+        run: |
+          cd selinux
+          for MODULE in "centreon-engine" "centreon-broker"; do
+            cd $MODULE
+            sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
+            make -f /usr/share/selinux/devel/Makefile
+            cd -
+          done
+        shell: bash
+
+      - name: Remove selinux packaging files on debian
+        if: ${{ matrix.package_extension == 'deb' }}
+        run: rm -f packaging/*-selinux.yaml
+        shell: bash
+
       - name: Compile sources
         run: |
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
@@ -116,8 +133,7 @@ jobs:
 
       - name: Cleaning not needed packages
         shell: bash
-        run: |
-          rm -rf *-debuginfo*.${{ matrix.package_extension }}
+        run: rm -rf *-debuginfo*.${{ matrix.package_extension }}
 
       # set condition to true if artifacts are needed
       - if: ${{ false }}
