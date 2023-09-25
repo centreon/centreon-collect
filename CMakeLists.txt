@@ -93,15 +93,15 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   file(STRINGS "/etc/os-release" release REGEX "^ID")
 
   foreach(line ${release})
-    if(${line} MATCHES "ID_LIKE=.*")
+    if(${line} MATCHES "^ID_LIKE=.*")
       string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
     endif()
 
-    if(${line} MATCHES "ID=.*")
+    if(${line} MATCHES "^ID=.*")
       string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
     endif()
 
-    if(${line} MATCHES "VERSION_ID=\"[0-9]*[^0-9].*")
+    if(${line} MATCHES "^VERSION_ID=\"[0-9]*[^0-9].*")
       string(REGEX REPLACE "VERSION_ID=\"([0-9]*)[^0-9].*" "\\1" version
                            ${line})
     endif()
