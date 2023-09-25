@@ -1,7 +1,7 @@
 [requires]
 abseil/20230125.3
 boost/1.83.0
-fmt/10.1.1
+fmt/9.1.0
 grpc/1.50.1
 gtest/1.14.0
 libcurl/8.2.1
