@@ -82,7 +82,7 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     """
     limit = time.time() + timeout
     r = re.compile(
-        r"^ESTAB.*127\.0\.0\.1\]*:{}\s|^ESTAB.*\[::1\]*:{}\s".format(port, port))
+        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
 
     while time.time() < limit:
         out = getoutput("ss -plant")
@@ -90,7 +90,8 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
         estab_port = list(filter(r.match, lst))
         if len(estab_port) >= nb:
             return True
-        time.sleep(5)
+        logger.console(f"Currently {estab_port} connections")
+        time.sleep(2)
     return False
 
 
