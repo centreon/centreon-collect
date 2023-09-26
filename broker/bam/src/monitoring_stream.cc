@@ -200,27 +200,28 @@ struct bulk_ba_binder {
       binder.set_value_as_f64(0, status.level_nominal);
       binder.set_value_as_f64(1, status.level_acknowledgement);
       binder.set_value_as_f64(2, status.level_downtime);
-      binder.set_value_as_u32(6, status.ba_id);
+      binder.set_value_as_u32(7, status.ba_id);
       if (status.last_state_change.is_null())
         binder.set_null_u64(3);
       else
         binder.set_value_as_u64(3, status.last_state_change.get_time_t());
       binder.set_value_as_bool(4, status.in_downtime);
       binder.set_value_as_i32(5, status.state);
-
+      binder.set_null_str(6);
     } else {
       const BaStatus& status =
           static_cast<const pb_ba_status*>(event.get())->obj();
       binder.set_value_as_f64(0, status.level_nominal());
       binder.set_value_as_f64(1, status.level_acknowledgement());
       binder.set_value_as_f64(2, status.level_downtime());
-      binder.set_value_as_u32(6, status.ba_id());
+      binder.set_value_as_u32(7, status.ba_id());
       if (status.last_state_change() <= 0)
         binder.set_null_u64(3);
       else
         binder.set_value_as_u64(3, status.last_state_change());
       binder.set_value_as_bool(4, status.in_downtime());
       binder.set_value_as_i32(5, status.state());
+      binder.set_value_as_str(6, status.output());
     }
     binder.next_row();
   }
@@ -233,11 +234,12 @@ struct ba_binder {
     if (event->type() == ba_status::static_type()) {
       const ba_status& status = *std::static_pointer_cast<ba_status>(event);
       if (status.last_state_change.is_null())
-        return fmt::format("({},{},{},NULL,{},{},{})", status.level_nominal,
-                           status.level_acknowledgement, status.level_downtime,
-                           int(status.in_downtime), status.state, status.ba_id);
+        return fmt::format("({},{},{},NULL,{},{},NULL,{})",
+                           status.level_nominal, status.level_acknowledgement,
+                           status.level_downtime, int(status.in_downtime),
+                           status.state, status.ba_id);
       else
-        return fmt::format("({},{},{},{},{},{},{})", status.level_nominal,
+        return fmt::format("({},{},{},{},{},{},NULL,{})", status.level_nominal,
                            status.level_acknowledgement, status.level_downtime,
                            status.last_state_change.get_time_t(),
                            int(status.in_downtime), status.state, status.ba_id);
@@ -245,16 +247,17 @@ struct ba_binder {
       const BaStatus& status =
           static_cast<const pb_ba_status*>(event.get())->obj();
       if (status.last_state_change() <= 0)
-        return fmt::format("({},{},{},NULL,{},{},{})", status.level_nominal(),
-                           status.level_acknowledgement(),
-                           status.level_downtime(), int(status.in_downtime()),
-                           int(status.state()), status.ba_id());
+        return fmt::format(
+            "({},{},{},NULL,{},{},'{}',{})", status.level_nominal(),
+            status.level_acknowledgement(), status.level_downtime(),
+            int(status.in_downtime()), int(status.state()), status.output(),
+            status.ba_id());
       else
-        return fmt::format("({},{},{},{},{},{},{})", status.level_nominal(),
-                           status.level_acknowledgement(),
-                           status.level_downtime(), status.last_state_change(),
-                           int(status.in_downtime()), int(status.state()),
-                           status.ba_id());
+        return fmt::format(
+            "({},{},{},{},{},{},'{}',{})", status.level_nominal(),
+            status.level_acknowledgement(), status.level_downtime(),
+            status.last_state_change(), int(status.in_downtime()),
+            int(status.state()), status.output(), status.ba_id());
     }
   }
 };
@@ -612,7 +615,7 @@ void monitoring_stream::_prepare() {
         _mysql,
         "UPDATE mod_bam SET "
         "current_level=?,acknowledged=?,downtime=?,last_state_change=?,"
-        "in_downtime=?,current_status=? WHERE ba_id=?",
+        "in_downtime=?,current_status=?,comment=? WHERE ba_id=?",
         _conf_queries_per_transaction);
     _kpi_query = std::make_unique<database::bulk_or_multi>(
         _mysql,
@@ -624,12 +627,14 @@ void monitoring_stream::_prepare() {
   } else {
     _ba_query = std::make_unique<database::bulk_or_multi>(
         "INSERT INTO mod_bam (current_level, acknowledged, downtime, "
-        "last_state_change, in_downtime, current_status, ba_id) VALUES",
+        "last_state_change, in_downtime, current_status, comment, ba_id) "
+        "VALUES",
         "ON DUPLICATE KEY UPDATE current_level=VALUES(current_level), "
         "acknowledged=VALUES(acknowledged), downtime=VALUES(downtime), "
         "last_state_change=VALUES(last_state_change), "
         "in_downtime=VALUES(in_downtime), "
-        "current_status=VALUES(current_status)");
+        "current_status=VALUES(current_status), "
+        "comment=VALUES(comment)");
     _kpi_query = std::make_unique<database::bulk_or_multi>(
         "INSERT INTO mod_bam_kpi (acknowledged, current_status, "
         "downtime, last_level, state_type, last_state_change, last_impact, "

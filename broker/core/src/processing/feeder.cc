@@ -327,7 +327,7 @@ void feeder::_start_stat_timer() {
  *
  */
 void feeder::_stat_timer_handler(const boost::system::error_code& err) {
-  if (err) {
+  if (err || _state != state::running) {
     return;
   }
   set_queued_events(_muxer->get_event_queue_size());

@@ -143,9 +143,11 @@ std::string ba_ratio_percent::get_output() const {
       break;
     default:
       retval = fmt::format(
-          "Status is {} - {} \% of KPIs are in a CRITICAL state (warn: {} "
+          "Status is {} - {}\% of KPIs are in a CRITICAL state (warn: {} "
           "- crit: {})",
-          state_str[state], _level_hard, _level_warning, _level_critical);
+          state_str[state],
+          static_cast<int>(100 * _level_hard / _impacts.size()), _level_warning,
+          _level_critical);
       break;
   }
 

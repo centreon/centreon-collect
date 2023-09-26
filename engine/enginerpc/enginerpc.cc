@@ -35,6 +35,8 @@ enginerpc::enginerpc(const std::string& address, uint16_t port) {
 }
 
 void enginerpc::shutdown() {
-  _server->Shutdown();
-  _server->Wait();
+  if (_server) {
+    _server->Shutdown();
+    _server->Wait();
+  }
 }

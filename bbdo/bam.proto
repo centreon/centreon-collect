@@ -44,6 +44,7 @@ message BaStatus {
     double level_nominal = 7;
     State state = 8;
     bool state_changed = 9;
+    string output = 10;
 }
 
 message BaEvent {
