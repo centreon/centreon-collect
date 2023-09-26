@@ -35,6 +35,13 @@ namespace applier {
  *  Apply some configuration state.
  */
 class state {
+ public:
+  struct stats {
+    uint32_t sql_slowest_statements_count = false;
+    uint32_t sql_slowest_queries_count = false;
+  };
+
+ private:
   std::string _cache_dir;
   uint32_t _poller_id;
   uint32_t _rpc_port;
@@ -43,10 +50,7 @@ class state {
   size_t _pool_size;
   modules _modules;
 
-  struct stats {
-    uint32_t sql_slowest_statements_count = false;
-    uint32_t sql_slowest_queries_count = false;
-  } _stats_conf;
+  static stats _stats_conf;
 
   absl::flat_hash_map<uint64_t, std::string> _connected_pollers;
 
@@ -69,8 +73,8 @@ class state {
   size_t pool_size() const noexcept;
   const std::string& poller_name() const noexcept;
   modules& get_modules();
-  stats& mut_stats_conf();
-  const stats& stats_conf() const;
+  static stats& mut_stats_conf();
+  static const stats& stats_conf();
 };
 }  // namespace applier
 }  // namespace config
