@@ -90,21 +90,18 @@ include_directories("inc")
 # Get distributions name
 #
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  file(STRINGS "/etc/os-release" release REGEX "^ID")
+  file(STRINGS "/etc/os-release" release REGEX "^.*ID.*=")
 
   foreach(line ${release})
     if(${line} MATCHES "^ID_LIKE=.*")
       string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
-    endif()
-
-    if(${line} MATCHES "^ID=.*")
+    elseif(${line} MATCHES "^VERSION_ID=.*")
+      string(REGEX REPLACE "VERSION_ID=\"([0-9]*)[^0-9].*" "\\1" version
+                           ${line})
+    elseif(${line} MATCHES "^ID=.*")
       string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
     endif()
 
-    if(${line} MATCHES "^VERSION_ID=\"[0-9]*[^0-9].*")
-      string(REGEX REPLACE "VERSION_ID=\"([0-9]*)[^0-9].*" "\\1" version
-                           ${line})
-    endif()
   endforeach()
 
   string(TOLOWER "${like}" like)
@@ -127,7 +124,8 @@ else()
   set(OS_VERSION "??")
 endif()
 
-message(STATUS "${id} detected (compatible with ${OS_DISTRIBUTOR})")
+message(
+  STATUS "${id} ${OS_VERSION} detected (compatible with ${OS_DISTRIBUTOR})")
 
 # set -latomic if OS is Raspbian.
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
