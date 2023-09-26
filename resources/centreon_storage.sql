@@ -871,7 +871,7 @@ DROP TABLE IF EXISTS `metrics`;
 CREATE TABLE `metrics` (
   `metric_id` int(11) NOT NULL AUTO_INCREMENT,
   `index_id` bigint unsigned DEFAULT NULL,
-  `metric_name` varchar(21792) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
+  `metric_name` varchar(1021) CHARACTER SET utf8 COLLATE utf8_bin DEFAULT NULL,
   `data_source_type` enum('0','1','2','3') DEFAULT NULL,
   `unit_name` varchar(32) DEFAULT NULL,
   `current_value` float DEFAULT NULL,
