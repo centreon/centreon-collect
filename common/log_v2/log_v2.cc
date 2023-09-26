@@ -150,6 +150,7 @@ uint32_t log_v2::create_logger_or_get_id(const std::string& name,
   if (activate) {
     auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     logger = std::make_shared<spdlog::logger>(name, stdout_sink);
+    logger->set_level(level::level_enum::info);
   } else {
     auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
     logger = std::make_shared<spdlog::logger>(name, null_sink);
