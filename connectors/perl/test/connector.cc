@@ -58,7 +58,7 @@ static constexpr absl::string_view result_warning(
     "1\x00"
     " \x00"
     "Centreon is wonderful\n"
-    "\x00\x00\x00\x00");
+    "\x00\x00\x00\x00", 39);
 
 static constexpr absl::string_view result_critical(
     "3\x00"
@@ -67,7 +67,7 @@ static constexpr absl::string_view result_critical(
     "2\x00"
     " \x00"
     "Centreon is wonderful\n"
-    "\x00\x00\x00\x00");
+    "\x00\x00\x00\x00", 39);
 
 static constexpr std::size_t count = 300;
 
@@ -114,7 +114,7 @@ constexpr absl::string_view TimeoutKillTermRESULT(
     "1\0"
     "15\0"
     " time out\0"
-    " \0\0\0\0");
+    " \0\0\0\0", 27);
 
 #define TimeoutTermCMD \
   "2\0"                \
