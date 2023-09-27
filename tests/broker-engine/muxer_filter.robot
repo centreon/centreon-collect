@@ -132,11 +132,11 @@ BAM_STREAM_FILTER
     Clone Engine Config To DB
     Add Bam Config To Engine
 
-    @{svc}=    Set Variable    ${{ [("host_16", "service_314")] }}
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create BA With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}=    Get Command Id    314
+    ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
     Start Broker    True
@@ -151,7 +151,7 @@ BAM_STREAM_FILTER
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
@@ -160,20 +160,20 @@ BAM_STREAM_FILTER
     # monitoring
     FOR    ${cpt}    IN    RANGE 30
         # pb_service
-        ${grep_res1}=    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001b written
+        ${grep_res1}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001b written
         # pb_service_status
-        ${grep_res2}=    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001d written
+        ${grep_res2}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 1001d written
         # pb_ba_status
-        ${grep_res3}=    Grep File    ${centralLog}    centreon-bam-monitoring event of type 60013 written
+        ${grep_res3}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 60013 written
         # pb_kpi_status
-        ${grep_res4}=    Grep File    ${centralLog}    centreon-bam-monitoring event of type 6001b written
+        ${grep_res4}    Grep File    ${centralLog}    centreon-bam-monitoring event of type 6001b written
 
         # reject KpiEvent
-        ${grep_res5}=    Grep File
+        ${grep_res5}    Grep File
         ...    ${centralLog}
         ...    muxer centreon-bam-monitoring event of type 60015 rejected by write filter
         # reject storage
-        ${grep_res6}=    Grep File
+        ${grep_res6}    Grep File
         ...    ${centralLog}
         ...    muxer centreon-bam-monitoring event of type 3[0-9a-f]{4} rejected by write filter    regexp=True
 
@@ -182,30 +182,30 @@ BAM_STREAM_FILTER
         END
     END
 
-    Should Not Be Empty    ${grep_res1}    msg=no pb_service event
-    Should Not Be Empty    ${grep_res2}    msg=no pb_service_status event
-    Should Not Be Empty    ${grep_res3}    msg=no pb_ba_status event
-    Should Not Be Empty    ${grep_res4}    msg=no pb_kpi_status event
-    Should Not Be Empty    ${grep_res5}    msg=no KpiEvent event
-    Should Not Be Empty    ${grep_res6}    msg=no storage event rejected
+    Should Not Be Empty    ${grep_res1}    At least, one pb_service event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res2}    At least, one pb_service_status event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res3}    At least, one pb_ba_status event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res4}    At least, one pb_kpi_status event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res5}    At least, one KpiEvent event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res6}    At least, one event of category Storage should be written on the BAM monitoring stream
 
-    # reporting
+    # Reporting stream
     # pb_ba_event
-    ${grep_res}=    Grep File    ${centralLog}    centreon-bam-reporting event of type 60014 written
-    Should Not Be Empty    ${grep_res}    msg=no pb_ba_event
+    ${grep_res}    Grep File    ${centralLog}    centreon-bam-reporting event of type 60014 written
+    Should Not Be Empty    ${grep_res}    At least, one pb_ba_event event should be written on the BAM reporting stream
     # pb_kpi_event
-    ${grep_res}=    Grep File    ${centralLog}    centreon-bam-reporting event of type 60015 written
-    Should Not Be Empty    ${grep_res}    msg=no pb_kpi_event
+    ${grep_res}    Grep File    ${centralLog}    centreon-bam-reporting event of type 60015 written
+    Should Not Be Empty    ${grep_res}    At least, one pb_kpi_event event should be written on the BAM reporting stream
     # reject storage
-    ${grep_res}=    Grep File
+    ${grep_res}    Grep File
     ...    ${centralLog}
     ...    centreon-bam-reporting event of type 3[0-9a-f]{4} rejected by write filter    regexp=True
-    Should Not Be Empty    ${grep_res}    msg=no rejected storage event
+    Should Not Be Empty    ${grep_res}    Storage category events should be rejected from BAM reporting stream.
     # reject neb
-    ${grep_res}=    Grep File
+    ${grep_res}    Grep File
     ...    ${centralLog}
     ...    centreon-bam-reporting event of type 1[0-9a-f]{4} rejected by write filter    regexp=True
-    Should Not Be Empty    ${grep_res}    msg=no rejected neb event
+    Should Not Be Empty    ${grep_res}    Neb category events should be rejected from BAM reporting stream.
 
     Stop Engine
     Kindly Stop Broker    True

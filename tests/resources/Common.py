@@ -750,7 +750,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                 logger.console(f"ba: {result[0]}")
                 if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
-        time.sleep(5)
+        time.sleep(1)
     return False
 
 
