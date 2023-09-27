@@ -27,7 +27,7 @@ BESS1
     Config Broker    rrd
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
     Kindly Stop Broker
     Stop Engine
@@ -41,12 +41,12 @@ BESS2
     Config Broker    rrd
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
-    ${result}=    Check Poller Enabled In Database    1    10
+    ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Kindly Stop Broker
 
@@ -59,12 +59,12 @@ BESS3
     Config Broker    rrd
     Start Engine
     Start Broker
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
-    ${result}=    Check Poller Enabled In Database    1    10
+    ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Kindly Stop Broker
 
@@ -77,9 +77,9 @@ BESS4
     Config Broker    rrd
     Start Engine
     Start Broker
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
-    ${result}=    Check Poller Enabled In Database    1    10
+    ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Kindly Stop Broker
     Stop Engine
@@ -94,7 +94,7 @@ BESS5
     Engine Config Set Value    ${0}    debug_level    ${-1}
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
     Kindly Stop Broker
     Stop Engine
@@ -112,7 +112,7 @@ BESS_GRPC1
     Change Broker tcp input to grpc    rrd
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
     Kindly Stop Broker
     Stop Engine
@@ -130,12 +130,12 @@ BESS_GRPC2
     Change Broker tcp input to grpc    rrd
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
-    ${result}=    Check Poller Enabled In Database    1    10
+    ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Kindly Stop Broker
 
@@ -152,12 +152,12 @@ BESS_GRPC3
     Change Broker tcp input to grpc    rrd
     Start Engine
     Start Broker
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
-    ${result}=    Check Poller Enabled In Database    1    10
+    ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Kindly Stop Broker
 
@@ -174,7 +174,7 @@ BESS_GRPC4
     Change Broker tcp input to grpc    rrd
     Start Engine
     Start Broker
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
     Kindly Stop Broker
     Stop Engine
@@ -193,12 +193,12 @@ BESS_GRPC5
     Change Broker tcp input to grpc    rrd
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
-    ${result}=    Check Poller Enabled In Database    1    10
+    ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Kindly Stop Broker
 
@@ -217,12 +217,12 @@ BESS_GRPC_COMPRESS1
     Change Broker Compression Input    central    centreon-broker-master-input    yes
     Start Broker
     Start Engine
-    ${result}=    Check Connections
+    ${result}    Check Connections
     Should Be True    ${result}
-    ${result}=    Check Poller Enabled In Database    1    10
+    ${result}    Check Poller Enabled In Database    1    10
     Should Be True    ${result}
     Stop Engine
-    ${result}=    Check Poller Disabled In Database    1    10
+    ${result}    Check Poller Disabled In Database    1    10
     Should Be True    ${result}
     Kindly Stop Broker
 
@@ -247,12 +247,12 @@ BESS_CRYPTED_GRPC1
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
-        ${result}=    Check Connections
+        ${result}    Check Connections
         Should Be True    ${result}
-        ${result}=    Check Poller Enabled In Database    1    10
+        ${result}    Check Poller Enabled In Database    1    10
         Should Be True    ${result}
         Stop Engine
-        ${result}=    Check Poller Disabled In Database    1    10
+        ${result}    Check Poller Disabled In Database    1    10
         Should Be True    ${result}
         Kindly Stop Broker
     END
@@ -324,7 +324,7 @@ BESS_CRYPTED_REVERSED_GRPC1
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
-        ${result}=    Check Connections
+        ${result}    Check Connections
         Should Be True    ${result}
         Sleep    2s
         Kindly Stop Broker
@@ -386,14 +386,14 @@ BESS_ENGINE_DELETE_HOST
     Config Broker    central
     Config Broker    module
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker    True
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
     Kindly Stop Broker    True
     Start Broker    True
     engine_config_remove_service_host    ${0}    host_16
@@ -418,17 +418,17 @@ BESSBQ1
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     Create bad queue    central-broker-master.queue.central-broker-master-sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    execute statement 306524174
+    ${content}    Create List    execute statement 306524174
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
-    Should Be True    ${result}    msg=Services should be updated after the ingestion of the queue file
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    Should Be True    ${result}    Services should be updated after the ingestion of the queue file
     Stop Engine
     Kindly Stop Broker
 
-Start_Stop_Broker_Engine_${id}
+Start_Stop_Engine_Broker_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
     [Tags]    broker    engine    start-stop
     Config Engine    ${1}    ${1}    ${1}
@@ -436,7 +436,8 @@ Start_Stop_Broker_Engine_${id}
     Config Broker    module
     Config Broker    rrd
     Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
+    Broker Config Log    central    core    debug
+    Broker Config Log    central    processing    info
     Config Broker Sql Output    central    unified_sql
     IF    ${grpc}
         Change Broker tcp output to grpc    central
@@ -447,22 +448,24 @@ Start_Stop_Broker_Engine_${id}
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer
-    ${result}    Check Connections
-    Should Be True    ${result}
-    Sleep    10s
-    Stop Engine
-    Log To Console    \n10s\n
-    Sleep    10s
+    ${content}    Create List    create feeder central-broker-master-input
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}
+    Should Be True    ${result}    create feeder not found
+    ${result}    Check Connections
+    Should Be True    ${result}    no connection between engine and cbd
+    Sleep    5s
+    ${start_stop}    Get Current Date
+    Stop Engine
+    ${content}    Create List    feeder 'central-broker-master-input-1', connection closed
+    ${result}    Find In Log with Timeout    ${centralLog}    ${start_stop}    ${content}    60
+    Should Be True    ${result}    connection closed not found
+
+    Examples:    id    grpc    --
+    ...    1    False
+    ...    2    True
     [Teardown]    Kindly Stop Broker
 
-    Examples:    id       grpc    --
-    ...           1       False
-    ...           2       True
-
-Start_Stop_Broker_Engine_1
+Start_Stop_Broker_Engine_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
     [Tags]    broker    engine    start-stop
     Config Engine    ${1}    ${1}    ${1}
@@ -470,16 +473,28 @@ Start_Stop_Broker_Engine_1
     Config Broker    module
     Config Broker    rrd
     Broker Config Flush Log    central    0
-    Broker Config Log    central    core    error
+    Broker Config Log    central    core    debug
+    IF    ${grpc}
+        Change Broker tcp output to grpc    central
+        Change Broker tcp output to grpc    module0
+        Change Broker tcp input to grpc    central
+        Change Broker tcp input to grpc    rrd
+    END
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    feeder 'central-broker-master-input-1' error:Attempt to read data from peer
-    ${result}    Check Connections
-    Should Be True    ${result}
-    Kindly Stop Broker
-    Log To Console    \n30S
-    Sleep    30s
+    ${content}    Create List    create feeder central-broker-master-input
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    # Should Be True    ${result}
+    Should Be True    ${result}    create feeder not found
+    ${result}    Check Connections
+    Should Be True    ${result}    no connection between engine and cbd
+    Sleep    5s
+    ${stop_broker}    Get Current Date
+    Kindly Stop Broker
+    ${content}    Create List    failover central-module-master-output: connection closed
+    ${result}    Find In Log With Timeout    ${moduleLog0}    ${stop_broker}    ${content}    60
+    Should Be True    ${result}    connection closed not found
+    Examples:    id    grpc    --
+    ...    1    False
+    ...    2    True
     [Teardown]    Stop Engine
