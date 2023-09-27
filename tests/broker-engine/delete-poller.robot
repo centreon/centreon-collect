@@ -579,14 +579,14 @@ EBDP8
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    # Let's brutally kill the poller
+    # We want the poller 3 event handled by broker before stopping broker
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    We want the poller 4 event before stopping broker
+    Should Be True    ${result}    We want the poller 3 event before stopping broker
     Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
-    # Generation of many service status but kept in memory on poller3.
+    # Generation of many service status but kept in memory on poller3 since broker is switched off.
     FOR    ${i}    IN RANGE    200
         Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
         Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
@@ -597,7 +597,9 @@ EBDP8
     ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
-    ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
+    ${content}    Create List
+    ...    callbacks: service (40, 781) has no perfdata
+    ...    callbacks: service (40, 782) has no perfdata
     ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Stop Engine
@@ -618,16 +620,15 @@ EBDP8
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
-    Should Be Equal As Strings    ${output}    ()
+    Should Be Equal As Strings    ${output}    ()    The Poller3 should be removed from the DB.
 
     Start Engine
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    check_for_external_commands is missing.
+    Should Be True    ${result}    check_for_external_commands is missing in engine logs.
 
     ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
-    Log To Console    date ${start}
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine

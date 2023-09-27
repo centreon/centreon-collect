@@ -138,6 +138,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       com::centreon::broker::config::applier::init(s);
       try {
         log_v2::instance().apply(s.log_conf(), false);
+        neb_logger = log_v2::instance().get(neb_logger_id);
       } catch (const std::exception& e) {
         log_v2::instance().get(0)->error("main: {}", e.what());
       }
