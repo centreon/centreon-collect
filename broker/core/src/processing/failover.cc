@@ -20,6 +20,7 @@
 
 #include <unistd.h>
 
+#include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -150,6 +151,27 @@ void failover::_run() {
     _state_cv.notify_all();
     return;
   }
+
+  auto on_exception_handler = [&]() {
+    if (_stream) {
+      int32_t ack_events;
+      try {
+        ack_events = _stream->stop();
+      } catch (const std::exception& e) {
+        SPDLOG_LOGGER_ERROR(log_v2::core(),
+                            "Failed to send stop event to stream: {}",
+                            e.what());
+      }
+      _muxer->ack_events(ack_events);
+      std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
+      _stream.reset();
+    }
+    set_state("connecting");
+    if (!should_exit()) {
+      _launch_failover();
+      _initialized = true;
+    }
+  };
 
   _state = running;
   lck.unlock();
@@ -380,29 +402,14 @@ void failover::_run() {
       }
     }
     // Some real error occured.
-    catch (const std::exception& e) {
+    catch (const exceptions::connection_closed&) {
+      SPDLOG_LOGGER_INFO(log_v2::core(), "failover {}: connection closed",
+                         _name);
+      on_exception_handler();
+    } catch (const std::exception& e) {
       SPDLOG_LOGGER_ERROR(log_v2::core(), "failover: global error: {}",
                           e.what());
-      {
-        if (_stream) {
-          int32_t ack_events;
-          try {
-            ack_events = _stream->stop();
-          } catch (const std::exception& e) {
-            SPDLOG_LOGGER_ERROR(log_v2::core(),
-                                "Failed to send stop event to stream: {}",
-                                e.what());
-          }
-          _muxer->ack_events(ack_events);
-          std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
-          _stream.reset();
-        }
-        set_state("connecting");
-      }
-      if (!should_exit()) {
-        _launch_failover();
-        _initialized = true;
-      }
+      on_exception_handler();
     } catch (...) {
       SPDLOG_LOGGER_ERROR(
           log_v2::processing(),
@@ -410,24 +417,7 @@ void failover::_run() {
           "likely a software bug that should be reported to Centreon Broker "
           "developers",
           _name);
-      {
-        int32_t ack_events;
-        try {
-          ack_events = _stream->stop();
-        } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(log_v2::core(),
-                              "Failed to send stop event to stream: {}",
-                              e.what());
-        }
-        _muxer->ack_events(ack_events);
-        std::lock_guard<std::timed_mutex> stream_lock(_stream_m);
-        _stream.reset();
-        set_state("connecting");
-      }
-      if (!should_exit()) {
-        _launch_failover();
-        _initialized = true;
-      }
+      on_exception_handler();
     }
 
     // Clear stream.
@@ -457,7 +447,6 @@ void failover::_run() {
       std::this_thread::sleep_for(std::chrono::seconds(1));
 
     _update_status("");
-
   } while (!should_exit());
 
   // Clear stream.

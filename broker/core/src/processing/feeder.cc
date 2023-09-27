@@ -20,6 +20,7 @@
 
 #include <unistd.h>
 
+#include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
@@ -217,6 +218,10 @@ unsigned feeder::_write_to_client(
     // Normal termination.
     SPDLOG_LOGGER_INFO(log_v2::core(), "from muxer feeder '{}' shutdown",
                        _name);
+  } catch (const exceptions::connection_closed&) {
+    set_last_error("");
+    SPDLOG_LOGGER_DEBUG(log_v2::processing(), "feeder '{}' connection closed",
+                        _name);
   } catch (const std::exception& e) {
     set_last_error(e.what());
     SPDLOG_LOGGER_ERROR(log_v2::processing(),
@@ -399,6 +404,13 @@ void feeder::_read_from_stream_timer_handler(
     _muxer->write(events_to_publish);
     // _client->read shutdown => we stop read and don't restart the read from
     // stream timer
+    return;
+  } catch (const exceptions::connection_closed&) {
+    set_last_error("");
+    SPDLOG_LOGGER_DEBUG(log_v2::processing(), "feeder '{}', connection closed",
+                        _name);
+    _muxer->write(events_to_publish);
+    stop();
     return;
   } catch (const std::exception& e) {
     set_last_error(e.what());
