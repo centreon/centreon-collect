@@ -69,7 +69,7 @@ EBBPS1
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
-            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
@@ -154,7 +154,7 @@ EBBPS2
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    2    critical${i}
         IF    ${i} % 200 == 0
-            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
