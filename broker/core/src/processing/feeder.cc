@@ -220,8 +220,8 @@ unsigned feeder::_write_to_client(
                        _name);
   } catch (const exceptions::connection_closed&) {
     set_last_error("");
-    SPDLOG_LOGGER_DEBUG(log_v2::processing(), "feeder '{}' connection closed",
-                        _name);
+    SPDLOG_LOGGER_INFO(log_v2::processing(), "feeder '{}' connection closed",
+                       _name);
   } catch (const std::exception& e) {
     set_last_error(e.what());
     SPDLOG_LOGGER_ERROR(log_v2::processing(),
@@ -407,8 +407,8 @@ void feeder::_read_from_stream_timer_handler(
     return;
   } catch (const exceptions::connection_closed&) {
     set_last_error("");
-    SPDLOG_LOGGER_DEBUG(log_v2::processing(), "feeder '{}', connection closed",
-                        _name);
+    SPDLOG_LOGGER_INFO(log_v2::processing(), "feeder '{}', connection closed",
+                       _name);
     _muxer->write(events_to_publish);
     stop();
     return;
