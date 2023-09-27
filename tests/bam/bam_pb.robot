@@ -825,7 +825,9 @@ BEPB_BA_DURATION_EVENT
         ${output}    Query
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
         Sleep    1s
-        IF    ${output} and len(${output[0]}) >= 5    BREAK
+        IF    ${output} and len(${output}) >= 1 and len(${output[0]}) >= 5
+            BREAK
+        END
     END
 
     Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
