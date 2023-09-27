@@ -789,6 +789,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                 if len(result) > 0 and result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(1)
+    logger.console(f"@@@@@@@@@@@ timeout => {limit - time.time()} @@@@@@@@@@")
     return False
 
 
