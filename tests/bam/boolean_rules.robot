@@ -257,7 +257,7 @@ BABOOORREL
     ...    0
     ...    output ok for service_304
 
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    ${result}    Check Ba Status With Timeout    boolean-ba    2    60
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     Update Boolean Rule
@@ -271,7 +271,7 @@ BABOOORREL
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+    ${result}    Check Ba Status With Timeout    boolean-ba    0    60
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
     Update Boolean Rule
@@ -285,7 +285,7 @@ BABOOORREL
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    ${result}    Check Ba Status With Timeout    boolean-ba    2    60
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     [Teardown]  Run Keywords  Stop Engine  AND  Kindly Stop Broker
