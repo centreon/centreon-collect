@@ -20,7 +20,7 @@ Test Teardown       Save logs If Failed
 *** Test Cases ***
 BENCH_${nb_check}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times
-    [Tags]    broker    engine    bench
+    [Tags]    broker    engine    bench    toto
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*

@@ -65,24 +65,27 @@ def get_last_bench_result(log: str, id: int, name_to_find: str):
     @return  a json object that contains all bench time points
     """
     last_bench_str = ""
+    logger.console(
+        r".+bench\s+\w+\s+content:'(.\"id\":{}.+{}.+)'".format(id, name_to_find.replace(" ", "\s")))
     p = re.compile(
         r".+bench\s+\w+\s+content:'(.\"id\":{}.+{}.+)'".format(id, name_to_find.replace(" ", "\s")))
 
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
 
+        lines = [ line for line in lines if p.match(line) ]
         for line in lines:
+            logger.console(f" => Line: {line}")
             extract = p.match(line)
-            if extract is not None:
-                last_bench_str = extract.group(1)
+            last_bench_str = extract.group(1)
 
         if len(last_bench_str) == 0:
             return None
         return json.loads(last_bench_str)
     except IOError:
         return None
+    return None
 
 
 def get_last_bench_result_with_timeout(log: str, id: int, name_to_find: str, timeout: int):
