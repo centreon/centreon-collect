@@ -66,7 +66,7 @@ BABOO
         # 302 is set to critical => the two ba become critical
         Repeat Keyword
         ...    3 times
-        ...    Process Service Check Result
+        ...    Process Service
         ...    host_16
         ...    service_302
         ...    2
@@ -128,7 +128,7 @@ BABOOOR
     # 302 is set to critical => the two ba become critical
     Repeat Keyword
     ...    3 times
-    ...    Process Service Check Result
+    ...    Process Service
     ...    host_16
     ...    service_302
     ...    2
@@ -181,7 +181,7 @@ BABOOAND
     # 302 is set to critical => the two ba become critical
     Repeat Keyword
     ...    3 times
-    ...    Process Service Check Result
+    ...    Process Service
     ...    host_16
     ...    service_302
     ...    2
@@ -233,7 +233,7 @@ BABOOORREL
     # 302 is set to critical => {host_16 service_302} {IS} {OK} is then False
     Repeat Keyword
     ...    3 times
-    ...    Process Service Check Result
+    ...    Process Service
     ...    host_16
     ...    service_302
     ...    2
@@ -242,7 +242,7 @@ BABOOORREL
     # 303 is set to critical => {host_16 service_303} {IS} {OK} is then False
     Repeat Keyword
     ...    3 times
-    ...    Process Service Check Result
+    ...    Process Service
     ...    host_16
     ...    service_303
     ...    2
@@ -251,13 +251,13 @@ BABOOORREL
     # 304 is set to ok => {host_16 service_304} {IS} {OK} is then True
     Repeat Keyword
     ...    3 times
-    ...    Process Service Check Result
+    ...    Process Service
     ...    host_16
     ...    service_304
     ...    0
     ...    output ok for service_304
 
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    60
+    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     Update Boolean Rule
@@ -271,7 +271,7 @@ BABOOORREL
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    ${result}    Check Ba Status With Timeout    boolean-ba    0    60
+    ${result}    Check Ba Status With Timeout    boolean-ba    0    30
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
     Update Boolean Rule
@@ -285,7 +285,7 @@ BABOOORREL
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
-    ${result}    Check Ba Status With Timeout    boolean-ba    2    60
+    ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     [Teardown]  Run Keywords  Stop Engine  AND  Kindly Stop Broker
@@ -331,7 +331,7 @@ BABOOCOMPL
     FOR    ${i}    IN RANGE    ${1}    ${21}
         Repeat Keyword
         ...    3 times
-        ...    Process Service Check Result
+        ...    Process Service
         ...    host_1
         ...    service_${i}
         ...    2
@@ -343,7 +343,7 @@ BABOOCOMPL
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         Repeat Keyword
         ...    3 times
-        ...    Process Service Check Result
+        ...    Process Service
         ...    host_1
         ...    service_${i}
         ...    0
@@ -368,3 +368,8 @@ BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+
+Process Service
+    [Arguments]    ${host}    ${svc}    ${status}    ${output}
+    Process Service Check Result    ${host}    ${svc}    ${status}    ${output}
+    Sleep    1s
