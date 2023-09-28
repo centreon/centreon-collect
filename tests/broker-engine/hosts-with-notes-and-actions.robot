@@ -25,9 +25,7 @@ EBSNU1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${nu}    Evaluate    2000*"X"
@@ -59,9 +57,7 @@ EBSAU2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${au}    Evaluate    2000*"Y"
@@ -93,9 +89,7 @@ EBSN3
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     ${n}    Evaluate    500*"Z"

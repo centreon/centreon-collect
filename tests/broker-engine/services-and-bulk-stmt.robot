@@ -27,9 +27,7 @@ EBBPS1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -112,9 +110,7 @@ EBBPS2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -197,8 +193,7 @@ EBMSSM
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    debug
@@ -244,8 +239,7 @@ EBPS2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
@@ -286,9 +280,7 @@ RLCode
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    error
     Broker Config Log    central    lua    debug
@@ -296,12 +288,12 @@ RLCode
 
     ${INITIAL_SCRIPT_CONTENT}    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters(2, '/tmp/toto.log')
+    ...    broker_log:set_parameters(2, '/tmp/toto.log')
     ...    end
     ...
     ...    function write(d)
-    ...        broker_log:info(0, "toto")
-    ...        return true
+    ...    broker_log:info(0, "toto")
+    ...    return true
     ...    end
 
     # Create the initial LUA script file
@@ -315,7 +307,6 @@ RLCode
     Start Broker
     Start Engine
 
-
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
@@ -327,14 +318,13 @@ RLCode
     # Define the new content to take place of the first one
     ${new_content}    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters(2, '/tmp/titi.log')
+    ...    broker_log:set_parameters(2, '/tmp/titi.log')
     ...    end
     ...
     ...    function write(d)
-    ...        broker_log:info(0, "titi")
-    ...        return true
+    ...    broker_log:info(0, "titi")
+    ...    return true
     ...    end
-
 
     # Create the LUA script file from the content
     Create File    /tmp/toto.lua    ${new_content}
@@ -367,14 +357,14 @@ metric_mapping
 
     ${new_content}    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters(1, "/tmp/test.log")
+    ...    broker_log:set_parameters(1, "/tmp/test.log")
     ...    end
     ...
     ...    function write(d)
-    ...        if d._type == 196617 then
-    ...            broker_log:info(0, "name: " .. tostring(d.name) .. " corresponds to metric id " .. tostring(d.metric_id))
-    ...        end
-    ...        return true
+    ...    if d._type == 196617 then
+    ...    broker_log:info(0, "name: " .. tostring(d.name) .. " corresponds to metric id " .. tostring(d.metric_id))
+    ...    end
+    ...    return true
     ...    end
 
     # Create the initial LUA script file
@@ -399,6 +389,7 @@ metric_mapping
     Wait Until Created    /tmp/test.log    30s
     ${grep_res}    Grep File    /tmp/test.log    name: metric1 corresponds to metric id
     Should Not Be Empty    ${grep_res}    metric name "metric1" not found
+
 
 *** Keywords ***
 Test Clean

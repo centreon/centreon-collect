@@ -89,11 +89,7 @@ EBNHGU2
     Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    module2    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    3
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -123,12 +119,7 @@ EBNHGU3
     Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    module2    bbdo_version    3.0.0
-    Broker Config Add Item    module3    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    4
     Broker Config Log    central    sql    debug
 
     ${start}    Get Current Date

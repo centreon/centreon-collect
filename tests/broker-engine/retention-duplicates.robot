@@ -263,9 +263,7 @@ BERDUC3U1
     Broker Config Flush Log    central    0
     Broker Config Flush Log    module0    0
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Clear Retention
     ${start}    Get Current Date
     Start Broker
@@ -306,9 +304,7 @@ BERDUC3U2
     Broker Config Flush Log    central    0
     Broker Config Flush Log    module0    0
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -416,10 +412,10 @@ BERDUCA301
     Broker Config Flush Log    central    0
     Broker Config Flush Log    module0    0
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+
+    Config BBDO3    1
     ${start}    Get Current Date
+
     Start Broker
     Start Engine
 
