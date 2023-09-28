@@ -463,7 +463,7 @@ Start_Stop_Engine_Broker_${id}
     Examples:    id    grpc    --
     ...    1    False
     ...    2    True
-    [Teardown]    Kindly Stop Broker
+    Kindly Stop Broker
 
 Start_Stop_Broker_Engine_${id}
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
@@ -481,6 +481,8 @@ Start_Stop_Broker_Engine_${id}
         Change Broker tcp input to grpc    rrd
     END
     ${start}    Get Current Date
+
+
     Start Broker
     Start Engine
     ${content}    Create List    create feeder central-broker-master-input
@@ -497,4 +499,4 @@ Start_Stop_Broker_Engine_${id}
     Examples:    id    grpc    --
     ...    1    False
     ...    2    True
-    [Teardown]    Stop Engine
+    Stop Engine

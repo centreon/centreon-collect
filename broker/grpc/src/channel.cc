@@ -122,7 +122,7 @@ std::pair<event_ptr, bool> channel::read(
     return std::make_pair(read, true);
   }
   if (is_down()) {
-    throw(exceptions::connection_closed("{} connexion is down",
+    throw(exceptions::connection_closed("{} connection is down",
                                         __PRETTY_FUNCTION__));
   }
   _read_cond.wait_until(l, deadline, [this]() { return !_read_queue.empty(); });
@@ -177,7 +177,7 @@ void channel::on_read_done(bool ok) {
  ***************************************************************/
 int channel::write(const event_ptr& to_send) {
   if (is_down()) {
-    throw(exceptions::connection_closed("{} connexion is down",
+    throw(exceptions::connection_closed("{} connection is down",
                                         __PRETTY_FUNCTION__));
   }
   {

@@ -98,7 +98,6 @@ EBDP2
     END
     Should Be Equal As Strings    ${output}    ((3,),)
 
-    # Let's brutally kill the poller
     ${start_remove}    Get Current Date
     Send Signal To Process    SIGKILL    e0
     Send Signal To Process    SIGKILL    e1
@@ -108,7 +107,7 @@ EBDP2
     Terminate Process    e2
 
     ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
-    ${result}    Find Regex In Log with Timeout    ${centralLog}    ${start_remove}    ${content}    60
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
     Should Be True    ${result}    msg=connection closed not found.
 
     log to console    Reconfiguration of 2 pollers
@@ -181,7 +180,7 @@ EBDP_GRPC2
     Terminate Process    e2
 
     ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
-    ${result}    Find Regex In Log with Timeout    ${centralLog}    ${start_remove}    ${content}    60
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
     Should Be True    ${result}    msg=connection closed not found.
 
     log to console    Reconfiguration of 2 pollers
@@ -217,6 +216,7 @@ EBDP3
     Config Engine    ${3}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
+    Config Broker    module    ${3}
     Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
