@@ -17,6 +17,7 @@
 */
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
+#include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -24,6 +25,9 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
 using com::centreon::broker::misc::string::debug_buf;
+
+static const boost::system::error_code _eof_error =
+    boost::asio::error::make_error_code(boost::asio::error::misc_errors::eof);
 
 /**
  * @brief tcp_connection constructor.
@@ -200,7 +204,11 @@ void tcp_connection::writing() {
  */
 void tcp_connection::handle_write(const boost::system::error_code& ec) {
   if (ec) {
-    log_v2::tcp()->error("Error while writing on tcp socket: {}", ec.message());
+    if (ec == _eof_error)
+      log_v2::tcp()->debug("write: socket closed: {}", _address);
+    else
+      log_v2::tcp()->error("Error while writing on tcp socket to {}: {}",
+                           _address, ec.message());
     std::lock_guard<std::mutex> lck(_error_m);
     _current_error = ec;
     _writing = false;
@@ -248,7 +256,11 @@ void tcp_connection::handle_read(const boost::system::error_code& ec,
     _read_queue_cv.notify_one();
   }
   if (ec) {
-    log_v2::tcp()->error("Error while reading on socket: {}", ec.message());
+    if (ec == _eof_error)
+      log_v2::tcp()->debug("read: socket closed: {}", _address);
+    else
+      log_v2::tcp()->error("Error while reading on socket from {}: {}",
+                           _address, ec.message());
     std::lock_guard<std::mutex> lck(_read_queue_m);
     _closing = true;
     _read_queue_cv.notify_one();
@@ -333,7 +345,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
           _read_queue_cv.wait(
               lck, [this] { return !_read_queue.empty() || _closing; });
           if (_read_queue.empty())
-            throw msg_fmt(
+            throw exceptions::connection_closed(
                 "Attempt to read data from peer {}:{} on a closing socket",
                 _address, _port);
           /* Timeout on wait */
@@ -347,7 +359,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
                 return !_read_queue.empty() || _closing;
               })) {
             if (_read_queue.empty())
-              throw msg_fmt(
+              throw exceptions::connection_closed(
                   "Attempt to read data from peer {}:{} on a closing socket",
                   _address, _port);
           } else {

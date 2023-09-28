@@ -19,10 +19,10 @@
 
 #include "grpc_stream.pb.h"
 
+#include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/grpc/channel.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/misc/trash.hh"
-#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
@@ -122,7 +122,8 @@ std::pair<event_ptr, bool> channel::read(
     return std::make_pair(read, true);
   }
   if (is_down()) {
-    throw(msg_fmt("{} connexion is down", __PRETTY_FUNCTION__));
+    throw(exceptions::connection_closed("{} connection is down",
+                                        __PRETTY_FUNCTION__));
   }
   _read_cond.wait_until(l, deadline, [this]() { return !_read_queue.empty(); });
   if (!_read_queue.empty()) {
@@ -176,7 +177,8 @@ void channel::on_read_done(bool ok) {
  ***************************************************************/
 int channel::write(const event_ptr& to_send) {
   if (is_down()) {
-    throw(msg_fmt("{} connexion is down", __PRETTY_FUNCTION__));
+    throw(exceptions::connection_closed("{} connection is down",
+                                        __PRETTY_FUNCTION__));
   }
   {
     lock_guard l(_protect);

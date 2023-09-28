@@ -25,14 +25,8 @@ EBDP1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    module3    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -44,7 +38,7 @@ EBDP1
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
     END
@@ -70,7 +64,7 @@ EBDP1
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
@@ -83,13 +77,9 @@ EBDP2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
+    Broker Config Log    central    processing    info
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -101,20 +91,24 @@ EBDP2
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
 
-    # Let's brutally kill the poller
+    ${start_remove}    Get Current Date
     Send Signal To Process    SIGKILL    e0
     Send Signal To Process    SIGKILL    e1
     Send Signal To Process    SIGKILL    e2
     Terminate Process    e0
     Terminate Process    e1
     Terminate Process    e2
+
+    ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
+    Should Be True    ${result}    msg=connection closed not found.
 
     log to console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
@@ -136,7 +130,80 @@ EBDP2
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        Sleep    1s
+        log to console    Output= ${output}
+        IF    "${output}" == "()"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ()
+
+EBDP_GRPC2
+    [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
+    [Tags]    broker    engine    grpc
+    Config Engine    ${3}    ${50}    ${20}
+    Config Broker    rrd
+    Config Broker    central
+    Config Broker    module    ${3}
+    Config BBDO3    ${3}
+    Config Broker BBDO Input    central    bbdo_server    5669    grpc
+    Config Broker BBDO Output    module0    bbdo_client    5669    grpc    localhost
+    Config Broker BBDO Output    module1    bbdo_client    5669    grpc    localhost
+    Config Broker BBDO Output    module2    bbdo_client    5669    grpc    localhost
+    Broker Config Log    central    sql    trace
+    Broker Config Log    central    processing    info
+    Broker Config Log    central    grpc    info
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+
+    # Let's wait until engine listens to external_commands.
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=check_for_external_commands is missing.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        Sleep    1s
+        log to console    Output= ${output}
+        IF    "${output}" != "()"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ((3,),)
+
+    # Let's brutally kill the poller
+    ${start_remove}    Get Current Date
+    Send Signal To Process    SIGKILL    e0
+    Send Signal To Process    SIGKILL    e1
+    Send Signal To Process    SIGKILL    e2
+    Terminate Process    e0
+    Terminate Process    e1
+    Terminate Process    e2
+
+    ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
+    Should Be True    ${result}    msg=connection closed not found.
+
+    log to console    Reconfiguration of 2 pollers
+    # Poller2 is removed from the engine configuration but still there in centreon_storage DB
+    Config Engine    ${2}    ${50}    ${20}
+    ${start}    Get Current Date
+    Kindly Stop Broker
+    Clear Engine Logs
+    Start Engine
+    Start Broker
+
+    # Let's wait until engine listens to external_commands.
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=check_for_external_commands is missing.
+
+    Remove Poller    51001    Poller2
+
+    Stop Engine
+    Kindly Stop Broker
+
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" == "()"    BREAK
@@ -150,13 +217,8 @@ EBDP3
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -168,7 +230,7 @@ EBDP3
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" != "()"    BREAK
@@ -201,7 +263,7 @@ EBDP3
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" == "()"    BREAK
@@ -215,17 +277,11 @@ EBDP4
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    module3    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
     Broker Config Flush log    central    0
-    Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -237,7 +293,7 @@ EBDP4
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
     END
@@ -284,7 +340,7 @@ EBDP4
 
     Remove Poller    51001    Poller3
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
@@ -310,14 +366,8 @@ EBDP5
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    module3    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -329,7 +379,7 @@ EBDP5
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
     END
@@ -348,20 +398,19 @@ EBDP5
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
-    ${remove_time}  Get Current Date
+    ${remove_time}    Get Current Date
     Remove Poller by id    51001    ${4}
 
-    #wait unified receive instance event
+    # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
     ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
-
 
     Stop Engine
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
@@ -374,13 +423,8 @@ EBDP6
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -392,7 +436,7 @@ EBDP6
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" != "()"    BREAK
@@ -421,10 +465,10 @@ EBDP6
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
-    ${remove_time}=  Get Current Date
+    ${remove_time}    Get Current Date
     Remove Poller by id    51001    ${3}
 
-    #wait unified receive instance event
+    # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
     ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
@@ -433,7 +477,7 @@ EBDP6
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" == "()"    BREAK
@@ -447,13 +491,8 @@ EBDP7
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${3}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
-    Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -465,7 +504,7 @@ EBDP7
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" != "()"    BREAK
@@ -492,10 +531,10 @@ EBDP7
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=check_for_external_commands is missing.
 
-    ${remove_time}=  Get Current Date
+    ${remove_time}    Get Current Date
     Remove Poller by id    51001    ${3}
 
-    #wait unified receive instance event
+    # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
     ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
@@ -504,7 +543,7 @@ EBDP7
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
         log to console    Output= ${output}
         IF    "${output}" == "()"    BREAK
@@ -518,17 +557,11 @@ EBDP8
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${4}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    module1    bbdo_version    3.0.1
-    Broker Config Add Item    module2    bbdo_version    3.0.1
-    Broker Config Add Item    module3    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    ${4}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
     Broker Config Flush log    central    0
-    Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -540,7 +573,7 @@ EBDP8
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" != "()"    BREAK
     END
@@ -581,7 +614,7 @@ EBDP8
     Start Broker
     Remove Poller by id    51001    ${4}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT instance_id FROM instances WHERE name='Poller3'
+        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END

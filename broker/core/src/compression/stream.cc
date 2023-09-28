@@ -66,6 +66,10 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
   // Clear existing content.
   data.reset();
 
+  if (_shutdown) {  // shutdown
+    throw exceptions::shutdown("compression stream has been shuted down");
+  }
+
   try {
     // Process buffer as long as data is corrupted
     // or until an exception occurs.
