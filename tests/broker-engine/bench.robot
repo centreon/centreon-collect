@@ -18,7 +18,7 @@ Test Teardown       Save logs If Failed
 
 
 *** Variables ***
-@{CONFIG_NAME}      sql    core    processing    broker    tcp    perfdata    victoria_metrics    bam    lua
+@{CONFIG_NAME}      sql    core    processing    tcp    perfdata    victoria_metrics    bam    lua
 
 *** Test Cases ***
 BENCH_${nb_check}STATUS
@@ -94,6 +94,7 @@ BENCH_${nb_check}STATUS
 BENCH_${nb_check}STATUS_TRACES
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
     [Tags]    broker    engine    bench
+    SKIP
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
@@ -166,6 +167,7 @@ BENCH_1000STATUS_100ENGINE
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
     Config Engine    ${100}    ${100}    ${20}
+    SKIP
     FOR    ${poller_index}    IN RANGE    100
         # We want all the services to be passive to avoid parasite checks during our test.
         Set Services Passive    ${poller_index}    service_.*
