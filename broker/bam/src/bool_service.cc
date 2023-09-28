@@ -85,13 +85,18 @@ void bool_service::service_update(
   _logger = logger;
   SPDLOG_LOGGER_TRACE(_logger,
                       "bool_service: service update with neb::service_status");
-  if (status && status->host_id == _host_id &&
-      status->service_id == _service_id) {
+  assert(status && status->host_id == _host_id &&
+         status->service_id == _service_id);
+
+  bool in_downtime = status->downtime_depth > 0;
+  if (status->last_hard_state != _state_hard || !_state_known ||
+      in_downtime != _in_downtime) {
     _state_hard = status->last_hard_state;
     _state_known = true;
-    _in_downtime = (status->downtime_depth > 0);
-    propagate_update(visitor, _logger);
+    _in_downtime = in_downtime;
+    notify_parents_of_change(visitor, _logger);
   }
+  // propagate_update(visitor, _logger);
 }
 
 /**

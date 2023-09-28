@@ -53,6 +53,10 @@ class bool_service : public bool_value, public service_listener {
   bool_service(const bool_service&) = delete;
   bool_service& operator=(const bool_service&) = delete;
   bool child_has_update(computable* child, io::stream* visitor) override;
+  void update_from(computable* child [[maybe_unused]],
+                   io::stream* visitor [[maybe_unused]],
+                   const std::shared_ptr<spdlog::logger>& logger
+                   [[maybe_unused]]) override {}
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
   void service_update(const std::shared_ptr<neb::pb_service>& status,

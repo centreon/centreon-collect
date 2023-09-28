@@ -1,5 +1,5 @@
 /*
-** Copyright 2014 Centreon
+** Copyright 2014, 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -42,6 +42,9 @@ class bool_more_than : public bool_binary_operator {
   bool_more_than& operator=(const bool_more_than&) = delete;
   double value_hard() override;
   bool boolean_value() const override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
 };
 }  // namespace bam
 

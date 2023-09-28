@@ -104,7 +104,7 @@ class ba : public computable, public service_listener {
   int _recompute_count{0};
 
   static double _normalize(double d);
-  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
+  virtual bool _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _recompute();
   std::shared_ptr<pb_ba_status> _generate_ba_status(bool state_changed) const;
@@ -156,6 +156,9 @@ class ba : public computable, public service_listener {
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
   void set_level_critical(double level);
   void set_level_warning(double level);
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
 };
 }  // namespace bam
 

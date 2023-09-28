@@ -1,20 +1,20 @@
 /*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2022-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/ba_ratio_number.hh"
 
@@ -88,15 +88,21 @@ state ba_ratio_number::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-void ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+bool ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
                                     ba::impact_info& impact) {
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return;
+    return false;
 
-  if (impact.soft_impact.get_state() == state_critical)
+  bool retval = false;
+  if (impact.soft_impact.get_state() == state_critical) {
     _level_soft++;
-  if (impact.hard_impact.get_state() == state_critical)
+    retval = true;
+  }
+  if (impact.hard_impact.get_state() == state_critical) {
     _level_hard++;
+    retval = true;
+  }
+  return retval;
 }
 
 /**

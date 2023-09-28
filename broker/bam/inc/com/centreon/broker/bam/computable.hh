@@ -36,9 +36,8 @@ namespace bam {
  *  provides an effective way to compute whole part of the BA/KPI tree.
  */
 class computable {
-  std::list<std::weak_ptr<computable>> _parents;
-
  protected:
+  std::list<std::weak_ptr<computable>> _parents;
   /* Logger is updated on child_hash_update() */
   std::shared_ptr<spdlog::logger> _logger;
 
@@ -50,6 +49,11 @@ class computable {
   void add_parent(const std::shared_ptr<computable>& parent);
   void propagate_update(io::stream* visitor,
                         const std::shared_ptr<spdlog::logger>& logger);
+  void notify_parents_of_change(io::stream* visitor,
+                                const std::shared_ptr<spdlog::logger>& logger);
+  virtual void update_from(computable* child,
+                           io::stream* visitor,
+                           const std::shared_ptr<spdlog::logger>& logger) = 0;
   void remove_parent(const std::shared_ptr<computable>& parent);
 
   /**

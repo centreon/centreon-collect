@@ -52,6 +52,9 @@ class bool_expression : public computable {
   ~bool_expression() noexcept override = default;
   bool_expression& operator=(const bool_expression&) = delete;
   bool child_has_update(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   state get_state() const;
   bool state_known() const;
   void set_expression(std::shared_ptr<bool_value> const& expression);

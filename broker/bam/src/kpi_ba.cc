@@ -291,3 +291,10 @@ bool kpi_ba::ok_state() const {
 bool kpi_ba::in_downtime() const {
   return _ba->get_in_downtime();
 }
+
+void kpi_ba::update_from(computable* child,
+                         io::stream* visitor,
+                         const std::shared_ptr<spdlog::logger>& logger) {
+  assert("kpi_ba" == 0);
+  logger->info("kpi_ba: update from {:x}", static_cast<void*>(child));
+}

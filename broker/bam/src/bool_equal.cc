@@ -49,3 +49,10 @@ bool bool_equal::boolean_value() const {
   _logger->trace("BAM: bool_equal: value: {}", retval);
   return retval;
 }
+
+void bool_equal::update_from(computable* child,
+                             io::stream* visitor,
+                             const std::shared_ptr<spdlog::logger>& logger) {
+  assert("bool_equal" == 0);
+  logger->info("bool_equal: update from {:x}", static_cast<void*>(child));
+}

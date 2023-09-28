@@ -46,6 +46,9 @@ class bool_or : public bool_binary_operator {
   bool_or& operator=(const bool_or&) = delete;
   double value_hard() override;
   bool boolean_value() const override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
 };
 }  // namespace bam
 

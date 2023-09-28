@@ -52,6 +52,9 @@ class bool_operation : public bool_binary_operator {
   double value_hard() override;
   bool boolean_value() const override;
   bool state_known() const override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
 };
 }  // namespace bam
 

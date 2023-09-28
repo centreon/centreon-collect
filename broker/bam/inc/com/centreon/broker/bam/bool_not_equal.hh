@@ -42,6 +42,9 @@ class bool_not_equal : public bool_binary_operator {
   bool_not_equal& operator=(const bool_not_equal&) = delete;
   double value_hard() override;
   bool boolean_value() const override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
 };
 }  // namespace bam
 

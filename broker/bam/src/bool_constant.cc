@@ -70,3 +70,8 @@ bool bool_constant::boolean_value() const {
 bool bool_constant::state_known() const {
   return true;
 }
+
+void bool_constant::update_from(computable* child [[maybe_unused]],
+                                io::stream* visitor [[maybe_unused]],
+                                const std::shared_ptr<spdlog::logger>& logger
+                                [[maybe_unused]]) {}

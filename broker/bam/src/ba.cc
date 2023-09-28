@@ -696,3 +696,69 @@ void ba::set_level_critical(double level) {
 void ba::set_level_warning(double level) {
   _level_warning = level;
 }
+
+void ba::update_from(computable* child,
+                     io::stream* visitor,
+                     const std::shared_ptr<spdlog::logger>& logger) {
+  logger->info("ba_worst: update from {:x}", static_cast<void*>(child));
+
+  std::unordered_map<kpi*, impact_info>::iterator it =
+      _impacts.find(static_cast<kpi*>(child));
+  if (it != _impacts.end()) {
+    // Get impact.
+    impact_values new_hard_impact;
+    impact_values new_soft_impact;
+    it->second.kpi_ptr->impact_hard(new_hard_impact);
+    it->second.kpi_ptr->impact_soft(new_soft_impact);
+    bool kpi_in_downtime = it->second.kpi_ptr->in_downtime();
+
+    // Logging.
+    SPDLOG_LOGGER_DEBUG(
+        logger,
+        "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
+        "{}, last state change {}, downtime {})",
+        _id, _name, it->second.kpi_ptr->get_id(), new_hard_impact.get_nominal(),
+        it->second.kpi_ptr->get_last_state_change(), kpi_in_downtime);
+
+    // If the new impact is the same as the old, don't update.
+    if (it->second.hard_impact == new_hard_impact &&
+        it->second.soft_impact == new_soft_impact &&
+        it->second.in_downtime == kpi_in_downtime) {
+      SPDLOG_LOGGER_DEBUG(
+          logger,
+          "BAM: BA {} has no changes since last update: hard impact: (ack: {}, "
+          "dwnt: {}, nominal: {}), downtime: {}",
+          _id, new_hard_impact.get_acknowledgement(),
+          new_hard_impact.get_nominal(), new_hard_impact.get_downtime(),
+          kpi_in_downtime);
+      return;
+    }
+
+    timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
+    if (!last_state_change.is_null())
+      _last_kpi_update = std::max(_last_kpi_update, last_state_change);
+
+    // Discard old data.
+    _unapply_impact(it->first, it->second);
+
+    // Apply new data.
+    SPDLOG_LOGGER_TRACE(
+        logger,
+        "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
+        "downtime {} => {}",
+        _id, it->second.hard_impact != new_hard_impact,
+        it->second.soft_impact != new_soft_impact, it->second.in_downtime,
+        kpi_in_downtime);
+    it->second.hard_impact = new_hard_impact;
+    it->second.soft_impact = new_soft_impact;
+    it->second.in_downtime = kpi_in_downtime;
+    _apply_impact(it->first, it->second);
+
+    // Check for inherited downtimes.
+    _compute_inherited_downtime(visitor);
+
+    // Generate status event.
+    visit(visitor);
+    notify_parents_of_change(visitor, logger);
+  }
+}

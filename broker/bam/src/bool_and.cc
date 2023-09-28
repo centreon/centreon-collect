@@ -67,3 +67,10 @@ double bool_and::value_hard() {
 bool bool_and::boolean_value() const {
   return _boolean_value;
 }
+
+void bool_and::update_from(computable* child,
+                           io::stream* visitor,
+                           const std::shared_ptr<spdlog::logger>& logger) {
+  assert("bool_and" == 0);
+  logger->info("bool_and: update from {:x}", static_cast<void*>(child));
+}

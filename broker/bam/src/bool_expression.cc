@@ -110,3 +110,10 @@ void bool_expression::set_expression(
 uint32_t bool_expression::get_id() const {
   return _id;
 }
+
+void bool_expression::update_from(
+    computable* child,
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  logger->info("bool_expression update from {:x}", static_cast<void*>(child));
+}

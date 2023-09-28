@@ -224,8 +224,8 @@ void kpi_service::service_update(
     // Generate status event.
     visit(visitor);
 
-    // Propagate change.
-    propagate_update(visitor, _logger);
+    // Notify of change.
+    notify_parents_of_change(visitor, _logger);
   }
 }
 
@@ -693,4 +693,10 @@ void kpi_service::set_initial_event(const KpiEvent& e) {
  */
 bool kpi_service::ok_state() const {
   return _state_hard == 0;
+}
+
+void kpi_service::update_from(computable* child,
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger) {
+  logger->info("kpi_service: update from {:x}", static_cast<void*>(child));
 }

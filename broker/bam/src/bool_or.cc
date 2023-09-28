@@ -64,3 +64,10 @@ double bool_or::value_hard() {
 bool bool_or::boolean_value() const {
   return _boolean_value;
 }
+
+void bool_or::update_from(computable* child,
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
+  assert("bool_or" == 0);
+  logger->info("bool_or: update from {:x}", static_cast<void*>(child));
+}

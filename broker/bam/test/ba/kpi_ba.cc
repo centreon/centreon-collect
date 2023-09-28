@@ -157,11 +157,11 @@ TEST_F(KpiBA, KpiBa) {
   /* ba2 set to critical, event open because there was no previous
    * state */
   auto it = events.rbegin();
-  ASSERT_EQ(it->typ, test_visitor::test_event::ba);
-  ASSERT_EQ(it->ba_id, 1u);
-  ASSERT_EQ(it->status, 2);
-  ASSERT_FALSE(it->in_downtime);
-  ASSERT_EQ(it->end_time, -1);
+  EXPECT_EQ(it->typ, test_visitor::test_event::ba);
+  EXPECT_EQ(it->ba_id, 1u);
+  EXPECT_EQ(it->status, 2);
+  EXPECT_FALSE(it->in_downtime);
+  EXPECT_EQ(it->end_time, -1);
   ASSERT_EQ(test_ba->get_output(),
             "Status is CRITICAL - At least one KPI is in a CRITICAL state: "
             "KPI3 is in CRITICAL state");

@@ -68,21 +68,22 @@ double bool_operation::value_hard() {
 bool bool_operation::boolean_value() const {
   switch (_type) {
     case addition:
-      return _left_hard + _right_hard;
+      return static_cast<bool>(_left_hard + _right_hard);
     case substraction:
-      return _left_hard - _right_hard;
+      return static_cast<bool>(_left_hard - _right_hard);
     case multiplication:
-      return _left_hard * _right_hard;
+      return static_cast<bool>(std::fabs(_left_hard * _right_hard) >
+                               COMPARE_EPSILON);
     case division:
       if (std::fabs(_right_hard) < COMPARE_EPSILON)
         return false;
-      return _left_hard / _right_hard;
+      return static_cast<bool>(_left_hard / _right_hard);
     case modulo: {
       long long left_val(static_cast<long long>(_left_hard));
       long long right_val(static_cast<long long>(_right_hard));
       if (right_val == 0)
         return false;
-      return left_val % right_val;
+      return static_cast<bool>(left_val % right_val);
     }
   }
   return false;
@@ -99,4 +100,12 @@ bool bool_operation::state_known() const {
     return false;
   else
     return known;
+}
+
+void bool_operation::update_from(
+    computable* child,
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  assert("bool_operation" == 0);
+  logger->info("bool_operation: update from {:x}", static_cast<void*>(child));
 }

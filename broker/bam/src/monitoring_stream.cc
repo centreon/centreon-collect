@@ -500,6 +500,12 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
     case bam::pb_ba_status::static_type(): {
       const BaStatus& status =
           static_cast<const pb_ba_status*>(data.get())->obj();
+      SPDLOG_LOGGER_TRACE(
+          _logger,
+          "BAM: processing ba status (pb) on BA {} in downtime: {}, last "
+          "state change: {}, state: {}, state changed: {}",
+          status.ba_id(), status.in_downtime(), status.last_state_change(),
+          status.state(), status.state_changed());
       if (_ba_query->is_bulk())
         _ba_query->add_bulk_row(bulk_ba_binder{data});
       else

@@ -34,3 +34,11 @@ double bool_not_equal::value_hard() {
 bool bool_not_equal::boolean_value() const {
   return std::fabs(_left_hard - _right_hard) >= COMPARE_EPSILON;
 }
+
+void bool_not_equal::update_from(
+    computable* child,
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  assert("bool_not_equal" == 0);
+  logger->info("bool_not_equal: update from {:x}", static_cast<void*>(child));
+}

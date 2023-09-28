@@ -43,3 +43,10 @@ bool bool_xor::boolean_value() const {
   bool right = std::abs(_right_hard) > eps;
   return left ^ right;
 }
+
+void bool_xor::update_from(computable* child,
+                           io::stream* visitor,
+                           const std::shared_ptr<spdlog::logger>& logger) {
+  assert("bool_xor" == 0);
+  logger->info("bool_xor: update from {:x}", static_cast<void*>(child));
+}

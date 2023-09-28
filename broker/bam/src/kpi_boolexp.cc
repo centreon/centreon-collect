@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Centreon
+ * Copyright 2014, 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -253,4 +253,11 @@ state kpi_boolexp::_get_state() const {
  */
 bool kpi_boolexp::ok_state() const {
   return _get_state() == 0;
+}
+
+void kpi_boolexp::update_from(computable* child,
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger) {
+  assert("kpi_boolexp" == 0);
+  logger->info("kpi_boolexp: update from {:x}", static_cast<void*>(child));
 }
