@@ -162,7 +162,6 @@ BENCH_${nb_check}STATUS_TRACES
 BENCH_${nb_check}STATUS_TRACES
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
     [Tags]    broker    engine    bench
-    SKIP
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
