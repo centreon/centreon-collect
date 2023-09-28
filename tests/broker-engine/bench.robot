@@ -88,7 +88,7 @@ BENCH_${nb_check}STATUS
     ...    1000
     ...    10000
 
-BENCH_${nb_check}STATUS_TRACES
+BENCH_${nb_check}STATUS_TRACES_ENGINE
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
     [Tags]    broker    engine    bench
     Config Engine    ${1}    ${50}    ${20}
@@ -159,7 +159,7 @@ BENCH_${nb_check}STATUS_TRACES
     ...    1000
     ...    10000
 
-BENCH_${nb_check}STATUS_TRACES
+BENCH_${nb_check}STATUS_TRACES_BROKER
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
     [Tags]    broker    engine    bench
     Config Engine    ${1}    ${50}    ${20}
