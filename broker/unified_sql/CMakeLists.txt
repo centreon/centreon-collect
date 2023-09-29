@@ -60,7 +60,6 @@ add_dependencies("${UNIFIED_SQL}" target_rebuild_message
 target_precompile_headers(${UNIFIED_SQL} PRIVATE precomp_inc/precomp.hpp)
 target_link_libraries(
   ${UNIFIED_SQL}
-  rokerbase
   bbdo_storage
   pb_storage_lib
   pb_rebuild_message_lib
