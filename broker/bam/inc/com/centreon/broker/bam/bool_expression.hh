@@ -22,12 +22,9 @@
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declaration.
 class bool_value;
 
@@ -57,12 +54,12 @@ class bool_expression : public computable {
   std::shared_ptr<bool_value> get_expression() const;
   bool in_downtime() const;
   uint32_t get_id() const;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_EXPRESSION_HH

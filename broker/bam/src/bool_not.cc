@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/bam/bool_not.hh"
 #include <cmath>
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -83,10 +82,11 @@ bool bool_not::in_downtime() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
 void bool_not::update_from(computable* child [[maybe_unused]],
-                           io::stream* visitor) {
-  log_v2::bam()->trace("bool_not::update_from");
+                           io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("bool_not::update_from");
   if (_value.get() == child)
     notify_parents_of_change(visitor);
 }

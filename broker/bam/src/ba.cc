@@ -302,7 +302,6 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
                         io::stream* visitor,
                         const std::shared_ptr<spdlog::logger>& logger) {
   _logger = logger;
-  (void)visitor;
   if (dt->host_id == _host_id && dt->service_id == _service_id) {
     // Log message.
     SPDLOG_LOGGER_DEBUG(
@@ -321,7 +320,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
       // Generate status event.
       visit(visitor);
 
-      notify_parents_of_change(visitor);
+      notify_parents_of_change(visitor, logger);
     }
   } else
     SPDLOG_LOGGER_DEBUG(
@@ -341,7 +340,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
  *  @param visitor  Visitor that will receive events.
  */
 void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
-                        io::stream* visitor [[maybe_unused]],
+                        io::stream* visitor,
                         const std::shared_ptr<spdlog::logger>& logger) {
   _logger = logger;
   auto& downtime = dt->obj();
@@ -366,7 +365,7 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
     // Generate status event.
     visit(visitor);
 
-    notify_parents_of_change(visitor);
+    notify_parents_of_change(visitor, logger);
   }
 }
 
@@ -637,9 +636,10 @@ void ba::set_level_warning(double level) {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
-void ba::update_from(computable* child, io::stream* visitor) {
-  auto logger = log_v2::bam();
+void ba::update_from(computable* child, io::stream* visitor,
+                     const std::shared_ptr<spdlog::logger>& logger) {
   logger->trace("ba::update_from");
   auto it = _impacts.find(static_cast<kpi*>(child));
   if (it != _impacts.end()) {

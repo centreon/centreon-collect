@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, 202122023 Centreon
+ * Copyright 2014, 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,12 +22,9 @@
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declaration.
 class bool_expression;
 class computable;
@@ -65,12 +62,10 @@ class kpi_boolexp : public kpi {
   void unlink_boolexp();
   void visit(io::stream* visitor) override;
   bool ok_state() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_KPI_BOOLEXP_HH

@@ -20,11 +20,8 @@
 #define CCB_BAM_BOOL_CONSTANT_HH
 
 #include "com/centreon/broker/bam/bool_value.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_and bool_and.hh "com/centreon/broker/bam/bool_and.hh"
  *  @brief AND operator.
@@ -45,12 +42,12 @@ class bool_constant : public bool_value {
   double value_hard() const override;
   bool boolean_value() const override;
   bool state_known() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_CONSTANT_HH

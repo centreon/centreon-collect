@@ -48,8 +48,9 @@ void computable::remove_parent(std::shared_ptr<computable> const& parent) {
  * @brief Notify parents of this object because of a change made in this.
  *
  * @param visitor Used to handle events.
+ * @param logger The logger to use.
  */
-void computable::notify_parents_of_change(io::stream* visitor) {
+void computable::notify_parents_of_change(io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
   log_v2::bam()->trace("{}::notify_parents_of_change: ", typeid(*this).name());
   for (auto& p : _parents) {
     if (std::shared_ptr<computable> parent = p.lock())

@@ -25,12 +25,9 @@
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class kpi_service kpi_service.hh "com/centreon/broker/bam/kpi_service.hh"
  *  @brief Service as a KPI.
@@ -111,12 +108,10 @@ class kpi_service : public service_listener, public kpi {
   void visit(io::stream* visitor) override;
   virtual void set_initial_event(const KpiEvent& e) override;
   bool ok_state() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_KPI_SERVICE_HH
