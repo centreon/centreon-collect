@@ -6,6 +6,8 @@ export RUN_ENV=docker
 
 test_file=$1
 database_type=$2
+#this env variable is a json that contains some test params
+export TESTS_PARAMS='$3'
 
 . /etc/os-release
 distrib=${ID}

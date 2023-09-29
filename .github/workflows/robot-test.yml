@@ -25,6 +25,12 @@ on:
       database_type:
         required: true
         type: string
+      tests_params:
+        required: true
+        type: string
+      test_group_name:
+        required: true
+        type: string  
     secrets:
       registry_username:
         required: true
@@ -98,7 +104,7 @@ jobs:
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }} ${{inputs.database_type}}
+    name: ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
 
     steps:
       - name: Checkout sources
@@ -134,8 +140,7 @@ jobs:
           --workdir /test_collect \
           ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
           ./.github/scripts/collect-test-robot.sh \
-          ${{ matrix.feature }} ${{inputs.database_type}}
-
+          ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
         
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
@@ -146,7 +151,7 @@ jobs:
         if: ${{ failure() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.test_group_name}}
           if [ -d tests/failed ] ; then
             cp -rp tests/failed reports/$FILE_PREFIX-failed
             cp tests/log.html reports/$FILE_PREFIX-log.html
@@ -157,7 +162,7 @@ jobs:
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
-          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          name: reports-${{inputs.test_group_name}}
           path: reports
           retention-days: 1
 
@@ -172,7 +177,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          name: reports-${{inputs.test_group_name}}
           path: reports
 
       - uses: actions/setup-python@v4

@@ -26,7 +26,7 @@ BSCSSR1
     Repeat Keyword    5 times    Start Stop Service    0
 
 BSCSSRR1
-    [Documentation]    Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client, reversed and retention. central-broker-master-output is then a failover.
+    [Documentation]    Start-Stop two instances of broker and no coredump. Connection with bbdo_server/bbdo_client, reversed and retention. centreon-broker-master-rrd is then a failover.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
     Config Broker    central
     Config Broker    rrd
@@ -42,7 +42,7 @@ BSCSSRR1
     Should Be True    ${result}    No information about TLS activation.
 
 BSCSSPRR1
-    [Documentation]    Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. central-broker-master-output is then a failover.
+    [Documentation]    Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. centreon-broker-master-rrd is then a failover.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
     Config Broker    central
     Config Broker    rrd
@@ -54,7 +54,7 @@ BSCSSPRR1
     Repeat Keyword    5 times    Start Stop Service    0
 
 BSCSSRR2
-    [Documentation]    Start/Stop 10 times broker with 300ms interval and no coredump, reversed and retention. central-broker-master-output is then a failover.
+    [Documentation]    Start/Stop 10 times broker with 300ms interval and no coredump, reversed and retention. centreon-broker-master-rrd is then a failover.
     [Tags]    broker    start-stop    bbdo_server    bbdo_client    tcp
     Config Broker    central
     Config Broker BBDO Input    central    bbdo_client    5669    tcp    localhost
@@ -114,17 +114,17 @@ BSCSSTRR2
     Broker Config Log    central    tls    debug
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
     Broker Config Input Set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
@@ -163,19 +163,19 @@ BSCSSTGRR2
 
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     Broker Config Input Set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
     Broker Config Input Set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
     Broker Config Input Set
     ...    rrd
-    ...    rrd-broker-master-input
+    ...    central-rrd-master-input
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     ${start}    Get Round Current Date

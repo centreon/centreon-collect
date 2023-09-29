@@ -3,12 +3,12 @@ from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
 import time
+import json
 import psutil
 from dateutil import parser
 from datetime import datetime
 import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
-
 
 TIMEOUT = 30
 
@@ -20,6 +20,24 @@ DB_PASS = BuiltIn().get_variable_value("${DBPass}")
 DB_HOST = BuiltIn().get_variable_value("${DBHost}")
 DB_PORT = BuiltIn().get_variable_value("${DBPort}")
 VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
+ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
+
+
+def parse_tests_params():
+    params = os.environ.get("TESTS_PARAMS")
+    if params is not None and len(params) > 4:
+        return json.loads(params)
+    else:
+        return {}
+
+
+TESTS_PARAMS = parse_tests_params()
+
+
+def is_using_direct_grpc():
+    default_bbdo_version = TESTS_PARAMS.get("default_bbdo_version")
+    default_transport = TESTS_PARAMS.get("default_transport")
+    return default_bbdo_version is not None and default_transport == "grpc" and default_bbdo_version >= "3.1.0"
 
 
 def check_connection(port: int, pid1: int, pid2: int):

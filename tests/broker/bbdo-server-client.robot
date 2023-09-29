@@ -128,17 +128,17 @@ BSCSST2
     Broker Config Log    central    tls    debug
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
     Broker Config Input Set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
@@ -202,17 +202,17 @@ BSCSSTG2
 
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
     Broker Config Input Set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
@@ -251,22 +251,22 @@ BSCSSTG3
 
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
     Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
     Broker Config Input Set
     ...    rrd
-    ...    rrd-broker-master-input
+    ...    central-rrd-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/missing-client.key
     Broker Config Input Set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
