@@ -40,6 +40,17 @@ jobs:
           username: ${{ secrets.DOCKER_REGISTRY_ID }}
           password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
+      - name: Generate selinux binaries
+        run: |
+          cd selinux
+          for MODULE in "centreon-engine" "centreon-broker"; do
+            cd $MODULE
+            sed -i "s/@VERSION@/${{ inputs.version }}/g" $MODULE.te
+            make -f /usr/share/selinux/devel/Makefile
+            cd -
+          done
+        shell: bash
+
       - name: package rpm ${{ matrix.image }}
         run: |
           docker run -i --entrypoint ./.github/scripts/collect-rpm-package.sh \

@@ -31,6 +31,7 @@ mysql -u centreon -pcentreon < /tmp/centreon.sql
 echo "########################## Install centreon collect ###########################"
 
 echo "Installation..."
+rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
 /usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
 echo "########################### Install Robot Framework ###########################"
