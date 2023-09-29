@@ -22,12 +22,9 @@
 #include <spdlog/logger.h>
 #include <memory>
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class computable computable.hh "com/centreon/broker/bam/computable.hh"
  *  @brief Object that get computed by the BAM engine.
@@ -38,8 +35,6 @@ namespace bam {
 class computable {
  protected:
   std::list<std::weak_ptr<computable>> _parents;
-
-  /* Logger is updated on child_hash_update() */
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
@@ -58,7 +53,7 @@ class computable {
    *  @param[in] child Recently changed child node.
    *  @param[in] visitor This is used to manage events
    */
-  virtual void update_from(computable* child, io::stream* visitor) = 0;
+  virtual void update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) = 0;
   void remove_parent(const std::shared_ptr<computable>& parent);
   /**
    * @brief This method is used by the dump() method. It gives a summary of this
@@ -76,8 +71,6 @@ class computable {
   virtual void dump(std::ofstream& output) const = 0;
   void dump_parents(std::ofstream& output) const;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_COMPUTABLE_HH

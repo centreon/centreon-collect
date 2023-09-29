@@ -29,12 +29,9 @@
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declaration.
 class kpi;
 
@@ -155,13 +152,13 @@ class ba : public computable, public service_listener {
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
   void set_level_critical(double level);
   void set_level_warning(double level);
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(const std::string& filename) const;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BA_HH

@@ -274,3 +274,28 @@ void kpi_boolexp::dump(std::ofstream& output) const {
   _boolexp->dump(output);
   dump_parents(output);
 }
+
+/**
+ * @brief Update this computable with the child modifications.
+ *
+ * @param child The child that changed.
+ * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
+ */
+void kpi_boolexp::update_from(computable* child,
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger) {
+  // It is useless to maintain a cache of boolean expression values in
+  // this class, as the bool_expression class already cache most of them.
+  if (child == _boolexp.get()) {
+    state old_state = _get_state();
+    // Generate status event.
+    visit(visitor);
+    _logger->debug(
+        "BAM: boolean expression KPI {} is getting notified of child update "
+        "old_state={}, new_state={}",
+        _id, old_state, _get_state());
+    if (old_state != _get_state())
+      notify_parents_of_change(visitor, logger);
+  }
+}

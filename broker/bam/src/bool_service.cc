@@ -63,7 +63,7 @@ uint32_t bool_service::get_service_id() const {
  *  @param[out] visitor  Object that will receive events.
  */
 void bool_service::service_update(
-    std::shared_ptr<neb::service_status> const& status,
+    const std::shared_ptr<neb::service_status>& status,
     io::stream* visitor,
     const std::shared_ptr<spdlog::logger>& logger) {
   _logger = logger;
@@ -78,7 +78,7 @@ void bool_service::service_update(
       _state_hard = status->last_hard_state;
       _state_known = true;
       _in_downtime = new_in_downtime;
-      notify_parents_of_change(visitor);
+      notify_parents_of_change(visitor, logger);
     }
   }
 }
@@ -108,8 +108,8 @@ void bool_service::service_update(
       _state_hard = o.last_hard_state();
       _state_known = true;
       _in_downtime = new_in_downtime;
-      log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
-      notify_parents_of_change(visitor);
+      _logger->trace("bool_service: updated with state: {}", _state_hard);
+      notify_parents_of_change(visitor, logger);
     }
   }
 }
@@ -138,8 +138,8 @@ void bool_service::service_update(
       _state_hard = o.last_hard_state();
       _state_known = true;
       _in_downtime = new_in_downtime;
-      log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
-      notify_parents_of_change(visitor);
+      _logger->trace("bool_service: updated with state: {}", _state_hard);
+      notify_parents_of_change(visitor, _logger);
     }
   }
 }
@@ -186,11 +186,12 @@ bool bool_service::in_downtime() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
 void bool_service::update_from(computable* child [[maybe_unused]],
-                               io::stream* visitor) {
-  log_v2::bam()->trace("bool_service::update_from");
-  notify_parents_of_change(visitor);
+                               io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("bool_service::update_from");
+  notify_parents_of_change(visitor, logger);
 }
 
 /**
