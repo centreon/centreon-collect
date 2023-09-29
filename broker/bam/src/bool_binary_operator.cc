@@ -99,7 +99,7 @@ bool bool_binary_operator::in_downtime() const {
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
  */
-void bool_binary_operator::update_from(computable* child, io::stream* visitor) {
+void bool_binary_operator::update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
   auto logger = log_v2::bam();
   logger->trace("bool_binary_operator::update_from");
   // Check operation members values.

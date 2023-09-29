@@ -24,9 +24,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_service bool_service.hh
  * "com/centreon/broker/bam/bool_service.hh"
@@ -66,12 +64,10 @@ class bool_service : public bool_value, public service_listener {
   bool boolean_value() const override;
   bool state_known() const override;
   bool in_downtime() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_SERVICE_HH

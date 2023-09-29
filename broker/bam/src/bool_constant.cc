@@ -64,9 +64,10 @@ bool bool_constant::state_known() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
 void bool_constant::update_from(computable* child [[maybe_unused]],
-                                io::stream* visitor [[maybe_unused]]) {
+                                io::stream* visitor [[maybe_unused]], const std::shared_ptr<spdlog::logger>& logger) {
   log_v2::bam()->trace("bool_constant::update_from");
 }
 

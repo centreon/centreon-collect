@@ -28,6 +28,7 @@ engine)
   ;;
 common)
   tests/ut_common $*
+  ;;
 *)
   tests/ut_common
   tests/ut_clib
