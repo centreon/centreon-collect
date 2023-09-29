@@ -85,6 +85,77 @@ BENCH_${nb_check}STATUS
     ...    1000
     ...    10000
 
+BENCH_${nb_check}STATUS_TRACES
+    [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
+    [Tags]    broker    engine    bench
+    Config Engine    ${1}    ${50}    ${20}
+    # We want all the services to be passive to avoid parasite checks during our test.
+    Set Services Passive    ${0}    service_.*
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module    ${1}
+    FOR    ${name}    IN    @{CONFIG_NAME}
+        Broker Config Log    central    ${name}    trace
+    END
+
+    Broker Config Add Item    module0    bbdo_version    3.0.0
+    Broker Config Add Item    central    bbdo_version    3.0.0
+    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config Broker Sql Output    central    unified_sql
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No check for external commands executed for 1mn.
+
+    ${broker_stat_before}    Get Broker Process Stat    51001
+    ${engine_stat_before}    Get Engine Process Stat    50001
+    Process Service Check result    host_1    service_1    1    warning    config0    1    ${nb_check}
+    Send Bench    1    50001
+    ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    ${broker_stat_after}    Get Broker Process Stat    51001
+    ${engine_stat_after}    Get Engine Process Stat    50001
+    ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
+    ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
+
+    Download Database From S3    bench.unqlite
+
+    ${success}    Store Result In Unqlite
+    ...    bench.unqlite
+    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    broker
+    ...    ${diff_broker}
+    ...    ${broker_stat_after}
+    ...    ${bench_data}
+    ...    central-broker-master-input-1
+    ...    write
+    ...    central-rrd-master-output
+    ...    publish
+    Should Be True    ${success}    fail to save broker bench to database
+
+    ${success}    Store Result In Unqlite
+    ...    bench.unqlite
+    ...    BENCH_${nb_check}STATUS_TRACES
+    ...    engine
+    ...    ${diff_engine}
+    ...    ${engine_stat_after}
+    ...    ${bench_data}
+    ...    client
+    ...    callback_pb_bench
+    ...    central-module-master-output
+    ...    read
+    Should Be True    ${success}    fail to save engine bench to database
+
+    Upload Database To S3    bench.unqlite
+
+    Stop Engine
+    Stop Broker
+
+    Examples:    nb_check    --
+    ...    1000
+    ...    10000
+
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
