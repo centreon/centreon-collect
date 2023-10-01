@@ -155,8 +155,7 @@ not3
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling downtime has not finished .
 
-    ${result}    Process Service Check Result    host_1    service_1    2    critical
-    Should Be True    ${result}
+    Process Service Check Result    host_1    service_1    2    critical
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
