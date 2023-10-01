@@ -48,7 +48,8 @@ not1
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -88,7 +89,8 @@ not2
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -101,7 +103,8 @@ not2
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -147,16 +150,13 @@ not3
         Sleep    10s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
-
     # Let's wait for the external command check start
     ${content}    Create List    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling downtime has not finished .
 
-    Process Service Check Result    host_1    service_1    2    critical
-
-    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Process Service Check Result    host_1    service_1    2    critical
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -195,7 +195,8 @@ not4
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}
 
     # Acknowledge the service with critical status
     Acknowledge Service Problem    host_1    service_1    STICKY
@@ -207,7 +208,8 @@ not4
 
     Process Service Check Result    host_1    service_1    0    ok
 
-    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -258,9 +260,11 @@ not5
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
+    Should Be True    ${result}
 
-    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
+    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -303,7 +307,8 @@ not6
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -323,12 +328,8 @@ not6
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
-
     Engine Config Set Value In Services    0    service_1    notification_period    24x7
     Sleep    5s
-
-    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -602,7 +603,8 @@ not12
         Sleep    1s
     END
 
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -653,20 +655,7 @@ not13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
-
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_2    service_2    2    critical
-        Sleep    1s
-    END
-
-    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Service Check
 
     # Let's wait for the first notification of the user U1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical_0;
@@ -677,26 +666,7 @@ not13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that notification is not sent
 
-    Process Service Check Result    host_2    service_2    2    critical
-    Process Service Check Result    host_1    service_1    2    critical
-
-    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-
-    Process Service Check Result    host_2    service_2    2    critical
-    Process Service Check Result    host_1    service_1    2    critical
-
-    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-
-    Process Service Check Result    host_2    service_2    2    critical
-    Process Service Check Result    host_1    service_1    2    critical
-
-    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-
-    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Service Check
 
     # Let's wait for the first notification of the contact group 2 U3 ET U2
 
@@ -708,19 +678,7 @@ not13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
 
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
-
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_2    service_2    2    critical
-        Sleep    1s
-    END
-
-    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Service Check
 
     # Let's wait for the second notification of the contact group 2 U3 ET U2
 
@@ -732,17 +690,7 @@ not13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    A message telling that notification is not sent
 
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_1    service_1    2    critical
-        Sleep    1s
-    END
-
-    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Check Result    host_2    service_2    2    critical
-        Sleep    1s
-    END
+    Service Check
 
     # Let's wait for the first notification of the contact group 3 U4
 
@@ -778,7 +726,9 @@ Config Notifications
     Config Broker Sql Output    central    unified_sql
     Config Broker Remove Rrd Output    central
     Clear Retention
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    Config Engine Add Cfg File    ${0}    contacts.cfg
+    Config Engine Add Cfg File    ${0}    contactgroups.cfg
+    Config Engine Add Cfg File    ${0}    escalations.cfg
     Engine Config Add Command
     ...    0
     ...    command_notif
@@ -811,3 +761,20 @@ Config Escalations
     Engine Config Replace Value In Services    0    service_2    check_command    command_4
     Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+Service Check
+    FOR   ${i}    IN RANGE    ${4}
+        Process Service Check Result    host_1    service_1    2    critical
+        Sleep    1s
+    END
+
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}
+
+    FOR   ${i}    IN RANGE    ${4}
+        Process Service Check Result    host_2    service_2    2    critical
+        Sleep    1s
+    END
+
+    ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}
