@@ -531,16 +531,16 @@ define timeperiod {
     alias                          Never
 }
 define timeperiod {
-    name                           nonworkhours
-    timeperiod_name                nonworkhours
-    alias                          Non-Work Hours
-    sunday                         00:00-24:00
-    monday                         00:00-09:00,17:00-24:00
-    tuesday                        00:00-09:00,17:00-24:00
-    wednesday                      00:00-09:00,17:00-24:00
-    thursday                       00:00-09:00,17:00-24:00
-    friday                         00:00-09:00,17:00-24:00
-    saturday                       00:00-24:00
+    name                           workhours
+    timeperiod_name                workhours
+    alias                          Work Hours
+    sunday                         09:00-12:00,14:00-18:00
+    monday                         09:00-12:00,14:00-18:00
+    tuesday                        09:00-12:00,14:00-18:00
+    wednesday                      09:00-12:00,14:00-18:00
+    thursday                       09:00-12:00,14:00-18:00
+    friday                         09:00-12:00,14:00-18:00
+    saturday                       09:00-12:00,14:00-18:00
 }
 """)
             f.close()

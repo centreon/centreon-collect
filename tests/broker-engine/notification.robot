@@ -49,11 +49,11 @@ not1
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_1 is not hard
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The notification is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -90,7 +90,7 @@ not2
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_1 is not hard
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -104,11 +104,11 @@ not2
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_1 is not hard
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification recovery is not sent
+    Should Be True    ${result}    The notification recovery is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -153,13 +153,13 @@ not3
     # Let's wait for the external command check start
     ${content}    Create List    SERVICE DOWNTIME ALERT: host_1;service_1;STOPPED; Service has exited from a period of scheduled downtime
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling downtime has not finished .
+    Should Be True    ${result}    The downtime has not finished .
 
     Process Service Check Result    host_1    service_1    2    critical
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The critical notification is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -195,7 +195,7 @@ not4
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_1 is not hard
 
     # Acknowledge the service with critical status
     Acknowledge Service Problem    host_1    service_1    STICKY
@@ -208,11 +208,11 @@ not4
     Process Service Check Result    host_1    service_1    0    ok
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_1 is not hard
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The recovery notification is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -260,18 +260,18 @@ not5
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_1 is not hard
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_2 is not hard
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The critical notification of service_1 is not sent
 
     ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The critical notification of service_2 is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -307,14 +307,17 @@ not6
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    The service_2 is not hard
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The critical notification of service_1 is not sent
 
-    Engine Config Set Value In Services    0    service_1    notification_period    none
+    Engine Config Replace Value In Services    0    service_1    notification_period    none
     Sleep    5s
+
+    #${time}    Add Time To Time    4 hours  ${start}    timer   exclude_millis=yes
+    #Should Be Equal    ${time}
 
     ${start}    Get Current Date
     Reload Broker
@@ -327,12 +330,9 @@ not6
         Sleep    1s
     END
 
-    Engine Config Set Value In Services    0    service_1    notification_period    24x7
-    Sleep    5s
-
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
+    ${content}    Create List    This notifier shouldn't have notifications sent out at this time
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification recovery is not sent
+    Should Be True    ${result}    The timeperiod is not working
 
     Stop Engine
     Kindly Stop Broker
@@ -373,7 +373,7 @@ not7
 
     ${content}    Create List    HOST ALERT: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    the host alert is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -414,7 +414,7 @@ not8
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;host_1 DOWN;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The down notification of host_1 is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -455,7 +455,7 @@ not9
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;Host
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The recovery notification of host_1 is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -508,7 +508,7 @@ not10
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;host_1 DOWN;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The down notification of host_1 is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -565,7 +565,7 @@ not11
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;RECOVERY (UP);command_notif;Host
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The recovery notification of host_1 is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -593,7 +593,7 @@ not12
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    The check_for_external_commands() is not available.
 
     ## Time to set the service to CRITICAL HARD.
 
@@ -607,15 +607,15 @@ not12
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that an alert is sent
+    Should Be True    ${result}    The first service alert SOFT1 is not sent 
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;2;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that an alert is sent
+    Should Be True    ${result}    The second service alert SOFT2 is not sent
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;HARD;3;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that an alert is sent
+    Should Be True    ${result}    The third service alert hard is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -652,18 +652,18 @@ not13
   # Let's wait for the external command check start
     ${content}    Create List    check
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    The check_for_external_commands() is not available.
 
     Service Check
 
     # Let's wait for the first notification of the user U1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_1;service_1;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The first notification of U1 is not sent
     # Let's wait for the first notification of the contact group 1
     ${content}    Create List    SERVICE NOTIFICATION: U1;host_2;service_2;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The first notification of contact group 1 is not sent
 
     Service Check
 
@@ -671,11 +671,11 @@ not13
 
     ${content}    Create List     SERVICE NOTIFICATION: U2;host_1;service_1;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The first notification of U2 is not sent
 
     ${content}    Create List    SERVICE NOTIFICATION: U3;host_1;service_1;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The first notification of U3 is not sent
 
     Service Check
 
@@ -683,11 +683,11 @@ not13
 
     ${content}    Create List    SERVICE NOTIFICATION: U2;host_2;service_2;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The second notification of U2 is not sent
 
     ${content}    Create List    SERVICE NOTIFICATION: U3;host_2;service_2;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The second notification of U3 is not sent
 
     Service Check
 
@@ -695,11 +695,11 @@ not13
 
     ${content}    Create List    SERVICE NOTIFICATION: U4;host_1;service_1;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The first notification of U4 is not sent
 
     ${content}    Create List    SERVICE NOTIFICATION: U4;host_2;service_2;CRITICAL;command_notif;critical_0;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling that notification is not sent
+    Should Be True    ${result}    The second notification of U4 is not sent
 
 
 
