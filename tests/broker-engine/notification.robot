@@ -40,7 +40,7 @@ not1
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    check_for_external_commands() should be available.
 
     ## Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
@@ -49,7 +49,7 @@ not1
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    The service_1 is not hard
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -90,7 +90,7 @@ not2
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    The service_1 is not hard
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -104,7 +104,7 @@ not2
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Should Be True    ${result}    The service_1 is not hard
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -195,7 +195,7 @@ not4
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    The service_1 is not hard
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     # Acknowledge the service with critical status
     Acknowledge Service Problem    host_1    service_1    STICKY
@@ -203,16 +203,16 @@ not4
     # Let's wait for the external command check start
     ${content}    Create List    ACKNOWLEDGE_SVC_PROBLEM;host_1;service_1;2;0;0;admin;Service (host_1,service_1) acknowledged
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    check_for_external_commands() should be available.
 
     Process Service Check Result    host_1    service_1    0    ok
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
-    Should Be True    ${result}    The service_1 is not hard
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The recovery notification is not sent
+    Should Be True    ${result}    The recovery notification for service_1 is not sent
 
     Stop Engine
     Kindly Stop Broker
@@ -260,10 +260,10 @@ not5
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
-    Should Be True    ${result}    The service_1 is not hard
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    70    HARD
-    Should Be True    ${result}    The service_2 is not hard
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -307,7 +307,7 @@ not6
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    The service_2 is not hard
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -590,7 +590,7 @@ not12
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The check_for_external_commands() is not available.
+    Should Be True    ${result}    check_for_external_commands() is not available.
 
     ## Time to set the service to CRITICAL HARD.
 
@@ -600,7 +600,7 @@ not12
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE ALERT: host_1;service_1;CRITICAL;SOFT;1;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -649,7 +649,7 @@ not13
   # Let's wait for the external command check start
     ${content}    Create List    check
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    The check_for_external_commands() is not available.
+    Should Be True    ${result}    check_for_external_commands() is not available.
 
     Service Check
 
@@ -773,4 +773,4 @@ Service Check
     END
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
