@@ -316,9 +316,6 @@ not6
     Engine Config Replace Value In Services    0    service_1    notification_period    none
     Sleep    5s
 
-    #${time}    Add Time To Time    4 hours  ${start}    timer   exclude_millis=yes
-    #Should Be Equal    ${time}
-
     ${start}    Get Current Date
     Reload Broker
     Reload Engine
