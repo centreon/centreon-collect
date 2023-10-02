@@ -617,10 +617,10 @@ define contact {
 }
             """)
             f.close()
-            with open(config_dir + "/dependencies.cfg", "w") as f:
+            with open(f"{config_dir}/dependencies.cfg", "w") as f:
                 f.write("#dependencies.cfg\n")
 
-            with open(config_dir + "/contactgroups.cfg", "w") as f:
+            with open(f"{config_dir}/contactgroups.cfg", "w") as f:
                 f.write("#contactgroups.cfg\n")
 
             f = open(config_dir + "/escalations.cfg", "w")
