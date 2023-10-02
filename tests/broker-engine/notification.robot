@@ -80,7 +80,7 @@ not2
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    check_for_external_commands() should be available.
 
     ## Time to set the service to CRITICAL HARD.
 
@@ -94,7 +94,7 @@ not2
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling that notification is sent
+    Should Be True    ${result}    No notification has been sent concerning a critical service
 
     ## Time to set the service to UP  hard
 
@@ -135,7 +135,7 @@ not3
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    check_for_external_commands() should be available.
 
     # It's time to schedule a downtime
     Schedule Service Downtime    host_1    service_1    ${60}
@@ -186,7 +186,7 @@ not4
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    check_for_external_commands() should be available.
 
     # Time to set the service to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${3}
@@ -765,7 +765,7 @@ Service Check
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     FOR   ${i}    IN RANGE    ${4}
         Process Service Check Result    host_2    service_2    2    critical
