@@ -165,7 +165,7 @@ void failover::_run() {
       try {
         ack_events = _stream->stop();
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::core(),
+        SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
                             "Failed to send stop event to stream: {}",
                             e.what());
       }
@@ -409,12 +409,12 @@ void failover::_run() {
     }
     // Some real error occured.
     catch (const exceptions::connection_closed&) {
-      SPDLOG_LOGGER_INFO(log_v2::instance().get(0), "failover {}: connection closed",
-                         _name);
+      SPDLOG_LOGGER_INFO(log_v2::instance().get(0),
+                         "failover {}: connection closed", _name);
       on_exception_handler();
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0), "failover: global error: {}",
-                          e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+                          "failover: global error: {}", e.what());
       on_exception_handler();
     } catch (...) {
       SPDLOG_LOGGER_ERROR(
