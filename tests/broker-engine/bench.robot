@@ -153,8 +153,7 @@ BENCH_${nb_check}STATUS_TRACES
 
     Upload Database To S3    bench.unqlite
 
-    Stop Engine
-    Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Stop Broker
 
     Examples:    nb_check    --
     ...    1000
