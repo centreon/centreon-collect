@@ -22,12 +22,9 @@
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declarations.
 class ba;
 class impact_values;
@@ -70,8 +67,6 @@ class kpi : public computable {
 
   void commit_initial_events(io::stream* visitor);
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_KPI_HH

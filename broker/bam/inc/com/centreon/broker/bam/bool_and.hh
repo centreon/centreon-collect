@@ -20,11 +20,8 @@
 #define CCB_BAM_BOOL_AND_HH
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_and bool_and.hh "com/centreon/broker/bam/bool_and.hh"
  *  @brief AND operator.
@@ -48,8 +45,6 @@ class bool_and : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_AND_HH

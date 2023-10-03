@@ -20,11 +20,8 @@
 #define CCB_BAM_BOOL_OPERATION_HH
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_operation bool_operation.hh
  * "com/centreon/broker/bam/bool_operation.hh"
@@ -54,8 +51,6 @@ class bool_operation : public bool_binary_operator {
   bool state_known() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_OR_HH

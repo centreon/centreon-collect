@@ -20,11 +20,8 @@
 #define CCB_BAM_BOOL_NOT_EQUAL_HH
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_not_equal bool_not_equal.hh
  * "com/centreon/broker/bam/bool_not_equal.hh"
@@ -44,8 +41,6 @@ class bool_not_equal : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_NOT_EQUAL_HH

@@ -108,7 +108,9 @@ class kpi_service : public service_listener, public kpi {
   void visit(io::stream* visitor) override;
   virtual void set_initial_event(const KpiEvent& e) override;
   bool ok_state() const override;
-  void update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const;
 };
