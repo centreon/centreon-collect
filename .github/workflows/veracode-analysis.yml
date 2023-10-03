@@ -122,6 +122,8 @@ jobs:
           echo "[DEBUG] - Build size"
           du -sh ./build/* | sort -rh
 
+          echo "[DEBUG] - Find compiled files"
+          find ./build -name "*.so"
 
       - name: Cache
         uses: actions/cache/save@v3
