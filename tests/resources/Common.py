@@ -544,14 +544,14 @@ def check_service_resource_status_with_timeout(hostname: str, service_desc: str,
                 cursor.execute(
                     f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
                 result = cursor.fetchall()
-                logger.console(
-                    f"result: {int(result[0]['status'])} status: {int(status)}")
+                if len(result) > 0:
+                    logger.console(f"result: {result}")
                 if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
                     logger.console(
                         f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
                     if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
                         return True
-                    else:
+                    elif state_type == 'SOFT' and int(result[0]['status_confirmed']) == 0:
                         return True
         time.sleep(1)
     return False
@@ -764,6 +764,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                                      cursorclass=pymysql.cursors.DictCursor)
         with connection:
             with connection.cursor() as cursor:
+                logger.console(f"SELECT * from mod_bam WHERE name='{ba_name}'")
                 cursor.execute(
                     f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()

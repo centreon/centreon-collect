@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/bool_call.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -95,6 +94,7 @@ void bool_call::update_from(computable* child [[maybe_unused]],
                             io::stream* visitor,
                             const std::shared_ptr<spdlog::logger>& logger) {
   logger->trace("bool_call::update_from");
+
   if (child == _expression.get())
     notify_parents_of_change(visitor, logger);
 }

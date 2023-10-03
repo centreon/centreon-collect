@@ -72,7 +72,10 @@ class kpi_ba : public kpi {
   void visit(io::stream* visitor) override;
   bool ok_state() const override;
   bool in_downtime() const override;
-  virtual void update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) override;
+  virtual void update_from(
+      computable* child,
+      io::stream* visitor,
+      const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };

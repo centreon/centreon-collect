@@ -237,8 +237,8 @@ void kpi_service::service_update(
     // Log message.
     logger->debug(
         "BAM: KPI {} is getting notified of service ({}, {}) update (state: "
-        "{})",
-        _id, _host_id, _service_id, o.state());
+        "{} hard state: {})",
+        _id, _host_id, _service_id, o.state(), o.state_type());
 
     // Update information.
     if (o.last_check() == 0 || o.last_check() == -1) {
@@ -266,10 +266,8 @@ void kpi_service::service_update(
     // Generate status event.
     visit(visitor);
 
-==== BASE ====
-    // Propagate change.
-    propagate_update(visitor, _logger);
-==== BASE ====
+    if (changed)
+      notify_parents_of_change(visitor, logger);
   }
 }
 
@@ -322,9 +320,8 @@ void kpi_service::service_update(
     visit(visitor);
 
     // Propagate change.
-==== BASE ====
-    propagate_update(visitor, _logger);
-==== BASE ====
+    if (changed)
+      notify_parents_of_change(visitor, logger);
   }
 }
 
@@ -355,10 +352,8 @@ void kpi_service::service_update(
   // Generate status event.
   visit(visitor);
 
-==== BASE ====
-  // Propagate change.
-  propagate_update(visitor, _logger);
-==== BASE ====
+  if (changed)
+    notify_parents_of_change(visitor, logger);
 }
 
 /**
@@ -388,10 +383,8 @@ void kpi_service::service_update(
   // Generate status event.
   visit(visitor);
 
-==== BASE ====
-  // Propagate change.
-  propagate_update(visitor, _logger);
-==== BASE ====
+  if (changed)
+    notify_parents_of_change(visitor, logger);
 }
 
 /**
@@ -451,10 +444,8 @@ void kpi_service::service_update(
   // Generate status event.
   visit(visitor);
 
-==== BASE ====
-  // Propagate change.
-  propagate_update(visitor, _logger);
-==== BASE ====
+  if (changed)
+    notify_parents_of_change(visitor, logger);
 }
 
 /**
@@ -516,10 +507,8 @@ void kpi_service::service_update(
   // Generate status event.
   visit(visitor);
 
-==== BASE ====
-  // Propagate change.
-  propagate_update(visitor, _logger);
-==== BASE ====
+  if (changed)
+    notify_parents_of_change(visitor, logger);
 }
 
 /**
@@ -727,5 +716,26 @@ void kpi_service::set_initial_event(const KpiEvent& e) {
 bool kpi_service::ok_state() const {
   return _state_hard == 0;
 }
-==== BASE ====
-==== BASE ====
+
+/**
+ * @brief Update this computable with the child modifications.
+ *
+ * @param child The child that changed.
+ * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
+ */
+void kpi_service::update_from(computable* child [[maybe_unused]],
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("kpi_service::update_from");
+  notify_parents_of_change(visitor, logger);
+}
+
+std::string kpi_service::object_info() const {
+  return fmt::format("KPI {} with service ({}, {})\nstate: {}", get_id(),
+                     get_host_id(), get_service_id(), get_state_hard());
+}
+
+void kpi_service::dump(std::ofstream& output) const {
+  dump_parents(output);
+}

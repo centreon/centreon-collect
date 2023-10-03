@@ -47,7 +47,9 @@ class bool_not : public bool_value {
   double value_soft();
   bool state_known() const override;
   bool in_downtime() const override;
-  void update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger& logger) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };

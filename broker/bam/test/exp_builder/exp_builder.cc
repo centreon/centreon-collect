@@ -836,7 +836,7 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
   bam::hst_svc_mapping mapping;
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
   bam::service_book book;
@@ -851,7 +851,7 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
   svc1->mut_obj().set_service_id(1);
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
 
   ASSERT_FALSE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -861,30 +861,30 @@ TEST_F(BamExpBuilder, BoolexpKpiService) {
   svc2->mut_obj().set_service_id(2);
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr);
+  book.update(svc2, nullptr, logger);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
 
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr);
+  book.update(svc2, nullptr, logger);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
@@ -901,19 +901,19 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   bam::hst_svc_mapping mapping;
   mapping.set_service("host_1", "service_1", 1, 1, true);
   mapping.set_service("host_1", "service_2", 1, 2, true);
-  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::exp_builder builder(p.get_postfix(), mapping, logger);
   bam::bool_value::ptr b(builder.get_tree());
 
-  auto exp = std::make_shared<bam::bool_expression>(1, true);
+  auto exp = std::make_shared<bam::bool_expression>(1, true, logger);
   exp->set_expression(b);
   b->add_parent(exp);
 
-  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
+  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1, logger);
   kpi->set_impact(100);
   kpi->link_boolexp(exp);
   exp->add_parent(kpi);
 
-  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false);
+  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false, logger);
   ba->set_name("ba-kpi-service");
   ba->set_level_warning(70);
   ba->set_level_warning(80);
@@ -935,7 +935,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   svc1->mut_obj().set_service_id(1);
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
 
   ba->dump("/tmp/ba1");
   ASSERT_FALSE(b->state_known());
@@ -950,7 +950,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
   svc2->mut_obj().set_service_id(2);
   svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc2, nullptr);
+  book.update(svc2, nullptr, logger);
   ba->dump("/tmp/ba2");
 
   ASSERT_TRUE(b->state_known());
@@ -962,18 +962,18 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
   ba->dump("/tmp/ba3");
 
   ASSERT_TRUE(b->state_known());
   ASSERT_TRUE(b->boolean_value());
 
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
   ba->dump("/tmp/ba4");
 
   svc2->mut_obj().set_state(ServiceStatus::OK);
   svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc2, nullptr);
+  book.update(svc2, nullptr, logger);
   ba->dump("/tmp/ba5");
 
   ASSERT_TRUE(b->state_known());
@@ -985,7 +985,7 @@ TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
 
   svc1->mut_obj().set_state(ServiceStatus::OK);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
-  book.update(svc1, nullptr);
+  book.update(svc1, nullptr, logger);
   ba->dump("/tmp/ba6");
 
   ASSERT_TRUE(b->state_known());

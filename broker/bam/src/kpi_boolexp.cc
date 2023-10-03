@@ -233,9 +233,12 @@ bool kpi_boolexp::ok_state() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
-void kpi_boolexp::update_from(computable* child, io::stream* visitor) {
-  log_v2::bam()->trace("kpi_boolexp::update_from");
+void kpi_boolexp::update_from(computable* child,
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("kpi_boolexp::update_from");
   // It is useless to maintain a cache of boolean expression values in
   // this class, as the bool_expression class already cache most of them.
   if (child == _boolexp.get()) {
@@ -243,12 +246,12 @@ void kpi_boolexp::update_from(computable* child, io::stream* visitor) {
     // Generate status event.
     _update_state();
     visit(visitor);
-    log_v2::bam()->debug(
+    _logger->debug(
         "BAM: boolean expression KPI {} is getting notified of child update "
         "old_state={}, new_state={}",
         _id, old_state, _current_state);
     if (old_state != _current_state)
-      notify_parents_of_change(visitor);
+      notify_parents_of_change(visitor, logger);
   }
 }
 
