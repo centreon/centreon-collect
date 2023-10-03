@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_less_than bool_less_than.hh
  * "com/centreon/broker/bam/bool_less_than.hh"
@@ -44,8 +42,6 @@ class bool_less_than : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_LESS_THAN_HH

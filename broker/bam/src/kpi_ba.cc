@@ -278,7 +278,9 @@ bool kpi_ba::in_downtime() const {
  * @param visitor The visitor to handle events.
  * @param logger The logger to use.
  */
-void kpi_ba::update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
+void kpi_ba::update_from(computable* child,
+                         io::stream* visitor,
+                         const std::shared_ptr<spdlog::logger>& logger) {
   logger->trace("kpi_ba::update_from");
   // It is useless to maintain a cache of BA values in this class, as
   // the ba class already cache most of them.
@@ -290,7 +292,7 @@ void kpi_ba::update_from(computable* child, io::stream* visitor, const std::shar
     // Generate status event.
     visit(visitor);
 
-    notify_parents_of_change(visitor);
+    notify_parents_of_change(visitor, logger);
   }
 }
 

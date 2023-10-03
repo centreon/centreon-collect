@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_or bool_or.hh "com/centreon/broker/bam/bool_or.hh"
  *  @brief OR operator.
@@ -42,8 +40,6 @@ class bool_equal : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_EQUAL_HH

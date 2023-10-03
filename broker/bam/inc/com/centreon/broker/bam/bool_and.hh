@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2014, 2021, 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_and bool_and.hh "com/centreon/broker/bam/bool_and.hh"
  *  @brief AND operator.
@@ -47,8 +45,6 @@ class bool_and : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_AND_HH

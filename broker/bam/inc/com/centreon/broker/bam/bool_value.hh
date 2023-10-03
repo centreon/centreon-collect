@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/computable.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_value bool_value.hh "com/centreon/broker/bam/bool_value.hh"
  *  @brief Computable boolean value.
@@ -44,8 +42,6 @@ class bool_value : public computable {
   virtual bool state_known() const = 0;
   virtual bool in_downtime() const;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_VALUE_HH

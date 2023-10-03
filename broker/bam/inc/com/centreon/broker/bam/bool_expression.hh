@@ -56,7 +56,7 @@ class bool_expression : public computable {
   uint32_t get_id() const;
   void update_from(computable* child,
                    io::stream* visitor,
-const std::shared_ptr<spdlog::logger>& logger) override;
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };

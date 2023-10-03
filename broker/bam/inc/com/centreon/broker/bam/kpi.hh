@@ -24,9 +24,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declarations.
 class ba;
 class impact_values;
@@ -49,9 +47,7 @@ class kpi : public computable {
   void _event_init();
 
  public:
-  kpi(uint32_t kpi_id,
-      uint32_t ba_id,
-      const std::string& name,
+  kpi(uint32_t kpi_id, uint32_t ba_id, const std::string& name,
       const std::shared_ptr<spdlog::logger>& logger);
   virtual ~kpi() noexcept = default;
   kpi& operator=(const kpi&) = delete;
@@ -69,8 +65,6 @@ class kpi : public computable {
 
   void commit_initial_events(io::stream* visitor);
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_KPI_HH

@@ -98,10 +98,13 @@ uint32_t bool_expression::get_id() const {
  * @param visitor The visitor to handle events.
  * @param logger The logger to use.
  */
-void bool_expression::update_from(computable* child, io::stream* visitor, const std::shared_ptr<spdlog::logger>& logger) {
-  log_v2::bam()->trace("bool_expression::update_from");
+void bool_expression::update_from(
+    computable* child,
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("bool_expression::update_from");
   if (child == _expression.get())
-    notify_parents_of_change(visitor);
+    notify_parents_of_change(visitor, logger);
 }
 
 /**

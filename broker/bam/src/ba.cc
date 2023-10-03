@@ -690,7 +690,7 @@ void ba::update_from(computable* child, io::stream* visitor,
     it->second.soft_impact = new_soft_impact;
     it->second.in_downtime = kpi_in_downtime;
     bool changed = _apply_impact(it->first, it->second);
-    SPDLOG_LOGGER_TRACE(log_v2::bam(), "BA has changed: {}", changed);
+    SPDLOG_LOGGER_TRACE(_logger, "BA has changed: {}", changed);
 
     // Check for inherited downtimes.
     _compute_inherited_downtime(visitor);
