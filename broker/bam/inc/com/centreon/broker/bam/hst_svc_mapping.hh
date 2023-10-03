@@ -1,5 +1,5 @@
 /*
-** Copyright 2014, 2021 Centreon
+** Copyright 2014, 2021-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 
 #include <absl/container/flat_hash_map.h>
 
-#include "com/centreon/broker/namespace.hh"
 #include "common/log_v2/log_v2.hh"
 
 namespace com::centreon::broker::bam {

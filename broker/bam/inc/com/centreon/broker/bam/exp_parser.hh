@@ -19,11 +19,7 @@
 #ifndef CCB_BAM_EXP_PARSER_HH
 #define CCB_BAM_EXP_PARSER_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class exp_parser exp_parser.hh "com/centreon/broker/bam/exp_parser.hh"
  *  @brief Expression parser.
@@ -53,8 +49,6 @@ class exp_parser {
   static bool is_function(std::string const& token);
   static bool is_operator(std::string const& token);
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_EXP_PARSER_HH

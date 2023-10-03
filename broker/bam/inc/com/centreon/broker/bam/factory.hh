@@ -20,11 +20,8 @@
 #define CCB_BAM_FACTORY_HH
 
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class factory factory.hh "com/centreon/broker/bam/factory.hh"
  *  @brief BAM layer factory.
@@ -44,8 +41,6 @@ class factory : public io::factory {
       std::shared_ptr<persistent_cache> cache =
           std::shared_ptr<persistent_cache>()) const override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_FACTORY_HH

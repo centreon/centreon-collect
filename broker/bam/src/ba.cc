@@ -726,8 +726,8 @@ void ba::dump(const std::string& filename) const {
     dump(output);
     output << "}\n";
   } else
-    log_v2::bam()->error("Unable to open the file '{}' to write BA {} info",
-                         filename, _id);
+    _logger->error("Unable to open the file '{}' to write BA {} info", filename,
+                   _id);
 }
 
 /**

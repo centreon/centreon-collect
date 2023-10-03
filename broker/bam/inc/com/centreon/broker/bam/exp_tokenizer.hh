@@ -19,11 +19,7 @@
 #ifndef CCB_BAM_EXP_TOKENIZER_HH
 #define CCB_BAM_EXP_TOKENIZER_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class exp_tokenizer exp_tokenizer.hh
  * "com/centreon/broker/bam/exp_tokenizer.hh"
@@ -55,8 +51,6 @@ class exp_tokenizer {
   std::size_t _size;
   std::string _text;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_EXP_TOKENIZER_HH
