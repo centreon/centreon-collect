@@ -73,6 +73,8 @@ jobs:
 
           sudo ninja
 
+          cd ..
+
           echo "[DEBUG] - Current size"
           du -sh ./* | sort -rh
 
