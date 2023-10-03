@@ -594,7 +594,7 @@ int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
       if (ba)
         ba->dump(obj.output_file());
       else
-        log_v2::bam()->error(
+        _logger->error(
             "extcmd: Unable to get info about BA {} - it doesn't exist",
             obj.id());
     } break;

@@ -20,12 +20,9 @@
 #define CCB_BAM_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class connector connector.hh "com/centreon/broker/bam/connector.hh"
  *  @brief Connect to a database.
@@ -65,8 +62,6 @@ class connector : public io::endpoint {
   void connect_reporting(database_config const& db_cfg);
   std::shared_ptr<io::stream> open() override;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_CONNECTOR_HH
