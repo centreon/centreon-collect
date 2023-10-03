@@ -129,7 +129,7 @@ grpc::Status broker_impl::GetModulesStats(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
-                                           __attribute__((unused)),
+                                           [[maybe_unused]],
                                            const GenericNameOrIndex* request,
                                            GenericString* response) {
   std::vector<nlohmann::json> value;
@@ -182,8 +182,8 @@ grpc::Status broker_impl::GetEndpointStats(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetGenericStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     GenericString* response) {
   nlohmann::json object;
   stats::get_generic_stats(object);
@@ -193,7 +193,7 @@ grpc::Status broker_impl::GetGenericStats(
 }
 
 grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
-                                             __attribute__((unused)),
+                                             [[maybe_unused]],
                                              const SqlConnection* request,
                                              SqlManagerStats* response) {
   if (!request->has_id())
@@ -223,15 +223,15 @@ grpc::Status broker_impl::SetSqlManagerStats(
 }
 
 grpc::Status broker_impl::GetConflictManagerStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     ConflictManagerStats* response) {
   stats::center::instance().get_conflict_manager_stats(response);
   return grpc::Status::OK;
 }
 
 grpc::Status broker_impl::GetMuxerStats(grpc::ServerContext* context
-                                        __attribute__((unused)),
+                                        [[maybe_unused]],
                                         const GenericString* request,
                                         MuxerStats* response) {
   const std::string name = request->str_arg();
@@ -257,10 +257,10 @@ void broker_impl::set_broker_name(const std::string& s) {
  * @return grpc::Status::OK
  */
 grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
-                                           __attribute__((unused)),
+                                           [[maybe_unused]],
                                            const IndexIds* request,
                                            ::google::protobuf::Empty* response
-                                           __attribute__((unused))) {
+                                           [[maybe_unused]]) {
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_rebuild_graphs>(*request)};
   pblshr.write(e);
@@ -297,7 +297,7 @@ grpc::Status broker_impl::GetProcessingStats(
 }
 
 grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
-                                       __attribute__((unused)),
+                                       [[maybe_unused]],
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
   log_v2::instance().get(0)->info("Remove poller...");

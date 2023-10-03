@@ -24,9 +24,7 @@
 #include "com/centreon/broker/bam/configuration/applier/kpi.hh"
 #include "com/centreon/broker/bam/service_book.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declaration.
 class monitoring_stream;
 
@@ -65,7 +63,7 @@ class state {
   std::unordered_map<std::string, circular_check_node> _nodes;
 
  public:
-  state();
+  state(const uint32_t logger_id);
   ~state();
   state(const state&) = delete;
   state& operator=(state const& other) = delete;
@@ -78,8 +76,6 @@ class state {
 };
 }  // namespace applier
 }  // namespace configuration
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_STATE_HH

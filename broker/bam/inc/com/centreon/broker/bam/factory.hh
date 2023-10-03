@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/io/factory.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class factory factory.hh "com/centreon/broker/bam/factory.hh"
  *  @brief BAM layer factory.
@@ -38,13 +36,10 @@ class factory : public io::factory {
   factory& operator=(factory const& other) = delete;
   bool has_endpoint(config::endpoint& cfg, io::extension* ext) override;
   io::endpoint* new_endpoint(
-      config::endpoint& cfg,
-      bool& is_acceptor,
+      config::endpoint& cfg, bool& is_acceptor,
       std::shared_ptr<persistent_cache> cache =
           std::shared_ptr<persistent_cache>()) const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_FACTORY_HH

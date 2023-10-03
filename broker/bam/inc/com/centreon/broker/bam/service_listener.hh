@@ -23,7 +23,6 @@
 #include "com/centreon/broker/neb/internal.hh"
 
 namespace com::centreon::broker {
-
 // Forward declarations.
 namespace neb {
 class acknowledgement;
@@ -72,7 +71,6 @@ class service_listener {
                               const std::shared_ptr<spdlog::logger>& logger);
 };
 }  // namespace bam
-
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_SERVICE_LISTENER_HH
