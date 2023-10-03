@@ -81,6 +81,15 @@ jobs:
           echo "[DEBUG] - Build size"
           du -sh ./build/* | sort -rh
 
+          echo "[DEBUG] - Build size"
+          du -sh ./build/broker/* | sort -rh
+
+          echo "[DEBUG] - All current location files"
+          ls -laR ./build
+
+          echo "[DEBUG] - Find compiled files"
+          find ./build -name "*.so"
+
 
       - name: Binary preparation
         run: |
@@ -111,21 +120,11 @@ jobs:
           echo "[DEBUG] - current location"
           pwd
 
-          echo "[DEBUG] - hh files left"
-          find ./build -type f -name "*.hh"
-
-          echo "[DEBUG] - current location files"
-          ls -la
-          echo "[DEBUG] - All current location files"
-          ls -laR
-          echo "[DEBUG] - Current size"
-          du -sh ./* | sort -rh
-
-          echo "[DEBUG] - Build size"
-          du -sh ./build/* | sort -rh
-
-          echo "[DEBUG] - Find compiled files"
-          find ./build -name "*.so"
+          TARGETS=`find ./ -name "*.so"`
+          for TARGET in ${TARGETS[@]}; do
+          	echo "[INFO] - file = $TARGET"
+          	echo "[INFO] - basename = `basename $TARGET`"
+          done
 
       - name: Cache
         uses: actions/cache/save@v3
