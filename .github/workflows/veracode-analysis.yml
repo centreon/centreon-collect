@@ -51,29 +51,37 @@ jobs:
           mkdir build
           cd build
 
-          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+#          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+#          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+#
+#          sudo cmake \
+#            -G "Ninja" \
+#            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+#            -DWITH_TESTING=OFF \
+#            -DWITH_BENCH=OFF \
+#            -DWITH_MODULE_SIMU=OFF \
+#            -DCMAKE_INSTALL_PREFIX=/usr \
+#            -DWITH_STARTUP_SCRIPT=systemd \
+#            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+#            -DWITH_USER_BROKER=centreon-broker \
+#            -DWITH_GROUP_BROKER=centreon-broker \
+#            -DWITH_USER_ENGINE=centreon-engine \
+#            -DWITH_GROUP_ENGINE=centreon-engine \
+#            -DWITH_VAR_DIR=/var/log/centreon-engine \
+#            -DWITH_DAEMONS=ON \
+#            -DWITH_CREATE_FILES=OFF \
+#            -DWITH_CONFIG_FILES=ON \
+#            ..
+#
+#          sudo ninja
 
-          sudo cmake \
-            -G "Ninja" \
-            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
-            -DWITH_TESTING=OFF \
-            -DWITH_BENCH=OFF \
-            -DWITH_MODULE_SIMU=OFF \
-            -DCMAKE_INSTALL_PREFIX=/usr \
-            -DWITH_STARTUP_SCRIPT=systemd \
-            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
-            -DWITH_USER_BROKER=centreon-broker \
-            -DWITH_GROUP_BROKER=centreon-broker \
-            -DWITH_USER_ENGINE=centreon-engine \
-            -DWITH_GROUP_ENGINE=centreon-engine \
-            -DWITH_VAR_DIR=/var/log/centreon-engine \
-            -DWITH_DAEMONS=ON \
-            -DWITH_CREATE_FILES=OFF \
-            -DWITH_CONFIG_FILES=ON \
-            ..
+          cp README.md 70-rrd.so
+          cp README.md 15-stats.so
+          cp README.md 15-stats_exporter.so
+          cp README.md test.so
+          cp README.md cbmod.so
+          cp README.md 10-neb.so
 
-          sudo ninja
 
           echo "[DEBUG] - Build size"
           du -sh ./lib/* | sort -rh
@@ -104,13 +112,15 @@ jobs:
           else
             echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
-          echo "[INFO] - Keeping only non empty folders"
+          echo "[INFO] - Keeping only build's non empty folders"
           find ./build -empty -type d -delete
 
-          # List all compiled files to analyse
-          TARGETS=`find ./ -name "*.so" -printf "%P\n" | jq -R -s -c 'split("\n")[:-1]'`
+          echo "[INFO] - List all compiled files to trigger a matrix job
+          TARGETS=`find ./build -name "*.so" -printf "%P\n" | jq -R -s -c 'split("\n")[:-1]'`
           echo "targets=$TARGETS" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
+
+          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
       - name: Cache
         uses: actions/cache/save@v3
@@ -122,16 +132,23 @@ jobs:
     needs: [build]
     name: Sandbox scan
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        project_location: ${{ fromJson(needs.build.targets) }}
 
     steps:
+      - name: Get project name
+        run: |
+          echo "[DEBUG] - project_name = ${{ matrix.project_location }}
+          echo "project_name=`basename ${{ matrix.project_location }}"
+
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
         if: github.ref_name == 'disabled_develop' && github.events != "pull-request" # disable promote for now
-
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
-
         # Action forked as API calls hardcoded '.com' route
         uses: sc979/veracode-sandboxes-helper@v0.2
         # Promote should not fail if sandbox was not found.
@@ -148,20 +165,26 @@ jobs:
           path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
-      - name: Sandbox scan
-        uses: veracode/veracode-uploadandscan-action@0.2.6
-        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
-        with:
-          appname: "${{ inputs.module_name }}"
-          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          vid: "vera01ei-${{ secrets.veracode_api_id }}"
-          vkey: "vera01es-${{ secrets.veracode_api_key }}"
-          createprofile: true
-          createsandbox: true
-          sandboxname: "${{ github.ref_name }}"
-          #scantimeout: 120
-          includenewmodules: true
-          scanallnonfataltoplevelmodules: true
-          deleteincompletescan: 2
-          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
+      - name: Prepare analysis
+        run: |
+          tar xvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+          # Check what's left
+          ls -la build
+
+#      - name: Sandbox scan
+#        uses: veracode/veracode-uploadandscan-action@0.2.6
+#        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
+#        with:
+#          appname: "${{ inputs.module_name }}"
+#          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
+#          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+#          vid: "vera01ei-${{ secrets.veracode_api_id }}"
+#          vkey: "vera01es-${{ secrets.veracode_api_key }}"
+#          createprofile: true
+#          createsandbox: true
+#          sandboxname: "${{ github.ref_name }}"
+#          #scantimeout: 120
+#          includenewmodules: true
+#          scanallnonfataltoplevelmodules: true
+#          deleteincompletescan: 2
+#          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
