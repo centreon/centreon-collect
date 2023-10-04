@@ -35,7 +35,7 @@ jobs:
     runs-on: [self-hosted, collect]
     #if: github.event_name != 'pull_request' && (inputs.stability == 'stable' || inputs.stability == 'unstable')
     outputs:
-      targets: ${{ step.binary_preparation.outputs.targets }}
+      targets: ${{ steps.binary_preparation.outputs.targets }}
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
