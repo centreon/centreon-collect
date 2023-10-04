@@ -45,35 +45,38 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: debug me
+        run: echo "tata"
+
       - name: Compiling Cpp sources
         run: |
           rm -rf build
           mkdir build
           cd build
 
-#          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-#          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-#
-#          sudo cmake \
-#            -G "Ninja" \
-#            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
-#            -DWITH_TESTING=OFF \
-#            -DWITH_BENCH=OFF \
-#            -DWITH_MODULE_SIMU=OFF \
-#            -DCMAKE_INSTALL_PREFIX=/usr \
-#            -DWITH_STARTUP_SCRIPT=systemd \
-#            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
-#            -DWITH_USER_BROKER=centreon-broker \
-#            -DWITH_GROUP_BROKER=centreon-broker \
-#            -DWITH_USER_ENGINE=centreon-engine \
-#            -DWITH_GROUP_ENGINE=centreon-engine \
-#            -DWITH_VAR_DIR=/var/log/centreon-engine \
-#            -DWITH_DAEMONS=ON \
-#            -DWITH_CREATE_FILES=OFF \
-#            -DWITH_CONFIG_FILES=ON \
-#            ..
-#
-#          sudo ninja
+          #          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          #          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
+          #
+          #          sudo cmake \
+          #            -G "Ninja" \
+          #            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+          #            -DWITH_TESTING=OFF \
+          #            -DWITH_BENCH=OFF \
+          #            -DWITH_MODULE_SIMU=OFF \
+          #            -DCMAKE_INSTALL_PREFIX=/usr \
+          #            -DWITH_STARTUP_SCRIPT=systemd \
+          #            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+          #            -DWITH_USER_BROKER=centreon-broker \
+          #            -DWITH_GROUP_BROKER=centreon-broker \
+          #            -DWITH_USER_ENGINE=centreon-engine \
+          #            -DWITH_GROUP_ENGINE=centreon-engine \
+          #            -DWITH_VAR_DIR=/var/log/centreon-engine \
+          #            -DWITH_DAEMONS=ON \
+          #            -DWITH_CREATE_FILES=OFF \
+          #            -DWITH_CONFIG_FILES=ON \
+          #            ..
+          #
+          #          sudo ninja
 
           cp ../README.md 70-rrd.so
           cp ../README.md 15-stats.so
