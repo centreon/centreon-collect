@@ -34,6 +34,8 @@ jobs:
     name: Binary preparation
     runs-on: [self-hosted, collect]
     #if: github.event_name != 'pull_request' && (inputs.stability == 'stable' || inputs.stability == 'unstable')
+    outputs:
+      targets: ${{ step.binary_preparation.outputs.targets }}
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
@@ -73,28 +75,16 @@ jobs:
 
           sudo ninja
 
-          cd ..
-
-          echo "[DEBUG] - Current size"
-          du -sh ./* | sort -rh
-
           echo "[DEBUG] - Build size"
-          du -sh ./build/* | sort -rh
-
-          echo "[DEBUG] - Build size"
-          du -sh ./build/broker/* | sort -rh
-
-          echo "[DEBUG] - All current location files"
-          ls -laR ./build
-
+          du -sh ./lib/* | sort -rh
           echo "[DEBUG] - Find compiled files"
-          find ./build -name "*.so"
-
+          find ./ -name "*.so"
 
       - name: Binary preparation
+        id: binary_preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
-          find ./build -type f -not \( -name "*.so" -o -name "*.cc" -o -name "*.hpp" \) -delete
+          find ./build -type f -not \( -name "*.so" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -117,14 +107,10 @@ jobs:
           echo "[INFO] - Keeping only non empty folders"
           find ./build -empty -type d -delete
 
-          echo "[DEBUG] - current location"
-          pwd
-
-          TARGETS=`find ./ -name "*.so"`
-          for TARGET in ${TARGETS[@]}; do
-          	echo "[INFO] - file = $TARGET"
-          	echo "[INFO] - basename = `basename $TARGET`"
-          done
+          # List all compiled files to analyse
+          TARGETS=`find ./ -name "*.so" -printf "%P\n" | jq -R -s -c 'split("\n")[:-1]'`
+          echo "targets=$TARGETS" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
 
       - name: Cache
         uses: actions/cache/save@v3
@@ -140,7 +126,7 @@ jobs:
     steps:
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
-        if: github.ref_name == 'disabled_develop' # disable promote for now
+        if: github.ref_name == 'disabled_develop' && github.events != "pull-request" # disable promote for now
 
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
