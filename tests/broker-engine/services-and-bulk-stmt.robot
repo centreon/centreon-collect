@@ -341,7 +341,7 @@ RLCode
     ${start}    Get Current Date
     Wait Until Created    /tmp/test4.log    1m
 
-    ${metric_name_found}=    Set Variable    True
+    ${metric_name_found}=    Set Variable    False
     FOR    ${index}    IN RANGE    10
      ${grep_res}=    Grep File
      ...    /tmp/test4.log
