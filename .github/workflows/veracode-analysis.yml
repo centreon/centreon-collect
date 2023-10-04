@@ -135,7 +135,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project_location: ${{ fromJson(needs.build.targets) }}
+        project_location: ${{ fromJson(needs.build.outputs.targets) }}
 
     steps:
       - name: Get project name
