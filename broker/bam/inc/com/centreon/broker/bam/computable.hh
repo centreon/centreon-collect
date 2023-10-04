@@ -52,7 +52,6 @@ class computable {
    *
    *  @param[in] child Recently changed child node.
    *  @param[in] visitor This is used to manage events
-   *  @param[in] logger The logger to use.
    */
   virtual void update_from(computable* child, io::stream* visitor) = 0;
   void remove_parent(const std::shared_ptr<computable>& parent);
