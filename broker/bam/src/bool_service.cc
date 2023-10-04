@@ -1,20 +1,20 @@
 /*
-** Copyright 2014, 2021-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <cassert>
 
@@ -177,7 +177,6 @@ bool bool_service::in_downtime() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void bool_service::update_from(computable* child [[maybe_unused]],
                                io::stream* visitor) {
@@ -185,12 +184,24 @@ void bool_service::update_from(computable* child [[maybe_unused]],
   notify_parents_of_change(visitor);
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string bool_service::object_info() const {
   return fmt::format("BOOL Service ({}, {})\nknown: {}\nvalue: {}",
                      get_host_id(), get_service_id(),
                      state_known() ? "true" : "false", value_hard());
 }
 
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
 void bool_service::dump(std::ofstream& output) const {
   dump_parents(output);
 }

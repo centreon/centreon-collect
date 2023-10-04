@@ -31,10 +31,21 @@ double bool_not_equal::value_hard() const {
   return std::fabs(_left_hard - _right_hard) >= COMPARE_EPSILON ? 1.0 : 0.0;
 }
 
+/**
+ *  Get the hard value as boolean.
+ *
+ *  @return Evaluation of the expression with hard values.
+ */
 bool bool_not_equal::boolean_value() const {
   return std::fabs(_left_hard - _right_hard) >= COMPARE_EPSILON;
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string bool_not_equal::object_info() const {
   return fmt::format(
       "NOT EQUAL {:p}\nknown: {}\nvalue: {}", static_cast<const void*>(this),

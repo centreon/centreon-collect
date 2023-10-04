@@ -271,7 +271,6 @@ bool kpi_ba::in_downtime() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void kpi_ba::update_from(computable* child, io::stream* visitor) {
   log_v2::bam()->trace("kpi_ba::update_from");
@@ -289,10 +288,22 @@ void kpi_ba::update_from(computable* child, io::stream* visitor) {
   }
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string kpi_ba::object_info() const {
   return fmt::format("KPI {} on BA", get_id());
 }
 
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
 void kpi_ba::dump(std::ofstream& output) const {
   output << fmt::format("\"{}\" -> \"{}\"", object_info(), _ba->get_id());
   _ba->dump(output);

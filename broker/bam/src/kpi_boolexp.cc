@@ -258,10 +258,22 @@ void kpi_boolexp::update_from(computable* child, io::stream* visitor) {
   }
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string kpi_boolexp::object_info() const {
   return fmt::format("KPI {}\nstate: {}\n", get_id(), _current_state);
 }
 
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
 void kpi_boolexp::dump(std::ofstream& output) const {
   output << fmt::format("\"{}\" -> \"{}\"\n", object_info(),
                         _boolexp->object_info());

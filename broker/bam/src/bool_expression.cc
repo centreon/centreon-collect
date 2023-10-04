@@ -95,7 +95,6 @@ uint32_t bool_expression::get_id() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void bool_expression::update_from(computable* child, io::stream* visitor) {
   log_v2::bam()->trace("bool_expression::update_from");
@@ -103,12 +102,24 @@ void bool_expression::update_from(computable* child, io::stream* visitor) {
     notify_parents_of_change(visitor);
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string bool_expression::object_info() const {
   return fmt::format("Boolean exp {}\nimpact if: {}\nknown: {}\nstate: {}",
                      get_id(), _impact_if ? "true" : "false", state_known(),
                      get_state());
 }
 
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
 void bool_expression::dump(std::ofstream& output) const {
   output << fmt::format("\"{}\" -> \"{}\"\n", object_info(),
                         _expression->object_info());

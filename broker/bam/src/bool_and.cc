@@ -66,10 +66,21 @@ double bool_and::value_hard() const {
   return _boolean_value;
 }
 
+/**
+ *  Get the hard value as a boolean.
+ *
+ *  @return Evaluation of the expression with hard values.
+ */
 bool bool_and::boolean_value() const {
   return _boolean_value;
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string bool_and::object_info() const {
   return fmt::format(
       "AND {:p}\nknown: {}\nvalue: {}", static_cast<const void*>(this),

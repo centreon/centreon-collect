@@ -11,6 +11,15 @@ There are five types of BA.
 
 Before describing these BA, let's try to explain how they lives and how they are computed.
 
+All the BA classes derived from an abstract `ba` class.
+They have to implement the following methods:
+* `bool _apply_impact(kpi*, impact_info&)`: knowing that the `kpi*` given in parameter is a child of the BA, this method applies on the BA the impact of the KPI, knowing its change stored in the `impact_info` object. If this changes the BA, the method must return `true` to be sure impacts are propagated to parents, otherwise it returns `false`.
+* `void _unapply_impact(kpi*, impact_info&)`: the method is the reverse of `_apply_impact()`.
+* `std::string get_output() const`: builds the output string of the Engine virtual service relied to this BA.
+* `std::string get_perfdata() const`: builds the performance data for the virtual service relied to this BA.
+* `state get_state_hard() const`: returns the current state of the BA (an enum corresponding to service states, one value among `state_ok`, `state_warning`, `state_critical` or `state_unknown`).
+* `state get_state_soft() const`: the same as the previous one but for soft states. This method is currently not used.
+
 ### Events in BAM
 
 A BA has children which are KPIs. A KPI is a class which is derived in various classes `kpi_ba`, `kpi_service`, `kpi_boolexp`, etc...

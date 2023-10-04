@@ -51,6 +51,12 @@ bool bool_equal::boolean_value() const {
   return retval;
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string bool_equal::object_info() const {
   return fmt::format(
       "EQUAL {:p}\nknown: {}\nvalue: {}", static_cast<const void*>(this),

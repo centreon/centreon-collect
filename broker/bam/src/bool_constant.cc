@@ -63,7 +63,6 @@ bool bool_constant::state_known() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void bool_constant::update_from(computable* child [[maybe_unused]],
                                 io::stream* visitor [[maybe_unused]]) {

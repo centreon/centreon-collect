@@ -44,6 +44,14 @@ bool bool_xor::boolean_value() const {
   return left ^ right;
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string bool_xor::object_info() const {
-  return "bool XOR";
+  return fmt::format(
+      "XOR {:p}\nknown: {}\nvalue: {}", static_cast<const void*>(this),
+      state_known() ? "true" : "false", boolean_value() ? "true" : "false");
 }

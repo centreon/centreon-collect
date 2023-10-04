@@ -87,7 +87,6 @@ void bool_call::set_expression(std::shared_ptr<bool_value> expression) {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void bool_call::update_from(computable* child [[maybe_unused]],
                             io::stream* visitor) {

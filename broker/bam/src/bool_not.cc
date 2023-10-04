@@ -89,12 +89,24 @@ void bool_not::update_from(computable* child [[maybe_unused]],
     notify_parents_of_change(visitor);
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string bool_not::object_info() const {
   return fmt::format(
       "NOT {:x}\nknown: {}\nvalue: {}", static_cast<const void*>(this),
       state_known() ? "true" : "false", boolean_value() ? "true" : "false");
 }
 
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
 void bool_not::dump(std::ofstream& output) const {
   output << fmt::format("\"{}\" -> \"{}\"\n", object_info(),
                         _value->object_info());

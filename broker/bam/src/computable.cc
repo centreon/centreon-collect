@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Centreon
+ * Copyright 2014-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -49,7 +49,6 @@ void computable::remove_parent(std::shared_ptr<computable> const& parent) {
  * @brief Notify parents of this object because of a change made in this.
  *
  * @param visitor Used to handle events.
- * @param logger The logger to use.
  */
 void computable::notify_parents_of_change(io::stream* visitor) {
   log_v2::bam()->trace("{}::notify_parents_of_change: ", typeid(*this).name());
