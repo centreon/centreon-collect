@@ -47,7 +47,7 @@ class http_tsdb_stream_test : public ::testing::Test {
   static void SetUpTestSuite() {
     srand(time(nullptr));
 
-    log_v2::tcp()->set_level(spdlog::level::trace);
+    log_v2::tcp()->set_level(spdlog::level::debug);
     file::disk_accessor::load(1000);
     pool::load(g_io_context, 1);
   }

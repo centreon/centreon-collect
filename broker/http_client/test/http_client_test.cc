@@ -50,7 +50,7 @@ class http_client_test : public ::testing::Test {
   static void SetUpTestSuite() {
     srand(time(nullptr));
     pool::load(g_io_context, 1);
-    log_v2::tcp()->set_level(spdlog::level::trace);
+    log_v2::tcp()->set_level(spdlog::level::debug);
   };
 };
 
