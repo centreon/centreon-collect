@@ -2,7 +2,7 @@
 openssl/1.1.1t
 boost/1.82.0
 fmt/9.1.0
-protobuf/3.21.4
+protobuf/3.21.9
 grpc/1.50.1
 gtest/cci.20210126
 libcurl/8.0.1
