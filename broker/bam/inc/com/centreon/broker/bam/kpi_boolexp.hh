@@ -44,7 +44,7 @@ class kpi_boolexp : public kpi {
   double _impact = 0;
   state _current_state = state_unknown;
 
-  state _get_state();
+  void _update_state();
   void _fill_impact(impact_values& impact);
   void _open_new_event(io::stream* visitor, int impact, state state);
 
