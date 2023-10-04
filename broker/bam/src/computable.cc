@@ -59,6 +59,11 @@ void computable::notify_parents_of_change(io::stream* visitor) {
   }
 }
 
+/**
+ * @brief Add to the output stream informations about this computable parents.
+ *
+ * @param output The output stream.
+ */
 void computable::dump_parents(std::ofstream& output) const {
   for (auto& p : _parents) {
     if (std::shared_ptr<computable> parent = p.lock())
