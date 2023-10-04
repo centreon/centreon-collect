@@ -9,6 +9,28 @@ There are five types of BA.
 * ratio number BA
 * ratio percent BA
 
+Before describing these BA, let's try to explain how they lives and how they are computed.
+
+### Events in BAM
+
+A BA has children which are KPIs. A KPI is a class which is derived in various classes `kpi_ba`, `kpi_service`, `kpi_boolexp`, etc...
+
+A `kpi_ba` is a KPI owning a BA, a `kpi_service` is a KPI owning a service, etc.
+
+To avoid to compute all a BA from the beginning after a change, BAs and some other objects are derived from classes:
+
+* `service_listener`
+* `computable`.
+
+Then, for example, when a *service status* is received by the `monitoring_stream`, a call is made to the `service_book::update()` method. And service listeners are notified by the change in the concerned service.
+
+A BA is a tree made of KPIs and *boolean rules*. If one of these objects implements the `service_listener` and is modified by such an event, it notifies its parents by calling `computable::notify_parents_of_change()`.
+Modifications are then applied if needed on parents, and then they notify their own parents if they are changed, etc.
+
+When the tree is built, it is important to know that each node knows:
+* its parents
+* its children.
+
 ### Impact BA
 
 This is the first implemented BA.
