@@ -201,9 +201,9 @@ void applier::ba::apply(bam::configuration::state::bas const& my_bas,
  *
  *  @return Shared pointer to the applied BA object.
  */
-std::shared_ptr<bam::ba> applier::ba::find_ba(uint32_t id) {
-  std::map<uint32_t, applied>::iterator it(_applied.find(id));
-  return (it != _applied.end()) ? it->second.obj : std::shared_ptr<bam::ba>();
+std::shared_ptr<bam::ba> applier::ba::find_ba(uint32_t id) const {
+  auto it = _applied.find(id);
+  return it != _applied.end() ? it->second.obj : std::shared_ptr<bam::ba>();
 }
 
 /**

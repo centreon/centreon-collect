@@ -40,7 +40,7 @@ bool_operation::bool_operation(std::string const& op)
  *
  *  @return Evaluation of the expression with hard values.
  */
-double bool_operation::value_hard() {
+double bool_operation::value_hard() const {
   switch (_type) {
     case addition:
       return _left_hard + _right_hard;
@@ -70,7 +70,7 @@ bool bool_operation::boolean_value() const {
     case substraction:
       return _left_hard - _right_hard;
     case multiplication:
-      return _left_hard * _right_hard;
+      return std::fabs(_left_hard * _right_hard) > COMPARE_EPSILON;
     case division:
       if (std::fabs(_right_hard) < COMPARE_EPSILON)
         return false;
@@ -97,4 +97,25 @@ bool bool_operation::state_known() const {
     return false;
   else
     return known;
+}
+
+std::string bool_operation::object_info() const {
+  const char* op;
+  switch (_type) {
+    case addition:
+      op = "PLUS";
+    case substraction:
+      op = "MINUS";
+    case multiplication:
+      op = "MUL";
+    case division:
+      op = "DIV";
+    case modulo:
+      op = "MODULO";
+    default:
+      return "unknown operation";
+  }
+  return fmt::format(
+      "{} {:p}\nknown: {}\nvalue: {}", op, static_cast<const void*>(this),
+      state_known() ? "true" : "false", boolean_value() ? "true" : "false");
 }

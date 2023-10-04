@@ -36,7 +36,7 @@ class kpi;
  */
 class ba_impact : public ba {
  protected:
-  void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  bool _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
 
  public:

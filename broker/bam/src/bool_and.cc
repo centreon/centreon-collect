@@ -1,20 +1,20 @@
 /*
-** Copyright 2014, 2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/bool_and.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -62,10 +62,16 @@ void bool_and::_update_state() {
  *
  *  @return Evaluation of the expression with hard values.
  */
-double bool_and::value_hard() {
+double bool_and::value_hard() const {
   return _boolean_value;
 }
 
 bool bool_and::boolean_value() const {
   return _boolean_value;
+}
+
+std::string bool_and::object_info() const {
+  return fmt::format(
+      "AND {:p}\nknown: {}\nvalue: {}", static_cast<const void*>(this),
+      state_known() ? "true" : "false", boolean_value() ? "true" : "false");
 }

@@ -20,6 +20,7 @@
 #include <gtest/gtest.h>
 #include <memory>
 #include "bbdo/neb.pb.h"
+#include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/exp_parser.hh"
@@ -635,6 +636,7 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
 
   auto exp = std::make_shared<bam::bool_expression>(1, true);
   exp->set_expression(b);
+  b->add_parent(exp);
 
   auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
   kpi->link_boolexp(exp);
@@ -655,13 +657,15 @@ TEST_F(BamExpBuilder, KpiBoolexpWithService) {
 
   book.update(svc1);
 
-  ASSERT_FALSE(kpi->ok_state());
+  ASSERT_TRUE(exp->state_known());
+  EXPECT_FALSE(kpi->ok_state());
 
   svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
   svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
 
   book.update(svc1);
 
+  ASSERT_TRUE(exp->state_known());
   ASSERT_TRUE(kpi->ok_state());
 }
 
@@ -676,16 +680,18 @@ TEST_F(BamExpBuilder, KpiBoolexpReversedImpactWithService) {
 
   auto exp = std::make_shared<bam::bool_expression>(1, false);
   exp->set_expression(b);
+  b->add_parent(exp);
 
   auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
   kpi->link_boolexp(exp);
+  exp->add_parent(kpi);
 
   bam::service_book book;
   for (auto& svc : builder.get_services())
     book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
 
   ASSERT_FALSE(exp->state_known());
-  ASSERT_FALSE(kpi->ok_state());
+  ASSERT_TRUE(kpi->ok_state());
 
   auto svc1 = std::make_shared<neb::pb_service_status>();
   svc1->mut_obj().set_host_id(1);
@@ -813,4 +819,279 @@ TEST_F(BamExpBuilder, BoolexpLTWithServiceStatus) {
 
   ASSERT_TRUE(b->state_known());
   ASSERT_FALSE(b->boolean_value());
+}
+
+TEST_F(BamExpBuilder, BoolexpKpiService) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
+      "{CRITICAL}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc1, nullptr);
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc2, nullptr);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc1, nullptr);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  book.update(svc1, nullptr);
+
+  svc2->mut_obj().set_state(ServiceStatus::OK);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc2, nullptr);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc1, nullptr);
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+}
+
+/* Same test as BoolexpKpiService but with the point of view of a boolean
+ * expression. */
+TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpression) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {OR} {host_1 service_2} {IS} "
+      "{CRITICAL}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  auto exp = std::make_shared<bam::bool_expression>(1, true);
+  exp->set_expression(b);
+  b->add_parent(exp);
+
+  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
+  kpi->set_impact(100);
+  kpi->link_boolexp(exp);
+  exp->add_parent(kpi);
+
+  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false);
+  ba->set_name("ba-kpi-service");
+  ba->set_level_warning(70);
+  ba->set_level_warning(80);
+  ba->add_impact(kpi);
+  kpi->add_parent(ba);
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 0);
+  //  ASSERT_TRUE(kpi->ok_state());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc1, nullptr);
+
+  ba->dump("/tmp/ba1");
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  ASSERT_FALSE(exp->state_known());
+  ASSERT_TRUE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 0);
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc2, nullptr);
+  ba->dump("/tmp/ba2");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 2);
+  ASSERT_FALSE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 2);
+
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc1, nullptr);
+  ba->dump("/tmp/ba3");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  book.update(svc1, nullptr);
+  ba->dump("/tmp/ba4");
+
+  svc2->mut_obj().set_state(ServiceStatus::OK);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc2, nullptr);
+  ba->dump("/tmp/ba5");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 2);
+  ASSERT_FALSE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 2);
+
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc1, nullptr);
+  ba->dump("/tmp/ba6");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 0);
+  ASSERT_TRUE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 0);
+}
+
+/* Same test as BoolexpKpiServiceAndBoolExpression but with AND operator and
+ * with impact_if set to false. */
+TEST_F(BamExpBuilder, BoolexpKpiServiceAndBoolExpressionAndOperator) {
+  config::applier::modules modules;
+  modules.load_file("./lib/10-neb.so");
+  bam::exp_parser p(
+      "{host_1 service_1} {IS} {CRITICAL} {AND} {host_1 service_2} {IS} "
+      "{CRITICAL}");
+  bam::hst_svc_mapping mapping;
+  mapping.set_service("host_1", "service_1", 1, 1, true);
+  mapping.set_service("host_1", "service_2", 1, 2, true);
+  bam::exp_builder builder(p.get_postfix(), mapping);
+  bam::bool_value::ptr b(builder.get_tree());
+
+  auto exp = std::make_shared<bam::bool_expression>(1, false);
+  exp->set_expression(b);
+  b->add_parent(exp);
+
+  auto kpi = std::make_shared<bam::kpi_boolexp>(1, 1);
+  kpi->set_impact(100);
+  kpi->link_boolexp(exp);
+  exp->add_parent(kpi);
+
+  auto ba = std::make_shared<bam::ba_impact>(1, 30, 300, false);
+  ba->set_name("ba-kpi-service");
+  ba->set_level_warning(70);
+  ba->set_level_warning(80);
+  ba->add_impact(kpi);
+  kpi->add_parent(ba);
+
+  bam::service_book book;
+  for (auto& svc : builder.get_services())
+    book.listen(svc->get_host_id(), svc->get_service_id(), svc.get());
+
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 2);
+  ASSERT_TRUE(kpi->ok_state());
+
+  auto svc1 = std::make_shared<neb::pb_service_status>();
+  svc1->mut_obj().set_host_id(1);
+  svc1->mut_obj().set_service_id(1);
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc1, nullptr);
+
+  ba->dump("/tmp/ba1");
+  ASSERT_FALSE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  ASSERT_FALSE(exp->state_known());
+  ASSERT_FALSE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 2);
+
+  auto svc2 = std::make_shared<neb::pb_service_status>();
+  svc2->mut_obj().set_host_id(1);
+  svc2->mut_obj().set_service_id(2);
+  svc2->mut_obj().set_state(ServiceStatus::OK);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc2, nullptr);
+  ba->dump("/tmp/ba2");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 2);
+  ASSERT_FALSE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 2);
+
+  svc1->mut_obj().set_state(ServiceStatus::OK);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::OK);
+  book.update(svc1, nullptr);
+  ba->dump("/tmp/ba3");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  book.update(svc1, nullptr);
+  ba->dump("/tmp/ba4");
+
+  svc2->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc2->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc2, nullptr);
+  ba->dump("/tmp/ba5");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_FALSE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 2);
+  ASSERT_FALSE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 2);
+
+  svc1->mut_obj().set_state(ServiceStatus::CRITICAL);
+  svc1->mut_obj().set_last_hard_state(ServiceStatus::CRITICAL);
+  book.update(svc1, nullptr);
+  ba->dump("/tmp/ba6");
+
+  ASSERT_TRUE(b->state_known());
+  ASSERT_TRUE(b->boolean_value());
+
+  ASSERT_EQ(exp->get_state(), 0);
+  ASSERT_TRUE(kpi->ok_state());
+  ASSERT_EQ(ba->get_state_hard(), 0);
 }

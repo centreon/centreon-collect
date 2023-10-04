@@ -244,3 +244,7 @@ void applier::state::save_to_cache(persistent_cache& cache) {
 void applier::state::load_from_cache(persistent_cache& cache) {
   _ba_applier.load_from_cache(cache);
 }
+
+std::shared_ptr<bam::ba> applier::state::find_ba(uint32_t id) const {
+  return _ba_applier.find_ba(id);
+}

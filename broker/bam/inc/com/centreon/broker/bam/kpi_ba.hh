@@ -1,20 +1,20 @@
 /*
-** Copyright 2014, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_KPI_BA_HH
 #define CCB_BAM_KPI_BA_HH
@@ -61,19 +61,21 @@ class kpi_ba : public kpi {
   ~kpi_ba() noexcept = default;
   kpi_ba(const kpi_ba&) = delete;
   kpi_ba& operator=(const kpi_ba&) = delete;
-  bool child_has_update(computable* child, io::stream* visitor = nullptr);
   double get_impact_critical() const;
   double get_impact_warning() const;
-  void impact_hard(impact_values& hard_impact);
-  void impact_soft(impact_values& soft_impact);
+  void impact_hard(impact_values& hard_impact) override;
+  void impact_soft(impact_values& soft_impact) override;
   void link_ba(std::shared_ptr<ba>& my_ba);
   void set_impact_critical(double impact);
   void set_impact_warning(double impact);
   void set_impact_unknown(double impact);
   void unlink_ba();
-  void visit(io::stream* visitor);
-  bool ok_state() const;
-  bool in_downtime() const;
+  void visit(io::stream* visitor) override;
+  bool ok_state() const override;
+  bool in_downtime() const override;
+  virtual void update_from(computable* child, io::stream* visitor) override;
+  std::string object_info() const override;
+  void dump(std::ofstream& output) const override;
 };
 }  // namespace bam
 

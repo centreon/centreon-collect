@@ -87,15 +87,21 @@ state ba_ratio_number::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-void ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+bool ba_ratio_number::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
                                     ba::impact_info& impact) {
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return;
+    return false;
 
-  if (impact.soft_impact.get_state() == state_critical)
+  bool retval = false;
+  if (impact.soft_impact.get_state() == state_critical) {
     _level_soft++;
-  if (impact.hard_impact.get_state() == state_critical)
+    retval = true;
+  }
+  if (impact.hard_impact.get_state() == state_critical) {
     _level_hard++;
+    retval = true;
+  }
+  return retval;
 }
 
 /**

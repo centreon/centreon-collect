@@ -41,9 +41,9 @@ using namespace com::centreon::broker::version;
  * @return Status::OK
  */
 grpc::Status broker_impl::GetVersion(grpc::ServerContext* context
-                                     __attribute__((unused)),
+                                     [[maybe_unused]],
                                      const ::google::protobuf::Empty* request
-                                     __attribute__((unused)),
+                                     [[maybe_unused]],
                                      Version* response) {
   response->set_major(major);
   response->set_minor(minor);
@@ -52,7 +52,7 @@ grpc::Status broker_impl::GetVersion(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetNumModules(grpc::ServerContext* context
-                                        __attribute__((unused)),
+                                        [[maybe_unused]],
                                         const ::google::protobuf::Empty*,
                                         GenericSize* response) {
   auto& mod_applier(config::applier::state::instance().get_modules());
@@ -64,7 +64,7 @@ grpc::Status broker_impl::GetNumModules(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetNumEndpoint(grpc::ServerContext* context
-                                         __attribute__((unused)),
+                                         [[maybe_unused]],
                                          const ::google::protobuf::Empty*,
                                          GenericSize* response) {
   // Endpoint applier.
@@ -79,7 +79,7 @@ grpc::Status broker_impl::GetNumEndpoint(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetModulesStats(grpc::ServerContext* context
-                                          __attribute__((unused)),
+                                          [[maybe_unused]],
                                           const GenericNameOrIndex* request,
                                           GenericString* response) {
   std::vector<nlohmann::json> value;
@@ -267,19 +267,29 @@ grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::RemoveGraphs(grpc::ServerContext* context
-                                       __attribute__((unused)),
+                                       [[maybe_unused]],
                                        const ToRemove* request,
                                        ::google::protobuf::Empty* response
-                                       __attribute__((unused))) {
+                                       [[maybe_unused]]) {
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_graphs>(*request)};
   pblshr.write(e);
   return grpc::Status::OK;
 }
 
+grpc::Status broker_impl::GetBa(grpc::ServerContext* context [[maybe_unused]],
+                                const BaInfo* request,
+                                ::google::protobuf::Empty* response
+                                [[maybe_unused]]) {
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<extcmd::pb_ba_info>(*request)};
+  pblshr.write(e);
+  return grpc::Status::OK;
+}
+
 grpc::Status broker_impl::GetProcessingStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     ::ProcessingStats* response) {
   stats::center::instance().get_processing_stats(response);
   return grpc::Status::OK;
