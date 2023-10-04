@@ -141,7 +141,7 @@ jobs:
       - name: Get project name
         run: |
           echo "[DEBUG] - project_name = ${{ matrix.project_location }}
-          echo "project_name=`basename ${{ matrix.project_location }}"
+          echo "project_name=`basename ${{ matrix.project_location }}`"
 
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
