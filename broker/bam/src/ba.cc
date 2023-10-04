@@ -702,11 +702,22 @@ void ba::update_from(computable* child, io::stream* visitor) {
   }
 }
 
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
 std::string ba::object_info() const {
   return fmt::format("BA {}\nname: {}\nstate: {}", _id, _name,
                      get_state_hard());
 }
 
+/**
+ * @brief Dump the BA to a file named filename.
+ *
+ * @param filename Name of the file (currently a graphviz dot file).
+ */
 void ba::dump(const std::string& filename) const {
   std::ofstream output{filename};
   if (output) {
@@ -718,6 +729,12 @@ void ba::dump(const std::string& filename) const {
                          filename, _id);
 }
 
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
 void ba::dump(std::ofstream& output) const {
   for (auto& ki : _impacts) {
     output << fmt::format("\"{}\" -> \"{}\"\n", object_info(),
