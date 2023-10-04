@@ -100,7 +100,6 @@ bool bool_binary_operator::in_downtime() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void bool_binary_operator::update_from(computable* child, io::stream* visitor) {
   auto logger = log_v2::bam();

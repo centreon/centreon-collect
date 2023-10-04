@@ -635,7 +635,6 @@ void ba::set_level_warning(double level) {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
- * @param logger The logger to use.
  */
 void ba::update_from(computable* child, io::stream* visitor) {
   auto logger = log_v2::bam();
