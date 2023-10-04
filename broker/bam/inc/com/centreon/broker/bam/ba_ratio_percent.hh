@@ -35,7 +35,7 @@ class kpi;
  *  of value.
  */
 class ba_ratio_percent : public ba {
-  void _apply_impact(kpi* kpi_ptr, ba::impact_info& impact) override;
+  bool _apply_impact(kpi* kpi_ptr, ba::impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, ba::impact_info& impact) override;
   void _recompute() override;
 

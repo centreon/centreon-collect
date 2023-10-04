@@ -44,7 +44,7 @@ class ba_worst : public ba {
   void _commit_initial_events(io::stream* visitor);
 
  protected:
-  void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  bool _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _recompute() override;
 

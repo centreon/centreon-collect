@@ -446,7 +446,7 @@ class http_test : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
     create_client_certificate(client_cert_path);
-    log_v2::tcp()->set_level(spdlog::level::trace);
+    log_v2::tcp()->set_level(spdlog::level::debug);
     _listener = std::make_shared<listener>(port);
     _listener->start();
   };

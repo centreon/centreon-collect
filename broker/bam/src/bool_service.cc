@@ -1,20 +1,20 @@
 /*
-** Copyright 2014, 2021-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <cassert>
 
@@ -35,23 +35,6 @@ bool_service::bool_service(uint32_t host_id, uint32_t service_id)
       _state_hard(0),
       _state_known(false),
       _in_downtime(false) {}
-
-/**
- *  @brief Notification of child update.
- *
- *  This method is unused by bool_service because it has no computable
- *  child that could influence its value.
- *
- *  @param[in]  child   Unused.
- *  @param[out] visitor Unused.
- *
- *  @return             True.
- */
-bool bool_service::child_has_update(computable* child, io::stream* visitor) {
-  (void)child;
-  (void)visitor;
-  return true;
-}
 
 /**
  *  Get the host ID.
@@ -84,10 +67,15 @@ void bool_service::service_update(
                       "bool_service: service update with neb::service_status");
   if (status && status->host_id == _host_id &&
       status->service_id == _service_id) {
-    _state_hard = status->last_hard_state;
-    _state_known = true;
-    _in_downtime = (status->downtime_depth > 0);
-    propagate_update(visitor);
+    bool new_in_downtime = status->downtime_depth > 0;
+    bool changed = _state_hard != status->last_hard_state || !_state_known ||
+                   _in_downtime != new_in_downtime;
+    if (changed) {
+      _state_hard = status->last_hard_state;
+      _state_known = true;
+      _in_downtime = new_in_downtime;
+      notify_parents_of_change(visitor);
+    }
   }
 }
 
@@ -106,11 +94,16 @@ void bool_service::service_update(const std::shared_ptr<neb::pb_service>& svc,
                       o.host_id(), o.service_id(), o.last_hard_state(),
                       o.scheduled_downtime_depth());
   if (o.host_id() == _host_id && o.service_id() == _service_id) {
-    _state_hard = o.last_hard_state();
-    _state_known = true;
-    _in_downtime = o.scheduled_downtime_depth() > 0;
-    log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
-    propagate_update(visitor);
+    bool new_in_downtime = o.scheduled_downtime_depth() > 0;
+    bool changed = _state_hard != o.last_hard_state() || !_state_known ||
+                   _in_downtime != new_in_downtime;
+    if (changed) {
+      _state_hard = o.last_hard_state();
+      _state_known = true;
+      _in_downtime = new_in_downtime;
+      log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
+      notify_parents_of_change(visitor);
+    }
   }
 }
 
@@ -130,11 +123,15 @@ void bool_service::service_update(
                       o.host_id(), o.service_id(), o.last_hard_state(),
                       o.scheduled_downtime_depth());
   if (o.host_id() == _host_id && o.service_id() == _service_id) {
-    _state_hard = o.last_hard_state();
-    _state_known = true;
-    _in_downtime = o.scheduled_downtime_depth() > 0;
-    log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
-    propagate_update(visitor);
+    bool new_in_downtime = o.scheduled_downtime_depth() > 0;
+    if (_state_hard != o.last_hard_state() || !_state_known ||
+        _in_downtime != new_in_downtime) {
+      _state_hard = o.last_hard_state();
+      _state_known = true;
+      _in_downtime = new_in_downtime;
+      log_v2::bam()->trace("bool_service: updated with state: {}", _state_hard);
+      notify_parents_of_change(visitor);
+    }
   }
 }
 
@@ -143,7 +140,7 @@ void bool_service::service_update(
  *
  *  @return Hard value.
  */
-double bool_service::value_hard() {
+double bool_service::value_hard() const {
   return _state_hard;
 }
 
@@ -173,4 +170,38 @@ bool bool_service::state_known() const {
  */
 bool bool_service::in_downtime() const {
   return _in_downtime;
+}
+
+/**
+ * @brief Update this computable with the child modifications.
+ *
+ * @param child The child that changed.
+ * @param visitor The visitor to handle events.
+ */
+void bool_service::update_from(computable* child [[maybe_unused]],
+                               io::stream* visitor) {
+  log_v2::bam()->trace("bool_service::update_from");
+  notify_parents_of_change(visitor);
+}
+
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
+std::string bool_service::object_info() const {
+  return fmt::format("BOOL Service ({}, {})\nknown: {}\nvalue: {}",
+                     get_host_id(), get_service_id(),
+                     state_known() ? "true" : "false", value_hard());
+}
+
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
+void bool_service::dump(std::ofstream& output) const {
+  dump_parents(output);
 }

@@ -49,7 +49,7 @@ using namespace nlohmann;
 class victoria_request_test : public ::testing::Test {
  public:
   static void SetUpTestSuite() {
-    log_v2::victoria_metrics()->set_level(spdlog::level::trace);
+    log_v2::victoria_metrics()->set_level(spdlog::level::debug);
     file::disk_accessor::load(1000);
     io::protocols::load();
     io::events::load();

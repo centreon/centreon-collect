@@ -1,20 +1,20 @@
 /*
-** Copyright 2014 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -31,38 +31,6 @@ void computable::add_parent(std::shared_ptr<computable> const& parent) {
 }
 
 /**
- *  @brief Propagate the update of a child node.
- *
- *  This method will call the child_has_update() method of the parents
- *  of this node.
- *
- *  @param[out] visitor  Object that will receive events.
- */
-void computable::propagate_update(io::stream* visitor) {
-  log_v2::bam()->trace("{}::propagate_update: ", typeid(*this).name());
-  std::vector<bool> filter(_parents.size());
-  uint32_t i = 0;
-  for (std::list<std::weak_ptr<computable> >::iterator it = _parents.begin(),
-                                                       end = _parents.end();
-       it != end; ++it) {
-    std::shared_ptr<computable> ptr = it->lock();
-    if (ptr)
-      filter[i++] = ptr->child_has_update(this, visitor);
-    else
-      ++i;
-  }
-  i = 0;
-  for (std::list<std::weak_ptr<computable> >::iterator it = _parents.begin(),
-                                                       end = _parents.end();
-       it != end; ++it)
-    if (filter[i++]) {
-      std::shared_ptr<computable> ptr = it->lock();
-      if (ptr)
-        ptr->propagate_update(visitor);
-    }
-}
-
-/**
  *  Remove a parent.
  *
  *  @param[in] parent Parent node.
@@ -75,4 +43,30 @@ void computable::remove_parent(std::shared_ptr<computable> const& parent) {
       _parents.erase(it);
       break;
     }
+}
+
+/**
+ * @brief Notify parents of this object because of a change made in this.
+ *
+ * @param visitor Used to handle events.
+ */
+void computable::notify_parents_of_change(io::stream* visitor) {
+  log_v2::bam()->trace("{}::notify_parents_of_change: ", typeid(*this).name());
+  for (auto& p : _parents) {
+    if (std::shared_ptr<computable> parent = p.lock())
+      parent->update_from(this, visitor);
+  }
+}
+
+/**
+ * @brief Add to the output stream informations about this computable parents.
+ *
+ * @param output The output stream.
+ */
+void computable::dump_parents(std::ofstream& output) const {
+  for (auto& p : _parents) {
+    if (std::shared_ptr<computable> parent = p.lock())
+      output << fmt::format("\"{}\" -> \"{}\" [style=dashed]\n", object_info(),
+                            parent->object_info());
+  }
 }

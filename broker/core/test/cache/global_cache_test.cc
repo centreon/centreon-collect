@@ -28,7 +28,7 @@ using namespace com::centreon::broker::cache;
 class global_cache_test : public testing::Test {
  public:
   static void SetUpTestSuite() {
-    log_v2::core()->set_level(spdlog::level::trace);
+    log_v2::core()->set_level(spdlog::level::debug);
     srand(time(nullptr));
   }
 };

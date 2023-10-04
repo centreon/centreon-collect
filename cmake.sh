@@ -55,7 +55,6 @@ do
     -clang)
       COMPILER=clang
       WITH_CLANG=ON
-      STD=gnu14
       EE="-e CXX=/usr/bin/clang++ -e CC=/usr/bin/clang -e:b CXX=/usr/bin/clang++ -e:b CC=/usr/bin/clang"
       CC=clang
       CXX=clang++
@@ -263,7 +262,7 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-pip3 install conan==1.57.0 --upgrade
+pip3 install conan==1.57.0 --upgrade --break-system-packages
 
 if which conan ; then
   conan=$(which conan)
@@ -294,7 +293,7 @@ gcc)
   ;;
 esac
 
-if [ ! -r "$HOME/.conan/profiles/default" ] ; then
+if [ "$CONAN_REBUILD" -eq 1 -o ! -r "$HOME/.conan/profiles/default" ] ; then
   echo "Creating default profile"
   mkdir -p "$HOME/.conan/profiles"
   cat << EOF > "$HOME/.conan/profiles/default"

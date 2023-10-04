@@ -9,6 +9,37 @@ There are five types of BA.
 * ratio number BA
 * ratio percent BA
 
+Before describing these BA, let's try to explain how they lives and how they are computed.
+
+All the BA classes derived from an abstract `ba` class.
+They have to implement the following methods:
+* `bool _apply_impact(kpi*, impact_info&)`: knowing that the `kpi*` given in parameter is a child of the BA, this method applies on the BA the impact of the KPI, knowing its change stored in the `impact_info` object. If this changes the BA, the method must return `true` to be sure impacts are propagated to parents, otherwise it returns `false`.
+* `void _unapply_impact(kpi*, impact_info&)`: the method is the reverse of `_apply_impact()`.
+* `std::string get_output() const`: builds the output string of the Engine virtual service relied to this BA.
+* `std::string get_perfdata() const`: builds the performance data for the virtual service relied to this BA.
+* `state get_state_hard() const`: returns the current state of the BA (an enum corresponding to service states, one value among `state_ok`, `state_warning`, `state_critical` or `state_unknown`).
+* `state get_state_soft() const`: the same as the previous one but for soft states. This method is currently not used.
+
+### Events in BAM
+
+A BA has children which are KPIs. A KPI is a class which is derived in various classes `kpi_ba`, `kpi_service`, `kpi_boolexp`, etc...
+
+A `kpi_ba` is a KPI owning a BA, a `kpi_service` is a KPI owning a service, etc.
+
+To avoid to compute all a BA from the beginning after a change, BAs and some other objects are derived from classes:
+
+* `service_listener`
+* `computable`.
+
+Then, for example, when a *service status* is received by the `monitoring_stream`, a call is made to the `service_book::update()` method. And service listeners are notified by the change in the concerned service.
+
+A BA is a tree made of KPIs and *boolean rules*. If one of these objects implements the `service_listener` and is modified by such an event, it notifies its parents by calling `computable::notify_parents_of_change()`.
+Modifications are then applied if needed on parents, and then they notify their own parents if they are changed, etc.
+
+When the tree is built, it is important to know that each node knows:
+* its parents
+* its children.
+
 ### Impact BA
 
 This is the first implemented BA.

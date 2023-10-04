@@ -7,7 +7,7 @@ def complete_doc(dico, ff):
     f = open(ff, 'r')
     content = f.readlines()
     f.close()
-    r = re.compile(r"\s+\[Documentation\]\s+([^\s].*)$")
+    r = re.compile(r"\s+\[Documentation]\s+(\S.*)$")
 
     in_test = False
     test_name = ""
@@ -96,7 +96,8 @@ And it is also possible to execute a specific test, for example:
 ```
 robot broker/sql.robot
 ```
-In order to execute bench tests (broker-engine/bench.robot), you need also to install py-cpuinfo, cython, unqlite and boto3
+In order to execute bench tests (broker-engine/bench.robot), you need also to
+install py-cpuinfo, cython, unqlite and boto3
 
 pip3 install py-cpuinfo cython unqlite gitpython boto3
 
@@ -110,20 +111,24 @@ keys = list(dico.keys())
 keys.sort()
 count = 0
 
+idx = 1
 for k in keys:
     name = k[2:]
     name = name.replace('-', '/')
     name = name.replace('_', ' ').capitalize()
-    out.write("### {}\n".format(name))
+    out.write(f"### {name}\n")
     if isinstance(dico[k], str):
-        out.write("- [x] **{}**: {}\n".format(k, dico[k]))
+        out.write(f"{idx}. [x] **{k}**: {dico[k]}\n")
+        idx += 1
         count += 1
     else:
         tests = list(dico[k].keys())
         tests.sort()
+        idx = 1
         for kk in tests:
             if isinstance(dico[k][kk], str):
-                out.write("- [x] **{}**: {}\n".format(kk, dico[k][kk]))
+                out.write(f"{idx}. [x] **{kk}**: {dico[k][kk]}\n")
+                idx += 1
                 count += 1
             else:
                 print("This tree is too deep")
