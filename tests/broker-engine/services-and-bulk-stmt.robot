@@ -358,7 +358,6 @@ RLCode
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    lua file not initialized
 
-
 *** Keywords ***
 Test Clean
     Stop Engine
