@@ -49,43 +49,34 @@ jobs:
           mkdir build
           cd build
 
-          #          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-          #          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
-          #
-          #          sudo cmake \
-          #            -G "Ninja" \
-          #            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
-          #            -DWITH_TESTING=OFF \
-          #            -DWITH_BENCH=OFF \
-          #            -DWITH_MODULE_SIMU=OFF \
-          #            -DCMAKE_INSTALL_PREFIX=/usr \
-          #            -DWITH_STARTUP_SCRIPT=systemd \
-          #            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
-          #            -DWITH_USER_BROKER=centreon-broker \
-          #            -DWITH_GROUP_BROKER=centreon-broker \
-          #            -DWITH_USER_ENGINE=centreon-engine \
-          #            -DWITH_GROUP_ENGINE=centreon-engine \
-          #            -DWITH_VAR_DIR=/var/log/centreon-engine \
-          #            -DWITH_DAEMONS=ON \
-          #            -DWITH_CREATE_FILES=OFF \
-          #            -DWITH_CONFIG_FILES=ON \
-          #            ..
-          #
-          #          sudo ninja
+          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
+          sudo conan install .. -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
-          mkdir lib
-          cp ../README.md lib/70-rrd.so
-          cp ../README.md lib/15-stats.so
-          cp ../README.md lib/15-stats_exporter.so
-          cp ../README.md lib/test.so
-          cp ../README.md lib/cbmod.so
-          cp ../README.md lib/10-neb.so
+          sudo cmake \
+            -G "Ninja" \
+            -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+            -DWITH_TESTING=OFF \
+            -DWITH_BENCH=OFF \
+            -DWITH_MODULE_SIMU=OFF \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DWITH_STARTUP_SCRIPT=systemd \
+            -DWITH_ENGINE_LOGROTATE_SCRIPT=ON \
+            -DWITH_USER_BROKER=centreon-broker \
+            -DWITH_GROUP_BROKER=centreon-broker \
+            -DWITH_USER_ENGINE=centreon-engine \
+            -DWITH_GROUP_ENGINE=centreon-engine \
+            -DWITH_VAR_DIR=/var/log/centreon-engine \
+            -DWITH_DAEMONS=ON \
+            -DWITH_CREATE_FILES=OFF \
+            -DWITH_CONFIG_FILES=ON \
+            ..
 
+          sudo ninja
 
-          echo "[DEBUG] - Build size"
-          du -sh ./lib/* | sort -rh
           echo "[DEBUG] - Find compiled files"
           find ./ -name "*.so"
+          echo "[DEBUG] - Build size"
+          du -sh ./lib/* | sort -rh
 
       - name: Binary preparation
         id: binary_preparation
@@ -134,18 +125,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project_location: ${{ fromJson(needs.build.outputs.targets) }}
+        project_filepath: ${{ fromJson(needs.build.outputs.targets) }}
 
     steps:
       - name: Get project name
         run: |
-          echo "[DEBUG] - project_name = ${{ matrix.project_location }}"
-          echo "project_name=centreon-collect-`basename ${{ matrix.project_location }} .so`" >> $GITHUB_ENV
+          echo "project_name=centreon-collect-`basename ${{ matrix.project_filepath }} .so`" >> $GITHUB_ENV
           cat $GITHUB_ENV
 
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
-        ###if: github.ref_name == 'develop'
+        if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
@@ -168,46 +158,28 @@ jobs:
       - name: Prepare analysis
         run: |
           tar xvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          # Check what's left
-          ls -la build
-          echo "project location = ${{ matrix.project_location }}"
-
-          echo "find project_name"
-          find ./ -name "$project_name.so"
-
-          echo "what is inside env"
-          cat $GITHUB_ENV
-
-          echo "is project_name in env as ENV = ${{ env.project_name }}"
-          echo "is project_name in env as dollar = $project_name"
-
-          if [[ -e "build/${{ matrix.project_location }}" ]]; then
+          if [[ -e "build/${{ matrix.project_filepath }}" ]]; then
             echo "trigger_sandbox=true" >> $GITHUB_ENV
             cat $GITHUB_ENV
           else
-            echo "::error::File not found build/${{ matrix.project_location }}.so - Skipping analysis"
+            echo "::error::File not found 'build/${{ matrix.project_filepath }}' - Skipping analysis"
           fi
 
-          echo "[DEBUG] - appname: $project_name"
-          echo "[DEBUG] - version: ${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          echo "[DEBUG] - filepath: build/${{ matrix.project_location }}"
-          echo "[DEBUG] - sandboxname: ${{ github.ref_name }}"
-
-#      - name: Sandbox scan
-#        uses: veracode/veracode-uploadandscan-action@0.2.6
-#        if: env.trigger_sandbox == 'true'
-#        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
-#        with:
-#          appname: "${{ inputs.module_name }}"
-#          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-#          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-#          vid: "vera01ei-${{ secrets.veracode_api_id }}"
-#          vkey: "vera01es-${{ secrets.veracode_api_key }}"
-#          createprofile: true
-#          createsandbox: true
-#          sandboxname: "${{ github.ref_name }}"
-#          #scantimeout: 120
-#          includenewmodules: true
-#          scanallnonfataltoplevelmodules: true
-#          deleteincompletescan: 2
-#          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
+      - name: Sandbox scan
+        uses: veracode/veracode-uploadandscan-action@0.2.6
+        if: env.trigger_sandbox == 'true'
+        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
+        with:
+          appname: "${{ env.project_name }}"
+          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
+          filepath: "build/${{ matrix.project_filepath }}"
+          vid: "vera01ei-${{ secrets.veracode_api_id }}"
+          vkey: "vera01es-${{ secrets.veracode_api_key }}"
+          createprofile: true
+          createsandbox: true
+          sandboxname: "${{ github.ref_name }}"
+          scantimeout: 120
+          includenewmodules: true
+          scanallnonfataltoplevelmodules: true
+          deleteincompletescan: 2
+          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
