@@ -10,6 +10,15 @@ if [ ! -d ~/rpmbuild/SOURCES ] ; then
     mkdir -p ~/rpmbuild/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 fi
 
+cd selinux
+for MODULE in "centreon-engine" "centreon-broker"; do
+  cd $MODULE
+  sed -i "s/@VERSION@/$VERSION/g" $MODULE.te
+  make -f /usr/share/selinux/devel/Makefile
+  cd -
+done
+cd ..
+
 tar czf ~/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
       --exclude './build' \
       --exclude './.git'  \
