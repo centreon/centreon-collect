@@ -73,12 +73,13 @@ jobs:
           #
           #          sudo ninja
 
-          cp ../README.md 70-rrd.so
-          cp ../README.md 15-stats.so
-          cp ../README.md 15-stats_exporter.so
-          cp ../README.md test.so
-          cp ../README.md cbmod.so
-          cp ../README.md 10-neb.so
+          mkdir lib
+          cp ../README.md lib/70-rrd.so
+          cp ../README.md lib/15-stats.so
+          cp ../README.md lib/15-stats_exporter.so
+          cp ../README.md lib/test.so
+          cp ../README.md lib/cbmod.so
+          cp ../README.md lib/10-neb.so
 
 
           echo "[DEBUG] - Build size"
