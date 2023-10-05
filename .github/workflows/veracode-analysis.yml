@@ -87,31 +87,31 @@ jobs:
       - name: Binary preparation
         id: binary_preparation
         run: |
-          echo "::notice::Keeping only compiled files"
+          echo "[INFO] - Keeping only compiled files"
           find ./build -type f -not \( -name "*.so" \) -delete
 
-          echo "::notice::Removing veracode exclusions"
+          echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
             for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
               if [[ -d "$LINE" ]]; then
                 rm -rf "$LINE"
-                echo "::notice::folder removed from analysis : '$LINE'"
+                echo "[INFO] - folder removed from analysis : '$LINE'"
               elif [[ -e "$LINE" ]]; then
                 rm -f "$LINE"
-                echo "::notice::file removed from analysis : '$LINE'"
+                echo "[INFO] - file removed from analysis : '$LINE'"
               elif [[ -z "$LINE" ]]; then
-                echo "::notice::empty directive. Skipping this line"
+                echo "[INFO] - empty directive. Skipping this line"
               else
-                echo "::warning::target to exclude not found. Skipping: '$LINE'"
+                echo "::warning::Target to exclude from analysis not found. Skipping: '$LINE'"
               fi
             done
           else
             echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
-          echo "::notice::Keeping only build's non empty folders"
+          echo "[INFO] - Keeping only build's non empty folders"
           find ./build -empty -type d -delete
 
-          echo "::notice::List all compiled files to trigger a matrix job
+          echo "[INFO] - List all compiled files to trigger a matrix job
           TARGETS=`find ./build -name "*.so" -printf "%P\n" | jq -R -s -c 'split("\n")[:-1]'`
           echo "targets=$TARGETS" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
