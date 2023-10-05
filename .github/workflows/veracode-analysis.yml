@@ -140,13 +140,12 @@ jobs:
       - name: Get project name
         run: |
           echo "[DEBUG] - project_name = ${{ matrix.project_location }}"
-          echo "project_name=`basename ${{ matrix.project_location }}`"
-          echo "project_name=`basename ${{ matrix.project_location }}`" >> $GITHUB_OUTPUT
+          echo "project_name=centreon-collect-`basename ${{ matrix.project_location }} .so`" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
 
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
-        if: github.ref_name == 'develop'
+        ###if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
@@ -156,7 +155,7 @@ jobs:
         continue-on-error: true
         with:
           activity: "promote-latest-scan"
-          app-name: "${{ inputs.module_name }}"
+          app-name: "${{ env.project_name }}"
           sandbox-name: "${{ github.ref_name }}"
           delete-on-promote: false
 
@@ -171,9 +170,21 @@ jobs:
           tar xvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           # Check what's left
           ls -la build
+          if [[ -e "build/${{ matrix.project_location }}.so" ]]; then
+            echo "trigger_sandbox=true" >> $GITHUB_ENV
+            cat $GITHUB_ENV
+          else
+            echo "::error::File not found build/${{ matrix.project_name }}. Skipping analysis"
+          fi
+
+          echo "[DEBUG] - appname: ${{ env.project_name }}"
+          echo "[DEBUG] - version: ${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
+          echo "[DEBUG] - filepath: build/${{ matrix.project_location }}.so"
+          echo "[DEBUG] - sandboxname: ${{ github.ref_name }}"
 
 #      - name: Sandbox scan
 #        uses: veracode/veracode-uploadandscan-action@0.2.6
+#        if: env.trigger_sandbox == 'true'
 #        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
 #        with:
 #          appname: "${{ inputs.module_name }}"
