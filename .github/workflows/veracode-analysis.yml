@@ -111,7 +111,7 @@ jobs:
           echo "[INFO] - Keeping only build's non empty folders"
           find ./build -empty -type d -delete
 
-          echo "[INFO] - List all compiled files to trigger a matrix job
+          echo "[INFO] - List all compiled files to trigger a matrix job"
           TARGETS=`find ./build -name "*.so" -printf "%P\n" | jq -R -s -c 'split("\n")[:-1]'`
           echo "targets=$TARGETS" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
