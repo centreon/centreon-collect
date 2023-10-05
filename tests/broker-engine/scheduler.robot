@@ -18,7 +18,7 @@ Library	../resources/Common.py
 *** Test Cases ***
 ENRSCHE1
     [Documentation]    Verify that next check of a rescheduled host is made at last_check + interval_check
-    [Tags]    Broker    Engine    scheduler
+    [Tags]    broker    engine    scheduler
     Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
