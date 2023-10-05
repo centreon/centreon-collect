@@ -74,7 +74,7 @@ jobs:
           echo "[DEBUG] - Find compiled files"
           find ./ -name "*.so"
           echo "[DEBUG] - Build size"
-          du -sh ./lib/* | sort -rh
+          du -sh ./lib/*.so | sort -rh
 
       - name: Binary preparation
         id: binary_preparation
