@@ -1,20 +1,20 @@
 /*
-** Copyright 2014-2016, 2021-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014-2016, 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/ba.hh"
 
@@ -86,75 +86,6 @@ void ba::add_impact(std::shared_ptr<kpi> const& impact) {
     if (!last_state_change.is_null())
       _last_kpi_update = std::max(_last_kpi_update, last_state_change);
   }
-}
-
-/**
- *  Notify BA of child update.
- *
- *  @param[in]  child    Child impact that got updated.
- *  @param[out] visitor  Object that will receive generated events.
- *
- *  @return True if the value of this ba was modified.
- */
-bool ba::child_has_update(computable* child, io::stream* visitor) {
-  std::unordered_map<kpi*, impact_info>::iterator it =
-      _impacts.find(static_cast<kpi*>(child));
-  if (it != _impacts.end()) {
-    // Get impact.
-    impact_values new_hard_impact;
-    impact_values new_soft_impact;
-    it->second.kpi_ptr->impact_hard(new_hard_impact);
-    it->second.kpi_ptr->impact_soft(new_soft_impact);
-    bool kpi_in_downtime(it->second.kpi_ptr->in_downtime());
-
-    // Logging.
-    SPDLOG_LOGGER_DEBUG(
-        log_v2::bam(),
-        "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
-        "{}, last state change {}, downtime {})",
-        _id, _name, it->second.kpi_ptr->get_id(), new_hard_impact.get_nominal(),
-        it->second.kpi_ptr->get_last_state_change(), kpi_in_downtime);
-
-    // If the new impact is the same as the old, don't update.
-    if (it->second.hard_impact == new_hard_impact &&
-        it->second.soft_impact == new_soft_impact &&
-        it->second.in_downtime == kpi_in_downtime) {
-      SPDLOG_LOGGER_DEBUG(
-          log_v2::bam(),
-          "BAM: BA {} has no changes since last update: hard impact: (ack: {}, "
-          "dwnt: {}, nominal: {}), downtime: {}",
-          _id, new_hard_impact.get_acknowledgement(),
-          new_hard_impact.get_nominal(), new_hard_impact.get_downtime(),
-          kpi_in_downtime);
-      return false;
-    }
-    timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
-    if (!last_state_change.is_null())
-      _last_kpi_update = std::max(_last_kpi_update, last_state_change);
-
-    // Discard old data.
-    _unapply_impact(it->first, it->second);
-
-    // Apply new data.
-    SPDLOG_LOGGER_TRACE(
-        log_v2::bam(),
-        "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
-        "downtime {} => {}",
-        _id, it->second.hard_impact != new_hard_impact,
-        it->second.soft_impact != new_soft_impact, it->second.in_downtime,
-        kpi_in_downtime);
-    it->second.hard_impact = new_hard_impact;
-    it->second.soft_impact = new_soft_impact;
-    it->second.in_downtime = kpi_in_downtime;
-    _apply_impact(it->first, it->second);
-
-    // Check for inherited downtimes.
-    _compute_inherited_downtime(visitor);
-
-    // Generate status event.
-    visit(visitor);
-  }
-  return true;
 }
 
 /**
@@ -386,8 +317,7 @@ void ba::service_update(const std::shared_ptr<neb::downtime>& dt,
       // Generate status event.
       visit(visitor);
 
-      // Propagate change.
-      propagate_update(visitor);
+      notify_parents_of_change(visitor);
     }
   } else
     SPDLOG_LOGGER_DEBUG(
@@ -431,8 +361,7 @@ void ba::service_update(const std::shared_ptr<neb::pb_downtime>& dt,
     // Generate status event.
     visit(visitor);
 
-    // Propagate change.
-    propagate_update(visitor);
+    notify_parents_of_change(visitor);
   }
 }
 
@@ -693,4 +622,117 @@ void ba::set_level_critical(double level) {
  */
 void ba::set_level_warning(double level) {
   _level_warning = level;
+}
+
+/**
+ * @brief Update this computable with the child modifications.
+ *
+ * @param child The child that changed.
+ * @param visitor The visitor to handle events.
+ */
+void ba::update_from(computable* child, io::stream* visitor) {
+  auto logger = log_v2::bam();
+  logger->trace("ba::update_from");
+  auto it = _impacts.find(static_cast<kpi*>(child));
+  if (it != _impacts.end()) {
+    // Get impact.
+    impact_values new_hard_impact;
+    impact_values new_soft_impact;
+    it->second.kpi_ptr->impact_hard(new_hard_impact);
+    it->second.kpi_ptr->impact_soft(new_soft_impact);
+    bool kpi_in_downtime(it->second.kpi_ptr->in_downtime());
+
+    // Logging.
+    SPDLOG_LOGGER_DEBUG(
+        logger,
+        "BAM: BA {}, '{}' is getting notified of child update (KPI {}, impact "
+        "{}, last state change {}, downtime {})",
+        _id, _name, it->second.kpi_ptr->get_id(), new_hard_impact.get_nominal(),
+        it->second.kpi_ptr->get_last_state_change(), kpi_in_downtime);
+
+    // If the new impact is the same as the old, don't update.
+    if (it->second.hard_impact == new_hard_impact &&
+        it->second.soft_impact == new_soft_impact &&
+        it->second.in_downtime == kpi_in_downtime) {
+      SPDLOG_LOGGER_DEBUG(
+          logger,
+          "BAM: BA {} has no changes since last update: hard impact: (ack: {}, "
+          "dwnt: {}, nominal: {}), downtime: {}",
+          _id, new_hard_impact.get_acknowledgement(),
+          new_hard_impact.get_nominal(), new_hard_impact.get_downtime(),
+          kpi_in_downtime);
+      return;
+    }
+    timestamp last_state_change(it->second.kpi_ptr->get_last_state_change());
+    if (!last_state_change.is_null())
+      _last_kpi_update = std::max(_last_kpi_update, last_state_change);
+
+    // Discard old data.
+    _unapply_impact(it->first, it->second);
+
+    // Apply new data.
+    SPDLOG_LOGGER_TRACE(
+        log_v2::bam(),
+        "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
+        "downtime {} => {}",
+        _id, it->second.hard_impact != new_hard_impact,
+        it->second.soft_impact != new_soft_impact, it->second.in_downtime,
+        kpi_in_downtime);
+    it->second.hard_impact = new_hard_impact;
+    it->second.soft_impact = new_soft_impact;
+    it->second.in_downtime = kpi_in_downtime;
+    bool changed = _apply_impact(it->first, it->second);
+    SPDLOG_LOGGER_TRACE(log_v2::bam(), "BA has changed: {}", changed);
+
+    // Check for inherited downtimes.
+    _compute_inherited_downtime(visitor);
+
+    // Generate status event.
+    visit(visitor);
+
+    if (changed)
+      notify_parents_of_change(visitor);
+  }
+}
+
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
+std::string ba::object_info() const {
+  return fmt::format("BA {}\nname: {}\nstate: {}", _id, _name,
+                     get_state_hard());
+}
+
+/**
+ * @brief Dump the BA to a file named filename.
+ *
+ * @param filename Name of the file (currently a graphviz dot file).
+ */
+void ba::dump(const std::string& filename) const {
+  std::ofstream output{filename};
+  if (output) {
+    output << "digraph {\n";
+    dump(output);
+    output << "}\n";
+  } else
+    log_v2::bam()->error("Unable to open the file '{}' to write BA {} info",
+                         filename, _id);
+}
+
+/**
+ * @brief Recursive or not method that writes object informations to the
+ * output stream. If there are children, each one dump() is then called.
+ *
+ * @param output An output stream.
+ */
+void ba::dump(std::ofstream& output) const {
+  for (auto& ki : _impacts) {
+    output << fmt::format("\"{}\" -> \"{}\"\n", object_info(),
+                          ki.first->object_info());
+    ki.first->dump(output);
+  }
+  dump_parents(output);
 }

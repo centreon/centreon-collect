@@ -99,7 +99,7 @@ state ba_impact::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-void ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+bool ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
                               ba::impact_info& impact) {
   // Adjust values.
   _acknowledgement_hard += impact.hard_impact.get_acknowledgement();
@@ -108,9 +108,12 @@ void ba_impact::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
   _downtime_soft += impact.soft_impact.get_downtime();
 
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return;
+    return false;
+  bool retval = impact.hard_impact.get_nominal() != 0 ||
+                impact.soft_impact.get_nominal() != 0;
   _level_hard -= impact.hard_impact.get_nominal();
   _level_soft -= impact.soft_impact.get_nominal();
+  return retval;
 }
 
 /**
@@ -191,7 +194,7 @@ std::string ba_impact::get_output() const {
         auto lst = impacting_kpis();
         uint32_t nb_imp = lst.size();
         retval = fmt::format(
-            "Status is OK - Level = {} (warn: {} - crit: {} - {} KPI{} out of "
+            "Status is OK - Level = {} (warn: {} - crit: {}) - {} KPI{} out of "
             "{} impact{} the BA: {}",
             level, _level_warning, _level_critical, nb_imp,
             nb_imp > 1 ? "s" : "", s, nb_imp == 1 ? "s" : "",

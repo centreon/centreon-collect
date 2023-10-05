@@ -32,10 +32,21 @@ service Broker {
    * @return An Empty object.
    */
   rpc RebuildRRDGraphs(IndexIds) returns (google.protobuf.Empty) {}
+
+  /**
+   * @brief Build a file with the BA content and relations.
+   *
+   * @param BaInfo Message containing the BA ID and the output file to fill
+   * (currently this file is a *.dot file)
+   *
+   * @return An Empty object.
+   */
+  rpc GetBa(BaInfo) returns (google.protobuf.Empty) {}
+
   /**
    * @brief Remove RRD files from index IDs.
    *
-   * @param IndexIds Message containing a vector of metric ids.
+   * @param ToRemove Message containing a vector of metric ids and index ids.
    *
    * @return An Empty object.
    */
@@ -256,6 +267,11 @@ message BrokerStats {
 
 message IndexIds {
   repeated uint64 index_ids = 1;
+}
+
+message BaInfo {
+  uint64 id = 1;
+  string output_file = 2;
 }
 
 message ToRemove {
