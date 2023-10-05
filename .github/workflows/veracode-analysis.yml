@@ -54,7 +54,7 @@ jobs:
             echo "[WARNING] - Event : ${{ github.event_name }} on PR branch should not have triggered this action"
             echo "[ERROR] - Event : ${{ github.event_name }} on PR branch should not have triggered this action"
             echo "::debug::Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            echo "::notice::Event : ${{ github.event_name }} on PR branch should not have triggered this action"
+            echo "::notice,title={Event is ${{ github.event_name }}}:: This event should not have triggered this action"
             echo "::warning::Event : ${{ github.event_name }} on PR branch should not have triggered this action"
             echo "::error::Event : ${{ github.event_name }} on PR branch should not have triggered this action"
             exit 1
