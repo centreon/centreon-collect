@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2022 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,11 @@ using pb_remove_poller =
     io::protobuf<GenericNameOrIndex,
                  make_type(io::bbdo, bbdo::de_remove_poller)>;
 }  // namespace bbdo
+
+namespace extcmd {
+using pb_ba_info =
+    io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
+}
 
 class broker_impl final : public Broker::Service {
   std::string _broker_name;
@@ -84,6 +89,10 @@ class broker_impl final : public Broker::Service {
   grpc::Status RemoveGraphs(grpc::ServerContext* context,
                             const ToRemove* request,
                             ::google::protobuf::Empty* response) override;
+
+  grpc::Status GetBa(grpc::ServerContext* context,
+                     const BaInfo* request,
+                     ::google::protobuf::Empty* response) override;
 
   grpc::Status GetProcessingStats(grpc::ServerContext* context
                                   __attribute__((unused)),
