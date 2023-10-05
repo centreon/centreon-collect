@@ -357,25 +357,35 @@ def find_line_from(lines, date):
 
 def check_reschedule(log: str, date, content: str):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
+
         idx = find_line_from(lines, date)
 
         retry_check = False
         normal_check = False
+        r = re.compile(r".* last check at (.*) and next check at (.*)$")
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
                 logger.console(
                     "\"{}\" found at line {} from {}".format(content, i, idx))
-                row = line.split()
-                delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
-                    datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
-                if delta == 60:
-                    retry_check = True
-                elif delta == 300:
-                    normal_check = True
+                m = r.match(line)
+                if m:
+                    delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
+                        datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
+                    # delta is near 60
+                    if abs(delta - 60) < 2:
+                        retry_check = True
+                    elif abs(delta - 300) < 2:
+                        normal_check = True
+                    else:
+                        logger.console(
+                            f"We have a line whose distance between last check and next check is {delta}s")
+                else:
+                    logger.console(
+                        f"Unable to find last check and next check in the line '{line}'")
+        logger.console(f"loop finished with {retry_check}, {normal_check}")
         return retry_check, normal_check
     except IOError:
         logger.console("The file '{}' does not exist".format(log))

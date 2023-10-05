@@ -20,7 +20,7 @@ Test Teardown       Save logs If Failed
 *** Test Cases ***
 ENRSCHE1
     [Documentation]    Verify that next check of a rescheduled host is made at last_check + interval_check
-    [Tags]    Broker    Engine    Scheduler
+    [Tags]    broker    engine    scheduler
     Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central
