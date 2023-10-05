@@ -30,6 +30,8 @@ jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
+    outputs:
+      targets: ${{ steps.binary_preparation.outputs.targets }}
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
