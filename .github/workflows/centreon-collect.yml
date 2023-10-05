@@ -49,11 +49,11 @@ jobs:
   veracode-analysis:
     needs: [get-version]
     uses: ./.github/workflows/veracode-analysis.yml
+    #if: needs.get-version.outputs.event != 'merge' && (needs.get-version.outputs.stability == 'stable' || needs.get-version.outputs.stability == 'unstable')
     with:
       module_name: centreon-collect
       major_version: ${{ needs.get-version.outputs.version }}
       minor_version: ${{ needs.get-version.outputs.patch }}
-      stability: ${{ needs.get-version.outputs.stability }}
       img_version: ${{ needs.get-version.outputs.img_version }}
     secrets:
       veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}

@@ -11,9 +11,6 @@ on:
       minor_version:
         required: true
         type: string
-      stability:
-        required: true
-        type: string
       img_version:
         required: true
         type: string
@@ -33,7 +30,6 @@ jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
-    #if: github.event_name != 'pull_request' && (inputs.stability == 'stable' || inputs.stability == 'unstable')
     outputs:
       targets: ${{ steps.binary_preparation.outputs.targets }}
     container:
@@ -44,21 +40,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Double check github event
-        run: |
-          CHECK_BRANCH=`echo "${{ github.ref_name }}" | cut -d'/' -f2`
-          if [[ $CHECK_BRANCH == "merge" ]]; then
-            echo "[DEBUG] - Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            echo "[NOTICE] - Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            echo "[WARNING] - Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            echo "[ERROR] - Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            echo "::debug::Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            echo "::notice title={Event is ${{ github.event_name }}}:: This event should not have triggered this action"
-            echo "::warning::Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            echo "::error::Event : ${{ github.event_name }} on PR branch should not have triggered this action"
-            exit 1
-          fi
 
       - name: Compiling Cpp sources
         run: |
@@ -106,31 +87,31 @@ jobs:
       - name: Binary preparation
         id: binary_preparation
         run: |
-          echo "[INFO] - Keeping only compiled files"
+          echo "::notice::Keeping only compiled files"
           find ./build -type f -not \( -name "*.so" \) -delete
 
-          echo "[INFO] - Removing veracode exclusions"
+          echo "::notice::Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
             for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
               if [[ -d "$LINE" ]]; then
                 rm -rf "$LINE"
-                echo "[INFO] - folder removed from analysis : '$LINE'"
+                echo "::notice::folder removed from analysis : '$LINE'"
               elif [[ -e "$LINE" ]]; then
                 rm -f "$LINE"
-                echo "[INFO] - file removed from analysis : '$LINE'"
+                echo "::notice::file removed from analysis : '$LINE'"
               elif [[ -z "$LINE" ]]; then
-                echo "[INFO] - empty directive. Skipping this line"
+                echo "::notice::empty directive. Skipping this line"
               else
-                echo "[WARN] - target to exclude not found. Skipping: '$LINE'"
+                echo "::warning::target to exclude not found. Skipping: '$LINE'"
               fi
             done
           else
-            echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+            echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
-          echo "[INFO] - Keeping only build's non empty folders"
+          echo "::notice::Keeping only build's non empty folders"
           find ./build -empty -type d -delete
 
-          echo "[INFO] - List all compiled files to trigger a matrix job
+          echo "::notice::List all compiled files to trigger a matrix job
           TARGETS=`find ./build -name "*.so" -printf "%P\n" | jq -R -s -c 'split("\n")[:-1]'`
           echo "targets=$TARGETS" >> $GITHUB_OUTPUT
           cat $GITHUB_OUTPUT
