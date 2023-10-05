@@ -59,7 +59,7 @@ class computable {
    * @brief This method is used by the dump() method. It gives a summary of this
    * computable main informations.
    *
-   * @return A multiline strings with various informations.
+   * @return A multiline string with various informations.
    */
   virtual std::string object_info() const = 0;
   /**
