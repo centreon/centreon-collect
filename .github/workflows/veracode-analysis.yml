@@ -140,8 +140,8 @@ jobs:
       - name: Get project name
         run: |
           echo "[DEBUG] - project_name = ${{ matrix.project_location }}"
-          echo "project_name=centreon-collect-`basename ${{ matrix.project_location }} .so`" >> $GITHUB_OUTPUT
-          cat $GITHUB_OUTPUT
+          echo "project_name=centreon-collect-`basename ${{ matrix.project_location }} .so`" >> $GITHUB_ENV
+          cat $GITHUB_ENV
 
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
@@ -171,9 +171,17 @@ jobs:
           # Check what's left
           ls -la build
           echo "project location = ${{ matrix.project_location }}"
+
+          echo "find project_name"
           find ./ -name "$project_name.so"
 
-          if [[ -e "build/${{ matrix.project_location }}.so" ]]; then
+          echo "what is inside env"
+          cat $GITHUB_ENV
+
+          echo "is project_name in env as ENV = ${{ env.project_name }}"
+          echo "is project_name in env as dollar = $project_name"
+
+          if [[ -e "build/${{ matrix.project_location }}" ]]; then
             echo "trigger_sandbox=true" >> $GITHUB_ENV
             cat $GITHUB_ENV
           else
@@ -182,7 +190,7 @@ jobs:
 
           echo "[DEBUG] - appname: $project_name"
           echo "[DEBUG] - version: ${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          echo "[DEBUG] - filepath: build/${{ matrix.project_location }}.so"
+          echo "[DEBUG] - filepath: build/${{ matrix.project_location }}"
           echo "[DEBUG] - sandboxname: ${{ github.ref_name }}"
 
 #      - name: Sandbox scan
