@@ -43,7 +43,7 @@ jobs:
 
       - name: Compiling Cpp sources
         run: |
-          sudo apt-get update -qq && sudo apt-get install -y jq
+          sudo yum install -y jq
 
           rm -rf build
           mkdir build
