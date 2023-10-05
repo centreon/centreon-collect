@@ -141,7 +141,7 @@ void bool_binary_operator::update_from(
     }
   }
   if (changed)
-    notify_parents_of_change(visitor);
+    notify_parents_of_change(visitor, logger);
 }
 
 void bool_binary_operator::dump(std::ofstream& output) const {

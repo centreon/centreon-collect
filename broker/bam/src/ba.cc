@@ -638,7 +638,8 @@ void ba::set_level_warning(double level) {
  * @param visitor The visitor to handle events.
  * @param logger The logger to use.
  */
-void ba::update_from(computable* child, io::stream* visitor,
+void ba::update_from(computable* child,
+                     io::stream* visitor,
                      const std::shared_ptr<spdlog::logger>& logger) {
   logger->trace("ba::update_from");
   auto it = _impacts.find(static_cast<kpi*>(child));
@@ -680,7 +681,7 @@ void ba::update_from(computable* child, io::stream* visitor,
 
     // Apply new data.
     SPDLOG_LOGGER_TRACE(
-        log_v2::bam(),
+        _logger,
         "BAM: BA {} changes: hard impact changed {}, soft impact changed {}, "
         "downtime {} => {}",
         _id, it->second.hard_impact != new_hard_impact,
@@ -699,7 +700,7 @@ void ba::update_from(computable* child, io::stream* visitor,
     visit(visitor);
 
     if (changed)
-      notify_parents_of_change(visitor);
+      notify_parents_of_change(visitor, logger);
   }
 }
 
