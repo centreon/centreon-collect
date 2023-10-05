@@ -345,8 +345,8 @@ touch $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/centengine.debug
 %{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
 
 %{__mkdir} -p %buildroot%{_datadir}/selinux/packages/centreon
-%{__install} -m 655 selinux/centreon-engine.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-engine.pp
-%{__install} -m 655 selinux/centreon-broker.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-broker.pp
+%{__install} -m 655 selinux/centreon-engine/centreon-engine.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-engine.pp
+%{__install} -m 655 selinux/centreon-broker/centreon-broker.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-broker.pp
 
 DESTDIR="$RPM_BUILD_ROOT" ninja -j 8 install
 

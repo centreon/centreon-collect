@@ -18,6 +18,8 @@ for MODULE in "centreon-engine" "centreon-broker"; do
   cd -
 done
 cd ..
+ls selinux/centreon-engine
+ls selinux/centreon-broker
 
 tar czf ~/rpmbuild/SOURCES/centreon-collect-$VERSION.tar.gz \
       --exclude './build' \
