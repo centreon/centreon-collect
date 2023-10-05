@@ -6,12 +6,12 @@
   * [Feeder](#Feeder)
 
 * [BAM](#BAM)
-  * [Events in BAM](#EventsinBAM)
-  * [Impact BA](#ImpactBA)
-  * [Best BA](#BestBA)
-  * [Worst BA](#WorstBA)
-  * [Ratio Number BA](#RatioNumberBA)
-  * [Ratio Percent BA](#RatioPercentBA)
+  * [Events in BAM](#events-in-bam)
+  * [Impact BA](#impact-ba)
+  * [Best BA](#best-ba)
+  * [Worst BA](#worst-ba)
+  * [Ratio Number BA](#ratio-number-ba)
+  * [Ratio Percent BA](#ratio-percent-ba)
 
 
 ## Processing
