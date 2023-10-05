@@ -7,11 +7,11 @@
 
 * [BAM](#BAM)
   * [Events in BAM](#EventsinBAM)
-* [Impact BA](#ImpactBA)
-* [Best BA](#BestBA)
-* [Worst BA](#WorstBA)
-* [Ratio Number BA](#RatioNumberBA)
-* [Ratio Percent BA](#RatioPercentBA)
+  * [Impact BA](#ImpactBA)
+  * [Best BA](#BestBA)
+  * [Worst BA](#WorstBA)
+  * [Ratio Number BA](#RatioNumberBA)
+  * [Ratio Percent BA](#RatioPercentBA)
 
 
 ## Processing
