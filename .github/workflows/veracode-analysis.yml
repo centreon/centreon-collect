@@ -139,12 +139,14 @@ jobs:
     steps:
       - name: Get project name
         run: |
-          echo "[DEBUG] - project_name = ${{ matrix.project_location }}
+          echo "[DEBUG] - project_name = ${{ matrix.project_location }}"
           echo "project_name=`basename ${{ matrix.project_location }}`"
+          echo "project_name=`basename ${{ matrix.project_location }}`" >> $GITHUB_OUTPUT
+          cat $GITHUB_OUTPUT
 
       - name: Promote latest scan
         # Only last develop should be promoted to policy scan
-        if: github.ref_name == 'disabled_develop' # disable promote for now
+        if: github.ref_name == 'develop'
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
           VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
