@@ -170,14 +170,17 @@ jobs:
           tar xvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
           # Check what's left
           ls -la build
+          echo "project location = ${{ matrix.project_location }}"
+          find ./ -name "$project_name.so"
+
           if [[ -e "build/${{ matrix.project_location }}.so" ]]; then
             echo "trigger_sandbox=true" >> $GITHUB_ENV
             cat $GITHUB_ENV
           else
-            echo "::error::File not found build/${{ matrix.project_name }}. Skipping analysis"
+            echo "::error::File not found build/${{ matrix.project_location }}.so - Skipping analysis"
           fi
 
-          echo "[DEBUG] - appname: ${{ env.project_name }}"
+          echo "[DEBUG] - appname: $project_name"
           echo "[DEBUG] - version: ${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
           echo "[DEBUG] - filepath: build/${{ matrix.project_location }}.so"
           echo "[DEBUG] - sandboxname: ${{ github.ref_name }}"
