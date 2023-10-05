@@ -85,7 +85,7 @@ jobs:
             test_group_name: robot_test-mariadb-el9-arm64
             tests_params: '{}'
           - distrib: el9
-            image: centreon-collect-alma9
+            image: centreon-collect-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mariadb
