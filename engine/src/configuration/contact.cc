@@ -230,7 +230,7 @@ bool contact::operator<(contact const& other) const noexcept {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void contact::check_validity(error_info* err) const {
+void contact::check_validity(error_info* err [[maybe_unused]]) const {
   if (_contact_name.empty())
     throw exceptions::msg_fmt("Contact has no name (property 'contact_name')");
 }
@@ -292,7 +292,7 @@ bool contact::parse(char const* key, char const* value) {
   if (!strncmp(key, ADDRESS_PROPERTY, sizeof(ADDRESS_PROPERTY) - 1))
     return _set_address(key + sizeof(ADDRESS_PROPERTY) - 1, value);
   else if (key[0] == '_') {
-    map_customvar::iterator it(_customvariables.find(key + 1));
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -362,7 +362,8 @@ std::string const& contact::contact_name() const noexcept {
  *
  *  @return The customvariables.
  */
-map_customvar const& contact::customvariables() const noexcept {
+const std::unordered_map<std::string, customvariable>&
+contact::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -371,7 +372,8 @@ map_customvar const& contact::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-map_customvar& contact::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+contact::mutable_customvariables() noexcept {
   return _customvariables;
 }
 
