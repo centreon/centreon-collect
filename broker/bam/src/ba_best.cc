@@ -96,7 +96,7 @@ state ba_best::get_state_soft() const {
  *
  *  @param[in] impact Impact information.
  */
-void ba_best::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
+bool ba_best::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
                             ba::impact_info& impact) {
   const std::array<short, 5> order{0, 3, 4, 2, 1};
 
@@ -107,12 +107,18 @@ void ba_best::_apply_impact(kpi* kpi_ptr __attribute__((unused)),
   };
 
   if (_dt_behaviour == configuration::ba::dt_ignore_kpi && impact.in_downtime)
-    return;
+    return false;
 
-  if (is_state_better(_computed_soft_state, impact.soft_impact.get_state()))
+  bool retval = false;
+  if (is_state_better(_computed_soft_state, impact.soft_impact.get_state())) {
     _computed_soft_state = impact.soft_impact.get_state();
-  if (is_state_better(_computed_hard_state, impact.hard_impact.get_state()))
+    retval = true;
+  }
+  if (is_state_better(_computed_hard_state, impact.hard_impact.get_state())) {
     _computed_hard_state = impact.hard_impact.get_state();
+    retval = true;
+  }
+  return retval;
 }
 
 /**

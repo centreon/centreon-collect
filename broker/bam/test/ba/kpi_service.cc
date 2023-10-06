@@ -164,7 +164,7 @@ TEST_F(BamBA, KpiServiceImpactState) {
           /* Here is an occasion to test get_output for a status OK but not
            * totally */
           ASSERT_EQ(test_ba->get_output(),
-                    "Status is OK - Level = 90 (warn: 70 - crit: 40 - 1 KPI "
+                    "Status is OK - Level = 90 (warn: 70 - crit: 40) - 1 KPI "
                     "out of 3 impacts the BA: KPI1 (impact: 10)");
           ASSERT_EQ(test_ba->get_perfdata(), "BA_Level=90;70;40;0;100");
         } else if (j == 2) {

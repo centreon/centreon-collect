@@ -366,6 +366,18 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
             now, config::applier::state::instance().poller_id(), dwn.ba_id);
       _write_external_command(cmd);
     } break;
+    case extcmd::pb_ba_info::static_type(): {
+      extcmd::pb_ba_info const& e =
+          *std::static_pointer_cast<const extcmd::pb_ba_info>(data);
+      auto& obj = e.obj();
+      auto ba = _applier.find_ba(obj.id());
+      if (ba)
+        ba->dump(obj.output_file());
+      else
+        log_v2::bam()->error(
+            "extcmd: Unable to get info about BA {} - it doesn't exist",
+            obj.id());
+    } break;
     default:
       break;
   }

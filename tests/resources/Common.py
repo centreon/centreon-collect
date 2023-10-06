@@ -357,25 +357,35 @@ def find_line_from(lines, date):
 
 def check_reschedule(log: str, date, content: str):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
+
         idx = find_line_from(lines, date)
 
         retry_check = False
         normal_check = False
+        r = re.compile(r".* last check at (.*) and next check at (.*)$")
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
                 logger.console(
                     "\"{}\" found at line {} from {}".format(content, i, idx))
-                row = line.split()
-                delta = int(datetime.strptime(row[19], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
-                    datetime.strptime(row[14], "%Y-%m-%dT%H:%M:%S").timestamp())
-                if delta == 60:
-                    retry_check = True
-                elif delta == 300:
-                    normal_check = True
+                m = r.match(line)
+                if m:
+                    delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
+                        datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
+                    # delta is near 60
+                    if abs(delta - 60) < 2:
+                        retry_check = True
+                    elif abs(delta - 300) < 2:
+                        normal_check = True
+                    else:
+                        logger.console(
+                            f"We have a line whose distance between last check and next check is {delta}s")
+                else:
+                    logger.console(
+                        f"Unable to find last check and next check in the line '{line}'")
+        logger.console(f"loop finished with {retry_check}, {normal_check}")
         return retry_check, normal_check
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
@@ -419,6 +429,35 @@ def set_command_status(cmd, status):
     f = open("/tmp/states", "w")
     f.writelines(lines)
     f.close()
+
+
+def check_service_resource_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f"SELECT r.status,r.status_confirmed FROM resources r LEFT JOIN services s ON r.id=s.service_id AND r.parent_id=s.host_id LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{hostname}' AND s.description='{service_desc}'")
+                result = cursor.fetchall()
+                logger.console(
+                    f"result: {int(result[0]['status'])} status: {int(status)}")
+                if len(result) > 0 and result[0]['status'] is not None and int(result[0]['status']) == int(status):
+                    logger.console(
+                        f"status={result[0]['status']} and status_confirmed={result[0]['status_confirmed']}")
+                    if state_type == 'HARD' and int(result[0]['status_confirmed']) == 1:
+                        return True
+                    else:
+                        return True
+        time.sleep(1)
+    return False
 
 
 def check_service_status_with_timeout(hostname: str, service_desc: str, status: int, timeout: int, state_type: str = "SOFT"):
