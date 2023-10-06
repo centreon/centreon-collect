@@ -22,7 +22,6 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include "com/centreon/engine/configuration/tag.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/configuration/state-generated.pb.h"
 #include "common/log_v2/log_v2.hh"
@@ -865,7 +864,7 @@ bool anomalydetection::parse(char const* key, char const* value) {
     return (it->second)(*this, value);
 
   if (key[0] == '_') {
-    map_customvar::iterator it{_customvariables.find(key + 1)};
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -1007,8 +1006,8 @@ bool anomalydetection::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& anomalydetection::customvariables()
-    const noexcept {
+const std::unordered_map<std::string, customvariable>&
+anomalydetection::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -1017,7 +1016,7 @@ com::centreon::engine::map_customvar const& anomalydetection::customvariables()
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar&
+std::unordered_map<std::string, customvariable>&
 anomalydetection::customvariables() noexcept {
   return _customvariables;
 }

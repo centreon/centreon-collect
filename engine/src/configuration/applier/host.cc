@@ -111,7 +111,8 @@ void applier::host::add_object(const configuration::Host& obj) {
 
   // Custom variables.
   for (auto& cv : obj.customvariables()) {
-    h->custom_variables[cv.name()] = customvariable(cv.value(), cv.is_sent());
+    h->custom_variables[cv.name()] =
+        engine::customvariable(cv.value(), cv.is_sent());
 
     if (cv.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
@@ -228,10 +229,11 @@ void applier::host::add_object(configuration::host const& obj) {
     h->get_contactgroups().insert({*it, nullptr});
 
   // Custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    h->custom_variables[it->first] = it->second;
+    h->custom_variables[it->first] =
+        engine::customvariable(it->second.value(), it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
@@ -326,11 +328,11 @@ void applier::host::expand_objects(configuration::State& s) {
  */
 void applier::host::expand_objects(configuration::state& s) {
   // Browse all hosts.
-  for (auto& host_cfg : s.hosts()) {
+  set_host new_hosts;
+  for (auto host_cfg : s.hosts()) {
     // Should custom variables be sent to broker ?
-    for (map_customvar::iterator
-             it(const_cast<map_customvar&>(host_cfg.customvariables()).begin()),
-         end(const_cast<map_customvar&>(host_cfg.customvariables()).end());
+    for (auto it = host_cfg.customvariables().begin(),
+              end = host_cfg.customvariables().end();
          it != end; ++it) {
       if (!s.enable_macros_filter() ||
           s.macros_filter().find(it->first) != s.macros_filter().end()) {
@@ -360,7 +362,9 @@ void applier::host::expand_objects(configuration::state& s) {
       // Reinsert host group.
       s.hostgroups().insert(backup);
     }
+    new_hosts.insert(host_cfg);
   }
+  s.hosts() = std::move(new_hosts);
 }
 
 /**
@@ -768,7 +772,8 @@ void applier::host::modify_object(configuration::host const& obj) {
     it_obj->second->custom_variables.clear();
 
     for (auto& c : obj.customvariables()) {
-      it_obj->second->custom_variables[c.first] = c.second;
+      it_obj->second->custom_variables[c.first] =
+          engine::customvariable(c.second.value(), c.second.is_sent());
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));

@@ -521,7 +521,7 @@ bool host::parse(char const* key, char const* value) {
   if (it != _setters.end())
     return (it->second)(*this, value);
   if (key[0] == '_') {
-    map_customvar::iterator it(_customvariables.find(key + 1));
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -654,7 +654,8 @@ point_3d const& host::coords_3d() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar const& host::customvariables() const noexcept {
+const std::unordered_map<std::string, customvariable>& host::customvariables()
+    const noexcept {
   return _customvariables;
 }
 
@@ -663,7 +664,8 @@ engine::map_customvar const& host::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-engine::map_customvar& host::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+host::customvariables() noexcept {
   return _customvariables;
 }
 

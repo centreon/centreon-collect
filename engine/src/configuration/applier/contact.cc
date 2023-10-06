@@ -165,10 +165,12 @@ void applier::contact::add_object(configuration::contact const& obj) {
   engine::contact::contacts.insert({c->get_name(), c});
 
   // Add all custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    c->get_custom_variables()[it->first] = it->second;
+    auto& cv = c->get_custom_variables()[it->first];
+    cv.set_value(it->second.value());
+    cv.set_sent(it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
@@ -230,44 +232,43 @@ void applier::contact::expand_objects(configuration::State& s) {
  */
 void applier::contact::expand_objects(configuration::state& s) {
   // Browse all contacts.
-  for (configuration::set_contact::iterator it_contact(s.contacts().begin()),
-       end_contact(s.contacts().end());
-       it_contact != end_contact; ++it_contact) {
+  configuration::set_contact new_contacts;
+  // We loop on s.contacts() but we make a copy of each element because the
+  // container is a set and changing its element has an impact on the order
+  // they are stored. So we copy each element, modify them and move the result
+  // to a new set.
+  for (auto contact : s.contacts()) {
     // Should custom variables be sent to broker ?
-    map_customvar& mcv(
-        const_cast<map_customvar&>(it_contact->customvariables()));
-    for (map_customvar::iterator it{mcv.begin()}, end{mcv.end()}; it != end;
-         ++it) {
+    auto& mcv = contact.mutable_customvariables();
+    for (auto& cv : mcv) {
       if (!s.enable_macros_filter() ||
-          s.macros_filter().find(it->first) != s.macros_filter().end()) {
-        it->second.set_sent(true);
+          s.macros_filter().find(cv.first) != s.macros_filter().end()) {
+        cv.second.set_sent(true);
       }
     }
 
     // Browse current contact's groups.
-    for (set_string::const_iterator
-             it_group(it_contact->contactgroups().begin()),
-         end_group(it_contact->contactgroups().end());
-         it_group != end_group; ++it_group) {
+    for (auto& g : contact.contactgroups()) {
       // Find contact group.
-      configuration::set_contactgroup::iterator group(
-          s.contactgroups_find(*it_group));
+      configuration::set_contactgroup::iterator group(s.contactgroups_find(g));
       if (group == s.contactgroups().end())
         throw(engine_error()
-              << "Could not add contact '" << it_contact->contact_name()
-              << "' to non-existing contact group '" << *it_group << "'");
+              << "Could not add contact '" << contact.contact_name()
+              << "' to non-existing contact group '" << g << "'");
 
       // Remove contact group from state.
       configuration::contactgroup backup(*group);
       s.contactgroups().erase(group);
 
       // Add contact to group members.
-      backup.members().insert(it_contact->contact_name());
+      backup.members().insert(contact.contact_name());
 
       // Reinsert contact group.
       s.contactgroups().insert(backup);
     }
+    new_contacts.insert(std::move(contact));
   }
+  s.contacts() = new_contacts;
 }
 
 /**
@@ -428,7 +429,8 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
       }
     } else {
       c->get_custom_variables().emplace(
-          cfg_cv.name(), customvariable(cfg_cv.value(), cfg_cv.is_sent()));
+          cfg_cv.name(),
+          engine::customvariable(cfg_cv.value(), cfg_cv.is_sent()));
       if (cfg_cv.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
         broker_custom_variable(NEBTYPE_CONTACTCUSTOMVARIABLE_ADD, c,
@@ -604,7 +606,9 @@ void applier::contact::modify_object(configuration::contact const& obj) {
     c->get_custom_variables().clear();
 
     for (auto& cus : obj.customvariables()) {
-      c->get_custom_variables()[cus.first] = cus.second;
+      auto& cv = c->get_custom_variables()[cus.first];
+      cv.set_value(cus.second.value());
+      cv.set_sent(cus.second.is_sent());
 
       if (cus.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
