@@ -21,11 +21,11 @@
 #define CCE_CONFIGURATION_HOST_HH
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/configuration/point_2d.hh"
 #include "com/centreon/engine/configuration/point_3d.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
 CCE_BEGIN()
@@ -68,8 +68,9 @@ class host : public object {
   set_string const& contacts() const noexcept;
   point_2d const& coords_2d() const noexcept;
   point_3d const& coords_3d() const noexcept;
-  map_customvar const& customvariables() const noexcept;
-  map_customvar& customvariables() noexcept;
+  const std::unordered_map<std::string, customvariable>& customvariables()
+      const noexcept;
+  std::unordered_map<std::string, customvariable>& customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;
@@ -183,7 +184,7 @@ class host : public object {
   group<set_string> _contacts;
   opt<point_2d> _coords_2d;
   opt<point_3d> _coords_3d;
-  map_customvar _customvariables;
+  std::unordered_map<std::string, customvariable> _customvariables;
   std::string _display_name;
   std::string _event_handler;
   opt<bool> _event_handler_enabled;

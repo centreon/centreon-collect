@@ -1,30 +1,30 @@
 /*
-** Copyright 2011-2013,2015,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2015,2017-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_CONTACT_HH
 #define CCE_CONFIGURATION_CONTACT_HH
 
 #include <absl/container/flat_hash_map.h>
 
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
 typedef std::vector<std::string> tab_string;
@@ -54,8 +54,10 @@ class contact : public object {
   set_string& contactgroups() noexcept;
   set_string const& contactgroups() const noexcept;
   std::string const& contact_name() const noexcept;
-  map_customvar const& customvariables() const noexcept;
-  map_customvar& customvariables() noexcept;
+  const std::unordered_map<std::string, customvariable>& customvariables()
+      const noexcept;
+  std::unordered_map<std::string, customvariable>&
+  mutable_customvariables() noexcept;
   std::string const& email() const noexcept;
   bool host_notifications_enabled() const noexcept;
   list_string const& host_notification_commands() const noexcept;
@@ -97,7 +99,7 @@ class contact : public object {
   opt<bool> _can_submit_commands;
   group<set_string> _contactgroups;
   std::string _contact_name;
-  map_customvar _customvariables;
+  std::unordered_map<std::string, customvariable> _customvariables;
   std::string _email;
   opt<bool> _host_notifications_enabled;
   group<list_string> _host_notification_commands;

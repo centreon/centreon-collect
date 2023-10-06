@@ -24,7 +24,7 @@ message CustomVariable {
   string name = 1;
   string value = 2;
   bool is_sent = 3;
-  bool modified = 4;
+  //  bool modified = 4;
 }
 
 enum HostStatus {

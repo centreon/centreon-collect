@@ -132,8 +132,8 @@ void applier::service::add_object(const configuration::Service& obj) {
 
   // Add custom variables.
   for (auto& cv : obj.customvariables()) {
-    svc->custom_variables.emplace(cv.name(),
-                                  customvariable(cv.value(), cv.is_sent()));
+    svc->custom_variables.emplace(
+        cv.name(), engine::customvariable(cv.value(), cv.is_sent()));
 
     if (cv.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
@@ -266,10 +266,11 @@ void applier::service::add_object(configuration::service const& obj) {
     svc->get_contactgroups().insert({*it, nullptr});
 
   // Add custom variables.
-  for (map_customvar::const_iterator it(obj.customvariables().begin()),
-       end(obj.customvariables().end());
+  for (auto it = obj.customvariables().begin(),
+            end = obj.customvariables().end();
        it != end; ++it) {
-    svc->custom_variables[it->first] = it->second;
+    svc->custom_variables[it->first] =
+        engine::customvariable(it->second.value(), it->second.is_sent());
 
     if (it->second.is_sent()) {
       timeval tv(get_broker_timestamp(nullptr));
@@ -355,9 +356,8 @@ void applier::service::expand_objects(configuration::state& s) {
   configuration::set_service expanded;
   for (auto svc : s.services()) {
     // Should custom variables be sent to broker ?
-    for (map_customvar::iterator
-             it = const_cast<map_customvar&>(svc.customvariables()).begin(),
-             end = const_cast<map_customvar&>(svc.customvariables()).end();
+    for (auto it = svc.customvariables().begin(),
+              end = svc.customvariables().end();
          it != end; ++it) {
       if (!s.enable_macros_filter() ||
           s.macros_filter().find(it->first) != s.macros_filter().end()) {
@@ -372,11 +372,11 @@ void applier::service::expand_objects(configuration::state& s) {
     _inherits_special_vars(svc, s);
 
     // Insert object.
-    expanded.insert(svc);
+    expanded.insert(std::move(svc));
   }
 
   // Set expanded services in configuration state.
-  s.services().swap(expanded);
+  s.services() = std::move(expanded);
 }
 
 /**
@@ -789,7 +789,8 @@ void applier::service::modify_object(configuration::service const& obj) {
     s->custom_variables.clear();
 
     for (auto& c : obj.customvariables()) {
-      s->custom_variables[c.first] = c.second;
+      s->custom_variables[c.first] =
+          engine::customvariable(c.second.value(), c.second.is_sent());
 
       if (c.second.is_sent()) {
         timeval tv(get_broker_timestamp(nullptr));
