@@ -35,7 +35,6 @@ ENRSCHE1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}      Get Process Id    e0
     ${content}    Set Variable    Rescheduling next check of host: host_14
 
     ${result1}    ${result2}=    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    240
