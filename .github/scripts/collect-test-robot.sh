@@ -78,7 +78,6 @@ git config --global --add safe.directory $PWD
 
 echo "########################### Install Robot Framework ###########################"
 cd tests
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
 
 if [ "$distrib" = "ALMALINUX" ]; then
   dnf groupinstall -y "Development Tools"
@@ -89,7 +88,6 @@ else
   apt-get install -y python3-dev
 fi
 
-pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3
 
 echo "########################## Install centreon collect ###########################"
 cd ..

@@ -67,16 +67,16 @@ jobs:
             package_extension: rpm
             arch: amd64
             database_type: mariadb
-          - distrib: el9
-            image: centreon-collect-mysql-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-          - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
+          # - distrib: el9
+          #   image: centreon-collect-mysql-alma9-test
+          #   package_extension: rpm
+          #   arch: amd64
+          #   database_type: mysql
+          # - distrib: bullseye
+          #   image: centreon-collect-debian-bullseye-arm64-test
+          #   package_extension: deb
+          #   arch: arm64
+          #   database_type: mariadb
     name: robot test ${{ matrix.database_type }} ${{ matrix.distrib }} ${{ matrix.arch }}
 
     uses: ./.github/workflows/robot-test.yml

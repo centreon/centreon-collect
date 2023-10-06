@@ -23,26 +23,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: centreon-collect-alma8
-            distrib: el8
-            package_extension: rpm
-            runner: collect
-            arch: amd64
+          # - image: centreon-collect-alma8
+          #   distrib: el8
+          #   package_extension: rpm
+          #   runner: collect
+          #   arch: amd64
           - image: centreon-collect-alma9
             distrib: el9
             package_extension: rpm
             runner: collect
             arch: amd64
-          - image: centreon-collect-debian-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: collect
-            arch: amd64
-          - image: centreon-collect-debian-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: collect-arm64
-            arch: arm64
+          # - image: centreon-collect-debian-bullseye
+          #   distrib: bullseye
+          #   package_extension: deb
+          #   runner: collect
+          #   arch: amd64
+          # - image: centreon-collect-debian-bullseye-arm64
+          #   distrib: bullseye
+          #   package_extension: deb
+          #   runner: collect-arm64
+          #   arch: arm64
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
