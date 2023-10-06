@@ -12,6 +12,7 @@ Library             Examples
 Library             String
 Library             Examples
 Library             HttpCtrl.Server
+Library             Telnet
 # creation
 Resource            resources.resource
 # Python Library
