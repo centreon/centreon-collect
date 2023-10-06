@@ -37,7 +37,7 @@ ENRSCHE1
 
     ${content}    Set Variable    Rescheduling next check of host: host_14
 
-    ${result1}    ${result2}=    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    240
+    ${result1}    ${result2}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    240
     Should Be True    ${result1}    The delta of last_check and next_check is not equal to 60.
     Should Be True    ${result2}    The delta of last_check and next_check is not equal to 300.
 
