@@ -1,5 +1,5 @@
 /**
- * Copyright 2014-2017 Centreon
+ * Copyright 2014-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -498,6 +498,18 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
             now, config::applier::state::instance().poller_id(),
             dwn.obj().ba_id());
       _write_external_command(cmd);
+    } break;
+    case extcmd::pb_ba_info::static_type(): {
+      extcmd::pb_ba_info const& e =
+          *std::static_pointer_cast<const extcmd::pb_ba_info>(data);
+      auto& obj = e.obj();
+      auto ba = _applier.find_ba(obj.id());
+      if (ba)
+        ba->dump(obj.output_file());
+      else
+        log_v2::bam()->error(
+            "extcmd: Unable to get info about BA {} - it doesn't exist",
+            obj.id());
     } break;
     default:
       break;

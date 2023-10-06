@@ -29,7 +29,6 @@ dnf install -y cmake \
     MariaDB-server \
     gnutls-devel \
     libgcrypt-devel \
-    libssh2-devel \
     lua-devel \
     make \
     perl-ExtUtils-Embed.noarch \
