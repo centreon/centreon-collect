@@ -20,7 +20,7 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  create-and-push-docker:
+  create-and-push-docker:   
     needs: [get-version]
 
     strategy:
@@ -30,20 +30,32 @@ jobs:
           - runner: collect
             dockerfile: centreon-collect-alma8
             image: centreon-collect-alma8
+            dockerfile-test: centreon-collect-alma8-test
+            image-test: centreon-collect-alma8-test
           - runner: collect
             dockerfile: centreon-collect-alma9
             image: centreon-collect-alma9
+            dockerfile-test: centreon-collect-alma9-test
+            image-test: centreon-collect-alma9-test
           - runner: collect
             dockerfile: centreon-collect-mysql-alma9
             image: centreon-collect-mysql-alma9
+            dockerfile-test: centreon-collect-mysql-alma9-test
+            image-test: centreon-collect-mysql-alma9-test
           - runner: collect
             dockerfile: centreon-collect-debian-bullseye
             image: centreon-collect-debian-bullseye
+            dockerfile-test: centreon-collect-debian-bullseye-test
+            image-test: centreon-collect-debian-bullseye-test
           - runner: collect-arm64
             dockerfile: centreon-collect-debian-bullseye
             image: centreon-collect-debian-bullseye-arm64
+            dockerfile-test: centreon-collect-debian-bullseye-test
+            image-test: centreon-collect-debian-bullseye-arm64-test
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+
+
 
     name: build container ${{ matrix.image }}
 
@@ -69,6 +81,16 @@ jobs:
 
       - uses: docker/build-push-action@v3
         with:
+          file: .github/docker/Dockerfile.${{ matrix.dockerfile-test }}
+          context: .
+          build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
+          pull: true
+          push: true
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image-test }}:latest
+
+      - uses: docker/build-push-action@v3
+        with:
           file: .github/docker/Dockerfile.${{ matrix.dockerfile }}
           context: .
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
@@ -76,3 +98,4 @@ jobs:
           pull: true
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ needs.get-version.outputs.img_version }}
+      

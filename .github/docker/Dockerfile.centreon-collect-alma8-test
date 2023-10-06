@@ -1,7 +1,6 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/almalinux:8
-#FROM almalinux:8
 
 RUN <<EOF
 
@@ -21,38 +20,27 @@ enabled=1
 gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
 
 curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5"
-dnf install -y cmake \
-    gcc \
+dnf install -y gcc \
     gcc-c++ \
     gdb \
-    gettext \
     git \
-    ninja-build \
     openssh-server \
-    MariaDB-devel \
     MariaDB-shared \
     MariaDB-client \
     MariaDB-compat \
     MariaDB-common \
     MariaDB-server \
-    gnutls-devel \
-    libgcrypt-devel \
-    libssh2-devel \
-    lua-devel \
-    make \
+    gnutls \
+    libgcrypt \
+    libssh2 \
+    lua \
     perl-ExtUtils-Embed.noarch \
     python38 \
     python38-pip \
     perl-Thread-Queue \
-    redhat-lsb \
-    rpm-build \
-    rrdtool-devel \
-    selinux-policy-devel \
-    yum-utils \
+    rrdtool \
     perl \
-    rpm-build \
     zstd \
-    nfpm \
     sudo
 
 dnf update libarchive

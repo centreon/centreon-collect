@@ -63,17 +63,17 @@ jobs:
       matrix:
         include:
           - distrib: el9
-            image: centreon-collect-alma9
+            image: centreon-collect-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mariadb
           - distrib: el9
-            image: centreon-collect-mysql-alma9
+            image: centreon-collect-mysql-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mysql
           - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64
+            image: centreon-collect-debian-bullseye-arm64-test
             package_extension: deb
             arch: arm64
             database_type: mariadb

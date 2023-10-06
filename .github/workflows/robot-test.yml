@@ -34,6 +34,32 @@ on:
 
 
 jobs:
+  load-test-image:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Pull image
+        run: |
+          docker image pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:latest
+
+  save-image-in-cache:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Download image
+        run: |
+          docker save --output /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
+        shell: bash
+
+      - name: compress image
+        run: |
+          7z a  /tmp/${{inputs.image}}.7z /tmp/${{inputs.image}}
+        shell: bash
+
+      - name: cache compressed image 
+        uses: actions/cache/save@v3
+        with:
+          path: /tmp/${{inputs.image}}.7z
+          key: ${{inputs.image}}
+
   robot-test-list:
     runs-on: ubuntu-22.04
     outputs:
@@ -53,7 +79,7 @@ jobs:
     needs: [robot-test-list]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:latest
       options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
       credentials:
         username: ${{ secrets.registry_username }}
