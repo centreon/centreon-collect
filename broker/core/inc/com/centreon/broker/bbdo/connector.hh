@@ -42,8 +42,11 @@ class connector : public io::endpoint {
   std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
 
  public:
-  connector(bool negotiate, time_t timeout, bool connector_is_input,
-            bool coarse = false, uint32_t ack_limit = 1000,
+  connector(bool negotiate,
+            time_t timeout,
+            bool connector_is_input,
+            bool coarse = false,
+            uint32_t ack_limit = 1000,
             std::list<std::shared_ptr<io::extension>>&& extensions = {},
             bool grpc_serialized = false);
   ~connector() noexcept = default;

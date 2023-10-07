@@ -85,7 +85,9 @@ class perfdata {
  *  @return Metric value.
  */
 // Inlined after profiling for performance.
-inline double perfdata::value() const noexcept { return _value; }
+inline double perfdata::value() const noexcept {
+  return _value;
+}
 }  // namespace com::centreon::broker::misc
 
 bool operator==(com::centreon::broker::misc::perfdata const& left,

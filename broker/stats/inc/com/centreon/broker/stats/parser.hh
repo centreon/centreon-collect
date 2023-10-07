@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,6 @@
 
 #ifndef CCB_STATS_PARSER_HH
 #define CCB_STATS_PARSER_HH
-
 
 namespace com::centreon::broker {
 
@@ -45,6 +44,6 @@ class parser {
 };
 }  // namespace stats
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_STATS_PARSER_HH

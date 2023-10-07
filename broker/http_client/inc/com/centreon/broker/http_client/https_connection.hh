@@ -80,6 +80,6 @@ class https_connection : public connection_base {
 
 }  // namespace http_client
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_HTTPS_CLIENT_CONNEXION_HH__

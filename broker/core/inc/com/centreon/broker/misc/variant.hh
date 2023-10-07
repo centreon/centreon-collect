@@ -19,7 +19,6 @@
 #ifndef CCB_MISC_VARIANT_HH_
 #define CCB_MISC_VARIANT_HH_
 
-
 namespace com::centreon::broker {
 
 namespace misc {
@@ -80,6 +79,6 @@ class variant {
 };
 }  // namespace misc
 
-}
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_MISC_VARIANT_HH */

@@ -19,7 +19,6 @@
 #ifndef _CCB_MISC_FIFO_CLIENT_HH
 #define _CCB_MISC_FIFO_CLIENT_HH
 
-
 namespace com::centreon::broker {
 
 namespace misc {
@@ -87,6 +86,6 @@ class fifo_client {
 };
 }  // namespace misc
 
-}
+}  // namespace com::centreon::broker
 
 #endif /* !_CCB_MISC_FIFO_CLIENT */

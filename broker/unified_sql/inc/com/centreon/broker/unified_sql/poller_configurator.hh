@@ -19,15 +19,15 @@
 #ifndef CCB_UNIFIED_SQL_POLLER_CONFIGURATOR_HH
 #define CCB_UNIFIED_SQL_POLLER_CONFIGURATOR_HH
 
-#include "com/centreon/broker/namespace.hh"
-CCB_BEGIN()
+namespace com::centreon::broker {
 namespace unified_sql {
 class poller_configurator {
   const std::string _path;
+
  public:
   poller_configurator(const std::string& path);
 };
-}
-CCB_END()
+}  // namespace unified_sql
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_UNIFIED_SQL_POLLER_CONFIGURATOR_HH */

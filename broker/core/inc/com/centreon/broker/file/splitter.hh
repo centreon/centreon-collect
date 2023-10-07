@@ -80,7 +80,8 @@ class splitter : public fs_file {
   uint32_t _logger_id;
 
  public:
-  splitter(const std::string& path, uint32_t max_file_size = 100000000u,
+  splitter(const std::string& path,
+           uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
   splitter(const splitter&) = delete;

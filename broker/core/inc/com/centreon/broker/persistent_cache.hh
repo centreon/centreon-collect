@@ -64,4 +64,5 @@ class persistent_cache {
 };
 
 }  // namespace com::centreon::broker
+
 #endif  // !CCB_PERSISTENT_CACHE_HH

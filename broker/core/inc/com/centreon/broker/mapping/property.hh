@@ -168,7 +168,8 @@ class property : public source {
    *
    *  @return String property.
    */
-  std::string const& get_string(io::data const& d, size_t* max_len
+  std::string const& get_string(io::data const& d,
+                                size_t* max_len
                                 __attribute__((unused))) override {
     return static_cast<T const*>(&d)->*(_prop.q);
   }
@@ -332,11 +333,12 @@ class sproperty : public property<T> {
    *  @return String property.
    */
   std::string const& get_string(io::data const& d, size_t* max_len) {
-    if (max_len) *max_len = _max_len;
+    if (max_len)
+      *max_len = _max_len;
     return property<T>::get_string(d, max_len);
   }
 };
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::mapping
 
 #endif  // !CCB_MAPPING_PROPERTY_HH

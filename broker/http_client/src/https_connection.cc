@@ -17,11 +17,11 @@
  *
  */
 
-#include <boost/serialization/singleton.hpp>
+#include "https_connection.hh"
 
 #include <absl/container/flat_hash_map.h>
 
-#include "https_connection.hh"
+#include <boost/serialization/singleton.hpp>
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -119,9 +119,7 @@ void certificate_cache::clean() {
   }
 }
 
-};  // namespace http_client::detail
-
-}  // namespace com::centreon::broker
+}  // namespace http_client::detail
 
 /**
  * @brief Construct a new https connection::https connection object
@@ -309,9 +307,8 @@ void https_connection::send(request_ptr request,
   beast::http::async_write(
       *_stream, *request,
       [me = shared_from_this(), request, cb = std::move(callback)](
-          const beast::error_code& err, size_t bytes_transfered) mutable {
-        me->on_sent(err, request, cb);
-      });
+          const beast::error_code& err, size_t bytes_transfered
+          [[maybe_unused]]) mutable { me->on_sent(err, request, cb); });
 }
 
 /**
@@ -423,3 +420,4 @@ void https_connection::shutdown() {
         });
   }
 }
+}  // namespace com::centreon::broker

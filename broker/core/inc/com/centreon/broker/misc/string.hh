@@ -24,7 +24,8 @@
 #include <cerrno>
 
 namespace com::centreon::broker::misc::string {
-inline std::string& replace(std::string& str, std::string const& old_str,
+inline std::string& replace(std::string& str,
+                            std::string const& old_str,
                             std::string const& new_str) {
   std::size_t pos(str.find(old_str, 0));
   while (pos != std::string::npos) {
@@ -52,9 +53,11 @@ std::string check_string_utf8(const absl::string_view& str) noexcept;
  */
 template <typename T>
 fmt::string_view truncate(const T& str, size_t s) {
-  if (s >= str.size()) return fmt::string_view(str);
+  if (s >= str.size())
+    return fmt::string_view(str);
   if (s > 0)
-    while ((str[s] & 0xc0) == 0x80) s--;
+    while ((str[s] & 0xc0) == 0x80)
+      s--;
   return fmt::string_view(str.data(), s);
 }
 

@@ -168,7 +168,8 @@ class muxer_filter {
     const uint64_t* other_mask = other._mask;
     for (uint64_t* to_compare = _mask; to_compare < _mask + max_filter_category;
          ++to_compare, ++other_mask) {
-      if (*to_compare != *other_mask) return false;
+      if (*to_compare != *other_mask)
+        return false;
     }
     return true;
   }

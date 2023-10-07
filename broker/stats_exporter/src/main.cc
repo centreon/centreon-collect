@@ -25,6 +25,7 @@
 #include "common/log_v2/log_v2.hh"
 
 #include "com/centreon/broker/config/state.hh"
+
 #include "com/centreon/broker/stats_exporter/exporter_grpc.hh"
 #include "com/centreon/broker/stats_exporter/exporter_http.hh"
 

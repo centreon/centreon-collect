@@ -106,7 +106,8 @@ class muxer : public io::stream {
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
   template <class container>
-  bool read(container& to_fill, size_t max_to_read,
+  bool read(container& to_fill,
+            size_t max_to_read,
             read_handler&& handler) noexcept;
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
@@ -139,7 +140,8 @@ class muxer : public io::stream {
  * events as soon as data will be available
  */
 template <class container>
-bool muxer::read(container& to_fill, size_t max_to_read,
+bool muxer::read(container& to_fill,
+                 size_t max_to_read,
                  read_handler&& handler) noexcept {
   std::unique_lock<std::mutex> lock(_mutex);
 

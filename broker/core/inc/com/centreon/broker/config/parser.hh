@@ -37,7 +37,8 @@ namespace com::centreon::broker::config {
 class parser {
   void _get_generic_endpoint_configuration(const nlohmann::json& elem,
                                            endpoint& e);
-  void _parse_endpoint(const nlohmann::json& elem, endpoint& e,
+  void _parse_endpoint(const nlohmann::json& elem,
+                       endpoint& e,
                        std::string& module);
 
  public:
@@ -87,7 +88,8 @@ class parser {
 
 template <>
 absl::optional<std::string> parser::check_and_read<std::string>(
-    const nlohmann::json& elem, const std::string& key);
+    const nlohmann::json& elem,
+    const std::string& key);
 
 template <>
 absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,

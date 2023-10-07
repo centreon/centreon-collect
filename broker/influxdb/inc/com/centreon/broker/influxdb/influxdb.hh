@@ -35,10 +35,15 @@ namespace com::centreon::broker::influxdb {
  */
 class influxdb {
  public:
-  influxdb(std::string const& user, std::string const& passwd,
-           std::string const& addr, uint16_t port, std::string const& db,
-           std::string const& status_ts, std::vector<column> const& status_cols,
-           std::string const& metric_ts, std::vector<column> const& metric_cols,
+  influxdb(std::string const& user,
+           std::string const& passwd,
+           std::string const& addr,
+           uint16_t port,
+           std::string const& db,
+           std::string const& status_ts,
+           std::vector<column> const& status_cols,
+           std::string const& metric_ts,
+           std::vector<column> const& metric_cols,
            macro_cache const& cache);
 
   /**
@@ -74,10 +79,13 @@ class influxdb {
   uint32_t _logger_id;
 
   void _connect_socket();
-  bool _check_answer_string(std::string const& ans, const std::string& addr,
+  bool _check_answer_string(std::string const& ans,
+                            const std::string& addr,
                             uint16_t port);
-  void _create_queries(std::string const& user, std::string const& passwd,
-                       std::string const& db, std::string const& status_ts,
+  void _create_queries(std::string const& user,
+                       std::string const& passwd,
+                       std::string const& db,
+                       std::string const& status_ts,
                        std::vector<column> const& status_cols,
                        std::string const& metric_ts,
                        std::vector<column> const& metric_cols);

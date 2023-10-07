@@ -187,6 +187,6 @@ class buffer {
 };
 }  // namespace misc
 
-}
+}  // namespace com::centreon::broker
 
 #endif /* !_CCB_MISC_BUFFER_HH */
