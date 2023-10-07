@@ -20,11 +20,8 @@
 #define CCB_BAM_STATE_HH
 
 #include "bbdo/bam.pb.h"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 enum state {
   state_ok = 0,
   state_warning = 1,
@@ -35,8 +32,6 @@ enum state {
 constexpr std::array<const char*, 4> state_str{"OK", "WARNING", "CRITICAL",
                                                "UNKNOWN"};
 
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_STATE_HH

@@ -29,7 +29,7 @@ using namespace com::centreon::broker::http_client;
 
 namespace beast = boost::beast;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_client {
 namespace detail {
@@ -121,9 +121,9 @@ void certificate_cache::clean() {
 }
 
 }  // namespace detail
-};  // namespace http_client
+}  // namespace http_client
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 /**
  * @brief Construct a new https connection::https connection object
@@ -311,9 +311,8 @@ void https_connection::send(request_ptr request,
   beast::http::async_write(
       *_stream, *request,
       [me = shared_from_this(), request, cb = std::move(callback)](
-          const beast::error_code& err, size_t bytes_transfered) mutable {
-        me->on_sent(err, request, cb);
-      });
+          const beast::error_code& err, size_t bytes_transfered
+          [[maybe_unused]]) mutable { me->on_sent(err, request, cb); });
 }
 
 /**

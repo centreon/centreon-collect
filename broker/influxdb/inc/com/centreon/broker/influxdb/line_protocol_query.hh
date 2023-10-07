@@ -23,9 +23,8 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace influxdb {
 /**
@@ -100,6 +99,6 @@ class line_protocol_query {
 };
 }  // namespace influxdb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_INFLUXDB_LINE_PROTOCOL_QUERY_HH

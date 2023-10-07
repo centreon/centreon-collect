@@ -20,11 +20,11 @@
 #define CCB_SQL_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/sql/cleanup.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace sql {
 /**
@@ -75,6 +75,6 @@ class stream : public io::stream {
 };
 }  // namespace sql
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_SQL_STREAM_HH

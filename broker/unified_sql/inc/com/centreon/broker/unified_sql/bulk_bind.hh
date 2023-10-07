@@ -18,10 +18,9 @@
 #ifndef CCB_UNIFIED_SQL_BULK_BIND_HH
 #define CCB_UNIFIED_SQL_BULK_BIND_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 namespace unified_sql {
 /**
  * @class bulk_bind "com/centreon/broker/unified_sql/bulk_bind.hh"
@@ -84,6 +83,6 @@ class bulk_bind {
   void unlock();
 };
 }  // namespace unified_sql
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_UNIFIED_SQL_BULK_BIND_HH */

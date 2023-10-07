@@ -21,10 +21,10 @@
 
 #include <map>
 #include <vector>
-#include "com/centreon/broker/namespace.hh"
+
 #include "test/centengine_object.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -91,6 +91,6 @@ class centengine_config {
 };
 }  // namespace test
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEST_CENTENGINE_CONFIG_HH

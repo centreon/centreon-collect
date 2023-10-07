@@ -19,9 +19,7 @@
 #ifndef CCB_EXCEPTIONS_TIMEOUT_HH
 #define CCB_EXCEPTIONS_TIMEOUT_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace exceptions {
 /**
@@ -38,6 +36,6 @@ class timeout : public std::exception {
 };
 }  // namespace exceptions
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_EXCEPTIONS_TIMEOUT_HH

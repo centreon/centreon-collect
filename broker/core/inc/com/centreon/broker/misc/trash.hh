@@ -20,9 +20,8 @@
 #define CCB_MISC_TRASH_HH
 
 #include <forward_list>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 /**
@@ -104,6 +103,6 @@ void trash<T>::refresh_time_to_erase(const element_pointer& to_update,
 
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MISC_TOKENIZER_HH

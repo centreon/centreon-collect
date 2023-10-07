@@ -25,11 +25,8 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bbdo {
+namespace com::centreon::broker::bbdo {
 /**
  *  @class stop stop.hh "com/centreon/broker/bbdo/stop.hh"
  *  @brief An stop event sent between two bbdo's endpoint.
@@ -57,8 +54,6 @@ class stop : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace bbdo
-
-CCB_END()
+}  // namespace com::centreon::broker::bbdo
 
 #endif  // !CCB_BBDO_STOP_HH

@@ -21,12 +21,12 @@
 
 #include "bbdo/rebuild_message.pb.h"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/rrd/backend.hh"
 #include "com/centreon/broker/rrd/cached.hh"
 #include "com/centreon/broker/rrd/lib.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace rrd {
 /**
@@ -91,6 +91,6 @@ class output : public io::stream {
 
 }  // namespace rrd
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_RRD_OUTPUT_HH

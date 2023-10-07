@@ -20,9 +20,8 @@
 #define CCB_FILE_DIRECTORY_WATCHER_HH
 
 #include "com/centreon/broker/file/directory_event.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace file {
 /**
@@ -55,6 +54,6 @@ class directory_watcher {
 };
 }  // namespace file
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_FILE_DIRECTORY_WATCHER_HH

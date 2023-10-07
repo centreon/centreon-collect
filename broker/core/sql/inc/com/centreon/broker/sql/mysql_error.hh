@@ -21,9 +21,7 @@
 
 #include <fmt/format.h>
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace database {
 /**
@@ -228,6 +226,6 @@ class mysql_error {
 
 }  // namespace database
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_ERROR_HH

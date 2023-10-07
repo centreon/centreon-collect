@@ -19,9 +19,7 @@
 #ifndef CCB_MISC_PERFDATA_HH
 #define CCB_MISC_PERFDATA_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 /**
@@ -94,7 +92,7 @@ inline double perfdata::value() const noexcept {
 }
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 bool operator==(com::centreon::broker::misc::perfdata const& left,
                 com::centreon::broker::misc::perfdata const& right);

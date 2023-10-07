@@ -23,9 +23,7 @@
 
 #include <cerrno>
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 namespace string {
@@ -74,6 +72,6 @@ std::string debug_buf(const char* data, int32_t size, int max_len = 10);
 }  // namespace string
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MISC_STRING_HH

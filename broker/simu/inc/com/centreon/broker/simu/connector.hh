@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace simu {
 /**
@@ -45,6 +45,6 @@ class connector : public io::endpoint {
 };
 }  // namespace simu
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_SIMU_CONNECTOR_HH

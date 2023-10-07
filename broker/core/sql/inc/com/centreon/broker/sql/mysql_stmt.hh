@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/sql/mysql_stmt_base.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace database {
 class mysql_stmt : public mysql_stmt_base {
@@ -208,6 +208,6 @@ class mysql_stmt : public mysql_stmt_base {
 
 }  // namespace database
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_STMT_HH

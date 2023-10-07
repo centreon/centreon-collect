@@ -24,7 +24,7 @@
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace storage {
 /**
@@ -45,6 +45,6 @@ using pb_metric =
 using pb_status =
     io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
 }  // namespace storage
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_RRD_INTERNAL_HH */

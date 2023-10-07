@@ -20,9 +20,8 @@
 #define CCB_NEB_GROUP_HH
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -53,6 +52,6 @@ class group : public io::data {
 };
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_GROUP_HH

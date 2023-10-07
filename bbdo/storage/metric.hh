@@ -24,12 +24,9 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
-
-namespace storage {
+namespace com::centreon::broker::storage {
 /**
  *  @class metric metric.hh "com/centreon/broker/storage/metric.hh"
  *  @brief Metric information.
@@ -78,8 +75,6 @@ class metric : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace storage
-
-CCB_END()
+}  // namespace com::centreon::broker::storage
 
 #endif  // !CCB_STORAGE_METRIC_HH

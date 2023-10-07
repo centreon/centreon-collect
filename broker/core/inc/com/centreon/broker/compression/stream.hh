@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/compression/stack_array.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace compression {
 /**
@@ -58,6 +57,6 @@ class stream : public io::stream {
 };
 }  // namespace compression
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_COMPRESSION_STREAM_HH

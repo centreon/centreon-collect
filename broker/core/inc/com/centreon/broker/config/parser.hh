@@ -22,10 +22,10 @@
 #include <absl/types/optional.h>
 #include <nlohmann/json.hpp>
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace config {
 /**
@@ -97,6 +97,6 @@ absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,
                                                   const std::string& key);
 }  // namespace config
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CONFIG_PARSER_HH

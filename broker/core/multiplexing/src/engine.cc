@@ -309,10 +309,7 @@ std::string engine::_cache_file_path() const {
   return retval;
 }
 
-CCB_BEGIN()
-
-namespace multiplexing {
-namespace detail {
+namespace com::centreon::broker::multiplexing::detail {
 
 /**
  * @brief The goal of this class is to do the completion job once all muxer has
@@ -345,9 +342,7 @@ class callback_caller {
   }
 };
 
-}  // namespace detail
-}  // namespace multiplexing
-CCB_END()
+}  // namespace com::centreon::broker::multiplexing::detail
 
 /**
  * @brief

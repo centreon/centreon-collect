@@ -24,7 +24,7 @@
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 /**
@@ -68,6 +68,6 @@ class factory {
 };
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_FACTORY_HH

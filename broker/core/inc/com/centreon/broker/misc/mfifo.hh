@@ -19,9 +19,7 @@
 #define CCB_MISC_FIFO_HH
 #include <cassert>
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 
@@ -136,6 +134,6 @@ class mfifo {
 };
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_MISC_FIFO_HH */

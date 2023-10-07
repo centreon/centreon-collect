@@ -26,7 +26,7 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 /**
@@ -234,6 +234,6 @@ void protobuf<T, Typ>::dump_to_json(std::ostream& s) const {
 }
 
 }  // namespace io
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_PROTOBUF_HH

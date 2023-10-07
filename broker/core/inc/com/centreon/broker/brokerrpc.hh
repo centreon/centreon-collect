@@ -22,9 +22,8 @@
 
 #include <grpcpp/server.h>
 #include "com/centreon/broker/broker_impl.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  * @class brokerrpc brokerrpc.hh "com/centreon/broker/brokerrpc.hh"
@@ -44,6 +43,6 @@ class brokerrpc final {
   void shutdown();
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CENTREON_BROKER_CORE_SRC_BROKERRPC_HH_

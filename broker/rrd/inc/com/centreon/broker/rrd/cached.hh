@@ -21,7 +21,6 @@
 
 #include <fmt/format.h>
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 #include "com/centreon/broker/rrd/lib.hh"
@@ -31,7 +30,7 @@ using namespace com::centreon;
 using namespace com::centreon::exceptions;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace rrd {
 
@@ -309,6 +308,6 @@ class cached : public backend {
 };
 }  // namespace rrd
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_RRD_CACHED_HH */

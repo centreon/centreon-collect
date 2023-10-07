@@ -23,7 +23,7 @@
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace config {
 /**
@@ -69,6 +69,6 @@ class endpoint {
 };
 }  // namespace config
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CONFIG_ENDPOINT_HH

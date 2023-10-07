@@ -22,7 +22,7 @@
 #include "com/centreon/broker/tcp/tcp_config.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 namespace tcp {
 
 /**
@@ -112,5 +112,5 @@ class tcp_async : public std::enable_shared_from_this<tcp_async> {
 };
 }  // namespace tcp
 
-CCB_END()
+}  // namespace com::centreon::broker
 #endif  // CENTREON_BROKER_TCP_INC_COM_CENTREON_BROKER_TCP_TCP_ASYNC_HH_

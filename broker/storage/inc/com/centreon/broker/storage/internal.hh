@@ -25,7 +25,7 @@
 #include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bbdo {
 /**
@@ -48,6 +48,6 @@ using pb_remove_graph_message =
     io::protobuf<RemoveGraphMessage,
                  make_type(io::storage, storage::de_remove_graph_message)>;
 }  // namespace storage
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_STORAGE_INTERNAL_HH

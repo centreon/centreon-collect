@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/config/state.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace config {
 namespace applier {
@@ -35,6 +35,6 @@ void init(size_t n_thread,
 }  // namespace applier
 }  // namespace config
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_CONFIG_APPLIER_INIT_HH_ */

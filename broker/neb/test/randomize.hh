@@ -24,11 +24,11 @@
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/mapping/property.hh"
 #include "com/centreon/broker/mapping/source.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 union randval {
   bool b;
@@ -44,7 +44,7 @@ void randomize(io::data& t, std::vector<randval>* values = NULL);
 void randomize_init();
 void randomize_cleanup();
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 template <typename T>
 bool operator==(T const& t,

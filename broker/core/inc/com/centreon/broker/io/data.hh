@@ -19,9 +19,7 @@
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 /**
@@ -95,7 +93,7 @@ using data_read_handler = std::function<void(const std::shared_ptr<data>&)>;
 
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 namespace fmt {
 template <>

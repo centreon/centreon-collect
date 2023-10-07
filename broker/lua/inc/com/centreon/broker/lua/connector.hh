@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/misc/variant.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -49,6 +49,6 @@ class connector : public io::endpoint {
 };
 }  // namespace lua
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_LUA_CONNECTOR_HH

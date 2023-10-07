@@ -24,12 +24,9 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class dimension_truncate_table_signal dimension_truncate_table_signal.hh
  * "com/centreon/broker/bam/dimension_truncate_table_signal.hh"
@@ -57,8 +54,6 @@ class dimension_truncate_table_signal : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_DIMENSION_TRUNCATE_TABLE_SIGNAL_HH

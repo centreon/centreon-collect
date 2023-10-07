@@ -19,9 +19,7 @@
 #ifndef CCB_MISC_DIAGNOSTIC_HH
 #define CCB_MISC_DIAGNOSTIC_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 /**
@@ -42,6 +40,6 @@ class diagnostic {
 };
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MISC_DIAGNOSTIC_HH

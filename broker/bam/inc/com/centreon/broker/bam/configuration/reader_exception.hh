@@ -21,7 +21,7 @@
 
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 namespace configuration {
@@ -45,6 +45,6 @@ class reader_exception : public com::centreon::exceptions::msg_fmt {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CONFIGURATION_READER_EXCEPTION_HH

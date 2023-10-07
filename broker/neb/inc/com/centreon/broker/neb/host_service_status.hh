@@ -19,11 +19,10 @@
 #ifndef CCB_NEB_HOST_SERVICE_STATUS_HH
 #define CCB_NEB_HOST_SERVICE_STATUS_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/status.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -87,6 +86,6 @@ class host_service_status : public status {
 };
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_HOST_SERVICE_STATUS_HH

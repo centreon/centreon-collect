@@ -24,11 +24,8 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class dimension_timeperiod dimension_timeperiod.hh
  * "com/centreon/broker/bam/dimension_timeperiod.hh"
@@ -59,8 +56,6 @@ class dimension_timeperiod : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_DIMENSION_TIMEPERIOD_HH

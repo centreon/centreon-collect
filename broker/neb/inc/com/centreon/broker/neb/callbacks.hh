@@ -19,9 +19,7 @@
 #ifndef CCB_NEB_CALLBACKS_HH
 #define CCB_NEB_CALLBACKS_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 extern uint32_t neb_logger_id;
 extern std::shared_ptr<spdlog::logger> neb_logger;
@@ -71,6 +69,6 @@ int callback_pb_bench(int callback_type, void* data);
 void unregister_callbacks();
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_CALLBACKS_HH

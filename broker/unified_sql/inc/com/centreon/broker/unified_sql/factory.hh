@@ -20,9 +20,8 @@
 #define CCB_UNIFIED_SQL_FACTORY_HH
 
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace unified_sql {
 /**
@@ -45,6 +44,6 @@ class factory : public io::factory {
 };
 }  // namespace unified_sql
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_UNIFIED_SQL_FACTORY_HH

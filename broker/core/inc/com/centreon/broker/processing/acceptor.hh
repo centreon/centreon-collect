@@ -20,10 +20,10 @@
 #define CCB_PROCESSING_ACCEPTOR_HH
 
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/processing/endpoint.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 namespace io {
@@ -87,6 +87,6 @@ class acceptor : public endpoint {
 };
 }  // namespace processing
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_PROCESSING_ACCEPTOR_HH

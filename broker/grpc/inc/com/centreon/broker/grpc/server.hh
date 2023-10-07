@@ -25,7 +25,7 @@ namespace grpc {
 class Server;
 }
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 
@@ -110,6 +110,6 @@ class server : public centreon_stream::centreon_bbdo::Service,
 
 }  // namespace grpc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GRPC_STREAM_HH

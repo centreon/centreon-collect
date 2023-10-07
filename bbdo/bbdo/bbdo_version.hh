@@ -19,11 +19,7 @@
 #ifndef CCB_BBDO_VERSION_HH
 #define CCB_BBDO_VERSION_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
-
-namespace bbdo {
+namespace com::centreon::broker::bbdo {
 
 union bbdo_version {
   struct {
@@ -43,8 +39,6 @@ union bbdo_version {
       : patch(ptch), minor_v(min), major_v(maj) {}
 };
 
-}  // namespace bbdo
-
-CCB_END()
+}  // namespace com::centreon::broker::bbdo
 
 #endif

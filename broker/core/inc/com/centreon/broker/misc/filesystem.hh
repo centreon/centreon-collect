@@ -19,9 +19,7 @@
 #ifndef CCB_MISC_FILESYSTEM_HH
 #define CCB_MISC_FILESYSTEM_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 namespace filesystem {
@@ -37,5 +35,5 @@ bool readable(const std::string& name);
 }  // namespace filesystem
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 #endif /* CCB_MISC_FILESYSTEM_HH */

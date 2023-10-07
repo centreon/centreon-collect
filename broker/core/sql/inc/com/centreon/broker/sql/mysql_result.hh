@@ -20,7 +20,7 @@
 
 #include "com/centreon/broker/sql/mysql_bind_result.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 class mysql_connection;
 
@@ -74,6 +74,6 @@ class mysql_result {
 };
 }  // namespace database
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_RESULT_HH

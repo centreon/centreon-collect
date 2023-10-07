@@ -19,10 +19,9 @@
 #ifndef CCB_WATCHDOG_CONFIGURATION_HH
 #define CCB_WATCHDOG_CONFIGURATION_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/watchdog/instance_configuration.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace watchdog {
 /**
@@ -53,6 +52,6 @@ class configuration {
 };
 }  // namespace watchdog
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_WATCHDOG_BROKER_INSTANCE_CONFIGURATION_HH

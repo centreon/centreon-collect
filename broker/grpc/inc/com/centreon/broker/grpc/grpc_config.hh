@@ -19,7 +19,7 @@
 #ifndef CCB_GRPC_CONFIG_HH
 #define CCB_GRPC_CONFIG_HH
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 class grpc_config {
@@ -90,6 +90,6 @@ class grpc_config {
   }
 };
 };  // namespace grpc
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GRPC_CONFIG_HH

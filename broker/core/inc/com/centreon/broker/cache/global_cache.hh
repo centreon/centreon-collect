@@ -20,9 +20,8 @@
 #define CCB_GLOBAL_CACHE_HH
 
 #include "bbdo/tag.pb.h"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace cache {
 
@@ -273,6 +272,6 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
 };  // namespace cache
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif

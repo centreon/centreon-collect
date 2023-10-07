@@ -20,9 +20,8 @@
 #define TEST_CBD_HH
 
 #include <QProcess>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -50,6 +49,6 @@ class cbd {
 };
 }  // namespace test
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !TEST_CBD_HH

@@ -20,9 +20,8 @@
 #define CCB_TIMESTAMP_HH
 
 #include <istream>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class timestamp timestamp.hh "com/centreon/broker/timestamp.hh"
@@ -164,6 +163,6 @@ inline std::istream& operator>>(std::istream& stream, timestamp& ts) {
   return (stream);
 }
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TIMESTAMP_HH

@@ -20,9 +20,8 @@
 #define CCB_GENERATOR_ENDPOINT_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace generator {
 /**
@@ -47,6 +46,6 @@ class endpoint : public io::endpoint {
 };
 }  // namespace generator
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GENERATOR_ENDPOINT_HH

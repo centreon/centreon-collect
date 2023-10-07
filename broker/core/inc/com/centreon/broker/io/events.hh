@@ -22,7 +22,7 @@
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/event_info.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 /**
@@ -83,6 +83,6 @@ class events {
 };
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_EVENTS_HH

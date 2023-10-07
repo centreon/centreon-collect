@@ -21,7 +21,7 @@
 
 #include "endpoint.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 
@@ -44,6 +44,6 @@ class limit_endpoint : public endpoint {
 
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_LIMIT_ENDPOINT_HH

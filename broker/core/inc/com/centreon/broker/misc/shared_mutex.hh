@@ -20,9 +20,8 @@
 #define CCB_MISC_SHARED_MUTEX_HH
 
 #include <pthread.h>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 class shared_mutex {
@@ -84,6 +83,6 @@ class read_lock {
 
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* CCB_MISC_SHARED_MUTEX_HH */
