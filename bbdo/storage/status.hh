@@ -24,12 +24,9 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
-
-namespace storage {
+namespace com::centreon::broker::storage {
 /**
  *  @class status status.hh "com/centreon/broker/storage/status.hh"
  *  @brief Status data used to generate status graphs.
@@ -67,8 +64,6 @@ class status : public io::data {
     return io::events::data_type<io::storage, storage::de_status>::value;
   }
 };
-}  // namespace storage
-
-CCB_END()
+}  // namespace com::centreon::broker::storage
 
 #endif  // !CCB_STORAGE_STATUS_HH

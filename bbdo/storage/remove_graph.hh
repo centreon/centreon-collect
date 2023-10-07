@@ -23,11 +23,9 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker::storage {
 
-namespace storage {
 /**
  *  @class remove_graph remove_graph.hh
  * "com/centreon/broker/storage/remove_graph.hh"
@@ -52,8 +50,6 @@ class remove_graph : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace storage
-
-CCB_END()
+}  // namespace com::centreon::broker::storage
 
 #endif  // !CCB_STORAGE_REMOVE_GRAPH_HH

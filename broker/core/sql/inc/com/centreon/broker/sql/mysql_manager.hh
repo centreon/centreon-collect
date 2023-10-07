@@ -22,7 +22,7 @@
 #include "com/centreon/broker/sql/mysql_error.hh"
 #include "com/centreon/broker/stats/center.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class mysql_manager mysql_manager.hh
@@ -89,6 +89,6 @@ class mysql_manager {
   size_t connections_count() const;
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_MANAGER_HH

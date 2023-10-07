@@ -19,13 +19,13 @@
 #ifndef CCB_BBDO_STREAM_HH
 #define CCB_BBDO_STREAM_HH
 
-#include "com/centreon/broker/io/raw.hh"
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/io/extension.hh"
+#include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/mapping/entry.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bbdo {
 /**
@@ -159,10 +159,10 @@ class stream : public io::stream {
   std::string _poller_name;
   uint64_t _poller_id = 0u;
   io::data* unserialize(uint32_t event_type,
-                             uint32_t source_id,
-                             uint32_t destination_id,
-                             const char* buffer,
-                             uint32_t size);
+                        uint32_t source_id,
+                        uint32_t destination_id,
+                        const char* buffer,
+                        uint32_t size);
   io::raw* serialize(const io::data& e);
 
  public:
@@ -190,6 +190,6 @@ class stream : public io::stream {
 };
 }  // namespace bbdo
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BBDO_STREAM_HH

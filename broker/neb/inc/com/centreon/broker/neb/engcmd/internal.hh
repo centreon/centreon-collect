@@ -19,9 +19,7 @@
 #ifndef CCB_NEB_ENGCMD_INTERNAL_HH
 #define CCB_NEB_ENGCMD_INTERNAL_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 namespace engcmd {
@@ -32,6 +30,6 @@ void unload();
 }  // namespace engcmd
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_ENGCMD_INTERNAL_HH

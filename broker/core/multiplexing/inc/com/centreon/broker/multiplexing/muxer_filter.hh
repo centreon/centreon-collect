@@ -20,9 +20,8 @@
 #define CCB_MULTIPLEXING_MUXER_FILTER_HH
 
 #include "bbdo/events.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace multiplexing {
 
@@ -256,6 +255,6 @@ class muxer_filter {
 
 }  // namespace multiplexing
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif

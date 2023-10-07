@@ -21,9 +21,8 @@
 
 #include <ctime>
 #include <vector>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -45,6 +44,6 @@ class time_points {
 };
 }  // namespace test
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEST_TIME_POINTS_HH

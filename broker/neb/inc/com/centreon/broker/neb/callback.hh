@@ -19,9 +19,7 @@
 #ifndef CCB_NEB_CALLBACK_HH
 #define CCB_NEB_CALLBACK_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -42,6 +40,6 @@ class callback {
 };
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_NEB_CALLBACK_HH */

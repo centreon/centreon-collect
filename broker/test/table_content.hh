@@ -20,10 +20,10 @@
 #define CCB_TEST_TABLE_CONTENT_HH
 
 #include <vector>
-#include "com/centreon/broker/namespace.hh"
+
 #include "test/predicate.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -64,6 +64,6 @@ class table_content {
 };
 }  // namespace test
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEST_TABLE_CONTENT_HH

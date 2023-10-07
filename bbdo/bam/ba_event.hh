@@ -24,12 +24,9 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class ba_event ba_event.hh "com/centreon/broker/bam/ba_event.hh"
  *  @brief Ba event
@@ -58,8 +55,6 @@ class ba_event : public io::data {
  private:
   void _internal_copy(ba_event const& other);
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BA_EVENT_HH

@@ -24,7 +24,7 @@
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace multiplexing {
 /**
@@ -165,6 +165,6 @@ bool muxer::read(container& to_fill,
 
 }  // namespace multiplexing
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MULTIPLEXING_MUXER_HH

@@ -19,11 +19,10 @@
 #ifndef CCB_MULTIPLEXING_ENGINE_HH
 #define CCB_MULTIPLEXING_ENGINE_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "com/centreon/broker/stats/center.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace multiplexing {
 // Forward declaration.
@@ -113,6 +112,6 @@ class engine {
 };
 }  // namespace multiplexing
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MULTIPLEXING_ENGINE_HH

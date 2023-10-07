@@ -23,9 +23,8 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class instance_broadcast instance_broadcast.hh
@@ -64,6 +63,6 @@ class instance_broadcast : public io::data {
   void _internal_copy(instance_broadcast const& other);
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_INSTANCE_BROADCAST_HH

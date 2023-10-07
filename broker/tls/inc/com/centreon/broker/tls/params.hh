@@ -21,9 +21,7 @@
 
 #include <gnutls/gnutls.h>
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls {
 /**
@@ -72,6 +70,6 @@ class params {
 };
 }  // namespace tls
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TLS_PARAMS_HH

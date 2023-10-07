@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/bam/ba.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -54,6 +54,6 @@ class ba_impact : public ba {
 };
 }  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BA_IMPACT_HH

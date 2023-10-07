@@ -19,9 +19,7 @@
 #ifndef CCB_CEOF_CEOF_VISITOR_HH
 #define CCB_CEOF_CEOF_VISITOR_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace ceof {
 /**
@@ -85,6 +83,6 @@ class ceof_visitor {
 };
 }  // namespace ceof
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CEOF_CEOF_WRITER_HH

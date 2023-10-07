@@ -19,10 +19,9 @@
 #ifndef CCB_RRD_BACKEND_HH
 #define CCB_RRD_BACKEND_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "common/log_v2/log_v2.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
@@ -66,6 +65,6 @@ class backend {
 };
 }  // namespace rrd
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_RRD_BACKEND_HH

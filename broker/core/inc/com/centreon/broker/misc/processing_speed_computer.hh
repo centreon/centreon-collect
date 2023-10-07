@@ -19,9 +19,7 @@
 #ifndef CCB_MISC_PROCESSING_SPEED_COMPUTER_HH
 #define CCB_MISC_PROCESSING_SPEED_COMPUTER_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 /**
@@ -49,6 +47,6 @@ class processing_speed_computer {
 };
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MISC_PROCESSING_SPEED_COMPUTER_HH

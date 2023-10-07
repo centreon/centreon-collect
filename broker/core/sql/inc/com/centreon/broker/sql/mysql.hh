@@ -20,7 +20,7 @@
 
 #include "com/centreon/broker/sql/mysql_connection.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 using my_error = database::mysql_error;
 /**
@@ -106,6 +106,6 @@ class mysql {
   void _get_server_infos();
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_HH

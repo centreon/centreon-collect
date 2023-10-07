@@ -20,10 +20,10 @@
 #define CCB_UNIFIED_SQL_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/sql/database_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace unified_sql {
 /**
@@ -60,6 +60,6 @@ class connector : public io::endpoint {
 };
 }  // namespace unified_sql
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_UNIFIED_SQL_CONNECTOR_HH

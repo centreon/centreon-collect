@@ -20,9 +20,8 @@
 #define CCB_TLS_FACTORY_HH
 
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls2 {
 /**
@@ -50,6 +49,6 @@ class factory : public io::factory {
 };
 }  // namespace tls2
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TLS_FACTORY_HH

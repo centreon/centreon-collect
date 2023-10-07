@@ -19,9 +19,7 @@
 #ifndef CCB_FILE_FS_FILE_HH
 #define CCB_FILE_FS_FILE_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace file {
 /**
@@ -66,6 +64,6 @@ class fs_file_factory {
 };
 }  // namespace file
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_FILE_FS_FILE_HH

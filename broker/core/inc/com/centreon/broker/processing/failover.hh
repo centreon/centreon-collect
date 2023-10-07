@@ -23,11 +23,11 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/processing/acceptor.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations.
 namespace io {
@@ -112,6 +112,6 @@ class failover : public endpoint {
 };
 }  // namespace processing
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_PROCESSING_FAILOVER_HH

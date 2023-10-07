@@ -19,10 +19,9 @@
 #ifndef CCB_EXCEPTIONS_CORRUPTION_HH
 #define CCB_EXCEPTIONS_CORRUPTION_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace exceptions {
 /**
@@ -45,6 +44,6 @@ class corruption : public com::centreon::exceptions::msg_fmt {
 };
 }  // namespace exceptions
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_EXCEPTIONS_CORRUPTION_HH

@@ -19,7 +19,7 @@
 #ifndef CCB_HTTP_CLIENT_CONFIG_HH__
 #define CCB_HTTP_CLIENT_CONFIG_HH__
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_client {
 /**
@@ -101,7 +101,7 @@ class http_config {
 
 };  // namespace http_client
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 namespace fmt {
 template <>

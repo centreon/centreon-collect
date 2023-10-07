@@ -21,9 +21,7 @@
 
 #include <cstddef>
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 namespace mapping {
@@ -89,6 +87,6 @@ class event_info {
 };
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_EVENT_INFO_HH

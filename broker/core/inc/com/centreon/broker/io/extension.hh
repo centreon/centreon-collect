@@ -19,9 +19,7 @@
 #ifndef CCB_IO_EXTENSION_HH
 #define CCB_IO_EXTENSION_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 
@@ -87,5 +85,5 @@ class extension {
 };
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 #endif /* !CCB_IO_EXTENSION_HH */

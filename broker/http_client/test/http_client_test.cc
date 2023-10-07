@@ -25,7 +25,6 @@
 #include <boost/container/flat_set.hpp>
 #include "com/centreon/common/defer.hh"
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/pool.hh"
 #include "common/log_v2/log_v2.hh"
 

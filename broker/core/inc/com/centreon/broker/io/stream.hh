@@ -22,9 +22,8 @@
 #include <nlohmann/json.hpp>
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 /**
@@ -79,6 +78,6 @@ class stream {
 };
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_STREAM_HH

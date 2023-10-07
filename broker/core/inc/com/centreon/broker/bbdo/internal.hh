@@ -23,14 +23,13 @@
 #include "bbdo/events.hh"
 #include "bbdo/extcmd.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/namespace.hh"
 
 #define BBDO_VERSION_MAJOR 2
 #define BBDO_VERSION_MINOR 0
 #define BBDO_VERSION_PATCH 0
 constexpr uint32_t BBDO_HEADER_SIZE = 16u;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bbdo {
 using pb_welcome =
@@ -53,6 +52,6 @@ void load();
 void unload();
 }  // namespace bbdo
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BBDO_INTERNAL_HH

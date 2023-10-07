@@ -20,9 +20,8 @@
 #define CCB_MODULES_HANDLE_HH
 
 #include <dlfcn.h>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace modules {
 /**
@@ -58,6 +57,6 @@ class handle {
 };
 }  // namespace modules
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MODULES_HANDLE_HH

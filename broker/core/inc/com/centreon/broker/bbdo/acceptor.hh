@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 namespace processing {
@@ -70,6 +70,6 @@ class acceptor : public io::endpoint {
 };
 }  // namespace bbdo
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BBDO_ACCEPTOR_HH

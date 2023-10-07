@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class persistent_cache persistent_cache.hh
@@ -64,6 +63,6 @@ class persistent_cache {
   const std::string& get_cache_file() const;
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_PERSISTENT_CACHE_HH

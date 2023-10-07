@@ -20,9 +20,8 @@
 #define CCB_FILE_SPLITTER_HH
 
 #include "com/centreon/broker/file/fs_file.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace file {
 /**
@@ -107,6 +106,6 @@ class splitter : public fs_file {
 };
 }  // namespace file
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_FILE_SPLITTER_HH

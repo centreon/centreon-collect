@@ -21,9 +21,8 @@
 #define CCB_STATS_BUILDER_HH
 
 #include <nlohmann/json.hpp>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations.
 namespace processing {
@@ -51,6 +50,6 @@ class builder {
 };
 }  // namespace stats
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_STATS_BUILDER_HH

@@ -20,11 +20,11 @@
 #define CCB_TEST_CENTENGINE_HH
 
 #include <QProcess>
-#include "com/centreon/broker/namespace.hh"
+
 #include "test/centengine_config.hh"
 #include "test/centengine_extcmd.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -55,6 +55,6 @@ class centengine {
 };
 }  // namespace test
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEST_CENTENGINE_HH

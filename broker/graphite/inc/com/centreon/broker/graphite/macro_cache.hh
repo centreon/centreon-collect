@@ -22,13 +22,13 @@
 #include <absl/container/flat_hash_map.h>
 #include "com/centreon/broker/graphite/internal.hh"
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace graphite {
 /**
@@ -76,6 +76,6 @@ class macro_cache {
 };
 }  // namespace graphite
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GRAPHITE_MACRO_CACHE_HH

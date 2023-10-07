@@ -20,10 +20,10 @@
 #define CCB_TCP_CONNECTOR_HH
 
 #include "com/centreon/broker/io/limit_endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/tcp/tcp_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tcp {
 /**
@@ -48,6 +48,6 @@ class connector : public io::limit_endpoint {
 };
 }  // namespace tcp
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TCP_CONNECTOR_HH

@@ -22,11 +22,11 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/neb/check.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -51,6 +51,6 @@ class host_check : public check {
 };  // namespace neb
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_HOST_CHECK_HH

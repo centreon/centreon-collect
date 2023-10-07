@@ -20,9 +20,8 @@
 #define CCB_MISC_UUID_HH_
 
 #include <stdint.h>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 
@@ -46,6 +45,6 @@ class Uuid {
 };
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MISC_UUID_HH_

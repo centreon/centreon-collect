@@ -20,10 +20,10 @@
 #define CCB_MAPPING_SOURCE_HH
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace mapping {
 /**
@@ -81,6 +81,6 @@ class source {
 };
 }  // namespace mapping
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MAPPING_SOURCE_HH

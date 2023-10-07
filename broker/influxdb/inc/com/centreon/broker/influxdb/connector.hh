@@ -21,10 +21,10 @@
 
 #include "com/centreon/broker/influxdb/column.hh"
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/sql/database_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace influxdb {
 /**
@@ -65,6 +65,6 @@ class connector : public io::endpoint {
 };
 }  // namespace influxdb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_INFLUXDB_CONNECTOR_HH

@@ -22,7 +22,6 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 
-#include "com/centreon/broker/namespace.hh"
 #include "common/log_v2/log_v2.hh"
 
 using system_clock = std::chrono::system_clock;

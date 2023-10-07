@@ -25,7 +25,7 @@
 #include "com/centreon/broker/config/endpoint.hh"
 #include "common/log_v2/config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace config {
 
@@ -164,6 +164,6 @@ class state {
 };
 }  // namespace config
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CONFIG_STATE_HH

@@ -30,7 +30,7 @@
 
 #include "global_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace cache {
 
@@ -310,6 +310,6 @@ class global_cache_data : public global_cache {
 
 };  // namespace cache
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif

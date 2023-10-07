@@ -20,9 +20,8 @@
 #define CCB_TLS_ACCEPTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls {
 /**
@@ -56,6 +55,6 @@ class acceptor : public io::endpoint {
 };
 }  // namespace tls
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TLS_ACCEPTOR_HH

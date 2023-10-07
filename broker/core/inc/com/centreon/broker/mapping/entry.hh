@@ -23,7 +23,7 @@
 
 #include "com/centreon/broker/mapping/property.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace mapping {
 /**
@@ -290,6 +290,6 @@ class entry {
 };
 }  // namespace mapping
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MAPPING_ENTRY_HH

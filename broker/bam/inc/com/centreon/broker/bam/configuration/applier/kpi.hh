@@ -23,9 +23,8 @@
 #include "com/centreon/broker/bam/configuration/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -81,6 +80,6 @@ class kpi {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_CONFIGURATION_APPLIER_KPI_HH

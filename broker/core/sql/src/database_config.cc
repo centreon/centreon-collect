@@ -25,7 +25,7 @@
 using namespace com::centreon::broker;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 std::ostream& operator<<(std::ostream& s, const database_config cfg) {
   s << cfg.get_type() << ": " << cfg.get_user() << '@';
   if (cfg.get_socket().empty()) {
@@ -40,7 +40,7 @@ std::ostream& operator<<(std::ostream& s, const database_config cfg) {
   return s;
 }
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 /**
  *  Default constructor.

@@ -19,9 +19,8 @@
 #ifndef CCB_FILE_DISK_ACCESSOR_HH
 #define CCB_FILE_DISK_ACCESSOR_HH
 #include <atomic>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace file {
 /**
@@ -53,6 +52,6 @@ class disk_accessor {
 };
 }  // namespace file
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_FILE_DISK_ACCESSOR_HH

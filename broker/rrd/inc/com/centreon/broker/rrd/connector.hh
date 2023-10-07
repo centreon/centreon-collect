@@ -20,9 +20,8 @@
 #define CCB_RRD_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace rrd {
 /**
@@ -58,10 +57,9 @@ class connector : public io::endpoint {
   void set_status_path(std::string const& status_path);
   void set_write_metrics(bool write_metrics) noexcept;
   void set_write_status(bool write_status) noexcept;
-
 };
 }  // namespace rrd
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_RRD_CONNECTOR_HH

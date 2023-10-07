@@ -19,9 +19,7 @@
 #ifndef CCB_SQL_CLEANUP_HH
 #define CCB_SQL_CLEANUP_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace sql {
 /**
@@ -68,6 +66,6 @@ class cleanup {
 };
 }  // namespace sql
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_SQL_CLEANUP_HH

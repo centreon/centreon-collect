@@ -20,15 +20,14 @@
 #define CCB_TEST_MISC_HH
 
 #include <string>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 void recursive_remove(std::string const& dir_path);
 void sleep_for(int units);
 }  // namespace test
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEST_MISC_HH

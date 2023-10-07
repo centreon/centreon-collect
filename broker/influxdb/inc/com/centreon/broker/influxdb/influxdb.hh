@@ -24,9 +24,8 @@
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace influxdb {
 /**
@@ -95,6 +94,6 @@ class influxdb {
 };
 }  // namespace influxdb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_INFLUXDB_INFLUXDB12_HH

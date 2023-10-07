@@ -19,15 +19,13 @@
 #ifndef CCB_LUA_BROKER_UTILS_HH
 #define CCB_LUA_BROKER_UTILS_HH
 
-#include "com/centreon/broker/namespace.hh"
-
 extern "C" {
 #include "lauxlib.h"
 #include "lua.h"
 #include "lualib.h"
 }
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -43,6 +41,6 @@ class broker_utils {
 };
 }  // namespace lua
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_LUA_BROKER_UTILS_HH

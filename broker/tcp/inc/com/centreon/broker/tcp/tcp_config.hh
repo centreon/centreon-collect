@@ -19,7 +19,7 @@
 #ifndef CCB_TCP_CONFIG_HH
 #define CCB_TCP_CONFIG_HH
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tcp {
 class tcp_config {
@@ -54,6 +54,6 @@ class tcp_config {
 
 }  // namespace tcp
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif

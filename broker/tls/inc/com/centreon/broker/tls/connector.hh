@@ -20,9 +20,8 @@
 #define CCB_TLS_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tls {
 /**
@@ -51,6 +50,6 @@ class connector : public io::endpoint {
 };
 }  // namespace tls
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TLS_CONNECTOR_HH

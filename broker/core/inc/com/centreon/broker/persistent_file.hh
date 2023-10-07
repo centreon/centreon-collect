@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/file/stream.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class persistent_file persistent_file.hh
@@ -49,6 +48,6 @@ class persistent_file : public io::stream {
   int32_t stop() override;
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_PERSISTENT_FILE_HH

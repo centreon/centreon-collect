@@ -23,7 +23,7 @@
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace victoria_metrics {
 class request : public http_tsdb::request {
@@ -52,6 +52,6 @@ class request : public http_tsdb::request {
 
 }  // namespace victoria_metrics
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_VICTORIA_METRICS_REQUEST_HH

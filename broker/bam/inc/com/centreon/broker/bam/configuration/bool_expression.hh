@@ -19,9 +19,7 @@
 #ifndef BAM_CCB_CONFIGURATION_BOOL_EXPRESSION_HH
 #define BAM_CCB_CONFIGURATION_BOOL_EXPRESSION_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 namespace configuration {
@@ -64,6 +62,6 @@ class bool_expression {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_CONFIGURATION_BOOL_EXPRESSION_HH

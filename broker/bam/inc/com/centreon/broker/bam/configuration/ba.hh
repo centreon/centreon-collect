@@ -20,9 +20,8 @@
 #define CCB_BAM_CONFIGURATION_BA_HH
 
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 namespace configuration {
@@ -94,6 +93,6 @@ class ba {
 }  // namespace configuration
 }  // namespace bam
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_CONFIGURATION_BA_HH

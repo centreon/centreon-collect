@@ -28,7 +28,7 @@
 #include "com/centreon/broker/io/protobuf.hh"
 #include "common/configuration/state.pb.h"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bbdo {
 /**
@@ -67,6 +67,6 @@ using poller_config =
     io::protobuf<com::centreon::engine::configuration::State,
                  make_type(io::storage, storage::de_poller_config)>;
 }  // namespace storage
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_UNIFIED_SQL_INTERNAL_HH

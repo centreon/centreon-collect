@@ -22,9 +22,8 @@
 #include "broker.pb.h"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace file {
 /**
@@ -65,6 +64,6 @@ class stream : public io::stream {
 };
 }  // namespace file
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_FILE_STREAM_HH

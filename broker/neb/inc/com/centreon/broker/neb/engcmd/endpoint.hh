@@ -20,9 +20,8 @@
 #define CCB_ENGCMD_ENDPOINT_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 namespace engcmd {
@@ -47,6 +46,6 @@ class endpoint : public io::endpoint {
 }  // namespace engcmd
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_ENGCMD_FACTORY_HH

@@ -22,9 +22,8 @@
 #include <QVariant>
 #include <ctime>
 #include "com/centreon/broker/misc/stringifier.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace test {
 /**
@@ -83,7 +82,7 @@ class predicate {
 };
 }  // namespace test
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 com::centreon::broker::misc::stringifier& operator<<(
     com::centreon::broker::misc::stringifier& s,

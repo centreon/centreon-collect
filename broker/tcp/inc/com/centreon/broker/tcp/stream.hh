@@ -23,7 +23,7 @@
 #include "com/centreon/broker/tcp/tcp_config.hh"
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace tcp {
 // Forward declaration.
@@ -60,6 +60,6 @@ class stream : public io::stream {
 };
 }  // namespace tcp
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TCP_STREAM_HH

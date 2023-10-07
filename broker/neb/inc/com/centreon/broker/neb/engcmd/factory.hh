@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 namespace engcmd {
@@ -48,6 +47,6 @@ class factory : public io::factory {
 }  // namespace engcmd
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_ENGCMD_FACTORY_HH

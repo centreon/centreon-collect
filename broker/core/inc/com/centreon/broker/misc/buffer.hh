@@ -20,9 +20,8 @@
 #define _CCB_MISC_BUFFER_HH
 
 #include <stdexcept>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 /**
@@ -188,6 +187,6 @@ class buffer {
 };
 }  // namespace misc
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !_CCB_MISC_BUFFER_HH */

@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/lua/luabinding.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -47,6 +47,6 @@ class broker_log {
 };
 }  // namespace lua
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_LUA_BROKER_LOG_HH

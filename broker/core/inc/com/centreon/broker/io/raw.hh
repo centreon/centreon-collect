@@ -22,9 +22,8 @@
 #include "bbdo/events.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 /**
@@ -65,6 +64,6 @@ std::ostream& operator<<(std::ostream& s, const raw& d);
 
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_RAW_HH

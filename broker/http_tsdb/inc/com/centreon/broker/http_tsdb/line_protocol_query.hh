@@ -24,9 +24,8 @@
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/http_tsdb/column.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_tsdb {
 /**
@@ -213,6 +212,6 @@ class line_protocol_query {
 };
 }  // namespace http_tsdb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH

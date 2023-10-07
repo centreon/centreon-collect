@@ -22,12 +22,12 @@
 #include <absl/container/flat_hash_map.h>
 #include "com/centreon/broker/influxdb/internal.hh"
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
+
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/neb/service.hh"
 #include "com/centreon/broker/persistent_cache.hh"
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace influxdb {
 /**
@@ -75,6 +75,6 @@ class macro_cache {
 };
 }  // namespace influxdb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_INFLUXDB_MACRO_CACHE_HH

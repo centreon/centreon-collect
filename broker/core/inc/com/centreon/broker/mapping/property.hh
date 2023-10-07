@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/mapping/source.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace mapping {
 /**
@@ -342,6 +342,6 @@ class sproperty : public property<T> {
 
 }  // namespace mapping
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MAPPING_PROPERTY_HH

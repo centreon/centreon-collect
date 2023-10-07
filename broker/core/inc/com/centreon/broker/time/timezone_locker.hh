@@ -19,9 +19,7 @@
 #ifndef CCB_CORE_TIME_TIMEZONE_LOCKER_HH
 #define CCB_CORE_TIME_TIMEZONE_LOCKER_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace time {
 /**
@@ -43,6 +41,6 @@ class timezone_locker {
 };
 }  // namespace time
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CORE_TIME_TIMEZONE_LOCKER_HH

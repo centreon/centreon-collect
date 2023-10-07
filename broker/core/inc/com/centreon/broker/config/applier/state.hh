@@ -24,7 +24,7 @@
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/state.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace config {
 namespace applier {
@@ -83,6 +83,6 @@ class state {
 }  // namespace applier
 }  // namespace config
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CONFIG_APPLIER_STATE_HH

@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace misc {
 std::string temp_path();
@@ -47,6 +46,6 @@ void debug(const std::string& content);
 #else
 #define DEBUG(content)
 #endif
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_MISC_MISC_HH

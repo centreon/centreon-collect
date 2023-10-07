@@ -19,9 +19,7 @@
 #ifndef CCB_COMPRESSION_ZLIB_HH
 #define CCB_COMPRESSION_ZLIB_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace compression {
 /**
@@ -39,6 +37,6 @@ class zlib {
 };
 }  // namespace compression
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_COMPRESSION_ZLIB_HH

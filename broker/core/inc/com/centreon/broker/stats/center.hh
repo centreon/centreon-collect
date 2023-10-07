@@ -20,9 +20,8 @@
 #define CCB_STATS_CENTER_HH
 
 #include "broker.pb.h"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace stats {
 /**
@@ -151,6 +150,6 @@ class center {
 
 }  // namespace stats
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_STATS_CENTER_HH */

@@ -29,7 +29,7 @@
 #include "com/centreon/broker/sql/stats.hh"
 #include "com/centreon/broker/stats/center.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 using my_error = database::mysql_error;
 
@@ -205,6 +205,6 @@ class mysql_connection {
   void stop();
 };
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_CONNECTION_HH

@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "grpc_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 
@@ -46,6 +46,6 @@ class acceptor : public io::endpoint {
   bool is_ready() const override;
 };
 };  // namespace grpc
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_GRPC_ACCEPTOR_HH

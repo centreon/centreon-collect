@@ -22,7 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/io/extension.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bbdo {
 /**
@@ -55,6 +55,6 @@ class connector : public io::endpoint {
 };
 }  // namespace bbdo
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BBDO_CONNECTOR_HH

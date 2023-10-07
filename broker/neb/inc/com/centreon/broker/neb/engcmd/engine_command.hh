@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/extcmd/command_result.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 namespace engcmd {
@@ -57,6 +56,6 @@ class engine_command : public io::stream {
 }  // namespace engcmd
 }  // namespace neb
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_ENGCMD_ENGINE_COMMAND_HH

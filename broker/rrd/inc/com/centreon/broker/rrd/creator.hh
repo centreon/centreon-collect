@@ -21,9 +21,7 @@
 
 #include <sys/types.h>
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace rrd {
 /**
@@ -82,6 +80,7 @@ class creator {
   uint32_t _cache_size;
   std::map<tmpl_info, fd_info> _fds;
   std::string _tmpl_path;
+
  public:
   creator(std::string const& tmpl_path, uint32_t cache_size);
   creator(creator const&) = delete;
@@ -97,6 +96,6 @@ class creator {
 };
 }  // namespace rrd
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_RRD_CREATOR_HH

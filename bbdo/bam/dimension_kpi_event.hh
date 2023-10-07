@@ -24,12 +24,9 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class dimension_kpi_event dimension_kpi_event.hh
  * "com/centreon/broker/bam/dimension_kpi_event.hh"
@@ -67,8 +64,6 @@ class dimension_kpi_event : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_DIMENSION_KPI_EVENT_HH

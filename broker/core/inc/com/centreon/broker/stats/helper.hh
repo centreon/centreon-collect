@@ -20,9 +20,9 @@
 #define CENTREON_BROKER_CORE_INC_COM_CENTREON_STATS_HELPER_HH_
 
 #include <nlohmann/json.hpp>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN();
+namespace com::centreon::broker {
+;
 
 namespace stats {
 
@@ -33,6 +33,6 @@ bool get_endpoint_stats(std::vector<nlohmann::json>& object);
 
 };  // namespace stats
 
-CCB_END();
+};  // namespace com::centreon::broker
 
 #endif  // CENTREON_BROKER_CORE_INC_COM_CENTREON_STATS_HELPER_HH_

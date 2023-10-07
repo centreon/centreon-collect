@@ -24,11 +24,8 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class rebuild rebuild.hh "com/centreon/broker/bam/rebuild.hh"
  *  @brief ask for a rebuild.
@@ -52,8 +49,6 @@ class rebuild : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace bam
-
-CCB_END()
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_REBUILD_HH

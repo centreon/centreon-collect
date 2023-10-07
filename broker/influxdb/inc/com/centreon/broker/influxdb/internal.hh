@@ -22,9 +22,8 @@
 #include "bbdo/events.hh"
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace storage {
 // Data elements.
@@ -41,6 +40,6 @@ using pb_status =
 
 }  // namespace storage
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_INFLUXDB_INTERNAL_HH
