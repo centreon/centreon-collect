@@ -23,16 +23,16 @@
 #include "com/centreon/engine/service.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host;
 class servicegroup;
-CCE_END()
+}  // namespace com::centreon::engine
 
 using servicegroup_map =
     absl::flat_hash_map<std::string,
                         std::shared_ptr<com::centreon::engine::servicegroup>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class servicegroup {
  public:
   servicegroup(uint64_t id,
@@ -72,7 +72,7 @@ class servicegroup {
 
 bool is_servicegroup_exist(std::string const& name) throw();
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::servicegroup const& obj);

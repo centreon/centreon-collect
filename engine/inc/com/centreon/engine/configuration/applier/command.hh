@@ -22,7 +22,7 @@
 
 #include "common/configuration/state.pb.h"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 // Forward declarations.
 namespace commands {
@@ -63,6 +63,6 @@ class command {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_COMMAND_HH

@@ -24,9 +24,8 @@
 #include <unordered_map>
 
 #include "com/centreon/engine/commands/result.hh"
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace commands {
 class command;
@@ -55,6 +54,6 @@ class command_listener {
 };
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_COMMAND_LISTENER_HH

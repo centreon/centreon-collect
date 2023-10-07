@@ -24,11 +24,11 @@
 #include "com/centreon/engine/hash.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class service;
 class servicedependency;
 class timeperiod;
-CCE_END()
+}  // namespace com::centreon::engine
 
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,
@@ -36,7 +36,7 @@ typedef std::unordered_multimap<
     pair_hash>
     servicedependency_mmap;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class servicedependency : public dependency {
   std::string _dependent_service_description;
   std::string _service_description;
@@ -91,7 +91,7 @@ class servicedependency : public dependency {
       const std::tuple<std::string, std::string, size_t>& key);
 };
 
-CCE_END();
+};  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::servicedependency const& obj);

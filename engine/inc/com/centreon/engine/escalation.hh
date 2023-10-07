@@ -25,7 +25,7 @@
 #include "com/centreon/engine/shared.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class timeperiod;
 
 class escalation {
@@ -66,6 +66,6 @@ class escalation {
   notifier* notifier_ptr;
   timeperiod* escalation_period_ptr;
 };
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_ESCALATION_HH

@@ -23,7 +23,7 @@
 #include <fmt/ostream.h>
 #include "com/centreon/engine/exceptions/error.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class file_info {
@@ -61,7 +61,7 @@ class file_info {
 
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>

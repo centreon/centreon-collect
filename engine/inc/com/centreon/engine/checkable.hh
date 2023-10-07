@@ -24,9 +24,8 @@
 #include <forward_list>
 #include <memory>
 #include <string>
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 namespace commands {
 class command;
 }
@@ -224,6 +223,6 @@ class checkable {
   std::forward_list<std::shared_ptr<tag>> _tags;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif /* !CCE_CHECKABLE */

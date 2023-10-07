@@ -25,7 +25,7 @@
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/shared.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 
@@ -103,6 +103,6 @@ typedef std::shared_ptr<hostescalation> hostescalation_ptr;
 typedef std::set<hostescalation> set_hostescalation;
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_HOSTESCALATION_HH

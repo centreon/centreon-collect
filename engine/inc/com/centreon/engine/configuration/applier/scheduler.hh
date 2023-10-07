@@ -28,7 +28,7 @@
 #include "common/configuration/state.pb.h"
 
 // Forward declaration.
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host;
 class service;
 class timed_event;
@@ -141,6 +141,6 @@ class scheduler {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SCHEDULER_HH

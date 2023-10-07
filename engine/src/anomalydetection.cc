@@ -35,7 +35,7 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /****************************************************************
  * anomalydetection::threshold_point
@@ -242,7 +242,7 @@ void cancellable_command::set_command_line(
 }
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 /****************************************************************
  * anomalydetection

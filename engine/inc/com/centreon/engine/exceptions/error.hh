@@ -20,7 +20,7 @@
 #ifndef CCE_EXCEPTIONS_ERROR_HH
 #define CCE_EXCEPTIONS_ERROR_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace exceptions {
 /**
@@ -59,7 +59,7 @@ class error : public std::exception {
 
 }  // namespace exceptions
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #ifdef NDEBUG
 #define engine_error() com::centreon::engine::exceptions::error()

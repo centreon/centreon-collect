@@ -31,11 +31,9 @@
 #include <string>
 
 #include <absl/types/optional.h>
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine::string {
 
-namespace string {
 // bool get_next_line(std::ifstream& stream, std::string& line, unsigned int&
 // pos);
 
@@ -228,8 +226,6 @@ class c_strtok {
   bool extract(char sep, int& extracted);
 };
 
-}  // namespace string
-
-CCE_END()
+}  // namespace com::centreon::engine::string
 
 #endif  // !CCE_MISC_STRING_HH

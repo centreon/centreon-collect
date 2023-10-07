@@ -24,9 +24,9 @@
 #include "common/configuration/state-generated.pb.h"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class timeperiod;
-CCE_END()
+}
 
 using timeperiod_map =
     std::unordered_map<std::string,
@@ -34,7 +34,7 @@ using timeperiod_map =
 using timeperiodexclusion =
     std::unordered_multimap<std::string, com::centreon::engine::timeperiod*>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 class timeperiod {
  public:
@@ -74,7 +74,7 @@ class timeperiod {
   timeperiodexclusion _exclusions;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 bool check_time_against_period(time_t test_time,
                                com::centreon::engine::timeperiod* tperiod);

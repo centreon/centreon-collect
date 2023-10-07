@@ -23,7 +23,7 @@
 #include "common/configuration/state-generated.pb.h"
 #include "common/configuration/state.pb.h"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class severity;
@@ -50,6 +50,6 @@ class severity {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SEVERITY_HH

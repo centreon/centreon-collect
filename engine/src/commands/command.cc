@@ -210,14 +210,11 @@ void commands::command::update_result_cache(uint64_t command_id,
   }
 }
 
-CCE_BEGIN()
-namespace commands {
+namespace com::centreon::engine::commands {
 
 std::ostream& operator<<(std::ostream& s, const commands::command& cmd) {
   s << "cmd_name:" << cmd.get_name() << " cmd_line:" << cmd.get_command_line();
   return s;
 }
 
-}  // namespace commands
-
-CCE_END()
+}  // namespace com::centreon::engine::commands

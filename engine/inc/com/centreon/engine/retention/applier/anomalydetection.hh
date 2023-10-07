@@ -24,7 +24,7 @@
 
 // Forward declaration.
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class anomalydetection;
 
 // Forward declaration.
@@ -56,6 +56,6 @@ class anomalydetection {
 }  // namespace applier
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_APPLIER_ANOMALYDETECTION_HH

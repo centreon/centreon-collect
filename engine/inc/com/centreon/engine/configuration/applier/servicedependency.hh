@@ -24,7 +24,7 @@
 #include "common/configuration/state.pb.h"
 // #include "common/configuration/state-generated.pb.h"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 // Forward declarations.
@@ -72,6 +72,6 @@ class servicedependency {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH

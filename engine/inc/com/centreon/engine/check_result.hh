@@ -27,7 +27,7 @@
 
 enum check_source { service_check, host_check };
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class notifier;
 class check_result {
  public:
@@ -91,6 +91,6 @@ class check_result {
   int _return_code;             // plugin return code
   std::string _output;          // plugin output
 };
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CHECKS_HH

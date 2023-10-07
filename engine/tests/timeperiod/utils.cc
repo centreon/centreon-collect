@@ -23,8 +23,6 @@
 #include <memory>
 #include <unordered_map>
 
-#include "com/centreon/engine/namespace.hh"
-
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/timerange.hh"
 #include "tests/timeperiod/utils.hh"
@@ -297,7 +295,7 @@ time_t strtotimet(std::string const& str) {
   if (!strptime(str.c_str(), "%Y-%m-%d %H:%M:%S", &t))
     throw(engine_error() << "invalid date format");
   t.tm_isdst = -1;
-  return (mktime(&t));
+  return mktime(&t);
 }
 
 /**

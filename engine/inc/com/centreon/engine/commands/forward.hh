@@ -22,7 +22,7 @@
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/engine/commands/connector.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace commands {
 /**
@@ -55,6 +55,6 @@ class forward : public command {
 };
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_FORWARD_HH

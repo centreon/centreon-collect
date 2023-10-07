@@ -24,7 +24,7 @@
 #include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace commands {
 class environment;
@@ -77,6 +77,6 @@ class raw : public command, public process_listener {
 };
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_RAW_HH

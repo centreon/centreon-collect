@@ -23,11 +23,10 @@
 #include <spdlog/spdlog.h>
 #include <string>
 
-#include "com/centreon/engine/namespace.hh"
 #include "com/centreon/process.hh"
 #include "com/centreon/timestamp.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 class check_result;
 
@@ -64,7 +63,7 @@ std::ostream& operator<<(std::ostream& s, const result& to_dump);
 
 }  // namespace commands
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>

@@ -22,10 +22,7 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com {
-namespace centreon {
-namespace engine {
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 /**
  * @brief Constructor from a Host object.
@@ -230,8 +227,4 @@ bool host_helper::insert_customvariable(absl::string_view key,
   new_cv->set_value(value.data(), value.size());
   return true;
 }
-}  // namespace configuration
-}  // namespace engine
-}  // namespace centreon
-
-}  // namespace com
+}  // namespace com::centreon::engine::configuration
