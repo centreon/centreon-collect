@@ -27,7 +27,7 @@
 #include "com/centreon/engine/timeperiod.hh"
 #include "common/configuration/state.pb.h"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 // Forward declaration.
 namespace commands {
@@ -130,6 +130,6 @@ class state {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_STATE_HH

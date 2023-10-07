@@ -35,7 +35,7 @@ using contact_map =
 using contact_map_unsafe =
     absl::flat_hash_map<std::string, com::centreon::engine::contact*>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host;
 class service;
 class timeperiod;
@@ -181,7 +181,7 @@ class contact {
   timeperiod* _service_notification_period_ptr;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 std::shared_ptr<com::centreon::engine::contact> add_contact(
     std::string const& name,

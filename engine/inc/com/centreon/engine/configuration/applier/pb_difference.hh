@@ -23,9 +23,8 @@
 #include <absl/container/flat_hash_set.h>
 #include <google/protobuf/util/message_differencer.h>
 #include <iterator>
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 using MessageDifferencer = ::google::protobuf::util::MessageDifferencer;
 
@@ -142,6 +141,6 @@ class pb_difference {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_PB_DIFFERENCE_HH

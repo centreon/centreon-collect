@@ -23,7 +23,7 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/commands/command.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace checks {
 /**
@@ -94,6 +94,6 @@ class checker : public commands::command_listener {
 };
 }  // namespace checks
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CHECKS_CHECKER_HH

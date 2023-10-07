@@ -26,18 +26,18 @@
 #include "com/centreon/engine/dependency.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host;
 class hostdependency;
 class timeperiod;
-CCE_END()
+}  // namespace com::centreon::engine
 
 typedef absl::btree_multimap<
     std::string,
     std::shared_ptr<com::centreon::engine::hostdependency>>
     hostdependency_mmap;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class hostdependency : public dependency {
  public:
   hostdependency(size_t key,
@@ -81,7 +81,7 @@ class hostdependency : public dependency {
   bool _fail_on_unreachable;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::hostdependency const& obj);

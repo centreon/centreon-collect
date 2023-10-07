@@ -23,9 +23,8 @@
 
 #include "com/centreon/engine/configuration/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
 class severity : public object {
  public:
   using key_type = std::pair<uint64_t, uint16_t>;
@@ -70,8 +69,6 @@ class severity : public object {
 };
 
 typedef std::set<severity> set_severity;
-}  // namespace configuration
-
-CCE_END()
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_SEVERITY_HH

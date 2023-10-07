@@ -28,7 +28,7 @@
 #include "com/centreon/engine/configuration/point_3d.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 
@@ -229,6 +229,6 @@ typedef std::list<host> list_host;
 using set_host = std::set<host>;
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_HOST_HH

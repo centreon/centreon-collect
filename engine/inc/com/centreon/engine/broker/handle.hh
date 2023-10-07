@@ -22,7 +22,7 @@
 
 #include "com/centreon/library.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace broker {
 /**
@@ -73,6 +73,6 @@ class handle {
 };
 }  // namespace broker
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_BROKER_HANDLE_HH

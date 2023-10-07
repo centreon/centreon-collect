@@ -26,7 +26,7 @@
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 
@@ -242,6 +242,6 @@ typedef std::unordered_map<std::pair<std::string, std::string>,
     map_anomalydetection;
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_ANOMALYDETECTION_HH

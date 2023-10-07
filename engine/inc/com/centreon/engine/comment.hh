@@ -23,16 +23,16 @@
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/host.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class comment;
 class service;
-CCE_END()
+}  // namespace com::centreon::engine
 
 using comment_map =
     absl::flat_hash_map<uint64_t,
                         std::shared_ptr<com::centreon::engine::comment>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 // COMMENT structure
 class comment {
  public:
@@ -98,7 +98,7 @@ class comment {
   static uint64_t _next_comment_id;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::comment const& obj);

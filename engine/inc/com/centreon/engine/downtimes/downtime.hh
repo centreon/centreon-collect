@@ -24,7 +24,7 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace downtimes {
 class downtime {
@@ -93,7 +93,7 @@ class downtime {
 };
 }  // namespace downtimes
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 int handle_scheduled_downtime_by_id(uint64_t downtime_id);
 

@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/program.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 // Forward declaration.
 namespace configuration {
@@ -43,6 +43,6 @@ class program {
 }  // namespace applier
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_APPLIER_PROGRAM_HH

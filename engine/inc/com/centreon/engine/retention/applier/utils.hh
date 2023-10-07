@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/common.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 namespace applier {
@@ -35,6 +35,6 @@ void set_state_history(
 }  // namespace applier
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_APPLIER_UTILS_HH

@@ -25,7 +25,7 @@
 #include "com/centreon/logging/syslogger.hh"
 #include "common/configuration/state.pb.h"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 namespace applier {
@@ -73,6 +73,6 @@ class logging {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_LOGGING_HH

@@ -19,9 +19,8 @@
 
 #ifndef CCE_CONFIGURATION_POINT_3D_HH
 #define CCE_CONFIGURATION_POINT_3D_HH
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class point_3d {
@@ -44,6 +43,6 @@ class point_3d {
 };
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_POINT_3D_HH

@@ -1,21 +1,21 @@
 /*
-** Copyright 2022-2023 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2022-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
@@ -66,7 +66,7 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 using namespace com::centreon::engine::downtimes;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 std::ostream& operator<<(std::ostream& str, const HostIdentifier& host_id) {
   switch (host_id.identifier_case()) {
@@ -98,7 +98,7 @@ std::ostream& operator<<(std::ostream& str, const ServiceIdentifier& serv_id) {
   return str;
 }
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 namespace fmt {
 template <>

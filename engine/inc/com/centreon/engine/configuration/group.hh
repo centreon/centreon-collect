@@ -1,21 +1,21 @@
 /*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2013,2017-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_GROUP_HH
 #define CCE_CONFIGURATION_GROUP_HH
@@ -24,15 +24,13 @@
 #include <set>
 #include <string>
 #include <utility>
-#include "com/centreon/engine/namespace.hh"
 
 typedef std::list<std::string> list_string;
 typedef std::set<std::string> set_string;
 typedef std::set<std::pair<std::string, std::string> > set_pair_string;
 
-CCE_BEGIN()
+namespace com::centreon::engine::configuration {
 
-namespace configuration {
 template <typename T>
 class group {
  public:
@@ -62,8 +60,6 @@ class group {
   bool _is_null;
   bool _is_set;
 };
-}  // namespace configuration
-
-CCE_END()
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_GROUP_HH

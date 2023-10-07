@@ -35,7 +35,7 @@ using severity_map =
     absl::flat_hash_map<std::pair<uint32_t, uint16_t>,
                         std::shared_ptr<com::centreon::engine::severity>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /**
  *  @class severity severity.hh "com/centreon/engine/severity.hh
@@ -77,7 +77,7 @@ class severity {
   severity_type type() const;
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::severity const& obj);

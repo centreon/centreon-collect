@@ -46,7 +46,7 @@ timerange::timerange(uint64_t start, uint64_t end) {
   _range_end = end;
 }
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /**
  *  Dump timerange content into the stream.
@@ -83,4 +83,4 @@ std::ostream& operator<<(std::ostream& os, timerange_list const& obj) {
   return os;
 }
 
-CCE_END()
+}  // namespace com::centreon::engine

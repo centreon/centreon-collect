@@ -24,7 +24,7 @@
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class servicedependency : public object {
@@ -119,6 +119,6 @@ typedef std::shared_ptr<servicedependency> servicedependency_ptr;
 typedef std::set<servicedependency> set_servicedependency;
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_SERVICEDEPENDENCY_HH

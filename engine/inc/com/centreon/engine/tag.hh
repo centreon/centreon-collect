@@ -35,7 +35,7 @@ using tag_map =
     absl::flat_hash_map<std::pair<uint64_t, uint16_t>,
                         std::shared_ptr<com::centreon::engine::tag>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /**
  *  @class tag tag.hh "com/centreon/engine/tag.hh
@@ -74,7 +74,7 @@ class tag {
   void set_icon_id(uint64_t icon_id);
 };
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::tag const& obj);

@@ -39,7 +39,7 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "common/log_v2/log_v2.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 /**
@@ -661,6 +661,6 @@ class state {
 };
 }  // namespace configuration
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_STATE_HH

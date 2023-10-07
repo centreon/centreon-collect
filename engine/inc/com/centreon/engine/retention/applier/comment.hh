@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/comment.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 namespace applier {
@@ -37,6 +37,6 @@ class comment {
 }  // namespace applier
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_APPLIER_COMMENT_HH

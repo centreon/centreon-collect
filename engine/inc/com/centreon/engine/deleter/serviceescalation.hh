@@ -20,12 +20,12 @@
 #ifndef CCE_DELETER_SERVICEESCALATION_HH
 #define CCE_DELETER_SERVICEESCALATION_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace deleter {
 void serviceescalation(void* ptr) throw();
 }
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_DELETER_SERVICEESCALATION_HH

@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class state;
@@ -45,6 +45,6 @@ class parser {
 };
 }  // namespace retention
 
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_PARSER_HH

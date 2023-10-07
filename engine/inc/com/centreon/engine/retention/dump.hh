@@ -25,7 +25,7 @@
 
 // Forward declaration.
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class comment;
 class contact;
 class customvariable;
@@ -71,6 +71,6 @@ std::ostream& anomalydetection(
 std::ostream& services(std::ostream& os);
 }  // namespace dump
 }  // namespace retention
-CCE_END()
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_DUMP_HH
