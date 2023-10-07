@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011-2023 Centreon
  *
  * This file is part of Centreon Engine.
@@ -54,6 +54,6 @@ class customvariable {
 
 typedef std::unordered_map<std::string, customvariable> map_customvar;
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_CUSTOMVARIABLE_HH

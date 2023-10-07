@@ -69,6 +69,6 @@ class servicegroup {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_SERVICEGROUP_HH

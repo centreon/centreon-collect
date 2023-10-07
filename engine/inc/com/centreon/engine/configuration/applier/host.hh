@@ -20,8 +20,8 @@
 #ifndef CCE_CONFIGURATION_APPLIER_HOST_HH
 #define CCE_CONFIGURATION_APPLIER_HOST_HH
 
-#include "configuration/state-generated.pb.h"
-#include "configuration/state.pb.h"
+#include "common/configuration/state-generated.pb.h"
+#include "common/configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -58,6 +58,6 @@ class host {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_HOST_HH

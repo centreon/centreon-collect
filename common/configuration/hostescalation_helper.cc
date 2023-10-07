@@ -22,10 +22,7 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-namespace com {
-namespace centreon {
-namespace engine {
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 /**
  * @brief Constructor from a Hostescalation object.
@@ -115,8 +112,4 @@ void hostescalation_helper::_init() {
   obj->set_last_notification(-2);
   obj->set_notification_interval(0);
 }
-}  // namespace configuration
-}  // namespace engine
-}  // namespace centreon
-
-}  // namespace com
+}  // namespace com::centreon::engine::configuration

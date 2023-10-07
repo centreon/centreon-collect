@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 - 2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -69,6 +69,6 @@ class command_manager {
                                               unsigned long duration);
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif /* !CCE_STATISTICS_HH */

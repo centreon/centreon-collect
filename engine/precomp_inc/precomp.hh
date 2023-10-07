@@ -74,7 +74,6 @@
 
 namespace asio = boost::asio;
 
-
 namespace fmt {
 
 template <>

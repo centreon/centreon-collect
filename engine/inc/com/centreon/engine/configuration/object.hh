@@ -1,26 +1,27 @@
-/*
-** Copyright 2011-2015 Merethis
-** Copyright 2016-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2015 Merethis
+ * Copyright 2016-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_CONFIGURATION_OBJECT_HH
 #define CCE_CONFIGURATION_OBJECT_HH
 
 #include <memory>
+
 #include "com/centreon/engine/string.hh"
 
 typedef std::list<std::string> list_string;
@@ -84,8 +85,7 @@ class object {
   struct setter {
     static bool generic(T& obj, char const* value) {
       U val(0);
-      if (!string::to(value, val))
-        return (false);
+      if (!string::to(value, val)) return (false);
       return ((obj.*ptr)(val));
     }
   };
@@ -114,20 +114,17 @@ typedef std::list<object_ptr> list_object;
 typedef std::unordered_map<std::string, object_ptr> map_object;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #define MRG_TAB(prop)                                       \
   do {                                                      \
     for (unsigned int i(0), end(prop.size()); i < end; ++i) \
-      if (prop[i].empty())                                  \
-        prop[i] = tmpl.prop[i];                             \
+      if (prop[i].empty()) prop[i] = tmpl.prop[i];          \
   } while (false)
 #define MRG_DEFAULT(prop) \
-  if (prop.empty())       \
-  prop = tmpl.prop
-#define MRG_IMPORTANT(prop)                     \
-  if (prop.empty() || tmpl.prop##_is_important) \
-  prop = tmpl.prop
+  if (prop.empty()) prop = tmpl.prop
+#define MRG_IMPORTANT(prop) \
+  if (prop.empty() || tmpl.prop##_is_important) prop = tmpl.prop
 #define MRG_INHERIT(prop)       \
   do {                          \
     if (!prop.is_set())         \
@@ -137,12 +134,11 @@ typedef std::unordered_map<std::string, object_ptr> map_object;
     prop.is_inherit(false);     \
   } while (false)
 #define MRG_MAP(prop) prop.insert(tmpl.prop.begin(), tmpl.prop.end())
-#define MRG_OPTION(prop)      \
-  do {                        \
-    if (!prop.is_set()) {     \
-      if (tmpl.prop.is_set()) \
-        prop = tmpl.prop;     \
-    }                         \
+#define MRG_OPTION(prop)                        \
+  do {                                          \
+    if (!prop.is_set()) {                       \
+      if (tmpl.prop.is_set()) prop = tmpl.prop; \
+    }                                           \
   } while (false)
 
 #endif  // !CCE_CONFIGURATION_OBJECT_HH

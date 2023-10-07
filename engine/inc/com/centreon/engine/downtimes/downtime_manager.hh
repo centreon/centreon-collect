@@ -98,6 +98,6 @@ class downtime_manager {
 };
 }  // namespace downtimes
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_DOWNTIMES_DOWNTIME_MANAGER_HH

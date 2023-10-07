@@ -120,6 +120,6 @@ typedef std::shared_ptr<contact> contact_ptr;
 typedef std::set<contact> set_contact;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_CONTACT_HH

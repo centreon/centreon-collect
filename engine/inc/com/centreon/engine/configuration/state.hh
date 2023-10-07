@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
@@ -39,9 +39,7 @@
 #include "com/centreon/engine/logging/logger.hh"
 #include "common/log_v2/log_v2.hh"
 
-namespace com::centreon::engine {
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 /**
  *  @class state state.hh
@@ -346,8 +344,7 @@ class state {
       anomalydetection::key_type const& k);
   set_service::iterator services_find(service::key_type const& k);
   set_service::const_iterator services_find(
-      std::string const& host_name,
-      std::string const& service_desc) const;
+      std::string const& host_name, std::string const& service_desc) const;
   set_severity::iterator severities_find(const severity::key_type& k);
   set_tag::iterator tags_find(const tag::key_type& k);
   unsigned int service_check_timeout() const noexcept;
@@ -487,8 +484,7 @@ class state {
     static bool generic(state& obj, char const* value) {
       try {
         U val(0);
-        if (!string::to(value, val))
-          return (false);
+        if (!string::to(value, val)) return (false);
         (obj.*ptr)(val);
       } catch (std::exception const& e) {
         engine_logger(logging::log_config_error, logging::basic) << e.what();
@@ -659,10 +655,7 @@ class state {
   std::string _log_level_runtime;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
-
 };
-}  // namespace configuration
-
-}
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_STATE_HH

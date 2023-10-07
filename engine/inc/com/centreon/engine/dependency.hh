@@ -1,43 +1,41 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CENTREON_ENGINE_DEPENDENCY_HH
 #define CENTREON_ENGINE_DEPENDENCY_HH
 
 #include <com/centreon/engine/timeperiod.hh>
 
-namespace com::centreon::engine {;
+namespace com::centreon::engine {
 
 class dependency {
-  /* This key is a hash of the configuration attributes of this hostdependency,
-   * essentially used when a new configuration is applied to engine. */
+  /* This key is a hash of the configuration attributes of this
+   * hostdependency, essentially used when a new configuration is applied to
+   * engine. */
   const size_t _internal_key;
 
  public:
   enum types { notification = 1, execution };
 
-  dependency(size_t key,
-             const std::string& dependent_hostname,
-             const std::string& hostname,
-             types dependency_type,
-             bool inherits_parent,
-             bool fail_on_pending,
+  dependency(size_t key, const std::string& dependent_hostname,
+             const std::string& hostname, types dependency_type,
+             bool inherits_parent, bool fail_on_pending,
              const std::string& dependency_period);
   virtual ~dependency() noexcept = default;
 
@@ -77,6 +75,6 @@ class dependency {
   bool _contains_circular_path;
 };
 
-};
+}  // namespace com::centreon::engine
 
 #endif  // CENTREON_ENGINE_DEPENDENCY_HH

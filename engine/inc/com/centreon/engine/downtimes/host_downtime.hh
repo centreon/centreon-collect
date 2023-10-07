@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,21 +22,14 @@
 
 #include "com/centreon/engine/downtimes/downtime.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::downtimes {
 
-namespace downtimes {
 class host_downtime : public downtime {
  public:
-  host_downtime(const uint64_t host_id,
-                time_t entry_time,
-                std::string const& author,
-                std::string const& comment,
-                time_t start_time,
-                time_t end_time,
-                bool fixed,
-                uint64_t triggered_by,
-                int32_t duration,
-                uint64_t downtime_id);
+  host_downtime(const uint64_t host_id, time_t entry_time,
+                std::string const& author, std::string const& comment,
+                time_t start_time, time_t end_time, bool fixed,
+                uint64_t triggered_by, int32_t duration, uint64_t downtime_id);
   virtual ~host_downtime();
 
   virtual bool is_stale() const override;
@@ -47,8 +40,6 @@ class host_downtime : public downtime {
   virtual void print(std::ostream& os) const override;
   virtual void retention(std::ostream& os) const override;
 };
-}  // namespace downtimes
-
-}
+}  // namespace com::centreon::engine::downtimes
 
 #endif  // !CCE_DOWNTIMES_HOST_DOWTIME_HH

@@ -64,6 +64,6 @@ class timezone_manager {
   std::stack<tz_info> _tz;
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_TIMEZONE_MANAGER_HH

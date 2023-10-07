@@ -30,7 +30,7 @@ namespace com::centreon::engine {
 namespace commands {
 class command;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
@@ -140,7 +140,9 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
 
 }  // namespace commands
 
-}
+==== BASE ====
+CCE_END()
+==== BASE ====
 
 namespace fmt {
 template <>

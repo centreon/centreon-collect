@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_OBJECTS_DATERANGE_HH
 #define CCE_OBJECTS_DATERANGE_HH
@@ -45,18 +45,9 @@ class daterange {
     week_day = 4
   };
 
-  daterange(type_range type,
-            int syear,
-            int smon,
-            int smday,
-            int swday,
-            int swday_offset,
-            int eyear,
-            int emon,
-            int emday,
-            int ewday,
-            int ewday_offset,
-            int skip_interval);
+  daterange(type_range type, int syear, int smon, int smday, int swday,
+            int swday_offset, int eyear, int emon, int emday, int ewday,
+            int ewday_offset, int skip_interval);
   daterange(type_range type);
 
   type_range get_type() const { return _type; }
@@ -120,6 +111,6 @@ std::ostream& operator<<(std::ostream& os,
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH

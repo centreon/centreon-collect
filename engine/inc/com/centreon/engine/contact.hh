@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@
 #define CCE_CONTACT_HH
 
 #include <absl/container/flat_hash_map.h>
+
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/notifier.hh"
@@ -181,32 +182,20 @@ class contact {
   timeperiod* _service_notification_period_ptr;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::shared_ptr<com::centreon::engine::contact> add_contact(
-    std::string const& name,
-    std::string const& alias,
-    std::string const& email,
-    std::string const& pager,
-    const std::vector<std::string>& addresses,
+    std::string const& name, std::string const& alias, std::string const& email,
+    std::string const& pager, const std::vector<std::string>& addresses,
     std::string const& svc_notification_period,
-    std::string const& host_notification_period,
-    int notify_service_ok,
-    int notify_service_critical,
-    int notify_service_warning,
-    int notify_service_unknown,
-    int notify_service_flapping,
-    int notify_service_downtime,
-    int notify_host_up,
-    int notify_host_down,
-    int notify_host_unreachable,
-    int notify_host_flapping,
-    int notify_host_downtime,
-    int host_notifications_enabled,
-    int service_notifications_enabled,
-    int can_submit_commands,
-    int retain_status_information,
-    int retain_nonstatus_information);
+    std::string const& host_notification_period, int notify_service_ok,
+    int notify_service_critical, int notify_service_warning,
+    int notify_service_unknown, int notify_service_flapping,
+    int notify_service_downtime, int notify_host_up, int notify_host_down,
+    int notify_host_unreachable, int notify_host_flapping,
+    int notify_host_downtime, int host_notifications_enabled,
+    int service_notifications_enabled, int can_submit_commands,
+    int retain_status_information, int retain_nonstatus_information);
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::contact const& obj);

@@ -59,6 +59,6 @@ typedef std::shared_ptr<connector> connector_ptr;
 typedef std::set<connector> set_connector;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_CONNECTOR_HH

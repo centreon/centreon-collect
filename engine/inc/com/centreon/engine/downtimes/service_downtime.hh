@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,17 +29,11 @@ class service_downtime : public downtime {
   const uint64_t _service_id;
 
  public:
-  service_downtime(const uint64_t host_id,
-                   const uint64_t service_id,
-                   time_t entry_time,
-                   std::string const& author,
-                   std::string const& comment,
-                   time_t start_time,
-                   time_t end_time,
-                   bool fixed,
-                   uint64_t triggered_by,
-                   int32_t duration,
-                   uint64_t downtime_id);
+  service_downtime(const uint64_t host_id, const uint64_t service_id,
+                   time_t entry_time, std::string const& author,
+                   std::string const& comment, time_t start_time,
+                   time_t end_time, bool fixed, uint64_t triggered_by,
+                   int32_t duration, uint64_t downtime_id);
   service_downtime(downtime const& other);
   service_downtime(downtime&& other);
   virtual ~service_downtime();
@@ -54,6 +48,6 @@ class service_downtime : public downtime {
 };
 }  // namespace downtimes
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_DOWNTIMES_SERVICE_DOWTIME_HH

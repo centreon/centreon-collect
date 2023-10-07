@@ -242,6 +242,6 @@ typedef std::unordered_map<std::pair<std::string, std::string>,
     map_anomalydetection;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_ANOMALYDETECTION_HH

@@ -2,6 +2,7 @@
 #define CCE_ENGINERPC_ENGINERPC_HH
 
 #include <grpcpp/server.h>
+
 #include "engine_impl.hh"
 
 namespace com::centreon::engine {
@@ -17,5 +18,5 @@ class enginerpc final {
   void shutdown();
 };
 
-}
+}  // namespace com::centreon::engine
 #endif /* !CCE_ENGINERPC_ENGINE_IMPL_HH */

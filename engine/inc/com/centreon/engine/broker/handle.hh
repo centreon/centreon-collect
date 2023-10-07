@@ -73,6 +73,6 @@ class handle {
 };
 }  // namespace broker
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_BROKER_HANDLE_HH

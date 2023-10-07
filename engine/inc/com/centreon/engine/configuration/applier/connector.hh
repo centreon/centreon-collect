@@ -20,8 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONNECTOR_HH
 #define CCE_CONFIGURATION_APPLIER_CONNECTOR_HH
 
-#include "com/centreon/engine/namespace.hh"
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 namespace com::centreon::engine {
 
 namespace configuration {
@@ -57,6 +56,6 @@ class connector {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_CONNECTOR_HH

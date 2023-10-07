@@ -1,27 +1,29 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_PARSER_HH
 #define CCE_CONFIGURATION_PARSER_HH
 
 #include <common/configuration/state.pb.h>
+
 #include <fstream>
+
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
 #include "com/centreon/engine/configuration/contact.hh"
@@ -92,16 +94,13 @@ class parser {
   void _add_template(object_ptr obj);
   template <typename T>
   void _apply(const T& lst, void (parser::*pfunc)(const std::string&)) {
-    for (auto& f : lst)
-      (this->*pfunc)(f);
+    for (auto& f : lst) (this->*pfunc)(f);
   }
 
   template <typename S, typename L>
-  void _apply(const L& lst,
-              S* state,
+  void _apply(const L& lst, S* state,
               void (parser::*pfunc)(const std::string&, S*)) {
-    for (auto& f : lst)
-      (this->*pfunc)(f, state);
+    for (auto& f : lst) (this->*pfunc)(f, state);
   }
 
   file_info const& _get_file_info(object* obj) const;
@@ -109,8 +108,7 @@ class parser {
   void _get_hosts_by_hostgroups_name(set_string const& lst_group,
                                      list_host& hosts);
   template <typename T>
-  void _get_objects_by_list_name(set_string const& lst,
-                                 map_object& objects,
+  void _get_objects_by_list_name(set_string const& lst, map_object& objects,
                                  std::list<T>& out);
 
   template <typename T>
@@ -153,6 +151,6 @@ class parser {
 };
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_PARSER_HH

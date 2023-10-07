@@ -58,6 +58,6 @@ class environment {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CC_COMMANDS_ENVIRONMENT_HH

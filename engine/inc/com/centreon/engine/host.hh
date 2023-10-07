@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_HOST_HH
 #define CCE_HOST_HH
@@ -28,7 +28,7 @@ class contact;
 class host;
 class hostgroup;
 class hostescalation;
-}
+}  // namespace com::centreon::engine
 
 using host_map =
     absl::flat_hash_map<std::string,
@@ -45,63 +45,30 @@ class host : public notifier {
 
   enum host_state { state_up, state_down, state_unreachable };
 
-  host(uint64_t host_id,
-       std::string const& name,
-       std::string const& display_name,
-       std::string const& alias,
-       std::string const& address,
-       std::string const& check_period,
-       enum host::host_state initial_state,
-       uint32_t check_interval,
-       uint32_t retry_interval,
-       int max_attempts,
-       int notify_up,
-       int notify_down,
-       int notify_unreachable,
-       int notify_flapping,
-       int notify_downtime,
-       uint32_t notification_interval,
-       uint32_t first_notification_delay,
-       uint32_t recovery_notification_delay,
-       std::string const& notification_period,
-       bool notifications_enabled,
-       std::string const& check_command,
-       bool checks_enabled,
-       bool accept_passive_checks,
-       std::string const& event_handler,
-       bool event_handler_enabled,
-       bool flap_detection_enabled,
-       double low_flap_threshold,
-       double high_flap_threshold,
-       int flap_detection_on_up,
-       int flap_detection_on_down,
-       int flap_detection_on_unreachable,
-       int stalk_on_up,
-       int stalk_on_down,
-       int stalk_on_unreachable,
-       bool process_perfdata,
-       bool check_freshness,
-       int freshness_threshold,
-       std::string const& notes,
-       std::string const& notes_url,
-       std::string const& action_url,
-       std::string const& icon_image,
-       std::string const& icon_image_alt,
-       std::string const& vrml_image,
-       std::string const& statusmap_image,
-       double x_2d,
-       double y_2d,
-       bool have_2d_coords,
-       double x_3d,
-       double y_3d,
-       double z_3d,
-       bool have_3d_coords,
-       bool should_be_drawn,
-       bool retain_status_information,
-       bool retain_nonstatus_information,
-       bool obsess_over_host,
-       std::string const& timezone,
-       uint64_t icon_id);
+  host(uint64_t host_id, std::string const& name,
+       std::string const& display_name, std::string const& alias,
+       std::string const& address, std::string const& check_period,
+       enum host::host_state initial_state, uint32_t check_interval,
+       uint32_t retry_interval, int max_attempts, int notify_up,
+       int notify_down, int notify_unreachable, int notify_flapping,
+       int notify_downtime, uint32_t notification_interval,
+       uint32_t first_notification_delay, uint32_t recovery_notification_delay,
+       std::string const& notification_period, bool notifications_enabled,
+       std::string const& check_command, bool checks_enabled,
+       bool accept_passive_checks, std::string const& event_handler,
+       bool event_handler_enabled, bool flap_detection_enabled,
+       double low_flap_threshold, double high_flap_threshold,
+       int flap_detection_on_up, int flap_detection_on_down,
+       int flap_detection_on_unreachable, int stalk_on_up, int stalk_on_down,
+       int stalk_on_unreachable, bool process_perfdata, bool check_freshness,
+       int freshness_threshold, std::string const& notes,
+       std::string const& notes_url, std::string const& action_url,
+       std::string const& icon_image, std::string const& icon_image_alt,
+       std::string const& vrml_image, std::string const& statusmap_image,
+       double x_2d, double y_2d, bool have_2d_coords, double x_3d, double y_3d,
+       double z_3d, bool have_3d_coords, bool should_be_drawn,
+       bool retain_status_information, bool retain_nonstatus_information,
+       bool obsess_over_host, std::string const& timezone, uint64_t icon_id);
   ~host() noexcept = default;
   uint64_t host_id() const;
   void set_host_id(uint64_t id);
@@ -110,24 +77,16 @@ class host : public notifier {
   int log_event();
   int handle_async_check_result_3x(const check_result& queued_check_result);
   int run_scheduled_check(int check_options, double latency);
-  int run_async_check(int check_options,
-                      double latency,
-                      bool scheduled_check,
-                      bool reschedule_check,
-                      bool* time_is_valid,
+  int run_async_check(int check_options, double latency, bool scheduled_check,
+                      bool reschedule_check, bool* time_is_valid,
                       time_t* preferred_time) noexcept;
-  bool schedule_check(time_t check_time,
-                      uint32_t options,
+  bool schedule_check(time_t check_time, uint32_t options,
                       bool no_update_status_now = false) override;
-  void check_for_flapping(bool update,
-                          bool actual_check,
+  void check_for_flapping(bool update, bool actual_check,
                           bool allow_flapstart_notification);
-  void set_flap(double percent_change,
-                double high_threshold,
-                double low_threshold,
-                bool allow_flapstart_notification);
-  void clear_flap(double percent_change,
-                  double high_threshold,
+  void set_flap(double percent_change, double high_threshold,
+                double low_threshold, bool allow_flapstart_notification);
+  void clear_flap(double percent_change, double high_threshold,
                   double low_threshold);
   void update_status() override;
   void update_adaptive_data();
@@ -136,8 +95,7 @@ class host : public notifier {
   //                                                  int options) override;
   int handle_state();
   void update_performance_data();
-  bool verify_check_viability(int check_options,
-                              bool* time_is_valid,
+  bool verify_check_viability(int check_options, bool* time_is_valid,
                               time_t* new_time);
   void grab_macros_r(nagios_macros* mac) override;
   bool operator==(host const& other) = delete;  // throw ();
@@ -145,22 +103,18 @@ class host : public notifier {
   bool is_result_fresh(time_t current_time, int log_this);
 
   int run_sync_check_3x(enum host::host_state* check_result_code,
-                        int check_options,
-                        int use_cached_result,
+                        int check_options, int use_cached_result,
                         unsigned long check_timestamp_horizon);
   int perform_on_demand_check_3x(enum host::host_state* check_result_code,
-                                 int check_options,
-                                 int use_cached_result,
+                                 int check_options, int use_cached_result,
                                  unsigned long check_timestamp_horizon);
 
   int perform_on_demand_check(enum host::host_state* check_return_code,
-                              int check_options,
-                              int use_cached_result,
+                              int check_options, int use_cached_result,
                               unsigned long check_timestamp_horizon);
   int process_check_result_3x(enum host::host_state new_state,
                               std::string const& old_plugin_output,
-                              int check_options,
-                              int reschedule_check,
+                              int check_options, int reschedule_check,
                               int use_cached_result,
                               unsigned long check_timestamp_horizon);
   void adjust_check_attempt(bool is_active);
@@ -230,13 +184,9 @@ class host : public notifier {
   void set_last_hard_state(enum host_state last_hard_state);
   enum host_state get_initial_state() const;
   void set_initial_state(enum host_state current_state);
-  int notify_contact(nagios_macros* mac,
-                     contact* cntct,
-                     reason_type type,
-                     std::string const& not_author,
-                     std::string const& not_data,
-                     int options,
-                     int escalated) override;
+  int notify_contact(nagios_macros* mac, contact* cntct, reason_type type,
+                     std::string const& not_author, std::string const& not_data,
+                     int options, int escalated) override;
   void update_notification_flags() override;
   void schedule_acknowledgement_expiration();
   bool is_valid_escalation_for_notification(escalation const* e,
@@ -288,7 +238,7 @@ class host : public notifier {
   std::list<hostgroup*> _hostgroups;
 };
 
-}
+}  // namespace com::centreon::engine
 
 int is_host_immediate_child_of_host(com::centreon::engine::host* parent,
                                     com::centreon::engine::host* child);
@@ -311,7 +261,7 @@ bool host_exists(uint64_t host_id) noexcept;
 uint64_t get_host_id(std::string const& name);
 std::string get_host_name(const uint64_t host_id);
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
 

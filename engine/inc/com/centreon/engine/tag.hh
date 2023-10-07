@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -74,7 +74,7 @@ class tag {
   void set_icon_id(uint64_t icon_id);
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::tag const& obj);

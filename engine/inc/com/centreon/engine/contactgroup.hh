@@ -1,30 +1,32 @@
-/*
-** Copyright 2011-2019,2023 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2019,2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_OBJECTS_CONTACTGROUP_HH
 #define CCE_OBJECTS_CONTACTGROUP_HH
 
 #include <absl/container/flat_hash_map.h>
+
 #include <list>
 #include <memory>
 #include <string>
-#include "configuration/state-generated.pb.h"
+
+#include "common/configuration/state-generated.pb.h"
 
 /* Forward declaration. */
 namespace com::centreon::engine {
@@ -34,7 +36,7 @@ class contactgroup;
 namespace configuration {
 class contactgroup;
 }
-}
+}  // namespace com::centreon::engine
 
 using contactgroup_map =
     absl::flat_hash_map<std::string,
@@ -73,7 +75,7 @@ class contactgroup {
   static contactgroup_map contactgroups;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj);
 

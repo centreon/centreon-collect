@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -61,6 +61,6 @@ class notification {
 
 std::ostream& operator<<(std::ostream& os, notification const& obj);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_NOTIFICATION_HH

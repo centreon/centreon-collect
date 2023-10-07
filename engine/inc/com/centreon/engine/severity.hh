@@ -1,5 +1,5 @@
-/*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+/**
+ * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,11 +55,8 @@ class severity {
  public:
   static severity_map severities;
 
-  severity(uint64_t id,
-           uint32_t level,
-           uint64_t icon_id,
-           const std::string& name,
-           uint16_t type);
+  severity(uint64_t id, uint32_t level, uint64_t icon_id,
+           const std::string& name, uint16_t type);
   ~severity() noexcept = default;
   severity(const severity&) = delete;
   severity& operator=(const severity&) = delete;
@@ -77,7 +74,7 @@ class severity {
   severity_type type() const;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::severity const& obj);

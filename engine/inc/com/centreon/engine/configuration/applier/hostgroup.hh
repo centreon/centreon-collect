@@ -60,6 +60,6 @@ class hostgroup {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_HOSTGROUP_HH
