@@ -1632,8 +1632,8 @@ bool service::_set_icon_image_alt(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool service::_set_initial_state(std::string const& value) {
-  std::string data(value);
-  string::trim(data);
+  std::string_view data(value);
+  data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "ok")
     _initial_state = ServiceStatus::state_ok;
   else if (data == "w" || data == "warning")

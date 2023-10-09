@@ -1,27 +1,32 @@
 /*
-** Copyright 2011-2015 Merethis
-** Copyright 2016-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2011-2015 Merethis
+ * Copyright 2016-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCE_CONFIGURATION_OBJECT_HH
 #define CCE_CONFIGURATION_OBJECT_HH
 
+#include <absl/strings/numbers.h>
+#include <cassert>
+#include <list>
 #include <memory>
-#include "com/centreon/engine/string.hh"
+#include <set>
+#include <type_traits>
+//#include "com/centreon/engine/string.hh"
 
 typedef std::list<std::string> list_string;
 typedef std::set<std::string> set_string;
@@ -77,24 +82,39 @@ class object {
  protected:
   struct setters {
     char const* name;
-    bool (*func)(object&, char const*);
+    bool (*func)(object&, const char*);
   };
 
   template <typename T, typename U, bool (T::*ptr)(U)>
   struct setter {
-    static bool generic(T& obj, char const* value) {
+    static bool generic(T& obj, const char* value) {
       U val(0);
-      if (!string::to(value, val))
-        return (false);
-      return ((obj.*ptr)(val));
+      if constexpr (std::is_same_v<U, bool>) {
+        if (absl::SimpleAtob(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else if constexpr (std::is_integral<U>::value) {
+        if (absl::SimpleAtoi(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else if constexpr (std::is_same_v<U, float>) {
+        if (absl::SimpleAtof(value, &val))
+          return (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, double>) {
+        if (absl::SimpleAtod(value, &val))
+          return (obj.*ptr)(val);
+      } else {
+        static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
+                      std::is_same_v<U, bool>);
+      }
     }
   };
 
   template <typename T, bool (T::*ptr)(std::string const&)>
   struct setter<T, std::string const&, ptr> {
-    static bool generic(T& obj, char const* value) {
-      return ((obj.*ptr)(value));
-    }
+    static bool generic(T& obj, const char* value) { return (obj.*ptr)(value); }
   };
 
   bool _set_name(std::string const& value);
@@ -107,6 +127,7 @@ class object {
   bool _should_register;
   list_string _templates;
   object_type _type;
+  std::string_view remove_comment(std::string_view line) const;
 };
 
 typedef std::shared_ptr<object> object_ptr;

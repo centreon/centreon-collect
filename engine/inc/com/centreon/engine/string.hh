@@ -34,9 +34,6 @@
 
 namespace com::centreon::engine::string {
 
-// bool get_next_line(std::ifstream& stream, std::string& line, unsigned int&
-// pos);
-
 inline char const* chkstr(char const* str) noexcept {
   return str ? str : "\"NULL\"";
 }

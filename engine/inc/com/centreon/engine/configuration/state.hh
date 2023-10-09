@@ -483,21 +483,46 @@ class state {
 
   template <typename U, void (state::*ptr)(U)>
   struct setter {
-    static bool generic(state& obj, char const* value) {
+    static bool generic(state& obj, const char* value) {
       try {
         U val(0);
-        if (!string::to(value, val))
-          return (false);
-        (obj.*ptr)(val);
-      } catch (std::exception const& e) {
+        if constexpr (std::is_same_v<U, bool>) {
+          if (!absl::SimpleAtob(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_same_v<U, uint16_t>) {
+          uint32_t v;
+          if (!absl::SimpleAtoi(value, &v))
+            return false;
+          if (v > 0xffffu)
+            return false;
+          else
+            val = v;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_integral<U>::value) {
+          if (!absl::SimpleAtoi(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_same_v<U, float>) {
+          if (!absl::SimpleAtof(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_same_v<U, double>) {
+          if (!absl::SimpleAtod(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else {
+          static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
+                        std::is_same_v<U, bool>);
+        }
+      } catch (const std::exception& e) {
         engine_logger(logging::log_config_error, logging::basic) << e.what();
-        return (false);
       }
-      return (true);
+      return true;
     }
   };
 
-  template <void (state::*ptr)(std::string const&)>
+  template <void (state::*ptr)(const std::string&)>
   struct setter<std::string const&, ptr> {
     static bool generic(state& obj, char const* value) {
       try {
