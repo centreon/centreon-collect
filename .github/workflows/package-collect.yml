@@ -103,8 +103,8 @@ jobs:
           #rm -f /usr/bin/cc
           #ln -s /usr/bin/ccache /usr/bin/cc
 
-          rm -f /usr/bin/gcc
-          ln -s /usr/bin/ccache /usr/bin/gcc
+          #rm -f /usr/bin/gcc
+          #ln -s /usr/bin/ccache /usr/bin/gcc
 
           rm -f /usr/bin/c++
           ln -s /usr/bin/ccache /usr/bin/c++
