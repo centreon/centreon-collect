@@ -1,7 +1,7 @@
 *** Settings ***
-Resource    db_variables.resource
-Library     Process
-Library     OperatingSystem
+Resource            db_variables.resource
+Library             Process
+Library             OperatingSystem
 # Python Library
 Library             Engine.py
 Library             Broker.py

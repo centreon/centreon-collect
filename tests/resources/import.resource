@@ -2,17 +2,15 @@
 Documentation       Importation of all resources
 
 # collection
-Library             DatabaseLibrary
-Library             Process
-Library             OperatingSystem
+Library             Telnet
+Library             String
+# Library             Process
+# Library             OperatingSystem
 Library             DateTime
 Library             Collections
-Library             DateTime
-Library             Examples
-Library             String
+Library             DatabaseLibrary
 Library             Examples
 Library             HttpCtrl.Server
-Library             Telnet
 # creation
 Resource            resources.resource
 # Python Library
