@@ -114,6 +114,11 @@ jobs:
 
       - name: Compile sources
         run: |
+          export CC="ccache gcc"
+          export CXX="ccache gcc++"
+          export CCACHE_CPP2=yes
+          export CCACHE_SLOPPINESS=time_macros
+
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
@@ -145,6 +150,8 @@ jobs:
                   .
 
           sudo ninja
+
+          ccache -s
         shell: bash
 
       - name: Generate debug files
