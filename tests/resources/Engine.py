@@ -192,6 +192,7 @@ class EngineInstance:
             host_id, service_id, self.service_cmd[service_id])
         return retval
 
+
     def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         self.last_service_id += 1
         service_id = self.last_service_id
@@ -340,6 +341,17 @@ define command {
         return retval
 
     @staticmethod
+    def create_contact_group(id, mbs):
+        retval = """define contactgroup {{
+    contactgroup_name              contactgroup_{0}
+    alias                          contactgroup_{0}
+    members                        {1}
+}}
+""".format(id, ",".join(mbs))
+        logger.console(retval)
+        return retval
+
+    @staticmethod
     def create_severities(poller: int, nb: int, offset: int):
         config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
         ff = open(config_file, "w+")
@@ -357,6 +369,20 @@ define command {
 """.format(i + 1, level, 6 - level, i + offset, typ[i % 2])
         ff.write(content)
         ff.close()
+
+    @staticmethod
+    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+        config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define serviceescalation {{
+    ;escalation_name                esc{0}
+    escalation_period              24x7
+    escalation_options             w,c,r
+    servicegroup_name              {1}
+    contact_groups                 {2}
+    }}
+    """.format(name, SG, contactgroup)
+            ff.write(content)
 
     @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
@@ -441,7 +467,7 @@ passive_checks_enabled 1
             for i in range(self.last_host_id):
                 f.write("""define command {{
     command_name                    checkh{1}
-    command_line                    {0}/check.pl 0 {1}
+    command_line                    {0}/check.pl 0
 }}
 """.format(ENGINE_HOME, i + 1))
             f.write("""define command {{
@@ -493,6 +519,23 @@ define timeperiod {
     friday                         00:00-24:00
     saturday                       00:00-24:00
 }
+define timeperiod {
+    name                           none
+    timeperiod_name                none
+    alias                          Never
+}
+define timeperiod {
+    name                           workhours
+    timeperiod_name                workhours
+    alias                          Work Hours
+    sunday                         09:00-12:00,14:00-18:00
+    monday                         09:00-12:00,14:00-18:00
+    tuesday                        09:00-12:00,14:00-18:00
+    wednesday                      09:00-12:00,14:00-18:00
+    thursday                       09:00-12:00,14:00-18:00
+    friday                         09:00-12:00,14:00-18:00
+    saturday                       09:00-12:00,14:00-18:00
+}
 """)
             f.close()
             f = open(config_dir + "/hostgroups.cfg", "w")
@@ -504,13 +547,77 @@ define timeperiod {
     email                          admin@admin.tld
     host_notification_period       24x7
     service_notification_period    24x7
-    host_notification_options      n
+    host_notification_options      d,u,r,f,s
     service_notification_options   w,c,r
     register                       1
     host_notifications_enabled     1
     service_notifications_enabled  1
 }
+define contact {
+    contact_name                   U1
+    alias                          U1
+    email                          U1@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
+}
+define contact {
+    contact_name                   U2
+    alias                          U2
+    email                          U2@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif    
+}
+define contact {
+    contact_name                   U3
+    alias                          U3
+    email                          U3@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
+}
+define contact {
+    contact_name                   U4
+    alias                          U4
+    email                          U4@gmail.com
+    host_notification_period       24x7
+    service_notification_period    24x7
+    host_notification_options      d,u,r,f,s
+    service_notification_options   w,u,c,r,f,s
+    register                       1
+    host_notifications_enabled     1
+    service_notifications_enabled  1
+    service_notification_commands              command_notif
+    host_notification_commands              command_notif
+}
             """)
+            f.close()
+            with open(f"{config_dir}/dependencies.cfg", "w") as f:
+                f.write("#dependencies.cfg\n")
+
+            with open(f"{config_dir}/contactgroups.cfg", "w") as f:
+                f.write("#contactgroups.cfg\n")
+
+            f = open(config_dir + "/escalations.cfg", "w")
             f.close()
 
             if not exists(ENGINE_HOME):
@@ -631,7 +738,6 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     f.writelines(lines)
     f.close()
 
-
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """! Function to update a value in the services.cfg for the config idx.
     @param idx index of the configuration (from 0)
@@ -749,6 +855,17 @@ def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: st
     f.writelines(lines)
     f.close()
 
+
+def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*;escalation_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None:
+            lines.insert(i + 1, f"    {key}                     {value}\n")
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
+        ff.writelines(lines)
 
 def engine_config_remove_service_host(idx: int, host: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
@@ -882,6 +999,10 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
+def add_contact_group(index: int, id_contact_group: int, members: list):
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
+        logger.console(members)
+        f.write(engine.create_contact_group(id_contact_group, members))
 
 def create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
@@ -1488,8 +1609,8 @@ def create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
 
-def create_template_file(poller: int, typ: str, what: str, ids: list):
-    engine.create_template_file(poller, typ, what, ids)
+def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    engine.create_escalations_file(poller, name, SG, contactgroup)
 
 
 def create_template_file(poller: int, typ: str, what: str, ids: list):
@@ -1823,8 +1944,7 @@ def del_host_comment(comment_id):
 
 @external_command
 def change_host_check_command(hst: str, Check_Command: str):
-    return "CHANGE_HOST_CHECK_COMMAND;{};{}\n".format(
-        now, hst, Check_Command)
+    return f"CHANGE_HOST_CHECK_COMMAND;{hst};{Check_Command}\n"
 
 
 @external_command
