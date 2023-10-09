@@ -22,11 +22,11 @@
 #  define CENTREON_BROKER_VERSION_INCLUDE "@CENTREON_BROKER_VERSION@"
 
 namespace com::centreon::broker::version {
-  // Compile-time values.
-  unsigned int const major = @COLLECT_MAJOR@;
-  unsigned int const minor = @COLLECT_MINOR@;
-  unsigned int const patch = @COLLECT_PATCH@;
-  char const* const  string = "@CENTREON_BROKER_VERSION@";
+// Compile-time values.
+unsigned int const major = @COLLECT_MAJOR@;
+unsigned int const minor = @COLLECT_MINOR@;
+unsigned int const patch = @COLLECT_PATCH@;
+char const* const  string = "@CENTREON_BROKER_VERSION@";
 }
 
 #endif // !CCB_VERSION_HH
