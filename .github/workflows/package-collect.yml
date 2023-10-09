@@ -88,11 +88,14 @@ jobs:
 
       - name: configure ccache
         run: |
+          set -x
+
           whereis ccache
 
-          ls /usr/bin/g*
-          ls /usr/bin/c*
+          #ls /usr/bin/g*
+          #ls /usr/bin/c*
 
+          ls /usr/bin/gcc
           ln -s /usr/bin/ccache /usr/bin/gcc
           ln -s /usr/bin/ccache /usr/bin/cc
           ln -s /usr/bin/ccache /usr/bin/c++
