@@ -86,16 +86,21 @@ jobs:
           key: ccache-${{ matrix.distrib }}-${{ matrix.arch }}
           verbose: 2
 
-      - name: Compile sources
+      - name: configure ccache
         run: |
-          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
-
-          whereis gcc
+          whereis ccache
 
           ls /usr/bin/g*
           ls /usr/bin/c*
 
-          ln -s ccache /usr/bin/gcc
+          ln -s /usr/bin/ccache /usr/bin/gcc
+          ln -s /usr/bin/ccache /usr/bin/cc
+          ln -s /usr/bin/ccache /usr/bin/c++
+        shell: bash
+
+      - name: Compile sources
+        run: |
+          sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
