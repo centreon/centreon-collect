@@ -106,6 +106,8 @@ jobs:
 
           rm -f /usr/bin/c++
           ln -s /usr/bin/ccache /usr/bin/c++
+
+          whereis cc
         shell: bash
 
       - name: Compile sources
