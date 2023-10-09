@@ -100,11 +100,11 @@ jobs:
           #rm -f /bin/cc
           #ln -s /usr/bin/ccache /bin/cc
 
-          rm -f /usr/bin/gcc
-          ln -s /usr/bin/ccache /usr/bin/gcc
-
           #rm -f /usr/bin/cc
           #ln -s /usr/bin/ccache /usr/bin/cc
+
+          rm -f /usr/bin/gcc
+          ln -s /usr/bin/ccache /usr/bin/gcc
 
           rm -f /usr/bin/c++
           ln -s /usr/bin/ccache /usr/bin/c++
@@ -125,6 +125,7 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
+                  -DCMAKE_TRY_COMPILE_TARGET_TYPE "STATIC_LIBRARY" \
                   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                   -DWITH_TESTING=OFF \
