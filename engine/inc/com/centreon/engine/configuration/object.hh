@@ -20,9 +20,13 @@
 #ifndef CCE_CONFIGURATION_OBJECT_HH
 #define CCE_CONFIGURATION_OBJECT_HH
 
+#include <absl/strings/numbers.h>
+#include <cassert>
+#include <list>
 #include <memory>
-
-#include "com/centreon/engine/string.hh"
+#include <set>
+#include <type_traits>
+//#include "com/centreon/engine/string.hh"
 
 typedef std::list<std::string> list_string;
 typedef std::set<std::string> set_string;
@@ -78,23 +82,39 @@ class object {
  protected:
   struct setters {
     char const* name;
-    bool (*func)(object&, char const*);
+    bool (*func)(object&, const char*);
   };
 
   template <typename T, typename U, bool (T::*ptr)(U)>
   struct setter {
-    static bool generic(T& obj, char const* value) {
+    static bool generic(T& obj, const char* value) {
       U val(0);
-      if (!string::to(value, val)) return (false);
-      return ((obj.*ptr)(val));
+      if constexpr (std::is_same_v<U, bool>) {
+        if (absl::SimpleAtob(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else if constexpr (std::is_integral<U>::value) {
+        if (absl::SimpleAtoi(value, &val))
+          return (obj.*ptr)(val);
+        else
+          return false;
+      } else if constexpr (std::is_same_v<U, float>) {
+        if (absl::SimpleAtof(value, &val))
+          return (obj.*ptr)(val);
+      } else if constexpr (std::is_same_v<U, double>) {
+        if (absl::SimpleAtod(value, &val))
+          return (obj.*ptr)(val);
+      } else {
+        static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
+                      std::is_same_v<U, bool>);
+      }
     }
   };
 
   template <typename T, bool (T::*ptr)(std::string const&)>
   struct setter<T, std::string const&, ptr> {
-    static bool generic(T& obj, char const* value) {
-      return ((obj.*ptr)(value));
-    }
+    static bool generic(T& obj, const char* value) { return (obj.*ptr)(value); }
   };
 
   bool _set_name(std::string const& value);
@@ -107,6 +127,7 @@ class object {
   bool _should_register;
   list_string _templates;
   object_type _type;
+  std::string_view remove_comment(std::string_view line) const;
 };
 
 typedef std::shared_ptr<object> object_ptr;
@@ -119,12 +140,15 @@ typedef std::unordered_map<std::string, object_ptr> map_object;
 #define MRG_TAB(prop)                                       \
   do {                                                      \
     for (unsigned int i(0), end(prop.size()); i < end; ++i) \
-      if (prop[i].empty()) prop[i] = tmpl.prop[i];          \
+      if (prop[i].empty())                                  \
+        prop[i] = tmpl.prop[i];                             \
   } while (false)
 #define MRG_DEFAULT(prop) \
-  if (prop.empty()) prop = tmpl.prop
-#define MRG_IMPORTANT(prop) \
-  if (prop.empty() || tmpl.prop##_is_important) prop = tmpl.prop
+  if (prop.empty())       \
+  prop = tmpl.prop
+#define MRG_IMPORTANT(prop)                     \
+  if (prop.empty() || tmpl.prop##_is_important) \
+  prop = tmpl.prop
 #define MRG_INHERIT(prop)       \
   do {                          \
     if (!prop.is_set())         \
@@ -134,11 +158,12 @@ typedef std::unordered_map<std::string, object_ptr> map_object;
     prop.is_inherit(false);     \
   } while (false)
 #define MRG_MAP(prop) prop.insert(tmpl.prop.begin(), tmpl.prop.end())
-#define MRG_OPTION(prop)                        \
-  do {                                          \
-    if (!prop.is_set()) {                       \
-      if (tmpl.prop.is_set()) prop = tmpl.prop; \
-    }                                           \
+#define MRG_OPTION(prop)      \
+  do {                        \
+    if (!prop.is_set()) {     \
+      if (tmpl.prop.is_set()) \
+        prop = tmpl.prop;     \
+    }                         \
   } while (false)
 
 #endif  // !CCE_CONFIGURATION_OBJECT_HH

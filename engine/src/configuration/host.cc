@@ -1436,8 +1436,8 @@ bool host::_set_icon_image_alt(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool host::_set_initial_state(std::string const& value) {
-  std::string data(value);
-  string::trim(data);
+  std::string_view data(value);
+  data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "up")
     _initial_state = HostStatus::state_up;
   else if (data == "d" || data == "down")

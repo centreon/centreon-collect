@@ -262,18 +262,23 @@ days_array const& timeperiod::timeranges() const {
  */
 bool timeperiod::_build_timeranges(std::string const& line,
                                    timerange_list& timeranges) {
-  list_string timeranges_str = absl::StrSplit(line, ',');
-  for (list_string::const_iterator it(timeranges_str.begin()),
-       end(timeranges_str.end());
-       it != end; ++it) {
-    std::size_t pos(it->find('-'));
+  size_t pos = line.find_first_of(';');
+  std::string_view lst;
+  if (pos != std::string::npos)
+    lst = std::string_view(line.data(), pos);
+  else
+    lst = line;
+  auto timeranges_str = absl::StrSplit(lst, ',');
+  for (auto tr : timeranges_str) {
+    tr = absl::StripAsciiWhitespace(tr);
+    std::size_t pos(tr.find('-'));
     if (pos == std::string::npos)
       return false;
     unsigned long start_time;
-    if (!_build_time_t(it->substr(0, pos), start_time))
+    if (!_build_time_t(tr.substr(0, pos), start_time))
       return false;
     unsigned long end_time;
-    if (!_build_time_t(it->substr(pos + 1), end_time))
+    if (!_build_time_t(tr.substr(pos + 1), end_time))
       return false;
     timeranges.emplace_back(start_time, end_time);
   }
@@ -288,8 +293,7 @@ bool timeperiod::_build_timeranges(std::string const& line,
  *
  *  @return True on success, otherwise false.
  */
-bool timeperiod::_build_time_t(std::string const& time_str,
-                               unsigned long& ret) {
+bool timeperiod::_build_time_t(std::string_view time_str, unsigned long& ret) {
   std::size_t pos(time_str.find(':'));
   if (pos == std::string::npos)
     return false;

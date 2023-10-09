@@ -1343,15 +1343,14 @@ bool host::_set_retry_check_interval(unsigned int value) noexcept {
  *  @param[in] value The new state_history.
  */
 bool host::_set_state_history(std::string const& value) noexcept {
-  unsigned int x(0);
-  std::list<std::string> lst_history;
-  string::split(value, lst_history, ',');
+  unsigned int x = 0;
+  auto lst_history = absl::StrSplit(value, ',');
   std::vector<int>& state_history(*_state_history);
-  for (std::list<std::string>::const_iterator it(lst_history.begin()),
-       end(lst_history.end());
+  for (auto it = lst_history.begin(), end = lst_history.end();
        it != end && x < MAX_STATE_HISTORY_ENTRIES; ++it) {
-    int state(0);
-    if (!string::to(it->c_str(), state)) {
+    auto l = absl::StripAsciiWhitespace(*it);
+    int state;
+    if (!absl::SimpleAtoi(l, &state)) {
       _state_history.reset();
       return false;
     }

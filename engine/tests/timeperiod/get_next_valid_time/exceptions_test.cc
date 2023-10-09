@@ -91,7 +91,8 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
         conf = std::make_unique<configuration::timeperiod>();
         continue;
       }
-      conf->parse(string::trim(line));
+      absl::StripAsciiWhitespace(&line);
+      conf->parse(line);
     }
   }
 }

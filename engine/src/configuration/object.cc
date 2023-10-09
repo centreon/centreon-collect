@@ -305,3 +305,14 @@ bool object::_set_templates(std::string const& value) {
   _templates = absl::StrSplit(value, ',');
   return true;
 }
+
+std::string_view object::remove_comment(std::string_view line) const {
+  size_t pos = line.find_first_of(';');
+  while (pos > 0 && pos != std::string::npos && line[pos - 1] == '\\') {
+    pos = line.find_first_of(';', pos + 1);
+  }
+  if (pos != std::string::npos)
+    line = line.substr(0, pos);
+
+  return line;
+}
