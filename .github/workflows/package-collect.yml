@@ -23,26 +23,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - image: centreon-collect-alma8
-            distrib: el8
-            package_extension: rpm
-            runner: collect
-            arch: amd64
+          # - image: centreon-collect-alma8
+          #   distrib: el8
+          #   package_extension: rpm
+          #   runner: collect
+          #   arch: amd64
           - image: centreon-collect-alma9
             distrib: el9
             package_extension: rpm
             runner: collect
             arch: amd64
-          - image: centreon-collect-debian-bullseye
-            distrib: bullseye
-            package_extension: deb
-            runner: collect
-            arch: amd64
-          - image: centreon-collect-debian-bullseye-arm64
-            distrib: bullseye
-            package_extension: deb
-            runner: collect-arm64
-            arch: arm64
+          # - image: centreon-collect-debian-bullseye
+          #   distrib: bullseye
+          #   package_extension: deb
+          #   runner: collect
+          #   arch: amd64
+          # - image: centreon-collect-debian-bullseye-arm64
+          #   distrib: bullseye
+          #   package_extension: deb
+          #   runner: collect-arm64
+          #   arch: arm64
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
@@ -75,6 +75,12 @@ jobs:
         run: rm -f packaging/*-selinux.yaml
         shell: bash
 
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1
+        with:
+          key: ccache-${{ matrix.distrib }}-${{ matrix.arch }}
+          verbose: 2
+
       - name: Compile sources
         run: |
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
@@ -88,6 +94,8 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
+                  -D CMAKE_C_COMPILER_LAUNCHER=ccache \
+                  -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
