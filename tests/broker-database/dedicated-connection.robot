@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker data_bin and logs dedicated connections
 
-Resource            ../resources/resources.resource
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -37,7 +37,7 @@ DEDICATED_DB_CONNECTION_${nb_conn}_${store_in_data_bin}
     ${connected}    Wait For Connections    3306    ${nb_conn_expected}
     Should Be True    ${connected}    no ${nb_conn_expected} connections found
 
-    Examples:    nb_conn    nb_conn_expected    store_in_data_bin    --
+     Examples:    nb_conn    nb_conn_expected    store_in_data_bin    --
     ...    1    1    yes
     ...    2    2    yes
     ...    3    3    yes

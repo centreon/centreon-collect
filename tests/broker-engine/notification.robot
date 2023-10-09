@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Centreon notification
 
-Resource            ../resources/resources.resource
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite

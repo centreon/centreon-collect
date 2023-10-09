@@ -703,10 +703,7 @@ def get_engines_count():
     Example:
     | ${count} | `Get Engines Count` |
     """
-    if engine is None:
-        return 0
-    else:
-        return engine.instances
+    return 0 if engine is None else engine.instances
 
 
 ##
@@ -777,9 +774,8 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
         if r.match(lines[i]):
             lines.insert(i + 1, f"    {key}              {value}\n")
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
@@ -947,9 +943,8 @@ def engine_config_set_value_in_contacts(idx: int, desc: str, key: str, value: st
             lines.insert(i + 1, f"    {key}              {value}\n")
             break
 
-    f = open(filename, "w")
-    f.writelines(lines)
-    f.close()
+    with open(filename, "w") as f:
+        f.writelines(lines)
 
 
 def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value: str):
@@ -1126,7 +1121,7 @@ def create_service(index: int, host_id: int, cmd_id: int):
     return retval
 
 
-def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
+def create_anomaly_detection(index: int, host_id: int, dependent_service_id: int, metric_name: str, sensitivity: float = 0.0):
     """Create an anomaly detection on the engine instance index
 
     Example:
@@ -2559,4 +2554,3 @@ def send_bench(id: int, port: int):
     with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
-        

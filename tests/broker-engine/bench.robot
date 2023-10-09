@@ -16,7 +16,8 @@ BENCH_${nb_check}STATUS
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
-    Init Config
+    Config Broker    central
+    Config Broker    rrd
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
@@ -75,7 +76,6 @@ BENCH_${nb_check}STATUS
     Examples:    nb_check    --
     ...    1000
     ...    10000
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
