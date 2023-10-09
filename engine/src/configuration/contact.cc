@@ -18,6 +18,9 @@
  */
 
 #include "com/centreon/engine/configuration/contact.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -502,9 +505,11 @@ std::string const& contact::timezone() const noexcept {
  *
  *  @return True on success, otherwise false.
  */
-bool contact::_set_address(std::string const& key, std::string const& value) {
+bool contact::_set_address(const std::string& key, const std::string& value) {
   unsigned int id;
-  if (!string::to(key.c_str(), id) || (id < 1) || (id > MAX_ADDRESSES))
+  if (!absl::SimpleAtoi(key, &id))
+    return false;
+  if (id < 1 || id > MAX_ADDRESSES)
     return false;
   _address[id - 1] = value;
   return true;
@@ -602,25 +607,23 @@ bool contact::_set_host_notification_commands(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool contact::_set_host_notification_options(std::string const& value) {
-  unsigned short options(host::none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "d" || *it == "down")
+  unsigned short options = host::none;
+  auto values = absl::StrSplit(value, ',');
+  for (auto it = values.begin(), end = values.end(); it != end; ++it) {
+    std::string_view v = absl::StripAsciiWhitespace(*it);
+    if (v == "d" || v == "down")
       options |= host::down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= host::unreachable;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= host::up;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= host::flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= host::downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = host::none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = host::down | host::unreachable | host::up | host::flapping |
                 host::downtime;
     else
@@ -699,26 +702,24 @@ bool contact::_set_service_notification_commands(std::string const& value) {
  */
 bool contact::_set_service_notification_options(std::string const& value) {
   unsigned short options(service::none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "u" || *it == "unknown")
+  auto values = absl::StrSplit(value, ',');
+  for (auto it = values.begin(), end = values.end(); it != end; ++it) {
+    auto v = absl::StripAsciiWhitespace(*it);
+    if (v == "u" || v == "unknown")
       options |= service::unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= service::warning;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= service::critical;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= service::ok;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= service::flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= service::downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = service::none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = service::unknown | service::warning | service::critical |
                 service::ok | service::flapping | service::downtime;
     else
