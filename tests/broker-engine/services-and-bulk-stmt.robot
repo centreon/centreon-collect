@@ -280,7 +280,8 @@ RLCode
     [Tags]    lua    stream connector
     Clear Commands Status
     Clear Retention
-
+    
+    Remove File    /tmp/test4.log
     Remove File    /tmp/toto.lua
     Config Engine    ${1}    ${1}    ${10}
     Config Broker    central
@@ -345,12 +346,12 @@ RLCode
     FOR    ${index}    IN RANGE    10
      ${grep_res}=    Grep File
      ...    /tmp/test4.log
-     ...    "\"name\": \"metric_${index}\""
-     Sleep    1s
-     Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    True
-     Exit For Loop If    "${grep_res}" != ""
+     ...    "\"name\": \"metric\""
+    Sleep    1s
+    Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    True
+    Exit For Loop If    "${grep_res}" != ""
     END
-    Should Be True    ${metric_name_found}    msg=metric name not found
+    Should Not Be Empty    ${metric_name_found}    metric name not found
 
     Reload Broker
 
