@@ -92,11 +92,14 @@ jobs:
 
           whereis ccache
 
+          ln -s ccache /usr/local/bin/gcc
+          ln -s ccache /usr/local/bin/g++
+
           #cp -f /usr/bin/ccache /bin/c++
           #cp -f /usr/bin/ccache /bin/g++
           #cp -f /usr/bin/ccache /bin/gcc
           #cp -f /usr/bin/ccache /usr/bin/cc
-          cp -f /usr/bin/ccache /usr/bin/gcc
+          #cp -f /usr/bin/ccache /usr/bin/gcc
           #ln -s ccache /bin/c++
           #ln -s ccache /usr/local/bin/g++
 
