@@ -109,12 +109,10 @@ with open(header_file, 'w', encoding="utf-8") as fp:
 #ifndef __TABLE_MAX_SIZE_HH__
 #define __TABLE_MAX_SIZE_HH__
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 """)
 
     # fp.write(enum)
     fp.write(cols)
-    fp.write("\n\nCCB_END()\n\n#endif /* __TABLE_MAX_SIZE_HH__ */")
+    fp.write("\n\n}\n\n#endif /* __TABLE_MAX_SIZE_HH__ */")

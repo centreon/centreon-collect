@@ -7,9 +7,7 @@
 #ifndef CCB_VERSION_HH
 #  define CCB_VERSION_HH
 
-#  include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 #  define CENTREON_BROKER_VERSION_INCLUDE "@CENTREON_BROKER_VERSION@"
 
@@ -21,6 +19,6 @@ namespace            version {
   char const* const  string = "@CENTREON_BROKER_VERSION@";
 }
 
-CCB_END()
+}
 
 #endif // !CCB_VERSION_HH
