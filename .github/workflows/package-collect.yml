@@ -92,12 +92,10 @@ jobs:
 
           whereis gcc
 
-          ls /usr/local/bin
+          ls /usr/bin/g*
+          ls /usr/bin/c*
 
-          ln -s ccache /usr/local/bin/gcc
-          ln -s ccache /usr/local/bin/g++
-          ln -s ccache /usr/local/bin/cc
-          ln -s ccache /usr/local/bin/c++
+          ln -s ccache /usr/bin/gcc
 
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
 
@@ -108,8 +106,8 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
-                  -D CMAKE_C_COMPILER_LAUNCHER=ccache \
-                  -D CMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
