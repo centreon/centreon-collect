@@ -37,7 +37,6 @@ class customvariable {
  public:
   customvariable(std::string const& value = "", bool is_sent = false);
   customvariable(customvariable const& other);
-  // customvariable& operator=(const customvariable& other);
   bool operator==(const customvariable& other) const;
   ~customvariable() noexcept = default;
   void set_sent(bool sent);
