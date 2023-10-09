@@ -92,6 +92,8 @@ jobs:
 
           whereis ccache
 
+          export CC="/usr/bin/cc"
+
           #ls /usr/bin/g*
           #ls /usr/bin/c*
 
