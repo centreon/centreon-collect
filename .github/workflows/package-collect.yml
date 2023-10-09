@@ -125,7 +125,6 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
-                  -DCMAKE_TRY_COMPILE_TARGET_TYPE="STATIC_LIBRARY" \
                   -DCMAKE_C_COMPILER_LAUNCHER=ccache \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
                   -DWITH_TESTING=OFF \
