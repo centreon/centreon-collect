@@ -20,7 +20,6 @@
 #ifndef CCE_CONFIGURATION_SERVICE_HH
 #define CCE_CONFIGURATION_SERVICE_HH
 
-#include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
