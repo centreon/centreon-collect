@@ -92,7 +92,7 @@ jobs:
 
           whereis ccache
 
-          export CC="/usr/bin/cc"
+          #export CC="/usr/bin/cc"
 
           #ls /usr/bin/g*
           #ls /usr/bin/c*
@@ -106,8 +106,8 @@ jobs:
           #rm -f /usr/bin/gcc
           #ln -s /usr/bin/ccache /usr/bin/gcc
 
-          rm -f /usr/bin/c++
-          ln -s /usr/bin/ccache /usr/bin/c++
+          #rm -f /usr/bin/c++
+          #ln -s /usr/bin/ccache /usr/bin/c++
 
           whereis cc
         shell: bash
