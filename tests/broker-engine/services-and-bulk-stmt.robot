@@ -342,14 +342,14 @@ RLCode
     ${start}    Get Current Date
     Wait Until Created    /tmp/test4.log    1m
 
-    ${metric_name_found}=    Set Variable    False
+    ${metric_name_found}    Set Variable    False
     FOR    ${index}    IN RANGE    10
-     ${grep_res}=    Grep File
-     ...    /tmp/test4.log
-     ...    "\"name\": \"metric\""
-    Sleep    1s
-    Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    True
-    Exit For Loop If    "${grep_res}" != ""
+        ${grep_res}    Grep File
+        ...    /tmp/test4.log
+        ...    "\"name\": \"metric\""
+        Sleep    1s
+        Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    ${True}
+        Exit For Loop If    "${grep_res}" != ""
     END
     Should Not Be Empty    ${metric_name_found}    metric name not found
 
