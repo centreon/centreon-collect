@@ -24,10 +24,7 @@ using msg_fmt = com::centreon::exceptions::msg_fmt;
 
 extern sched_info scheduling_info;
 
-namespace com {
-namespace centreon {
-namespace engine {
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 /**
  * @brief Constructor from a State object.
@@ -316,8 +313,4 @@ void state_helper::_init() {
   obj->set_use_timezone("");
   obj->set_use_true_regexp_matching(false);
 }
-}  // namespace configuration
-}  // namespace engine
-}  // namespace centreon
-
-}  // namespace com
+}  // namespace com::centreon::engine::configuration
