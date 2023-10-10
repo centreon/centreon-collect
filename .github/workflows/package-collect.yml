@@ -54,8 +54,8 @@ jobs:
 
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
-    env:
-      SCCACHE_GHA_ENABLED: "true"
+    #env:
+    #  SCCACHE_GHA_ENABLED: "true"
 
     steps:
       - name: Checkout sources
