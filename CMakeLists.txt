@@ -26,9 +26,9 @@ set(CMAKE_COLOR_DIAGNOSTICS ON)
 cmake_minimum_required(VERSION 3.16)
 #set(CMAKE_C_COMPILER "/usr/bin/ccache")
 #set(CMAKE_CXX_COMPILER "/usr/bin/ccache")
-find_program(SCCACHE sccache REQUIRED)
-set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE})
-set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE})
+#find_program(SCCACHE sccache REQUIRED)
+#set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE})
+#set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE})
 project("Centreon Collect" C CXX)
 
 option(WITH_ASAN
