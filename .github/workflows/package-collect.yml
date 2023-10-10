@@ -152,8 +152,8 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
-                  -DCMAKE_C_COMPILER_LAUNCHER=sccache \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
+                  -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
