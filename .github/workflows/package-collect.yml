@@ -54,6 +54,9 @@ jobs:
 
     name: package ${{ matrix.distrib }} ${{ matrix.arch }}
 
+    env:
+      SCCACHE_GHA_ENABLED: "true"
+
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -75,62 +78,66 @@ jobs:
         run: rm -f packaging/*-selinux.yaml
         shell: bash
 
-      - name: Remove selinux packaging files on debian
-        if: ${{ matrix.package_extension == 'rpm' }}
-        run: yum install -y ccache
-        shell: bash
+      # - name: Remove selinux packaging files on debian
+      #   if: ${{ matrix.package_extension == 'rpm' }}
+      #   run: yum install -y ccache
+      #   shell: bash
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1
-        with:
-          key: ccache-${{ matrix.distrib }}-${{ matrix.arch }}
-          verbose: 2
+      # - name: ccache
+      #   uses: hendrikmuhs/ccache-action@v1
+      #   with:
+      #     key: ccache-${{ matrix.distrib }}-${{ matrix.arch }}
+      #     verbose: 2
 
-      - name: configure ccache
-        run: |
-          set -x
+      # - name: configure ccache
+      #   run: |
+      #     set -x
 
-          whereis ccache
+      #     whereis ccache
 
-          #cp -f /usr/bin/ccache /bin/gcc
-          #ln -s ccache /usr/local/bin/g++
+      #     #cp -f /usr/bin/ccache /bin/gcc
+      #     #ln -s ccache /usr/local/bin/g++
 
-          #cp -f /usr/bin/ccache /bin/c++
-          #cp -f /usr/bin/ccache /bin/g++
-          #cp -f /usr/bin/ccache /bin/gcc
-          #cp -f /usr/bin/ccache /usr/bin/cc
-          #cp -f /usr/bin/ccache /usr/bin/gcc
-          #ln -s ccache /bin/c++
-          #ln -s ccache /usr/local/bin/g++
+      #     #cp -f /usr/bin/ccache /bin/c++
+      #     #cp -f /usr/bin/ccache /bin/g++
+      #     #cp -f /usr/bin/ccache /bin/gcc
+      #     #cp -f /usr/bin/ccache /usr/bin/cc
+      #     #cp -f /usr/bin/ccache /usr/bin/gcc
+      #     #ln -s ccache /bin/c++
+      #     #ln -s ccache /usr/local/bin/g++
 
-          #export CC="/usr/bin/cc"
+      #     #export CC="/usr/bin/cc"
 
-          #ls /usr/bin/g*
-          #ls /usr/bin/c*
+      #     #ls /usr/bin/g*
+      #     #ls /usr/bin/c*
 
-          #rm -f /bin/cc
-          #ln -s /usr/bin/ccache /bin/cc
+      #     #rm -f /bin/cc
+      #     #ln -s /usr/bin/ccache /bin/cc
 
-          #rm -f /usr/bin/cc
-          #ln -s /usr/bin/ccache /usr/bin/cc
+      #     #rm -f /usr/bin/cc
+      #     #ln -s /usr/bin/ccache /usr/bin/cc
 
-          #rm -f /usr/bin/gcc
-          #ln -s /usr/bin/ccache /usr/bin/gcc
+      #     #rm -f /usr/bin/gcc
+      #     #ln -s /usr/bin/ccache /usr/bin/gcc
 
-          #rm -f /usr/bin/c++
-          #ln -s /usr/bin/ccache /usr/bin/c++
+      #     #rm -f /usr/bin/c++
+      #     #ln -s /usr/bin/ccache /usr/bin/c++
 
-          whereis cc
-        shell: bash
+      #     whereis cc
+      #   shell: bash
+
+      - name: Run sccache-cache
+        uses: mozilla-actions/sccache-action@v0.0.3
+
 
       - name: Compile sources
         run: |
           set -x
 
-          export CC="ccache gcc"
-          export CXX="ccache gcc++"
-          export CCACHE_CPP2=yes
-          export CCACHE_SLOPPINESS=time_macros
+          #export CC="ccache gcc"
+          #export CXX="ccache gcc++"
+          #export CCACHE_CPP2=yes
+          #export CCACHE_SLOPPINESS=time_macros
 
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
@@ -143,8 +150,8 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
-                  -DCMAKE_C_COMPILER_LAUNCHER=ccache \
-                  -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+                  -DCMAKE_C_COMPILER_LAUNCHER=sccache \
+                  -DCMAKE_CXX_COMPILER_LAUNCHER=sccache \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
