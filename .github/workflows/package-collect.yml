@@ -92,6 +92,8 @@ jobs:
 
           ${SCCACHE_PATH} --show-stats
 
+          ls ~/.cache/sccache
+
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
