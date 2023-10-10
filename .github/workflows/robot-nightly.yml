@@ -58,6 +58,7 @@ jobs:
 
   robot-test:
     needs: [get-version, package]
+#    needs: [get-version]
     strategy:
       fail-fast: false
       matrix:
@@ -84,6 +85,7 @@ jobs:
       distrib: ${{ matrix.distrib }}
       arch: ${{ matrix.arch }}
       image: ${{ matrix.image }}
+      image_test: ${{ matrix.image }}-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       image_version: ${{ needs.get-version.outputs.img_version }}
       package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
