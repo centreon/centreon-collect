@@ -23,26 +23,26 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # - image: centreon-collect-alma8
-          #   distrib: el8
-          #   package_extension: rpm
-          #   runner: collect
-          #   arch: amd64
+          - image: centreon-collect-alma8
+            distrib: el8
+            package_extension: rpm
+            runner: collect
+            arch: amd64
           - image: centreon-collect-alma9
             distrib: el9
             package_extension: rpm
             runner: collect
             arch: amd64
-          # - image: centreon-collect-debian-bullseye
-          #   distrib: bullseye
-          #   package_extension: deb
-          #   runner: collect
-          #   arch: amd64
-          # - image: centreon-collect-debian-bullseye-arm64
-          #   distrib: bullseye
-          #   package_extension: deb
-          #   runner: collect-arm64
-          #   arch: arm64
+          - image: centreon-collect-debian-bullseye
+            distrib: bullseye
+            package_extension: deb
+            runner: collect
+            arch: amd64
+          - image: centreon-collect-debian-bullseye-arm64
+            distrib: bullseye
+            package_extension: deb
+            runner: collect-arm64
+            arch: arm64
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
 
@@ -83,29 +83,8 @@ jobs:
         with:
           version: "v0.5.4"
 
-      # - name: Restore cache sccache
-      #   uses: actions/cache/restore@v3
-      #   with:
-      #     path: /github/home/.cache/sccache
-      #     key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.ref_name }}-${{ github.run_id }}
-      #     restore-keys: |
-      #       sccache-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.ref_name }}
-      #       sccache-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref }}
-      #       sccache-${{ matrix.distrib }}-${{ matrix.arch }}
-
       - name: Compile sources
         run: |
-          set -x
-
-          #export CC="ccache gcc"
-          #export CXX="ccache gcc++"
-          #export CCACHE_CPP2=yes
-          #export CCACHE_SLOPPINESS=time_macros
-
-          ${SCCACHE_PATH} --show-stats
-
-          #ls ~/.cache/sccache
-
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
           sudo conan install . -s compiler.cppstd=14 -s compiler.libcxx=libstdc++11 --build=missing
@@ -137,17 +116,7 @@ jobs:
                   .
 
           sudo ninja
-
-          ${SCCACHE_PATH} --show-stats
-
-          #ccache -s
         shell: bash
-
-      # - name: Cache sccache
-      #   uses: actions/cache/save@v3
-      #   with:
-      #     path: /github/home/.cache/sccache
-      #     key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       - name: Generate debug files
         run: |
