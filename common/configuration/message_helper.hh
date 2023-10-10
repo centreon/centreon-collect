@@ -22,8 +22,6 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/strings/str_split.h>
 #include "com/centreon/engine/configuration/severity.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/service.hh"
 #include "common/configuration/state-generated.pb.h"
 
 namespace com {
