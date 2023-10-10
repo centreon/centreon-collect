@@ -129,7 +129,7 @@ runs:
         for ARCH in "noarch" "x86_64"; do
           if [ "$(ls -A $ARCH)" ]; then
             if [ "${{ env.stability }}" == "stable" ]; then
-              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ env.stability }}/$ARCH/" --flat
+              jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ env.stability }}/$ARCH/RPMS/${{ inputs.module_name }}/" --flat
             else
               jf rt upload "$ARCH/*.rpm" "rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ env.stability }}/$ARCH/${{ inputs.module_name }}/" --sync-deletes="rpm-standard/${{ inputs.version }}/${{ inputs.distrib }}/${{ env.stability }}/$ARCH/${{ inputs.module_name }}/" --flat
             fi
@@ -151,6 +151,6 @@ runs:
 
           echo "[DEBUG] - Version: $VERSION"
 
-          jf rt upload "$FILE" "apt-standard-${{ inputs.version }}-${{ env.stability }}/pool/" --deb "${{ inputs.distrib }}/main/$ARCH"
+          jf rt upload "$FILE" "apt-standard-${{ inputs.version }}-${{ env.stability }}/pool/${{ inputs.module_name }}/" --deb "${{ inputs.distrib }}/main/$ARCH"
         done
       shell: bash
