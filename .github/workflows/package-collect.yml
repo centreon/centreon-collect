@@ -78,62 +78,8 @@ jobs:
         run: rm -f packaging/*-selinux.yaml
         shell: bash
 
-      # - name: Remove selinux packaging files on debian
-      #   if: ${{ matrix.package_extension == 'rpm' }}
-      #   run: yum install -y ccache
-      #   shell: bash
-
-      # - name: ccache
-      #   uses: hendrikmuhs/ccache-action@v1
-      #   with:
-      #     key: ccache-${{ matrix.distrib }}-${{ matrix.arch }}
-      #     verbose: 2
-
-      # - name: configure ccache
-      #   run: |
-      #     set -x
-
-      #     whereis ccache
-
-      #     #cp -f /usr/bin/ccache /bin/gcc
-      #     #ln -s ccache /usr/local/bin/g++
-
-      #     #cp -f /usr/bin/ccache /bin/c++
-      #     #cp -f /usr/bin/ccache /bin/g++
-      #     #cp -f /usr/bin/ccache /bin/gcc
-      #     #cp -f /usr/bin/ccache /usr/bin/cc
-      #     #cp -f /usr/bin/ccache /usr/bin/gcc
-      #     #ln -s ccache /bin/c++
-      #     #ln -s ccache /usr/local/bin/g++
-
-      #     #export CC="/usr/bin/cc"
-
-      #     #ls /usr/bin/g*
-      #     #ls /usr/bin/c*
-
-      #     #rm -f /bin/cc
-      #     #ln -s /usr/bin/ccache /bin/cc
-
-      #     #rm -f /usr/bin/cc
-      #     #ln -s /usr/bin/ccache /usr/bin/cc
-
-      #     #rm -f /usr/bin/gcc
-      #     #ln -s /usr/bin/ccache /usr/bin/gcc
-
-      #     #rm -f /usr/bin/c++
-      #     #ln -s /usr/bin/ccache /usr/bin/c++
-
-      #     whereis cc
-      #   shell: bash
-
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
-
-      - name: Restore cache sccache
-        uses: actions/cache/restore@v3
-        with:
-          path: /sccache
-          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       - name: Compile sources
         run: |
@@ -182,12 +128,6 @@ jobs:
 
           #ccache -s
         shell: bash
-
-      - name: Cache sccache
-        uses: actions/cache/save@v3
-        with:
-          path: /sccache
-          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       - name: Generate debug files
         run: |
