@@ -230,6 +230,7 @@ jobs:
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
+          module_name: collect
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
@@ -258,7 +259,7 @@ jobs:
           version: ${{ env.version }}
           minor_version: ${{ needs.create-version.outputs.patch }}
           release: ${{ needs.create-version.outputs.release }}
-          module_name: centreon-collect
+          module_name: collect
           nexus_username: ${{ secrets.NEXUS_USERNAME }}
           nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
