@@ -81,6 +81,12 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
 
+      - name: Restore cache sccache
+        uses: actions/cache/restore@v3
+        with:
+          path: /github/home/.cache/sccache
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+
       - name: Compile sources
         run: |
           set -x
@@ -92,7 +98,7 @@ jobs:
 
           ${SCCACHE_PATH} --show-stats
 
-          ls ~/.cache/sccache
+          #ls ~/.cache/sccache
 
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
@@ -130,6 +136,12 @@ jobs:
 
           #ccache -s
         shell: bash
+
+      - name: Cache sccache
+        uses: actions/cache/save@v3
+        with:
+          path: /github/home/.cache/sccache
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       - name: Generate debug files
         run: |
