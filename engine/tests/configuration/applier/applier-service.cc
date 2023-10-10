@@ -31,6 +31,7 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 #include "common/configuration/command_helper.hh"
 #include "common/configuration/host_helper.hh"
