@@ -286,9 +286,9 @@ RLCode
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    error
     Broker Config Log    central    lua    debug
