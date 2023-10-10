@@ -280,8 +280,7 @@ RLCode
     [Tags]    lua    stream connector
     Clear Commands Status
     Clear Retention
-    
-    Remove File    /tmp/test4.log
+
     Remove File    /tmp/toto.lua
     Config Engine    ${1}    ${1}    ${10}
     Config Broker    central
@@ -295,69 +294,106 @@ RLCode
     Broker Config Log    central    lua    debug
     Config Broker Sql Output    central    unified_sql
 
-    ${INITIAL_SCRIPT_CONTENT}    Catenate
+    ${INITIAL_SCRIPT_CONTENT}=    Catenate
     ...    function init(params)
-    ...    broker_log:set_parameters('/tmp/test4.log', 2)
+    ...        broker_log:set_parameters('/tmp/toto.log', 2)
     ...    end
     ...
     ...    function write(d)
-    ...    broker_log:info(0, "toto")
-    ...    return true
+    ...        broker_log:info(0, "toto")
+    ...        return true
     ...    end
 
-    Broker Config Add Lua Output    central    test-metric    ${SCRIPTS}test-metric.lua
-
-    # Create the initial LUA script file
+     # Create the initial LUA script file
     Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
 
     Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
 
     # Start the engine/broker
+    ${start}=    Get Current Date
+
+    Start Broker
+    Start Engine
+
+
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+
+    ${content}=    Create List    lua: initializing the Lua virtual machine
+    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg="lua logs produced"
+
+    # Define the new content to take place of the first one
+    ${new_content}=    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters('/tmp/titi.log', 2)
+    ...    end
+    ...
+    ...    function write(d)
+    ...        broker_log:info(0, "titi")
+    ...        return true
+    ...    end
+
+
+    # Create the second LUA script file
+    Create File    /tmp/toto.lua    ${new_content}
+    ${start}=    Get Current Date
+
+    Reload Broker
+
+    ${content}=    Create List    lua: initializing the Lua virtual machine
+    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    msg=lua file not initialized
+
+
+    Stop Engine
+    Kindly Stop Broker
+
+metric_mapping
+    [Documentation]    check if metric name is exist using lua conf
+    [Tags]    broker    engine    bbdo    unified_sql    metric
+    Clear Commands Status
+    Clear Retention
+
+    Remove File    /tmp/test4.log
+    Config Engine    ${1}    ${1}    ${10}
+    Config Broker    central
+    Config Broker    module
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Log    central    lua    debug
+    Broker Config Log    module0    neb    debug
+    Config Broker Sql Output    central    unified_sql
+
+    Broker Config Add Lua Output    central    test-metric    ${SCRIPTS}test-metric.lua
+
     ${start}    Get Current Date
 
     Start Broker
     Start Engine
 
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    "lua logs produced"
+    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
+    FOR    ${i}    IN RANGE    ${10}
+        Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
+    END
 
-    # Define the new content to take place of the first one
-    ${new_content}    Catenate
-    ...    function init(params)
-    ...    broker_log:set_parameters('/tmp/titi.log', 2)
-    ...    end
-    ...
-    ...    function write(d)
-    ...    broker_log:info(0, "titi")
-    ...    return true
-    ...    end
-
-    # Create the second LUA script file
-    Create File    /tmp/toto.lua    ${new_content}
-    ${start}    Get Current Date
     Wait Until Created    /tmp/test4.log    1m
 
     ${metric_name_found}    Set Variable    False
-    FOR    ${index}    IN RANGE    10
+    FOR    ${i}    IN RANGE    10
         ${grep_res}    Grep File
         ...    /tmp/test4.log
-        ...    "\"name\": \"metric\""
+        ...    "\"name\": \"metric_${i}\""
         Sleep    1s
         Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    ${True}
         Exit For Loop If    "${grep_res}" != ""
     END
     Should Not Be Empty    ${metric_name_found}    metric name not found
-
-    Reload Broker
-
-    ${content}    Create List    lua: initializing the Lua virtual machine
-    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    lua file not initialized
 
 *** Keywords ***
 Test Clean
