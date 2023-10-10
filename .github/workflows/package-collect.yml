@@ -129,6 +129,12 @@ jobs:
       - name: Run sccache-cache
         uses: mozilla-actions/sccache-action@v0.0.3
 
+      - name: Restore cache sccache
+        uses: actions/cache/restore@v3
+        with:
+          path: /sccache
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
+
 
       - name: Compile sources
         run: |
@@ -179,6 +185,12 @@ jobs:
 
           #ccache -s
         shell: bash
+
+      - name: Cache sccache
+        uses: actions/cache/save@v3
+        with:
+          path: /sccache
+          key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
       - name: Generate debug files
         run: |
