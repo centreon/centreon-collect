@@ -135,7 +135,6 @@ jobs:
           path: /sccache
           key: sccache-${{ matrix.distrib }}-${{ matrix.arch }}
 
-
       - name: Compile sources
         run: |
           set -x
@@ -146,10 +145,6 @@ jobs:
           #export CCACHE_SLOPPINESS=time_macros
 
           ${SCCACHE_PATH} --show-stats
-
-
-          ${SCCACHE_PATH} --show-stats | grep Local | cut -d '"' -f2
-          exit 1
 
           sudo pip3 install conan==1.57.0 --prefix=/usr --upgrade
 
@@ -182,6 +177,8 @@ jobs:
                   .
 
           sudo ninja
+
+          ${SCCACHE_PATH} --show-stats
 
           #ccache -s
         shell: bash
