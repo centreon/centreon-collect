@@ -317,12 +317,12 @@ RLCode
 
 
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    lua logs not produced
+    Should Be True    ${result}    The lua virtual machine is not correctly initialized
 
     # Define the new content to take place of the first one
     ${new_content}    Catenate
@@ -336,7 +336,7 @@ RLCode
     ...    end
 
 
-    # Create the second LUA script file
+    # Create the LUA script file from the content
     Create File    /tmp/toto.lua    ${new_content}
     ${start}    Get Current Date
 
@@ -344,14 +344,13 @@ RLCode
 
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    lua file not initialized
-
+    Should Be True    ${result}    The Lua virtual machine is not correctly initialized
 
     Stop Engine
     Kindly Stop Broker
 
 metric_mapping
-    [Documentation]    check if metric name is exist using lua conf
+    [Documentation]    Check if metric name exists using a stream connector
     [Tags]    broker    engine    bbdo    unified_sql    metric
     Clear Commands Status
     Clear Retention
@@ -389,18 +388,17 @@ metric_mapping
     Start Engine
 
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message about check_for_external_commands() should be available.
 
-    # Let's wait for one "INSERT INTO data_bin" to appear in stats.
+    # We force several checks with metrics
     FOR    ${i}    IN RANGE    ${10}
         Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
     Wait Until Created    /tmp/test4.log    30s
-    ${metric_name_found}    Set Variable    False
-    ${grep_res}    Grep File    /tmp/test4.log    "\"name\": \"metric_${i}\""
-    Should Not Be Empty    ${metric_name_found}    metric name not found
+    ${grep_res}    Grep File    /tmp/test4.log    "\"name\": \"metric_1\""
+    Should Not Be Empty    ${grep_res}    metric name not found
 
 *** Keywords ***
 Test Clean
