@@ -257,6 +257,12 @@ BERDUC3U1
     Config Broker    central
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Broker Config Log    central    lua    debug
+    Broker Config Log    module0    lua    debug
+    Broker Config Log    central    core    info
+    Broker Config Log    module0    core    info
+    Broker Config Log    central    sql    info
+    Broker Config Log    central    bbdo    debug
+    Broker Config Log    module0    bbdo    debug
     Config Broker Sql Output    central    unified_sql
     Config Broker    module
     Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
@@ -322,9 +328,9 @@ BERDUC3U2
 
     ${start}    Get Round Current Date
     # Let's wait for a first service status.
-    ${content}    Create List    unified_sql: pb service .* status .* type .* check result output
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result[0]}    We did not get any pb service status for 60s
+    ${content}    Create List    unified_sql: processing pb service status
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    We did not get any pb service status for 60s
 
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.

@@ -4389,14 +4389,6 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
   if (sscr.check_type() == ServiceStatus_CheckType_PASSIVE ||
       sscr.next_check() >= now - 5 * 60 ||  // usual case
       sscr.next_check() == 0) {             // initial state
-    // Apply to DB.
-    SPDLOG_LOGGER_INFO(_logger_sql,
-                       "unified_sql: processing pb service status check result "
-                       "event proto (host: {}, "
-                       "service: {}, "
-                       "last check: {}, state ({}, {}))",
-                       sscr.host_id(), sscr.service_id(), sscr.last_check(),
-                       sscr.state(), sscr.state_type());
 
     // Processing.
     if (_store_in_hosts_services) {
