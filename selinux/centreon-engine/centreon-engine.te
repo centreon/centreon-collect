@@ -5,6 +5,7 @@ policy_module(centreon-engine, @VERSION@)
 # Declarations
 #
 
+
 require {
 	type centreon_var_lib_t;
 	type centreon_engine_t;
