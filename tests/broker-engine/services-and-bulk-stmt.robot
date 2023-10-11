@@ -310,7 +310,7 @@ RLCode
     Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
 
     # Start the engine/broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
 
     Start Broker
     Start Engine
