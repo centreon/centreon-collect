@@ -294,7 +294,7 @@ RLCode
     Broker Config Log    central    lua    debug
     Config Broker Sql Output    central    unified_sql
 
-    ${INITIAL_SCRIPT_CONTENT}=    Catenate
+    ${INITIAL_SCRIPT_CONTENT}    Catenate
     ...    function init(params)
     ...        broker_log:set_parameters('/tmp/toto.log', 2)
     ...    end
