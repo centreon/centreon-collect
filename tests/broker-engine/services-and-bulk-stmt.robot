@@ -317,17 +317,17 @@ RLCode
 
 
     ${content}    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${content}=    Create List    lua: initializing the Lua virtual machine
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg="lua logs produced"
+    ${content}    Create List    lua: initializing the Lua virtual machine
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    lua logs not produced
 
     # Define the new content to take place of the first one
-    ${new_content}=    Catenate
+    ${new_content}    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters('/tmp/titi.log', 2)
+    ...        broker_log:set_parameters(2, '/tmp/titi.log')
     ...    end
     ...
     ...    function write(d)
@@ -366,7 +366,22 @@ metric_mapping
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
 
-    Broker Config Add Lua Output    central    test-metric    ${SCRIPTS}test-metric.lua
+    ${new_content}    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters(1, "/tmp/test4.log")
+    ...    end
+    ...
+    ...    function write(d)
+    ...        if d._type == 196617 then
+    ...            broker_log:info(0, "name: " .. tostring(d.name) .. " corresponds to metric id " .. tostring(d.metric_id))
+    ...        end
+    ...        return true
+    ...    end
+
+    # Create the initial LUA script file
+    Create File    /tmp/test-metric.lua    ${new_content}
+
+    Broker Config Add Lua Output    central    test-metric    /tmp/test-metric.lua
 
     ${start}    Get Current Date
 
@@ -382,17 +397,9 @@ metric_mapping
         Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
-    Wait Until Created    /tmp/test4.log    1m
-
+    Wait Until Created    /tmp/test4.log    30s
     ${metric_name_found}    Set Variable    False
-    FOR    ${i}    IN RANGE    10
-        ${grep_res}    Grep File
-        ...    /tmp/test4.log
-        ...    "\"name\": \"metric_${i}\""
-        Sleep    1s
-        Run Keyword If    "${grep_res}" != ""    Set Variable    ${metric_name_found}    ${True}
-        Exit For Loop If    "${grep_res}" != ""
-    END
+    ${grep_res}    Grep File    /tmp/test4.log    "\"name\": \"metric_${i}\""
     Should Not Be Empty    ${metric_name_found}    metric name not found
 
 *** Keywords ***
