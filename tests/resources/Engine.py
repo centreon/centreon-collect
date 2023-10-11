@@ -969,7 +969,18 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
         m = r.match(lines[i])
         if m is not None:
             lines.insert(i + 1, f"    {key}                     {value}\n")
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/d.cfg", "w") as ff:
+        ff.writelines(lines)
+
+def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None:
+            lines.insert(i + 1, f"    {key}                     {value}\n")
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
         ff.writelines(lines)
 
 def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
