@@ -419,6 +419,7 @@ define command {
 
     @staticmethod
 <<<<<<< HEAD
+<<<<<<< HEAD
     def ctn_create_template_file(poller: int, typ: str, what: str, ids):
         config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
         with open(config_file, "w+") as ff:
@@ -427,6 +428,8 @@ define command {
             for i in ids:
                 content += """define {} {{
 =======
+=======
+>>>>>>> e93ab82f9e (just to save my work)
     def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
@@ -2225,6 +2228,8 @@ def ctn_create_template_file(poller: int, typ: str, what: str, ids: list):
     """
     engine.ctn_create_template_file(poller, typ, what, ids)
 
+def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+    engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
 
 def ctn_create_tags_file(poller: int, nb: int, offset: int = 1, tag_type: str = ""):
     """
