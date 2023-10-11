@@ -77,7 +77,7 @@ absl::flat_hash_map<std::string, state::setter_func> const state::_setters{
     {"daemon_dumps_core", SETTER(std::string const&, _set_daemon_dumps_core)},
     {"date_format", SETTER(std::string const&, _set_date_format)},
     {"debug_file", SETTER(std::string const&, debug_file)},
-    {"debug_level", SETTER(unsigned long long, debug_level)},
+    {"debug_level", SETTER(int64_t, debug_level)},
     {"debug_verbosity", SETTER(unsigned int, debug_verbosity)},
     {"downtime_file", SETTER(std::string const&, _set_downtime_file)},
     {"enable_embedded_perl",
@@ -1610,11 +1610,11 @@ unsigned long long state::debug_level() const noexcept {
  *
  *  @param[in] value The new debug_level value.
  */
-void state::debug_level(unsigned long long value) {
-  if (value == std::numeric_limits<unsigned long>::max())
-    _debug_level = static_cast<unsigned long long>(logging::all);
+void state::debug_level(int64_t value) {
+  if (value == -1)
+    _debug_level = logging::all;
   else
-    _debug_level = value;
+    _debug_level = static_cast<uint64_t>(value);
 }
 
 /**
