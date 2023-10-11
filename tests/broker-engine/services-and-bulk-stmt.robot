@@ -355,7 +355,7 @@ metric_mapping
     Clear Commands Status
     Clear Retention
 
-    Remove File    /tmp/test4.log
+    Remove File    /tmp/test.log
     Config Engine    ${1}    ${1}    ${10}
     Config Broker    central
     Config Broker    module
@@ -367,7 +367,7 @@ metric_mapping
 
     ${new_content}    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters(1, "/tmp/test4.log")
+    ...        broker_log:set_parameters(1, "/tmp/test.log")
     ...    end
     ...
     ...    function write(d)
@@ -396,9 +396,9 @@ metric_mapping
         Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
-    Wait Until Created    /tmp/test4.log    30s
-    ${grep_res}    Grep File    /tmp/test4.log    "\"name\": \"metric_1\""
-    Should Not Be Empty    ${grep_res}    metric name not found
+    Wait Until Created    /tmp/test.log    30s
+    ${grep_res}    Grep File    /tmp/test.log    "name: metric1 corresponds to metric id"
+    Should Not Be Empty    ${grep_res}    metric name "metric1" not found
 
 *** Keywords ***
 Test Clean
