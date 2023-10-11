@@ -179,7 +179,7 @@ class state {
   std::string const& debug_file() const noexcept;
   void debug_file(std::string const& value);
   unsigned long long debug_level() const noexcept;
-  void debug_level(unsigned long long value);
+  void debug_level(int64_t value);
   unsigned int debug_verbosity() const noexcept;
   void debug_verbosity(unsigned int value);
   bool enable_environment_macros() const noexcept;
@@ -567,7 +567,7 @@ class state {
   set_contact _contacts;
   date_type _date_format;
   std::string _debug_file;
-  unsigned long long _debug_level;
+  uint64_t _debug_level;
   unsigned int _debug_verbosity;
   bool _enable_environment_macros;
   bool _enable_event_handlers;
