@@ -50,7 +50,7 @@ MIGRATION
     Start Engine
     Sleep    2s
 
-    ${contentCentral}    Create List    SQL: processing service status event
+    ${contentCentral}    Create List    unified_sql: processing service status event
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
     Should Be True    ${result}    No service status processed by the unified_sql output for 60s
     ${contentRRD}    Create List    RRD: output::write
@@ -88,7 +88,7 @@ MIGRATION
     Start Engine
     Sleep    2s
 
-    ${contentCentral}    Create List    SQL: processing service status event
+    ${contentCentral}    Create List    unified_sql: processing service status event
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${contentCentral}    60
     Should Be True    ${result}    No service status processed by the unified_sql output for 60s
     ${contentRRD}    Create List    RRD: output::write
