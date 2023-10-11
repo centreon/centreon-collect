@@ -39,7 +39,15 @@ ENRSCHE1
 
     ${content}    Set Variable    Rescheduling next check of host: host_14
 
-    ${result1}    ${result2}    check reschedule with timeout    ${engineLog0}    ${start}    ${content}    240
-    Should Be True    ${result1}    msg=the delta of last_check and next_check is not equal to 60.
-    Should Be True    ${result2}    msg=the delta of last_check and next_check is not equal to 300.
-    [Teardown]    Stop Engine    Kindly Stop Broker
+    # We check a retry check rescheduling
+    Process Host Check Result    host_14    1    host_14 is down
+
+    ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    True    240
+    Should Be True    ${result}    The delta between last_check and next_check is not equal to 60 as expected for a retry check
+
+    # We check a normal check rescheduling
+    ${start}    Get Current Date
+    ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    False    240
+    Should Be True    ${result}    The delta between last_check and next_check is not equal to 300 as expected for a normal check
+
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker

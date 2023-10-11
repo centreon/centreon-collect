@@ -345,9 +345,9 @@ def engine_log_table_duplicate(result: list):
 
 def check_engine_logs_are_duplicated(log: str, date):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
+
         idx = find_line_from(lines, date)
         count_true = 0
         count_false = 0
@@ -417,16 +417,18 @@ def find_line_from(lines, date):
     return idx
 
 
-def check_reschedule(log: str, date, content: str):
+def check_reschedule(log: str, date, content: str, retry: bool):
     try:
         with open(log, "r") as f:
             lines = f.readlines()
 
         idx = find_line_from(lines, date)
 
-        retry_check = False
-        normal_check = False
         r = re.compile(r".* last check at (.*) and next check at (.*)$")
+        if retry:
+            target = 60
+        else:
+            target = 300
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
@@ -436,32 +438,25 @@ def check_reschedule(log: str, date, content: str):
                 if m:
                     delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
                         datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
-                    if abs(delta - 60) < 2:
-                        retry_check = True
-                    elif abs(delta - 300) < 2:
-                        normal_check = True
-                    else:
-                        logger.console(
-                            f"We have a line whose distance between last check and next check is {delta}s")
-                else:
-                    logger.console(
-                        f"Unable to find last check and next check in the line '{line}'")
-        logger.console(f"loop finished with {retry_check}, {normal_check}")
-        return retry_check, normal_check
+                    # delta is near target
+                    if abs(delta - target) < 2:
+                        return True
+        logger.console(f"loop finished without finding a line '{content}' with a duration of {target}s")
+        return False
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
-        return False, False
+        return False
 
 
-def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
+def check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        v1, v2 = check_reschedule(log, date, content)
-        if v1 and v2:
-            return v1, v2
+        v = check_reschedule(log, date, content, retry)
+        if v:
+            return True
         time.sleep(5)
-    return False, False
+    return False
 
 
 def clear_commands_status():
