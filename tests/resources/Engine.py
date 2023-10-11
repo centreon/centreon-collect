@@ -388,6 +388,24 @@ define command {
             ff.write(content)
 
     @staticmethod
+    def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define servicedependency {{
+    ;dependency_name               HD_test
+    execution_failure_criteria     n 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependent_host_name            {0} 
+    host_name                      {1} 
+    dependent_service_description  {2} 
+    service_description            {3} 
+
+    }}
+    """.format(dependenthost, host, dependentservice, service)
+            ff.write(content)
+
+    @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
         config_file = "{}/config{}/{}Templates.cfg".format(
             CONF_DIR, poller, typ)
@@ -918,7 +936,18 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
         m = r.match(lines[i])
         if m is not None:
             lines.insert(i + 1, f"    {key}                     {value}\n")
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/d.cfg", "w") as ff:
+        ff.writelines(lines)
+
+def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None:
+            lines.insert(i + 1, f"    {key}                     {value}\n")
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -1662,6 +1691,8 @@ def create_severities_file(poller: int, nb: int, offset: int = 1):
 def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
+def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+    engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
 
 def create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template_file(poller, typ, what, ids)

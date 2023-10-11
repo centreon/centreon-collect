@@ -698,7 +698,164 @@ not13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The second notification of U4 is not sent
 
+not14
+    [Documentation]    an anomaly detection with a perfdata lower than lower limit make a critical state
+    [Tags]    broker    engine    anomaly
+    Config Engine    ${1}    ${1}    ${1}
+    engine_config_set_value    0    enable_notifications    1    True
+    engine_config_set_value    0    execute_host_checks    1    True
+    engine_config_set_value    0    execute_service_checks    1    True
+    Engine Config Set Value    0    log_notifications    1    True
+    Engine Config Set Value    0    log_level_notifications    trace    True
+    engine_config_add_value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    engine_config_add_command
+    ...    0
+    ...    command_notif
+    ...    /usr/bin/true
+    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Engine Config Set Value In Services    0    anomaly_2    notifications_enabled    1
+    Engine Config Set Value In Services    0    anomaly_2    notification_period    24x7
+    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+    Config Broker    central
+    Config Broker    module    ${1}
+    Broker Config Log    central    sql    debug
+    Config Broker Sql Output    central    unified_sql
+    ${serv_id}=    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
+    ${predict_data}=    Evaluate    [[0,50,52],[2648812678,50,63]]
+    Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
+    Clear Retention
+    Clear Db    services
+    Start Broker    True
+    Start Engine
+    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
+    Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
+    Stop Broker    True
+    Stop Engine
 
+not15
+    [Documentation]    notification for a dependensies services
+    [Tags]    broker    engine    services    unified_sql
+    Config Engine    ${1}    ${2}    ${1}
+    Config Notifications
+    Config Engine Add Cfg File    ${0}    dependencies.cfg
+    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Engine Config Set Value In Hosts    0    host_1    notification_options    n
+    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Engine Config Set Value In Services    0    service_1    first_notification_delay    0
+    Engine Config Set Value In Services    0    service_1    recovery_notification_delay    0
+    Engine Config Set Value In Services    0    service_1    notification_interval    0
+    Engine Config Set Value In Hosts    0    host_2    notifications_enabled    1
+    Engine Config Set Value In Hosts    0    host_2    notification_options    n
+    Engine Config Set Value In Hosts    0    host_2    contacts    John_Doe
+    Engine Config Set Value In Services    0    service_2    contacts    John_Doe
+    Engine Config Set Value In Services    0    service_2    notification_options    w,c,r
+    Engine Config Set Value In Services    0    service_2    notifications_enabled    1
+    Engine Config Set Value In Services    0    service_2    notification_period    24x7
+    Engine Config Set Value In Services    0    service_2    first_notification_delay    0
+    Engine Config Set Value In Services    0    service_2    recovery_notification_delay    0
+    Engine Config Set Value In Services    0    service_2    notification_interval    0
+    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif
+    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif
+
+    Create Dependencies File    0    host_2    host_1    service_2    service_1
+
+    ${start}    Get Current Date
+    Start Broker
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    ## Time to set the service2 to CRITICAL HARD.
+    Service2 Check Critical
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_2;service_2;CRITICAL;command_notif;critical
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    ## Time to set the service2 to UP  hard
+    Service2 Check OK
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_2;service_2;RECOVERY (OK);command_notif;ok
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+   ## Time to set the service1 to CRITICAL HARD.
+
+    Service1 Check Critical
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+ 
+    ## Time to set the service2 to CRITICAL HARD.
+    Service2 Check Critical
+
+    ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}     the dependency not working and the service_é has recieved a notification
+
+    ## Time to set the service1 to UP  hard
+    Service1 Check OK
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    The notification is not sent
+
+    Stop Engine
+    Kindly Stop Broker
+
+
+not16
+    [Documentation]    2 services id configurd and,several notification commands for the same user.
+    [Tags]    broker    engine    services    unified_sql
+    Config Engine    ${1}    ${1}    ${2}
+    Config Notifications
+    engine_config_add_command
+    ...    0
+    ...    command_notif1
+    ...    /usr/bin/false
+    Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
+    Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
+    Engine Config Set Value In Hosts    0    host_1    contacts    John_Doe
+    Engine Config Set Value In Services    0    service_1    contacts    John_Doe
+    Engine Config Set Value In Services    0    service_1    notification_options    w,c,r
+    Engine Config Set Value In Services    0    service_1    notifications_enabled    1
+    Engine Config Set Value In Services    0    service_1    notification_period    24x7
+    Engine Config Set Value In Contacts    0    John_Doe    host_notification_commands    command_notif,command_notif1
+    Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif,command_notif1
+
+
+    ${start}=    Get Current Date
+    Start Broker
+    Start Engine
+
+    # Let's wait for the external command check start
+    ${content}=    Create List    check_for_external_commands()
+    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    ## Time to set the service to CRITICAL HARD.
+
+    Service1 Check Critical
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    A message telling that notification is not sent
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif1;critical
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
+    Should Be True    ${result}    The notification is not sent
+
+    Stop Engine
+    Kindly Stop Broker
 
 
 *** Keywords ***
@@ -774,3 +931,39 @@ Service Check
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+Service1 Check Critical
+    FOR   ${i}    IN RANGE    ${3}
+        Process Service Check result    host_1    service_1    2    critical
+        Sleep    1s
+    END
+
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
+
+Service1 Check OK
+    FOR   ${i}    IN RANGE    ${3}
+        Process Service Check result    host_1    service_1    0    ok
+        Sleep    1s
+    END
+
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+
+Service2 Check Critical
+    FOR   ${i}    IN RANGE    ${3}
+        Process Service Check result    host_2    service_2    2    critical
+        Sleep    1s
+    END
+
+    ${result}=    Check Service Status With Timeout    host_2    service_2    ${2}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
+
+Service2 Check OK
+    FOR   ${i}    IN RANGE    ${3}
+        Process Service Check result    host_2    service_2    0    ok
+    Sleep    1s
+    END
+
+    ${result}    Check Service Status With Timeout    host_2    service_2    ${0}    60    HARD
+    Should Be True    ${result}    Service (host_2,service_2) should be OK HARD
