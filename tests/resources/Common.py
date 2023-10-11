@@ -441,7 +441,8 @@ def check_reschedule(log: str, date, content: str, retry: bool):
                     # delta is near target
                     if abs(delta - target) < 2:
                         return True
-        logger.console(f"loop finished without finding a line '{content}' with a duration of {target}s")
+        logger.console(
+            f"loop finished without finding a line '{content}' with a duration of {target}s")
         return False
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
@@ -874,12 +875,12 @@ def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT h.command_line FROM hosts h WHERE  h.name=\"{hostname}\"")
+                    f"SELECT command_line FROM hosts WHERE name='{hostname}'")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(
                         f"command_line={result[0]['command_line']} ")
-                    if result[0]['command_line'] is not None and result[0]['command_line'] == command_line:
+                    if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
                         return True
         time.sleep(1)
     return False

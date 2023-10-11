@@ -38,7 +38,7 @@ BEEXTCMD30
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Host Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -90,7 +90,7 @@ BEEXTCMD31
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -180,7 +180,7 @@ BEEXTCMD32
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Host Svc Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -258,7 +258,7 @@ BEEXTCMD33
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -309,7 +309,7 @@ BEEXTCMD34
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Host Svc Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -365,7 +365,7 @@ BEEXTCMD35
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -430,7 +430,7 @@ BEEXTCMD36
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Passive Host Checks    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -482,7 +482,7 @@ BEEXTCMD37
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -551,7 +551,7 @@ BEEXTCMD38
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Disable Passive Svc Checks    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -607,7 +607,7 @@ BEEXTCMD39
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -654,7 +654,7 @@ BEEXTCMD40
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Stop Obsessing Over Host    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -706,7 +706,7 @@ BEEXTCMD41
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -757,7 +757,7 @@ BEEXTCMD42
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Stop Obsessing Over Svc    ${use_grpc}    host_1    service_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -814,7 +814,7 @@ BEEXTCMD_GRPC1
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -853,7 +853,7 @@ BEEXTCMD_GRPC2
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -898,7 +898,7 @@ BEEXTCMD_GRPC3
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -936,7 +936,7 @@ BEEXTCMD_GRPC4
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1025,7 +1025,7 @@ BEEXTCMD_REVERSE_GRPC2
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1074,7 +1074,7 @@ BEEXTCMD_REVERSE_GRPC3
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Host Check Interval    ${use_grpc}    host_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1116,7 +1116,7 @@ BEEXTCMD_REVERSE_GRPC4
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Sleep    1s
         Change Normal Host Check Interval    ${use_grpc}    host_1    15
 
@@ -1160,7 +1160,7 @@ BEEXTCMD_COMPRESS_GRPC1
         ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1193,11 +1193,11 @@ BEATOI11
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     SEND CUSTOM HOST NOTIFICATION    host_1    1    admin    foobar
     ${content}=    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
     ${result}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
+    Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
     Kindly Stop Broker
 
@@ -1215,12 +1215,12 @@ BEATOI12
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     SEND CUSTOM HOST NOTIFICATION    host_1    8    admin    foobar
     ${content}=    Create List
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument notification_option must be an integer between 0 and 7.
+    Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
     Kindly Stop Broker
 
@@ -1238,12 +1238,12 @@ BEATOI13
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}=    Get Current Date    result_format=epoch
     SCHEDULE SERVICE DOWNTIME    host_1    service_1    -1
     ${content}=    Create List    Error: could not schedule downtime : duration
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument duration must be an integer >= 0.
+    Should Be True    ${result}    command argument duration must be an integer >= 0.
     Stop Engine
     Kindly Stop Broker
 
@@ -1261,16 +1261,16 @@ BEATOI21
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ADD HOST COMMENT    host_1    1    user    comment
     ${content}=    Create List    ADD_HOST_COMMENT
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=the comment with id:1 was not added.
+    Should Be True    ${result}    the comment with id:1 was not added.
     ${com_id}=    Find Internal Id    ${start}    True    30
-    Should Be True    ${com_id}>0    msg=Comment id should be a positive integer.
+    Should Be True    ${com_id}>0    Comment id should be a positive integer.
     DEL HOST COMMENT    ${com_id}
     ${result}=    Find Internal Id    ${start}    False    30
-    Should Be True    ${result}    msg=the comment with id:${com_id} was not deleted.
+    Should Be True    ${result}    the comment with id:${com_id} was not deleted.
     Stop Engine
     Kindly Stop Broker
 
@@ -1289,18 +1289,18 @@ BEATOI22
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ADD HOST COMMENT    host_1    1    user    comment
     ${content}=    Create List    ADD_HOST_COMMENT
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=the comment with id:1 was not added.
+    Should Be True    ${result}    the comment with id:1 was not added.
     ${com_id}=    Find Internal Id    ${start}    True    30
     DEL HOST COMMENT    -1
     ${content}=    Create List    Error: could not delete comment : comment_id
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=comment_id must be an unsigned integer.
+    Should Be True    ${result}    comment_id must be an unsigned integer.
     ${result}=    Find Internal Id    ${start}    True    30
-    Should Be True    ${result}    msg=comment with id:-1 was deleted.
+    Should Be True    ${result}    comment with id:-1 was deleted.
     Stop Engine
     Kindly Stop Broker
 
@@ -1318,12 +1318,12 @@ BEATOI23
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}=    Get Current Date    result_format=epoch
     ADD SVC COMMENT    host_1    service_1    0    user    comment
     ${content}=    Create List    ADD_SVC_COMMENT
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=command argument persistent_flag must be 0 or 1.
+    Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
     Stop Engine
     Kindly Stop Broker
 
@@ -1342,7 +1342,7 @@ BECUSTOMHOSTVAR
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}=    Get Current Date    result_format=epoch
     CHANGE CUSTOM HOST VAR COMMAND    host_1    SNMPVERSION    789456
 
@@ -1377,7 +1377,7 @@ BECUSTOMSVCVAR
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}=    Get Current Date    result_format=epoch
     CHANGE CUSTOM SVC VAR COMMAND    host_1    service_1    CRITICAL    456123
 
@@ -1412,7 +1412,7 @@ BESERVCHECK
     Start Engine
     ${content}=    Create List    check_for_external_commands
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
     schedule_forced_svc_check    host_1    service_1
@@ -1422,10 +1422,10 @@ BESERVCHECK
     ...    service_1
     ...    30
     ...    ${VarRoot}/lib/centreon-engine/check.pl ${command_param}
-    Should Be True    ${result}    msg=service table not updated
+    Should Be True    ${result}    service table not updated
 
 BEHOSTCHECK
-    [Documentation]    external command CHECK_SERVICE_RESULT
+    [Documentation]    external command CHECK_HOST_RESULT
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    central
@@ -1434,14 +1434,15 @@ BEHOSTCHECK
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=No check for external commands executed for 1mn.
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No check for external commands executed for 1mn.
+
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    UPDATE hosts set command_line='toto' where name='host_1'
-    schedule_forced_host_check    host_1
-    ${result}=    check_host_check_with_timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl 0 1
-    Should Be True    ${result}    msg=hosts table not updated
+    Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
+    Schedule Forced Host Check    host_1
+    ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl 0
+    Should Be True    ${result}    hosts table not updated
