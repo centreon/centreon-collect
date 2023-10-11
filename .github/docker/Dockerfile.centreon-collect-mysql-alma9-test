@@ -1,7 +1,6 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/almalinux:9
-#FROM almalinux:9
 
 RUN <<EOF
 
@@ -40,6 +39,7 @@ dnf install -y gcc \
     perl \
     procps-ng \
     zstd \
+    psmisc \
     sudo
 
 echo "install robot and dependencies"

@@ -44,8 +44,19 @@ fi
 ulimit -c unlimited
 echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 
+echo $(pwd)
+echo "##########################################  Tests 1 ##########################################"
+ls -al
+echo "##########################################  Tests 2 ##########################################"
+ls -al /
+echo "##########################################  Tests 3 ##########################################"
+ls -al /usr
+echo "##########################################  Tests 4 ##########################################"
+ls -al /usr/bin
+
+
 #remove git dubious ownership
-git config --global --add safe.directory $PWD
+/usr/bin/git config --global --add safe.directory $PWD
 
 echo "##### Starting tests #####"
 cd tests

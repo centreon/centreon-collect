@@ -1,0 +1,14 @@
+ARG REGISTRY_URL
+
+FROM ${REGISTRY_URL}/centreon-collect-debian-bullseye-arm64-test
+
+COPY . /tmp/collect
+
+RUN <<EOF
+
+cd /tmp/collect
+
+.github/scripts/collect-prepare-test-robot.sh mariadb
+
+EOF
+

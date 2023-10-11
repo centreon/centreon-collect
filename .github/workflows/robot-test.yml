@@ -10,6 +10,9 @@ on:
       image:
         required: true
         type: string
+      docker_file:
+        required: true
+        type: string
       image_test:
         required: true
         type: string
@@ -38,7 +41,7 @@ on:
 
 jobs:
   create-test-image:
-    runs-on: ubuntu-22.04
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
@@ -64,21 +67,12 @@ jobs:
           key: ${{ inputs.package_cache_key }}
           fail-on-cache-miss: true
  
-
-      # - name: Download image
-      #   run: |
-      #     docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}
-      #   shell: bash
+      - uses: docker/setup-buildx-action@v2
 
       - name: Create test image
         run: |
-          docker build --pull --rm --build-arg REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }} -f ".github/docker/Dockerfile.${{inputs.image}}-prepared" \
+          docker buildx build --pull --output type=docker,dest=/tmp/${{inputs.image}} --build-arg REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }} -f ".github/docker/${{ inputs.docker_file}}" \
           -t `echo ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} | tr [:upper:] [:lower:]` .
-        shell: bash
-
-      - name: Image to disk
-        run: |
-          docker save --output /tmp/${{inputs.image}} `echo ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} | tr [:upper:] [:lower:]`
         shell: bash
 
       - name: image to cache
@@ -106,12 +100,6 @@ jobs:
   robot-test:
     needs: [robot-test-list]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
-    # container:
-    #   image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:latest
-    #   options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
-    #   credentials:
-    #     username: ${{ secrets.registry_username }}
-    #     password: ${{ secrets.registry_password }}
 
     strategy:
       fail-fast: false
@@ -136,15 +124,6 @@ jobs:
       - name: load image
         run: |
           docker load --input  /tmp/${{inputs.image}}   
-      # docker tag  ${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}
-
-      #- name: Test ${{ matrix.feature }}
-        # run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}
-        # shell: bash
-        # env:
-        #   AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
-        #   AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-        #   AWS_BUCKET: centreon-collect-robot-report
 
       - name: Test ${{ matrix.feature }}
         run: |

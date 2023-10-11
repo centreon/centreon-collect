@@ -30,8 +30,8 @@ jobs:
           - runner: collect
             dockerfile: centreon-collect-alma8
             image: centreon-collect-alma8
-            dockerfile-test: centreon-collect-alma8-test
-            image-test: centreon-collect-alma8-test
+            dockerfile-test: no-dokerfile
+            image-test: 
           - runner: collect
             dockerfile: centreon-collect-alma9
             image: centreon-collect-alma9
@@ -79,7 +79,9 @@ jobs:
 
       - uses: docker/setup-buildx-action@v2
 
-      - uses: docker/build-push-action@v3
+      - name: Build Test image
+        if: ${{startsWith(matrix.dockerfile-test, 'centreon-collect')}}
+        uses: docker/build-push-action@v3
         with:
           file: .github/docker/Dockerfile.${{ matrix.dockerfile-test }}
           context: .
@@ -89,7 +91,8 @@ jobs:
           push: true
           tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image-test }}:latest
 
-      - uses: docker/build-push-action@v3
+      - name: Build Package image
+        uses: docker/build-push-action@v3
         with:
           file: .github/docker/Dockerfile.${{ matrix.dockerfile }}
           context: .

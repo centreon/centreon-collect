@@ -1,7 +1,6 @@
 ARG REGISTRY_URL
 
 FROM ${REGISTRY_URL}/debian:bullseye
-#FROM debian:bullseye
 
 RUN <<EOF
 
@@ -11,6 +10,7 @@ apt-get -y install curl \
     gcc \
     g++ \
     gdb \
+    git \
     mariadb-server \
     openssh-server \
     libmariadb3 \
@@ -28,6 +28,7 @@ apt-get -y install curl \
     rrdtool \
     rrdcached \
     zstd \
+    psmisc \
     sudo
 
 echo 'deb [trusted=yes] https://repo.goreleaser.com/apt/ /' | tee /etc/apt/sources.list.d/goreleaser.list
