@@ -304,7 +304,7 @@ RLCode
     ...        return true
     ...    end
 
-     # Create the initial LUA script file
+    # Create the initial LUA script file
     Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
 
     Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
