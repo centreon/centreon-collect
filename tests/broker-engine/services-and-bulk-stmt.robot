@@ -338,7 +338,7 @@ RLCode
 
     # Create the second LUA script file
     Create File    /tmp/toto.lua    ${new_content}
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
 
     Reload Broker
 
