@@ -296,7 +296,7 @@ RLCode
 
     ${INITIAL_SCRIPT_CONTENT}    Catenate
     ...    function init(params)
-    ...        broker_log:set_parameters('/tmp/toto.log', 2)
+    ...        broker_log:set_parameters(2, '/tmp/toto.log')
     ...    end
     ...
     ...    function write(d)
