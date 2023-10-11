@@ -342,9 +342,9 @@ RLCode
 
     Reload Broker
 
-    ${content}=    Create List    lua: initializing the Lua virtual machine
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=lua file not initialized
+    ${content}    Create List    lua: initializing the Lua virtual machine
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    lua file not initialized
 
 
     Stop Engine
