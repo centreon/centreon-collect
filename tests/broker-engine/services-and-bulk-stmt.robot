@@ -385,7 +385,7 @@ metric_mapping
 
     # We force several checks with metrics
     FOR    ${i}    IN RANGE    ${10}
-        Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
+        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
     Wait Until Created    /tmp/test.log    30s
