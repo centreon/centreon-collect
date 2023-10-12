@@ -11,9 +11,6 @@ on:
       minor_version:
         required: true
         type: string
-      stability:
-        required: true
-        type: string
       img_version:
         required: true
         type: string
@@ -73,10 +70,15 @@ jobs:
 
           sudo ninja
 
+          echo "[DEBUG] - Find compiled files"
+          find ./ -name "*.so"
+          echo "[DEBUG] - Build size"
+          du -sh ./lib/*.so | sort -rh
+
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
-          find ./build -type f -not \( -name "*.so" -o -name "*.h" -o -name "*.cc" -o -name "*.hpp" \) -delete
+          find ./build -type f -not \( -name "*.so" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
@@ -90,12 +92,14 @@ jobs:
               elif [[ -z "$LINE" ]]; then
                 echo "[INFO] - empty directive. Skipping this line"
               else
-                echo "[WARN] - target to exclude not found. Skipping: '$LINE'"
+                echo "::warning::Target to exclude from analysis not found. Skipping: '$LINE'"
               fi
             done
           else
-            echo "[WARN] - No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+            echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
           fi
+          echo "[INFO] - Keeping only build's non empty folders"
+          find ./build -empty -type d -delete
 
           echo "[INFO] - Generating the tarball"
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
@@ -113,8 +117,6 @@ jobs:
 
     steps:
       - name: Promote latest scan
-        # Only last develop should be promoted to policy scan
-        if: github.ref_name == 'develop'
 
         env:
           VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
@@ -148,8 +150,6 @@ jobs:
           createprofile: true
           createsandbox: true
           sandboxname: "${{ github.ref_name }}"
-          #scantimeout: 120
           includenewmodules: true
           scanallnonfataltoplevelmodules: true
           deleteincompletescan: 2
-          scanpollinginterval: 120 # time between two checks in seconds / [30 to 120]
