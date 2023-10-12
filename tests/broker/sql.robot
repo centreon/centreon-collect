@@ -278,7 +278,7 @@ BDBM1
         ${result}    Get Broker Stats Size    central    mysql manager
         Should Be True
         ...    ${result} >= ${c} + 1
-        ...    The stats file should contain at less ${c} + 1 connections to the database.
+        ...    The stats file should contain at least ${c} + 1 connections to the database.
         Kindly Stop Broker
         Stop Engine
     END
