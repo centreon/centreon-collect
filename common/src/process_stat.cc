@@ -104,13 +104,13 @@ process_stat::process_stat(pid_t process_id)
     if (first_char == 'r') {
       if (second_char == 'c') {  // rchar
         _query_read_bytes = extract_io_value(line, file_path);
-      } else if (second_char = 'e') {  // read_bytes
+      } else if (second_char == 'e') {  // read_bytes
         _real_read_bytes = extract_io_value(line, file_path);
       }
     } else if (first_char == 'w') {
       if (second_char == 'c') {  // wchar
         _query_write_bytes = extract_io_value(line, file_path);
-      } else if (second_char = 'e') {  // write_bytes
+      } else if (second_char == 'e') {  // write_bytes
         _real_write_bytes = extract_io_value(line, file_path);
       }
     }
