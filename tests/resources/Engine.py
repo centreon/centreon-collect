@@ -406,6 +406,54 @@ define command {
             ff.write(content)
 
     @staticmethod
+    def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define servicedependency {{
+    ;dependency_name               MSD_test 
+    execution_failure_criteria     n 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependent_servicegroup_name    {0} 
+    servicegroup_name              {1} 
+
+    }}
+    """.format(dependentservicegroup, servicegroup)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define hostdependency {{
+    ;dependency_name               HD_test2 
+    execution_failure_criteria     n 
+    notification_failure_criteria  d 
+    inherits_parent                1 
+    dependent_host_name            {0} 
+    host_name                      {1} 
+
+    }}
+    """.format(dependenthost, host)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define hostdependency {{
+    ;dependency_name               HD_test2 
+    execution_failure_criteria     n 
+    notification_failure_criteria  d 
+    inherits_parent                1 
+    dependent_hostgroup_name       {0} 
+    hostgroup_name                 {1} 
+
+    }}
+    """.format(dependenthostgrp, hostgrp)
+            ff.write(content)
+
+    @staticmethod
     def create_template_file(poller: int, typ: str, what: str, ids):
         config_file = "{}/config{}/{}Templates.cfg".format(
             CONF_DIR, poller, typ)
@@ -1693,6 +1741,15 @@ def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
 
 def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
     engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
+
+def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+    engine.create_dependenciesgrp_file(poller, dependentservicegroup, servicegroup)
+
+def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+    engine.create_dependencieshst_file(poller, dependenthost, host)
+
+def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+    engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
 
 def create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template_file(poller, typ, what, ids)
