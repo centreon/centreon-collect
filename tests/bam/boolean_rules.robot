@@ -39,13 +39,13 @@ BABOO
     Set Services Passive    ${0}    service_302
     Set Services Passive    ${0}    service_303
 
-    ${id_ba__sid}    Create Ba    ba-worst    worst    70    80
-    Add Service KPI    host_16    service_302    ${id_ba__sid[0]}    40    30    20
-    Add Service KPI    host_16    service_303    ${id_ba__sid[0]}    40    30    20
+    ${id_ba_worst__sid}    Create Ba    ba-worst    worst    70    80
+    Add Service KPI    host_16    service_302    ${id_ba_worst__sid[0]}    40    30    20
+    Add Service KPI    host_16    service_303    ${id_ba_worst__sid[0]}    40    30    20
 
-    ${id_ba__sid}    Create Ba    boolean-ba    impact    70    80
+    ${id_boolean_ba__sid}    Create Ba    boolean-ba    impact    70    80
     Add Boolean Kpi
-    ...    ${id_ba__sid[0]}
+    ...    ${id_boolean_ba__sid[0]}
     ...    {host_16 service_302} {IS} {CRITICAL} {OR} {host_16 service_303} {IS} {CRITICAL}
     ...    True
     ...    100
@@ -75,17 +75,21 @@ BABOO
         ${result}    Check Service Resource Status With Timeout    host_16    service_302    2    30    HARD
         Should Be True    ${result}    The service (host_16:service_302) should be CRITICAL.
         ${result}    Check Ba Status With Timeout    ba-worst    2    30
+        Dump Ba On Error    ${result}    ${id_ba_worst__sid[0]}
         Should Be True    ${result}    The 'ba-worst' BA is not CRITICAL as expected
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+        Dump Ba On Error    ${result}    ${id_boolean_ba__sid[0]}
         Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
         Process Service Check Result    host_16    service_302    0    output ok for service_302
         ${result}    Check Ba Status With Timeout    ba-worst    0    30
+        Dump Ba On Error    ${result}    ${id_ba_worst__sid[0]}
+        Should Be True    ${result}    The 'ba-worst' BA is not OK as expected
         ${result}    Check Service Resource Status With Timeout    host_16    service_302    0    30    HARD
         Should Be True    ${result}    The service (host_16:service_302) should be OK.
 
-        Should Be True    ${result}    The 'ba-worst' BA is not OK as expected
         ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+        Dump Ba On Error    ${result}    ${id_boolean_ba__sid[0]}
         Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
     END
 
@@ -139,6 +143,7 @@ BABOOOR
     ...    output critical for service_302
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -191,6 +196,7 @@ BABOOAND
     ...    output critical for service_302
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -240,6 +246,8 @@ BABOOORREL
     ...    service_302
     ...    2
     ...    output critical for service_302
+    ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
+    Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL/HARD as expected
 
     # 303 is set to critical => {host_16 service_303} {IS} {OK} is then False
     Repeat Keyword
@@ -249,6 +257,8 @@ BABOOORREL
     ...    service_303
     ...    2
     ...    output critical for service_303
+    ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
+    Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL/HARD as expected
 
     # 304 is set to ok => {host_16 service_304} {IS} {OK} is then True
     Repeat Keyword
@@ -258,8 +268,11 @@ BABOOORREL
     ...    service_304
     ...    0
     ...    output ok for service_304
+    ${result}    Check Service Status With Timeout    host_16    service_304    0    30    HARD
+    Should Be True    ${result}    The service (host_16,service_304) is not OK/HARD as expected
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     Update Boolean Rule
@@ -274,6 +287,7 @@ BABOOORREL
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
     Update Boolean Rule
@@ -288,6 +302,7 @@ BABOOORREL
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not CRITICAL as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -342,6 +357,7 @@ BABOOCOMPL
 
     FOR    ${i}    IN RANGE    ${1}    ${21}    ${2}
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
+        Dump Ba On Error    ${result}    ${id_ba__sid[0]}
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
         Repeat Keyword
         ...    3 times
@@ -353,6 +369,7 @@ BABOOCOMPL
     END
 
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -369,3 +386,10 @@ BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
+
+Dump Ba On Error
+    [Arguments]    ${result}    ${ba_id}
+    IF    not ${result}
+        Save Logs
+        Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
+    END

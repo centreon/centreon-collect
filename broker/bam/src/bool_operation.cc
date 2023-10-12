@@ -110,14 +110,19 @@ std::string bool_operation::object_info() const {
   switch (_type) {
     case addition:
       op = "PLUS";
+      break;
     case substraction:
       op = "MINUS";
+      break;
     case multiplication:
       op = "MUL";
+      break;
     case division:
       op = "DIV";
+      break;
     case modulo:
       op = "MODULO";
+      break;
     default:
       return "unknown operation";
   }
