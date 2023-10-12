@@ -30,7 +30,6 @@ jobs:
   build:
     name: Binary preparation
     runs-on: [self-hosted, collect]
-    if: github.event_name != 'pull_request' && (inputs.stability == 'stable' || inputs.stability == 'unstable')
     container:
       image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-collect-alma9:${{ inputs.img_version }}
       credentials:
