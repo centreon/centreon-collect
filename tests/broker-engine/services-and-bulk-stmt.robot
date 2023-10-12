@@ -389,7 +389,7 @@ metric_mapping
     END
 
     Wait Until Created    /tmp/test.log    30s
-    ${grep_res}    Grep File    /tmp/test.log    "name: metric1 corresponds to metric id"
+    ${grep_res}    Grep File    /tmp/test.log    name: metric1 corresponds to metric id
     Should Not Be Empty    ${grep_res}    metric name "metric1" not found
 
 *** Keywords ***
