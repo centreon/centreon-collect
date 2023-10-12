@@ -267,6 +267,131 @@ EBPS2
     Stop Engine
     Start mysql
 
+RLCode
+    [Documentation]    Test if reloading LUA code in a stream connector applies the changes
+    [Tags]    lua    stream connector
+    Clear Commands Status
+    Clear Retention
+
+    Remove File    /tmp/toto.lua
+    Config Engine    ${1}    ${1}    ${10}
+    Config Broker    central
+    Config Broker    module
+    Config Broker    rrd
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Broker Config Log    central    tcp    error
+    Broker Config Log    central    sql    error
+    Broker Config Log    central    lua    debug
+    Config Broker Sql Output    central    unified_sql
+
+    ${INITIAL_SCRIPT_CONTENT}    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters(2, '/tmp/toto.log')
+    ...    end
+    ...
+    ...    function write(d)
+    ...        broker_log:info(0, "toto")
+    ...        return true
+    ...    end
+
+    # Create the initial LUA script file
+    Create File    /tmp/toto.lua    ${INITIAL_SCRIPT_CONTENT}
+
+    Broker Config Add Lua Output    central    test-toto    /tmp/toto.lua
+
+    # Start the engine/broker
+    ${start}    Get Current Date
+
+    Start Broker
+    Start Engine
+
+
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    ${content}    Create List    lua: initializing the Lua virtual machine
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    The lua virtual machine is not correctly initialized
+
+    # Define the new content to take place of the first one
+    ${new_content}    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters(2, '/tmp/titi.log')
+    ...    end
+    ...
+    ...    function write(d)
+    ...        broker_log:info(0, "titi")
+    ...        return true
+    ...    end
+
+
+    # Create the LUA script file from the content
+    Create File    /tmp/toto.lua    ${new_content}
+    ${start}    Get Current Date
+
+    Reload Broker
+
+    ${content}    Create List    lua: initializing the Lua virtual machine
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    The Lua virtual machine is not correctly initialized
+
+    Stop Engine
+    Kindly Stop Broker
+
+metric_mapping
+    [Documentation]    Check if metric name exists using a stream connector
+    [Tags]    broker    engine    bbdo    unified_sql    metric
+    Clear Commands Status
+    Clear Retention
+
+    Remove File    /tmp/test.log
+    Config Engine    ${1}    ${1}    ${10}
+    Config Broker    central
+    Config Broker    module
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Log    central    lua    debug
+    Broker Config Log    module0    neb    debug
+    Config Broker Sql Output    central    unified_sql
+
+    ${new_content}    Catenate
+    ...    function init(params)
+    ...        broker_log:set_parameters(1, "/tmp/test.log")
+    ...    end
+    ...
+    ...    function write(d)
+    ...        if d._type == 196617 then
+    ...            broker_log:info(0, "name: " .. tostring(d.name) .. " corresponds to metric id " .. tostring(d.metric_id))
+    ...        end
+    ...        return true
+    ...    end
+
+    # Create the initial LUA script file
+    Create File    /tmp/test-metric.lua    ${new_content}
+
+    Broker Config Add Lua Output    central    test-metric    /tmp/test-metric.lua
+
+    ${start}    Get Current Date
+
+    Start Broker
+    Start Engine
+
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message about check_for_external_commands() should be available.
+
+    # We force several checks with metrics
+    FOR    ${i}    IN RANGE    ${10}
+        Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
+    END
+
+    Wait Until Created    /tmp/test.log    30s
+    ${grep_res}    Grep File    /tmp/test.log    "name: metric1 corresponds to metric id"
+    Should Not Be Empty    ${grep_res}    metric name "metric1" not found
+
 *** Keywords ***
 Test Clean
     Stop Engine
