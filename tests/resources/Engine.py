@@ -1648,11 +1648,9 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
 
 def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
-    f = open(pipe, "w")
-    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}\n".format(host, now)
-    f.write(cmd)
-    f.close()
-    time.sleep(0.05)
+    cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
+    with open(pipe, "w") as f:
+        f.write(cmd)
 
 
 def create_severities_file(poller: int, nb: int, offset: int = 1):
@@ -2210,4 +2208,18 @@ def send_bench(id: int, port: int):
     with grpc.insecure_channel("127.0.0.1:{}".format(port)) as channel:
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
-        
+
+def config_host_command_status(idx: int, cmd_name: str, status: int):
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    r = re.compile(rf"^\s*command_name\s+{cmd_name}\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines[i + 1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
+            break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)
+
