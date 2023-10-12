@@ -66,6 +66,9 @@ EFHC2
     [Documentation]    Engine is configured with hosts and we force check on one 5 times on bbdo2
     [Tags]    engine    external_cmd    log-v2
     Config Engine    ${1}
+
+    # We force the check command of host_1 to return 2 as status.
+    Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -106,6 +109,9 @@ EFHCU1
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior. resources table is cleared before starting broker.
     [Tags]    engine    external_cmd
     Config Engine    ${1}
+
+    # We force the check command of host_1 to return 2 as status.
+    Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -155,6 +161,9 @@ EFHCU2
     [Documentation]    Engine is configured with hosts and we force checks on one 5 times on bbdo3. Bbdo3 has no impact on this behavior.
     [Tags]    engine    external_cmd
     Config Engine    ${1}
+
+    # We force the check command of host_1 to return 2 as status.
+    Config Host Command Status    ${0}    checkh1    2
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
