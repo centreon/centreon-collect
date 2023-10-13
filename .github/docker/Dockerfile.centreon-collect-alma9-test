@@ -30,7 +30,6 @@ dnf install -y     gcc \
     mariadb \
     gnutls \
     libgcrypt \
-    libssh2 \
     lua \
     perl-ExtUtils-Embed.noarch \
     python3 \

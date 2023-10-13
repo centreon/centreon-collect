@@ -32,7 +32,6 @@ dnf install -y cmake \
     gnutls-devel \
     iproute \
     libgcrypt-devel \
-    libssh2-devel \
     lua-devel \
     make \
     perl-ExtUtils-Embed.noarch \
