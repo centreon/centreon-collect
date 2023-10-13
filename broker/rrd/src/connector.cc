@@ -21,12 +21,13 @@
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/internal.hh"
 #include "com/centreon/broker/rrd/output.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static constexpr multiplexing::muxer_filter _rrd_stream_filter = {
     storage::metric::static_type(),
@@ -161,10 +162,11 @@ std::string connector::_real_path_of(std::string const& path) {
   // Variables.
   std::string retval;
   char* real_path{realpath(path.c_str(), nullptr)};
+  auto logger = log_v2::instance().get(log_v2::RRD);
 
   // Resolution success.
   if (real_path) {
-    log_v2::rrd()->info("RRD: path '{}' resolved as '{}'", path, real_path);
+    logger->info("RRD: path '{}' resolved as '{}'", path, real_path);
     try {
       retval = real_path;
     } catch (...) {
@@ -176,8 +178,8 @@ std::string connector::_real_path_of(std::string const& path) {
   // Resolution failure.
   else {
     char const* msg{strerror(errno)};
-    log_v2::rrd()->error(
-        "RRD: could not resolve path '{}', using it as such: {}", path, msg);
+    logger->error("RRD: could not resolve path '{}', using it as such: {}",
+                  path, msg);
     retval = path;
   }
 

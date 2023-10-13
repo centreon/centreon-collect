@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_HOSTESCALATION_HH
 #define CCE_CONFIGURATION_HOSTESCALATION_HH
@@ -23,11 +23,16 @@
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
-#include "com/centreon/engine/shared.hh"
+#include "common/configuration/hostescalation_helper.hh"
 
 namespace com::centreon::engine {
 
 namespace configuration {
+
+#ifndef LEGACY_CONF
+class Hostescalation;
+#endif
+
 class hostescalation : public object {
  public:
   enum action_on {
@@ -45,7 +50,7 @@ class hostescalation : public object {
   bool operator==(hostescalation const& right) const throw();
   bool operator!=(hostescalation const& right) const throw();
   bool operator<(hostescalation const& right) const;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const throw();
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
@@ -69,7 +74,6 @@ class hostescalation : public object {
   void notification_interval(unsigned int interval);
   unsigned int notification_interval() const throw();
   bool notification_interval_defined() const throw();
-  Uuid const& uuid() const;
 
  private:
   typedef bool (*setter_func)(hostescalation&, char const*);
@@ -92,13 +96,18 @@ class hostescalation : public object {
   opt<unsigned int> _last_notification;
   opt<unsigned int> _notification_interval;
   static std::unordered_map<std::string, setter_func> const _setters;
-  Uuid _uuid;
 };
+
+#if LEGACY_CONF
+size_t hostescalation_key(const hostescalation& he);
+#else
+size_t hostescalation_key(const Hostescalation& he);
+#endif
 
 typedef std::shared_ptr<hostescalation> hostescalation_ptr;
 typedef std::set<hostescalation> set_hostescalation;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_HOSTESCALATION_HH

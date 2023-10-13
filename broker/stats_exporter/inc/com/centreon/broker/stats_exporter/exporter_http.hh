@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -40,6 +40,6 @@ class exporter_http : public exporter {
 
 }  // namespace stats_exporter
 
-}
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_STATS_EXPORTER_EXPORTER_HTTP_HH */

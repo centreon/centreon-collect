@@ -63,7 +63,7 @@ add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 option(DEBUG_ROBOT OFF)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+set(CMAKE_CXX_EXTENSIONS ON)
 
 if(WITH_TSAN)
   set(CMAKE_CXX_FLAGS_DEBUG
@@ -95,16 +95,18 @@ set(BUILD_ARGS "-w" "dupbuild=warn")
 # Get distributions name
 #
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-  file(STRINGS "/etc/os-release" release REGEX "^ID")
+  file(STRINGS "/etc/os-release" release REGEX "^.*ID.*=")
 
   foreach(line ${release})
-    if(${line} MATCHES "ID_LIKE=.*")
+    if(${line} MATCHES "^ID_LIKE=.*")
       string(REGEX REPLACE "ID_LIKE=\"(.*)\"" "\\1" like ${line})
-    endif()
-
-    if(${line} MATCHES "ID=.*")
+    elseif(${line} MATCHES "^VERSION_ID=.*")
+      string(REGEX REPLACE "VERSION_ID=\"([0-9]*)[^0-9].*" "\\1" version
+                           ${line})
+    elseif(${line} MATCHES "^ID=.*")
       string(REGEX REPLACE "ID=\"(.*)\"" "\\1" id ${line})
     endif()
+
   endforeach()
 
   string(TOLOWER "${like}" like)
@@ -118,14 +120,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   elseif(("${id}" MATCHES "centos") OR ("${like}" MATCHES "centos"))
     set(OS_DISTRIBUTOR "CentOS")
   else()
-    message(WARNING "lsb_release in not installed")
+    message(WARNING "lsb_release is not installed")
     set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
   endif()
+  set(OS_VERSION ${version})
 else()
   set(OS_DISTRIBUTOR "${CMAKE_SYSTEM_NAME}")
+  set(OS_VERSION "??")
 endif()
 
-message(STATUS "${id} detected (compatible with ${OS_DISTRIBUTOR})")
+message(
+  STATUS "${id} ${OS_VERSION} detected (compatible with ${OS_DISTRIBUTOR})")
 
 # set -latomic if OS is Raspbian.
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")

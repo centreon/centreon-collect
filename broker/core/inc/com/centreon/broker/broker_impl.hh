@@ -25,7 +25,6 @@
 #include "com/centreon/broker/io/protobuf.hh"
 
 namespace com::centreon::broker {
-
 /**
  * Here is a declaration of pb_rebuild_graphs which is a bbdo event we use
  * to ask rebuild of metrics. MetricIds is a vector of metric ids to rebuild. */

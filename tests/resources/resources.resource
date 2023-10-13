@@ -257,7 +257,6 @@ Ctn Save Logs
     Create Directory    ${failDir}
     Copy Files    ${centralLog}    ${failDir}
     Copy Files    ${rrdLog}    ${failDir}
-    Copy Files    ${moduleLog0}    ${failDir}
     Copy Files    ${engineLog0}    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
@@ -315,8 +314,8 @@ Ctn Copy Coredump In Failed Dir
 Ctn Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${binary_path}    ${timeout}
     ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
-    ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
-    IF    ${test_none} == "not killed"
+    ${test_none}    Set Variable If    $result is None    not killed    killed
+    IF    "${test_none}" == "not killed"
         ${pid}    Get Process Id    ${process_name}
         Ctn Dump Process    ${process_name}    ${binary_path}    ${process_name}
         ${result}    Wait For Process    ${process_name}    timeout=1s    on_timeout=kill

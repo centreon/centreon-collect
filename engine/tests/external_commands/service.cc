@@ -1,5 +1,5 @@
 /**
- * Copyright 2005 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2005 - 2024 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,9 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/process_manager.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/service_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -45,23 +48,27 @@ TEST_F(ServiceExternalCommand, AddServiceDowntime) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::command cmd_aply;
-  configuration::service svc;
-  configuration::host hst;
-  configuration::command cmd("cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("host_id", "1"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
 
-  ASSERT_TRUE(svc.parse("host", "test_host"));
-  ASSERT_TRUE(svc.parse("service_description", "test_description"));
-  ASSERT_TRUE(svc.parse("service_id", "3"));
+  svc.set_host_name("test_host");
+  svc.set_service_description("test_description");
+  svc.set_service_id(3);
 
-  cmd.parse("command_line", "/usr/bin/echo 1");
+  cmd.set_command_line("/usr/bin/echo 1");
   cmd_aply.add_object(cmd);
 
-  hst.parse("check_command", "cmd");
-  svc.parse("check_command", "cmd");
+  hst.set_check_command("cmd");
+  svc.set_check_command("cmd");
 
   hst_aply.add_object(hst);
 
@@ -70,8 +77,8 @@ TEST_F(ServiceExternalCommand, AddServiceDowntime) {
 
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(*config);
-  svc_aply.expand_objects(*config);
+  hst_aply.expand_objects(pb_config);
+  svc_aply.expand_objects(pb_config);
 
   hst_aply.resolve_object(hst);
   svc_aply.resolve_object(svc);
@@ -95,23 +102,27 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::command cmd_aply;
-  configuration::service svc;
-  configuration::host hst;
-  configuration::command cmd("cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.3"));
-  ASSERT_TRUE(hst.parse("host_id", "1"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.3");
+  hst.set_host_id(1);
 
-  ASSERT_TRUE(svc.parse("host", "test_host"));
-  ASSERT_TRUE(svc.parse("service_description", "test_description"));
-  ASSERT_TRUE(svc.parse("service_id", "3"));
+  svc.set_host_name("test_host");
+  svc.set_service_description("test_description");
+  svc.set_service_id(3);
 
-  cmd.parse("command_line", "/usr/bin/echo 1");
+  cmd.set_command_line("/usr/bin/echo 1");
   cmd_aply.add_object(cmd);
 
-  hst.parse("check_command", "cmd");
-  svc.parse("check_command", "cmd");
+  hst.set_check_command("cmd");
+  svc.set_check_command("cmd");
 
   hst_aply.add_object(hst);
 
@@ -120,8 +131,8 @@ TEST_F(ServiceExternalCommand, AddServiceDowntimeByHostIpAddress) {
 
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(*config);
-  svc_aply.expand_objects(*config);
+  hst_aply.expand_objects(pb_config);
+  svc_aply.expand_objects(pb_config);
 
   hst_aply.resolve_object(hst);
   svc_aply.resolve_object(svc);
@@ -145,23 +156,27 @@ TEST_F(ServiceExternalCommand, AddServiceComment) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::command cmd_aply;
-  configuration::service svc;
-  configuration::host hst;
-  configuration::command cmd("cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("host_id", "1"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
 
-  ASSERT_TRUE(svc.parse("host", "test_host"));
-  ASSERT_TRUE(svc.parse("service_description", "test_description"));
-  ASSERT_TRUE(svc.parse("service_id", "3"));
+  svc.set_host_name("test_host");
+  svc.set_service_description("test_description");
+  svc.set_service_id(3);
 
-  cmd.parse("command_line", "/usr/bin/echo 1");
+  cmd.set_command_line("/usr/bin/echo 1");
   cmd_aply.add_object(cmd);
 
-  hst.parse("check_command", "cmd");
-  svc.parse("check_command", "cmd");
+  hst.set_check_command("cmd");
+  svc.set_check_command("cmd");
 
   hst_aply.add_object(hst);
 
@@ -170,8 +185,8 @@ TEST_F(ServiceExternalCommand, AddServiceComment) {
 
   svc_aply.add_object(svc);
 
-  hst_aply.expand_objects(*config);
-  svc_aply.expand_objects(*config);
+  hst_aply.expand_objects(pb_config);
+  svc_aply.expand_objects(pb_config);
 
   hst_aply.resolve_object(hst);
   svc_aply.resolve_object(svc);

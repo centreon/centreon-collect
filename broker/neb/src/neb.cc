@@ -22,19 +22,25 @@
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/callbacks.hh"
 #include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/engine/nebcallbacks.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
 
 extern std::shared_ptr<asio::io_context> g_io_context;
+
+namespace com::centreon::broker {
+std::shared_ptr<spdlog::logger> neb_logger =
+    log_v2::instance().get(log_v2::NEB);
+}  // namespace com::centreon::broker
 
 extern "C" {
 /**
@@ -57,9 +63,6 @@ int nebmodule_deinit(int flags, int reason) {
     // Unregister callbacks.
     neb::unregister_callbacks();
 
-    // Unload singletons.
-    log_v2::instance()
-        ->stop_flush_timer();  // beware at the order of these two calls
     com::centreon::broker::config::applier::deinit();
   }
   // Avoid exception propagation in C code.
@@ -85,6 +88,13 @@ int nebmodule_deinit(int flags, int reason) {
  *  @return 0 on success, any other value on failure.
  */
 int nebmodule_init(int flags, char const* args, void* handle) {
+  neb_logger = log_v2::instance().create_logger(log_v2::NEB);
+
+  // Needed by cbmod core
+  log_v2::instance().create_logger(log_v2::SQL);
+  log_v2::instance().create_logger(log_v2::BBDO);
+  log_v2::instance().create_logger(log_v2::PROCESSING);
+
   try {
     // Save module handle and flags for future use.
     neb::gl_mod_flags = flags;
@@ -114,7 +124,6 @@ int nebmodule_init(int flags, char const* args, void* handle) {
     setlocale(LC_NUMERIC, "C");
 
     try {
-      log_v2::load(g_io_context);
       // Set configuration file.
       if (args) {
         char const* config_file("config_file=");
@@ -131,12 +140,16 @@ int nebmodule_init(int flags, char const* args, void* handle) {
           p.parse(neb::gl_configuration_file)};
 
       // Initialization.
+      /* This is a little hack to avoid to replace the log file set by
+       * centengine */
+      s.mut_log_conf().set_slave(true);
       com::centreon::broker::config::applier::init(s);
-      try {
-        log_v2::instance()->apply(s);
-      } catch (const std::exception& e) {
-        log_v2::core()->error("main: {}", e.what());
-      }
+      //      try {
+      //        log_v2::instance().apply(s.log_conf());
+      //      } catch (const std::exception& e) {
+      //        log_v2::instance().get(log_v2::CORE)->error("main: {}",
+      //        e.what());
+      //      }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
 
@@ -160,20 +173,25 @@ int nebmodule_init(int flags, char const* args, void* handle) {
                 NEBCALLBACK_LOG_DATA, neb::gl_mod_handle, &neb::callback_log));
       }
     } catch (std::exception const& e) {
-      log_v2::core()->error("main: {}", e.what());
+      log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
       return -1;
     } catch (...) {
-      log_v2::core()->error("main: configuration file parsing failed");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("main: configuration file parsing failed");
       return -1;
     }
 
   } catch (std::exception const& e) {
-    log_v2::core()->error("main: cbmod loading failed: {}", e.what());
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error("main: cbmod loading failed: {}", e.what());
     nebmodule_deinit(0, 0);
     return -1;
   } catch (...) {
-    log_v2::core()->error(
-        "main: cbmod loading failed due to an unknown exception");
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error("main: cbmod loading failed due to an unknown exception");
     nebmodule_deinit(0, 0);
     return -1;
   }

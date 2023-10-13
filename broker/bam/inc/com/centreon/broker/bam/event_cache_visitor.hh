@@ -1,5 +1,5 @@
 /*
-** Copyright 2014-2015, 2020-2021 Centreon
+** Copyright 2014-2015, 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/io/stream.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class event_cache_visitor event_cache_visitor.hh
  * "com/centreon/broker/bam/event_cache_visitor.hh"
@@ -47,8 +45,6 @@ class event_cache_visitor : public io::stream {
   virtual int write(std::shared_ptr<io::data> const& d) override;
   int32_t stop() override { return 0; }
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_EVENT_CACHE_VISITOR_HH

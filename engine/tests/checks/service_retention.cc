@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,6 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/retention/dump.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
@@ -49,28 +48,26 @@ using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 using namespace com::centreon::engine::configuration::applier;
 
-extern configuration::state* config;
+extern configuration::State pb_config;
 
 class ServiceRetention : public TestEngine {
  public:
   void SetUp() override {
     init_config_state();
-    //    if (!config)
-    //      config = new configuration::state;
 
-    config->contacts().clear();
+    pb_config.clear_contacts();
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct = new_pb_configuration_contact("admin", true);
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
-    configuration::host hst{new_configuration_host("test_host", "admin")};
+    configuration::Host hst = new_pb_configuration_host("test_host", "admin");
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-    configuration::service svc{
-        new_configuration_service("test_host", "test_svc", "admin")};
+    configuration::Service svc =
+        new_pb_configuration_service("test_host", "test_svc", "admin");
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 

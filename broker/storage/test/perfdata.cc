@@ -23,9 +23,9 @@
 #include <cmath>
 #include <list>
 
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 
 using namespace com::centreon::broker;
 

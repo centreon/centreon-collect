@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,9 @@
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/service_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -45,11 +48,10 @@ class ApplierHost : public ::testing::Test {
 // Then the applier add_object throws an exception.
 TEST_F(ApplierHost, NewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
 }
 
@@ -59,18 +61,19 @@ TEST_F(ApplierHost, NewHostWithoutHostId) {
 // the host id.
 TEST_F(ApplierHost, HostRenamed) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   hst_aply.add_object(hst);
   host_map const& hm(engine::host::hosts);
   ASSERT_EQ(hm.size(), 1u);
   std::shared_ptr<com::centreon::engine::host> h1(hm.begin()->second);
   ASSERT_TRUE(h1->name() == "test_host");
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host1"));
-  hst_aply.modify_object(hst);
+  hst.set_host_name("test_host1");
+  hst_aply.modify_object(&pb_config.mutable_hosts()->at(0), hst);
   ASSERT_EQ(hm.size(), 1u);
   h1 = hm.begin()->second;
   ASSERT_TRUE(h1->name() == "test_host1");
@@ -79,21 +82,21 @@ TEST_F(ApplierHost, HostRenamed) {
 
 TEST_F(ApplierHost, HostRemoved) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   hst_aply.add_object(hst);
   host_map const& hm(engine::host::hosts);
   ASSERT_EQ(hm.size(), 1u);
   std::shared_ptr<com::centreon::engine::host> h1(hm.begin()->second);
   ASSERT_TRUE(h1->name() == "test_host");
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host1"));
-  hst_aply.remove_object(hst);
+  hst_aply.remove_object(0);
 
   ASSERT_EQ(hm.size(), 0u);
-  ASSERT_TRUE(hst.parse("host_name", "test_host1"));
+  hst.set_host_name("test_host1");
   hst_aply.add_object(hst);
   h1 = hm.begin()->second;
   ASSERT_EQ(hm.size(), 1u);
@@ -104,37 +107,41 @@ TEST_F(ApplierHost, HostRemoved) {
 TEST_F(ApplierHost, HostParentChildUnreachable) {
   configuration::applier::host hst_aply;
   configuration::applier::command cmd_aply;
-  configuration::host hst_child;
-  configuration::host hst_parent;
+  configuration::Host hst_child;
+  configuration::host_helper hst_child_hlp(&hst_child);
+  configuration::Host hst_parent;
+  configuration::host_helper hst_parent_hlp(&hst_parent);
 
-  configuration::command cmd("base_centreon_ping");
-  cmd.parse("command_line",
-            "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
-            "$_HOSTWARNING$ -c $_HOSTCRITICAL$");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("base_centreon_ping");
+  cmd.set_command_line(
+      "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
+      "$_HOSTWARNING$ -c $_HOSTCRITICAL$");
   cmd_aply.add_object(cmd);
 
-  ASSERT_TRUE(hst_child.parse("host_name", "child_host"));
-  ASSERT_TRUE(hst_child.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_child.parse("parents", "parent_host"));
-  ASSERT_TRUE(hst_child.parse("_HOST_ID", "1"));
-  ASSERT_TRUE(hst_child.parse("_PACKETNUMBER", "42"));
-  ASSERT_TRUE(hst_child.parse("_WARNING", "200,20%"));
-  ASSERT_TRUE(hst_child.parse("_CRITICAL", "400,50%"));
-  ASSERT_TRUE(hst_child.parse("check_command", "base_centreon_ping"));
+  hst_child.set_host_name("child_host");
+  hst_child.set_address("127.0.0.1");
+  hst_child_hlp.hook("parents", "parent_host");
+  hst_child.set_host_id(1);
+  hst_child_hlp.hook("_PACKETNUMBER", "42");
+  hst_child_hlp.hook("_WARNING", "200,20%");
+  hst_child_hlp.hook("_CRITICAL", "400,50%");
+  hst_child.set_check_command("base_centreon_ping");
   hst_aply.add_object(hst_child);
 
-  ASSERT_TRUE(hst_parent.parse("host_name", "parent_host"));
-  ASSERT_TRUE(hst_parent.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_parent.parse("_HOST_ID", "2"));
-  ASSERT_TRUE(hst_parent.parse("_PACKETNUMBER", "42"));
-  ASSERT_TRUE(hst_parent.parse("_WARNING", "200,20%"));
-  ASSERT_TRUE(hst_parent.parse("_CRITICAL", "400,50%"));
-  ASSERT_TRUE(hst_parent.parse("check_command", "base_centreon_ping"));
+  hst_parent.set_host_name("parent_host");
+  hst_parent.set_address("127.0.0.1");
+  hst_parent.set_host_id(2);
+  hst_parent_hlp.hook("_PACKETNUMBER", "42");
+  hst_parent_hlp.hook("_WARNING", "200,20%");
+  hst_parent_hlp.hook("_CRITICAL", "400,50%");
+  hst_parent.set_check_command("base_centreon_ping");
   hst_aply.add_object(hst_parent);
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
-  hst_aply.expand_objects(*config);
+  hst_aply.expand_objects(pb_config);
   hst_aply.resolve_object(hst_child);
   hst_aply.resolve_object(hst_parent);
 

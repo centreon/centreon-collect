@@ -40,6 +40,30 @@ using namespace com::centreon::engine::retention;
  *  @param[in] scheduling_info_is_ok True if the retention is not
  *                                   outdated.
  */
+void applier::anomalydetection::apply(const configuration::State& config,
+                                      const list_anomalydetection& lst,
+                                      bool scheduling_info_is_ok) {
+  for (auto& s : lst) {
+    try {
+      std::pair<uint64_t, uint64_t> id{
+          get_host_and_service_id(s->host_name(), s->service_description())};
+      engine::service& svc(find_service(id.first, id.second));
+      _update(config, *s, dynamic_cast<engine::anomalydetection&>(svc),
+              scheduling_info_is_ok);
+    } catch (...) {
+      // ignore exception for the retention.
+    }
+  }
+}
+
+/**
+ *  Update service list.
+ *
+ *  @param[in] config                The global configuration.
+ *  @param[in] lst                   The service list to update.
+ *  @param[in] scheduling_info_is_ok True if the retention is not
+ *                                   outdated.
+ */
 void applier::anomalydetection::apply(configuration::state const& config,
                                       list_anomalydetection const& lst,
                                       bool scheduling_info_is_ok) {
@@ -68,6 +92,27 @@ void applier::anomalydetection::apply(configuration::state const& config,
 void applier::anomalydetection::_update(
     configuration::state const& config,
     retention::anomalydetection const& state,
+    engine::anomalydetection& obj,
+    bool scheduling_info_is_ok) {
+  applier::service::update(config, state, static_cast<engine::service&>(obj),
+                           scheduling_info_is_ok);
+  if (state.sensitivity().is_set()) {
+    obj.set_sensitivity(state.sensitivity());
+  }
+}
+
+/**
+ *  Update internal service base on service retention.
+ *
+ *  @param[in]      config                The global configuration.
+ *  @param[in]      state                 The service retention state.
+ *  @param[in, out] obj                   The anomalydetection to update.
+ *  @param[in]      scheduling_info_is_ok True if the retention is
+ *                                        not outdated.
+ */
+void applier::anomalydetection::_update(
+    const configuration::State& config,
+    const retention::anomalydetection& state,
     engine::anomalydetection& obj,
     bool scheduling_info_is_ok) {
   applier::service::update(config, state, static_cast<engine::service&>(obj),

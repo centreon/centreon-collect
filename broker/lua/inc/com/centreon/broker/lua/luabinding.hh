@@ -19,8 +19,8 @@
 #ifndef CCB_LUA_LUABINDING_HH
 #define CCB_LUA_LUABINDING_HH
 
+#include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/variant.hh"
 
 extern "C" {
 #include "lauxlib.h"
@@ -100,6 +100,9 @@ class luabinding {
 
   // Api version among (1, 2)
   uint32_t _broker_api_version;
+
+  // logger ID.
+  std::shared_ptr<spdlog::logger> _logger;
 
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);

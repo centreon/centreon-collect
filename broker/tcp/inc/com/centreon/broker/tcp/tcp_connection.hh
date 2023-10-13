@@ -1,23 +1,22 @@
 /*
-** Copyright 2020-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2020-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CENTREON_BROKER_TCP_CONNECTION_HH
 #define CENTREON_BROKER_TCP_CONNECTION_HH
-
 
 namespace com::centreon::broker {
 
@@ -51,6 +50,9 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   std::string _address;
   uint16_t _port;
 
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   typedef std::shared_ptr<tcp_connection> pointer;
   tcp_connection(asio::io_context& io_context,
@@ -72,7 +74,7 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   void handle_read(const boost::system::error_code& ec, size_t read_bytes);
   std::vector<char> read(time_t timeout_time, bool* timeout);
 
-  void close();
+  int32_t close();
 
   bool is_closed() const;
   void update_peer(boost::system::error_code& ec);
@@ -85,6 +87,6 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
 
 }  // namespace tcp
 
-}
+}  // namespace com::centreon::broker
 
 #endif /* !CENTREON_BROKER_TCP_CONNECTION_HH */

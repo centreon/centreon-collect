@@ -23,6 +23,7 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
+#include "common/configuration/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -57,10 +58,11 @@ TEST_F(DowntimeExternalCommand, AddUnkownHostDowntime) {
 
 TEST_F(DowntimeExternalCommand, AddHostDowntime) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_srv"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "1"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_srv");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   set_time(20000);

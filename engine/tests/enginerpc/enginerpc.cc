@@ -48,6 +48,8 @@
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/engine/version.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/hostgroup_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -64,27 +66,28 @@ class EngineRpc : public TestEngine {
     // Do not unload this in the tear down function, it is done by the
     // other unload function... :-(
 
-    config->execute_service_checks(true);
+    pb_config.set_execute_service_checks(true);
 
     /* contact */
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
     /* hosts */
-    configuration::host hst_child;
+    configuration::Host hst_child;
+    configuration::host_helper hst_child_hlp(&hst_child);
     configuration::applier::host hst_aply2;
-    hst_child.parse("host_name", "child_host");
-    hst_child.parse("address", "127.0.0.1");
-    hst_child.parse("parents", "test_host");
-    hst_child.parse("_HOST_ID", "42");
+    hst_child.set_host_name("child_host");
+    hst_child.set_address("127.0.0.1");
+    hst_child_hlp.hook("parents", "test_host");
+    hst_child.set_host_id(42);
     hst_aply2.add_object(hst_child);
 
-    configuration::host hst{new_configuration_host("test_host", "admin")};
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
-    hst.parse("_HOST_ID", "12");
+    hst.set_host_id(12);
     hst_aply.add_object(hst);
 
     hst_aply.resolve_object(hst);
@@ -99,20 +102,23 @@ class EngineRpc : public TestEngine {
     ASSERT_EQ(parent->second->child_hosts.size(), 1u);
 
     /* hostgroup */
-    configuration::hostgroup hg;
+    configuration::Hostgroup hg;
+    configuration::hostgroup_helper hg_hlp(&hg);
     configuration::applier::hostgroup hg_aply;
-    hg.parse("hostgroup_name", "test_hg");
-    hg.parse("members", "test_host");
+    hg.set_hostgroup_name("test_hg");
+    hg_hlp.hook("members", "test_host");
     hg_aply.add_object(hg);
-    hg_aply.expand_objects(*config);
+    hg_aply.expand_objects(pb_config);
     hg_aply.resolve_object(hg);
 
     /* service */
-    configuration::service svc{
-        new_configuration_service("test_host", "test_svc", "admin")};
-    configuration::command cmd("cmd");
-    cmd.parse("command_line", "/bin/sh -c 'echo \"test_cmd\"'");
-    svc.parse("check_command", "cmd");
+    configuration::Service svc{
+        new_pb_configuration_service("test_host", "test_svc", "admin")};
+    configuration::Command cmd;
+    configuration::command_helper cmd_hlp(&cmd);
+    cmd.set_command_name("cmd");
+    cmd.set_command_line("/bin/sh -c 'echo \"test_cmd\"'");
+    svc.set_check_command("cmd");
     configuration::applier::command cmd_aply;
 
     configuration::applier::service svc_aply;
@@ -121,7 +127,7 @@ class EngineRpc : public TestEngine {
 
     svc_aply.resolve_object(svc);
 
-    configuration::anomalydetection ad{new_configuration_anomalydetection(
+    configuration::Anomalydetection ad{new_pb_configuration_anomalydetection(
         "test_host", "test_ad", "admin",
         12,  // service_id of the anomalydetection
         13,  // service_id of the dependent service
@@ -155,12 +161,14 @@ class EngineRpc : public TestEngine {
     _contact = cm.begin()->second;
 
     /* servicegroup */
-    configuration::servicegroup sg("test_sg");
+    configuration::Servicegroup sg;
+    configuration::servicegroup_helper sg_hlp(&sg);
+    sg.set_servicegroup_name("test_sg");
     configuration::applier::servicegroup sg_aply;
-    sg.parse("members", "test_host,test_svc");
+    sg_hlp.hook("members", "test_host,test_svc");
 
     sg_aply.add_object(sg);
-    sg_aply.expand_objects(*config);
+    sg_aply.expand_objects(pb_config);
     sg_aply.resolve_object(sg);
   }
 
@@ -1688,7 +1696,7 @@ TEST_F(EngineRpc, ChangeHostObjectCustomVar) {
   th->join();
 
   ASSERT_EQ(_host->custom_variables.size(), 1u);
-  ASSERT_EQ(_host->custom_variables["TEST_VAR"].get_value(), "test_val");
+  ASSERT_EQ(_host->custom_variables["TEST_VAR"].value(), "test_val");
   _host->custom_variables.clear();
   ASSERT_EQ(_host->custom_variables.size(), 0u);
   erpc.shutdown();
@@ -1715,7 +1723,7 @@ TEST_F(EngineRpc, ChangeServiceObjectCustomVar) {
   th->join();
 
   ASSERT_EQ(_svc->custom_variables.size(), 1u);
-  ASSERT_EQ(_svc->custom_variables["TEST_VAR"].get_value(), "test_val");
+  ASSERT_EQ(_svc->custom_variables["TEST_VAR"].value(), "test_val");
   _svc->custom_variables.clear();
   ASSERT_EQ(_svc->custom_variables.size(), 0u);
   erpc.shutdown();
@@ -1740,8 +1748,7 @@ TEST_F(EngineRpc, ChangeContactObjectCustomVar) {
   condvar.notify_one();
   th->join();
   ASSERT_EQ(_contact->get_custom_variables().size(), 1u);
-  ASSERT_EQ(_contact->get_custom_variables()["TEST_VAR"].get_value(),
-            "test_val");
+  ASSERT_EQ(_contact->get_custom_variables()["TEST_VAR"].value(), "test_val");
 
   erpc.shutdown();
 }

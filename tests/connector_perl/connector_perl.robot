@@ -8,16 +8,16 @@ Suite Teardown      Ctn Stop engine
 
 
 *** Test Cases ***
-test use connector perl exist script
-    [Documentation]    test exist script
+EPCWS
+    [Documentation]    Engine is started to be used with the Perl connector. A host check is done and we verify it is executed by the connector.
     [Tags]    connector    engine
     Ctn Schedule Forced Host Check    local_host_test_machine    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
     ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.debug    test.pl
     Should Contain    ${search_result}    a dummy check    check not found
 
-test use connector perl unknown script
-    [Documentation]    test unknown script
+EPCUS
+    [Documentation]    Engine is started to be used with the Perl connector. A host check is done with an unknown script. An error should be raised
     [Tags]    connector    engine
     Ctn Schedule Forced Host Check    local_host_test_machine_bad_test    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
@@ -27,14 +27,14 @@ test use connector perl unknown script
     ...    Embedded Perl error: failed to open Perl file '/tmp/test_connector_perl/test_titi.pl'
     ...    check not found
 
-test use connector perl multiple script
-    [Documentation]    test script multiple
+EPCMS
+    [Documentation]    Engine is started to be used with the Perl connector. Several calls are made to a script. We get a result for each of them.
     [Tags]    connector    engine
     FOR    ${idx}    IN RANGE    2    12
         ${host}    Catenate    SEPARATOR=    local_host_test_machine.    ${idx}
         Ctn Schedule Forced Host Check    ${host}    /tmp/test_connector_perl/rw/centengine.cmd
     END
-    Sleep    10 seconds    we wait engine forced checks
+    Sleep    10 seconds    we wait for Engine forced checks
     FOR    ${idx}    IN RANGE    2    12
         ${search_str}    Catenate    SEPARATOR=    test.pl -H 127.0.0.    ${idx}
         ${search_result}    Ctn Check Search    /tmp/test_connector_perl/log/centengine.debug    ${search_str}

@@ -50,6 +50,6 @@ class host_dependency : public dependency {
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_HOST_DEPENDENCY_HH

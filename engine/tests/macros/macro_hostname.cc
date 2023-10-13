@@ -18,8 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <fstream>
-#include "com/centreon/engine/globals.hh"
 
 #include <com/centreon/engine/configuration/applier/command.hh>
 #include <com/centreon/engine/configuration/applier/contact.hh>
@@ -34,6 +32,8 @@
 #include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
+#include <fstream>
+
 #include "../helper.hh"
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
@@ -41,7 +41,12 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/host_helper.hh"
+#include "common/configuration/hostgroup_helper.hh"
+#include "common/configuration/service_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -75,18 +80,20 @@ class MacroHostname : public TestEngine {
 
 TEST_F(MacroHostname, HostProblemId) {
   configuration::applier::host hst_aply, hst_aply2;
-  configuration::host hst, hst2;
+  configuration::Host hst, hst2;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::host_helper hst2_hlp(&hst2);
   next_problem_id = 1;
 
   set_time(50000);
   // first host
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   // second host
-  ASSERT_TRUE(hst2.parse("host_name", "test_host2"));
-  ASSERT_TRUE(hst2.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst2.parse("_HOST_ID", "13"));
+  hst2.set_host_name("test_host2");
+  hst2.set_address("127.0.0.1");
+  hst2.set_host_id(13);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_NO_THROW(hst_aply2.add_object(hst2));
   ASSERT_EQ(2u, host::hosts.size());
@@ -150,11 +157,13 @@ TEST_F(MacroHostname, HostProblemId) {
 // Then the applier add_object throws an exception.
 TEST_F(MacroHostname, TotalHostOk) {
   configuration::applier::host hst_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -171,11 +180,13 @@ TEST_F(MacroHostname, TotalHostOk) {
 // Then the applier add_object throws an exception.
 TEST_F(MacroHostname, TotalHostServicesCritical) {
   configuration::applier::host hst_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -191,10 +202,11 @@ TEST_F(MacroHostname, TotalHostServicesCritical) {
 TEST_F(MacroHostname, HostName) {
   init_macros();
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -208,10 +220,11 @@ TEST_F(MacroHostname, HostName) {
 TEST_F(MacroHostname, HostAlias) {
   init_macros();
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -225,10 +238,14 @@ TEST_F(MacroHostname, HostAlias) {
 TEST_F(MacroHostname, HostAddress) {
   init_macros();
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -241,10 +258,14 @@ TEST_F(MacroHostname, HostAddress) {
 
 TEST_F(MacroHostname, LastHostCheck) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -260,10 +281,14 @@ TEST_F(MacroHostname, LastHostCheck) {
 
 TEST_F(MacroHostname, LastHostStateChange) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -279,10 +304,14 @@ TEST_F(MacroHostname, LastHostStateChange) {
 
 TEST_F(MacroHostname, HostOutput) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -299,10 +328,14 @@ TEST_F(MacroHostname, HostOutput) {
 
 TEST_F(MacroHostname, HostPerfData) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -319,12 +352,17 @@ TEST_F(MacroHostname, HostPerfData) {
 
 TEST_F(MacroHostname, HostState) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -339,12 +377,17 @@ TEST_F(MacroHostname, HostState) {
 
 TEST_F(MacroHostname, HostStateID) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -359,12 +402,17 @@ TEST_F(MacroHostname, HostStateID) {
 
 TEST_F(MacroHostname, HostAttempt) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -379,12 +427,17 @@ TEST_F(MacroHostname, HostAttempt) {
 
 TEST_F(MacroHostname, HostExecutionTime) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   init_macros();
@@ -401,11 +454,15 @@ TEST_F(MacroHostname, HostExecutionTime) {
 
 TEST_F(MacroHostname, HostLatency) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -422,11 +479,15 @@ TEST_F(MacroHostname, HostLatency) {
 
 TEST_F(MacroHostname, HostDuration) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -442,11 +503,15 @@ TEST_F(MacroHostname, HostDuration) {
 
 TEST_F(MacroHostname, HostDurationSec) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -462,11 +527,15 @@ TEST_F(MacroHostname, HostDurationSec) {
 
 TEST_F(MacroHostname, HostDownTime) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   int now{500000000};
@@ -481,11 +550,15 @@ TEST_F(MacroHostname, HostDownTime) {
 
 TEST_F(MacroHostname, HostStateType) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   int now{500000000};
@@ -500,11 +573,15 @@ TEST_F(MacroHostname, HostStateType) {
 
 TEST_F(MacroHostname, HostPercentChange) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
   int now{500000000};
@@ -520,28 +597,31 @@ TEST_F(MacroHostname, HostPercentChange) {
 TEST_F(MacroHostname, HostGroupName) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
-  configuration::hostgroup hg;
-  configuration::host hst_a;
-  configuration::host hst_c;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hsta_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hstc_hlp(&hst_c);
 
-  ASSERT_TRUE(hst_a.parse("host_name", "a"));
-  ASSERT_TRUE(hst_a.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_a.parse("_HOST_ID", "1"));
+  hst_a.set_host_name("a");
+  hst_a.set_address("127.0.0.1");
+  hst_a.set_host_id(1);
 
-  ASSERT_TRUE(hst_c.parse("host_name", "c"));
-  ASSERT_TRUE(hst_c.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_c.parse("_HOST_ID", "2"));
+  hst_c.set_host_name("c");
+  hst_c.set_address("127.0.0.1");
+  hst_c.set_host_id(2);
 
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
-  ASSERT_TRUE(hg.parse("hostgroup_name", "temphg"));
-  ASSERT_TRUE(hg.parse("members", "a,c"));
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
@@ -560,29 +640,32 @@ TEST_F(MacroHostname, HostGroupName) {
 TEST_F(MacroHostname, HostGroupAlias) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
-  configuration::hostgroup hg;
-  configuration::host hst_a;
-  configuration::host hst_c;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hsta_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hstc_hlp(&hst_c);
 
-  ASSERT_TRUE(hst_a.parse("host_name", "a"));
-  ASSERT_TRUE(hst_a.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_a.parse("_HOST_ID", "1"));
+  hst_a.set_host_name("a");
+  hst_a.set_address("127.0.0.1");
+  hst_a.set_host_id(1);
 
-  ASSERT_TRUE(hst_c.parse("host_name", "c"));
-  ASSERT_TRUE(hst_c.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_c.parse("_HOST_ID", "2"));
+  hst_c.set_host_name("c");
+  hst_c.set_address("127.0.0.1");
+  hst_c.set_host_id(2);
 
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
-  ASSERT_TRUE(hg.parse("hostgroup_name", "temphg"));
-  ASSERT_TRUE(hg.parse("members", "a,c"));
-  ASSERT_TRUE(hg.parse("alias", "temphgal"));
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
+  hg.set_alias("temphgal");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
@@ -600,11 +683,15 @@ TEST_F(MacroHostname, HostGroupAlias) {
 
 TEST_F(MacroHostname, LastHostUP) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -622,11 +709,15 @@ TEST_F(MacroHostname, LastHostUP) {
 
 TEST_F(MacroHostname, LastHostDown) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -644,11 +735,15 @@ TEST_F(MacroHostname, LastHostDown) {
 
 TEST_F(MacroHostname, LastHostUnreachable) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -666,15 +761,21 @@ TEST_F(MacroHostname, LastHostUnreachable) {
 
 TEST_F(MacroHostname, HostCheckCommand) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  hst.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  hst.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
@@ -690,35 +791,17 @@ TEST_F(MacroHostname, HostCheckCommand) {
   ASSERT_EQ(out, "cmd");
 }
 
-TEST_F(MacroHostname, HostPerDataFile) {
-  configuration::parser parser;
-  configuration::state st;
-
-  std::remove("/tmp/test-config.cfg");
-
-  std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "host_perfdata_file=/var/log/centreon-engine/host-perfdata.dat"
-      << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
-  ofs.close();
-
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
-  init_macros();
-
-  std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$HOSTPERFDATAFILE:test_host$", out, 1);
-  ASSERT_EQ(out, "/var/log/centreon-engine/host-perfdata.dat");
-}
-
 TEST_F(MacroHostname, HostDisplayName) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -734,12 +817,17 @@ TEST_F(MacroHostname, HostDisplayName) {
 
 TEST_F(MacroHostname, HostActionUrl) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("action_url", "test_action_url"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_action_url("test_action_url");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_action_url("test_action_url");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -755,12 +843,14 @@ TEST_F(MacroHostname, HostActionUrl) {
 
 TEST_F(MacroHostname, HostNotesUrl) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes_url", "test_notes_url"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes_url("test_notes_url");
+  hst.set_notes_url("test_notes_url");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -776,12 +866,13 @@ TEST_F(MacroHostname, HostNotesUrl) {
 
 TEST_F(MacroHostname, HostNotes) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -797,12 +888,13 @@ TEST_F(MacroHostname, HostNotes) {
 
 TEST_F(MacroHostname, TotalHostsDown) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -820,12 +912,13 @@ TEST_F(MacroHostname, TotalHostsDown) {
 
 TEST_F(MacroHostname, TotalHostsUnreachable) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -843,12 +936,13 @@ TEST_F(MacroHostname, TotalHostsUnreachable) {
 
 TEST_F(MacroHostname, TotalHostsDownUnhandled) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -864,12 +958,13 @@ TEST_F(MacroHostname, TotalHostsDownUnhandled) {
 
 TEST_F(MacroHostname, TotalHostsunreachableunhandled) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -885,12 +980,13 @@ TEST_F(MacroHostname, TotalHostsunreachableunhandled) {
 
 TEST_F(MacroHostname, TotalHostProblems) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -906,12 +1002,13 @@ TEST_F(MacroHostname, TotalHostProblems) {
 
 TEST_F(MacroHostname, TotalHostProblemsUnhandled) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -927,13 +1024,14 @@ TEST_F(MacroHostname, TotalHostProblemsUnhandled) {
 
 TEST_F(MacroHostname, HostCheckType) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -951,13 +1049,14 @@ TEST_F(MacroHostname, HostCheckType) {
 
 TEST_F(MacroHostname, LongHostOutput) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -975,13 +1074,14 @@ TEST_F(MacroHostname, LongHostOutput) {
 
 TEST_F(MacroHostname, HostNotificationNumber) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -999,13 +1099,14 @@ TEST_F(MacroHostname, HostNotificationNumber) {
 
 TEST_F(MacroHostname, HostNotificationID) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1023,13 +1124,14 @@ TEST_F(MacroHostname, HostNotificationID) {
 
 TEST_F(MacroHostname, HostEventID) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1047,13 +1149,14 @@ TEST_F(MacroHostname, HostEventID) {
 
 TEST_F(MacroHostname, LastHostEventID) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1072,28 +1175,31 @@ TEST_F(MacroHostname, LastHostEventID) {
 TEST_F(MacroHostname, HostGroupNames) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
-  configuration::hostgroup hg;
-  configuration::host hst_a;
-  configuration::host hst_c;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hsta_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hstc_hlp(&hst_c);
 
-  ASSERT_TRUE(hst_a.parse("host_name", "a"));
-  ASSERT_TRUE(hst_a.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_a.parse("_HOST_ID", "1"));
+  hst_a.set_host_name("a");
+  hst_a.set_address("127.0.0.1");
+  hst_a.set_host_id(1);
 
-  ASSERT_TRUE(hst_c.parse("host_name", "c"));
-  ASSERT_TRUE(hst_c.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_c.parse("_HOST_ID", "2"));
+  hst_c.set_host_name("c");
+  hst_c.set_address("127.0.0.1");
+  hst_c.set_host_id(2);
 
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
-  ASSERT_TRUE(hg.parse("hostgroup_name", "temphg"));
-  ASSERT_TRUE(hg.parse("members", "a,c"));
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
@@ -1111,13 +1217,14 @@ TEST_F(MacroHostname, HostGroupNames) {
 
 TEST_F(MacroHostname, MaxHostAttempts) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1135,13 +1242,14 @@ TEST_F(MacroHostname, MaxHostAttempts) {
 
 TEST_F(MacroHostname, TotalHostServices) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1159,13 +1267,14 @@ TEST_F(MacroHostname, TotalHostServices) {
 
 TEST_F(MacroHostname, TotalHostServicesOK) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1183,13 +1292,14 @@ TEST_F(MacroHostname, TotalHostServicesOK) {
 
 TEST_F(MacroHostname, TotalHostServicesWarning) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1207,13 +1317,14 @@ TEST_F(MacroHostname, TotalHostServicesWarning) {
 
 TEST_F(MacroHostname, TotalHostServicesUnknown) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1232,29 +1343,32 @@ TEST_F(MacroHostname, TotalHostServicesUnknown) {
 TEST_F(MacroHostname, HostGroupNotes) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
-  configuration::hostgroup hg;
-  configuration::host hst_a;
-  configuration::host hst_c;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hsta_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hstc_hlp(&hst_c);
 
-  ASSERT_TRUE(hst_a.parse("host_name", "a"));
-  ASSERT_TRUE(hst_a.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_a.parse("_HOST_ID", "1"));
+  hst_a.set_host_name("a");
+  hst_a.set_address("127.0.0.1");
+  hst_a.set_host_id(1);
 
-  ASSERT_TRUE(hst_c.parse("host_name", "c"));
-  ASSERT_TRUE(hst_c.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_c.parse("_HOST_ID", "2"));
+  hst_c.set_host_name("c");
+  hst_c.set_address("127.0.0.1");
+  hst_c.set_host_id(2);
 
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
-  ASSERT_TRUE(hg.parse("hostgroup_name", "temphg"));
-  ASSERT_TRUE(hg.parse("members", "a,c"));
-  ASSERT_TRUE(hg.parse("notes", "test_note"));
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
+  hg.set_notes("test_note");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
@@ -1273,29 +1387,32 @@ TEST_F(MacroHostname, HostGroupNotes) {
 TEST_F(MacroHostname, HostGroupNotesUrl) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
-  configuration::hostgroup hg;
-  configuration::host hst_a;
-  configuration::host hst_c;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hsta_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hstc_hlp(&hst_c);
 
-  ASSERT_TRUE(hst_a.parse("host_name", "a"));
-  ASSERT_TRUE(hst_a.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_a.parse("_HOST_ID", "1"));
+  hst_a.set_host_name("a");
+  hst_a.set_address("127.0.0.1");
+  hst_a.set_host_id(1);
 
-  ASSERT_TRUE(hst_c.parse("host_name", "c"));
-  ASSERT_TRUE(hst_c.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_c.parse("_HOST_ID", "2"));
+  hst_c.set_host_name("c");
+  hst_c.set_address("127.0.0.1");
+  hst_c.set_host_id(2);
 
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
-  ASSERT_TRUE(hg.parse("hostgroup_name", "temphg"));
-  ASSERT_TRUE(hg.parse("members", "a,c"));
-  ASSERT_TRUE(hg.parse("notes_url", "test_note_url"));
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
+  hg.set_notes_url("test_note_url");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
@@ -1314,29 +1431,32 @@ TEST_F(MacroHostname, HostGroupNotesUrl) {
 TEST_F(MacroHostname, HostGroupActionUrl) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
-  configuration::hostgroup hg;
-  configuration::host hst_a;
-  configuration::host hst_c;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hsta_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hstc_hlp(&hst_c);
 
-  ASSERT_TRUE(hst_a.parse("host_name", "a"));
-  ASSERT_TRUE(hst_a.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_a.parse("_HOST_ID", "1"));
+  hst_a.set_host_name("a");
+  hst_a.set_address("127.0.0.1");
+  hst_a.set_host_id(1);
 
-  ASSERT_TRUE(hst_c.parse("host_name", "c"));
-  ASSERT_TRUE(hst_c.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_c.parse("_HOST_ID", "2"));
+  hst_c.set_host_name("c");
+  hst_c.set_address("127.0.0.1");
+  hst_c.set_host_id(2);
 
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
-  ASSERT_TRUE(hg.parse("hostgroup_name", "temphg"));
-  ASSERT_TRUE(hg.parse("members", "a,c"));
-  ASSERT_TRUE(hg.parse("action_url", "test_action_url"));
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
+  hg.set_action_url("test_action_url");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
@@ -1355,29 +1475,32 @@ TEST_F(MacroHostname, HostGroupActionUrl) {
 TEST_F(MacroHostname, HostGroupMembers) {
   configuration::applier::hostgroup hg_aply;
   configuration::applier::host hst_aply;
-  configuration::hostgroup hg;
-  configuration::host hst_a;
-  configuration::host hst_c;
+  configuration::Hostgroup hg;
+  configuration::hostgroup_helper hg_hlp(&hg);
+  configuration::Host hst_a;
+  configuration::host_helper hsta_hlp(&hst_a);
+  configuration::Host hst_c;
+  configuration::host_helper hstc_hlp(&hst_c);
 
-  ASSERT_TRUE(hst_a.parse("host_name", "a"));
-  ASSERT_TRUE(hst_a.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_a.parse("_HOST_ID", "1"));
+  hst_a.set_host_name("a");
+  hst_a.set_address("127.0.0.1");
+  hst_a.set_host_id(1);
 
-  ASSERT_TRUE(hst_c.parse("host_name", "c"));
-  ASSERT_TRUE(hst_c.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_c.parse("_HOST_ID", "2"));
+  hst_c.set_host_name("c");
+  hst_c.set_address("127.0.0.1");
+  hst_c.set_host_id(2);
 
   hst_aply.add_object(hst_a);
   hst_aply.add_object(hst_c);
 
-  ASSERT_TRUE(hg.parse("hostgroup_name", "temphg"));
-  ASSERT_TRUE(hg.parse("members", "a,c"));
-  ASSERT_TRUE(hg.parse("action_url", "test_action_url"));
+  hg.set_hostgroup_name("temphg");
+  hg_hlp.hook("members", "a,c");
+  hg.set_action_url("test_action_url");
   ASSERT_NO_THROW(hg_aply.add_object(hg));
 
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hst_aply.expand_objects(*config));
-  ASSERT_NO_THROW(hg_aply.expand_objects(*config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hst_aply.expand_objects(pb_config));
+  ASSERT_NO_THROW(hg_aply.expand_objects(pb_config));
 
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_a));
   ASSERT_NO_THROW(hst_aply.resolve_object(hst_c));
@@ -1395,13 +1518,14 @@ TEST_F(MacroHostname, HostGroupMembers) {
 
 TEST_F(MacroHostname, LastHostProblemId) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1419,13 +1543,14 @@ TEST_F(MacroHostname, LastHostProblemId) {
 
 TEST_F(MacroHostname, LastHostState) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1443,13 +1568,14 @@ TEST_F(MacroHostname, LastHostState) {
 
 TEST_F(MacroHostname, LastHostStateID) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1467,13 +1593,14 @@ TEST_F(MacroHostname, LastHostStateID) {
 
 TEST_F(MacroHostname, HostParents) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("parents", "test_parent"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.mutable_parents()->add_data("test_parent");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1492,37 +1619,41 @@ TEST_F(MacroHostname, HostParents) {
 TEST_F(MacroHostname, HostChildren) {
   configuration::applier::host hst_aply;
   configuration::applier::command cmd_aply;
-  configuration::host hst_child;
-  configuration::host hst_parent;
+  configuration::Host hst_child;
+  configuration::host_helper hst_child_hlp(&hst_child);
+  configuration::Host hst_parent;
+  configuration::host_helper hst_parent_hlp(&hst_parent);
 
-  configuration::command cmd("base_centreon_ping");
-  cmd.parse("command_line",
-            "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
-            "$_HOSTWARNING$ -c $_HOSTCRITICAL$");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("base_centreon_ping");
+  cmd.set_command_line(
+      "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
+      "$_HOSTWARNING$ -c $_HOSTCRITICAL$");
   cmd_aply.add_object(cmd);
 
-  ASSERT_TRUE(hst_child.parse("host_name", "child_host"));
-  ASSERT_TRUE(hst_child.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_child.parse("parents", "parent_host"));
-  ASSERT_TRUE(hst_child.parse("_HOST_ID", "1"));
-  ASSERT_TRUE(hst_child.parse("_PACKETNUMBER", "42"));
-  ASSERT_TRUE(hst_child.parse("_WARNING", "200,20%"));
-  ASSERT_TRUE(hst_child.parse("_CRITICAL", "400,50%"));
-  ASSERT_TRUE(hst_child.parse("check_command", "base_centreon_ping"));
+  hst_child.set_host_name("child_host");
+  hst_child.set_address("127.0.0.1");
+  hst_child.set_host_id(1);
+  hst_child_hlp.hook("parents", "parent_host");
+  hst_child_hlp.hook("_PACKETNUMBER", "42");
+  hst_child_hlp.hook("_WARNING", "200,20%");
+  hst_child_hlp.hook("_CRITICAL", "400,50%");
+  hst_child.set_check_command("base_centreon_ping");
   hst_aply.add_object(hst_child);
 
-  ASSERT_TRUE(hst_parent.parse("host_name", "parent_host"));
-  ASSERT_TRUE(hst_parent.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst_parent.parse("_HOST_ID", "2"));
-  ASSERT_TRUE(hst_parent.parse("_PACKETNUMBER", "42"));
-  ASSERT_TRUE(hst_parent.parse("_WARNING", "200,20%"));
-  ASSERT_TRUE(hst_parent.parse("_CRITICAL", "400,50%"));
-  ASSERT_TRUE(hst_parent.parse("check_command", "base_centreon_ping"));
+  hst_parent.set_host_name("parent_host");
+  hst_parent.set_address("127.0.0.1");
+  hst_parent.set_host_id(2);
+  hst_parent_hlp.hook("_PACKETNUMBER", "42");
+  hst_parent_hlp.hook("_WARNING", "200,20%");
+  hst_parent_hlp.hook("_CRITICAL", "400,50%");
+  hst_child.set_check_command("base_centreon_ping");
   hst_aply.add_object(hst_parent);
 
   ASSERT_EQ(engine::host::hosts.size(), 2u);
 
-  hst_aply.expand_objects(*config);
+  hst_aply.expand_objects(pb_config);
   hst_aply.resolve_object(hst_child);
   hst_aply.resolve_object(hst_parent);
 
@@ -1538,13 +1669,14 @@ TEST_F(MacroHostname, HostChildren) {
 
 TEST_F(MacroHostname, HostID) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("notes", "test_notes"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_notes("test_notes");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 
@@ -1562,13 +1694,19 @@ TEST_F(MacroHostname, HostID) {
 
 TEST_F(MacroHostname, HostTimeZone) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  ASSERT_TRUE(hst.parse("timezone", "test_timezone"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_timezone("test_timezone");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
+  hst.set_timezone("test_timezone");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
 

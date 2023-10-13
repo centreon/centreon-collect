@@ -22,9 +22,11 @@
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/file/opener.hh"
 #include "com/centreon/broker/file/stream.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/stats/center.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -86,6 +88,9 @@ void persistent_file::statistics(nlohmann::json& tree) const {
  *  @param[in] d  Input data.
  */
 int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->trace("persistent file: write '{}'", _splitter->get_name());
   return _substream->write(d);
 }
 
@@ -96,8 +101,9 @@ int32_t persistent_file::write(std::shared_ptr<io::data> const& d) {
  */
 int32_t persistent_file::stop() {
   int32_t retval = _substream->stop();
-  log_v2::core()->info("persistent file stopped with {} acknowledged events",
-                       retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("persistent file stopped with {} acknowledged events", retval);
   return retval;
 }
 

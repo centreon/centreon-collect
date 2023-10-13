@@ -27,8 +27,10 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bulk_bind::mysql_bulk_bind(int size, size_t reserved_rows_count)
-    : mysql_bind_base(size), _column(size) {
+mysql_bulk_bind::mysql_bulk_bind(int size,
+                                 size_t reserved_rows_count,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : mysql_bind_base(size, logger), _column(size) {
   for (auto& c : _column)
     c.reserve(reserved_rows_count);
 }
@@ -103,17 +105,17 @@ void mysql_bulk_bind::set_value_as_i64(size_t range,
     _bind[range].length = _column[range].length_buffer();                 \
   }
 
-#define VALUE(ftype, vtype, sqltype)                                      \
-  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const {           \
-    if (_bind[range].buffer_type == sqltype)                              \
-      return *static_cast<vtype*>(_bind[range].buffer);                   \
-    else {                                                                \
-      assert("This field is not an " #sqltype == nullptr);                \
-      SPDLOG_LOGGER_CRITICAL(                                             \
-          log_v2::sql(), "{} This field is not an " #sqltype " but {}",   \
-          __FUNCTION__, static_cast<uint32_t>(_bind[range].buffer_type)); \
-      return 0;                                                           \
-    }                                                                     \
+#define VALUE(ftype, vtype, sqltype)                                        \
+  vtype mysql_bulk_bind::value_as_##ftype(size_t range) const {             \
+    if (_bind[range].buffer_type == sqltype)                                \
+      return *static_cast<vtype*>(_bind[range].buffer);                     \
+    else {                                                                  \
+      assert("This field is not an " #sqltype == nullptr);                  \
+      SPDLOG_LOGGER_CRITICAL(_logger,                                       \
+                             "{} This field is not an " #sqltype " but {}", \
+                             __FUNCTION__, _bind[range].buffer_type);       \
+      return 0;                                                             \
+    }                                                                       \
   }
 
 SET_VALUE(i32, int32_t, MYSQL_TYPE_LONG, false)

@@ -27,7 +27,8 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 
-mysql_bind::mysql_bind(int size) : mysql_bind_base(size), _buffer(size) {}
+mysql_bind::mysql_bind(int size, const std::shared_ptr<spdlog::logger>& logger)
+    : mysql_bind_base(size, logger), _buffer(size) {}
 
 void* mysql_bind::get_value_pointer(size_t range) {
   switch (_bind[range].buffer_type) {
@@ -95,17 +96,17 @@ void mysql_bind::set_null_bool(size_t range) {
     _bind[range].is_unsigned = unsgn;                                \
   }
 
-#define VALUE(ftype, vtype, sqltype)                                      \
-  vtype mysql_bind::value_as_##ftype(size_t range) const {                \
-    if (_bind[range].buffer_type == sqltype)                              \
-      return *static_cast<vtype*>(_bind[range].buffer);                   \
-    else {                                                                \
-      assert("This field is not an " #sqltype == nullptr);                \
-      SPDLOG_LOGGER_CRITICAL(                                             \
-          log_v2::sql(), "{} This field is not an " #sqltype " but {}",   \
-          __FUNCTION__, static_cast<uint32_t>(_bind[range].buffer_type)); \
-      return 0;                                                           \
-    }                                                                     \
+#define VALUE(ftype, vtype, sqltype)                                        \
+  vtype mysql_bind::value_as_##ftype(size_t range) const {                  \
+    if (_bind[range].buffer_type == sqltype)                                \
+      return *static_cast<vtype*>(_bind[range].buffer);                     \
+    else {                                                                  \
+      assert("This field is not an " #sqltype == nullptr);                  \
+      SPDLOG_LOGGER_CRITICAL(_logger,                                       \
+                             "{} This field is not an " #sqltype " but {}", \
+                             __FUNCTION__, _bind[range].buffer_type);       \
+      return 0;                                                             \
+    }                                                                       \
   }
 
 SET_VALUE(i32, int32_t, MYSQL_TYPE_LONG, false)

@@ -53,6 +53,7 @@ config = {
                 "tls": "error",
                 "lua": "error",
                 "bam": "error",
+                "functions": "trace",
                 "grpc": "debug"
             }}
         }},

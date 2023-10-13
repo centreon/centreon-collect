@@ -22,9 +22,10 @@
 #include <opentelemetry/metrics/provider.h>
 #include <opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h>
 #include <opentelemetry/sdk/metrics/meter_provider.h>
+#include "common/log_v2/log_v2.hh"
 
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/log_v2.hh"
+
 #include "com/centreon/broker/stats_exporter/exporter_grpc.hh"
 #include "com/centreon/broker/stats_exporter/exporter_http.hh"
 
@@ -32,6 +33,7 @@ namespace metric_sdk = opentelemetry::sdk::metrics;
 namespace metrics_api = opentelemetry::metrics;
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances = 0;
@@ -66,10 +68,15 @@ void broker_module_init(const void* arg) {
     const auto& conf = s->get_stats_exporter();
     const auto& exporters = conf.exporters;
     // Stats module.
-    log_v2::config()->info("stats_exporter: module for Centreon Broker {}",
-                           CENTREON_BROKER_VERSION);
+    log_v2::instance()
+        .get(log_v2::CONFIG)
+        ->info("stats_exporter: module for Centreon Broker {}",
+               CENTREON_BROKER_VERSION);
 
     for (const auto& e : exporters) {
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->info("stats_exporter: with exporter '{}'", e.protocol);
       switch (e.protocol) {
         case config::state::stats_exporter::HTTP:
           log_v2::config()->info("stats_exporter: with exporter 'HTTP'");

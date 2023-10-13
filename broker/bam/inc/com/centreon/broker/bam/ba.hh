@@ -19,6 +19,7 @@
 #ifndef CCB_BAM_BA_HH
 #define CCB_BAM_BA_HH
 
+#include <memory>
 #include "bbdo/bam/ba_duration_event.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/state.hh"
@@ -30,9 +31,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declaration.
 class kpi;
 
@@ -112,7 +111,8 @@ class ba : public computable, public service_listener {
      uint32_t host_id,
      uint32_t service_id,
      configuration::ba::state_source source,
-     bool generate_virtual_status = true);
+     bool generate_virtual_status,
+     const std::shared_ptr<spdlog::logger>& logger);
   ba(const ba&) = delete;
   virtual ~ba() noexcept = default;
   ba& operator=(ba const& other) = delete;
@@ -141,21 +141,23 @@ class ba : public computable, public service_listener {
   void set_state_source(configuration::ba::state_source source);
   void visit(io::stream* visitor);
   void service_update(std::shared_ptr<neb::downtime> const& dt,
-                      io::stream* visitor) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(std::shared_ptr<neb::pb_downtime> const& dt,
-                      io::stream* visitor) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void save_inherited_downtime(persistent_cache& cache) const;
   void set_inherited_downtime(inherited_downtime const& dwn);
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
   void set_level_critical(double level);
   void set_level_warning(double level);
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(const std::string& filename) const;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BA_HH

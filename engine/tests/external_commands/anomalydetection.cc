@@ -44,24 +44,24 @@ class ADExtCmd : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
-    configuration::host hst{new_configuration_host("test_host", "admin")};
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-    configuration::service svc{
-        new_configuration_service("test_host", "test_svc", "admin")};
+    configuration::Service svc{
+        new_pb_configuration_service("test_host", "test_svc", "admin")};
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
     hst_aply.resolve_object(hst);
     svc_aply.resolve_object(svc);
 
-    configuration::anomalydetection ad{new_configuration_anomalydetection(
+    configuration::Anomalydetection ad{new_pb_configuration_anomalydetection(
         "test_host", "test_ad", "admin",
         12,  // service_id of the anomalydetection
         13,  // service_id of the dependent service

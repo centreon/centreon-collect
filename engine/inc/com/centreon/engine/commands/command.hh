@@ -1,24 +1,27 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013 Merethis
+ * Copyright 2023      Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_COMMANDS_COMMAND_HH
 #define CCE_COMMANDS_COMMAND_HH
+
+#include <boost/container/flat_map.hpp>
 
 #include "com/centreon/engine/commands/command_listener.hh"
 #include "com/centreon/engine/commands/result.hh"
@@ -28,16 +31,15 @@ namespace com::centreon::engine {
 namespace commands {
 class command;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
-    std::shared_ptr<com::centreon::engine::commands::command> >
+    std::shared_ptr<com::centreon::engine::commands::command>>
     command_map;
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::commands {
 
-namespace commands {
 /**
  *  @class command command.hh
  *  @brief Execute command and send the result.
@@ -136,9 +138,7 @@ inline std::ostream& operator<<(std::ostream& s, const command::pointer& cmd) {
   return s;
 }
 
-}  // namespace commands
-
-}
+}  // namespace com::centreon::engine::commands
 
 namespace fmt {
 template <>

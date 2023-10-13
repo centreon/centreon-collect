@@ -20,8 +20,8 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 #include "com/centreon/broker/tls/internal.hh"
 #include "com/centreon/broker/tls/stream.hh"
@@ -29,12 +29,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
 using namespace com::centreon::exceptions;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  @brief Constructor.
@@ -115,6 +110,9 @@ stream::~stream() {
     catch (...) {
     }
   }
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tls::stream destructor {}", static_cast<void*>(this));
 }
 
 /**
@@ -141,7 +139,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   int ret(gnutls_record_recv(_session, buffer->data(), buffer->size()));
   if (ret < 0) {
     if ((ret != GNUTLS_E_INTERRUPTED) && (ret != GNUTLS_E_AGAIN)) {
-      SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: could not receive data: {}",
+      SPDLOG_LOGGER_ERROR(_logger, "TLS: could not receive data: {}",
                           gnutls_strerror(ret));
       throw msg_fmt("TLS: could not receive data: {} ", gnutls_strerror(ret));
     } else
@@ -151,7 +149,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
     d = buffer;
     return true;
   } else {
-    SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS session is terminated");
+    SPDLOG_LOGGER_ERROR(_logger, "TLS session is terminated");
     throw msg_fmt("TLS session is terminated");
   }
   return false;
@@ -229,7 +227,7 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     while (size > 0) {
       int ret(gnutls_record_send(_session, ptr, size));
       if (ret < 0) {
-        SPDLOG_LOGGER_ERROR(log_v2::tls(), "TLS: could not send data: {}",
+        SPDLOG_LOGGER_ERROR(_logger, "TLS: could not send data: {}",
                             gnutls_strerror(ret));
         throw msg_fmt("TLS: could not send data: {}", gnutls_strerror(ret));
       }
@@ -254,13 +252,13 @@ long long stream::write_encrypted(void const* buffer, long long size) {
   std::vector<char> tmp(const_cast<char*>(static_cast<char const*>(buffer)),
                         const_cast<char*>(static_cast<char const*>(buffer)) +
                             static_cast<std::size_t>(size));
-  SPDLOG_LOGGER_TRACE(log_v2::tls(), "tls write enc: {}", size);
+  SPDLOG_LOGGER_TRACE(_logger, "tls write enc: {}", size);
   r->get_buffer() = std::move(tmp);
   try {
     _substream->write(r);
     _substream->flush();
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::tls(), "tls write fail: {}", e.what());
+    SPDLOG_LOGGER_DEBUG(_logger, "tls write fail: {}", e.what());
     gnutls_transport_set_errno(_session, EPIPE);
     throw;
   }

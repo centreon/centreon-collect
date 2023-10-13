@@ -32,7 +32,9 @@ using namespace com::centreon::broker::database;
  *
  * @param size Number of columns in this bind
  */
-mysql_bind_base::mysql_bind_base(int size) : _typed(size), _bind(size) {}
+mysql_bind_base::mysql_bind_base(int size,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : _typed(size), _bind(size), _logger{logger} {}
 
 /**
  * @brief Return a boolean telling if the column at index range has been

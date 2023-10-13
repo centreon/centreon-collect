@@ -17,10 +17,13 @@
 */
 
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include <memory>
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::unified_sql;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  * @brief Constructor
@@ -33,12 +36,14 @@ using namespace com::centreon::broker::unified_sql;
 bulk_bind::bulk_bind(const size_t connections_count,
                      const uint32_t max_interval,
                      const uint32_t max_rows,
-                     database::mysql_bulk_stmt& stmt)
+                     database::mysql_bulk_stmt& stmt,
+                     const std::shared_ptr<spdlog::logger>& logger)
     : _interval{max_interval},
       _max_size{max_rows},
       _stmt(stmt),
       _bind(connections_count),
-      _next_time(connections_count) {}
+      _next_time(connections_count),
+      _logger{logger} {}
 
 /**
  * @brief Return true when the time limit or the row counter are reached with
@@ -54,27 +59,26 @@ bool bulk_bind::ready(int32_t conn) {
     return false;
 
   if (b->rows_count() >= _max_size) {
-    log_v2::sql()->trace("The bind rows count {} reaches its max size {}",
-                         b->rows_count(), _max_size);
+    _logger->trace("The bind rows count {} reaches its max size {}",
+                   b->rows_count(), _max_size);
     return true;
   }
 
   std::time_t now = time(nullptr);
   if (_next_time[conn] <= now) {
-    log_v2::sql()->trace(
+    _logger->trace(
         "The bind next time {} has been reached by the current time {}",
         _next_time[conn], now);
     if (b->current_row() == 0) {
-      log_v2::sql()->trace(
-          "the rows count of the binding is 0 so nothing to do");
+      _logger->trace("the rows count of the binding is 0 so nothing to do");
       _next_time[conn] = std::time(nullptr) + _interval;
-      log_v2::sql()->trace(" => bind not ready");
+      _logger->trace(" => bind not ready");
       return false;
     }
-    log_v2::sql()->trace(" => bind ready");
+    _logger->trace(" => bind ready");
     return true;
   }
-  log_v2::sql()->trace(" => bind not ready");
+  _logger->trace(" => bind not ready");
   return false;
 }
 

@@ -20,7 +20,6 @@
 
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 using namespace com::centreon::broker;
@@ -32,8 +31,10 @@ using namespace com::centreon::broker;
  * @param impact_if True if impact is applied if the expression is true.False
  * otherwise.
  */
-bool_expression::bool_expression(uint32_t id, bool impact_if)
-    : _id(id), _impact_if(impact_if) {}
+bool_expression::bool_expression(uint32_t id,
+                                 bool impact_if,
+                                 const std::shared_ptr<spdlog::logger>& logger)
+    : computable(logger), _id(id), _impact_if(impact_if) {}
 
 /**
  *  Get the boolean expression state.
@@ -43,7 +44,7 @@ bool_expression::bool_expression(uint32_t id, bool impact_if)
 state bool_expression::get_state() const {
   bool v = _expression->boolean_value();
   state retval = v == _impact_if ? state_critical : state_ok;
-  log_v2::bam()->debug(
+  _logger->debug(
       "BAM: boolean expression {} - impact if: {} - value: {} - state: {}", _id,
       _impact_if, static_cast<uint32_t>(v), static_cast<uint32_t>(retval));
   return retval;
@@ -95,11 +96,15 @@ uint32_t bool_expression::get_id() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
-void bool_expression::update_from(computable* child, io::stream* visitor) {
-  log_v2::bam()->trace("bool_expression::update_from");
+void bool_expression::update_from(
+    computable* child,
+    io::stream* visitor,
+    const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("bool_expression::update_from");
   if (child == _expression.get())
-    notify_parents_of_change(visitor);
+    notify_parents_of_change(visitor, logger);
 }
 
 /**

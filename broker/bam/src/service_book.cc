@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/service_book.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/neb/downtime.hh"
@@ -36,8 +35,7 @@ static constexpr bool time_is_undefined(uint64_t t) {
  *  @param[in]     service_id  Service ID.
  *  @param[in,out] listnr      Service listener.
  */
-void service_book::listen(uint32_t host_id,
-                          uint32_t service_id,
+void service_book::listen(uint32_t host_id, uint32_t service_id,
                           service_listener* listnr) {
   log_v2::bam()->trace("BAM: service ({}, {}) added to service book", host_id,
                        service_id);
@@ -57,8 +55,7 @@ void service_book::listen(uint32_t host_id,
  *  @param[in] service_id  Service ID.
  *  @param[in] listnr      Service listener.
  */
-void service_book::unlisten(uint32_t host_id,
-                            uint32_t service_id,
+void service_book::unlisten(uint32_t host_id, uint32_t service_id,
                             service_listener* listnr) {
   auto found = _book.find(std::make_pair(host_id, service_id));
   if (found != _book.end()) {

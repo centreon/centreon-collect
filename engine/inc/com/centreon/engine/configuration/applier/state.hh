@@ -1,29 +1,31 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_APPLIER_STATE_HH
 #define CCE_CONFIGURATION_APPLIER_STATE_HH
 
 #include "com/centreon/engine/configuration/applier/difference.hh"
+#include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/servicedependency.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -47,8 +49,19 @@ namespace applier {
  */
 class state {
  public:
+  void apply_ng(const configuration::State& new_cfg);
+#if LEGACY_CONF
   void apply(configuration::state& new_cfg);
   void apply(configuration::state& new_cfg, retention::state& state);
+  void apply_log_config(configuration::state& new_cfg);
+#else
+  void apply(configuration::State& new_cfg);
+  void apply(configuration::State& new_cfg, retention::state& state);
+  void apply_log_config(configuration::State& new_cfg);
+  configuration::DiffState build_difference(
+      const configuration::State& cfg,
+      const configuration::State& new_cfg) const;
+#endif
   static state& instance();
   void clear();
 
@@ -84,6 +97,7 @@ class state {
 #endif
 
   state& operator=(state const&);
+#if LEGACY_CONF
   void _apply(configuration::state const& new_cfg);
   template <typename ConfigurationType, typename ApplierType>
   void _apply(difference<std::set<ConfigurationType>> const& diff);
@@ -91,9 +105,22 @@ class state {
   template <typename ConfigurationType, typename ApplierType>
   void _expand(configuration::state& new_state);
   void _processing(configuration::state& new_cfg,
-                   retention::state* state = NULL);
+                   retention::state* state = nullptr);
   template <typename ConfigurationType, typename ApplierType>
   void _resolve(std::set<ConfigurationType>& cfg);
+#else
+  void _pb_apply(const configuration::State& new_cfg);
+  template <typename ConfigurationType, typename Key, typename ApplierType>
+  void _pb_apply(const pb_difference<ConfigurationType, Key>& diff);
+  void _pb_apply(configuration::State& new_cfg, retention::state& state);
+  template <typename ConfigurationType, typename ApplierType>
+  void _expand(configuration::State& new_state);
+  void _processing(configuration::State& new_cfg,
+                   retention::state* state = nullptr);
+  template <typename ConfigurationType, typename ApplierType>
+  void _pb_resolve(
+      const ::google::protobuf::RepeatedPtrField<ConfigurationType>& cfg);
+#endif
 
   std::mutex _apply_lock;
   state* _config;
@@ -105,6 +132,6 @@ class state {
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_STATE_HH

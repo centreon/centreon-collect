@@ -27,7 +27,6 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/version.hh"
 
 using namespace com::centreon;

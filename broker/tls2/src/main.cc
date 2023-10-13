@@ -19,11 +19,12 @@
 #include <memory>
 
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tls2/factory.hh"
 #include "com/centreon/broker/tls2/internal.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances(0);
@@ -60,8 +61,9 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TLS module.
-    log_v2::tls()->info("TLS: module for Centreon Broker {}",
-                        CENTREON_BROKER_VERSION);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("TLS: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
 
     // Initialization.
     tls2::initialize();

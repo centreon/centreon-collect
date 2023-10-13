@@ -1,25 +1,28 @@
 /**
-* Copyright 1999-2011 Ethan Galstad
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2011 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/shared.hh"
+
 #include <random>
+
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/string.hh"
@@ -141,6 +144,13 @@ void get_datetime_string(time_t const* raw_time,
   char const* tzone(tm_s.tm_isdst ? tzname[1] : tzname[0]);
 #endif /* HAVE_TM_ZONE || HAVE_TZNAME */
 
+  int32_t date_format;
+#if LEGACY_CONF
+  date_format = config->date_format();
+#else
+  date_format = pb_config.date_format();
+#endif
+
   /* ctime() style date/time */
   if (type == LONG_DATE_TIME)
     snprintf(buffer, buffer_length, "%s %s %d %02d:%02d:%02d %s %d",
@@ -149,16 +159,15 @@ void get_datetime_string(time_t const* raw_time,
 
   /* short date/time */
   else if (type == SHORT_DATE_TIME) {
-    if (config->date_format() == DATE_FORMAT_EURO)
+    if (date_format == DATE_FORMAT_EURO)
       snprintf(buffer, buffer_length, "%02d-%02d-%04d %02d:%02d:%02d", day,
                month, year, hour, minute, second);
-    else if (config->date_format() == DATE_FORMAT_ISO8601 ||
-             config->date_format() == DATE_FORMAT_STRICT_ISO8601)
-      snprintf(
-          buffer, buffer_length, "%04d-%02d-%02d%c%02d:%02d:%02d", year, month,
-          day,
-          (config->date_format() == DATE_FORMAT_STRICT_ISO8601) ? 'T' : ' ',
-          hour, minute, second);
+    else if (date_format == DATE_FORMAT_ISO8601 ||
+             date_format == DATE_FORMAT_STRICT_ISO8601)
+      snprintf(buffer, buffer_length, "%04d-%02d-%02d%c%02d:%02d:%02d", year,
+               month, day,
+               (date_format == DATE_FORMAT_STRICT_ISO8601) ? 'T' : ' ', hour,
+               minute, second);
     else
       snprintf(buffer, buffer_length, "%02d-%02d-%04d %02d:%02d:%02d", month,
                day, year, hour, minute, second);
@@ -166,10 +175,10 @@ void get_datetime_string(time_t const* raw_time,
 
   /* short date */
   else if (type == SHORT_DATE) {
-    if (config->date_format() == DATE_FORMAT_EURO)
+    if (date_format == DATE_FORMAT_EURO)
       snprintf(buffer, buffer_length, "%02d-%02d-%04d", day, month, year);
-    else if (config->date_format() == DATE_FORMAT_ISO8601 ||
-             config->date_format() == DATE_FORMAT_STRICT_ISO8601)
+    else if (date_format == DATE_FORMAT_ISO8601 ||
+             date_format == DATE_FORMAT_STRICT_ISO8601)
       snprintf(buffer, buffer_length, "%04d-%02d-%02d", year, month, day);
     else
       snprintf(buffer, buffer_length, "%02d-%02d-%04d", month, day, year);
@@ -215,81 +224,4 @@ void get_time_breakdown(unsigned long raw_time,
   *hours = temp_hours;
   *minutes = temp_minutes;
   *seconds = temp_seconds;
-}
-
-Uuid::Uuid() {
-  std::random_device rd;
-
-  std::uniform_int_distribution<uint32_t> dist32(0, UINT32_MAX);
-  std::uniform_int_distribution<uint16_t> dist16(0, UINT16_MAX);
-  std::uniform_int_distribution<uint8_t> dist8(0, UINT8_MAX);
-
-  _time_low = dist32(rd);
-  _time_mid = dist16(rd);
-  _time_hi_and_version = dist16(rd);
-  _clock_seq_hi_and_reserved = dist8(rd);
-  _clock_seq_low = dist8(rd);
-  for (int i = 0; i < 6; ++i)
-    _node[i] = dist8(rd);
-
-  _clock_seq_hi_and_reserved &= ~(1 << 6);
-  _clock_seq_hi_and_reserved |= (1 << 7);
-  _time_hi_and_version &= ~(1 << 12);
-  _time_hi_and_version &= ~(1 << 13);
-  _time_hi_and_version |= (1 << 14);
-}
-
-Uuid::Uuid(Uuid const& uuid) {
-  operator=(uuid);
-}
-
-Uuid const& Uuid::operator=(Uuid const& uuid) {
-  if (this != &uuid) {
-    _time_low = uuid._time_low;
-    _time_mid = uuid._time_mid;
-    _time_hi_and_version = uuid._time_hi_and_version;
-    _clock_seq_hi_and_reserved = uuid._clock_seq_hi_and_reserved;
-    _clock_seq_low = uuid._clock_seq_low;
-
-    memcpy(&_node, uuid._node, sizeof(_node));
-  }
-  return *this;
-}
-
-#define DIFF_RETURN(a, b, field) \
-  do {                           \
-    if ((a).field != (b).field)  \
-      return false;              \
-  } while (0)
-
-bool Uuid::operator==(Uuid const& uuid) const {
-  int res;
-
-  /* Deal with NULL or equal pointers. */
-  /* We have to compare the hard way. */
-  DIFF_RETURN(*this, uuid, _time_low);
-  DIFF_RETURN(*this, uuid, _time_mid);
-  DIFF_RETURN(*this, uuid, _time_hi_and_version);
-  DIFF_RETURN(*this, uuid, _clock_seq_hi_and_reserved);
-  DIFF_RETURN(*this, uuid, _clock_seq_low);
-
-  res = memcmp(_node, uuid._node, sizeof(_node));
-  if (res)
-    return false;
-  return true;
-}
-
-std::string Uuid::to_string() const {
-  std::string uuid("", 37);
-  int c;
-
-  c = snprintf(&uuid[0], 37, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-               _time_low, _time_mid, _time_hi_and_version,
-               _clock_seq_hi_and_reserved, _clock_seq_low, _node[0], _node[1],
-               _node[2], _node[3], _node[4], _node[5]);
-
-  if (c < 0)
-    return std::string();
-
-  return uuid;
 }

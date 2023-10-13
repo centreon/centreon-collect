@@ -20,6 +20,9 @@
 #define CCB_FILE_SPLITTER_HH
 
 #include "com/centreon/broker/file/fs_file.hh"
+#include "common/log_v2/log_v2.hh"
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::file {
 /**
@@ -77,7 +80,8 @@ class splitter : public fs_file {
   bool _open_write_file();
 
  public:
-  splitter(const std::string& path, uint32_t max_file_size = 100000000u,
+  splitter(const std::string& path,
+           uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
   splitter(const splitter&) = delete;

@@ -18,8 +18,6 @@
  */
 
 #include <gtest/gtest.h>
-#include <fstream>
-#include "com/centreon/engine/globals.hh"
 
 #include <com/centreon/engine/configuration/applier/command.hh>
 #include <com/centreon/engine/configuration/applier/contact.hh>
@@ -34,6 +32,8 @@
 #include <com/centreon/engine/macros.hh>
 #include <com/centreon/engine/macros/grab_host.hh>
 #include <com/centreon/engine/macros/process.hh>
+#include <fstream>
+
 #include "../helper.hh"
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
@@ -41,7 +41,9 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/configuration/command_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -85,23 +87,27 @@ TEST_F(MacroService, TotalServicesOkZero) {
 TEST_F(MacroService, ServiceMacro) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -121,23 +127,27 @@ TEST_F(MacroService, ServiceMacro) {
 TEST_F(MacroService, ServiceDesc) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -154,23 +164,27 @@ TEST_F(MacroService, ServiceDesc) {
 TEST_F(MacroService, ServiceState) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -187,23 +201,27 @@ TEST_F(MacroService, ServiceState) {
 TEST_F(MacroService, ServiceStateID) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -220,23 +238,27 @@ TEST_F(MacroService, ServiceStateID) {
 TEST_F(MacroService, ServiceAttempt) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -253,23 +275,27 @@ TEST_F(MacroService, ServiceAttempt) {
 TEST_F(MacroService, ServiceisVolatile) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -286,26 +312,30 @@ TEST_F(MacroService, ServiceisVolatile) {
 TEST_F(MacroService, LastServiceCheck) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
   int now{500000000};
   set_time(now);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -323,26 +353,30 @@ TEST_F(MacroService, LastServiceCheck) {
 TEST_F(MacroService, LastServiceStateChange) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
   int now{500000000};
   set_time(now);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -360,26 +394,30 @@ TEST_F(MacroService, LastServiceStateChange) {
 TEST_F(MacroService, ServicePerfData) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
   int now{500000000};
   set_time(now);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -400,36 +438,40 @@ TEST_F(MacroService, ServiceExecutionTime) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::contact cnt_aply;
-  configuration::service svc;
-  configuration::host hst;
-  configuration::contact cnt;
-  ASSERT_TRUE(cnt.parse("contact_name", "user"));
-  ASSERT_TRUE(cnt.parse("email", "contact@centreon.com"));
-  ASSERT_TRUE(cnt.parse("pager", "0473729383"));
-  ASSERT_TRUE(cnt.parse("host_notification_period", "24x7"));
-  ASSERT_TRUE(cnt.parse("service_notification_period", "24x7"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Contact cnt;
+  configuration::contact_helper cnt_hlp(&cnt);
+  cnt.set_contact_name("user");
+  cnt.set_email("contact@centreon.com");
+  cnt.set_pager("0473729383");
+  cnt.set_host_notification_period("24x7");
+  cnt.set_service_notification_period("24x7");
   cnt_aply.add_object(cnt);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  // ASSERT_TRUE(hst.parse("contact_name", "testeeeeee"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
   int now{500000000};
   set_time(now);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -450,36 +492,40 @@ TEST_F(MacroService, ServiceLatency) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::contact cnt_aply;
-  configuration::service svc;
-  configuration::host hst;
-  configuration::contact cnt;
-  ASSERT_TRUE(cnt.parse("contact_name", "user"));
-  ASSERT_TRUE(cnt.parse("email", "contact@centreon.com"));
-  ASSERT_TRUE(cnt.parse("pager", "0473729383"));
-  ASSERT_TRUE(cnt.parse("host_notification_period", "24x7"));
-  ASSERT_TRUE(cnt.parse("service_notification_period", "24x7"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Contact cnt;
+  configuration::contact_helper cnt_hlp(&cnt);
+  cnt.set_contact_name("user");
+  cnt.set_email("contact@centreon.com");
+  cnt.set_pager("0473729383");
+  cnt.set_host_notification_period("24x7");
+  cnt.set_service_notification_period("24x7");
   cnt_aply.add_object(cnt);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  // ASSERT_TRUE(hst.parse("contact_name", "testeeeeee"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
   int now{500000000};
   set_time(now);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -500,36 +546,40 @@ TEST_F(MacroService, ServiceDuration) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::contact cnt_aply;
-  configuration::service svc;
-  configuration::host hst;
-  configuration::contact cnt;
-  ASSERT_TRUE(cnt.parse("contact_name", "user"));
-  ASSERT_TRUE(cnt.parse("email", "contact@centreon.com"));
-  ASSERT_TRUE(cnt.parse("pager", "0473729383"));
-  ASSERT_TRUE(cnt.parse("host_notification_period", "24x7"));
-  ASSERT_TRUE(cnt.parse("service_notification_period", "24x7"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Contact cnt;
+  configuration::contact_helper cnt_hlp(&cnt);
+  cnt.set_contact_name("user");
+  cnt.set_email("contact@centreon.com");
+  cnt.set_pager("0473729383");
+  cnt.set_host_notification_period("24x7");
+  cnt.set_service_notification_period("24x7");
   cnt_aply.add_object(cnt);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
-  // ASSERT_TRUE(hst.parse("contact_name", "testeeeeee"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
   int now{500000000};
   set_time(now);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -550,35 +600,40 @@ TEST_F(MacroService, ServiceDurationSec) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
   configuration::applier::contact cnt_aply;
-  configuration::service svc;
-  configuration::host hst;
-  configuration::contact cnt;
-  ASSERT_TRUE(cnt.parse("contact_name", "user"));
-  ASSERT_TRUE(cnt.parse("email", "contact@centreon.com"));
-  ASSERT_TRUE(cnt.parse("pager", "0473729383"));
-  ASSERT_TRUE(cnt.parse("host_notification_period", "24x7"));
-  ASSERT_TRUE(cnt.parse("service_notification_period", "24x7"));
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Contact cnt;
+  configuration::contact_helper cnt_hlp(&cnt);
+  cnt.set_contact_name("user");
+  cnt.set_email("contact@centreon.com");
+  cnt.set_pager("0473729383");
+  cnt.set_host_notification_period("24x7");
+  cnt.set_service_notification_period("24x7");
   cnt_aply.add_object(cnt);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   // We fake the expand_object
   svc.set_host_id(12);
 
   int now{500000000};
   set_time(now);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -598,24 +653,28 @@ TEST_F(MacroService, ServiceDurationSec) {
 TEST_F(MacroService, ServiceDownTime) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -633,24 +692,28 @@ TEST_F(MacroService, ServiceDownTime) {
 TEST_F(MacroService, ServiceStateType) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -668,24 +731,28 @@ TEST_F(MacroService, ServiceStateType) {
 TEST_F(MacroService, ServicePercentChange) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -705,29 +772,35 @@ TEST_F(MacroService, ServiceGroupName) {
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Servicegroup grp;
+  configuration::servicegroup_helper grp_hlp(&grp);
+  grp.set_servicegroup_name("test_group");
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_service_description("test");
+  svc.set_host_name("test_host");
+  svc.set_service_id(18);
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
   aply_cmd.add_object(cmd);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
   aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
+  svc_hlp.hook("servicegroups", "test_group");
+  grp_hlp.hook("members", "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
+  aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 
   init_macros();
@@ -745,30 +818,36 @@ TEST_F(MacroService, ServiceGroupAlias) {
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Servicegroup grp;
+  configuration::servicegroup_helper grp_hlp(&grp);
+  grp.set_servicegroup_name("test_group");
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_service_description("test");
+  svc.set_host_name("test_host");
+  svc.set_service_id(18);
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
   aply_cmd.add_object(cmd);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
   aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  grp.parse("alias", "test_group_alias");
+  svc_hlp.hook("servicegroups", "test_group");
+  grp_hlp.hook("members", "test_host,test");
+  grp.set_alias("test_group_alias");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
+  aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 
   init_macros();
@@ -784,24 +863,28 @@ TEST_F(MacroService, ServiceGroupAlias) {
 TEST_F(MacroService, LastServiceOK) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -821,24 +904,28 @@ TEST_F(MacroService, LastServiceOK) {
 TEST_F(MacroService, LastServiceWarning) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -858,24 +945,28 @@ TEST_F(MacroService, LastServiceWarning) {
 TEST_F(MacroService, LastServiceUnknown) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -895,24 +986,28 @@ TEST_F(MacroService, LastServiceUnknown) {
 TEST_F(MacroService, LastServiceCritical) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -932,24 +1027,28 @@ TEST_F(MacroService, LastServiceCritical) {
 TEST_F(MacroService, ServiceCheckCommand) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -966,49 +1065,31 @@ TEST_F(MacroService, ServiceCheckCommand) {
   ASSERT_EQ(out, "cmd");
 }
 
-TEST_F(MacroService, ServicePerfDataFile) {
-  configuration::parser parser;
-  configuration::state st;
-
-  std::remove("/tmp/test-config.cfg");
-
-  std::ofstream ofs("/tmp/test-config.cfg");
-  ofs << "service_perfdata_file=/var/log/centreon-engine/service-perfdata.dat"
-      << std::endl;
-  ofs << "log_file=\"\"" << std::endl;
-  ofs.close();
-
-  parser.parse("/tmp/test-config.cfg", st);
-  configuration::applier::state::instance().apply(st);
-  init_macros();
-
-  std::string out;
-  nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$SERVICEPERFDATAFILE:test_host$", out, 1);
-  ASSERT_EQ(out, "/var/log/centreon-engine/service-perfdata.dat");
-}
-
 TEST_F(MacroService, ServiceDisplayName) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1028,25 +1109,29 @@ TEST_F(MacroService, ServiceDisplayName) {
 TEST_F(MacroService, ServiceNotesUrl) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("notes_url", "http://192.168.0.172/centreon/main.php"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_notes_url("http://192.168.0.172/centreon/main.php");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1064,25 +1149,29 @@ TEST_F(MacroService, ServiceNotesUrl) {
 TEST_F(MacroService, ServiceNotes) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("notes", "test_notes"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_notes("test_notes");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1100,25 +1189,29 @@ TEST_F(MacroService, ServiceNotes) {
 TEST_F(MacroService, ServiceActionUrl) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1136,25 +1229,29 @@ TEST_F(MacroService, ServiceActionUrl) {
 TEST_F(MacroService, TotalServicesWarning) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1172,25 +1269,29 @@ TEST_F(MacroService, TotalServicesWarning) {
 TEST_F(MacroService, TotalServicesCritical) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1208,25 +1309,29 @@ TEST_F(MacroService, TotalServicesCritical) {
 TEST_F(MacroService, TotalServicesUnknown) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1244,25 +1349,29 @@ TEST_F(MacroService, TotalServicesUnknown) {
 TEST_F(MacroService, TotalServicesWarningUnhandled) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1281,25 +1390,29 @@ TEST_F(MacroService, TotalServicesWarningUnhandled) {
 TEST_F(MacroService, TotalServicesCriticalUnhandled) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1318,25 +1431,29 @@ TEST_F(MacroService, TotalServicesCriticalUnhandled) {
 TEST_F(MacroService, TotalServicesUnknownUnhandled) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1355,25 +1472,29 @@ TEST_F(MacroService, TotalServicesUnknownUnhandled) {
 TEST_F(MacroService, TotalServiceProblems) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1391,25 +1512,29 @@ TEST_F(MacroService, TotalServiceProblems) {
 TEST_F(MacroService, TotalServiceProblemsUnhandled) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1428,25 +1553,29 @@ TEST_F(MacroService, TotalServiceProblemsUnhandled) {
 TEST_F(MacroService, ServiceCheckType) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1464,25 +1593,29 @@ TEST_F(MacroService, ServiceCheckType) {
 TEST_F(MacroService, LongServiceOutput) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1502,25 +1635,29 @@ TEST_F(MacroService, LongServiceOutput) {
 TEST_F(MacroService, ServiceNotificationID) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1540,25 +1677,29 @@ TEST_F(MacroService, ServiceNotificationID) {
 TEST_F(MacroService, ServiceEventID) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1578,25 +1719,29 @@ TEST_F(MacroService, ServiceEventID) {
 TEST_F(MacroService, LastServiceEventID) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1618,29 +1763,35 @@ TEST_F(MacroService, ServiceGroupNames) {
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Servicegroup grp;
+  configuration::servicegroup_helper grp_hlp(&grp);
+  grp.set_servicegroup_name("test_group");
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_service_description("test");
+  svc.set_host_name("test_host");
+  svc.set_service_id(18);
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
   aply_cmd.add_object(cmd);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
   aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
+  svc_hlp.hook("servicegroups", "test_group");
+  grp_hlp.hook("members", "test_host,test");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
+  aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
 
   init_macros();
@@ -1658,25 +1809,29 @@ TEST_F(MacroService, ServiceGroupNames) {
 TEST_F(MacroService, MaxServiceAttempts) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1698,30 +1853,36 @@ TEST_F(MacroService, ServiceGroupNotes) {
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Servicegroup grp;
+  configuration::servicegroup_helper grp_hlp(&grp);
+  grp.set_servicegroup_name("test_group");
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_service_description("test");
+  svc.set_host_name("test_host");
+  svc.set_service_id(18);
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
   aply_cmd.add_object(cmd);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
   aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  ASSERT_TRUE(grp.parse("notes", "test_notes"));
+  svc_hlp.hook("servicegroups", "test_group");
+  grp_hlp.hook("members", "test_host,test");
+  grp.set_notes("test_notes");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
+  aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
   init_macros();
   int now{500000000};
@@ -1740,30 +1901,36 @@ TEST_F(MacroService, ServiceGroupNotesUrl) {
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Servicegroup grp;
+  configuration::servicegroup_helper grp_hlp(&grp);
+  grp.set_servicegroup_name("test_group");
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_service_description("test");
+  svc.set_host_name("test_host");
+  svc.set_service_id(18);
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
   aply_cmd.add_object(cmd);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
   aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  ASSERT_TRUE(grp.parse("notes_url", "test_notes_url"));
+  svc_hlp.hook("servicegroups", "test_group");
+  grp_hlp.hook("members", "test_host,test");
+  grp.set_notes_url("test_notes_url");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
+  aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
   init_macros();
   int now{500000000};
@@ -1780,30 +1947,36 @@ TEST_F(MacroService, ServiceGroupActionUrl) {
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Servicegroup grp;
+  configuration::servicegroup_helper grp_hlp(&grp);
+  grp.set_servicegroup_name("test_group");
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_service_description("test");
+  svc.set_host_name("test_host");
+  svc.set_service_id(18);
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
   aply_cmd.add_object(cmd);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
   aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
+  svc_hlp.hook("servicegroups", "test_group");
+  grp_hlp.hook("members", "test_host,test");
+  grp.set_action_url("test_notes_url");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
+  aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
   init_macros();
   int now{500000000};
@@ -1820,30 +1993,36 @@ TEST_F(MacroService, ServiceGroupMembers) {
   configuration::applier::service aply_svc;
   configuration::applier::command aply_cmd;
   configuration::applier::servicegroup aply_grp;
-  configuration::servicegroup grp("test_group");
-  configuration::host hst;
-  configuration::command cmd("cmd");
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
+  configuration::Servicegroup grp;
+  configuration::servicegroup_helper grp_hlp(&grp);
+  grp.set_servicegroup_name("test_group");
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
   aply_hst.add_object(hst);
-  configuration::service svc;
-  ASSERT_TRUE(svc.parse("service_description", "test"));
-  ASSERT_TRUE(svc.parse("hosts", "test_host"));
-  ASSERT_TRUE(svc.parse("service_id", "18"));
-  cmd.parse("command_line", "echo 1");
-  svc.parse("check_command", "cmd");
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_service_description("test");
+  svc.set_host_name("test_host");
+  svc.set_service_id(18);
+  cmd.set_command_line("echo 1");
+  svc.set_check_command("cmd");
   aply_cmd.add_object(cmd);
 
   // We fake here the expand_object on configuration::service
   svc.set_host_id(12);
 
   aply_svc.add_object(svc);
-  ASSERT_TRUE(svc.parse("servicegroups", "test_group"));
-  grp.parse("members", "test_host,test");
-  ASSERT_TRUE(grp.parse("action_url", "test_notes_url"));
+  svc_hlp.hook("servicegroups", "test_group");
+  grp_hlp.hook("members", "test_host,test");
+  grp.set_action_url("test_notes_url");
   aply_grp.add_object(grp);
-  aply_grp.expand_objects(*config);
+  aply_grp.expand_objects(pb_config);
   ASSERT_NO_THROW(aply_grp.resolve_object(grp));
   init_macros();
   int now{500000000};
@@ -1858,26 +2037,28 @@ TEST_F(MacroService, ServiceGroupMembers) {
 TEST_F(MacroService, ServiceID) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("service_id", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
   svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1895,26 +2076,30 @@ TEST_F(MacroService, ServiceID) {
 TEST_F(MacroService, ServiceTimeZone) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
-  svc.parse("timezone", "test_time");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
+  svc.set_timezone("test_time");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1934,25 +2119,29 @@ TEST_F(MacroService, ServiceTimeZone) {
 TEST_F(MacroService, LastServiceState) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -1972,25 +2161,29 @@ TEST_F(MacroService, LastServiceState) {
 TEST_F(MacroService, LastServiceStateId) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));
@@ -2011,21 +2204,21 @@ TEST_F(MacroService, ServiceProblemID) {
   init_macros();
 
   configuration::applier::contact ct_aply;
-  configuration::contact ctct{new_configuration_contact("admin", true)};
+  configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
   ct_aply.add_object(ctct);
-  configuration::contact ctct1{
-      new_configuration_contact("admin1", false, "c,r")};
+  configuration::Contact ctct1{
+      new_pb_configuration_contact("admin1", false, "c,r")};
   ct_aply.add_object(ctct1);
-  ct_aply.expand_objects(*config);
+  ct_aply.expand_objects(pb_config);
   ct_aply.resolve_object(ctct);
   ct_aply.resolve_object(ctct1);
 
-  configuration::host hst{new_configuration_host("test_host", "admin")};
+  configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
   configuration::applier::host hst_aply;
   hst_aply.add_object(hst);
 
-  configuration::service svc{
-      new_configuration_service("test_host", "test_svc", "admin,admin1")};
+  configuration::Service svc{
+      new_pb_configuration_service("test_host", "test_svc", "admin,admin1")};
   configuration::applier::service svc_aply;
   svc_aply.add_object(svc);
 
@@ -2079,25 +2272,29 @@ TEST_F(MacroService, ServiceProblemID) {
 TEST_F(MacroService, LastServiceProblemID) {
   configuration::applier::host hst_aply;
   configuration::applier::service svc_aply;
-  configuration::service svc;
-  configuration::host hst;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_host"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  hst.set_host_name("test_host");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst.mutable_contacts()->add_data("user");
   ASSERT_NO_THROW(hst_aply.add_object(hst));
   ASSERT_EQ(1u, host::hosts.size());
-  ASSERT_TRUE(svc.parse("description", "test_svc"));
-  ASSERT_TRUE(svc.parse("host_name", "test_host"));
-  ASSERT_TRUE(svc.parse("_HOST_ID", "12"));
-  ASSERT_TRUE(svc.parse("_SERVICE_ID", "13"));
-  ASSERT_TRUE(svc.parse("action_url", "test_action_url"));
+  svc.set_service_description("test_svc");
+  svc.set_host_name("test_host");
+  svc.set_host_id(12);
+  svc.set_service_id(13);
+  svc.set_action_url("test_action_url");
   svc.set_host_id(12);
 
-  configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 'output| metric=12;50;75'");
+  svc.set_check_command("cmd");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
   ASSERT_NO_THROW(svc_aply.add_object(svc));

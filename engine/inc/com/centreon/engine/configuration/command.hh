@@ -36,7 +36,7 @@ class command : public object {
   bool operator==(command const& right) const throw();
   bool operator!=(command const& right) const throw();
   bool operator<(command const& right) const throw();
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type const& key() const throw();
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
@@ -58,10 +58,10 @@ class command : public object {
   static std::unordered_map<std::string, setter_func> const _setters;
 };
 
-typedef std::shared_ptr<command> command_ptr;
-typedef std::set<command> set_command;
+using command_ptr = std::shared_ptr<command>;
+using set_command = std::set<command>;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_COMMAND_HH

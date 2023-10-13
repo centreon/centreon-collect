@@ -1,20 +1,20 @@
-/*
-** Copyright 2018-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_LUA_MACRO_CACHE_HH
 #define CCB_LUA_MACRO_CACHE_HH
@@ -68,7 +68,9 @@ class macro_cache {
       _dimension_bv_events;
 
  public:
-  macro_cache(std::shared_ptr<persistent_cache> const& cache);
+  macro_cache(const std::shared_ptr<persistent_cache>& cache,
+              const std::shared_ptr<spdlog::logger>& logger);
+  macro_cache(const macro_cache&) = delete;
   ~macro_cache();
 
   void write(std::shared_ptr<io::data> const& data);
@@ -109,7 +111,6 @@ class macro_cache {
       uint64_t id) const;
 
  private:
-  macro_cache(macro_cache const& f);
   macro_cache& operator=(macro_cache const& f);
 
   void _process_instance(std::shared_ptr<io::data> const& data);
@@ -145,6 +146,6 @@ class macro_cache {
 };
 }  // namespace lua
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_LUA_MACRO_CACHE_HH

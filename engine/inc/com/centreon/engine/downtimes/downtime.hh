@@ -1,22 +1,22 @@
-/*
-** Copyright 2000-2008      Ethan Galstad
-** Copyright 2011-2013,2016 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2000-2008      Ethan Galstad
+ * Copyright 2011-2013,2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_DOWNTIMES_DOWTIME_HH
 #define CCE_DOWNTIMES_DOWTIME_HH
@@ -24,9 +24,8 @@
 #include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/service.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::downtimes {
 
-namespace downtimes {
 class downtime {
  public:
   enum type { service_downtime = 1, host_downtime = 2, any_downtime = 3 };
@@ -54,17 +53,10 @@ class downtime {
   uint64_t _get_comment_id() const;
 
  public:
-  downtime(type type,
-           const uint64_t host_id,
-           time_t entry_time,
-           std::string const& author,
-           std::string const& comment,
-           time_t start_time,
-           time_t end_time,
-           bool fixed,
-           uint64_t triggered_by,
-           int32_t duration,
-           uint64_t downtime_id);
+  downtime(type type, const uint64_t host_id, time_t entry_time,
+           std::string const& author, std::string const& comment,
+           time_t start_time, time_t end_time, bool fixed,
+           uint64_t triggered_by, int32_t duration, uint64_t downtime_id);
   downtime(downtime const&) = delete;
   downtime(downtime&&) = delete;
   virtual ~downtime();
@@ -91,9 +83,7 @@ class downtime {
   bool is_in_effect() const;
   void start_flex_downtime();
 };
-}  // namespace downtimes
-
-}
+}  // namespace com::centreon::engine::downtimes
 
 int handle_scheduled_downtime_by_id(uint64_t downtime_id);
 

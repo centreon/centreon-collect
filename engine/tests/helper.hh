@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +19,15 @@
 #ifndef CENTREON_ENGINE_TESTS_HELPER_HH_
 #define CENTREON_ENGINE_TESTS_HELPER_HH_
 
-#include <com/centreon/engine/configuration/state.hh>
+#include "com/centreon/engine/configuration/state.hh"
+#include "common/configuration/state.pb.h"
 
 extern com::centreon::engine::configuration::state* config;
+extern com::centreon::engine::configuration::State pb_config;
 
-void init_config_state(void);
-void deinit_config_state(void);
+void init_config_state();
+void deinit_config_state();
+
+com::centreon::engine::configuration::Path build_path(std::string_view path);
 
 #endif  // CENTREON_ENGINE_TESTS_HELPER_HH_

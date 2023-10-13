@@ -45,8 +45,10 @@ class stream : public io::stream {
   void _update_stats();
 
  public:
-  stream(const std::string& path, QueueFileStats* s,
-         uint32_t max_file_size = 100000000u, bool auto_delete = false);
+  stream(const std::string& path,
+         QueueFileStats* s,
+         uint32_t max_file_size = 100000000u,
+         bool auto_delete = false);
   ~stream() noexcept = default;
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;

@@ -154,15 +154,15 @@ void acknowledge_host_problem(com::centreon::engine::host* hst,
                               const std::string& ack_author,
                               const std::string& ack_data,
                               int type,
-                              int notify,
-                              int persistent);  // acknowledges a host problem
+                              bool notify,
+                              bool persistent);  // acknowledges a host problem
 void acknowledge_service_problem(
     com::centreon::engine::service* svc,
     const std::string& ack_author,
     const std::string& ack_data,
     int type,
-    int notify,
-    int persistent);  // acknowledges a service problem
+    bool notify,
+    bool persistent);  // acknowledges a service problem
 void remove_host_acknowledgement(
     com::centreon::engine::host* hst);  // removes a host acknowledgement
 void remove_service_acknowledgement(

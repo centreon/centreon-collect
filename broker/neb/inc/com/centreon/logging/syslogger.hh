@@ -21,9 +21,7 @@
 
 #include "com/centreon/logging/backend.hh"
 
-namespace com::centreon {
-
-namespace logging {
+namespace com::centreon::logging {
 /**
  *  @class syslogger syslogger.hh "com/centreon/logging/syslogger.hh"
  *  @brief Log messages to syslog.
@@ -52,8 +50,6 @@ class syslogger : public backend {
   int _facility;
   std::string _id;
 };
-}  // namespace logging
-
-}
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_SYSLOGGER_HH

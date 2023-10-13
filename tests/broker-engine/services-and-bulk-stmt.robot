@@ -34,7 +34,7 @@ EBBPS1
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
-    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    ...    A message telling check_for_external_commands() is ready should be available.
     FOR    ${i}    IN RANGE    ${1000}
         Ctn Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
@@ -48,9 +48,10 @@ EBBPS1
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    60
+        Log To Console
+        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
-        Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
     END
@@ -128,12 +129,11 @@ EBBPS2
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${date}    Get Current Date    result_format=epoch
+    ${date}    Get Round Current Date
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    120
         ${output}    Query
         ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%%' AND s.state <> 1
-        Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
     END
@@ -214,6 +214,8 @@ EBMSSM
     # Let's wait for all force checks to be in the storage database.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${500}
+        Log To Console
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         ${output}    Query
         ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         IF    ${output[0][0]} >= 100000    BREAK

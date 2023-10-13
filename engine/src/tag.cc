@@ -32,8 +32,7 @@ tag_map tag::tags;
  * @param name    Its name.
  */
 tag::tag(uint64_t id, tag::tagtype type, const std::string& name)
-    : _id{id}, _type{type}, _name{name} {
-}
+    : _id{id}, _type{type}, _name{name} {}
 
 /**
  * @brief Accessor to the id.

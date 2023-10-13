@@ -26,7 +26,6 @@
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
@@ -48,12 +47,14 @@ static constexpr double eps = 0.000001;
 ba_ratio_number::ba_ratio_number(uint32_t id,
                                  uint32_t host_id,
                                  uint32_t service_id,
-                                 bool generate_virtual_status)
+                                 bool generate_virtual_status,
+                                 const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,
          host_id,
          service_id,
          configuration::ba::state_source_ratio_number,
-         generate_virtual_status) {
+         generate_virtual_status,
+         logger) {
   _level_hard = _level_soft = 0;
 }
 

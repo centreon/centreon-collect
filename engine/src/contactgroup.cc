@@ -1,49 +1,53 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019,2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/contactgroup.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/contact.hh"
 #include "com/centreon/engine/contactgroup.hh"
 #include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/string.hh"
+#include "com/centreon/engine/utils.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
+using com::centreon::common::log_v2::log_v2;
 
 contactgroup_map contactgroup::contactgroups;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
- * Constructor.
+ *  Constructor from a protobuf configuration contactgroup
+ *
+ * @param obj Configuration contactgroup
  */
-contactgroup::contactgroup() {}
+contactgroup::contactgroup(const configuration::Contactgroup& obj)
+    : _alias{obj.alias().empty() ? obj.contactgroup_name() : obj.alias()},
+      _name{obj.contactgroup_name()} {
+  assert(!_name.empty());
+  // Notify event broker.
+  broker_group(NEBTYPE_CONTACTGROUP_ADD, this);
+}
 
 /**
  *  Constructor from a configuration contactgroup
@@ -121,6 +125,7 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
 void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
   int errors{0};
 
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
        it != end; ++it) {
     /* Check members */
@@ -128,7 +133,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
       engine_logger(log_verification_error, basic)
           << "Error: Contact '" << it->first << "' specified in contact group '"
           << _name << "' is not defined anywhere!";
-      log_v2::config()->error(
+      logger->error(
           "Error: Contact '{}' specified in contact group '{}' is not defined "
           "anywhere!",
           it->first, _name);
@@ -142,7 +147,7 @@ void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: The name of contact group '" << _name
         << "' contains one or more illegal characters.";
-    log_v2::config()->error(
+    logger->error(
         "Error: The name of contact group '{}' contains one or more illegal "
         "characters.",
         _name);

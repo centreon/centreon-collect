@@ -21,14 +21,22 @@
 #include <cfloat>
 #include <cmath>
 
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
+using com::centreon::common::log_v2::log_v2;
+
+/**
+ * @brief Default constructor.
+ */
+mysql_stmt_base::mysql_stmt_base(bool bulk)
+    : _bulk(bulk), _logger{log_v2::instance().get(log_v2::SQL)} {}
 
 /**
  * @brief Constructor of a mysql_stmt_base from a SQL query template. This
@@ -43,7 +51,7 @@ using namespace com::centreon::broker::database;
 mysql_stmt_base::mysql_stmt_base(const std::string& query,
                                  bool named,
                                  bool bulk)
-    : _bulk(bulk) {
+    : _bulk(bulk), _logger{log_v2::instance().get(log_v2::SQL)} {
   mysql_bind_mapping bind_mapping;
   std::hash<std::string> hash_fn;
   if (named) {
@@ -124,7 +132,8 @@ mysql_stmt_base::mysql_stmt_base(const std::string& query,
     : _bulk(bulk),
       _id(std::hash<std::string>{}(query)),
       _query(query),
-      _bind_mapping(bind_mapping) {
+      _bind_mapping(bind_mapping),
+      _logger{log_v2::instance().get(log_v2::SQL)} {
   if (bind_mapping.empty())
     _param_count = _compute_param_count(query);
   else
@@ -140,7 +149,8 @@ mysql_stmt_base::mysql_stmt_base(mysql_stmt_base&& other)
       _param_count(std::move(other._param_count)),
       _query(std::move(other._query)),
       _bind_mapping(std::move(other._bind_mapping)),
-      _pb_mapping(std::move(other._pb_mapping)) {}
+      _pb_mapping(std::move(other._pb_mapping)),
+      _logger{log_v2::instance().get(log_v2::SQL)} {}
 
 /**
  * @brief Move copy
@@ -244,54 +254,52 @@ void mysql_stmt_base::set_pb_mapping(
   _pb_mapping = std::move(mapping);
 }
 
-#define BIND_VALUE(ftype, vtype)                                           \
-  void mysql_stmt_base::bind_value_as_##ftype##_k(const std::string& name, \
-                                                  vtype value) {           \
-    mysql_bind_mapping::iterator it(_bind_mapping.find(name));             \
-    if (it != _bind_mapping.end()) {                                       \
-      bind_value_as_##ftype(it->second, value);                            \
-    } else {                                                               \
-      std::string key(name);                                               \
-      key.append("1");                                                     \
-      it = _bind_mapping.find(key);                                        \
-      if (it != _bind_mapping.end()) {                                     \
-        bind_value_as_##ftype(it->second, value);                          \
-        key[key.size() - 1] = '2';                                         \
-        it = _bind_mapping.find(key);                                      \
-        if (it != _bind_mapping.end())                                     \
-          bind_value_as_##ftype(it->second, value);                        \
-        else                                                               \
-          log_v2::sql()->error(                                            \
-              "mysql: cannot bind object with name '{}' to " #ftype        \
-              " value {} in "                                              \
-              "statement {}",                                              \
-              name, value, get_id());                                      \
-      }                                                                    \
-    }                                                                      \
-  }                                                                        \
-                                                                           \
-  void mysql_stmt_base::bind_null_##ftype##_k(const std::string& name) {   \
-    mysql_bind_mapping::iterator it(_bind_mapping.find(name));             \
-    if (it != _bind_mapping.end()) {                                       \
-      bind_null_##ftype(it->second);                                       \
-    } else {                                                               \
-      std::string key(name);                                               \
-      key.append("1");                                                     \
-      it = _bind_mapping.find(key);                                        \
-      if (it != _bind_mapping.end()) {                                     \
-        bind_null_##ftype(it->second);                                     \
-        key[key.size() - 1] = '2';                                         \
-        it = _bind_mapping.find(key);                                      \
-        if (it != _bind_mapping.end())                                     \
-          bind_null_##ftype(it->second);                                   \
-        else                                                               \
-          log_v2::sql()->error(                                            \
-              "mysql: cannot bind object with name '{}' to " #ftype        \
-              " null value in "                                            \
-              "statement {}",                                              \
-              name, get_id());                                             \
-      }                                                                    \
-    }                                                                      \
+#define BIND_VALUE(ftype, vtype)                                               \
+  void mysql_stmt_base::bind_value_as_##ftype##_k(const std::string& name,     \
+                                                  vtype value) {               \
+    mysql_bind_mapping::iterator it(_bind_mapping.find(name));                 \
+    if (it != _bind_mapping.end()) {                                           \
+      bind_value_as_##ftype(it->second, value);                                \
+    } else {                                                                   \
+      std::string key(name);                                                   \
+      key.append("1");                                                         \
+      it = _bind_mapping.find(key);                                            \
+      if (it != _bind_mapping.end()) {                                         \
+        bind_value_as_##ftype(it->second, value);                              \
+        key[key.size() - 1] = '2';                                             \
+        it = _bind_mapping.find(key);                                          \
+        if (it != _bind_mapping.end())                                         \
+          bind_value_as_##ftype(it->second, value);                            \
+        else                                                                   \
+          _logger->error("mysql: cannot bind object with name '{}' to " #ftype \
+                         " value {} in "                                       \
+                         "statement {}",                                       \
+                         name, value, get_id());                               \
+      }                                                                        \
+    }                                                                          \
+  }                                                                            \
+                                                                               \
+  void mysql_stmt_base::bind_null_##ftype##_k(const std::string& name) {       \
+    mysql_bind_mapping::iterator it(_bind_mapping.find(name));                 \
+    if (it != _bind_mapping.end()) {                                           \
+      bind_null_##ftype(it->second);                                           \
+    } else {                                                                   \
+      std::string key(name);                                                   \
+      key.append("1");                                                         \
+      it = _bind_mapping.find(key);                                            \
+      if (it != _bind_mapping.end()) {                                         \
+        bind_null_##ftype(it->second);                                         \
+        key[key.size() - 1] = '2';                                             \
+        it = _bind_mapping.find(key);                                          \
+        if (it != _bind_mapping.end())                                         \
+          bind_null_##ftype(it->second);                                       \
+        else                                                                   \
+          _logger->error("mysql: cannot bind object with name '{}' to " #ftype \
+                         " null value in "                                     \
+                         "statement {}",                                       \
+                         name, get_id());                                      \
+      }                                                                        \
+    }                                                                          \
   }
 
 BIND_VALUE(i32, int32_t)

@@ -1,5 +1,5 @@
 /**
- * Copyright 2014, 2024 Centreon
+ * Copyright 2014-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,7 @@
 
 #include "bbdo/bam/state.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class impact_values impact_values.hh
  * "com/centreon/broker/bam/impact_values.hh"
@@ -40,10 +38,8 @@ class impact_values {
   state _state;
 
  public:
-  impact_values(double nominal = 0.0,
-                double acknowledgement = 0.0,
-                double downtime = 0.0,
-                state state = state_ok);
+  impact_values(double nominal = 0.0, double acknowledgement = 0.0,
+                double downtime = 0.0, state state = state_ok);
   impact_values(impact_values const& other) = delete;
   ~impact_values();
   impact_values& operator=(impact_values const& other);
@@ -58,8 +54,6 @@ class impact_values {
   void set_nominal(double nominal);
   void set_state(state state);
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_IMPACT_VALUES_HH

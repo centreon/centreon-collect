@@ -26,7 +26,6 @@
 #include <cerrno>
 
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
 
@@ -119,9 +118,9 @@ void lib::open(std::string const& filename,
 void lib::remove(std::string const& filename) {
   if (::remove(filename.c_str())) {
     char const* msg(strerror(errno));
-    log_v2::rrd()->error("RRD: could not remove file '{}': {}", filename, msg);
+    _logger->error("RRD: could not remove file '{}': {}", filename, msg);
   } else
-    SPDLOG_LOGGER_INFO(log_v2::rrd(), "remove file {}", filename);
+    SPDLOG_LOGGER_INFO(_logger, "remove file {}", filename);
 }
 
 /**
@@ -133,9 +132,8 @@ void lib::remove(std::string const& filename) {
 void lib::update(time_t t, std::string const& value) {
   // Build argument string.
   if (value == "") {
-    log_v2::rrd()->error(
-        "RRD: ignored update non-float value '{}' in file '{}'", value,
-        _filename);
+    _logger->error("RRD: ignored update non-float value '{}' in file '{}'",
+                   value, _filename);
     return;
   }
 
@@ -147,7 +145,7 @@ void lib::update(time_t t, std::string const& value) {
   argv[1] = nullptr;
 
   // Debug message.
-  log_v2::perfdata()->debug("RRD: updating file '{}' ({})", _filename, argv[0]);
+  _logger->debug("RRD: updating file '{}' ({})", _filename, argv[0]);
 
   // Update RRD file.
   rrd_clear_error();
@@ -155,12 +153,12 @@ void lib::update(time_t t, std::string const& value) {
                    argv)) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
-      log_v2::rrd()->error("RRD: failed to update value in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
+                     msg);
 
     else
-      log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+                     msg);
   }
 }
 
@@ -169,7 +167,7 @@ void lib::update(const std::deque<std::string>& pts) {
   argv[pts.size()] = nullptr;
   auto it = pts.begin();
   for (uint32_t i = 0; i < pts.size(); i++) {
-    log_v2::rrd()->trace("insertion of {} in rrd file", *it);
+    _logger->trace("insertion of {} in rrd file", *it);
     argv[i] = it->data();
     ++it;
   }
@@ -178,11 +176,11 @@ void lib::update(const std::deque<std::string>& pts) {
                    argv)) {
     char const* msg(rrd_get_error());
     if (!strstr(msg, "illegal attempt to update using time"))
-      log_v2::rrd()->error("RRD: failed to update value in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: failed to update value in file '{}': {}", _filename,
+                     msg);
 
     else
-      log_v2::rrd()->error("RRD: ignored update error in file '{}': {}",
-                           _filename, msg);
+      _logger->error("RRD: ignored update error in file '{}': {}", _filename,
+                     msg);
   }
 }

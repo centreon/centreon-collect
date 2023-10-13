@@ -21,11 +21,12 @@
 #include "com/centreon/broker/bam/internal.hh"
 
 #include "com/centreon/broker/bam/exp_builder.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Get BA identifier for circular path search.
@@ -71,6 +72,17 @@ static std::string meta_node_id(uint32_t meta_id) {
 static std::string service_node_id(uint32_t host_id, uint32_t service_id) {
   return fmt::format("service ({}, {})", host_id, service_id);
 }
+
+/**
+ *  Default constructor.
+ */
+applier::state::state()
+    : _logger{log_v2::instance().get(log_v2::BAM)}, _bool_exp_applier() {}
+
+/**
+ *  Destructor.
+ */
+applier::state::~state() {}
 
 /**
  *  Apply configuration.
@@ -148,7 +160,8 @@ void applier::state::_circular_check(configuration::state const& my_state) {
     _nodes[bool_id];
     try {
       exp_parser parsr(it->second.get_expression());
-      exp_builder buildr(parsr.get_postfix(), my_state.get_hst_svc_mapping());
+      exp_builder buildr(parsr.get_postfix(), my_state.get_hst_svc_mapping(),
+                         _logger);
       for (std::list<bool_service::ptr>::const_iterator
                it_svc(buildr.get_services().begin()),
            end_svc(buildr.get_services().end());

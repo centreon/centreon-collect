@@ -27,18 +27,21 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
+#include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 #define FILE1 CENTREON_BROKER_LUA_SCRIPT_PATH "/test1.lua"
 #define FILE2 CENTREON_BROKER_LUA_SCRIPT_PATH "/test2.lua"
@@ -48,8 +51,13 @@ using namespace com::centreon::broker::lua;
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 class LuaTest : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   void SetUp() override {
+    _logger = log_v2::instance().get(log_v2::LUA);
+
     g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
@@ -58,13 +66,14 @@ class LuaTest : public ::testing::Test {
     }
     std::shared_ptr<persistent_cache> pcache(
         std::make_shared<persistent_cache>("/tmp/broker_test_cache"));
-    _cache.reset(new macro_cache(pcache));
+    _cache.reset(new macro_cache(pcache, log_v2::instance().get(log_v2::LUA)));
   }
   void TearDown() override {
     // The cache must be destroyed before the applier deinit() call.
     _cache.reset();
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
+    // log_v2::unload();
   }
 
   void CreateScript(std::string const& filename, std::string const& content) {

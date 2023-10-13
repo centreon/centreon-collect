@@ -18,7 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/tag.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -27,7 +27,6 @@ using namespace com::centreon::engine::configuration;
 #define SETTER(type, method) &object::setter<tag, type, &tag::method>::generic
 
 const absl::flat_hash_map<std::string, tag::setter_func> tag::_setters{
-    {"name", SETTER(const std::string&, _set_tag_name)},
     {"tag_name", SETTER(const std::string&, _set_tag_name)},
     {"id", SETTER(uint64_t, _set_id)},
     {"tag_id", SETTER(uint64_t, _set_id)},
@@ -110,13 +109,13 @@ bool tag::operator<(const tag& other) const noexcept {
  *
  * If the object is not valid, an exception is thrown.
  */
-void tag::check_validity() const {
+void tag::check_validity(error_info* err [[maybe_unused]]) const {
   if (_tag_name.empty())
-    throw engine_error() << "Tag has no name (property 'tag_name')";
+    throw exceptions::msg_fmt("Tag has no name (property 'tag_name')");
   if (_key.first == 0)
-    throw engine_error() << "Tag id must not be less than 1 (property 'id')";
+    throw exceptions::msg_fmt("Tag id must not be less than 1 (property 'id')");
   if (_key.second == static_cast<uint16_t>(-1))
-    throw engine_error() << "Tag type must be defined (property 'type')";
+    throw exceptions::msg_fmt("Tag type must be defined (property 'type')");
 }
 
 /**

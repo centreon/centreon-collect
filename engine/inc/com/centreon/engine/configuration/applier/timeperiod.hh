@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2017 Centreon
+** Copyright 2011-2013,2017,2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH
 
 #include "com/centreon/engine/timeperiod.hh"
+#include "common/configuration/state.pb.h"
 
 // Forward declaration.
 namespace com::centreon::engine {
@@ -32,24 +33,36 @@ class timeperiod;
 
 namespace applier {
 class timeperiod {
- public:
-  timeperiod();
-  timeperiod(timeperiod const& right);
-  ~timeperiod() throw();
-  timeperiod& operator=(timeperiod const& right);
-  void add_object(configuration::timeperiod const& obj);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::timeperiod const& obj);
-  void remove_object(configuration::timeperiod const& obj);
-  void resolve_object(configuration::timeperiod const& obj);
-
- private:
   void _add_exclusions(std::set<std::string> const& exclusions,
                        com::centreon::engine::timeperiod* tp);
+
+ public:
+  /**
+   * @brief Default constructor.
+   */
+  timeperiod() = default;
+
+  /**
+   * @brief Destructor.
+   */
+  ~timeperiod() noexcept = default;
+  timeperiod(const timeperiod&) = delete;
+  timeperiod& operator=(timeperiod const&) = delete;
+  void add_object(const configuration::Timeperiod& obj);
+  void add_object(const configuration::timeperiod& obj);
+  void expand_objects(configuration::state& s);
+  void expand_objects(configuration::State& s);
+  void modify_object(configuration::Timeperiod* to_modify,
+                     const configuration::Timeperiod& new_object);
+  void modify_object(configuration::timeperiod const& obj);
+  void remove_object(ssize_t idx);
+  void remove_object(configuration::timeperiod const& obj);
+  void resolve_object(const configuration::Timeperiod& obj);
+  void resolve_object(configuration::timeperiod const& obj);
 };
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH

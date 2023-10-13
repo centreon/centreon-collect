@@ -54,6 +54,6 @@ class command_listener {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_COMMAND_LISTENER_HH

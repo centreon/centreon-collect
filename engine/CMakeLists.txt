@@ -47,8 +47,9 @@ set(PRECOMP_HEADER "${PROJECT_SOURCE_DIR}/precomp_inc/precomp.hh")
 
 set(ENGINE_MODULES_DIR "${CMAKE_INSTALL_PREFIX}/lib64/centreon-engine/")
 
-include_directories("${INC_DIR}"
-"${INC_DIR}/compatibility")
+include_directories(
+  "${INC_DIR}" "${INC_DIR}/compatibility"
+)
 
 link_directories(${CMAKE_SOURCE_DIR}/build/centreon-clib/)
 
@@ -148,9 +149,6 @@ set(CREATE_FILES "${WITH_CREATE_FILES}")
 
 set(PREFIX_ENGINE_CONF "${CMAKE_INSTALL_FULL_SYSCONFDIR}/centreon-engine")
 
-# # Library directory. if (WITH_PREFIX_LIB_ENGINE) set(PREFIX_LIB
-# "${WITH_PREFIX_LIB_ENGINE}") else () set(PREFIX_LIB
-# "${CMAKE_INSTALL_PREFIX}/lib/centreon-engine") endif ()
 #
 
 # User used to run Centreon Engine.
@@ -417,6 +415,7 @@ set(FILES
     "${SRC_DIR}/timezone_locker.cc"
     "${SRC_DIR}/timezone_manager.cc"
     "${SRC_DIR}/utils.cc"
+    "${SRC_DIR}/whitelist.cc"
     "${SRC_DIR}/xpddefault.cc"
     "${SRC_DIR}/xsddefault.cc"
     # Headers.
@@ -496,12 +495,9 @@ add_subdirectory(enginerpc)
 include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src)
 
 # Library engine target.
-add_library(enginelog STATIC src/log_v2.cc)
-target_precompile_headers(enginelog PRIVATE ${PRECOMP_HEADER})
-set_target_properties(enginelog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_link_libraries(enginelog spdlog::spdlog)
 
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
+target_compile_definitions(cce_core PRIVATE LEGACY_CONF=0)
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
 
@@ -518,9 +514,29 @@ target_link_libraries(
   fmt::fmt
   spdlog::spdlog)
 
+add_library(cce_core_legacy ${LIBRARY_TYPE} ${FILES})
+target_compile_definitions(cce_core_legacy PRIVATE LEGACY_CONF=1)
+add_dependencies(cce_core_legacy engine_rpc)
+add_dependencies(cce_core_legacy centreon_clib)
+
+target_precompile_headers(cce_core_legacy PRIVATE ${PRECOMP_HEADER})
+
+# Link target with required libraries.
+target_link_libraries(
+  cce_core_legacy
+  CONAN_PKG::nlohmann_json
+  ${MATH_LIBRARIES}
+  ${PTHREAD_LIBRARIES}
+  ${SOCKET_LIBRARIES}
+  centreon_clib
+  engine_config_legacy
+  ${fmt_LIBRARIES}
+  CONAN_PKG::spdlog)
+
 # centengine target.
-add_executable("centengine" "${SRC_DIR}/main.cc")
-set_property(TARGET "centengine" PROPERTY ENABLE_EXPORTS "1")
+add_executable(centengine "${SRC_DIR}/main.cc")
+target_compile_definitions(centengine PRIVATE LEGACY_CONF=0)
+set_property(TARGET centengine PROPERTY ENABLE_EXPORTS "1")
 add_dependencies(centengine centreon_clib)
 
 # Link centengine with required libraries.
@@ -529,7 +545,7 @@ target_link_libraries(
   -L${PROTOBUF_LIB_DIR}
   "-rdynamic"
   centreon_clib
-  enginelog
+  log_v2
   "-Wl,-whole-archive"
   enginerpc
   cce_core
@@ -542,6 +558,36 @@ target_link_libraries(
   z
   ryml::ryml
   stdc++fs
+  dl)
+
+# centengine target.
+add_executable(centengine_legacy "${SRC_DIR}/main.cc")
+target_compile_definitions(centengine_legacy PRIVATE LEGACY_CONF=1)
+
+set_property(TARGET centengine_legacy PROPERTY ENABLE_EXPORTS "1")
+add_dependencies(centengine_legacy centreon_clib)
+
+# Link centengine with required libraries.
+target_link_libraries(
+  centengine_legacy
+  "-rdynamic"
+  centreon_clib
+  log_v2
+  "-Wl,-whole-archive"
+  enginerpc_legacy
+  cce_core_legacy
+  engine_config_legacy
+  "-Wl,-no-whole-archive"
+  -L${CONAN_LIB_DIRS_GRPC}
+  "-Wl,--whole-archive"
+  grpc++
+  "-Wl,--no-whole-archive"
+  CONAN_PKG::grpc
+  ${absl_LIBS}
+  CONAN_PKG::openssl
+  ${c-ares_LIBS}
+  CONAN_PKG::zlib
+  CONAN_PKG::rapidyaml
   dl)
 
 # centenginestats target.

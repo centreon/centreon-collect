@@ -139,9 +139,9 @@ EBNHG4
     Ctn Config Broker    central
     Ctn Config Broker    module    ${3}
 
-    Ctn Broker Config Log    central    sql    info
-    Ctn Broker Config Output Set    central    central-broker-master-sql    connections_count    5
-    Ctn Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
+    Broker Config Log    central    sql    info
+    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
+    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     ${start}    Get Current Date
     Ctn Start Broker
     Ctn Start engine

@@ -18,11 +18,11 @@
  */
 
 #include "com/centreon/engine/commands/command.hh"
+
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/grab.hh"
 
@@ -175,8 +175,12 @@ bool commands::command::gest_call_interval(
     caller_to_last_call_map::iterator group_search = _result_cache.find(caller);
     if (group_search != _result_cache.end()) {
       time_t now = time(nullptr);
-      if (group_search->second->launch_time + config->interval_length() >=
-              now &&
+#if LEGACY_CONF
+      uint32_t interval_length = config->interval_length();
+#else
+      uint32_t interval_length = pb_config.interval_length();
+#endif
+      if (group_search->second->launch_time + interval_length >= now &&
           group_search->second->res) {  // old check is too recent
         result_to_reuse = std::make_shared<result>(*group_search->second->res);
         result_to_reuse->command_id = command_id;
@@ -193,8 +197,8 @@ bool commands::command::gest_call_interval(
   checks::checker::instance().add_check_result(command_id, to_push_to_checker);
   if (_listener && result_to_reuse) {
     _listener->finished(*result_to_reuse);
-    SPDLOG_LOGGER_TRACE(log_v2::commands(),
-                        "command::run: id={} , reuse result", command_id);
+    SPDLOG_LOGGER_TRACE(commands_logger, "command::run: id={} , reuse result",
+                        command_id);
     return false;
   }
   return true;

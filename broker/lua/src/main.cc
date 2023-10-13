@@ -24,11 +24,12 @@
 #include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/factory.hh"
 #include "com/centreon/broker/lua/stream.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances{0u};
@@ -69,11 +70,11 @@ bool broker_module_deinit() {
 void broker_module_init(void const* arg) {
   (void)arg;
 
+  auto logger = log_v2::instance().create_logger(log_v2::LUA);
   // Increment instance number.
   if (!instances++) {
     // generic lua module.
-    log_v2::lua()->info("lua: module for Centreon Broker {}",
-                        CENTREON_BROKER_VERSION);
+    logger->info("lua: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
 
     io::events& e(io::events::instance());
 

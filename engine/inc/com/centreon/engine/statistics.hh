@@ -1,5 +1,5 @@
-/*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+/**
+ * Copyright 2019-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,5 +38,5 @@ class statistics {
   bool get_external_command_buffer_stats(buffer_stats& retval) const noexcept;
 };
 
-}
+}  // namespace com::centreon::engine
 #endif /* !CCE_STATISTICS_HH */
