@@ -11,6 +11,10 @@ database_type=$2
 distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
+echo "##### Tests on #####"
+echo "$distrib"
+echo "####################"
+
 if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo > tests/log.html
     echo '<?xml version="1.0" encoding="UTF-8"?>' > tests/output.xml
@@ -105,5 +109,10 @@ echo "##### Starting tests #####"
 cd tests
 ./init-proto.sh
 
+export exclude=
+if [ "$distrib" = "ARM" ]; then
+  exclude="-e exclude-arm"
+fi
+
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot $test_file
+robot $exclude $test_file
