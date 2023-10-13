@@ -11,12 +11,7 @@ database_type=$2
 distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
-echo "##### Tests on #####"
-lscpu | grep Architecture
-cat /proc/cpuinfo
-cpu=$(awk -F':' '$1 ~ "model name" { print $2 }' /proc/cpuinfo | head -1)
-echo $cpu
-echo "####################"
+cpu=$(lscpu | awk '$1 ~ "Architecture" { print $2 }')
 
 if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo > tests/log.html
@@ -112,8 +107,8 @@ echo "##### Starting tests #####"
 cd tests
 ./init-proto.sh
 
-export exclude=
-if [[ "$cpu" =~ "arm" ]]; then
+exclude=
+if [[ "$cpu" =~ "aarch64" ]]; then
   exclude="-e exclude-arm"
 fi
 
