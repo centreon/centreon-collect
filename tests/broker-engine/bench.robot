@@ -89,7 +89,7 @@ BENCH_${nb_check}STATUS
 
 BENCH_${nb_check}STATUS_TRACES
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
-    [Tags]    broker    engine    bench
+    [Tags]    broker    engine    bench    exclude-arm
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
@@ -157,7 +157,7 @@ BENCH_${nb_check}STATUS_TRACES
 
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
-    [Tags]    broker    engine    bench
+    [Tags]    broker    engine    bench    exclude-arm
     Config Engine    ${100}    ${100}    ${20}
     Config Broker    module    ${100}
     Config Broker    central
