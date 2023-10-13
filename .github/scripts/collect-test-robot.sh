@@ -12,7 +12,8 @@ distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
 echo "##### Tests on #####"
-echo "$distrib"
+cpu=$(awk -F':' '$1 ~ "model name" { print $2 }' /proc/cpuinfo | head -1)
+echo $cpu
 echo "####################"
 
 if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
@@ -110,7 +111,7 @@ cd tests
 ./init-proto.sh
 
 export exclude=
-if [ "$distrib" = "ARM" ]; then
+if [[ "$cpu" =~ "arm" ]]; then
   exclude="-e exclude-arm"
 fi
 
