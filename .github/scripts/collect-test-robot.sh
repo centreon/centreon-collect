@@ -12,6 +12,7 @@ distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
 echo "##### Tests on #####"
+lscpu | grep Architecture
 cat /proc/cpuinfo
 cpu=$(awk -F':' '$1 ~ "model name" { print $2 }' /proc/cpuinfo | head -1)
 echo $cpu
