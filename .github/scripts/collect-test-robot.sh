@@ -108,7 +108,7 @@ cd tests
 ./init-proto.sh
 
 exclude=
-if [[ "$cpu" =~ "aarch64" ]]; then
+if [ "$cpu" = "aarch64" ]; then
   exclude="-e exclude-arm"
 fi
 
