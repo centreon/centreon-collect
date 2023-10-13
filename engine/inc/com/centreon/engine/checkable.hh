@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019,2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -42,30 +42,18 @@ class checkable {
 
   enum state_type { soft, hard };
 
-  checkable(const std::string& name,
-            std::string const& display_name,
-            std::string const& check_command,
-            bool checks_enabled,
-            bool accept_passive_checks,
-            uint32_t check_interval,
-            uint32_t retry_interval,
-            int max_attempts,
-            std::string const& check_period,
-            std::string const& event_handler,
-            bool event_handler_enabled,
-            std::string const& notes,
-            std::string const& notes_url,
-            std::string const& action_url,
-            std::string const& icon_image,
-            std::string const& icon_image_alt,
-            bool flap_detection_enabled,
-            double low_flap_threshold,
-            double high_flap_threshold,
-            bool check_freshness,
-            int freshness_threshold,
-            bool obsess_over,
-            std::string const& timezone,
-            uint64_t icon_id);
+  checkable(const std::string& name, std::string const& display_name,
+            std::string const& check_command, bool checks_enabled,
+            bool accept_passive_checks, uint32_t check_interval,
+            uint32_t retry_interval, int max_attempts,
+            std::string const& check_period, std::string const& event_handler,
+            bool event_handler_enabled, std::string const& notes,
+            std::string const& notes_url, std::string const& action_url,
+            std::string const& icon_image, std::string const& icon_image_alt,
+            bool flap_detection_enabled, double low_flap_threshold,
+            double high_flap_threshold, bool check_freshness,
+            int freshness_threshold, bool obsess_over,
+            std::string const& timezone, uint64_t icon_id);
   virtual ~checkable() noexcept = default;
 
   std::string const& get_display_name() const;
@@ -240,6 +228,6 @@ class checkable {
   whitelist_last_result _whitelist_last_result;
 };
 
-}
+}  // namespace com::centreon::engine
 
 #endif /* !CCE_CHECKABLE */

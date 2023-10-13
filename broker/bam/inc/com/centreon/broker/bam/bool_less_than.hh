@@ -1,5 +1,5 @@
 /*
- * Copyright 2014, 2021-2023 Centreon
+ * Copyright 2014, 2021-2024 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_less_than bool_less_than.hh
  * "com/centreon/broker/bam/bool_less_than.hh"
@@ -36,7 +34,7 @@ class bool_less_than : public bool_binary_operator {
   const bool _strict;
 
  public:
-  bool_less_than(bool strict = false);
+  bool_less_than(bool strict, const std::shared_ptr<spdlog::logger>& logger);
   ~bool_less_than() noexcept = default;
   bool_less_than(const bool_less_than&) = delete;
   bool_less_than& operator=(const bool_less_than&) = delete;
@@ -44,8 +42,6 @@ class bool_less_than : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_LESS_THAN_HH

@@ -37,10 +37,10 @@ class msg_fmt : public std::exception {
       : _msg(fmt::format(str, args...)) {}
 
   msg_fmt() = delete;
+  virtual ~msg_fmt() noexcept = default;
   msg_fmt(const msg_fmt& e) : std::exception(e), _msg(e._msg) {}
   msg_fmt& operator=(const msg_fmt&) = delete;
   const char* what() const noexcept final { return _msg.c_str(); }
 };
 }  // namespace com::centreon::exceptions
-
 #endif  // !CC_EXCEPTIONS_MSG_FMT_HH

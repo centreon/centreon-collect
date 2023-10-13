@@ -72,6 +72,6 @@ class temporary_endpoint : public io::endpoint {
   }
 };
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEMPORARY_ENDPOINT_HH

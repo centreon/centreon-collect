@@ -51,6 +51,6 @@ class loader {
 };
 }  // namespace broker
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_MODULES_LOADER_HH

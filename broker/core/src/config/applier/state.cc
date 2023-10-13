@@ -1,34 +1,36 @@
 /**
-* Copyright 2011-2013,2015-2016, 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2013,2015-2016, 2020-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/config/applier/state.hh"
 
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/instance_broadcast.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/vars.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::config::applier;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Class instance.
 static state* gl_state = nullptr;
@@ -61,9 +63,11 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     bool found_storage =
         std::find(lst.begin(), lst.end(), "20-storage.so") != lst.end();
     if (found_sql || found_storage) {
-      log_v2::config()->error(
-          "Configuration check error: bbdo versions >= 3.0.0 need the "
-          "unified_sql module to be configured.");
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->error(
+              "Configuration check error: bbdo versions >= 3.0.0 need the "
+              "unified_sql module to be configured.");
       throw msg_fmt(
           "Configuration check error: bbdo versions >= 3.0.0 need the "
           "unified_sql module to be configured.");
@@ -120,11 +124,15 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   else {
     uint32_t module_count = _modules.size();
     if (module_count)
-      log_v2::config()->info("applier: {} modules loaded", module_count);
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->info("applier: {} modules loaded", module_count);
     else
-      log_v2::config()->info(
-          "applier: no module loaded, you might want to check the "
-          "'module_directory' directory");
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->info(
+              "applier: no module loaded, you might want to check the "
+              "'module_directory' directory");
   }
 
   // Event queue max size (used to limit memory consumption).
@@ -252,14 +260,18 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
   std::lock_guard<std::mutex> lck(_connected_pollers_m);
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end()) {
-    log_v2::core()->info("Poller '{}' with id {} connected", poller_name,
-                         poller_id);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("Poller '{}' with id {} connected", poller_name, poller_id);
     _connected_pollers[poller_id] = poller_name;
   } else {
-    log_v2::core()->warn(
-        "Poller '{}' with id {} already known as connected. Replacing it with "
-        "'{}'",
-        _connected_pollers[poller_id], poller_id, poller_name);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->warn(
+            "Poller '{}' with id {} already known as connected. Replacing it "
+            "with "
+            "'{}'",
+            _connected_pollers[poller_id], poller_id, poller_name);
     found->second = poller_name;
   }
 }
@@ -273,11 +285,14 @@ void state::remove_poller(uint64_t poller_id) {
   std::lock_guard<std::mutex> lck(_connected_pollers_m);
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end())
-    log_v2::core()->warn("There is currently no poller {} connected",
-                         poller_id);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->warn("There is currently no poller {} connected", poller_id);
   else {
-    log_v2::core()->info("Poller '{}' with id {} just disconnected",
-                         _connected_pollers[poller_id], poller_id);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("Poller '{}' with id {} just disconnected",
+               _connected_pollers[poller_id], poller_id);
     _connected_pollers.erase(found);
   }
 }

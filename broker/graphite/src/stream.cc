@@ -18,18 +18,19 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include "bbdo/storage/metric.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace asio;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::graphite;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -56,10 +57,14 @@ stream::stream(std::string const& metric_naming,
       _pending_queries{0},
       _actual_query{0},
       _commit_flag{false},
-      _cache{cache},
       _metric_query{_metric_naming, escape_string, query::metric, _cache},
       _status_query{_status_naming, escape_string, query::status, _cache},
-      _socket{_io_context} {
+      _socket{_io_context},
+      _logger{log_v2::instance().get(log_v2::GRAPHITE)},
+      _cache{cache, _logger} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
     std::string auth{_db_user};
@@ -107,7 +112,11 @@ stream::stream(std::string const& metric_naming,
 /**
  *  Destructor.
  */
-stream::~stream() {}
+stream::~stream() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("graphite::stream destructor {}", static_cast<void*>(this));
+}
 
 /**
  *  Flush the stream.
@@ -115,7 +124,7 @@ stream::~stream() {}
  *  @return Number of events acknowledged.
  */
 int32_t stream::flush() {
-  log_v2::graphite()->debug("graphite: commiting {} queries", _actual_query);
+  _logger->debug("graphite: commiting {} queries", _actual_query);
   int32_t ret(_pending_queries);
   if (_actual_query != 0)
     _commit();
@@ -131,8 +140,13 @@ int32_t stream::flush() {
  * @return the number of acknowledged events.
  */
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("graphite::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
-  log_v2::core()->info("graphite stopped with {} events acknowledged", retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("graphite stopped with {} events acknowledged", retval);
   return retval;
 }
 

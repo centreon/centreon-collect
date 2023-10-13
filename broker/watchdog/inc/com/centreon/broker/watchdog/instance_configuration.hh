@@ -28,9 +28,12 @@ namespace com::centreon::broker::watchdog {
 class instance_configuration {
  public:
   instance_configuration();
-  instance_configuration(std::string const& name, std::string const& executable,
-                         std::string const& config_file, bool should_run,
-                         bool should_reload, uint32_t seconds_per_tentative);
+  instance_configuration(std::string const& name,
+                         std::string const& executable,
+                         std::string const& config_file,
+                         bool should_run,
+                         bool should_reload,
+                         uint32_t seconds_per_tentative);
   ~instance_configuration();
   instance_configuration(instance_configuration const& other);
   instance_configuration& operator=(instance_configuration const& other);

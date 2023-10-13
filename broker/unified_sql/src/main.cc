@@ -24,14 +24,16 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/unified_sql/factory.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/broker/unified_sql/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances{0u};
@@ -48,8 +50,16 @@ const char* broker_module_version = CENTREON_BROKER_VERSION;
  * @return An array of const char*
  */
 const char* const* broker_module_parents() {
-  constexpr static const char* retval[]{"10-neb.so", nullptr};
-  return retval;
+  constexpr static const char* retval_legacy[]{"10-neb.so", nullptr};
+  constexpr static const char* retval[]{"10-neb.so", "20-poller_conf.so",
+                                        nullptr};
+  const char* env = getenv("CENTENGINE_LEGACY");
+  bool legacy;
+  if (env && absl::SimpleAtob(env, &legacy)) {
+    if (!legacy)
+      return retval;
+  }
+  return retval_legacy;
 }
 
 /**
@@ -74,11 +84,14 @@ bool broker_module_deinit() {
 void broker_module_init(void const* arg) {
   (void)arg;
 
+  auto logger = log_v2::instance().create_logger(log_v2::SQL);
+  log_v2::instance().create_logger(log_v2::PERFDATA);
+
   // Increment instance number.
   if (!instances++) {
     // Storage module.
-    log_v2::sql()->info("unified_sql: module for Centreon Broker {}",
-                        CENTREON_BROKER_VERSION);
+    logger->info("unified_sql: module for Centreon Broker {}",
+                 CENTREON_BROKER_VERSION);
 
     io::events& e(io::events::instance());
 

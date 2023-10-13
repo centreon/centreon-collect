@@ -70,6 +70,6 @@ std::ostream& anomalydetection(
 std::ostream& services(std::ostream& os);
 }  // namespace dump
 }  // namespace retention
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_RETENTION_DUMP_HH

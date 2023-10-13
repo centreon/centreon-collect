@@ -17,17 +17,16 @@
  *
  */
 
+#include "com/centreon/engine/command_manager.hh"
+
 #include <google/protobuf/util/time_util.h>
 #include <sys/types.h>
 
-#include "com/centreon/engine/host.hh"
-
 #include "com/centreon/engine/checks/checker.hh"
-#include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/comment.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
 using namespace com::centreon::engine;
@@ -84,8 +83,13 @@ int command_manager::process_passive_service_check(
 
   /* skip this service check result if we aren't accepting passive service
    * checks */
+#if LEGACY_CONF
   if (!config->accept_passive_service_checks())
     return ERROR;
+#else
+  if (!pb_config.accept_passive_service_checks())
+    return ERROR;
+#endif
 
   /* make sure we have a reasonable return code */
   if (return_code > 3)
@@ -112,7 +116,7 @@ int command_manager::process_passive_service_check(
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the host could not be found!",
         svc_description, host_name);
@@ -127,7 +131,7 @@ int command_manager::process_passive_service_check(
         << "Warning:  Passive check result was received for service '"
         << svc_description << "' on host '" << host_name
         << "', but the service could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for service '{}' on host "
         "'{}', but the service could not be found!",
         svc_description, host_name);
@@ -169,8 +173,13 @@ int command_manager::process_passive_host_check(time_t check_time,
   const std::string* real_host_name = nullptr;
 
   /* skip this host check result if we aren't accepting passive host checks */
+#if LEGACY_CONF
   if (!config->accept_passive_service_checks())
     return ERROR;
+#else
+  if (!pb_config.accept_passive_service_checks())
+    return ERROR;
+#endif
 
   /* make sure we have a reasonable return code */
   if (return_code > 2)
@@ -196,7 +205,7 @@ int command_manager::process_passive_host_check(time_t check_time,
     engine_logger(log_runtime_warning, basic)
         << "Warning:  Passive check result was received for host '" << host_name
         << "', but the host could not be found!";
-    log_v2::runtime()->warn(
+    runtime_logger->warn(
         "Warning:  Passive check result was received for host '{}', but the "
         "host could not be found!",
         host_name);
@@ -283,12 +292,21 @@ int command_manager::get_stats(std::string const& request, Stats* response) {
     uint32_t used_external_command_buffer_slots = 0;
     uint32_t high_external_command_buffer_slots = 0;
     // get number f items in the command buffer
+#if LEGACY_CONF
     if (config->check_external_commands()) {
       used_external_command_buffer_slots = external_command_buffer.size();
       high_external_command_buffer_slots = external_command_buffer.high();
     }
     response->mutable_program_status()->set_total_external_command_buffer_slots(
         config->external_command_buffer_slots());
+#else
+    if (pb_config.check_external_commands()) {
+      used_external_command_buffer_slots = external_command_buffer.size();
+      high_external_command_buffer_slots = external_command_buffer.high();
+    }
+    response->mutable_program_status()->set_total_external_command_buffer_slots(
+        pb_config.external_command_buffer_slots());
+#endif
     response->mutable_program_status()->set_used_external_command_buffer_slots(
         used_external_command_buffer_slots);
     response->mutable_program_status()->set_high_external_command_buffer_slots(

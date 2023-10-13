@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,6 +21,7 @@
 #define CCB_TEMPORARY_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 namespace com::centreon::broker {
@@ -82,6 +83,6 @@ class temporary_stream : public io::stream {
   int32_t stop() override { return 0; }
 };
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_TEMPORARY_STREAM_HH

@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_STATE_HH
 #define CCE_CONFIGURATION_STATE_HH
@@ -37,10 +37,9 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "common/log_v2/log_v2.hh"
 
-namespace com::centreon::engine {
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 /**
  *  @class state state.hh
@@ -50,6 +49,16 @@ namespace configuration {
  *  to manage configuration data.
  */
 class state {
+  std::shared_ptr<spdlog::logger> _config_logger;
+  //  uint32_t _config_warnings = 0;
+  //  uint32_t _config_errors = 0;
+
+  struct sched_info_config {
+    double host_inter_check_delay;
+    double service_inter_check_delay;
+    int32_t service_interleave_factor;
+  } _scheduling_info;
+
  public:
   /**
    *  @enum state::date_format
@@ -129,11 +138,11 @@ class state {
   bool check_host_freshness() const noexcept;
   void check_host_freshness(bool value);
   bool check_orphaned_hosts() const noexcept;
-  void check_orphaned_hosts(bool value);
-  void check_orphaned_services(bool value);
+  void set_check_orphaned_hosts(bool value);
+  void set_check_orphaned_services(bool value);
   bool check_orphaned_services() const noexcept;
   unsigned int check_reaper_interval() const noexcept;
-  void check_reaper_interval(unsigned int value);
+  void set_check_reaper_interval(unsigned int value);
   bool check_service_freshness() const noexcept;
   void check_service_freshness(bool value);
   const set_severity& severities() const noexcept;
@@ -170,7 +179,7 @@ class state {
   std::string const& debug_file() const noexcept;
   void debug_file(std::string const& value);
   unsigned long long debug_level() const noexcept;
-  void debug_level(unsigned long long value);
+  void debug_level(int64_t value);
   unsigned int debug_verbosity() const noexcept;
   void debug_verbosity(unsigned int value);
   bool enable_environment_macros() const noexcept;
@@ -229,18 +238,13 @@ class state {
   void host_perfdata_command(std::string const& value);
   std::string const& host_perfdata_file() const noexcept;
   void host_perfdata_file(std::string const& value);
-  perfdata_file_mode host_perfdata_file_mode() const noexcept;
-  void host_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& host_perfdata_file_processing_command() const noexcept;
   void host_perfdata_file_processing_command(std::string const& value);
-  unsigned int host_perfdata_file_processing_interval() const noexcept;
   void host_perfdata_file_processing_interval(unsigned int value);
-  std::string const& host_perfdata_file_template() const noexcept;
   void host_perfdata_file_template(std::string const& value);
   std::string const& illegal_object_chars() const noexcept;
-  void illegal_object_chars(std::string const& value);
+  void set_illegal_object_chars(const std::string& value);
   std::string const& illegal_output_chars() const noexcept;
-  void illegal_output_chars(std::string const& value);
+  void set_illegal_output_chars(std::string const& value);
   unsigned int interval_length() const noexcept;
   void interval_length(unsigned int value);
   bool log_event_handlers() const noexcept;
@@ -276,7 +280,7 @@ class state {
   uint32_t log_flush_period() const noexcept;
   void log_flush_period(uint32_t value);
   unsigned int max_parallel_service_checks() const noexcept;
-  void max_parallel_service_checks(unsigned int value);
+  void set_max_parallel_service_checks(unsigned int value);
   unsigned int max_service_check_spread() const noexcept;
   void max_service_check_spread(unsigned int value);
   unsigned int notification_timeout() const noexcept;
@@ -299,8 +303,8 @@ class state {
   void poller_name(std::string const& value);
   uint32_t poller_id() const noexcept;
   void poller_id(uint32_t value);
-  uint16_t rpc_port() const noexcept;
-  void rpc_port(uint16_t value);
+  uint16_t grpc_port() const noexcept;
+  void set_grpc_port(uint16_t value);
   const std::string& rpc_listen_address() const noexcept;
   void rpc_listen_address(const std::string& listen_address);
   bool process_performance_data() const noexcept;
@@ -333,8 +337,9 @@ class state {
       servicegroup::key_type const& k);
   // const set_anomalydetection& anomalydetections() const noexcept;
   set_anomalydetection& anomalydetections() noexcept;
-  set_service const& services() const noexcept;
   set_service& services() noexcept;
+  set_service& mut_services() noexcept;
+  set_service const& services() const noexcept;
   set_anomalydetection::iterator anomalydetections_find(
       anomalydetection::key_type const& k);
   set_service::iterator services_find(service::key_type const& k);
@@ -355,13 +360,9 @@ class state {
   void service_perfdata_command(std::string const& value);
   std::string const& service_perfdata_file() const noexcept;
   void service_perfdata_file(std::string const& value);
-  perfdata_file_mode service_perfdata_file_mode() const noexcept;
   void service_perfdata_file_mode(perfdata_file_mode value);
-  std::string const& service_perfdata_file_processing_command() const noexcept;
   void service_perfdata_file_processing_command(std::string const& value);
-  unsigned int service_perfdata_file_processing_interval() const noexcept;
   void service_perfdata_file_processing_interval(unsigned int value);
-  std::string const& service_perfdata_file_template() const noexcept;
   void service_perfdata_file_template(std::string const& value);
   float sleep_time() const noexcept;
   void sleep_time(float value);
@@ -391,7 +392,7 @@ class state {
   uint32_t instance_heartbeat_interval() const noexcept;
   void instance_heartbeat_interval(uint32_t value);
   bool use_regexp_matches() const noexcept;
-  void use_regexp_matches(bool value);
+  void set_use_regexp_matches(bool value);
   bool use_retained_program_state() const noexcept;
   void use_retained_program_state(bool value);
   bool use_retained_scheduling_info() const noexcept;
@@ -436,6 +437,7 @@ class state {
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
+  sched_info_config& sched_info_config() { return _scheduling_info; }
 
  private:
   typedef bool (*setter_func)(state&, char const*);
@@ -458,7 +460,6 @@ class state {
   void _set_event_broker_options(std::string const& value);
   void _set_free_child_process_memory(std::string const& value);
   void _set_host_inter_check_delay_method(std::string const& value);
-  void _set_host_perfdata_file_mode(std::string const& value);
   void _set_lock_file(std::string const& value);
   void _set_log_archive_path(std::string const& value);
   void _set_log_initial_states(std::string const& value);
@@ -477,24 +478,50 @@ class state {
   void _set_temp_file(std::string const& value);
   void _set_temp_path(std::string const& value);
   void _set_use_embedded_perl_implicitly(std::string const& value);
+  void _set_host_perfdata_file_mode(std::string const& value);
 
   template <typename U, void (state::*ptr)(U)>
   struct setter {
-    static bool generic(state& obj, char const* value) {
+    static bool generic(state& obj, const char* value) {
       try {
         U val(0);
-        if (!string::to(value, val))
-          return (false);
-        (obj.*ptr)(val);
-      } catch (std::exception const& e) {
+        if constexpr (std::is_same_v<U, bool>) {
+          if (!absl::SimpleAtob(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_same_v<U, uint16_t>) {
+          uint32_t v;
+          if (!absl::SimpleAtoi(value, &v))
+            return false;
+          if (v > 0xffffu)
+            return false;
+          else
+            val = v;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_integral<U>::value) {
+          if (!absl::SimpleAtoi(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_same_v<U, float>) {
+          if (!absl::SimpleAtof(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else if constexpr (std::is_same_v<U, double>) {
+          if (!absl::SimpleAtod(value, &val))
+            return false;
+          (obj.*ptr)(val);
+        } else {
+          static_assert(std::is_integral_v<U> || std::is_floating_point_v<U> ||
+                        std::is_same_v<U, bool>);
+        }
+      } catch (const std::exception& e) {
         engine_logger(logging::log_config_error, logging::basic) << e.what();
-        return (false);
       }
-      return (true);
+      return true;
     }
   };
 
-  template <void (state::*ptr)(std::string const&)>
+  template <void (state::*ptr)(const std::string&)>
   struct setter<std::string const&, ptr> {
     static bool generic(state& obj, char const* value) {
       try {
@@ -540,7 +567,7 @@ class state {
   set_contact _contacts;
   date_type _date_format;
   std::string _debug_file;
-  unsigned long long _debug_level;
+  uint64_t _debug_level;
   unsigned int _debug_verbosity;
   bool _enable_environment_macros;
   bool _enable_event_handlers;
@@ -567,10 +594,6 @@ class state {
   inter_check_delay _host_inter_check_delay_method;
   std::string _host_perfdata_command;
   std::string _host_perfdata_file;
-  perfdata_file_mode _host_perfdata_file_mode;
-  std::string _host_perfdata_file_processing_command;
-  unsigned int _host_perfdata_file_processing_interval;
-  std::string _host_perfdata_file_template;
   std::string _illegal_object_chars;
   std::string _illegal_output_chars;
   unsigned int _interval_length;
@@ -602,7 +625,7 @@ class state {
   int _perfdata_timeout;
   std::string _poller_name;
   uint32_t _poller_id;
-  uint16_t _rpc_port;
+  uint16_t _grpc_port;
   std::string _rpc_listen_address;
   bool _process_performance_data;
   std::list<std::string> _resource_file;
@@ -624,11 +647,8 @@ class state {
   interleave_factor _service_interleave_factor_method;
   std::string _service_perfdata_command;
   std::string _service_perfdata_file;
-  perfdata_file_mode _service_perfdata_file_mode;
-  std::string _service_perfdata_file_processing_command;
-  unsigned int _service_perfdata_file_processing_interval;
-  std::string _service_perfdata_file_template;
-  static std::unordered_map<std::string, setter_func> const _setters;
+  static absl::flat_hash_map<std::string, setter_func> const _setters;
+  static absl::flat_hash_map<std::string, setter_func> const _pb_setters;
   float _sleep_time;
   bool _soft_state_dependencies;
   std::string _state_retention_file;
@@ -662,10 +682,7 @@ class state {
   std::string _log_level_runtime;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
-
 };
-}  // namespace configuration
-
-}
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_STATE_HH

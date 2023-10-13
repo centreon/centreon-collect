@@ -18,23 +18,17 @@
 */
 
 #include "com/centreon/engine/configuration/anomalydetection.hh"
+#include <absl/strings/ascii.h>
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
-#include <absl/strings/string_view.h>
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
-#include "com/centreon/engine/customvariable.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/log_v2.hh"
-#include "com/centreon/engine/logging/logger.hh"
-#include "com/centreon/engine/string.hh"
-
-extern int config_warnings;
-extern int config_errors;
+#include "com/centreon/engine/configuration/tag.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/configuration/state-generated.pb.h"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
-using namespace com::centreon::engine::logging;
+using com::centreon::common::log_v2::log_v2;
 
 #define SETTER(type, method) \
   &object::setter<anomalydetection, type, &anomalydetection::method>::generic
@@ -130,7 +124,7 @@ static unsigned short const default_flap_detection_options(
     anomalydetection::unknown | anomalydetection::critical);
 static unsigned int const default_freshness_threshold(0);
 static unsigned int const default_high_flap_threshold(0);
-static unsigned int const default_initial_state(engine::service::state_ok);
+static unsigned int const default_initial_state(ServiceStatus::state_ok);
 static bool const default_is_volatile(false);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
@@ -324,443 +318,314 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
  */
 bool anomalydetection::operator==(
     anomalydetection const& other) const noexcept {
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   if (!object::operator==(other)) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => object don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => object don't match");
     return false;
   }
   if (_acknowledgement_timeout != other._acknowledgement_timeout) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "acknowledgement_timeout don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "acknowledgement_timeout don't match");
     return false;
   }
   if (_action_url != other._action_url) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => action_url don't match";
-    log_v2::config()->debug(
-        "configuration::anomalydetection::"
-        "equality => action_url don't match");
+    logger->debug(
+        "configuration::anomalydetection::equality => action_url don't match");
     return false;
   }
   if (_status_change != other._status_change) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => status_change don't match";
-    log_v2::config()->debug(
-        "configuration::anomalydetection::"
-        "equality => status_change don't match");
+    logger->debug(
+        "configuration::anomalydetection::equality => status_change don't "
+        "match");
     return false;
   }
   if (_checks_active != other._checks_active) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => checks_active don't match";
-    log_v2::config()->debug(
-        "configuration::anomalydetection::"
-        "equality => checks_active don't match");
+    logger->debug(
+        "configuration::anomalydetection::equality => checks_active don't "
+        "match");
     return false;
   }
   if (_checks_passive != other._checks_passive) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => checks_passive don't match";
-    log_v2::config()->debug(
-        "configuration::anomalydetection::"
-        "equality => checks_passive don't match");
+    logger->debug(
+        "configuration::anomalydetection::equality => checks_passive don't "
+        "match");
     return false;
   }
   if (_metric_name != other._metric_name) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => metric_name don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => metric_name don't match");
     return false;
   }
   if (_thresholds_file != other._thresholds_file) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => thresholds_file don't "
-           "match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => thresholds_file don't "
         "match");
     return false;
   }
   if (_check_freshness != other._check_freshness) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => check_freshness don't "
-           "match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => check_freshness don't "
         "match");
     return false;
   }
   if (_check_interval != other._check_interval) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => check_interval don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => check_interval don't match");
     return false;
   }
   if (_contactgroups != other._contactgroups) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => contactgroups don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => contactgroups don't match");
     return false;
   }
   if (_contacts != other._contacts) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => contacts don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => contacts don't match");
     return false;
   }
   if (std::operator!=(_customvariables, other._customvariables)) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => customvariables don't "
-           "match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => customvariables don't "
         "match");
     return false;
   }
   if (_display_name != other._display_name) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => display_name don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => display_name don't match");
     return false;
   }
   if (_event_handler != other._event_handler) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => event_handler don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => event_handler don't match");
     return false;
   }
   if (_event_handler_enabled != other._event_handler_enabled) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => event_handler don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => event_handler don't match");
     return false;
   }
   if (_first_notification_delay != other._first_notification_delay) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "first_notification_delay don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "first_notification_delay don't match");
     return false;
   }
   if (_flap_detection_enabled != other._flap_detection_enabled) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "flap_detection_enabled don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "flap_detection_enabled don't match");
     return false;
   }
   if (_flap_detection_options != other._flap_detection_options) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "flap_detection_options don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "flap_detection_options don't match");
     return false;
   }
   if (_freshness_threshold != other._freshness_threshold) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "freshness_threshold don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "freshness_threshold don't match");
     return false;
   }
   if (_high_flap_threshold != other._high_flap_threshold) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "high_flap_threshold don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "high_flap_threshold don't match");
     return false;
   }
   if (_host_name != other._host_name) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => _host_name don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => _host_name don't match");
     return false;
   }
   if (_icon_image != other._icon_image) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => icon_image don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => icon_image don't match");
     return false;
   }
   if (_icon_image_alt != other._icon_image_alt) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => icon_image_alt don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => icon_image_alt don't match");
     return false;
   }
   if (_initial_state != other._initial_state) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => initial_state don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => initial_state don't match");
     return false;
   }
   if (_is_volatile != other._is_volatile) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => is_volatile don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => is_volatile don't match");
     return false;
   }
   if (_low_flap_threshold != other._low_flap_threshold) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => low_flap_threshold "
-           "don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => low_flap_threshold "
         "don't match");
     return false;
   }
   if (_max_check_attempts != other._max_check_attempts) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => max_check_attempts "
-           "don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => max_check_attempts "
         "don't match");
     return false;
   }
   if (_notes != other._notes) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => notes don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => notes don't match");
     return false;
   }
   if (_notes_url != other._notes_url) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => notes_url don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => notes_url don't match");
     return false;
   }
   if (_notifications_enabled != other._notifications_enabled) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "notifications_enabled don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "notifications_enabled don't match");
     return false;
   }
   if (_notification_interval != other._notification_interval) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "notification_interval don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "notification_interval don't match");
     return false;
   }
   if (_notification_options != other._notification_options) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "notification_options don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "notification_options don't match");
     return false;
   }
   if (_notification_period != other._notification_period) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "notification_period don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "notification_period don't match");
     return false;
   }
   if (_obsess_over_service != other._obsess_over_service) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "obsess_over_service don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "obsess_over_service don't match");
     return false;
   }
   if (_process_perf_data != other._process_perf_data) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => process_perf_data "
-           "don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => process_perf_data "
         "don't match");
     return false;
   }
   if (_retain_nonstatus_information != other._retain_nonstatus_information) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "retain_nonstatus_information don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "retain_nonstatus_information don't match");
     return false;
   }
   if (_retain_status_information != other._retain_status_information) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "retain_status_information don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "retain_status_information don't match");
     return false;
   }
   if (_retry_interval != other._retry_interval) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => retry_interval don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => retry_interval don't match");
     return false;
   }
   if (_recovery_notification_delay != other._recovery_notification_delay) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "recovery_notification_delay don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "recovery_notification_delay don't match");
     return false;
   }
   if (_servicegroups != other._servicegroups) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => servicegroups don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => servicegroups don't match");
     return false;
   }
   if (_service_description != other._service_description) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => "
-           "service_description don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => "
         "service_description don't match");
     return false;
   }
   if (_host_id != other._host_id) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => host_id don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => host_id don't match");
     return false;
   }
   if (_host_id != other._host_id) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => host_id don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => host_id don't match");
     return false;
   }
   if (_service_id != other._service_id) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => service_id don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::"
         "equality => service_id don't match");
     return false;
   }
   if (_internal_id != other._internal_id) {
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => internal_id "
         "don't match");
     return false;
   }
   if (_dependent_service_id != other._dependent_service_id) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => dependent_service_id "
-           "don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => dependent_service_id "
         "don't match");
     return false;
   }
   if (_stalking_options != other._stalking_options) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => stalking_options "
-           "don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => stalking_options "
         "don't match");
     return false;
   }
   if (_timezone != other._timezone) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => timezone don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => timezone don't match");
     return false;
   }
   if (_severity_id != other._severity_id) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => severity id don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => severity id don't match");
     return false;
   }
   if (_icon_id != other._icon_id) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => icon id don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => icon id don't match");
     return false;
   }
   if (_tags != other._tags) {
-    engine_logger(dbg_config, more)
-        << "configuration::anomalydetection::equality => tags don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => tags don't match");
     return false;
   }
   if (_sensitivity != other._sensitivity) {
-    engine_logger(dbg_config, more) << "configuration::anomalydetection::"
-                                       "equality => sensitivity don't match";
-    log_v2::config()->debug(
+    logger->debug(
         "configuration::anomalydetection::equality => sensitivity don't match");
     return false;
   }
-  engine_logger(dbg_config, more)
-      << "configuration::anomalydetection::equality => OK";
-  log_v2::config()->debug("configuration::anomalydetection::equality => OK");
+  logger->debug("configuration::anomalydetection::equality => OK");
   return true;
 }
 
@@ -890,24 +755,28 @@ bool anomalydetection::operator<(anomalydetection const& other) const noexcept {
 /**
  *  Check if the object is valid.
  *
- *  @exception engine_error if this anomalydetection is an invalid object.
+ *  @exception exceptions::msg_fmt if this anomalydetection is an invalid
+ * object.
  */
-void anomalydetection::check_validity() const {
+void anomalydetection::check_validity(error_info* err) const {
   if (_service_description.empty())
-    throw engine_error() << "Service has no description (property "
-                         << "'service_description')";
+    throw exceptions::msg_fmt(
+        "Service has no description (property "
+        "'service_description')");
   if (_host_name.empty())
-    throw engine_error() << "Service '" << _service_description
-                         << "' is not attached to any host (property "
-                            "'host_name')";
+    throw exceptions::msg_fmt(
+        "Service '{}' is not attached to any host (property 'host_name')",
+        _service_description);
   if (_metric_name.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no metric name specified (property 'metric_name')";
+    throw exceptions::msg_fmt(
+        "Anomaly detection service '{}' has no metric name specified (property "
+        "'metric_name')",
+        _service_description);
   if (_thresholds_file.empty())
-    throw engine_error()
-        << "Anomaly detection service '" << _service_description
-        << "' has no thresholds file specified (property 'thresholds_file')";
+    throw exceptions::msg_fmt(
+        "Anomaly detection service '{}' has no thresholds file specified "
+        "(property 'thresholds_file')",
+        _service_description);
 }
 
 /**
@@ -925,23 +794,11 @@ anomalydetection::key_type anomalydetection::key() const {
  *
  *  @param[in] obj The object to merge.
  */
-void anomalydetection::merge(configuration::serviceextinfo const& tmpl) {
-  MRG_DEFAULT(_action_url);
-  MRG_DEFAULT(_icon_image);
-  MRG_DEFAULT(_icon_image_alt);
-  MRG_DEFAULT(_notes);
-  MRG_DEFAULT(_notes_url);
-}
-
-/**
- *  Merge object.
- *
- *  @param[in] obj The object to merge.
- */
 void anomalydetection::merge(object const& obj) {
   if (obj.type() != _type)
-    throw engine_error() << "Cannot merge anomalydetection with '" << obj.type()
-                         << "'";
+    throw exceptions::msg_fmt(
+        "Cannot merge anomalydetection with object of type '{}'",
+        static_cast<uint32_t>(obj.type()));
   anomalydetection const& tmpl(static_cast<anomalydetection const&>(obj));
 
   MRG_OPTION(_acknowledgement_timeout);
@@ -989,7 +846,6 @@ void anomalydetection::merge(object const& obj) {
   MRG_OPTION(_timezone);
   MRG_OPTION(_severity_id);
   MRG_OPTION(_icon_id);
-  MRG_OPTION(_sensitivity);
   MRG_MAP(_tags);
 }
 
@@ -1008,7 +864,7 @@ bool anomalydetection::parse(char const* key, char const* value) {
     return (it->second)(*this, value);
 
   if (key[0] == '_') {
-    map_customvar::iterator it{_customvariables.find(key + 1)};
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -1150,8 +1006,8 @@ bool anomalydetection::contacts_defined() const noexcept {
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar const& anomalydetection::customvariables()
-    const noexcept {
+const std::unordered_map<std::string, customvariable>&
+anomalydetection::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -1160,7 +1016,7 @@ com::centreon::engine::map_customvar const& anomalydetection::customvariables()
  *
  *  @return The customvariables.
  */
-com::centreon::engine::map_customvar&
+std::unordered_map<std::string, customvariable>&
 anomalydetection::customvariables() noexcept {
   return _customvariables;
 }
@@ -1343,7 +1199,6 @@ bool anomalydetection::notifications_enabled() const noexcept {
  */
 void anomalydetection::notification_interval(unsigned int interval) noexcept {
   _notification_interval = interval;
-  return;
 }
 
 /**
@@ -1380,7 +1235,6 @@ unsigned short anomalydetection::notification_options() const noexcept {
  */
 void anomalydetection::notification_period(std::string const& period) {
   _notification_period = period;
-  return;
 }
 
 /**
@@ -1543,7 +1397,6 @@ unsigned short anomalydetection::stalking_options() const noexcept {
  */
 void anomalydetection::timezone(std::string const& time_zone) {
   _timezone = time_zone;
-  return;
 }
 
 /**
@@ -1604,7 +1457,7 @@ bool anomalydetection::set_acknowledgement_timeout(int value) {
  *
  *  @return True on success, otherwise false.
  */
-bool anomalydetection::_set_action_url(std::string const& value) {
+bool anomalydetection::_set_action_url(const std::string& value) {
   _action_url = value;
   return true;
 }
@@ -1766,13 +1619,10 @@ bool anomalydetection::_set_event_handler_enabled(bool value) {
  */
 bool anomalydetection::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: anomalydetection failure_prediction_enabled is deprecated."
-      << " This option will not be supported in 20.04.";
-  log_v2::config()->warn(
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->warn(
       "Warning: anomalydetection failure_prediction_enabled is deprecated. "
       "This option will not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -1786,13 +1636,10 @@ bool anomalydetection::_set_failure_prediction_enabled(bool value) {
 bool anomalydetection::_set_failure_prediction_options(
     std::string const& value) {
   (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: anomalydetection failure_prediction_options is deprecated."
-      << " This option will not be supported in 20.04.";
-  log_v2::config()->warn(
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->warn(
       "Warning: anomalydetection failure_prediction_options is deprecated. "
       "This option will not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -1829,22 +1676,20 @@ bool anomalydetection::_set_flap_detection_enabled(bool value) {
  */
 bool anomalydetection::_set_flap_detection_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "ok")
       options |= ok;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "u" || *it == "unknown")
+    else if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = ok | warning | unknown | critical;
     else
       return false;
@@ -1921,16 +1766,16 @@ bool anomalydetection::_set_icon_image_alt(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool anomalydetection::_set_initial_state(std::string const& value) {
-  std::string data(value);
-  string::trim(data);
+  std::string_view data(value);
+  data = absl::StripAsciiWhitespace(data);
   if (data == "o" || data == "ok")
-    _initial_state = engine::service::state_ok;
+    _initial_state = ServiceStatus::state_ok;
   else if (data == "w" || data == "warning")
-    _initial_state = engine::service::state_warning;
+    _initial_state = ServiceStatus::state_warning;
   else if (data == "u" || data == "unknown")
-    _initial_state = engine::service::state_unknown;
+    _initial_state = ServiceStatus::state_unknown;
   else if (data == "c" || data == "critical")
-    _initial_state = engine::service::state_critical;
+    _initial_state = ServiceStatus::state_critical;
   else
     return false;
   return true;
@@ -2019,26 +1864,24 @@ bool anomalydetection::_set_notifications_enabled(bool value) {
  */
 bool anomalydetection::_set_notification_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "u" || *it == "unknown")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= ok;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = unknown | warning | critical | ok | flapping | downtime;
     else
       return false;
@@ -2092,13 +1935,10 @@ bool anomalydetection::_set_obsess_over_service(bool value) {
  */
 bool anomalydetection::_set_parallelize_check(bool value) {
   (void)value;
-  engine_logger(log_verification_error, basic)
-      << "Warning: anomalydetection parallelize_check is deprecated"
-      << " This option will not be supported in 20.04.";
-  log_v2::config()->warn(
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->warn(
       "Warning: anomalydetection parallelize_check is deprecated This option "
       "will not be supported in 20.04.");
-  ++config_warnings;
   return true;
 }
 
@@ -2233,22 +2073,20 @@ bool anomalydetection::set_dependent_service_id(uint64_t value) {
  */
 bool anomalydetection::_set_stalking_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "o" || *it == "ok")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "o" || v == "ok")
       options |= ok;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= warning;
-    else if (*it == "u" || *it == "unknown")
+    else if (v == "u" || v == "unknown")
       options |= unknown;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= critical;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = ok | warning | unknown | critical;
     else
       return false;
@@ -2295,7 +2133,8 @@ bool anomalydetection::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::servicecategory);
     } else {
-      log_v2::config()->warn(
+      auto logger = log_v2::instance().get(log_v2::CONFIG);
+      logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",
           _host_id, _service_id, value);
       ret = false;
@@ -2330,7 +2169,8 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::servicegroup);
     } else {
-      log_v2::config()->warn(
+      auto logger = log_v2::instance().get(log_v2::CONFIG);
+      logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",
           _host_id, _service_id, value);
       ret = false;

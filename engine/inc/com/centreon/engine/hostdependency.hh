@@ -20,6 +20,8 @@
 #ifndef CCE_OBJECTS_HOSTDEPENDENCY_HH
 #define CCE_OBJECTS_HOSTDEPENDENCY_HH
 
+#include <absl/container/btree_map.h>
+
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/dependency.hh"
 
@@ -28,9 +30,9 @@ namespace com::centreon::engine {
 class host;
 class hostdependency;
 class timeperiod;
-}
+}  // namespace com::centreon::engine
 
-typedef std::unordered_multimap<
+typedef absl::btree_multimap<
     std::string,
     std::shared_ptr<com::centreon::engine::hostdependency>>
     hostdependency_mmap;
@@ -38,8 +40,9 @@ typedef std::unordered_multimap<
 namespace com::centreon::engine {
 class hostdependency : public dependency {
  public:
-  hostdependency(std::string const& dependent_hostname,
-                 std::string const& hostname,
+  hostdependency(size_t key,
+                 const std::string& dependent_hostname,
+                 const std::string& hostname,
                  dependency::types dependency_type,
                  bool inherits_parent,
                  bool fail_on_up,
@@ -66,6 +69,8 @@ class hostdependency : public dependency {
   static hostdependency_mmap hostdependencies;
   static hostdependency_mmap::iterator hostdependencies_find(
       configuration::hostdependency const& k);
+  static hostdependency_mmap::iterator hostdependencies_find(
+      const std::pair<std::string_view, size_t>& key);
 
   host* master_host_ptr;
   host* dependent_host_ptr;
@@ -76,7 +81,7 @@ class hostdependency : public dependency {
   bool _fail_on_unreachable;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::hostdependency const& obj);

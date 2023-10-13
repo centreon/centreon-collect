@@ -1,25 +1,26 @@
-/*
-** Copyright 2014-2016 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2016 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_CONFIGURATION_READER_V2_HH
 #define CCB_BAM_CONFIGURATION_READER_V2_HH
 
 #include "com/centreon/broker/bam/configuration/state.hh"
+
 #include "com/centreon/broker/sql/database_config.hh"
 
 namespace com::centreon::broker {
@@ -27,8 +28,7 @@ namespace com::centreon::broker {
 // Forward declaration.
 class mysql;
 
-namespace bam {
-namespace configuration {
+namespace bam::configuration {
 /**
  *  @class reader_v2 reader_v2.hh
  * "com/centreon/broker/bam/configuration/reader_v2.hh"
@@ -39,6 +39,8 @@ namespace configuration {
  *  the BAM engine.
  */
 class reader_v2 {
+  std::shared_ptr<spdlog::logger> _logger;
+
  public:
   reader_v2(mysql& centreon_db, const database_config& storage_cfg);
   ~reader_v2() noexcept = default;
@@ -57,9 +59,8 @@ class reader_v2 {
   mysql& _mysql;
   database_config _storage_cfg;
 };
-}  // namespace configuration
-}  // namespace bam
+}  // namespace bam::configuration
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_CONFIGURATION_READER_V2_HH

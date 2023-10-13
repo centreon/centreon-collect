@@ -255,7 +255,7 @@ EBDP3
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
@@ -476,6 +476,9 @@ EBDP6
     END
     Should Be Equal As Strings    ${output}    ()
 
+    Stop Engine
+    Kindly Stop Broker
+
 EBDP7
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
     [Tags]    broker    engine    grpc
@@ -523,6 +526,17 @@ EBDP7
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT running, deleted, outdated FROM instances WHERE name='Poller2'
+        Sleep    1s
+        Log To Console    Output= ${output}
+        IF    "${output[0][0]}" == "0" or "${output[0][1]}" == "1" or "${output[0][2]}" == "1"
+            BREAK
+        END
+    END
+    Should Be True
+    ...    "${output[0][0]}" == "0" or "${output[0][1]}" == "1" or "${output[0][2]}" == "1"
+    ...    Poller2 should be not running or deleted or outdated.
     ${remove_time}    Get Current Date
     Ctn Remove Poller By Id    51001    ${3}
 
@@ -535,7 +549,7 @@ EBDP7
     Ctn Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE instance_id=3
         Sleep    1s
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
@@ -571,14 +585,14 @@ EBDP8
     END
     Should Be Equal As Strings    ${output}    ((4,),)
 
-    # Let's brutally kill the poller
+    # We want the poller 3 event handled by broker before stopping broker
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    We want the poller 4 event before stopping broker
     Ctn Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
-    # Generation of many service status but kept in memory on poller3.
+    # Generation of many service status but kept in memory on poller3 since broker is switched off.
     FOR    ${i}    IN RANGE    200
         Ctn Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
         Ctn Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
@@ -610,7 +624,7 @@ EBDP8
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
-    Should Be Equal As Strings    ${output}    ()
+    Should Be Equal As Strings    ${output}    ()    The Poller3 should be removed from the DB.
 
     Ctn Start engine
     # Let's wait until engine listens to external_commands.

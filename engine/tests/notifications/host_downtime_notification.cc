@@ -17,9 +17,9 @@
  *
  */
 
+#include <com/centreon/engine/configuration/applier/timeperiod.hh>
 #include <cstring>
 
-#include <com/centreon/engine/configuration/applier/timeperiod.hh>
 #include "../test_engine.hh"
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -29,7 +29,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/hostescalation.hh"
 #include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/timeperiod.hh"
 #include "helper.hh"
@@ -45,12 +44,12 @@ class HostDowntimeNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
-    configuration::host hst{new_configuration_host("test_host", "admin")};
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host aply;
     aply.add_object(hst);
     aply.resolve_object(hst);
@@ -83,16 +82,15 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntime) {
    */
   set_time(43000);
   _host->set_last_hard_state_change(43000);
-  std::unique_ptr<engine::timeperiod> tperiod{
-      new engine::timeperiod("tperiod", "alias")};
+  auto tperiod = std::make_unique<engine::timeperiod>("tperiod", "alias");
   for (size_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+  auto host_escalation = std::make_unique<engine::hostescalation>(
+      "host_name", 0, 1, 1.0, "tperiod", 7, 12345);
 
   ASSERT_TRUE(host_escalation);
-  uint64_t id{_host->get_next_notification_id()};
+  uint64_t id = _host->get_next_notification_id();
   _host->set_notification_period_ptr(tperiod.get());
   testing::internal::CaptureStdout();
   ASSERT_EQ(_host->notify(notifier::reason_downtimestart, "", "",
@@ -112,6 +110,7 @@ TEST_F(HostDowntimeNotification, SimpleHostDowntime) {
       out.find("HOST NOTIFICATION: admin;test_host;DOWNTIMESTART (UP);cmd;")};
   size_t step2{
       out.find("HOST NOTIFICATION: admin;test_host;DOWNTIMEEND (UP);cmd;")};
+  std::cout << "output: " << out;
   ASSERT_NE(step1, std::string::npos);
   ASSERT_NE(step2, std::string::npos);
   ASSERT_LE(step1, step2);
@@ -138,7 +137,7 @@ TEST_F(HostDowntimeNotification,
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};

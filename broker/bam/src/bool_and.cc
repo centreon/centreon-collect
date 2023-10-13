@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/bool_and.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -32,14 +31,14 @@ constexpr double eps = 0.000001;
  * good value.
  */
 void bool_and::_update_state() {
-  log_v2::bam()->trace("bool_and::update_state...");
+  _logger->trace("bool_and::update_state...");
   if (_left && _left->state_known() && !_left->boolean_value()) {
-    log_v2::bam()->trace("bam: bool and left changed to true");
+    _logger->trace("bam: bool and left changed to true");
     _left_hard = false;
     _boolean_value = false;
     _state_known = true;
   } else if (_right && _right->state_known() && !_right->boolean_value()) {
-    log_v2::bam()->trace("bam: bool and right changed to true");
+    _logger->trace("bam: bool and right changed to true");
     _right_hard = false;
     _boolean_value = false;
     _state_known = true;
@@ -51,9 +50,8 @@ void bool_and::_update_state() {
       _boolean_value = left && right;
     } else
       _boolean_value = false;
-    log_v2::bam()->trace(
-        "bam: bool and generic rule applied: value: {} - known : {}",
-        _boolean_value, _state_known);
+    _logger->trace("bam: bool and generic rule applied: value: {} - known : {}",
+                   _boolean_value, _state_known);
   }
 }
 
@@ -62,18 +60,14 @@ void bool_and::_update_state() {
  *
  *  @return Evaluation of the expression with hard values.
  */
-double bool_and::value_hard() const {
-  return _boolean_value;
-}
+double bool_and::value_hard() const { return _boolean_value; }
 
 /**
  *  Get the hard value as a boolean.
  *
  *  @return Evaluation of the expression with hard values.
  */
-bool bool_and::boolean_value() const {
-  return _boolean_value;
-}
+bool bool_and::boolean_value() const { return _boolean_value; }
 
 /**
  * @brief This method is used by the dump() method. It gives a summary of this

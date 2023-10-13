@@ -77,6 +77,6 @@ class raw : public command, public process_listener {
 };
 }  // namespace commands
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_COMMANDS_RAW_HH

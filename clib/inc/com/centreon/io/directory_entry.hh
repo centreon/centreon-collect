@@ -21,6 +21,7 @@
 
 #include <list>
 #include <string>
+
 #include "com/centreon/handle.hh"
 #include "com/centreon/io/file_entry.hh"
 
@@ -56,6 +57,6 @@ class directory_entry {
 };
 }  // namespace io
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_IO_DIRECTORY_ENTRY_HH

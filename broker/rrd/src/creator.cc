@@ -30,13 +30,14 @@
 #include <filesystem>
 
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/rrd/creator.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -46,10 +47,10 @@ using namespace com::centreon::broker::rrd;
  */
 creator::creator(std::string const& tmpl_path, uint32_t cache_size)
     : _cache_size(cache_size), _tmpl_path(tmpl_path) {
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::rrd(),
-      "RRD: file creator will maintain at most {} templates in '{}'",
-      _cache_size, _tmpl_path);
+  log_v2::instance()
+      .get(log_v2::RRD)
+      ->debug("RRD: file creator will maintain at most {} templates in '{}'",
+              _cache_size, _tmpl_path);
 }
 
 /**
@@ -107,8 +108,9 @@ void creator::create(std::string const& filename,
     if (it != _fds.end() && it->first.is_length_step_type_equal(info) &&
         it->first.from <= from) {
       _duplicate(filename, it->second);
-      SPDLOG_LOGGER_DEBUG(log_v2::rrd(), "reuse {} for {}", it->second.path,
-                          filename);
+      log_v2::instance()
+          .get(log_v2::RRD)
+          ->debug("reuse {} for {}", it->second.path, filename);
     }
     // Not in the cache, but we have enough space in the cache.
     // Create new entry.
@@ -266,9 +268,10 @@ void creator::_open(std::string const& filename,
 
   // Debug message.
   argv[argc] = nullptr;
-  SPDLOG_LOGGER_DEBUG(
-      log_v2::rrd(), "RRD: create file '{}' ({}, {}, {}, step 1, from  {})",
-      filename, argv[0], argv[1], (argv[2] ? argv[2] : "(null)"), from);
+  log_v2::instance()
+      .get(log_v2::RRD)
+      ->debug("RRD: opening file '{}' ({}, {}, {}, step 1, from  {})", filename,
+              argv[0], argv[1], (argv[2] ? argv[2] : "(null)"), from);
 
   // Create RRD file.
   rrd_clear_error();

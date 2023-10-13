@@ -54,6 +54,6 @@ class dependency : public io::data {
 };
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_DEPENDENCY_HH

@@ -94,6 +94,6 @@ class checker : public commands::command_listener {
 };
 }  // namespace checks
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CHECKS_CHECKER_HH

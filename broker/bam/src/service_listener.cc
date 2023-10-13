@@ -36,11 +36,9 @@ void service_listener::service_update(const service_state& state
  *  @param[out] visitor  Visitor.
  */
 void service_listener::service_update(
-    std::shared_ptr<neb::service_status> const& status,
-    io::stream* visitor) {
-  (void)status;
-  (void)visitor;
-}
+    const std::shared_ptr<neb::service_status>& status [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]],
+    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
 
 /**
  *  Notify of a service status update.
@@ -49,11 +47,9 @@ void service_listener::service_update(
  *  @param[out] visitor  Visitor.
  */
 void service_listener::service_update(
-    const std::shared_ptr<neb::pb_service>& status,
-    io::stream* visitor) {
-  (void)status;
-  (void)visitor;
-}
+    const std::shared_ptr<neb::pb_service>& status [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]],
+    const std::shared_ptr<spdlog::logger>& logger) {}
 
 /**
  *  Notify of a service status update.
@@ -62,11 +58,9 @@ void service_listener::service_update(
  *  @param[out] visitor  Visitor.
  */
 void service_listener::service_update(
-    const std::shared_ptr<neb::pb_service_status>& status,
-    io::stream* visitor) {
-  (void)status;
-  (void)visitor;
-}
+    const std::shared_ptr<neb::pb_service_status>& status [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]],
+    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
 
 /**
  *  Notify of a protobuf acknowledgement.
@@ -75,11 +69,9 @@ void service_listener::service_update(
  *  @param[out] visitor  Visitor.
  */
 void service_listener::service_update(
-    const std::shared_ptr<neb::pb_acknowledgement>& ack,
-    io::stream* visitor) {
-  (void)ack;
-  (void)visitor;
-}
+    const std::shared_ptr<neb::pb_acknowledgement>& ack [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]],
+    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
 
 /**
  *  Notify of an acknowledgement.
@@ -88,11 +80,9 @@ void service_listener::service_update(
  *  @param[out] visitor  Visitor.
  */
 void service_listener::service_update(
-    std::shared_ptr<neb::acknowledgement> const& ack,
-    io::stream* visitor) {
-  (void)ack;
-  (void)visitor;
-}
+    const std::shared_ptr<neb::acknowledgement>& ack [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]],
+    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
 
 /**
  *  Notify of a downtime.
@@ -100,11 +90,10 @@ void service_listener::service_update(
  *  @param[in]  dt       Downtime.
  *  @param[out] visitor  Visitor.
  */
-void service_listener::service_update(std::shared_ptr<neb::downtime> const& dt,
-                                      io::stream* visitor) {
-  (void)dt;
-  (void)visitor;
-}
+void service_listener::service_update(
+    const std::shared_ptr<neb::downtime>& dt [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]],
+    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}
 
 /**
  *  Notify of a downtime (protobuf).
@@ -113,8 +102,6 @@ void service_listener::service_update(std::shared_ptr<neb::downtime> const& dt,
  *  @param[out] visitor  Visitor.
  */
 void service_listener::service_update(
-    const std::shared_ptr<neb::pb_downtime>& dt,
-    io::stream* visitor) {
-  (void)dt;
-  (void)visitor;
-}
+    const std::shared_ptr<neb::pb_downtime>& dt [[maybe_unused]],
+    io::stream* visitor [[maybe_unused]],
+    const std::shared_ptr<spdlog::logger>& logger [[maybe_unused]]) {}

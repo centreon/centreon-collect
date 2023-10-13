@@ -24,16 +24,18 @@
 
 #include <system_error>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tcp;
 using namespace com::centreon::exceptions;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 std::atomic<size_t> stream::_total_tcp_count{0};
 
@@ -50,12 +52,16 @@ stream::stream(const tcp_config::pointer& conf)
     : io::stream("TCP"),
       _conf(conf),
       _connection(tcp_async::instance().create_connection(_conf)),
-      _parent(nullptr) {
+      _parent(nullptr),
+      _logger{log_v2::instance().get(log_v2::TCP)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream constructor {}", static_cast<void*>(this));
   assert(_connection->port());
   _total_tcp_count++;
-  log_v2::tcp()->trace("New stream to {}:{}", _conf->get_host(),
+  _logger->trace("New stream to {}:{}", _conf->get_host(),
                        _conf->get_port());
-  log_v2::tcp()->info(
+  _logger->info(
       "{} TCP streams are configured on a thread pool of {} threads",
       static_cast<uint32_t>(_total_tcp_count),
       pool::instance().get_pool_size());
@@ -70,12 +76,19 @@ stream::stream(const tcp_config::pointer& conf)
  */
 stream::stream(const tcp_connection::pointer& conn,
                const tcp_config::pointer& conf)
-    : io::stream("TCP"), _conf(conf), _connection(conn), _parent(nullptr) {
+    : io::stream("TCP"),
+      _conf(conf),
+      _connection(conn),
+      _parent(nullptr),
+      _logger{log_v2::instance().get(log_v2::TCP)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream constructor {}", static_cast<void*>(this));
   assert(_connection->port());
   _total_tcp_count++;
-  log_v2::tcp()->info("New stream to {}:{}", _conf->get_host(),
+  _logger->info("New stream to {}:{}", _conf->get_host(),
                       _conf->get_port());
-  log_v2::tcp()->info(
+  _logger->info(
       "{} TCP streams are configured on a thread pool of {} threads",
       static_cast<uint32_t>(_total_tcp_count),
       pool::instance().get_pool_size());
@@ -85,18 +98,24 @@ stream::stream(const tcp_connection::pointer& conn,
  *  Destructor.
  */
 stream::~stream() noexcept {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream destructor {}", static_cast<void*>(this));
   _total_tcp_count--;
-  log_v2::tcp()->info(
+  _logger->info(
       "TCP stream destroyed. Still {} configured on a thread pool of {} "
       "threads",
       static_cast<uint32_t>(_total_tcp_count),
       pool::instance().get_pool_size());
-  log_v2::tcp()->trace("stream closed");
+  _logger->trace("stream closed");
   if (_connection->socket().is_open())
     _connection->close();
 
   if (_parent)
     _parent->remove_child(peer());
+  DEBUG(fmt::format(
+      "DESTRUCTOR end of function tcp stream {} with connection {}",
+      static_cast<void*>(this), static_cast<void*>(_connection.get())));
 }
 
 /**
@@ -117,7 +136,7 @@ std::string stream::peer() const {
  *  @return Respects io::stream::read()'s return value.
  */
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
-  log_v2::tcp()->trace("read on stream");
+  _logger->trace("read on stream");
 
   // Set deadline.
   {
@@ -136,7 +155,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   bool timeout = false;
   d.reset(new io::raw(_connection->read(deadline, &timeout)));
   std::shared_ptr<io::raw> data{std::static_pointer_cast<io::raw>(d)};
-  log_v2::tcp()->trace("TCP Read done : {} bytes", data->get_buffer().size());
+  _logger->trace("TCP Read done : {} bytes", data->get_buffer().size());
   return !timeout;
 }
 
@@ -154,11 +173,14 @@ int32_t stream::flush() {
 }
 
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream stop {}", static_cast<void*>(this));
   int32_t retval = 0;
   try {
-    retval = flush();
+    retval = _connection->close();
   } catch (const std::exception& e) {
-    log_v2::tcp()->error("tcp: error during stop: {}", e.what());
+    _logger->error("tcp: error during stop: {}", e.what());
   }
   return retval;
 }
@@ -171,7 +193,7 @@ int32_t stream::stop() {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& d) {
-  log_v2::tcp()->trace("write event of type {} on tcp stream", d->type());
+  _logger->trace("write event of type {} on tcp stream", d->type());
   // Check that data exists and should be processed.
   assert(d);
 
@@ -180,13 +202,13 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
 
   if (d->type() == io::raw::static_type()) {
     std::shared_ptr<io::raw> r(std::static_pointer_cast<io::raw>(d));
-    log_v2::tcp()->trace("TCP: write request of {} bytes to peer '{}:{}'",
-                         r->size(), _conf->get_host(), _conf->get_port());
-    log_v2::tcp()->trace("write {} bytes", r->size());
+    _logger->trace("TCP: write request of {} bytes to peer '{}:{}'", r->size(),
+                   _conf->get_host(), _conf->get_port());
+    _logger->trace("write {} bytes", r->size());
     try {
       return _connection->write(r->get_buffer());
     } catch (std::exception const& e) {
-      log_v2::tcp()->error("Socket gone");
+      _logger->error("Socket gone");
       throw;
     }
   }
@@ -201,6 +223,9 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
  * @return false timeout expired
  */
 bool stream::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("tcp::stream::wait_for_all_events_written");
   if (_connection->is_closed()) {
     return true;
   }

@@ -19,7 +19,6 @@
 #ifndef CC_LOGGING_BACKEND_HH
 #define CC_LOGGING_BACKEND_HH
 
-
 namespace com::centreon {
 
 namespace misc {
@@ -76,6 +75,6 @@ class backend {
 };
 }  // namespace logging
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_LOGGING_BACKEND_HH

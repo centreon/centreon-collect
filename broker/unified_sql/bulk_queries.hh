@@ -1,23 +1,22 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CCB_UNIFIED_SQL_BULK_QUERIES_HH
 #define CCB_UNIFIED_SQL_BULK_QUERIES_HH
-
 
 namespace com::centreon::broker {
 namespace unified_sql {
@@ -31,9 +30,9 @@ namespace unified_sql {
  * seconds, a max queries count and a template of the query to execute.
  * Regularly, we call the method ready(), if it returns true then the limit
  * time or the max number of rows are reached. And we can get the query to
- * execute with the get_query() method. Once this last method called, the stack
- * is empty and ready() will return true once one of the two conditions are
- * reached again.
+ * execute with the get_query() method. Once this last method called, the
+ * stack is empty and ready() will return true once one of the two conditions
+ * are reached again.
  *
  * Queries are not done directly by this class because it has no idea of the
  * connection to use nor the client configuration, it is only a container.
@@ -73,6 +72,6 @@ class bulk_queries {
   std::time_t next_time() const;
 };
 }  // namespace unified_sql
-}
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_UNIFIED_SQL_BULK_QUERIES_HH */

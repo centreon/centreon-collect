@@ -22,6 +22,7 @@ func findIncludes(file string, treated *[]string, edges *[]string, depth int) {
     for _, pref := range []string{
                             "/usr/local/include/",
                             "inc/",
+                            "../",
                             "modules/external_commands/inc/" } {
       f, err = os.Open(pref + file1)
       if err == nil {

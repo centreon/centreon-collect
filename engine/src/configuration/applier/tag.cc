@@ -1,5 +1,5 @@
 /**
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,13 +24,15 @@
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/tag.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
+using com::centreon::common::log_v2::log_v2;
 
+#if LEGACY_CONF
 /**
  *  Add new tag.
  *
@@ -38,8 +40,8 @@ using namespace com::centreon::engine::configuration;
  */
 void applier::tag::add_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Creating new tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Creating new tag ({},{}).", obj.key().first, obj.key().second);
 
   // Add tag to the global configuration set.
   config->mut_tags().insert(obj);
@@ -54,22 +56,12 @@ void applier::tag::add_object(const configuration::tag& obj) {
   // Add new items to the configuration state.
   auto res = engine::tag::tags.insert({obj.key(), tg});
   if (!res.second)
-    log_v2::config()->error(
+    logger->error(
         "Could not insert tag ({},{}) into cache because it already exists",
         obj.key().first, obj.key().second);
 
   broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
-
-/**
- *  @brief Expand a contact.
- *
- *  During expansion, the contact will be added to its contact groups.
- *  These will be modified in the state.
- *
- *  @param[in,out] s  Configuration state.
- */
-void applier::tag::expand_objects(configuration::state&) {}
 
 /**
  *  Modify tag.
@@ -78,8 +70,8 @@ void applier::tag::expand_objects(configuration::state&) {}
  */
 void applier::tag::modify_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Modifying tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Modifying tag ({},{}).", obj.key().first, obj.key().second);
 
   // Find old configuration.
   auto it_cfg = config->tags_find(obj.key());
@@ -107,8 +99,8 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     // Notify event broker.
     broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
   } else
-    log_v2::config()->debug("Tag ({},{}) did not change", obj.key().first,
-                            obj.key().second);
+    logger->debug("Tag ({},{}) did not change", obj.key().first,
+                  obj.key().second);
 }
 
 /**
@@ -118,8 +110,8 @@ void applier::tag::modify_object(const configuration::tag& obj) {
  */
 void applier::tag::remove_object(const configuration::tag& obj) {
   // Logging.
-  log_v2::config()->debug("Removing tag ({},{}).", obj.key().first,
-                          obj.key().second);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Removing tag ({},{}).", obj.key().first, obj.key().second);
 
   // Find tag.
   tag_map::iterator it =
@@ -139,6 +131,16 @@ void applier::tag::remove_object(const configuration::tag& obj) {
 }
 
 /**
+ *  @brief Expand a contact.
+ *
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
+ */
+void applier::tag::expand_objects(configuration::state&) {}
+
+/**
  *  Resolve a tag.
  *
  *  @param[in] obj  Object to resolve.
@@ -150,3 +152,128 @@ void applier::tag::resolve_object(const configuration::tag& obj) {
                          << obj.key().first << "," << obj.key().second << ")";
   }
 }
+
+#else
+/**
+ * @brief Add a new tag.
+ *
+ * @param obj The new protobuf configuration tag to add.
+ */
+void applier::tag::add_object(const configuration::Tag& obj) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Creating new tag ({},{}).", obj.key().id(), obj.key().type());
+
+  // Add tag to the global configuration set.
+  configuration::Tag* new_tg = pb_config.add_tags();
+  new_tg->CopyFrom(obj);
+
+  auto tg = std::make_shared<engine::tag>(
+      new_tg->key().id(),
+      static_cast<engine::tag::tagtype>(new_tg->key().type()),
+      new_tg->tag_name());
+  if (!tg)
+    throw engine_error() << fmt::format("Could not register tag ({},{})",
+                                        new_tg->key().id(),
+                                        new_tg->key().type());
+
+  // Add new items to the configuration state.
+  auto res = engine::tag::tags.insert(
+      {{new_tg->key().id(), new_tg->key().type()}, tg});
+  if (!res.second)
+    logger->error(
+        "Could not insert tag ({},{}) into cache because it already exists",
+        new_tg->key().id(), new_tg->key().type());
+
+  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
+}
+
+/**
+ * @brief Modify tag.
+ *
+ * @param obj The new tag protobuf configuration.
+ */
+void applier::tag::modify_object(configuration::Tag* to_modify,
+                                 const configuration::Tag& new_object) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Modifying tag ({},{}).", to_modify->key().id(),
+                to_modify->key().type());
+
+  // Find tag object.
+  tag_map::iterator it_obj =
+      engine::tag::tags.find({new_object.key().id(), new_object.key().type()});
+  if (it_obj == engine::tag::tags.end()) {
+    throw engine_error() << fmt::format(
+        "Could not modify non-existing tag object ({},{})",
+        new_object.key().id(), new_object.key().type());
+  }
+
+  engine::tag* t = it_obj->second.get();
+
+  // Update the global configuration set.
+  if (to_modify->tag_name() != new_object.tag_name()) {
+    to_modify->set_tag_name(new_object.tag_name());
+    t->set_name(new_object.tag_name());
+
+    // Notify event broker.
+    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
+  } else
+    logger->debug("Tag ({},{}) did not change", new_object.key().id(),
+                  new_object.key().type());
+}
+
+/**
+ * @brief Remove old tag.
+ *
+ * @param idx The idx in the tags configuration objects to remove.
+ */
+void applier::tag::remove_object(ssize_t idx) {
+  const configuration::Tag& obj = pb_config.tags().at(idx);
+
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Removing tag ({},{}).", obj.key().id(), obj.key().type());
+
+  // Find tag.
+  tag_map::iterator it =
+      engine::tag::tags.find({obj.key().id(), obj.key().type()});
+  if (it != engine::tag::tags.end()) {
+    engine::tag* tg = it->second.get();
+
+    // Notify event broker.
+    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, tg);
+
+    // Erase tag object (this will effectively delete the object).
+    engine::tag::tags.erase(it);
+  }
+
+  // Remove tag from the global configuration set.
+  pb_config.mutable_tags()->DeleteSubrange(idx, 1);
+}
+
+/**
+ *  @brief Expand a contact.
+ *
+ *  During expansion, the contact will be added to its contact groups.
+ *  These will be modified in the state.
+ *
+ *  @param[in,out] s  Configuration state.
+ */
+void applier::tag::expand_objects(configuration::State&) {}
+
+/**
+ *  Resolve a tag.
+ *
+ *  @param[in] obj  Object to resolve.
+ */
+void applier::tag::resolve_object(const configuration::Tag& obj) {
+  tag_map::const_iterator tg_it{
+      engine::tag::tags.find({obj.key().id(), obj.key().type()})};
+  if (tg_it == engine::tag::tags.end() || !tg_it->second) {
+    throw engine_error() << "Cannot resolve non-existing tag ("
+                         << obj.key().id() << "," << obj.key().type() << ")";
+  }
+}
+
+#endif

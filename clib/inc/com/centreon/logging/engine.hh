@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CC_LOGGING_ENGINE_HH
 #define CC_LOGGING_ENGINE_HH
@@ -23,9 +23,7 @@
 #include <mutex>
 #include <vector>
 
-namespace com::centreon {
-
-namespace logging {
+namespace com::centreon::logging {
 class backend;
 
 /**
@@ -37,8 +35,7 @@ class backend;
  */
 class engine {
  public:
-  unsigned long add(backend* obj,
-                    unsigned long long types,
+  unsigned long add(backend* obj, unsigned long long types,
                     unsigned int verbose);
   /**
    *  Get the logger engine singleton.
@@ -57,13 +54,10 @@ class engine {
    *          parameter, otherwise false.
    */
   bool is_log(unsigned long long types, unsigned int verbose) const throw() {
-    if (verbose >= sizeof(unsigned int) * CHAR_BIT)
-      return (false);
+    if (verbose >= sizeof(unsigned int) * CHAR_BIT) return (false);
     return (_list_types[verbose] & types);
   }
-  void log(unsigned long long types,
-           unsigned int verbose,
-           char const* msg,
+  void log(unsigned long long types, unsigned int verbose, char const* msg,
            unsigned int size);
   bool remove(unsigned long id);
   unsigned int remove(backend* obj);
@@ -88,8 +82,6 @@ class engine {
   unsigned long long _list_types[sizeof(unsigned int) * CHAR_BIT];
   mutable std::recursive_mutex _mtx;
 };
-}  // namespace logging
-
-}
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_ENGINE_HH

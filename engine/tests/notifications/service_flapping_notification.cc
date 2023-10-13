@@ -34,6 +34,7 @@
 #include "com/centreon/engine/serviceescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
 #include "com/centreon/process_manager.hh"
+#include "common/configuration/command_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -48,32 +49,36 @@ class ServiceFlappingNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
     configuration::applier::command cmd_aply;
-    configuration::command cmd("cmd");
-    cmd.parse("command_line", "echo 1");
+    configuration::Command cmd;
+    configuration::command_helper cmd_hlp(&cmd);
+    cmd.set_command_name("cmd");
+    cmd.set_command_line("echo 1");
     cmd_aply.add_object(cmd);
 
     configuration::applier::host hst_aply;
-    configuration::host hst;
-    hst.parse("host_name", "test_host");
-    hst.parse("address", "127.0.0.1");
-    hst.parse("_HOST_ID", "12");
-    hst.parse("check_command", "cmd");
+    configuration::Host hst;
+    configuration::host_helper hst_hlp(&hst);
+    hst.set_host_name("test_host");
+    hst.set_host_id(12);
+    hst.set_address("127.0.0.1");
+    hst.set_check_command("cmd");
     hst_aply.add_object(hst);
     hst_aply.resolve_object(hst);
 
     configuration::applier::service svc_aply;
-    configuration::service svc;
-    svc.parse("host", "test_host");
-    svc.parse("service_description", "test_description");
-    svc.parse("_SERVICE_ID", "12");
-    svc.parse("check_command", "cmd");
-    svc.parse("contacts", "admin");
+    configuration::Service svc;
+    configuration::service_helper svc_hlp(&svc);
+    svc.set_host_name("test_host");
+    svc.set_service_description("test_description");
+    svc.set_service_id(12);
+    svc.set_check_command("cmd");
+    svc_hlp.hook("contacts", "admin");
 
     // We fake here the expand_object on configuration::service
     svc.set_host_id(12);
@@ -130,7 +135,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlapping) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -183,7 +188,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStartTwoTimes) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -223,7 +228,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("host_name", "test_description", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_service->get_next_notification_id()};
@@ -250,7 +255,7 @@ TEST_F(ServiceFlappingNotification, SimpleServiceFlappingStopTwoTimes) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlapping) {
-  config->enable_flap_detection(true);
+  pb_config.set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -342,7 +347,7 @@ TEST_F(ServiceFlappingNotification, CheckFlapping) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
-  config->enable_flap_detection(true);
+  pb_config.set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->set_is_volatile(true);
   _service->add_flap_detection_on(engine::service::ok);
@@ -444,7 +449,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithVolatile) {
 TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
   _host->set_current_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);
-  config->enable_flap_detection(true);
+  pb_config.set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -533,7 +538,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithHostDown) {
 }
 
 TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
-  config->enable_flap_detection(true);
+  pb_config.set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);
@@ -622,7 +627,7 @@ TEST_F(ServiceFlappingNotification, CheckFlappingWithSoftState) {
 }
 
 TEST_F(ServiceFlappingNotification, RetentionFlappingNotification) {
-  config->enable_flap_detection(true);
+  pb_config.set_enable_flap_detection(true);
   _service->set_flap_detection_enabled(true);
   _service->add_flap_detection_on(engine::service::ok);
   _service->add_flap_detection_on(engine::service::down);

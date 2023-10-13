@@ -20,19 +20,16 @@
 
 #include <gnutls/gnutls.h>
 
-#include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/tls/internal.hh"
+#include "com/centreon/broker/tls/params.hh"
 #include "com/centreon/broker/tls/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tls;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
@@ -88,6 +85,7 @@ std::shared_ptr<io::stream> acceptor::open(
   std::shared_ptr<stream> u;
   if (lower) {
     int ret;
+    auto logger = log_v2::instance().get(log_v2::TLS);
 
     // Load parameters.
     params p(params::SERVER);

@@ -23,20 +23,19 @@
 #include <boost/beast.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/container/flat_set.hpp>
-#include <com/centreon/common/defer.hh>
-
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/pool.hh"
 #include "com/centreon/common/defer.hh"
+
+#include "com/centreon/broker/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
 using duration = system_clock::duration;
+using com::centreon::common::log_v2::log_v2;
 
 #include "com/centreon/broker/http_client/http_client.hh"
 
 using namespace com::centreon::broker;
-using namespace com::centreon::common;
 using namespace com::centreon::broker::http_client;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
@@ -45,13 +44,19 @@ const asio::ip::tcp::endpoint test_endpoint(asio::ip::make_address("127.0.0.1"),
                                             1234);
 
 class http_client_test : public ::testing::Test {
+ protected:
+  static std::shared_ptr<spdlog::logger> _logger;
+
  public:
   static void SetUpTestSuite() {
     srand(time(nullptr));
     pool::load(g_io_context, 1);
-    log_v2::tcp()->set_level(spdlog::level::info);
+    _logger = log_v2::instance().get(log_v2::TCP);
+    _logger->set_level(spdlog::level::info);
   };
 };
+
+std::shared_ptr<spdlog::logger> http_client_test::_logger;
 
 class connection_ok : public connection_base {
   unsigned _connect_counter;
@@ -78,7 +83,8 @@ class connection_ok : public connection_base {
         [me = shared_from_this(), cb = std::move(callback)]() { cb({}, {}); });
   }
 
-  void send(request_ptr request, send_callback_type&& callback) override {
+  void send(request_ptr request [[maybe_unused]],
+            send_callback_type&& callback) override {
     if (_state != e_idle) {
       _io_context->post([cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
@@ -101,7 +107,7 @@ class connection_ok : public connection_base {
 TEST_F(http_client_test, many_request_use_all_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
   client::pointer clt =
-      client::load(g_io_context, log_v2::tcp(),
+      client::load(g_io_context, _logger,
                    std::make_shared<http_config>(test_endpoint, "localhost"),
                    [&conns](const std::shared_ptr<asio::io_context>& io_context,
                             const std::shared_ptr<spdlog::logger>& logger,
@@ -146,7 +152,7 @@ TEST_F(http_client_test, recycle_connection) {
   std::vector<std::shared_ptr<connection_ok>> conns;
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   client::pointer clt =
-      client::load(g_io_context, log_v2::tcp(), conf,
+      client::load(g_io_context, _logger, conf,
                    [&conns](const std::shared_ptr<asio::io_context>& io_context,
                             const std::shared_ptr<spdlog::logger>& logger,
                             const http_config::pointer& conf) {
@@ -236,7 +242,8 @@ class connection_bagot : public connection_base {
     }
   }
 
-  void send(request_ptr request, send_callback_type&& callback) override {
+  void send(request_ptr request [[maybe_unused]],
+            send_callback_type&& callback) override {
     if (_state != e_idle) {
       _io_context->post([cb = std::move(callback)]() {
         cb(std::make_error_code(std::errc::invalid_argument), "bad state", {});
@@ -278,7 +285,7 @@ class client_test : public http_client::client {
 
 TEST_F(http_client_test, all_handler_called) {
   client::pointer clt = std::make_shared<client_test>(
-      g_io_context, log_v2::tcp(),
+      g_io_context, _logger,
       std::make_shared<http_config>(test_endpoint, "localhost"),
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
@@ -313,8 +320,8 @@ TEST_F(http_client_test, all_handler_called) {
     return error_handler_cpt + success_handler_cpt == 1000;
   });
 
-  SPDLOG_LOGGER_INFO(log_v2::tcp(), "success:{}, failed:{}",
-                     success_handler_cpt, error_handler_cpt);
+  SPDLOG_LOGGER_INFO(_logger, "success:{}, failed:{}", success_handler_cpt,
+                     error_handler_cpt);
   ASSERT_NE(error_handler_cpt, 0);
   ASSERT_NE(success_handler_cpt, 0);
   ASSERT_EQ(error_handler_cpt + success_handler_cpt, 1000);
@@ -371,7 +378,7 @@ TEST_F(http_client_test, retry_until_success) {
   connection_retry::nb_failed_per_request.clear();
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   client::pointer clt = std::make_shared<client_test>(
-      g_io_context, log_v2::tcp(), conf,
+      g_io_context, _logger, conf,
       [](const std::shared_ptr<asio::io_context>& io_context,
          const std::shared_ptr<spdlog::logger>& logger,
          const http_config::pointer& conf) {

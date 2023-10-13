@@ -17,8 +17,8 @@
 */
 
 #include "test/file.hh"
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "test/misc.hh"
 #include "test/vars.hh"
 

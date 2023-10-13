@@ -19,33 +19,42 @@
 
 #include <gtest/gtest.h>
 #include <com/centreon/engine/macros.hh>
-#include "com/centreon/engine/log_v2.hh"
 
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/commands/raw.hh"
+#include "common/log_v2/log_v2.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::commands;
+using com::centreon::common::log_v2::log_v2;
 
-void CreateFile(std::string const& filename, std::string const& content) {
+static void CreateFile(const std::string& filename,
+                       const std::string& content) {
   std::ofstream oss(filename);
   oss << content;
 }
 
 class SimpleCommand : public ::testing::Test {
+ protected:
+  std::shared_ptr<spdlog::logger> logger;
+
  public:
   void SetUp() override {
+    logger = log_v2::instance().get(log_v2::COMMANDS);
     set_time(-1);
     init_config_state();
-    config->interval_length(1);
+    pb_config.set_interval_length(1);
   }
 
   void TearDown() override { deinit_config_state(); }
 };
 
 class my_listener : public commands::command_listener {
+  mutable std::mutex _mutex;
+  commands::result _res;
+
  public:
   result& get_result() {
     std::lock_guard<std::mutex> guard(_mutex);
@@ -56,10 +65,6 @@ class my_listener : public commands::command_listener {
     std::lock_guard<std::mutex> guard(_mutex);
     _res = res;
   }
-
- private:
-  mutable std::mutex _mutex;
-  commands::result _res;
 };
 
 // Given an empty name
@@ -149,7 +154,7 @@ TEST_F(SimpleCommand, LongCommandAsync) {
 }
 
 TEST_F(SimpleCommand, TooRecentDoubleCommand) {
-  log_v2::commands()->set_level(spdlog::level::trace);
+  logger->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
 
@@ -191,7 +196,7 @@ TEST_F(SimpleCommand, TooRecentDoubleCommand) {
 }
 
 TEST_F(SimpleCommand, SufficientOldDoubleCommand) {
-  log_v2::commands()->set_level(spdlog::level::trace);
+  logger->set_level(spdlog::level::trace);
   CreateFile("/tmp/TooRecentDoubleCommand.sh",
              "echo -n tutu | tee -a /tmp/TooRecentDoubleCommand;");
 

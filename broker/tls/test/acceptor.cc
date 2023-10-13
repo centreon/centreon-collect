@@ -24,10 +24,10 @@
 
 #include <nlohmann/json.hpp>
 
+#include "broker/core/misc/buffer.hh"
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/misc/buffer.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/connector.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
@@ -420,7 +420,7 @@ TEST_F(TlsTest, TlsStreamCaError) {
     cbd_finished = true;
   });
 
-  std::thread centengine([&cbd_finished] {
+  std::thread centengine([] {
     auto c{std::make_unique<tcp::connector>(test_conf2)};
 
     /* the name does not match with the CN of the server certificate */

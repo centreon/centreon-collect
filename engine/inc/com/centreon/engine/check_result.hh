@@ -1,22 +1,23 @@
-/*
-** Copyright 2002-2006 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2002-2006  Ethan Galstad
+ * Copyright 2011-2013  Merethis
+ * Copyright 2023	Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CHECKS_HH
 #define CCE_CHECKS_HH
@@ -34,18 +35,11 @@ class check_result {
   using pointer = std::shared_ptr<check_result>;
 
   check_result();
-  check_result(enum check_source object_check_type,
-               notifier* notifier,
-               enum checkable::check_type check_type,
-               unsigned check_options,
-               bool reschedule_check,
-               double latency,
-               struct timeval start_time,
-               struct timeval finish_time,
-               bool early_timeout,
-               bool exited_ok,
-               int return_code,
-               std::string output);
+  check_result(enum check_source object_check_type, notifier* notifier,
+               enum checkable::check_type check_type, unsigned check_options,
+               bool reschedule_check, double latency, struct timeval start_time,
+               struct timeval finish_time, bool early_timeout, bool exited_ok,
+               int return_code, std::string output);
 
   inline enum check_source get_object_check_type() const {
     return _object_check_type;
@@ -91,6 +85,6 @@ class check_result {
   int _return_code;             // plugin return code
   std::string _output;          // plugin output
 };
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CHECKS_HH

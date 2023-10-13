@@ -17,15 +17,39 @@
 * <http://www.gnu.org/licenses/>.
 */
 
+#include <absl/hash/hash.h>
+
+#include <absl/strings/ascii.h>
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/configuration/hostescalation_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 
 #define SETTER(type, method) \
   &object::setter<hostescalation, type, &hostescalation::method>::generic
+
+namespace com::centreon::engine::configuration {
+
+#if LEGACY_CONF
+size_t hostescalation_key(const hostescalation& he) {
+  return absl::HashOf(*he.hosts().begin(), he.contactgroups(),
+                      he.escalation_options(), he.escalation_period(),
+                      he.first_notification(), he.last_notification(),
+                      he.notification_interval());
+}
+#else
+size_t hostescalation_key(const Hostescalation& he) {
+  return absl::HashOf(he.hosts().data(0),
+                      // he.contactgroups().data(),
+                      he.escalation_options(), he.escalation_period(),
+                      he.first_notification(), he.last_notification(),
+                      he.notification_interval());
+}
+#endif
+
+}  // namespace com::centreon::engine::configuration
 
 std::unordered_map<std::string,
                    hostescalation::setter_func> const hostescalation::_setters{
@@ -89,7 +113,6 @@ hostescalation& hostescalation::operator=(hostescalation const& right) {
     _hosts = right._hosts;
     _last_notification = right._last_notification;
     _notification_interval = right._notification_interval;
-    _uuid = right._uuid;
   }
   return *this;
 }
@@ -152,11 +175,11 @@ bool hostescalation::operator<(hostescalation const& right) const {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void hostescalation::check_validity() const {
+void hostescalation::check_validity(error_info* err) const {
   if (_hosts->empty() && _hostgroups->empty())
-    throw(engine_error() << "Host escalation is not attached to any "
-                         << "host or host group (properties 'host_name' or "
-                         << "'hostgroup_name', respectively)");
+    throw exceptions::msg_fmt(
+        "Host escalation is not attached to any host or host group (properties "
+        "'host_name' or 'hostgroup_name', respectively)");
 }
 
 /**
@@ -175,8 +198,8 @@ hostescalation::key_type const& hostescalation::key() const throw() {
  */
 void hostescalation::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge host escalation with '" << obj.type()
-                         << "'");
+    throw exceptions::msg_fmt("Cannot merge host escalation with '{}'",
+                              static_cast<uint32_t>(obj.type()));
   hostescalation const& tmpl(static_cast<hostescalation const&>(obj));
 
   MRG_INHERIT(_contactgroups);
@@ -239,7 +262,6 @@ bool hostescalation::contactgroups_defined() const throw() {
  */
 void hostescalation::escalation_options(unsigned short options) throw() {
   _escalation_options = options;
-  return;
 }
 
 /**
@@ -258,7 +280,6 @@ unsigned short hostescalation::escalation_options() const throw() {
  */
 void hostescalation::escalation_period(std::string const& period) {
   _escalation_period = period;
-  return;
 }
 
 /**
@@ -286,7 +307,6 @@ bool hostescalation::escalation_period_defined() const throw() {
  */
 void hostescalation::first_notification(unsigned int n) throw() {
   _first_notification = n;
-  return;
 }
 
 /**
@@ -341,7 +361,6 @@ set_string const& hostescalation::hosts() const throw() {
  */
 void hostescalation::last_notification(unsigned int n) throw() {
   _last_notification = n;
-  return;
 }
 
 /**
@@ -360,7 +379,6 @@ unsigned int hostescalation::last_notification() const throw() {
  */
 void hostescalation::notification_interval(unsigned int interval) {
   _notification_interval = interval;
-  return;
 }
 
 /**
@@ -402,20 +420,18 @@ bool hostescalation::_set_contactgroups(std::string const& value) {
  */
 bool hostescalation::_set_escalation_options(std::string const& value) {
   unsigned short options(none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "d" || *it == "down")
+  auto values = absl::StrSplit(value, ',');
+  for (auto& val : values) {
+    auto v = absl::StripAsciiWhitespace(val);
+    if (v == "d" || v == "down")
       options |= down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= unreachable;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= recovery;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = down | unreachable | recovery;
     else
       return false;
@@ -494,13 +510,4 @@ bool hostescalation::_set_last_notification(unsigned int value) {
 bool hostescalation::_set_notification_interval(unsigned int value) {
   _notification_interval = value;
   return true;
-}
-
-/**
- *  Get uuid value.
- *
- *  @return uuid.
- */
-Uuid const& hostescalation::uuid(void) const {
-  return _uuid;
 }

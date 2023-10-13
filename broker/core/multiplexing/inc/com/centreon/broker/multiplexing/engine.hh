@@ -66,8 +66,6 @@ class engine {
 
   enum state { not_started, running, stopped };
 
-  using send_to_mux_callback_type = std::function<void()>;
-
   state _state;
 
   std::unique_ptr<persistent_cache> _cache_file;
@@ -89,14 +87,14 @@ class engine {
 
   engine();
   std::string _cache_file_path() const;
-  bool _send_to_subscribers(send_to_mux_callback_type&& callback);
+  bool _send_to_subscribers(std::function<void()>&& callback);
 
   friend class detail::callback_caller;
 
  public:
   static void load();
   static void unload();
-  static std::shared_ptr<engine> instance_ptr();
+  static std::shared_ptr<engine>& instance_ptr();
 
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;

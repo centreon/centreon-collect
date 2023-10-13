@@ -18,7 +18,7 @@
  */
 
 #include "com/centreon/engine/configuration/severity.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -29,7 +29,6 @@ using namespace com::centreon::engine::configuration;
 
 const absl::flat_hash_map<std::string, severity::setter_func>
     severity::_setters{
-        {"name", SETTER(const std::string&, _set_severity_name)},
         {"severity_name", SETTER(const std::string&, _set_severity_name)},
         {"id", SETTER(uint64_t, _set_id)},
         {"severity_id", SETTER(uint64_t, _set_id)},
@@ -37,6 +36,7 @@ const absl::flat_hash_map<std::string, severity::setter_func>
         {"severity_level", SETTER(uint32_t, _set_level)},
         {"icon_id", SETTER(uint64_t, _set_icon_id)},
         {"severity_icon_id", SETTER(uint64_t, _set_icon_id)},
+        {"severity_type", SETTER(const std::string&, _set_type)},
         {"type", SETTER(const std::string&, _set_type)},
     };
 
@@ -129,17 +129,19 @@ bool severity::operator<(const severity& other) const noexcept {
  *
  * If the object is not valid, an exception is thrown.
  */
-void severity::check_validity() const {
+void severity::check_validity(error_info* err) const {
   if (_severity_name.empty())
-    throw engine_error() << "Severity has no name (property 'severity_name')";
+    throw exceptions::msg_fmt(
+        "Severity has no name (property 'severity_name')");
   if (_key.first == 0)
-    throw engine_error()
-        << "Severity id must not be less than 1 (property 'id')";
+    throw exceptions::msg_fmt(
+        "Severity id must not be less than 1 (property 'id')");
   if (_level == 0)
-    throw engine_error()
-        << "Severity level must not be less than 1 (property 'level')";
+    throw exceptions::msg_fmt(
+        "Severity level must not be less than 1 (property 'level')");
   if (_key.second == severity::none)
-    throw engine_error() << "Severity type must be one of 'service' or 'host'";
+    throw exceptions::msg_fmt(
+        "Severity type must be one of 'service' or 'host'");
 }
 
 /**

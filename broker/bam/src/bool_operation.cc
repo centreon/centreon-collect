@@ -27,8 +27,10 @@ using namespace com::centreon::broker::bam;
  *
  *  @param[in] op  The operation in string format.
  */
-bool_operation::bool_operation(std::string const& op)
-    : _type((op == "+")   ? addition
+bool_operation::bool_operation(std::string const& op,
+                               const std::shared_ptr<spdlog::logger>& logger)
+    : bool_binary_operator(logger),
+      _type((op == "+")   ? addition
             : (op == "-") ? substraction
             : (op == "*") ? multiplication
             : (op == "/") ? division

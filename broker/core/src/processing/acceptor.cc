@@ -1,5 +1,5 @@
 /**
- * Copyright 2015-2022 Centreon
+ * Copyright 2015-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,13 +20,16 @@
 
 #include <unistd.h>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/misc.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/processing/feeder.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -46,9 +49,13 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
       _read_filters_str(misc::dump_filters(_read_filters)),
       _write_filters(w_filter),
       _write_filters_str(misc::dump_filters(_write_filters)) {
-  log_v2::config()->trace(
-      "processing::acceptor '{}': read filter <<{}>> ; write filter <<{}>>",
-      name, _read_filters_str, _write_filters_str);
+  DEBUG(fmt::format("PROCESSING::ACCEPTOR constructor {}",
+                    static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::CONFIG)
+      ->trace(
+          "processing::acceptor '{}': read filter <<{}>> ; write filter <<{}>>",
+          name, _read_filters_str, _write_filters_str);
 }
 
 /**
@@ -56,6 +63,8 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
  */
 acceptor::~acceptor() {
   exit();
+  DEBUG(fmt::format("PROCESSING::ACCEPTOR destructor {}",
+                    static_cast<void*>(this)));
 }
 
 /**
@@ -70,22 +79,24 @@ void acceptor::accept() {
   if (u) {
     // Create feeder thread.
     std::string name(fmt::format("{}-{}", _name, ++connection_id));
-    SPDLOG_LOGGER_INFO(log_v2::core(), "New incoming connection '{}'", name);
-    log_v2::config()->debug(
-        "New feeder {} with read_filters {} and write_filters {}", name,
-        _read_filters.get_allowed_categories(),
-        _write_filters.get_allowed_categories());
+    auto core_logger = log_v2::instance().get(log_v2::CORE);
+    SPDLOG_LOGGER_INFO(core_logger, "New incoming connection '{}'", name);
+    log_v2::instance()
+        .get(log_v2::CONFIG)
+        ->debug("New feeder {} with read_filters {} and write_filters {}", name,
+                _read_filters.get_allowed_categories(),
+                _write_filters.get_allowed_categories());
     std::shared_ptr<feeder> f =
         feeder::create(name, multiplexing::engine::instance_ptr(), u,
                        _read_filters, _write_filters);
 
     std::lock_guard<std::mutex> lock(_stat_mutex);
     _feeders.push_back(f);
-    SPDLOG_LOGGER_TRACE(log_v2::core(),
+    SPDLOG_LOGGER_TRACE(core_logger,
                         "Currently {} connections to acceptor '{}'",
                         _feeders.size(), _name);
   } else
-    log_v2::core()->debug("accept ('{}') failed.", _name);
+    log_v2::instance().get(log_v2::CORE)->debug("accept ('{}') failed.", _name);
 }
 
 /**
@@ -110,10 +121,22 @@ void acceptor::exit() {
     _thread->join();
   }
 
-  for (auto& feeder : _feeders) {
-    feeder->stop();
+  std::promise<void> feeders_stopped;
+  std::atomic_int count = _feeders.size();
+  if (count > 0) {
+    for (auto& feeder : _feeders) {
+      DEBUG(fmt::format("PROCESSING ACCEPTOR {} STOP feeder {}", _name,
+                        static_cast<void*>(feeder.get())));
+      pool::instance().io_context().post([feeder, &feeders_stopped, &count] {
+        feeder->stop();
+        int c = atomic_fetch_sub(&count, 1);
+        if (c == 1)
+          feeders_stopped.set_value();
+      });
+    }
+    feeders_stopped.get_future().wait();
+    _feeders.clear();
   }
-  _feeders.clear();
 }
 
 /**
@@ -201,15 +224,18 @@ void acceptor::_callback() noexcept {
     } catch (std::exception const& e) {
       _set_listening(false);
       // Log error.
-      SPDLOG_LOGGER_ERROR(log_v2::core(),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                           "acceptor: endpoint '{}' could not accept client: {}",
                           _name, e.what());
 
       // Sleep a while before reconnection.
-      log_v2::core()->debug(
-          "acceptor: endpoint '{}' will wait {}s before attempting to accept a "
-          "new client",
-          _name, _retry_interval);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->debug(
+              "acceptor: endpoint '{}' will wait {}s before attempting to "
+              "accept a "
+              "new client",
+              _name, _retry_interval);
       time_t limit{time(nullptr) + _retry_interval};
       while (!_endp->is_ready() && !_should_exit && time(nullptr) < limit) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -220,10 +246,12 @@ void acceptor::_callback() noexcept {
     {
       std::lock_guard<std::mutex> lock(_stat_mutex);
       for (auto it = _feeders.begin(), end = _feeders.end(); it != end;) {
-        SPDLOG_LOGGER_TRACE(log_v2::core(), "acceptor '{}' feeder '{}'", _name,
+        SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
+                            "acceptor '{}' feeder '{}'", _name,
                             (*it)->get_name());
         if ((*it)->is_finished()) {
-          SPDLOG_LOGGER_INFO(log_v2::core(), "removing '{}' from acceptor '{}'",
+          SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                             "removing '{}' from acceptor '{}'",
                              (*it)->get_name(), _name);
           it = _feeders.erase(it);
         } else
@@ -231,8 +259,8 @@ void acceptor::_callback() noexcept {
       }
     }
   }
-  SPDLOG_LOGGER_INFO(log_v2::core(), "processing acceptor '{}' finished",
-                     _name);
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                     "processing acceptor '{}' finished", _name);
   _set_listening(false);
 
   lock.lock();
@@ -248,6 +276,9 @@ void acceptor::_callback() noexcept {
  * @return false
  */
 bool acceptor::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("processing::acceptor::wait_for_all_events_written");
   std::lock_guard<std::mutex> lock(_stat_mutex);
   bool ret = true;
   for (std::shared_ptr<feeder> to_wait : _feeders) {

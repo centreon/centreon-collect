@@ -387,5 +387,5 @@ BDBMU1
         ${result}    Ctn Get Broker Stats Size    central    mysql manager    ${60}
         Should Be True    ${result} >= ${c} + 1    Broker mysql manager stats do not show the ${c} connections
         Ctn Kindly Stop Broker
-        Ctn Stop engine
+        Ctn Stop Engine
     END

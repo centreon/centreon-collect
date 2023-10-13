@@ -20,7 +20,6 @@
 #include "com/centreon/engine/downtimes/host_downtime.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
@@ -60,7 +59,7 @@ void applier::downtime::_add_host_downtime(
     downtimes::downtime_manager::instance().register_downtime(
         downtimes::downtime::host_downtime, obj.downtime_id());
   } else
-    log_v2::downtimes()->error(
+    downtimes_logger->error(
         "Cannot add host downtime on host '{}' because it does not exist",
         obj.host_name());
 }
@@ -84,7 +83,7 @@ void applier::downtime::_add_service_downtime(
     downtimes::downtime_manager::instance().register_downtime(
         downtimes::downtime::service_downtime, obj.downtime_id());
   } else
-    log_v2::downtimes()->error(
+    downtimes_logger->error(
         "Cannot create service downtime on service ('{}', '{}') because it "
         "does not exist",
         obj.host_name(), obj.service_description());

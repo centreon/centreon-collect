@@ -1,22 +1,22 @@
-/*
-** Copyright 1999-2010 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2010 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_MACROS_GRAB_HH
 #define CCE_MACROS_GRAB_HH
@@ -24,9 +24,8 @@
 #include "com/centreon/engine/macros/process.hh"
 #include "com/centreon/engine/string.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::macros {
 
-namespace macros {
 /**
  *  Extract double.
  *
@@ -43,9 +42,7 @@ std::string get_double(T& t, nagios_macros* mac) {
   return oss.str();
 }
 
-template <typename T,
-          typename V,
-          double (V::*member)() const,
+template <typename T, typename V, double (V::*member)() const,
           unsigned int precision>
 std::string get_double(T& t, nagios_macros* mac) {
   (void)mac;
@@ -193,8 +190,7 @@ std::string get_member_as_string(T& t, nagios_macros* mac) {
  *
  *  @return Newly allocated string with macros processed.
  */
-template <typename T,
-          std::string const& (T::*member)() const,
+template <typename T, std::string const& (T::*member)() const,
           unsigned int options>
 std::string get_recursive(T& t, nagios_macros* mac) {
   (void)mac;
@@ -212,9 +208,7 @@ std::string get_recursive(T& t, nagios_macros* mac) {
  *
  *  @return Newly allocated string with macros processed.
  */
-template <typename T,
-          typename V,
-          std::string const& (V::*member)() const,
+template <typename T, typename V, std::string const& (V::*member)() const,
           unsigned int options>
 std::string get_recursive(T& t, nagios_macros* mac) {
   (void)mac;
@@ -239,8 +233,7 @@ std::string get_state_type(T& t, nagios_macros* mac) {
   (void)mac;
   return (t.get_state_type() == notifier::hard) ? "HARD" : "SOFT";
 }
-}  // namespace macros
 
-}
+}  // namespace com::centreon::engine::macros
 
 #endif  // !CCE_MACROS_GRAB_HH

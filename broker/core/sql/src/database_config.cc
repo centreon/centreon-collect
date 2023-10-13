@@ -1,28 +1,29 @@
 /**
-* Copyright 2014-2015 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014-2015 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/sql/database_config.hh"
 
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/exceptions/config.hh"
-#include "com/centreon/broker/log_v2.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker {
 std::ostream& operator<<(std::ostream& s, const database_config cfg) {
@@ -32,14 +33,14 @@ std::ostream& operator<<(std::ostream& s, const database_config cfg) {
   } else {
     s << cfg.get_socket();
   }
-  s << "queries per transaction:" << cfg.get_queries_per_transaction()
+  s << " queries per transaction:" << cfg.get_queries_per_transaction()
     << " check replication:" << cfg.get_check_replication()
-    << " connnexion count:" << cfg.get_connections_count()
-    << " max comit delay:" << cfg.get_max_commit_delay() << 's';
+    << " connection count:" << cfg.get_connections_count()
+    << " max commit delay:" << cfg.get_max_commit_delay() << 's';
   return s;
 }
 
-}
+}  // namespace com::centreon::broker
 
 /**
  *  Default constructor.
@@ -130,10 +131,13 @@ database_config::database_config(config::endpoint const& cfg) {
   if (it != end) {
     uint32_t port;
     if (!absl::SimpleAtoi(it->second, &port)) {
-      log_v2::config()->error(
-          "In the database configuration, 'db_port' should be a number, and "
-          "not '{}'",
-          it->second);
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->error(
+              "In the database configuration, 'db_port' should be a number, "
+              "and "
+              "not '{}'",
+              it->second);
       _port = 0;
     } else
       _port = port;
@@ -162,10 +166,13 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("queries_per_transaction");
   if (it != end) {
     if (!absl::SimpleAtoi(it->second, &_queries_per_transaction)) {
-      log_v2::core()->error(
-          "queries_per_transaction is a number but must be given as a string. "
-          "Unable to read the value '{}' - value 2000 taken by default.",
-          it->second);
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->error(
+              "queries_per_transaction is a number but must be given as a "
+              "string. "
+              "Unable to read the value '{}' - value 2000 taken by default.",
+              it->second);
       _queries_per_transaction = 2000;
     }
   } else
@@ -175,9 +182,11 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("check_replication");
   if (it != end) {
     if (!absl::SimpleAtob(it->second, &_check_replication)) {
-      log_v2::core()->error(
-          "check_replication is a string containing a boolean. If not "
-          "specified, it will be considered as \"true\".");
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->error(
+              "check_replication is a string containing a boolean. If not "
+              "specified, it will be considered as \"true\".");
       _check_replication = true;
     }
   } else
@@ -187,11 +196,13 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("connections_count");
   if (it != end) {
     if (!absl::SimpleAtoi(it->second, &_connections_count)) {
-      log_v2::core()->error(
-          "connections_count is a string "
-          "containing an integer. If not "
-          "specified, it will be considered as "
-          "\"1\".");
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->error(
+              "connections_count is a string "
+              "containing an integer. If not "
+              "specified, it will be considered as "
+              "\"1\".");
       _connections_count = 1;
     }
   } else
@@ -199,11 +210,13 @@ database_config::database_config(config::endpoint const& cfg) {
   it = cfg.params.find("max_commit_delay");
   if (it != end) {
     if (!absl::SimpleAtoi(it->second, &_max_commit_delay)) {
-      log_v2::core()->error(
-          "max_commit_delay is a string "
-          "containing an integer. If not "
-          "specified, it will be considered as "
-          "\"5\".");
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->error(
+              "max_commit_delay is a string "
+              "containing an integer. If not "
+              "specified, it will be considered as "
+              "\"5\".");
       _max_commit_delay = 5;
     }
   } else
@@ -254,53 +267,54 @@ bool database_config::operator==(database_config const& other) const {
                 _connections_count == other._connections_count &&
                 _max_commit_delay == other._max_commit_delay};
     if (!retval) {
+      auto logger = log_v2::instance().get(log_v2::SQL);
       if (_type != other._type)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their types: {} "
             "!= {}",
             _type, other._type);
       else if (_host != other._host)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their hosts: {} "
             "!= {}",
             _host, other._host);
       else if (_socket != other._socket)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their sockets: {} "
             "!= {}",
             _socket, other._socket);
       else if (_port != other._port)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their ports: {} "
             "!= {}",
             _port, other._port);
       else if (_user != other._user)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their users: {} "
             "!= {}",
             _user, other._user);
       else if (_password != other._password)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their passwords: "
             "{} != {}",
             _password, other._password);
       else if (_name != other._name)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their names: {} "
             "!= {}",
             _name, other._name);
       else if (_queries_per_transaction != other._queries_per_transaction)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their queries per "
             "transactions: {} != {}",
             _queries_per_transaction, other._queries_per_transaction);
       else if (_connections_count != other._connections_count)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their connections "
             "counts: {} != {}",
             _connections_count, other._connections_count);
       else if (_max_commit_delay != other._max_commit_delay)
-        log_v2::sql()->debug(
+        logger->debug(
             "database configurations do not match because of their commit "
             "delay: {} != {}",
             _max_commit_delay, other._max_commit_delay);

@@ -22,7 +22,7 @@ BEACK1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
@@ -64,7 +64,7 @@ BEACK2
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -189,7 +189,7 @@ BEACK5
     ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    An Initial service state on (host_50,service_1000) should be raised before we can start our external commands.
+    ...    A message about external commands checks should have been displayed
 
     # Time to set the service to CRITICAL HARD.
     Ctn Process Service Check Result    host_1    service_1    2    (1;1) is critical
@@ -251,6 +251,7 @@ BEACK6
     Ctn Acknowledge Service Problem    host_1    service_1    STICKY
     ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    600    HARD
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
+    Log To Console    Acknowledgement ${ack_id} on service (1, 1).
 
     # Service_1 is set to WARNING.
     Ctn Process Service Result Hard    host_1    service_1    1    (1;1) is WARNING
@@ -266,3 +267,71 @@ BEACK6
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
+
+BEACK8
+    [Documentation]    Engine has a critical service. It is configured with BBDO 3. An external command is sent to acknowledge it ; the acknowledgement is normal. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is removed (not sticky).
+    [Tags]    broker    engine    services    extcmd
+    Ctn Config Engine    ${1}    ${50}    ${20}
+    Ctn Config Broker    rrd
+    Ctn Config Broker    central
+    Ctn Config Broker    module    ${1}
+    Ctn Config BBDO3    ${1}
+    Ctn Broker Config Log    module0    neb    trace
+    Ctn Broker Config Log    central    core    info
+    Ctn Broker Config Log    central    sql    debug
+    Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
+    Ctn Engine Config Set Value    ${0}    log_level_external_command    trace
+    Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
+
+    #Ctn Clear Acknowledgements
+    ${start}    Get Current Date
+    Ctn Start Broker
+    Ctn Start Engine
+    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+    ${result}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True
+    ...    ${result}
+    ...    A message about external commands checks should have been displayed
+
+    # Time to set the service to CRITICAL HARD.
+    # This is for the check command in case of an active check
+    ${cmd_id}    Ctn Get Service Command    1    1
+    Ctn Set Command Status    ${cmd_id}    2
+    Ctn Process Service Result Hard    host_1    service_1    ${2}    Service (1;1) is critical HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
+    Should Be True    ${result}    Service (1;1) should be critical HARD
+
+    ${d}    Ctn Get Round Current Date
+    Ctn Acknowledge Service Problem    host_1    service_1
+    ${ack_id}    Ctn Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    ${False}    60    HARD
+    Should Be True    ${ack_id} > 0    No normal acknowledgement on service (1, 1).
+    Log To Console    Normal Acknowledgement ${ack_id} on service (1, 1).
+
+    # Service_1 is set to WARNING.
+    # This is for the check command in case of an active check
+    Ctn Set Command Status    ${cmd_id}    1
+    Ctn Process Service Result Hard    host_1    service_1    1    Service (1;1) is WARNING HARD
+    ${result}    Ctn Check Service Resource Status With Timeout    host_1    service_1    ${1}    60    HARD
+    Should Be True    ${result}    Service (1;1) should be WARNING HARD
+
+    # Acknowledgement is deleted.
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    60
+    Should Be True    ${result}    Normal Acknowledgement ${ack_id} should be deleted.
+
+    Ctn Remove Service Acknowledgement    host_1    service_1
+
+    # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
+    ${d}    Get Current Date
+    ${result}    Ctn Check Acknowledgement Is Deleted With Timeout    ${ack_id}    40
+    Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
+
+    ${content}    Create List    Still 0 running acknowledgements
+    Ctn Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
+
+
+*** Keywords ***
+Ctn Clear Acknowledgements
+    [Documentation]    This keyword is really useful because each test on acknowledgements adds acknowledgements and we don't master the acknowledgement ID.
+
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    DELETE FROM acknowledgements

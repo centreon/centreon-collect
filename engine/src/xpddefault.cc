@@ -1,32 +1,33 @@
 /**
-* Copyright 2000-2008 Ethan Galstad
-* Copyright 2011-2013 Merethis
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2000-2008 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/xpddefault.hh"
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/host.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/service.hh"
@@ -39,174 +40,25 @@ using namespace com::centreon::engine::logging;
 static commands::command* xpddefault_host_perfdata_command_ptr(nullptr);
 static commands::command* xpddefault_service_perfdata_command_ptr(nullptr);
 
-static char* xpddefault_host_perfdata_file_template(nullptr);
 static char* xpddefault_service_perfdata_file_template(nullptr);
-
-static commands::command* xpddefault_host_perfdata_file_processing_command_ptr(
-    nullptr);
-static commands::command*
-    xpddefault_service_perfdata_file_processing_command_ptr(nullptr);
 
 static FILE* xpddefault_host_perfdata_fp(nullptr);
 static FILE* xpddefault_service_perfdata_fp(nullptr);
 static int xpddefault_host_perfdata_fd(-1);
 static int xpddefault_service_perfdata_fd(-1);
 
-static pthread_mutex_t xpddefault_host_perfdata_fp_lock;
 static pthread_mutex_t xpddefault_service_perfdata_fp_lock;
-
-/******************************************************************/
-/************** INITIALIZATION & CLEANUP FUNCTIONS ****************/
-/******************************************************************/
-
-// initializes performance data.
-int xpddefault_initialize_performance_data() {
-  char* temp_command_name(nullptr);
-
-  // reset vars.
-  xpddefault_host_perfdata_command_ptr = nullptr;
-  xpddefault_service_perfdata_command_ptr = nullptr;
-  xpddefault_host_perfdata_file_processing_command_ptr = nullptr;
-  xpddefault_service_perfdata_file_processing_command_ptr = nullptr;
-
-  // grab config info from main config file.
-  xpddefault_host_perfdata_file_template =
-      string::dup(config->host_perfdata_file_template());
-  xpddefault_service_perfdata_file_template =
-      string::dup(config->service_perfdata_file_template());
-
-  // process special chars in templates.
-  xpddefault_preprocess_file_templates(xpddefault_host_perfdata_file_template);
-  xpddefault_preprocess_file_templates(
-      xpddefault_service_perfdata_file_template);
-
-  // open the performance data files.
-  xpddefault_open_host_perfdata_file();
-  xpddefault_open_service_perfdata_file();
-
-  // verify that performance data commands are valid.
-  if (!config->host_perfdata_command().empty()) {
-    char* temp_buffer(string::dup(config->host_perfdata_command()));
-
-    // get the command name, leave any arguments behind.
-    temp_command_name = my_strtok(temp_buffer, "!");
-
-    command_map::iterator cmd_found =
-        commands::command::commands.find(temp_command_name);
-
-    if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: Host performance command '" << temp_command_name
-          << "' was not found - host performance data will not "
-             "be processed!";
-      log_v2::runtime()->warn(
-          "Warning: Host performance command '{}' was not found - host "
-          "performance data will not "
-          "be processed!",
-          temp_command_name);
-    } else
-      xpddefault_host_perfdata_command_ptr =
-          cmd_found->second.get();  // save the command pointer for later.
-
-    delete[] temp_buffer;
-  }
-
-  if (!config->service_perfdata_command().empty()) {
-    char* temp_buffer(string::dup(config->service_perfdata_command()));
-
-    // get the command name, leave any arguments behind.
-    temp_command_name = my_strtok(temp_buffer, "!");
-
-    command_map::iterator cmd_found =
-        commands::command::commands.find(temp_command_name);
-
-    if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: Service performance command '" << temp_command_name
-          << "' was not found - service performance data will not "
-             "be processed!";
-      log_v2::runtime()->warn(
-          "Warning: Service performance command '{}' was not found - service "
-          "performance data will not "
-          "be processed!",
-          temp_command_name);
-    } else
-      xpddefault_service_perfdata_command_ptr = cmd_found->second.get();
-
-    // free memory.
-    delete[] temp_buffer;
-  }
-
-  if (!config->host_perfdata_file_processing_command().empty()) {
-    char* temp_buffer =
-        string::dup(config->host_perfdata_file_processing_command());
-
-    // get the command name, leave any arguments behind.
-    temp_command_name = my_strtok(temp_buffer, "!");
-    command_map::iterator cmd_found =
-        commands::command::commands.find(temp_command_name);
-
-    if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: Host performance file processing command '"
-          << temp_command_name
-          << "' was not found - host performance "
-             "data file will not be processed!";
-      log_v2::runtime()->warn(
-          "Warning: Host performance file processing command '{}' was not "
-          "found - host performance "
-          "data file will not be processed!",
-          temp_command_name);
-    } else
-      xpddefault_host_perfdata_file_processing_command_ptr =
-          cmd_found->second.get();
-
-    // free memory.
-    delete[] temp_buffer;
-  }
-
-  if (!config->service_perfdata_file_processing_command().empty()) {
-    char* temp_buffer =
-        string::dup(config->service_perfdata_file_processing_command());
-
-    // get the command name, leave any arguments behind.
-    temp_command_name = my_strtok(temp_buffer, "!");
-    command_map::iterator cmd_found =
-        commands::command::commands.find(temp_command_name);
-
-    if (cmd_found == commands::command::commands.end() || !cmd_found->second) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: Service performance file processing command '"
-          << temp_command_name
-          << "' was not found - service performance "
-             "data file will not be processed!";
-      log_v2::runtime()->warn(
-          "Warning: Service performance file processing command '{}' was not "
-          "found - service performance "
-          "data file will not be processed!",
-          temp_command_name);
-    } else
-      xpddefault_service_perfdata_file_processing_command_ptr =
-          cmd_found->second.get();
-    // free memory.
-    delete[] temp_buffer;
-  }
-
-  return OK;
-}
 
 // cleans up performance data.
 int xpddefault_cleanup_performance_data() {
   // free memory.
-  delete[] xpddefault_host_perfdata_file_template;
-  delete[] xpddefault_service_perfdata_file_template;
+  //  delete[] xpddefault_service_perfdata_file_template;
 
-  xpddefault_host_perfdata_file_template = nullptr;
-  xpddefault_service_perfdata_file_template = nullptr;
+  //  xpddefault_service_perfdata_file_template = nullptr;
 
   // close the files.
-  xpddefault_close_host_perfdata_file();
-  xpddefault_close_service_perfdata_file();
+  //  xpddefault_close_host_perfdata_file();
+  //  xpddefault_close_service_perfdata_file();
 
   return OK;
 }
@@ -226,10 +78,17 @@ int xpddefault_update_service_performance_data(
    */
   if (!svc || svc->get_perf_data().empty())
     return OK;
+#if LEGACY_CONF
   if ((!xpddefault_service_perfdata_fp ||
        !xpddefault_service_perfdata_file_template) &&
       config->service_perfdata_command().empty())
     return OK;
+#else
+  if ((!xpddefault_service_perfdata_fp ||
+       !xpddefault_service_perfdata_file_template) &&
+      pb_config.service_perfdata_command().empty())
+    return OK;
+#endif
 
   grab_host_macros_r(mac, svc->get_host_ptr());
   grab_service_macros_r(mac, svc);
@@ -259,10 +118,14 @@ int xpddefault_update_host_performance_data(host* hst) {
    */
   if (!hst || !hst->get_perf_data().empty())
     return OK;
-  if ((!xpddefault_host_perfdata_fp ||
-       !xpddefault_host_perfdata_file_template) &&
-      config->host_perfdata_command().empty())
+#if LEGACY_CONF
+  if ((!xpddefault_host_perfdata_fp) && config->host_perfdata_command().empty())
     return OK;
+#else
+  if ((!xpddefault_host_perfdata_fp) &&
+      pb_config.host_perfdata_command().empty())
+    return OK;
+#endif
 
   // set up macros and get to work.
   grab_host_macros_r(mac, hst);
@@ -272,9 +135,6 @@ int xpddefault_update_host_performance_data(host* hst) {
 
   // no more commands to run, so we won't need this any more.
   clear_argv_macros_r(mac);
-
-  // update the performance data file.
-  xpddefault_update_host_performance_data_file(mac, hst);
 
   // free() all.
   clear_volatile_macros_r(mac);
@@ -299,11 +159,12 @@ int xpddefault_run_service_performance_data_command(
 
   engine_logger(dbg_functions, basic)
       << "run_service_performance_data_command()";
-  log_v2::functions()->trace("run_service_performance_data_command()");
+  functions_logger->trace("run_service_performance_data_command()");
 
   if (svc == nullptr)
     return ERROR;
 
+#if LEGACY_CONF
   // we don't have a command.
   if (config->service_perfdata_command().empty())
     return OK;
@@ -312,13 +173,24 @@ int xpddefault_run_service_performance_data_command(
   get_raw_command_line_r(mac, xpddefault_service_perfdata_command_ptr,
                          config->service_perfdata_command().c_str(),
                          raw_command_line, macro_options);
+#else
+  // we don't have a command.
+  if (pb_config.service_perfdata_command().empty())
+    return OK;
+
+  // get the raw command line.
+  get_raw_command_line_r(mac, xpddefault_service_perfdata_command_ptr,
+                         pb_config.service_perfdata_command().c_str(),
+                         raw_command_line, macro_options);
+#endif
+
   if (raw_command_line.c_str())
     return ERROR;
 
   engine_logger(dbg_perfdata, most)
       << "Raw service performance data command line: " << raw_command_line;
-  log_v2::commands()->debug("Raw service performance data command line: {}",
-                            raw_command_line);
+  commands_logger->debug("Raw service performance data command line: {}",
+                         raw_command_line);
 
   // process any macros in the raw command line.
   process_macros_r(mac, raw_command_line, processed_command_line,
@@ -329,36 +201,53 @@ int xpddefault_run_service_performance_data_command(
   engine_logger(dbg_perfdata, most) << "Processed service performance data "
                                        "command line: "
                                     << processed_command_line;
-  log_v2::commands()->debug(
-      "Processed service performance data command line: {}",
-      processed_command_line);
+  commands_logger->debug("Processed service performance data command line: {}",
+                         processed_command_line);
 
   // run the command.
   try {
     std::string tmp;
+#if LEGACY_CONF
     my_system_r(mac, processed_command_line, config->perfdata_timeout(),
                 &early_timeout, &exectime, tmp, 0);
+#else
+    my_system_r(mac, processed_command_line, pb_config.perfdata_timeout(),
+                &early_timeout, &exectime, tmp, 0);
+#endif
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: can't execute service performance data command line '"
         << processed_command_line << "' : " << e.what();
-    log_v2::runtime()->error(
+    runtime_logger->error(
         "Error: can't execute service performance data command line '{}' : {}",
         processed_command_line, e.what());
   }
 
   // check to see if the command timed out.
   if (early_timeout == true)
+#if LEGACY_CONF
     engine_logger(log_runtime_warning, basic)
         << "Warning: Service performance data command '"
         << processed_command_line << "' for service '" << svc->description()
         << "' on host '" << svc->get_hostname() << "' timed out after "
         << config->perfdata_timeout() << " seconds";
-  log_v2::runtime()->warn(
+  runtime_logger->warn(
       "Warning: Service performance data command '{}' for service '{}' on host "
       "'{}' timed out after {} seconds",
       processed_command_line, svc->description(), svc->get_hostname(),
       config->perfdata_timeout());
+#else
+    engine_logger(log_runtime_warning, basic)
+        << "Warning: Service performance data command '"
+        << processed_command_line << "' for service '" << svc->description()
+        << "' on host '" << svc->get_hostname() << "' timed out after "
+        << pb_config.perfdata_timeout() << " seconds";
+  runtime_logger->warn(
+      "Warning: Service performance data command '{}' for service '{}' on host "
+      "'{}' timed out after {} seconds",
+      processed_command_line, svc->description(), svc->get_hostname(),
+      pb_config.perfdata_timeout());
+#endif
 
   return result;
 }
@@ -374,26 +263,35 @@ int xpddefault_run_host_performance_data_command(nagios_macros* mac,
   int macro_options(STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
 
   engine_logger(dbg_functions, basic) << "run_host_performance_data_command()";
-  log_v2::functions()->trace("run_host_performance_data_command()");
+  functions_logger->trace("run_host_performance_data_command()");
 
   if (hst == nullptr)
     return ERROR;
 
-  // we don't have a command.
+    // we don't have a command.
+#if LEGACY_CONF
   if (config->host_perfdata_command().empty())
     return OK;
-
   // get the raw command line.
   get_raw_command_line_r(mac, xpddefault_host_perfdata_command_ptr,
                          config->host_perfdata_command().c_str(),
                          raw_command_line, macro_options);
+#else
+  if (pb_config.host_perfdata_command().empty())
+    return OK;
+  // get the raw command line.
+  get_raw_command_line_r(mac, xpddefault_host_perfdata_command_ptr,
+                         pb_config.host_perfdata_command().c_str(),
+                         raw_command_line, macro_options);
+#endif
+
   if (raw_command_line.empty())
     return ERROR;
 
   engine_logger(dbg_perfdata, most)
       << "Raw host performance data command line: " << raw_command_line;
-  log_v2::commands()->info("Raw host performance data command line: {}",
-                           raw_command_line);
+  commands_logger->info("Raw host performance data command line: {}",
+                        raw_command_line);
 
   // process any macros in the raw command line.
   process_macros_r(mac, raw_command_line, processed_command_line,
@@ -402,19 +300,24 @@ int xpddefault_run_host_performance_data_command(nagios_macros* mac,
   engine_logger(dbg_perfdata, most)
       << "Processed host performance data command line: "
       << processed_command_line;
-  log_v2::commands()->info("Processed host performance data command line: {}",
-                           processed_command_line);
+  commands_logger->info("Processed host performance data command line: {}",
+                        processed_command_line);
 
   // run the command.
   try {
     std::string tmp;
+#if LEGACY_CONF
     my_system_r(mac, processed_command_line, config->perfdata_timeout(),
                 &early_timeout, &exectime, tmp, 0);
+#else
+    my_system_r(mac, processed_command_line, pb_config.perfdata_timeout(),
+                &early_timeout, &exectime, tmp, 0);
+#endif
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: can't execute host performance data command line '"
         << processed_command_line << "' : " << e.what();
-    log_v2::runtime()->error(
+    runtime_logger->error(
         "Error: can't execute host performance data command line '{}' : {}",
         processed_command_line, e.what());
   }
@@ -422,16 +325,28 @@ int xpddefault_run_host_performance_data_command(nagios_macros* mac,
   if (processed_command_line.empty())
     return ERROR;
 
-  // check to see if the command timed out.
-  if (early_timeout == true)
+    // check to see if the command timed out.
+#if LEGACY_CONF
+  if (early_timeout)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host performance data command '" << processed_command_line
         << "' for host '" << hst->name() << "' timed out after "
         << config->perfdata_timeout() << " seconds";
-  log_v2::runtime()->warn(
+  runtime_logger->warn(
       "Warning: Host performance data command '{}' for host '{}' timed out "
       "after {} seconds",
       processed_command_line, hst->name(), config->perfdata_timeout());
+#else
+  if (early_timeout)
+    engine_logger(log_runtime_warning, basic)
+        << "Warning: Host performance data command '" << processed_command_line
+        << "' for host '" << hst->name() << "' timed out after "
+        << pb_config.perfdata_timeout() << " seconds";
+  runtime_logger->warn(
+      "Warning: Host performance data command '{}' for host '{}' timed out "
+      "after {} seconds",
+      processed_command_line, hst->name(), pb_config.perfdata_timeout());
+#endif
 
   return result;
 }
@@ -439,75 +354,6 @@ int xpddefault_run_host_performance_data_command(nagios_macros* mac,
 /******************************************************************/
 /**************** FILE PERFORMANCE DATA FUNCTIONS *****************/
 /******************************************************************/
-
-// open the host performance data file for writing.
-int xpddefault_open_host_perfdata_file() {
-  if (!config->host_perfdata_file().empty()) {
-    if (config->host_perfdata_file_mode() == configuration::state::mode_pipe) {
-      // must open read-write to avoid failure if the other end isn't ready yet.
-      xpddefault_host_perfdata_fd =
-          open(config->host_perfdata_file().c_str(), O_NONBLOCK | O_RDWR);
-      xpddefault_host_perfdata_fp = fdopen(xpddefault_host_perfdata_fd, "w");
-    } else
-      xpddefault_host_perfdata_fp = fopen(
-          config->host_perfdata_file().c_str(),
-          (config->host_perfdata_file_mode() == configuration::state::mode_file)
-              ? "w"
-              : "a");
-
-    if (xpddefault_host_perfdata_fp == nullptr) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: File '" << xpddefault_host_perfdata_fp
-          << "' could not be opened - host performance data will not "
-             "be written to file!";
-      log_v2::runtime()->warn(
-          "Warning: File '{}' could not be opened - host performance data will "
-          "not "
-          "be written to file!",
-          (void*)xpddefault_host_perfdata_fp);
-
-      return ERROR;
-    }
-  }
-
-  return OK;
-}
-
-// open the service performance data file for writing.
-int xpddefault_open_service_perfdata_file() {
-  if (!config->service_perfdata_file().empty()) {
-    if (config->service_perfdata_file_mode() ==
-        configuration::state::mode_pipe) {
-      // must open read-write to avoid failure if the other end isn't ready yet.
-      xpddefault_service_perfdata_fd =
-          open(config->service_perfdata_file().c_str(), O_NONBLOCK | O_RDWR);
-      xpddefault_service_perfdata_fp =
-          fdopen(xpddefault_service_perfdata_fd, "w");
-    } else
-      xpddefault_service_perfdata_fp =
-          fopen(config->service_perfdata_file().c_str(),
-                (config->service_perfdata_file_mode() ==
-                 configuration::state::mode_file)
-                    ? "w"
-                    : "a");
-
-    if (xpddefault_service_perfdata_fp == nullptr) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: File '" << config->service_perfdata_file()
-          << "' could not be opened - service performance data will not "
-             "be written to file!";
-      log_v2::runtime()->warn(
-          "Warning: File '{}' could not be opened - service performance data "
-          "will not "
-          "be written to file!",
-          config->service_perfdata_file());
-
-      return ERROR;
-    }
-  }
-
-  return OK;
-}
 
 // close the host performance data file.
 int xpddefault_close_host_perfdata_file() {
@@ -574,7 +420,7 @@ int xpddefault_update_service_performance_data_file(
 
   engine_logger(dbg_functions, basic)
       << "update_service_performance_data_file()";
-  log_v2::functions()->trace("update_service_performance_data_file()");
+  functions_logger->trace("update_service_performance_data_file()");
 
   if (svc == nullptr)
     return ERROR;
@@ -589,8 +435,8 @@ int xpddefault_update_service_performance_data_file(
 
   engine_logger(dbg_perfdata, most)
       << "Raw service performance data file output: " << raw_output;
-  log_v2::commands()->info("Raw service performance data file output: {}",
-                           raw_output);
+  commands_logger->info("Raw service performance data file output: {}",
+                        raw_output);
 
   // process any macros in the raw output line.
   process_macros_r(mac, raw_output, processed_output, 0);
@@ -599,8 +445,8 @@ int xpddefault_update_service_performance_data_file(
 
   engine_logger(dbg_perfdata, most)
       << "Processed service performance data file output: " << processed_output;
-  log_v2::commands()->info("Processed service performance data file output: {}",
-                           processed_output);
+  commands_logger->info("Processed service performance data file output: {}",
+                        processed_output);
 
   // lock, write to and unlock host performance data file.
   pthread_mutex_lock(&xpddefault_service_perfdata_fp_lock);
@@ -609,230 +455,5 @@ int xpddefault_update_service_performance_data_file(
   fflush(xpddefault_service_perfdata_fp);
   pthread_mutex_unlock(&xpddefault_service_perfdata_fp_lock);
 
-  return result;
-}
-
-// updates host performance data file.
-int xpddefault_update_host_performance_data_file(nagios_macros* mac,
-                                                 host* hst) {
-  std::string raw_output;
-  std::string processed_output;
-  int result(OK);
-
-  engine_logger(dbg_functions, basic) << "update_host_performance_data_file()";
-  log_v2::functions()->trace("update_host_performance_data_file()");
-
-  if (hst == nullptr)
-    return ERROR;
-
-  // we don't have a host perfdata file.
-  if (xpddefault_host_perfdata_fp == nullptr ||
-      xpddefault_host_perfdata_file_template == nullptr)
-    return OK;
-
-  // get the raw output.
-  raw_output = string::dup(xpddefault_host_perfdata_file_template);
-
-  engine_logger(dbg_perfdata, most)
-      << "Raw host performance file output: " << raw_output;
-  log_v2::commands()->info("Raw host performance file output: {}", raw_output);
-
-  // process any macros in the raw output.
-  process_macros_r(mac, raw_output, processed_output, 0);
-  if (processed_output.empty())
-    return ERROR;
-
-  engine_logger(dbg_perfdata, most)
-      << "Processed host performance data file output: " << processed_output;
-  log_v2::commands()->info("Processed host performance data file output: {}",
-                           processed_output);
-
-  // lock, write to and unlock host performance data file.
-  pthread_mutex_lock(&xpddefault_host_perfdata_fp_lock);
-  fputs(processed_output.c_str(), xpddefault_host_perfdata_fp);
-  fputc('\n', xpddefault_host_perfdata_fp);
-  fflush(xpddefault_host_perfdata_fp);
-  pthread_mutex_unlock(&xpddefault_host_perfdata_fp_lock);
-
-  return result;
-}
-
-// periodically process the host perf data file.
-int xpddefault_process_host_perfdata_file() {
-  std::string raw_command_line;
-  std::string processed_command_line;
-  int early_timeout(false);
-  double exectime(0.0);
-  int result(OK);
-  int macro_options(STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
-  nagios_macros* mac(get_global_macros());
-
-  engine_logger(dbg_functions, basic) << "process_host_perfdata_file()";
-  log_v2::functions()->trace("process_host_perfdata_file()");
-
-  // we don't have a command.
-  if (config->host_perfdata_file_processing_command().empty())
-    return OK;
-
-  // get the raw command line.
-  get_raw_command_line_r(
-      mac, xpddefault_host_perfdata_file_processing_command_ptr,
-      config->host_perfdata_file_processing_command().c_str(), raw_command_line,
-      macro_options);
-  if (raw_command_line.empty()) {
-    clear_volatile_macros_r(mac);
-    return ERROR;
-  }
-
-  engine_logger(dbg_perfdata, most)
-      << "Raw host performance data file processing command line: "
-      << raw_command_line;
-  log_v2::commands()->info(
-      "Raw host performance data file processing command line: {}",
-      raw_command_line);
-
-  // process any macros in the raw command line.
-  process_macros_r(mac, raw_command_line, processed_command_line,
-                   macro_options);
-  if (processed_command_line.empty()) {
-    clear_volatile_macros_r(mac);
-    return ERROR;
-  }
-
-  engine_logger(dbg_perfdata, most)
-      << "Processed host performance data file processing command "
-         "line: "
-      << processed_command_line;
-  log_v2::commands()->info(
-      "Processed host performance data file processing command line: {}",
-      processed_command_line);
-
-  // lock and close the performance data file.
-  pthread_mutex_lock(&xpddefault_host_perfdata_fp_lock);
-  xpddefault_close_host_perfdata_file();
-
-  // run the command.
-  try {
-    std::string tmp;
-    my_system_r(mac, processed_command_line, config->perfdata_timeout(),
-                &early_timeout, &exectime, tmp, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute host performance data file processing command "
-           "line '"
-        << processed_command_line << "' : " << e.what();
-    log_v2::runtime()->error(
-        "Error: can't execute host performance data file processing command "
-        "line '{}' : {}",
-        processed_command_line, e.what());
-  }
-  clear_volatile_macros_r(mac);
-
-  // re-open and unlock the performance data file.
-  xpddefault_open_host_perfdata_file();
-  pthread_mutex_unlock(&xpddefault_host_perfdata_fp_lock);
-
-  // check to see if the command timed out.
-  if (early_timeout == true)
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Host performance data file processing command '"
-        << processed_command_line << "' timed out after "
-        << config->perfdata_timeout() << " seconds";
-  log_v2::runtime()->warn(
-      "Warning: Host performance data file processing command '{}' timed out "
-      "after {} seconds",
-      processed_command_line, config->perfdata_timeout());
-  return result;
-}
-
-// periodically process the service perf data file.
-int xpddefault_process_service_perfdata_file() {
-  std::string raw_command_line;
-  std::string processed_command_line;
-  int early_timeout(false);
-  double exectime(0.0);
-  int result(OK);
-  int macro_options(STRIP_ILLEGAL_MACRO_CHARS | ESCAPE_MACRO_CHARS);
-  nagios_macros* mac(get_global_macros());
-
-  engine_logger(dbg_functions, basic) << "process_service_perfdata_file()";
-  log_v2::functions()->trace("process_service_perfdata_file()");
-
-  // we don't have a command.
-  if (config->service_perfdata_file_processing_command().empty())
-    return OK;
-
-  // get the raw command line.
-  get_raw_command_line_r(
-      mac, xpddefault_service_perfdata_file_processing_command_ptr,
-      config->service_perfdata_file_processing_command().c_str(),
-      raw_command_line, macro_options);
-  if (raw_command_line.empty()) {
-    clear_volatile_macros_r(mac);
-    return ERROR;
-  }
-
-  engine_logger(dbg_perfdata, most)
-      << "Raw service performance data file processing "
-         "command line: "
-      << raw_command_line;
-  log_v2::commands()->info(
-      "Raw service performance data file processing command line: {}",
-      raw_command_line);
-
-  // process any macros in the raw command line.
-  process_macros_r(mac, raw_command_line, processed_command_line,
-                   macro_options);
-  if (processed_command_line.empty()) {
-    clear_volatile_macros_r(mac);
-    return ERROR;
-  }
-
-  engine_logger(dbg_perfdata, most)
-      << "Processed service performance data file processing "
-         "command line: "
-      << processed_command_line;
-  log_v2::commands()->info(
-      "Processed service performance data file processing command line: {}",
-      processed_command_line);
-
-  // lock and close the performance data file.
-  pthread_mutex_lock(&xpddefault_service_perfdata_fp_lock);
-  xpddefault_close_service_perfdata_file();
-
-  // run the command.
-  try {
-    std::string tmp;
-    my_system_r(mac, processed_command_line, config->perfdata_timeout(),
-                &early_timeout, &exectime, tmp, 0);
-  } catch (std::exception const& e) {
-    engine_logger(log_runtime_error, basic)
-        << "Error: can't execute service performance data file processing "
-           "command line '"
-        << processed_command_line << "' : " << e.what();
-    log_v2::runtime()->error(
-        "Error: can't execute service performance data file processing "
-        "command line '{}' : {}",
-        processed_command_line, e.what());
-  }
-
-  // re-open and unlock the performance data file.
-  xpddefault_open_service_perfdata_file();
-  pthread_mutex_unlock(&xpddefault_service_perfdata_fp_lock);
-
-  clear_volatile_macros_r(mac);
-
-  // check to see if the command timed out.
-  if (early_timeout == true)
-    engine_logger(log_runtime_warning, basic)
-        << "Warning: Service performance data file processing command '"
-        << processed_command_line << "' timed out after "
-        << config->perfdata_timeout() << " seconds";
-  log_v2::runtime()->warn(
-      "Warning: Service performance data file processing command '{}' timed "
-      "out after {} seconds",
-      processed_command_line, config->perfdata_timeout());
-
-  // free memory.
   return result;
 }

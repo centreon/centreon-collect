@@ -18,8 +18,6 @@
 
 #include "com/centreon/broker/io/raw.hh"
 
-#include "com/centreon/broker/log_v2.hh"
-
 namespace com::centreon::broker::io {
 
 std::ostream& operator<<(std::ostream& s, const raw& d) {
@@ -71,17 +69,29 @@ raw& raw::operator=(raw const& r) {
   return *this;
 }
 
-void raw::resize(size_t s) { _buffer.resize(s); }
+void raw::resize(size_t s) {
+  _buffer.resize(s);
+}
 
-char* raw::data() { return &_buffer[0]; }
+char* raw::data() {
+  return &_buffer[0];
+}
 
-char const* raw::const_data() const { return &_buffer[0]; }
+char const* raw::const_data() const {
+  return &_buffer[0];
+}
 
-size_t raw::size() const { return _buffer.size(); }
+size_t raw::size() const {
+  return _buffer.size();
+}
 
-std::vector<char>& raw::get_buffer() { return _buffer; }
+std::vector<char>& raw::get_buffer() {
+  return _buffer;
+}
 
-bool raw::empty() const { return _buffer.empty(); }
+bool raw::empty() const {
+  return _buffer.empty();
+}
 
 // void raw::append(const char* msg) {
 //  _buffer.insert(_buffer.end(), msg, msg + strlen(msg));

@@ -19,14 +19,16 @@
 
 #include "grpc_stream.grpc.pb.h"
 
+#include "broker/core/misc/trash.hh"
 #include "com/centreon/broker/grpc/server.hh"
 #include "com/centreon/broker/grpc/stream.hh"
-#include "com/centreon/broker/misc/trash.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /****************************************************************************
  * accepted_service
@@ -35,8 +37,9 @@ accepted_service::accepted_service(const grpc_config::pointer& conf,
                                    const shared_bool& server_finished)
     : channel("accepted_service", conf),
       _server_finished(server_finished),
-      _finished_called(false) {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service construction this={:p}",
+      _finished_called(false),
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
+  SPDLOG_LOGGER_TRACE(_logger, "accepted_service construction this={:p}",
                       static_cast<void*>(this));
 }
 
@@ -45,7 +48,7 @@ void accepted_service::start() {
 }
 
 accepted_service::~accepted_service() {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service desctruction this={:p}",
+  SPDLOG_LOGGER_TRACE(_logger, "accepted_service desctruction this={:p}",
                       static_cast<void*>(this));
 }
 
@@ -54,7 +57,7 @@ void accepted_service::desactivate() {
 }
 
 void accepted_service::OnCancel() {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(_logger, "this={:p}", static_cast<void*>(this));
   desactivate();
 }
 
@@ -62,7 +65,7 @@ void accepted_service::start_read(event_ptr& to_read, bool) {
   if (*_server_finished || _thrown) {
     bool expected = false;
     if (_finished_called.compare_exchange_strong(expected, true)) {
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}  Finish",
+      SPDLOG_LOGGER_TRACE(_logger, "this={:p}  Finish",
                           static_cast<void*>(this));
       Finish(::grpc::Status(::grpc::CANCELLED, "start_read server finished"));
     }
@@ -79,7 +82,7 @@ void accepted_service::start_write(const event_with_data::pointer& to_send) {
   if (*_server_finished || _thrown) {
     bool expected = false;
     if (_finished_called.compare_exchange_strong(expected, true)) {
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p} Finish",
+      SPDLOG_LOGGER_TRACE(_logger, "this={:p} Finish",
                           static_cast<void*>(this));
       Finish(::grpc::Status(::grpc::CANCELLED, "start_write server finished"));
     }
@@ -93,7 +96,7 @@ void accepted_service::OnWriteDone(bool ok) {
 }
 
 int accepted_service::stop() {
-  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(_logger, "this={:p}", static_cast<void*>(this));
   shutdown();
   return channel::stop();
 }
@@ -101,8 +104,7 @@ int accepted_service::stop() {
 void accepted_service::shutdown() {
   bool expected = false;
   if (_finished_called.compare_exchange_strong(expected, true)) {
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} this={:p}",
-                        static_cast<void*>(this));
+    SPDLOG_LOGGER_DEBUG(_logger, "{} this={:p}", static_cast<void*>(this));
     Finish(::grpc::Status(::grpc::CANCELLED, "stop server finished"));
   }
 }
@@ -110,7 +112,8 @@ void accepted_service::shutdown() {
 /****************************************************************************
  *                              server
  ****************************************************************************/
-server::server(const grpc_config::pointer& conf) : _conf(conf) {
+server::server(const grpc_config::pointer& conf)
+    : _conf(conf), _logger{log_v2::instance().get(log_v2::GRPC)} {
   _server_finished = std::make_shared<bool>(false);
 }
 
@@ -144,7 +147,7 @@ void server::start() {
         _conf->get_key(), _conf->get_cert()};
 
     SPDLOG_LOGGER_INFO(
-        log_v2::grpc(),
+        _logger,
         "encrypted server listening on {} cert: {}..., key: {}..., ca: {}....",
         _conf->get_hostport(), _conf->get_cert().substr(0, 10),
         _conf->get_key().substr(0, 10), _conf->get_ca().substr(0, 10));
@@ -156,7 +159,7 @@ void server::start() {
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
 #endif
   } else {
-    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted server listening on {}",
+    SPDLOG_LOGGER_INFO(_logger, "unencrypted server listening on {}",
                        _conf->get_hostport());
     server_creds = ::grpc::InsecureServerCredentials();
   }
@@ -177,10 +180,9 @@ void server::start() {
         GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
     const char* algo_name;
     if (grpc_compression_algorithm_name(algo, &algo_name))
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression {}",
-                          algo_name);
+      SPDLOG_LOGGER_DEBUG(_logger, "server default compression {}", algo_name);
     else
-      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression unknown");
+      SPDLOG_LOGGER_DEBUG(_logger, "server default compression unknown");
 
     builder.SetDefaultCompressionAlgorithm(algo);
     builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
@@ -202,14 +204,13 @@ server::pointer server::create(const grpc_config::pointer& conf) {
 
     auto header_search = metas.lower_bound(authorization_header);
     if (header_search == metas.end()) {
-      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "header {} not found",
-                          authorization_header);
+      SPDLOG_LOGGER_ERROR(_logger, "header {} not found", authorization_header);
       return nullptr;
     }
     bool found = false;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "Wrong client authorization token");
+        SPDLOG_LOGGER_ERROR(_logger, "Wrong client authorization token");
         return nullptr;
       }
       found = _conf->get_authorization() == header_search->second;
@@ -283,7 +284,7 @@ void server::shutdown() {
     svc->to_trash();
   }
   if (to_shutdown) {
-    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "grpc server shutdown");
+    SPDLOG_LOGGER_DEBUG(_logger, "grpc server shutdown");
     to_shutdown->Shutdown(std::chrono::system_clock::now() +
                           std::chrono::seconds(15));
   }

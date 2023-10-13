@@ -1,26 +1,26 @@
 /**
-* Copyright 1999-2010      Ethan Galstad
-* Copyright 2011-2013,2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 1999-2010      Ethan Galstad
+ * Copyright 2011-2013,2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/macros/grab_host.hh"
 
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros/clear_host.hh"
 #include "com/centreon/engine/macros/clear_hostgroup.hh"
@@ -117,8 +117,7 @@ static std::string get_host_group_names(host& hst, nagios_macros* mac) {
        end{hst.get_parent_groups().end()};
        it != end; ++it) {
     if (*it) {
-      if (!buf.empty())
-        buf.append(",");
+      if (!buf.empty()) buf.append(",");
       buf.append((*it)->get_group_name());
     }
   }
@@ -187,8 +186,7 @@ static std::string get_host_parents(host& hst, nagios_macros* mac) {
   for (host_map_unsafe::const_iterator it(hst.parent_hosts.begin()),
        end(hst.parent_hosts.end());
        it != end; it++) {
-    if (!retval.empty())
-      retval.append(",");
+    if (!retval.empty()) retval.append(",");
     retval.append(it->first);
   }
   return retval;
@@ -208,8 +206,7 @@ static std::string get_host_children(host& hst, nagios_macros* mac) {
   for (host_map_unsafe::const_iterator it(hst.child_hosts.begin()),
        end(hst.child_hosts.end());
        it != end; it++) {
-    if (!retval.empty())
-      retval.append(",");
+    if (!retval.empty()) retval.append(",");
     retval.append(it->first);
   }
   return retval;
@@ -250,20 +247,15 @@ static std::string get_host_macro_timezone(host& hst, nagios_macros* mac) {
 // Redirection object.
 struct grab_host_redirection {
   typedef std::unordered_map<
-      unsigned int,
-      std::pair<std::string (*)(host&, nagios_macros*), bool>>
+      unsigned int, std::pair<std::string (*)(host&, nagios_macros*), bool>>
       entry;
   entry routines{
       {MACRO_HOSTNAME,
-       {&get_member_as_string<host,
-                              std::string const&,
-                              checkable,
+       {&get_member_as_string<host, std::string const&, checkable,
                               &checkable::name>,
         true}},
       {MACRO_HOSTDISPLAYNAME,
-       {&get_member_as_string<host,
-                              std::string const&,
-                              checkable,
+       {&get_member_as_string<host, std::string const&, checkable,
                               &checkable::get_display_name>,
         true}},
       {MACRO_HOSTALIAS,
@@ -285,45 +277,31 @@ struct grab_host_redirection {
       {MACRO_HOSTCHECKTYPE, {&get_host_check_type, true}},
       {MACRO_HOSTSTATETYPE, {&get_state_type<host>, true}},
       {MACRO_HOSTOUTPUT,
-       {&get_member_as_string<host,
-                              std::string const&,
-                              checkable,
+       {&get_member_as_string<host, std::string const&, checkable,
                               &checkable::get_plugin_output>,
         true}},
       {MACRO_LONGHOSTOUTPUT,
-       {&get_member_as_string<host,
-                              std::string const&,
-                              checkable,
+       {&get_member_as_string<host, std::string const&, checkable,
                               &checkable::get_long_plugin_output>,
         true}},
       {MACRO_HOSTPERFDATA,
-       {&get_member_as_string<host,
-                              std::string const&,
-                              checkable,
+       {&get_member_as_string<host, std::string const&, checkable,
                               &checkable::get_perf_data>,
         true}},
       {MACRO_HOSTCHECKCOMMAND,
-       {&get_member_as_string<host,
-                              std::string const&,
-                              checkable,
+       {&get_member_as_string<host, std::string const&, checkable,
                               &checkable::check_command>,
         true}},
       {MACRO_HOSTATTEMPT,
-       {&get_member_as_string<host,
-                              int,
-                              checkable,
+       {&get_member_as_string<host, int, checkable,
                               &checkable::get_current_attempt>,
         true}},
       {MACRO_MAXHOSTATTEMPTS,
-       {&get_member_as_string<host,
-                              int,
-                              checkable,
+       {&get_member_as_string<host, int, checkable,
                               &checkable::max_check_attempts>,
         true}},
       {MACRO_HOSTDOWNTIME,
-       {&get_member_as_string<host,
-                              int,
-                              checkable,
+       {&get_member_as_string<host, int, checkable,
                               &checkable::get_scheduled_downtime_depth>,
         true}},
       {MACRO_HOSTPERCENTCHANGE,
@@ -336,15 +314,11 @@ struct grab_host_redirection {
       {MACRO_HOSTLATENCY,
        {&get_double<host, checkable, &checkable::get_latency, 3>, true}},
       {MACRO_LASTHOSTCHECK,
-       {&get_member_as_string<host,
-                              time_t,
-                              checkable,
+       {&get_member_as_string<host, time_t, checkable,
                               &checkable::get_last_check>,
         true}},
       {MACRO_LASTHOSTSTATECHANGE,
-       {&get_member_as_string<host,
-                              time_t,
-                              checkable,
+       {&get_member_as_string<host, time_t, checkable,
                               &checkable::get_last_state_change>,
         true}},
       {MACRO_LASTHOSTUP,
@@ -355,39 +329,27 @@ struct grab_host_redirection {
        {&get_member_as_string<host, time_t, &host::get_last_time_unreachable>,
         true}},
       {MACRO_HOSTNOTIFICATIONNUMBER,
-       {&get_member_as_string<host,
-                              int,
-                              notifier,
+       {&get_member_as_string<host, int, notifier,
                               &notifier::get_notification_number>,
         true}},
       {MACRO_HOSTNOTIFICATIONID,
-       {&get_member_as_string<host,
-                              uint64_t,
-                              notifier,
+       {&get_member_as_string<host, uint64_t, notifier,
                               &notifier::get_current_notification_id>,
         true}},
       {MACRO_HOSTEVENTID,
-       {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
+       {&get_member_as_string<host, unsigned long, notifier,
                               &notifier::get_current_event_id>,
         true}},
       {MACRO_LASTHOSTEVENTID,
-       {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
+       {&get_member_as_string<host, unsigned long, notifier,
                               &notifier::get_last_event_id>,
         true}},
       {MACRO_HOSTPROBLEMID,
-       {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
+       {&get_member_as_string<host, unsigned long, notifier,
                               &notifier::get_current_problem_id>,
         true}},
       {MACRO_LASTHOSTPROBLEMID,
-       {&get_member_as_string<host,
-                              unsigned long,
-                              notifier,
+       {&get_member_as_string<host, unsigned long, notifier,
                               &notifier::get_last_problem_id>,
         true}},
       {MACRO_HOSTACTIONURL,
@@ -433,11 +395,8 @@ extern "C" {
  *
  *  @return OK on success.
  */
-int grab_standard_host_macro_r(nagios_macros* mac,
-                               int macro_type,
-                               host* hst,
-                               std::string& output,
-                               int* free_macro) {
+int grab_standard_host_macro_r(nagios_macros* mac, int macro_type, host* hst,
+                               std::string& output, int* free_macro) {
   // Check that function was called with valid arguments.
   int retval;
   if (hst && free_macro) {
@@ -458,8 +417,8 @@ int grab_standard_host_macro_r(nagios_macros* mac,
     else {
       engine_logger(dbg_macros, basic)
           << "UNHANDLED HOST MACRO #" << macro_type << "! THIS IS A BUG!";
-      log_v2::macros()->trace("UNHANDLED HOST MACRO #{}! THIS IS A BUG!",
-                              macro_type);
+      macros_logger->trace("UNHANDLED HOST MACRO #{}! THIS IS A BUG!",
+                           macro_type);
       retval = ERROR;
     }
   } else
@@ -485,8 +444,7 @@ int grab_host_macros_r(nagios_macros* mac, host* hst) {
   mac->host_ptr = hst;
   mac->hostgroup_ptr = nullptr;
 
-  if (hst == nullptr)
-    return ERROR;
+  if (hst == nullptr) return ERROR;
 
   // Save pointer to host's first/primary hostgroup.
   if (!hst->get_parent_groups().empty())

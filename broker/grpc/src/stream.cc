@@ -25,10 +25,12 @@
 #include "com/centreon/broker/grpc/grpc_bridge.hh"
 #include "com/centreon/broker/grpc/server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace fmt {
 
@@ -39,7 +41,13 @@ struct formatter<io::raw> : ostream_formatter {};
 }  // namespace fmt
 
 com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
-    : io::stream("GRPC"), _accept(false), _conf(conf) {
+    : io::stream("GRPC"),
+      _accept(false),
+      _conf(conf),
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream constructor {}", static_cast<void*>(this));
   _channel = client::create(conf);
 }
 
@@ -48,14 +56,23 @@ com::centreon::broker::grpc::stream::stream(
     : io::stream("GRPC"),
       _accept(true),
       _channel(accepted),
-      _conf(_channel->get_conf()) {}
+      _conf(_channel->get_conf()),
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream constructor {}", static_cast<void*>(this));
+}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream destructor {}", static_cast<void*>(this));
   if (_channel)
     _channel->to_trash();
 }
 
 #define READ_IMPL                                                             \
+  _logger = log_v2::instance().get(log_v2::GRPC);                             \
   std::pair<event_ptr, bool> read_res = _channel->read(duration_or_deadline); \
   if (read_res.second) {                                                      \
     const grpc_event_type& to_convert = *read_res.first;                      \
@@ -63,7 +80,7 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
       d = std::make_shared<io::raw>();                                        \
       std::static_pointer_cast<io::raw>(d)->_buffer.assign(                   \
           to_convert.buffer().begin(), to_convert.buffer().end());            \
-      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
+      SPDLOG_LOGGER_TRACE(_logger, "receive:{}",                              \
                           *std::static_pointer_cast<io::raw>(d));             \
     } else {                                                                  \
       d = protobuf_to_event(read_res.first);                                  \
@@ -94,6 +111,7 @@ bool com::centreon::broker::grpc::stream::read(
 
 int32_t com::centreon::broker::grpc::stream::write(
     std::shared_ptr<io::data> const& d) {
+  _logger = log_v2::instance().get(log_v2::GRPC);
   if (_channel->is_down())
     throw msg_fmt("Connection lost");
 
@@ -116,6 +134,9 @@ int32_t com::centreon::broker::grpc::stream::flush() {
 }
 
 int32_t com::centreon::broker::grpc::stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream stop {}", static_cast<void*>(this));
   return _channel->stop();
 }
 
@@ -132,6 +153,9 @@ bool com::centreon::broker::grpc::stream::is_down() const {
  */
 bool com::centreon::broker::grpc::stream::wait_for_all_events_written(
     unsigned ms_timeout) {
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("grpc::stream::wait_for_all_events_written");
   if (_channel->is_down()) {
     return true;
   }

@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -50,6 +50,6 @@ class builder {
 };
 }  // namespace stats
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_STATS_BUILDER_HH

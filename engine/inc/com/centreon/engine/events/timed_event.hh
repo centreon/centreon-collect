@@ -1,29 +1,30 @@
-/*
-** Copyright 2007-2008      Ethan Galstad
-** Copyright 2007,2010      Andreas Ericsson
-** Copyright 2010           Max Schubert
-** Copyright 2011-2020      Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2007-2008      Ethan Galstad
+ * Copyright 2007,2010      Andreas Ericsson
+ * Copyright 2010           Max Schubert
+ * Copyright 2011-2020      Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_EVENTS_TIMED_EVENT_HH
 #define CCE_EVENTS_TIMED_EVENT_HH
 
 #include <stdint.h>
+
 #include "com/centreon/engine/downtimes/downtime.hh"
 
 namespace com::centreon::engine {
@@ -90,21 +91,16 @@ class timed_event {
     EVENT_USER_FUNCTION = 99   // USER-defined function (modules)
   };
   timed_event();
-  timed_event(uint32_t event_type,
-              time_t run_time,
-              bool recurring,
-              unsigned long event_interval,
-              void* timing_func,
-              bool compensate_for_time_change,
-              void* event_data,
-              void* event_args,
-              int32_t event_options);
+  timed_event(uint32_t event_type, time_t run_time, bool recurring,
+              unsigned long event_interval, void* timing_func,
+              bool compensate_for_time_change, void* event_data,
+              void* event_args, int32_t event_options);
   ~timed_event();
   int handle_timed_event();
 
   std::string const& name() const noexcept;
 };
-}
+}  // namespace com::centreon::engine
 
 #ifdef __cplusplus
 extern "C" {

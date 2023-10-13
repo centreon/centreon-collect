@@ -20,6 +20,7 @@
 #define CCB_PROCESSING_ACCEPTOR_HH
 
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
+
 #include "com/centreon/broker/processing/endpoint.hh"
 
 namespace com::centreon::broker {
@@ -70,7 +71,8 @@ class acceptor : public endpoint {
   virtual uint32_t _get_queued_events() const override;
 
  public:
-  acceptor(std::shared_ptr<io::endpoint> endp, std::string const& name,
+  acceptor(std::shared_ptr<io::endpoint> endp,
+           std::string const& name,
            const multiplexing::muxer_filter& r_filter,
            const multiplexing::muxer_filter& w_filter);
   acceptor(const acceptor&) = delete;
@@ -85,6 +87,6 @@ class acceptor : public endpoint {
 };
 }  // namespace processing
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_PROCESSING_ACCEPTOR_HH

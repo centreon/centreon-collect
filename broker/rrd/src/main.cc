@@ -25,11 +25,12 @@
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/rrd/factory.hh"
 #include "com/centreon/broker/rrd/internal.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Load count.
 static uint32_t instances(0);
@@ -68,17 +69,17 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
+  auto logger = log_v2::instance().create_logger(log_v2::RRD);
 
   // Increment instance number.
   if (!instances++) {
     // RRD module.
-    log_v2::rrd()->info("RRD: module for Centreon Broker {}",
-                        CENTREON_BROKER_VERSION);
+    logger->info("RRD: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
 
     // Print RRDtool version.
     char const* rrdversion(rrd_strversion());
-    log_v2::rrd()->info("RRD: using rrdtool {}",
-                        (rrdversion ? rrdversion : "(unknown)"));
+    logger->info("RRD: using rrdtool {}",
+                 (rrdversion ? rrdversion : "(unknown)"));
 
     io::events& e(io::events::instance());
 

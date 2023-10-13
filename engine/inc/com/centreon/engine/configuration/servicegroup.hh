@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_SERVICEGROUP_HH
 #define CCE_CONFIGURATION_SERVICEGROUP_HH
@@ -35,26 +35,26 @@ class servicegroup : public object {
 
   servicegroup(key_type const& key = "");
   servicegroup(servicegroup const& right);
-  ~servicegroup() throw() override;
+  ~servicegroup() noexcept override;
   servicegroup& operator=(servicegroup const& right);
-  bool operator==(servicegroup const& right) const throw();
-  bool operator!=(servicegroup const& right) const throw();
-  bool operator<(servicegroup const& right) const throw();
-  void check_validity() const override;
-  key_type const& key() const throw();
+  bool operator==(servicegroup const& right) const noexcept;
+  bool operator!=(servicegroup const& right) const noexcept;
+  bool operator<(servicegroup const& right) const noexcept;
+  void check_validity(error_info* err) const override;
+  key_type const& key() const noexcept;
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
-  std::string const& action_url() const throw();
-  std::string const& alias() const throw();
-  set_pair_string& members() throw();
-  set_pair_string const& members() const throw();
-  std::string const& notes() const throw();
-  std::string const& notes_url() const throw();
-  unsigned int servicegroup_id() const throw();
-  set_string& servicegroup_members() throw();
-  set_string const& servicegroup_members() const throw();
-  std::string const& servicegroup_name() const throw();
+  std::string const& action_url() const noexcept;
+  std::string const& alias() const noexcept;
+  set_pair_string& members() noexcept;
+  set_pair_string const& members() const noexcept;
+  std::string const& notes() const noexcept;
+  std::string const& notes_url() const noexcept;
+  unsigned int servicegroup_id() const noexcept;
+  set_string& servicegroup_members() noexcept;
+  set_string const& servicegroup_members() const noexcept;
+  std::string const& servicegroup_name() const noexcept;
 
  private:
   typedef bool (*setter_func)(servicegroup&, char const*);
@@ -83,6 +83,6 @@ typedef std::shared_ptr<servicegroup> servicegroup_ptr;
 typedef std::set<servicegroup> set_servicegroup;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_SERVICEGROUP_HH

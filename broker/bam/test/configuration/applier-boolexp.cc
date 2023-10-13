@@ -21,8 +21,10 @@
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 #include "com/centreon/broker/config/applier/init.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 

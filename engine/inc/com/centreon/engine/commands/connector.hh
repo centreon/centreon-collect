@@ -21,6 +21,7 @@
 #define CCE_COMMANDS_CONNECTOR_HH
 
 #include <thread>
+
 #include "com/centreon/engine/commands/command.hh"
 #include "com/centreon/process.hh"
 #include "com/centreon/process_listener.hh"
@@ -29,16 +30,15 @@ namespace com::centreon::engine {
 namespace commands {
 class connector;
 }
-}
+}  // namespace com::centreon::engine
 
 typedef std::unordered_map<
     std::string,
     std::shared_ptr<com::centreon::engine::commands::connector> >
     connector_map;
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::commands {
 
-namespace commands {
 /**
  *  @class connector commands/connector.hh
  *  @brief Command is a specific implementation of commands::command.
@@ -139,9 +139,7 @@ class connector : public command, public process_listener {
 
   static connector_map connectors;
 };
-}  // namespace commands
-
-}
+}  // namespace com::centreon::engine::commands
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::commands::connector const& obj);

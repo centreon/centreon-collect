@@ -25,18 +25,19 @@
 #include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/service.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam::configuration;
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor.
  */
-applier::ba::ba() {}
+applier::ba::ba() : _logger{log_v2::instance().get(log_v2::BAM)} {}
 
 /**
  *  Copy constructor.
@@ -122,7 +123,7 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
   for (std::map<uint32_t, applied>::iterator it = to_delete.begin(),
                                              end = to_delete.end();
        it != end; ++it) {
-    log_v2::bam()->info("BAM: removing BA {}", it->first);
+    _logger->info("BAM: removing BA {}", it->first);
     std::shared_ptr<io::data> s;
     if (bbdo3_enabled) {
       auto bs = _ba_pb_service(it->first, it->second.cfg.get_host_id(),
@@ -146,8 +147,8 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
   for (bam::configuration::state::bas::iterator it = to_create.begin(),
                                                 end = to_create.end();
        it != end; ++it) {
-    log_v2::bam()->info("BAM: creating BA {} ('{}')", it->first,
-                        it->second.get_name());
+    _logger->info("BAM: creating BA {} ('{}')", it->first,
+                  it->second.get_name());
     std::shared_ptr<bam::ba> new_ba(_new_ba(it->second, book));
     applied& content(_applied[it->first]);
     content.cfg = it->second;
@@ -173,14 +174,14 @@ void applier::ba::apply(const bam::configuration::state::bas& my_bas,
   for (auto& b : to_modify) {
     std::map<uint32_t, applied>::iterator pos = _applied.find(b.get_id());
     if (pos != _applied.end()) {
-      log_v2::bam()->info("BAM: modifying BA {}", b.get_id());
+      _logger->info("BAM: modifying BA {}", b.get_id());
       pos->second.obj->set_name(b.get_name());
       assert(pos->second.obj->get_state_source() == b.get_state_source());
       pos->second.obj->set_level_warning(b.get_warning_level());
       pos->second.obj->set_level_critical(b.get_critical_level());
       pos->second.cfg = b;
     } else
-      log_v2::bam()->error(
+      _logger->error(
           "BAM: attempting to modify BA {}, however associated object was not "
           "found. This is likely a software bug that you should report to "
           "Centreon Broker developers",
@@ -268,8 +269,8 @@ std::shared_ptr<neb::service> applier::ba::_ba_service(uint32_t ba_id,
                                                        uint32_t host_id,
                                                        uint32_t service_id,
                                                        bool in_downtime) {
-  log_v2::bam()->trace("_ba_service ba {}, service {}:{} with downtime {}",
-                       ba_id, host_id, service_id, in_downtime);
+  _logger->trace("_ba_service ba {}, service {}:{} with downtime {}", ba_id,
+                 host_id, service_id, in_downtime);
   auto s{std::make_shared<neb::service>()};
   s->host_id = host_id;
   s->service_id = service_id;
@@ -294,8 +295,8 @@ std::shared_ptr<neb::pb_service> applier::ba::_ba_pb_service(
     uint32_t host_id,
     uint32_t service_id,
     bool in_downtime) {
-  log_v2::bam()->trace("_ba_pb_service ba {}, service {}:{} with downtime {}",
-                       ba_id, host_id, service_id, in_downtime);
+  _logger->trace("_ba_pb_service ba {}, service {}:{} with downtime {}", ba_id,
+                 host_id, service_id, in_downtime);
   auto s{std::make_shared<neb::pb_service>()};
   auto& o = s->mut_obj();
   o.set_host_id(host_id);
@@ -333,23 +334,28 @@ std::shared_ptr<bam::ba> applier::ba::_new_ba(configuration::ba const& cfg,
   switch (cfg.get_state_source()) {
     case configuration::ba::state_source_impact:
       obj = std::make_shared<bam::ba_impact>(cfg.get_id(), cfg.get_host_id(),
-                                             cfg.get_service_id(), false);
+                                             cfg.get_service_id(), false,
+                                             _logger);
       break;
     case configuration::ba::state_source_best:
-      obj = std::make_shared<bam::ba_best>(cfg.get_id(), cfg.get_host_id(),
-                                           cfg.get_service_id(), false);
+      obj =
+          std::make_shared<bam::ba_best>(cfg.get_id(), cfg.get_host_id(),
+                                         cfg.get_service_id(), false, _logger);
       break;
     case configuration::ba::state_source_worst:
-      obj = std::make_shared<bam::ba_worst>(cfg.get_id(), cfg.get_host_id(),
-                                            cfg.get_service_id(), false);
+      obj =
+          std::make_shared<bam::ba_worst>(cfg.get_id(), cfg.get_host_id(),
+                                          cfg.get_service_id(), false, _logger);
       break;
     case configuration::ba::state_source_ratio_percent:
       obj = std::make_shared<bam::ba_ratio_percent>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false,
+          _logger);
       break;
     case configuration::ba::state_source_ratio_number:
       obj = std::make_shared<bam::ba_ratio_number>(
-          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false);
+          cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), false,
+          _logger);
       break;
     default:
       /* Should not arrive */

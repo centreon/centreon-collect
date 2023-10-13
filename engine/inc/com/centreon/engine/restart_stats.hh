@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2020 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -48,4 +48,4 @@ struct restart_stats {
   std::chrono::system_clock::time_point apply_end;
 };
 
-}
+}  // namespace com::centreon::engine

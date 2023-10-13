@@ -43,9 +43,8 @@ using pb_stop =
     com::centreon::broker::io::protobuf<Stop,
                                         make_type(io::bbdo, bbdo::de_pb_stop)>;
 
-using pb_bench =
-    com::centreon::broker::io::protobuf<Bench, make_type(io::extcmd,
-                                                         extcmd::de_pb_bench)>;
+using pb_bench = com::centreon::broker::io::
+    protobuf<Bench, make_type(io::extcmd, extcmd::de_pb_bench)>;
 
 // Load/unload of BBDO protocol.
 void load();

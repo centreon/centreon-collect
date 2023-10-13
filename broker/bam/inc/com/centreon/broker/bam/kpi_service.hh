@@ -27,9 +27,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class kpi_service kpi_service.hh "com/centreon/broker/bam/kpi_service.hh"
  *  @brief Service as a KPI.
@@ -61,7 +59,8 @@ class kpi_service : public service_listener, public kpi {
               uint32_t ba_id,
               uint32_t host_id,
               uint32_t service_id,
-              const std::string& host_serv);
+              const std::string& host_serv,
+              const std::shared_ptr<spdlog::logger>& logger);
   ~kpi_service() noexcept = default;
   kpi_service(const kpi_service&) = delete;
   kpi_service& operator=(const kpi_service&) = delete;
@@ -79,19 +78,26 @@ class kpi_service : public service_listener, public kpi {
   bool is_acknowledged() const;
   void service_update(const service_state& state) override;
   void service_update(std::shared_ptr<neb::service_status> const& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_acknowledgement>& ack,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(std::shared_ptr<neb::acknowledgement> const& ack,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(std::shared_ptr<neb::downtime> const& dt,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_downtime>& dt,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void set_acknowledged(bool acknowledged);
   void set_downtimed(bool downtimed);
   void set_impact_critical(double impact);
@@ -103,12 +109,12 @@ class kpi_service : public service_listener, public kpi {
   void visit(io::stream* visitor) override;
   virtual void set_initial_event(const KpiEvent& e) override;
   bool ok_state() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_KPI_SERVICE_HH

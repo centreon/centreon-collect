@@ -26,9 +26,10 @@
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/configuration/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -42,17 +43,18 @@ class HostFlappingNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
     configuration::applier::host hst_aply;
-    configuration::host hst;
-    hst.parse("host_name", "test_host");
-    hst.parse("address", "127.0.0.1");
-    hst.parse("_HOST_ID", "12");
-    hst.parse("contacts", "admin");
+    configuration::Host hst;
+    configuration::host_helper hst_hlp(&hst);
+    hst.set_host_name("test_host");
+    hst.set_address("127.0.0.1");
+    hst.set_host_id(12);
+    hst.mutable_contacts()->add_data("admin");
     hst_aply.add_object(hst);
     hst_aply.resolve_object(hst);
     host_map const& hm{engine::host::hosts};
@@ -62,12 +64,13 @@ class HostFlappingNotification : public TestEngine {
     _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
-    configuration::host hst_child;
-    hst_child.parse("host_name", "child_host");
-    hst_child.parse("parents", "test_host");
-    hst_child.parse("address", "127.0.0.1");
-    hst_child.parse("_HOST_ID", "13");
-    hst_child.parse("contacts", "admin");
+    configuration::Host hst_child;
+    configuration::host_helper hst_child_hlp(&hst_child);
+    hst_child.set_host_name("child_host");
+    hst_child.set_address("127.0.0.1");
+    hst_child.set_host_id(13);
+    hst_child.mutable_contacts()->add_data("admin");
+    hst_child.mutable_parents()->add_data("test_host");
     hst_aply.add_object(hst_child);
     hst_aply.resolve_object(hst_child);
 
@@ -108,8 +111,9 @@ TEST_F(HostFlappingNotification, SimpleHostFlapping) {
   for (size_t i = 0; i < tperiod->days.size(); ++i)
     tperiod->days[i].emplace_back(0, 86400);
 
-  std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+  std::unique_ptr<engine::hostescalation> host_escalation =
+      std::make_unique<engine::hostescalation>("host_name", 0, 1, 1.0,
+                                               "tperiod", 7, 12345);
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -159,7 +163,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStartTwoTimes) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -198,7 +202,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
     tperiod->days[i].emplace_back(0, 86400);
 
   std::unique_ptr<engine::hostescalation> host_escalation{
-      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, Uuid())};
+      new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
   ASSERT_TRUE(host_escalation);
   uint64_t id{_host->get_next_notification_id()};
@@ -225,7 +229,7 @@ TEST_F(HostFlappingNotification, SimpleHostFlappingStopTwoTimes) {
 }
 
 TEST_F(HostFlappingNotification, CheckFlapping) {
-  config->enable_flap_detection(true);
+  pb_config.set_enable_flap_detection(true);
   _host->set_flap_detection_enabled(true);
   _host->add_flap_detection_on(engine::host::up);
   _host->add_flap_detection_on(engine::host::down);
@@ -286,7 +290,7 @@ TEST_F(HostFlappingNotification, CheckFlapping) {
 }
 
 TEST_F(HostFlappingNotification, CheckFlappingWithHostParentDown) {
-  config->enable_flap_detection(true);
+  pb_config.set_enable_flap_detection(true);
   _host->set_current_state(engine::host::state_down);
   _host->set_last_hard_state(engine::host::state_down);
   _host->set_state_type(checkable::hard);

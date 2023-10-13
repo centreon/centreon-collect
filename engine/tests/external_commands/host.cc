@@ -18,11 +18,14 @@
  */
 
 #include "com/centreon/engine/configuration/applier/host.hh"
+
 #include <gtest/gtest.h>
+
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/timezone_manager.hh"
+#include "common/configuration/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -37,11 +40,13 @@ class HostExternalCommand : public ::testing::Test {
 
 TEST_F(HostExternalCommand, AddHostDowntime) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_srv"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "1"));
+  hst.set_host_name("test_srv");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   set_time(20000);
@@ -66,11 +71,12 @@ TEST_F(HostExternalCommand, AddHostDowntime) {
 
 TEST_F(HostExternalCommand, AddHostDowntimeByIpAddress) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_srv"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "1"));
+  hst.set_host_name("test_srv");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
 
   set_time(20000);
@@ -94,17 +100,18 @@ TEST_F(HostExternalCommand, AddHostDowntimeByIpAddress) {
 
 TEST_F(HostExternalCommand, AddHostComment) {
   configuration::applier::host hst_aply;
-  configuration::host hst;
-  configuration::host hst2;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  configuration::Host hst2;
+  configuration::host_helper hst2_hlp(&hst2);
 
-  ASSERT_TRUE(hst.parse("host_name", "test_srv"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "1"));
+  hst.set_host_name("test_srv");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  hst2.set_host_name("test_srv2");
+  hst2.set_address("127.0.0.1");
+  hst2.set_host_id(2);
   ASSERT_NO_THROW(hst_aply.add_object(hst));
-
-  ASSERT_TRUE(hst2.parse("host_name", "test_srv2"));
-  ASSERT_TRUE(hst2.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst2.parse("_HOST_ID", "2"));
   ASSERT_NO_THROW(hst_aply.add_object(hst2));
 
   set_time(20000);

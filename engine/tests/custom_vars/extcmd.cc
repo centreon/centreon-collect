@@ -18,14 +18,20 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <com/centreon/engine/macros.hh>
+
 #include "../timeperiod/utils.hh"
+#include "com/centreon/engine/commands/command.hh"
+#include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/configuration/applier/command.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/state.hh"
 #include "com/centreon/engine/macros/grab_host.hh"
-#include "com/centreon/engine/commands/commands.hh"
+#include "common/configuration/command_helper.hh"
+#include "common/configuration/contact_helper.hh"
+#include "common/configuration/host_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -48,43 +54,47 @@ TEST_F(CustomVar, UpdateHostCustomVar) {
   configuration::applier::host hst_aply;
   configuration::applier::contact cnt_aply;
 
-  configuration::command cmd("base_centreon_ping");
-  cmd.parse("command_line",
-            "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
-            "$_HOSTWARNING$ -c $_HOSTCRITICAL$ $CONTACTNAME$");
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("base_centreon_ping");
+  cmd.set_command_line(
+      "$USER1$/check_icmp -H $HOSTADDRESS$ -n $_HOSTPACKETNUMBER$ -w "
+      "$_HOSTWARNING$ -c $_HOSTCRITICAL$ $CONTACTNAME$");
   cmd_aply.add_object(cmd);
 
-  configuration::contact cnt;
-  ASSERT_TRUE(cnt.parse("contact_name", "user"));
-  ASSERT_TRUE(cnt.parse("email", "contact@centreon.com"));
-  ASSERT_TRUE(cnt.parse("pager", "0473729383"));
-  ASSERT_TRUE(cnt.parse("host_notification_period", "24x7"));
-  ASSERT_TRUE(cnt.parse("service_notification_period", "24x7"));
+  configuration::Contact cnt;
+  configuration::contact_helper cnt_hlp(&cnt);
+  cnt.set_contact_name("user");
+  cnt.set_email("contact@centreon.com");
+  cnt.set_pager("0473729383");
+  cnt.set_host_notification_period("24x7");
+  cnt.set_service_notification_period("24x7");
   cnt_aply.add_object(cnt);
 
-  configuration::host hst;
-  ASSERT_TRUE(hst.parse("host_name", "hst_test"));
-  ASSERT_TRUE(hst.parse("address", "127.0.0.1"));
-  ASSERT_TRUE(hst.parse("_HOST_ID", "1"));
-  ASSERT_TRUE(hst.parse("_PACKETNUMBER", "42"));
-  ASSERT_TRUE(hst.parse("_WARNING", "200,20%"));
-  ASSERT_TRUE(hst.parse("_CRITICAL", "400,50%"));
-  ASSERT_TRUE(hst.parse("check_command", "base_centreon_ping"));
-  ASSERT_TRUE(hst.parse("contacts", "user"));
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("hst_test");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(1);
+  hst_hlp.insert_customvariable("_PACKETNUMBER", "42");
+  hst_hlp.insert_customvariable("_WARNING", "200,20%");
+  hst_hlp.insert_customvariable("_CRITICAL", "400,50%");
+  hst.set_check_command("base_centreon_ping");
+  hst.mutable_contacts()->add_data("user");
   hst_aply.add_object(hst);
 
   command_map::iterator cmd_found{
       commands::command::commands.find("base_centreon_ping")};
   ASSERT_NE(cmd_found, commands::command::commands.end());
-  ASSERT_TRUE(config->commands().size() == 1);
+  ASSERT_TRUE(pb_config.commands().size() == 1);
 
   host_map::iterator hst_found{engine::host::hosts.find("hst_test")};
   ASSERT_NE(hst_found, engine::host::hosts.end());
-  ASSERT_TRUE(config->hosts().size() == 1);
+  ASSERT_TRUE(pb_config.hosts().size() == 1);
 
-  hst_aply.expand_objects(*config);
+  hst_aply.expand_objects(pb_config);
   hst_aply.resolve_object(hst);
-  ASSERT_TRUE(hst_found->second->custom_variables.size() == 3);
+  ASSERT_EQ(hst_found->second->custom_variables.size(), 3);
   nagios_macros* macros(get_global_macros());
   grab_host_macros_r(macros, hst_found->second.get());
   std::string processed_cmd(

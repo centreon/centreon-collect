@@ -1,24 +1,27 @@
-/*
-** Copyright 2011-2013,2017-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_STRING_HH
 #define CCE_STRING_HH
+
+#include <absl/strings/string_view.h>
+#include <absl/types/optional.h>
 
 #include <cerrno>
 #include <cstring>
@@ -29,11 +32,9 @@
 #include <sstream>
 #include <string>
 
-
-namespace com::centreon::engine {
-
-namespace string {
-bool get_next_line(std::ifstream& stream, std::string& line, unsigned int& pos);
+namespace com::centreon::engine::string {
+// bool get_next_line(std::ifstream& stream, std::string& line, unsigned int&
+// pos);
 
 inline char const* chkstr(char const* str) noexcept {
   return str ? str : "\"NULL\"";
@@ -207,8 +208,8 @@ void unescape(char* buffer);
 
 /**
  * @brief this class is a thread safe replacement for my_strtok
- * An instance is not thread safe but sevaral instances can be used in different
- * threads
+ * An instance is not thread safe but sevaral instances can be used in
+ * different threads
  */
 class c_strtok {
   std::string_view _src;
@@ -218,14 +219,12 @@ class c_strtok {
  public:
   c_strtok(const std::string_view src) : _src(src), _pos(0) {}
 
-  boost::optional<std::string_view> extract(char sep);
+  absl::optional<std::string_view> extract(char sep);
   bool extract(char sep, std::string_view& extracted);
   bool extract(char sep, std::string& extracted);
   bool extract(char sep, int& extracted);
 };
 
-}  // namespace string
-
-}
+}  // namespace com::centreon::engine::string
 
 #endif  // !CCE_MISC_STRING_HH

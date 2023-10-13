@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013,2015-2017, 2022 Centreon
+** Copyright 2022-2023 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -21,15 +21,14 @@
 #define CCE_CONFIGURATION_ANOMALYDETECTION_HH
 
 #include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
 namespace com::centreon::engine {
 
 namespace configuration {
-class serviceextinfo;
 
 class anomalydetection : public object {
  public:
@@ -51,9 +50,8 @@ class anomalydetection : public object {
   bool operator==(anomalydetection const& other) const noexcept;
   bool operator!=(anomalydetection const& other) const noexcept;
   bool operator<(anomalydetection const& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type key() const;
-  void merge(configuration::serviceextinfo const& obj);
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
@@ -71,8 +69,9 @@ class anomalydetection : public object {
   set_string& contacts() noexcept;
   set_string const& contacts() const noexcept;
   bool contacts_defined() const noexcept;
-  map_customvar const& customvariables() const noexcept;
-  map_customvar& customvariables() noexcept;
+  const std::unordered_map<std::string, customvariable>& customvariables()
+      const noexcept;
+  std::unordered_map<std::string, customvariable>& customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;
@@ -192,7 +191,7 @@ class anomalydetection : public object {
   opt<unsigned int> _check_interval;
   group<set_string> _contactgroups;
   group<set_string> _contacts;
-  map_customvar _customvariables;
+  std::unordered_map<std::string, customvariable> _customvariables;
   std::string _display_name;
   std::string _event_handler;
   opt<bool> _event_handler_enabled;
@@ -232,7 +231,7 @@ class anomalydetection : public object {
   opt<uint64_t> _severity_id;
   opt<uint64_t> _icon_id;
   std::set<std::pair<uint64_t, uint16_t>> _tags;
-  opt<double> _sensitivity;
+  double _sensitivity;
 };
 
 typedef std::shared_ptr<anomalydetection> anomalydetection_ptr;
@@ -243,6 +242,6 @@ typedef std::unordered_map<std::pair<std::string, std::string>,
     map_anomalydetection;
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_ANOMALYDETECTION_HH

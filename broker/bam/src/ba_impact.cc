@@ -26,7 +26,6 @@
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
@@ -48,12 +47,14 @@ constexpr double eps = 0.000001;
 ba_impact::ba_impact(uint32_t id,
                      uint32_t host_id,
                      uint32_t service_id,
-                     bool generate_virtual_status)
+                     bool generate_virtual_status,
+                     const std::shared_ptr<spdlog::logger>& logger)
     : ba(id,
          host_id,
          service_id,
          configuration::ba::state_source_impact,
-         generate_virtual_status) {}
+         generate_virtual_status,
+         logger) {}
 
 /**
  *  Get BA hard state.

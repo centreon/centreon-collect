@@ -1,30 +1,29 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_RETENTION_OBJECT_HH
 #define CCE_RETENTION_OBJECT_HH
 
 #include "com/centreon/engine/string.hh"
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::retention {
 
-namespace retention {
 class object {
  public:
   enum type_id {
@@ -58,8 +57,7 @@ class object {
   struct setter {
     static bool generic(T& obj, char const* value) {
       U val(0);
-      if (!string::to(value, val))
-        return (false);
+      if (!string::to(value, val)) return (false);
       return ((obj.*ptr)(val));
     }
   };
@@ -73,8 +71,6 @@ class object {
 };
 
 typedef std::shared_ptr<object> object_ptr;
-}  // namespace retention
-
-}
+}  // namespace com::centreon::engine::retention
 
 #endif  // !CCE_RETENTION_OBJECT_HH

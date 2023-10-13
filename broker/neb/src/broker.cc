@@ -18,13 +18,15 @@
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static uint32_t neb_instances(0);
 
@@ -55,9 +57,9 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
+  auto logger = log_v2::instance().create_logger(log_v2::NEB);
   if (!neb_instances++) {
-    log_v2::core()->info("NEB: module for Centreon Broker {}",
-                         CENTREON_BROKER_VERSION);
+    logger->info("NEB: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
     io::events& e(io::events::instance());
 
     // Register events.

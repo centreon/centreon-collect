@@ -25,8 +25,10 @@
 #include "../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/configuration/hostescalation.hh"
+#include "com/centreon/engine/host.hh"
 #include "com/centreon/engine/hostescalation.hh"
+#include "common/configuration/host_helper.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -41,10 +43,11 @@ class HostRecovery : public ::testing::Test {
     // other unload function... :-(
 
     configuration::applier::host hst_aply;
-    configuration::host hst;
-    hst.parse("host_name", "test_host");
-    hst.parse("address", "127.0.0.1");
-    hst.parse("_HOST_ID", "12");
+    configuration::Host hst;
+    configuration::host_helper hst_hlp(&hst);
+    hst.set_host_name("test_host");
+    hst.set_address("127.0.0.1");
+    hst.set_host_id(12);
     hst_aply.add_object(hst);
     host_map const& hm{engine::host::hosts};
     _host = hm.begin()->second;
@@ -59,9 +62,9 @@ class HostRecovery : public ::testing::Test {
     for (size_t i = 0; i < _tperiod->days.size(); ++i)
       _tperiod->days[i].emplace_back(0, 86400);
 
-    std::unique_ptr<engine::hostescalation> host_escalation{
-        new engine::hostescalation("host_name", 0, 1, 1.0, "tperiod", 7,
-                                   Uuid())};
+    /* 12345 is here to simulate a key. It won't allow any look up */
+    auto host_escalation{std::make_unique<engine::hostescalation>(
+        "host_name", 0, 1, 1.0, "tperiod", 7, 12345)};
 
     _host->get_next_notification_id();
     _host->set_notification_period_ptr(_tperiod.get());

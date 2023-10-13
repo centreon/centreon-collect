@@ -10,7 +10,7 @@ Test Setup          Ctn Stop Processes
 
 *** Test Cases ***
 BEUHSEV1
-    [Documentation]    Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
+    [Documentation]    Four hosts have a severity added. Then we remove the severity from host 1 and we change severity 10 to severity 8 on host 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
     # Clear Db    severities
     Ctn Config Engine    ${1}
@@ -32,6 +32,12 @@ BEUHSEV1
 
     ${result}    Ctn Check Host Severity With Timeout    1    10    60
     Should Be True    ${result}    Host 1 should have severity_id=10
+    ${result}    Check Host Severity With Timeout    2    10    60
+    Should Be True    ${result}    Host 2 should have severity_id=10
+    ${result}    Check Host Severity With Timeout    3    10    60
+    Should Be True    ${result}    Host 3 should have severity_id=10
+    ${result}    Check Host Severity With Timeout    4    10    60
+    Should Be True    ${result}    Host 4 should have severity_id=10
 
     Ctn Remove Severities From Hosts    ${0}
     Ctn Add Severity To Hosts    0    10    [2, 4]

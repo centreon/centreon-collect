@@ -23,10 +23,7 @@ LOGV2EB1
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
-    Sleep    1s
+    ${start}    Get Round Current Date
 
     Ctn Start Broker
     Ctn Start engine
@@ -34,24 +31,23 @@ LOGV2EB1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [info] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2EBU1
@@ -70,10 +66,7 @@ LOGV2EBU1
     Ctn Engine Config Set Value    ${0}    log_level_config    trace
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
-    Sleep    1s
+    ${start}    Get Round Current Date
 
     Ctn Start Broker
     Ctn Start engine
@@ -81,24 +74,23 @@ LOGV2EBU1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [info] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2DB1
@@ -114,9 +106,7 @@ LOGV2DB1
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
+    ${start}    Get Round Current Date
     Sleep    1s
 
     Ctn Start Broker
@@ -126,7 +116,7 @@ LOGV2DB1
 
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
@@ -137,15 +127,15 @@ LOGV2DB1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((1,),)
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2DB2
@@ -160,9 +150,7 @@ LOGV2DB2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
+    ${start}    Get Round Current Date
     Sleep    1s
     Ctn Start Broker
     Ctn Start engine
@@ -171,7 +159,7 @@ LOGV2DB2
 
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
@@ -179,16 +167,11 @@ LOGV2DB2
     Should Not Be True    ${result2}
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
-    FOR    ${index}    IN RANGE    60
-        Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
+    Log To Console
+    ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
+    ${output}    Query
+    ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
+    Log To Console    ${output}
     Should Be Equal As Strings    ${output}    ((0,),)
     Ctn Stop engine
     Ctn Kindly Stop Broker
@@ -205,10 +188,7 @@ LOGV2EB2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
-    Sleep    1s
+    ${start}    Get Round Current Date
 
     Ctn Start Broker
     Ctn Start engine
@@ -217,7 +197,7 @@ LOGV2EB2
 
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
@@ -228,9 +208,9 @@ LOGV2EB2
     Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((2,),)"    BREAK
@@ -253,9 +233,7 @@ LOGV2EBU2
     Ctn Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Ctn Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
+    ${start}    Get Round Current Date
     Sleep    1s
 
     Ctn Start Broker
@@ -265,7 +243,7 @@ LOGV2EBU2
 
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
@@ -276,9 +254,9 @@ LOGV2EBU2
     Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((2,),)"    BREAK
@@ -302,7 +280,7 @@ LOGV2EF1
 
     ${start}    Get Current Date
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
@@ -331,14 +309,14 @@ LOGV2DF1
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
-    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_hold}    Create List    \\[\\d+\\] \\[${pid}\\] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    \\[info\\] .* \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Should Not Be True    ${result2}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2DF2
@@ -359,14 +337,14 @@ LOGV2DF2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2EF2
@@ -387,14 +365,14 @@ LOGV2EF2
     ${result}    Ctn Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
     ${result2}    Ctn Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Be True    ${result1}
     Should Be True    ${result2}
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker
 
 LOGV2FE2
@@ -418,11 +396,11 @@ LOGV2FE2
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
     ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     Sleep    2m
 
     ${res}    Ctn Check Engine Logs Are Duplicated    ${engineLog0}    ${start}
     Should Be True    ${res}    one or other log are not duplicate in logsfile
-    Ctn Stop engine
+    Ctn Stop Engine
     Ctn Kindly Stop Broker

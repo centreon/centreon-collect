@@ -162,7 +162,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_link_libraries(
     "${CBMOD}"
     -L${PROTOBUF_LIB_DIR}
-    rokerlog
     "-Wl,--whole-archive"
     rokerbase
     multiplexing

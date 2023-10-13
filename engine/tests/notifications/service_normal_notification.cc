@@ -37,7 +37,6 @@
 #include "com/centreon/engine/configuration/applier/serviceescalation.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/serviceescalation.hh"
 #include "helper.hh"
 
@@ -52,21 +51,21 @@ class ServiceNotification : public TestEngine {
     init_config_state();
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    configuration::contact ctct1{
-        new_configuration_contact("admin1", false, "c,r")};
+    configuration::Contact ctct1{
+        new_pb_configuration_contact("admin1", false, "c,r")};
     ct_aply.add_object(ctct1);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
     ct_aply.resolve_object(ctct1);
 
-    configuration::host hst{new_configuration_host("test_host", "admin")};
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-    configuration::service svc{
-        new_configuration_service("test_host", "test_svc", "admin,admin1")};
+    configuration::Service svc{
+        new_pb_configuration_service("test_host", "test_svc", "admin,admin1")};
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
@@ -112,7 +111,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotification) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -132,7 +131,7 @@ TEST_F(ServiceNotification,
   /* We are using a local time() function defined in tests/timeperiod/utils.cc.
    * If we call time(), it is not the glibc time() function that will be called.
    */
-  config->enable_notifications(false);
+  pb_config.set_enable_notifications(false);
   set_time(43200);
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
@@ -141,7 +140,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
@@ -165,7 +164,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   ASSERT_TRUE(service_escalation);
   uint64_t id{_svc->get_next_notification_id()};
@@ -188,7 +187,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -200,7 +199,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOutsideTimeperiod) {
 
 TEST_F(ServiceNotification,
        SimpleNormalServiceNotificationForcedWithNotificationDisabled) {
-  config->enable_notifications(false);
+  pb_config.set_enable_notifications(false);
   std::unique_ptr<engine::timeperiod> tperiod{
       new engine::timeperiod("tperiod", "alias")};
   set_time(20000);
@@ -211,7 +210,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -232,7 +231,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationForcedNotification) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -254,7 +253,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithDowntime) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -276,7 +275,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithFlapping) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -298,7 +297,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationWithSoftState) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);
@@ -320,7 +319,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NORMAL);
@@ -343,7 +342,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NORMAL);
@@ -367,7 +366,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NORMAL);
@@ -392,7 +391,7 @@ TEST_F(ServiceNotification, SimpleNormalServiceNotificationOnStateNotNotified) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NONE);
@@ -417,14 +416,14 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NONE);
   ASSERT_TRUE(service_escalation);
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(20000 - 200);
-  /* It is multiplicated by config->interval_length(): we set 5 for 5*60 */
+  /* It is multiplicated by pb_config.interval_length(): we set 5 for 5*60 */
   _svc->set_first_notification_delay(5);
   ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
                          notifier::notification_option_none),
@@ -444,7 +443,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   _svc->set_acknowledgement(AckType::NONE);
@@ -471,7 +470,7 @@ TEST_F(ServiceNotification,
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
 
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
@@ -756,23 +755,24 @@ TEST_F(ServiceNotification, NormalRecoveryTwoTimes) {
 TEST_F(ServiceNotification, ServiceEscalationCG) {
   init_macros();
   configuration::applier::contact ct_aply;
-  configuration::contact ctct{new_configuration_contact("test_contact", false)};
+  configuration::Contact ctct{
+      new_pb_configuration_contact("test_contact", false)};
   ct_aply.add_object(ctct);
-  ct_aply.expand_objects(*config);
+  ct_aply.expand_objects(pb_config);
   ct_aply.resolve_object(ctct);
 
   configuration::applier::contactgroup cg_aply;
-  configuration::contactgroup cg{
-      new_configuration_contactgroup("test_cg", "test_contact")};
+  configuration::Contactgroup cg{
+      new_pb_configuration_contactgroup("test_cg", "test_contact")};
   cg_aply.add_object(cg);
-  cg_aply.expand_objects(*config);
+  cg_aply.expand_objects(pb_config);
   cg_aply.resolve_object(cg);
 
   configuration::applier::serviceescalation se_aply;
-  configuration::serviceescalation se{
-      new_configuration_serviceescalation("test_host", "test_svc", "test_cg")};
+  configuration::Serviceescalation se{new_pb_configuration_serviceescalation(
+      "test_host", "test_svc", "test_cg")};
   se_aply.add_object(se);
-  se_aply.expand_objects(*config);
+  se_aply.expand_objects(pb_config);
   se_aply.resolve_object(se);
 
   int now{50000};
@@ -937,7 +937,7 @@ TEST_F(ServiceNotification, WarnCritServiceNotification) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -974,7 +974,7 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -1003,7 +1003,7 @@ TEST_F(ServiceNotification, SimpleNormalVolatileServiceNotification) {
   id = _svc->get_next_notification_id();
   _svc->set_notification_period_ptr(tperiod.get());
   _svc->set_notifications_enabled(true);
-  config->enable_notifications(false);
+  pb_config.set_enable_notifications(false);
   ASSERT_EQ(_svc->notify(notifier::reason_normal, "", "",
                          notifier::notification_option_none),
             OK);
@@ -1023,7 +1023,7 @@ TEST_F(ServiceNotification, RecoveryNotifEvenIfServiceAcknowledged) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0,
-                                    "tperiod", 7, Uuid())};
+                                    "tperiod", 7, 12345)};
   _svc->set_current_state(engine::service::state_critical);
   _svc->set_last_state(engine::service::state_critical);
   _svc->set_last_hard_state_change(43200);
@@ -1083,7 +1083,7 @@ TEST_F(ServiceNotification, SimpleVolatileServiceNotificationWithDowntime) {
 
   std::unique_ptr<engine::serviceescalation> service_escalation{
       new engine::serviceescalation("test_host", "test_svc", 0, 1, 1.0, "", 7,
-                                    Uuid())};
+                                    12345)};
   _svc->set_notification_period_ptr(tperiod.get());
 
   ASSERT_TRUE(service_escalation);

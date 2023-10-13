@@ -475,7 +475,7 @@ Start_Stop_Broker_Engine_${id}
 
 
     Ctn Start Broker
-    Ctn Start engine
+    Ctn Start Engine
     ${content}    Create List    create feeder central-broker-master-input
     ${result}    Ctn Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    create feeder not found

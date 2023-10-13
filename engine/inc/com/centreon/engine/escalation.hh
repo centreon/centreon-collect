@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_ESCALATION_HH
 #define CCE_ESCALATION_HH
@@ -29,13 +29,19 @@ namespace com::centreon::engine {
 class timeperiod;
 
 class escalation {
+  uint32_t _first_notification;
+  uint32_t _last_notification;
+  double _notification_interval;
+  std::string _escalation_period;
+  uint32_t _escalate_on;
+  contactgroup_map_unsafe _contact_groups;
+  const size_t _internal_key;
+
  public:
-  escalation(uint32_t first_notification,
-             uint32_t last_notification,
-             double notification_interval,
-             std::string const& escalation_period,
-             uint32_t escalate_on,
-             Uuid const& uuid);
+  escalation(uint32_t first_notification, uint32_t last_notification,
+             double notification_interval, std::string const& escalation_period,
+             uint32_t escalate_on, const size_t key);
+  virtual ~escalation() noexcept = default;
 
   std::string const& get_escalation_period() const;
   uint32_t get_first_notification() const;
@@ -48,7 +54,7 @@ class escalation {
   bool get_escalate_on(notifier::notification_flag type) const;
   void set_escalate_on(uint32_t escalate_on);
   virtual bool is_viable(int state, uint32_t notification_number) const;
-  Uuid const& get_uuid() const;
+  size_t internal_key() const;
 
   contactgroup_map_unsafe const& get_contactgroups() const;
   contactgroup_map_unsafe& get_contactgroups();
@@ -56,16 +62,7 @@ class escalation {
 
   notifier* notifier_ptr;
   timeperiod* escalation_period_ptr;
-
- private:
-  uint32_t _first_notification;
-  uint32_t _last_notification;
-  double _notification_interval;
-  std::string _escalation_period;
-  uint32_t _escalate_on;
-  contactgroup_map_unsafe _contact_groups;
-  Uuid _uuid;
 };
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_ESCALATION_HH

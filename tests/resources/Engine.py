@@ -3151,3 +3151,14 @@ define servicedependency {{
     service_description            {service}
 }}
 """)
+
+
+def ctn_get_service_command(host_id: int, service_id: int):
+    cmd = engine.service_cmd[service_id]
+    if cmd.startswith("command_"):
+        logger.console(f"Command id = {int(cmd[8:])}")
+        return int(cmd[8:])
+    else:
+        logger.console(
+            f"Unable to find the command id of service ({host_id};{service_id})")
+        return None

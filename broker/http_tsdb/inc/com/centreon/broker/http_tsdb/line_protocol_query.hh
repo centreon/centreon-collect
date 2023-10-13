@@ -1,20 +1,20 @@
-/*
-** Copyright 2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH
 #define CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH
@@ -122,13 +122,13 @@ class line_protocol_query {
                         std::ostream& is) const;
 
   void _get_tag_host_cat_id(io::data const& d,
-                            unsigned& string_index,
+                            unsigned& string_index [[maybe_unused]],
                             std::ostream& is) const {
     _get_tag_host_id(d, TagType::HOSTCATEGORY, is);
   }
 
   void _get_tag_host_group_id(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_host_id(d, TagType::HOSTGROUP, is);
   }
@@ -138,13 +138,13 @@ class line_protocol_query {
                           std::ostream& is) const;
 
   void _get_tag_host_cat_name(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_host_name(d, TagType::HOSTCATEGORY, is);
   }
 
   void _get_tag_host_group_name(io::data const& d,
-                                unsigned& string_index,
+                                unsigned& string_index [[maybe_unused]],
                                 std::ostream& is) const {
     _get_tag_host_name(d, TagType::HOSTGROUP, is);
   }
@@ -154,13 +154,13 @@ class line_protocol_query {
                         std::ostream& is) const;
 
   void _get_tag_serv_cat_id(io::data const& d,
-                            unsigned& string_index,
+                            unsigned& string_index [[maybe_unused]],
                             std::ostream& is) const {
     _get_tag_serv_id(d, TagType::SERVICECATEGORY, is);
   }
 
   void _get_tag_serv_group_id(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_serv_id(d, TagType::SERVICEGROUP, is);
   }
@@ -170,13 +170,13 @@ class line_protocol_query {
                           std::ostream& is) const;
 
   void _get_tag_serv_cat_name(io::data const& d,
-                              unsigned& string_index,
+                              unsigned& string_index [[maybe_unused]],
                               std::ostream& is) const {
     _get_tag_serv_name(d, TagType::SERVICECATEGORY, is);
   }
 
   void _get_tag_serv_group_name(io::data const& d,
-                                unsigned& string_index,
+                                unsigned& string_index [[maybe_unused]],
                                 std::ostream& is) const {
     _get_tag_serv_name(d, TagType::SERVICEGROUP, is);
   }
@@ -212,6 +212,6 @@ class line_protocol_query {
 };
 }  // namespace http_tsdb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_HTTP_TSDB_LINE_PROTOCOL_QUERY_HH

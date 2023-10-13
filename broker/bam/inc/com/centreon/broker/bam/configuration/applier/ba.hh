@@ -34,9 +34,7 @@ class host;
 class service;
 }  // namespace neb
 
-namespace bam {
-namespace configuration {
-namespace applier {
+namespace bam::configuration::applier {
 /**
  *  @class ba ba.hh "com/centreon/broker/bam/configuration/applier/ba.hh"
  *  @brief Apply BA configuration.
@@ -44,6 +42,7 @@ namespace applier {
  *  Take the configuration of BAs and apply it.
  */
 class ba {
+  std::shared_ptr<spdlog::logger> _logger;
   struct applied {
     configuration::ba cfg;
     std::shared_ptr<bam::ba> obj;
@@ -52,8 +51,7 @@ class ba {
 
   std::shared_ptr<neb::host> _ba_host(uint32_t host_id);
   std::shared_ptr<neb::pb_host> _ba_pb_host(uint32_t host_id);
-  std::shared_ptr<neb::service> _ba_service(uint32_t ba_id,
-                                            uint32_t host_id,
+  std::shared_ptr<neb::service> _ba_service(uint32_t ba_id, uint32_t host_id,
                                             uint32_t service_id,
                                             bool in_downtime = false);
   std::shared_ptr<neb::pb_service> _ba_pb_service(uint32_t ba_id,
@@ -76,9 +74,7 @@ class ba {
   void apply_inherited_downtime(const inherited_downtime& dwn);
   void apply_inherited_downtime(const pb_inherited_downtime& dwn);
 };
-}  // namespace applier
-}  // namespace configuration
-}  // namespace bam
+}  // namespace bam::configuration::applier
 
 }  // namespace com::centreon::broker
 

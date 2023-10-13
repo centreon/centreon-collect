@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_OBJECTS_SERVICEGROUP_HH
 #define CCE_OBJECTS_SERVICEGROUP_HH
@@ -26,7 +26,7 @@
 namespace com::centreon::engine {
 class host;
 class servicegroup;
-}
+}  // namespace com::centreon::engine
 
 using servicegroup_map =
     absl::flat_hash_map<std::string,
@@ -35,12 +35,9 @@ using servicegroup_map =
 namespace com::centreon::engine {
 class servicegroup {
  public:
-  servicegroup(uint64_t id,
-               std::string const& group_name,
-               std::string const& alias,
-               std::string const& notes,
-               std::string const& notes_url,
-               std::string const& action_url);
+  servicegroup(uint64_t id, std::string const& group_name,
+               std::string const& alias, std::string const& notes,
+               std::string const& notes_url, std::string const& action_url);
   uint64_t get_id() const;
   void set_id(uint64_t id);
   std::string const& get_group_name() const;
@@ -72,7 +69,7 @@ class servicegroup {
 
 bool is_servicegroup_exist(std::string const& name) throw();
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::servicegroup const& obj);

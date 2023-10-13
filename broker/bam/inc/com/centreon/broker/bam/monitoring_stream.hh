@@ -20,6 +20,7 @@
 #define CCB_BAM_MONITORING_STREAM_HH
 
 #include <absl/hash/hash.h>
+
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/sql/database_config.hh"
@@ -28,7 +29,6 @@
 #include "com/centreon/broker/sql/mysql_stmt.hh"
 
 namespace com::centreon::broker {
-
 namespace extcmd {
 using pb_ba_info =
     io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
@@ -67,6 +67,10 @@ namespace bam {
  */
 class monitoring_stream : public io::stream {
   const std::string _ext_cmd_file;
+
+  /* Loggers */
+  std::shared_ptr<spdlog::logger> _logger;
+
   configuration::applier::state _applier;
   /* This mutex is to protect writes to the external command named pipe. */
   mutable std::mutex _ext_cmd_file_m;
@@ -121,7 +125,6 @@ class monitoring_stream : public io::stream {
   int write(std::shared_ptr<io::data> const& d) override;
 };
 }  // namespace bam
-
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_MONITORING_STREAM_HH

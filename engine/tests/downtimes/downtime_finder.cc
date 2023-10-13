@@ -41,42 +41,45 @@ class DowntimeFinderFindMatchingAllTest : public TestEngine {
  public:
   void SetUp() override {
     init_config_state();
-    configuration::contact ctc{new_configuration_contact("admin", false, "a")};
+    configuration::Contact ctc{
+        new_pb_configuration_contact("admin", false, "a")};
     configuration::applier::contact ctc_aply;
     ctc_aply.add_object(ctc);
 
-    configuration::host hst{new_configuration_host("test_host", "admin", 1)};
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin", 1)};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-    configuration::host hst1{new_configuration_host("first_host", "admin", 12)};
+    configuration::Host hst1{
+        new_pb_configuration_host("first_host", "admin", 12)};
     hst_aply.add_object(hst1);
 
-    configuration::host hst2{new_configuration_host("other_host", "admin", 2)};
+    configuration::Host hst2{
+        new_pb_configuration_host("other_host", "admin", 2)};
     hst_aply.add_object(hst2);
 
     hst_aply.resolve_object(hst);
     hst_aply.resolve_object(hst1);
 
-    configuration::service svc{
-        new_configuration_service("first_host", "test_service", "admin", 8)};
+    configuration::Service svc{
+        new_pb_configuration_service("first_host", "test_service", "admin", 8)};
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
-    configuration::service svc1{
-        new_configuration_service("first_host", "other_svc", "admin", 9)};
+    configuration::Service svc1{
+        new_pb_configuration_service("first_host", "other_svc", "admin", 9)};
     svc_aply.add_object(svc1);
 
-    configuration::service svc2{
-        new_configuration_service("test_host", "new_svc", "admin", 10)};
+    configuration::Service svc2{
+        new_pb_configuration_service("test_host", "new_svc", "admin", 10)};
     svc_aply.add_object(svc2);
 
-    configuration::service svc3{
-        new_configuration_service("test_host", "new_svc1", "admin", 11)};
+    configuration::Service svc3{
+        new_pb_configuration_service("test_host", "new_svc1", "admin", 11)};
     svc_aply.add_object(svc3);
 
-    configuration::service svc4{
-        new_configuration_service("test_host", "new_svc2", "admin", 12)};
+    configuration::Service svc4{
+        new_pb_configuration_service("test_host", "new_svc2", "admin", 12)};
     svc_aply.add_object(svc4);
 
     svc_aply.resolve_object(svc);

@@ -1,8 +1,8 @@
 [requires]
-abseil/20211102.0
+abseil/20230125.3
 benchmark/1.6.1
-boost/1.79.0
-fmt/8.1.1
+boost/1.83.0
+fmt/9.1.0
 
 [generators]
 cmake

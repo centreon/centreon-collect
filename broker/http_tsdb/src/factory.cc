@@ -88,17 +88,6 @@ void extract_int(const config::endpoint& cfg,
   }
 }
 
-static const absl::flat_hash_map<std::string, asio::ssl::context_base::method>
-    _conf_to_ssl_method = {
-        {"sslv2", asio::ssl::context_base::method::sslv2_client},
-        {"sslv3", asio::ssl::context_base::method::sslv3_client},
-        {"tlsv1", asio::ssl::context_base::method::tlsv1_client},
-        {"sslv23", asio::ssl::context_base::method::sslv23_client},
-        {"tlsv11", asio::ssl::context_base::method::tlsv11_client},
-        {"tlsv12", asio::ssl::context_base::method::tlsv12_client},
-        {"tlsv13", asio::ssl::context_base::method::tlsv13_client},
-        {"tls", asio::ssl::context_base::method::tls_client}};
-
 /**
  * @brief this method parse conf and fill these attributes in conf bean:
  *  - "http_target" -> http_tsdb_config._http_target /write by default
@@ -225,6 +214,17 @@ void factory::create_conf(const config::endpoint& cfg,
     throw msg_fmt("can't resolve {}:{} for {} : {}", addr, port, cfg.name,
                   boost::diagnostic_information(e));
   }
+
+  const absl::flat_hash_map<std::string, asio::ssl::context_base::method>
+      _conf_to_ssl_method = {
+          {"sslv2", asio::ssl::context_base::method::sslv2_client},
+          {"sslv3", asio::ssl::context_base::method::sslv3_client},
+          {"tlsv1", asio::ssl::context_base::method::tlsv1_client},
+          {"sslv23", asio::ssl::context_base::method::sslv23_client},
+          {"tlsv11", asio::ssl::context_base::method::tlsv11_client},
+          {"tlsv12", asio::ssl::context_base::method::tlsv12_client},
+          {"tlsv13", asio::ssl::context_base::method::tlsv13_client},
+          {"tls", asio::ssl::context_base::method::tls_client}};
 
   asio::ssl::context_base::method ssl_method =
       asio::ssl::context_base::tlsv13_client;

@@ -37,12 +37,14 @@ class CompressionStreamRead : public ::testing::Test {
     } catch (const std::exception& e) {
       (void)e;
     }
-    _stream.reset(new compression::stream(-1, 20000));
-    _substream.reset(new CompressionStreamMemoryStream());
+    _stream = std::make_shared<compression::stream>(-1, 20000);
+    _substream = std::make_shared<CompressionStreamMemoryStream>();
     _stream->set_substream(_substream);
   }
 
-  void TearDown() override { config::applier::deinit(); }
+  void TearDown() override {
+    config::applier::deinit();
+  }
 
   std::shared_ptr<io::raw> predefined_data() {
     std::shared_ptr<io::raw> r(new io::raw);

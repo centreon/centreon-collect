@@ -1,23 +1,26 @@
 /**
-* Copyright 2009-2013,2015,2018 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015,2018 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/numbers.h>
 #include <getopt.h>
 
+#include <boost/asio.hpp>
 #include <cerrno>
 #include <chrono>
 #include <clocale>
@@ -30,35 +33,32 @@
 #include <future>
 #include <thread>
 
-#include <absl/container/flat_hash_set.h>
-#include <absl/strings/numbers.h>
-
-#include <boost/asio.hpp>
+#include "broker/core/misc/misc.hh"
 
 namespace asio = boost::asio;
 
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
-#include <boost/interprocess/containers/string.hpp>
-#include <boost/interprocess/managed_mapped_file.hpp>
-
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
+
+#include "broker/core/misc/diagnostic.hh"
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/diagnostic.hh"
-#include "com/centreon/broker/pool.hh"
-
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 std::shared_ptr<asio::io_context> g_io_context =
     std::make_shared<asio::io_context>();
@@ -82,21 +82,28 @@ static struct option long_options[] = {{"pool_size", required_argument, 0, 's'},
  *
  *  @param[in] signum Signal number.
  */
-static void hup_handler(int) {
+static void hup_handler(int signum [[maybe_unused]]) {
   // Disable SIGHUP handling during handler execution.
   signal(SIGHUP, SIG_IGN);
 
   // Log message.
-  log_v2::core()->info("main: configuration update requested");
+  auto core_logger = log_v2::instance().get(log_v2::CORE);
+  core_logger->info("main: configuration update requested");
 
   try {
     // Parse configuration file.
     config::parser parsr;
     config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+    auto& log_conf = conf.log_conf();
     try {
-      log_v2::instance()->apply(conf);
+      log_v2::instance().apply(log_conf);
+      /* We update the logger, since the conf has been applied */
+      core_logger = log_v2::instance().get(log_v2::CORE);
     } catch (const std::exception& e) {
-      log_v2::core()->error("problem while reloading cbd: {}", e.what());
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("problem while reloading cbd: {}", e.what());
+      core_logger->error("problem while reloading cbd: {}", e.what());
     }
 
     try {
@@ -105,22 +112,24 @@ static void hup_handler(int) {
 
       gl_state = conf;
     } catch (const std::exception& e) {
-      log_v2::core()->error(
+      core_logger->error(
           "main: configuration update could not succeed, reloading previous "
           "configuration: {}",
           e.what());
       config::applier::state::instance().apply(gl_state);
     } catch (...) {
-      log_v2::core()->error(
+      core_logger->error(
           "main: configuration update could not succeed, reloading previous "
           "configuration");
       config::applier::state::instance().apply(gl_state);
     }
   } catch (const std::exception& e) {
-    log_v2::config()->info("main: configuration update failed: {}", e.what());
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("main: configuration update failed: {}", e.what());
+    core_logger->info("main: configuration update failed: {}", e.what());
   } catch (...) {
-    log_v2::config()->info(
-        "main: configuration update failed: unknown exception");
+    core_logger->info("main: configuration update failed: unknown exception");
   }
 
   // Reenable SIGHUP handler.
@@ -158,12 +167,15 @@ int main(int argc, char* argv[]) {
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
 
-  log_v2::load(g_io_context);
+  log_v2::load("cbd", {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESSING,
+                       log_v2::SQL, log_v2::STATS, log_v2::FUNCTIONS});
+  ADD_DEBUG(misc::LOG_V2);
+  auto core_logger = log_v2::instance().get(log_v2::CORE);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
     char const* err{strerror(errno)};
-    log_v2::core()->info(
+    core_logger->info(
         "main: could not register configuration update handler: {}", err);
   }
 
@@ -174,7 +186,7 @@ int main(int argc, char* argv[]) {
 
   // Set termination handler.
   if (sigaction(SIGTERM, &sigterm_act, nullptr) < 0)
-    log_v2::core()->info("main: could not register termination handler");
+    core_logger->info("main: could not register termination handler");
 
   // Return value.
   int retval(0);
@@ -219,39 +231,39 @@ int main(int argc, char* argv[]) {
     // Check parameters requirements.
     if (diagnose) {
       if (gl_mainconfigfiles.empty()) {
-        log_v2::core()->error(
+        core_logger->error(
             "diagnostic: no configuration file provided: DIAGNOSTIC FILE MIGHT "
             "NOT BE USEFUL");
       }
       misc::diagnostic diag;
       diag.generate(gl_mainconfigfiles);
     } else if (help) {
-      log_v2::core()->info(
+      core_logger->info(
           "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]",
           argv[0]);
 
-      log_v2::core()->info("  '-s<poolsize>'  Set poolsize threads.");
-      log_v2::core()->info("  '-c'  Check configuration file.");
-      log_v2::core()->info("  '-D'  Generate a diagnostic file.");
-      log_v2::core()->info("  '-h'  Print this help.");
-      log_v2::core()->info("  '-v'  Print Centreon Broker version.");
-      log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
-      log_v2::core()->info("Copyright 2009-2021 Centreon");
-      log_v2::core()->info(
+      core_logger->info("  '-s<poolsize>'  Set poolsize threads.");
+      core_logger->info("  '-c'  Check configuration file.");
+      core_logger->info("  '-D'  Generate a diagnostic file.");
+      core_logger->info("  '-h'  Print this help.");
+      core_logger->info("  '-v'  Print Centreon Broker version.");
+      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
+      core_logger->info("Copyright 2009-2021 Centreon");
+      core_logger->info(
           "License ASL 2.0 <http://www.apache.org/licenses/LICENSE-2.0>");
       retval = 0;
     } else if (version) {
-      log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
+      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
       retval = 0;
     } else if (gl_mainconfigfiles.empty()) {
-      log_v2::core()->error(
+      core_logger->error(
           "USAGE: {} [-s <poolsize>] [-c] [-D] [-h] [-v] [<configfile>]\n\n",
           argv[0]);
       return 1;
     } else {
-      log_v2::core()->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
-      log_v2::core()->info("Copyright 2009-2021 Centreon");
-      log_v2::core()->info(
+      core_logger->info("Centreon Broker {}", CENTREON_BROKER_VERSION);
+      core_logger->info("Copyright 2009-2021 Centreon");
+      core_logger->info(
           "License ASL 2.0 <http://www.apache.org/licenses/LICENSE-2.0>");
 
       // Reset locale.
@@ -261,23 +273,31 @@ int main(int argc, char* argv[]) {
         // Parse configuration file.
         config::parser parsr;
         config::state conf{parsr.parse(gl_mainconfigfiles.front())};
+        auto& log_conf = conf.log_conf();
         try {
-          log_v2::instance()->apply(conf);
+          log_v2::instance().apply(log_conf);
+          /* The core_logger is reloaded just after the configuration is applied
+           */
+          core_logger = log_v2::instance().get(log_v2::CORE);
         } catch (const std::exception& e) {
-          log_v2::core()->error("{}", e.what());
+          core_logger->error("{}", e.what());
         }
 
-        log_v2::core()->info("main: process {} pid:{} begin", argv[0],
-                             getpid());
+        core_logger->info("main: process {} pid:{} begin", argv[0], getpid());
 
         if (n_thread > 0 && n_thread < 100)
           conf.pool_size(n_thread);
         config::applier::init(conf);
 
-        // Apply resulting configuration totally or partially.
-        config::applier::state::instance().apply(conf, !check);
-        broker_name = conf.broker_name();
-        gl_state = conf;
+        try {
+          // Apply resulting configuration totally or partially.
+          config::applier::state::instance().apply(conf, !check);
+          broker_name = conf.broker_name();
+          gl_state = conf;
+        } catch (const std::exception& e) {
+          config::applier::deinit();
+          throw;
+        }
       }
 
       if (!gl_state.listen_address().empty())
@@ -300,29 +320,30 @@ int main(int argc, char* argv[]) {
         while (!gl_term) {
           std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-        log_v2::core()->info("main: termination request received by process {}",
-                             getpid());
+        core_logger->info("main: termination request received by process {}",
+                          getpid());
       }
-      log_v2::instance()->stop_flush_timer();
-      // Unload endpoints.
+      //  Unload endpoints.
       config::applier::deinit();
-      spdlog::shutdown();
       cache::global_cache::unload();
     }
   }
   // Standard exception.
   catch (const std::exception& e) {
-    log_v2::core()->error("Error during cbd exit: {}", e.what());
+    core_logger->error("Error during cbd exit: {}", e.what());
     retval = EXIT_FAILURE;
   }
   // Unknown exception.
   catch (...) {
-    log_v2::core()->error("Error general during cbd exit");
+    core_logger->error("Error general during cbd exit");
     retval = EXIT_FAILURE;
   }
 
-  log_v2::core()->info("main: process {} pid:{} end exit_code:{}", argv[0],
-                       getpid(), retval);
+  core_logger->info("main: process {} pid:{} end exit_code:{}", argv[0],
+                    getpid(), retval);
 
+  CHECK_DEBUG(misc::LOG_V2);
+  log_v2::unload();
+  SUB_DEBUG(misc::LOG_V2);
   return retval;
 }
