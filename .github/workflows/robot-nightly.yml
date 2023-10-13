@@ -46,39 +46,35 @@ jobs:
       docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
       docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-  # package:
-  #   needs: [get-version]
-  #   uses: ./.github/workflows/package-collect.yml
-  #   with:
-  #     version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
-  #     img_version: ${{ needs.get-version.outputs.img_version }}
-  #     release: ${{ needs.get-version.outputs.release }}
-  #     commit_hash: ${{ github.sha }}
-  #   secrets: inherit
+  package:
+    needs: [get-version]
+    uses: ./.github/workflows/package-collect.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+      release: ${{ needs.get-version.outputs.release }}
+      commit_hash: ${{ github.sha }}
+    secrets: inherit
 
   robot-test:
-    # needs: [get-version, package]
-    needs: [get-version]
+    needs: [get-version, package]
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          # - distrib: el9
-          #   image: centreon-collect-alma9-test
-          #   docker_file: Dockerfile.centreon-collect-alma9-test-prepared
-          #   package_extension: rpm
-          #   arch: amd64
-          #   database_type: mariadb
-          # - distrib: el9
-          #   image: centreon-collect-mysql-alma9-test
-          #   docker_file: Dockerfile.centreon-collect-mysql-alma9-test-prepared
-          #   package_extension: rpm
-          #   arch: amd64
-          #   database_type: mysql
+          - distrib: el9
+            image: centreon-collect-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mariadb
+          - distrib: el9
+            image: centreon-collect-mysql-alma9-test
+            package_extension: rpm
+            arch: amd64
+            database_type: mysql
           - distrib: bullseye
             image: centreon-collect-debian-bullseye-arm64-test
-            docker_file: Dockerfile.centreon-collect-debian-bullseye-arm-test-prepared
             package_extension: deb
             arch: arm64
             database_type: mariadb
@@ -89,8 +85,7 @@ jobs:
       distrib: ${{ matrix.distrib }}
       arch: ${{ matrix.arch }}
       image: ${{ matrix.image }}
-      docker_file: ${{ matrix.docker_file}}
-      image_test: ${{ matrix.image }}-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+      image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
       image_version: ${{ needs.get-version.outputs.img_version }}
       package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}

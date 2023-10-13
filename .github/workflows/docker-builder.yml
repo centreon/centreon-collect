@@ -89,7 +89,7 @@ jobs:
           platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image-test }}:latest
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image-test }}:${{ needs.get-version.outputs.test_img_version }}
 
       - name: Build Package image
         uses: docker/build-push-action@v3

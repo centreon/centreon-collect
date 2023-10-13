@@ -10,11 +10,6 @@ distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
 
-echo "########################### test1 ###########################"
-
-ls -al /usr/bin
-
-
 echo "########################### Configure sshd ###########################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P "" <<<y
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P "" <<<y
@@ -98,5 +93,3 @@ cd ..
 
 \rm -rf *
 
-echo "########################### test2 ###########################"
-ls -al /usr/bin

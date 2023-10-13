@@ -41,19 +41,21 @@ else
 
 fi
 
+
+echo "########################## Install centreon collect ###########################"
+echo "Installation..."
+if [ "$distrib" = "ALMALINUX" ]; then
+  dnf clean all
+  rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
+  dnf install -y ./*.rpm
+else
+  apt-get update
+  apt-get install -y ./*.deb
+fi
+
+
 ulimit -c unlimited
 echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
-
-echo $(pwd)
-echo "##########################################  Tests 1 ##########################################"
-ls -al
-echo "##########################################  Tests 2 ##########################################"
-ls -al /
-echo "##########################################  Tests 3 ##########################################"
-ls -al /usr
-echo "##########################################  Tests 4 ##########################################"
-ls -al /usr/bin
-
 
 #remove git dubious ownership
 /usr/bin/git config --global --add safe.directory $PWD

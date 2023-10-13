@@ -10,9 +10,6 @@ on:
       image:
         required: true
         type: string
-      docker_file:
-        required: true
-        type: string
       image_test:
         required: true
         type: string
@@ -40,7 +37,11 @@ on:
 
 
 jobs:
-  create-test-image:
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
+  test-image-to-cache:
+    needs: [get-version]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     steps:
       - name: Checkout sources
@@ -60,29 +61,24 @@ jobs:
           username: ${{ secrets.registry_username }}
           password: ${{ secrets.registry_password }}
 
-      - name: Restore packages
-        uses: actions/cache@v3
-        with:
-          path: ${{ inputs.package_cache_path }}
-          key: ${{ inputs.package_cache_key }}
-          fail-on-cache-miss: true
- 
-      - uses: docker/setup-buildx-action@v2
-
-      - name: Create test image
+      - name: load image
         run: |
-          docker buildx build --pull --output type=docker,dest=/tmp/${{inputs.image}} --build-arg REGISTRY_URL=${{ vars.DOCKER_INTERNAL_REGISTRY_URL }} -f ".github/docker/${{ inputs.docker_file}}" \
-          -t `echo ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} | tr [:upper:] [:lower:]` .
+          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+        shell: bash
+
+      - name: image to disk
+        run: |
+          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
         shell: bash
 
       - name: image to cache
         uses: actions/cache/save@v3
         with:
           path:  /tmp/${{inputs.image}}
-          key: ${{inputs.image_test}}
+          key: ${{inputs.image_test}}.${{ needs.get-version.outputs.test_img_version }}
 
   robot-test-list:
-    needs: [create-test-image]
+    needs: [test-image-to-cache]
     runs-on: ubuntu-22.04
     outputs:
       features: ${{ steps.list-features.outputs.features }}
@@ -98,7 +94,7 @@ jobs:
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
-    needs: [robot-test-list]
+    needs: [robot-test-list, get-version]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
 
     strategy:
@@ -112,15 +108,23 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
         with:
+
           fetch-depth: 0
 
       - name: Restore image
         uses: actions/cache@v3
         with:
           path: /tmp/${{inputs.image}}
-          key: ${{inputs.image_test}}
+          key: ${{inputs.image_test}}.${{ needs.get-version.outputs.test_img_version }}
           fail-on-cache-miss: true
-      
+
+      - name: Restore packages
+        uses: actions/cache@v3
+        with:
+          path: ${{ inputs.package_cache_path }}
+          key: ${{ inputs.package_cache_key }}
+          fail-on-cache-miss: true
+            
       - name: load image
         run: |
           docker load --input  /tmp/${{inputs.image}}   
@@ -133,7 +137,7 @@ jobs:
           --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
           --env AWS_BUCKET=centreon-collect-robot-report \
           --workdir /test_collect \
-          `echo ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} | tr [:upper:] [:lower:]` \
+          ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
           ./.github/scripts/collect-test-robot.sh \
           ${{ matrix.feature }} ${{inputs.database_type}}
 
@@ -152,6 +156,9 @@ jobs:
             mv tests/log.html reports/$FILE_PREFIX-log.html
             mv tests/output.xml reports/$FILE_PREFIX-output.xml
             mv tests/failed reports/$FILE_PREFIX-failed
+            mv tests/log.html reports/$FILE_PREFIX-log.html
+            mv tests/output.xml reports/$FILE_PREFIX-output.xml
+            mv tests/report.html reports/$FILE_PREFIX-report.html
           fi
 
       - name: Upload Test Results
