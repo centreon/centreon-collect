@@ -37,15 +37,15 @@ BECT1
             Broker Config Output set    module0    central-module-master-output    tls    ${comp2}
             Broker Config Log    central    bbdo    info
             Broker Config Log    module0    bbdo    info
-            ${start}=    Get Current Date
+            ${start}    Get Current Date
             Start Broker
             Start Engine
-            ${result}=    Check Connections
-            Should Be True    ${result}    msg=Engine and Broker not connected
+            ${result}    Check Connections
+            Should Be True    ${result}    Engine and Broker not connected
             Kindly Stop Broker
             Stop Engine
-            ${content1}=    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
-            ${content2}=    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
+            ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
+            ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
                 Insert Into List
                 ...    ${content1}
@@ -57,9 +57,9 @@ BECT1
                 ...    ${-1}
                 ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
             END
-            ${result}=    Find In Log    ${centralLog}    ${start}    ${content1}
+            ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
             Should Be True    ${result}
-            ${result}=    Find In Log    ${moduleLog0}    ${start}    ${content2}
+            ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END
@@ -72,7 +72,7 @@ BECT2
     Config Broker    central
     Config Broker    module
 
-    ${hostname}=    Get Hostname
+    ${hostname}    Get Hostname
     Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
@@ -118,20 +118,20 @@ BECT2
     Broker Config Log    module0    bbdo    info
     Broker Config Input set    central    central-broker-master-input    tls    yes
     Broker Config Output set    module0    central-module-master-output    tls    yes
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
     Stop Engine
-    ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
-    ${content2}=    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
-    ${result}=    Find In Log    ${centralLog}    ${start}    ${content1}
+    ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
+    ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
+    ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
     Should Be True    ${result}
-    ${result}=    Find In Log    ${moduleLog0}    ${start}    ${content2}
+    ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT3
@@ -142,7 +142,7 @@ BECT3
     Config Broker    central
     Config Broker    module
 
-    ${hostname}=    Get Hostname
+    ${hostname}    Get Hostname
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 
@@ -163,22 +163,22 @@ BECT3
     Broker Config Input set    central    central-broker-master-input    tls    yes
     Broker Config Output set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
     Stop Engine
-    ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
-    ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
-    ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
-    ${content2}=    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content1}
+    ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
+    ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
+    ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
+    ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    ${result}    Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content2}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
+    ${result}    Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT4
@@ -247,22 +247,22 @@ BECT4
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
     # We get the current date just before starting broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
     Stop Engine
-    ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
-    ${content2}=    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content1}
+    ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
+    ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    ${result}    Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content2}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
+    ${result}    Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT_GRPC1
@@ -283,15 +283,15 @@ BECT_GRPC1
             Broker Config Log    module0    grpc    debug
             Change Broker tcp output to grpc    module0
             Change Broker tcp input to grpc    central
-            ${start}=    Get Current Date
+            ${start}    Get Current Date
             Start Broker
             Start Engine
-            ${result}=    Check Connections
-            Should Be True    ${result}    msg=Engine and Broker not connected
+            ${result}    Check Connections
+            Should Be True    ${result}    Engine and Broker not connected
             Kindly Stop Broker
             Stop Engine
-            ${content1}=    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
-            ${content2}=    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
+            ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
+            ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
                 Insert Into List
                 ...    ${content1}
@@ -303,9 +303,9 @@ BECT_GRPC1
                 ...    ${-1}
                 ...    extension 'TLS' is set to 'yes' in the configuration but cannot be activated because of peer configuration
             END
-            ${result}=    Find In Log    ${centralLog}    ${start}    ${content1}
+            ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
             Should Be True    ${result}
-            ${result}=    Find In Log    ${moduleLog0}    ${start}    ${content2}
+            ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END
@@ -365,22 +365,22 @@ BECT_GRPC2
     Broker Config Output set    module0    central-module-master-output    tls    yes
     Change Broker tcp output to grpc    module0
     Change Broker tcp input to grpc    central
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
     Stop Engine
-    ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
-    ${content2}=    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content1}
+    ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
+    ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    ${result}    Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content2}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
+    ${result}    Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT_GRPC3
@@ -391,7 +391,7 @@ BECT_GRPC3
     Config Broker    central
     Config Broker    module
 
-    ${hostname}=    Get Hostname
+    ${hostname}    Get Hostname
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/server.crt
     Create Certificate    ${hostname}    ${EtcRoot}/centreon-broker/client.crt
 
@@ -414,22 +414,22 @@ BECT_GRPC3
     Broker Config Input set    central    central-broker-master-input    tls    yes
     Broker Config Output set    module0    central-module-master-output    tls    yes
     # We get the current date just before starting broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
     Stop Engine
-    ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
-    ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
-    ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
-    ${content2}=    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content1}
+    ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous server credentials
+    ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using anonymous client credentials
+    ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
+    ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    ${result}    Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content2}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
+    ${result}    Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT_GRPC4
@@ -500,20 +500,20 @@ BECT_GRPC4
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
     # We get the current date just before starting broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
     Kindly Stop Broker
     Stop Engine
-    ${content1}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content2}=    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
-    ${content1}=    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
-    ${content2}=    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content1}
+    ${content1}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content2}    Create List    we have extensions 'TLS' and peer has 'TLS'    using certificates as credentials
+    ${content1}    Combine Lists    ${content1}    ${LIST_HANDSHAKE}
+    ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+    ${result}    Find In Log    ${log}    ${start}    ${content1}
     Should Be True    ${result}
-    ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-    ${result}=    Find In Log    ${log}    ${start}    ${content2}
+    ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
+    ${result}    Find In Log    ${log}    ${start}    ${content2}
     Should Be True    ${result}

@@ -52,19 +52,19 @@ NetworkDBFail6
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Broker and Engine are not connected
-    ${content}=    Create List    run query: SELECT
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Should Be True    ${result}    msg=No SELECT done by broker in the DB
+    ${result}    Check Connections
+    Should Be True    ${result}    Broker and Engine are not connected
+    ${content}    Create List    run query: SELECT
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No SELECT done by broker in the DB
     Disable Eth Connection On Port    port=3306
     Sleep    1m
     Reset Eth Connection
-    ${content}=    Create List    0 events acknowledged
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${content}    Create List    0 events acknowledged
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Stop Engine
     Kindly Stop Broker
 
@@ -80,21 +80,21 @@ NetworkDBFailU6
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Broker and Engine are not connected
-    ${content}=    Create List    run query: SELECT
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Should Be True    ${result}    msg=No SELECT done by broker in the DB
+    ${result}    Check Connections
+    Should Be True    ${result}    Broker and Engine are not connected
+    ${content}    Create List    run query: SELECT
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No SELECT done by broker in the DB
     Disable Eth Connection On Port    port=3306
     Log to console    Waiting for 1m while the connection to the DB is cut.
     Sleep    1m
     Log to console    Reestablishing the connection and test last steps.
     Reset Eth Connection
-    ${content}=    Create List    0 events acknowledged
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    ${content}    Create List    0 events acknowledged
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Stop Engine
     Kindly Stop Broker
 
@@ -111,23 +111,23 @@ NetworkDBFail7
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Broker and Engine are not connected
-    ${content}=    Create List    run query: SELECT
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Should Be True    ${result}    msg=No SELECT done by broker in the DB
+    ${result}    Check Connections
+    Should Be True    ${result}    Broker and Engine are not connected
+    ${content}    Create List    run query: SELECT
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No SELECT done by broker in the DB
     FOR    ${i}    IN    0    5
         Disable Eth Connection On Port    port=3306
         Sleep    10s
         Reset Eth Connection
         Sleep    10s
     END
-    ${content}=    Create List    0 events acknowledged
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=There are still events in the queue.
+    ${content}    Create List    0 events acknowledged
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    There are still events in the queue.
     Stop Engine
     Kindly Stop Broker
 
@@ -143,23 +143,23 @@ NetworkDBFailU7
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Broker and Engine are not connected
-    ${content}=    Create List    run query: SELECT
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
-    Should Be True    ${result}    msg=No SELECT done by broker in the DB
+    ${result}    Check Connections
+    Should Be True    ${result}    Broker and Engine are not connected
+    ${content}    Create List    run query: SELECT
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
+    Should Be True    ${result}    No SELECT done by broker in the DB
     FOR    ${i}    IN    0    5
         Disable Eth Connection On Port    port=3306
         Sleep    10s
         Reset Eth Connection
         Sleep    10s
     END
-    ${content}=    Create List    0 events acknowledged
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=There are still events in the queue.
+    ${content}    Create List    0 events acknowledged
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    There are still events in the queue.
     Stop Engine
     Kindly Stop Broker
 
@@ -184,18 +184,18 @@ Network Failure
     Broker Config Output set    central    central-broker-master-perfdata    connections_count    10
     Broker Config Log    central    sql    trace
     broker_config_source_log    central    true
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    SQL: performing mysql_ping
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
-    Should Be True    ${result}    msg=We should have a call to mysql_ping every 30s on inactive connections.
+    ${content}    Create List    SQL: performing mysql_ping
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
+    Should Be True    ${result}    We should have a call to mysql_ping every 30s on inactive connections.
     Disable Sleep Enable    ${interval}
-    ${end}=    Get Current Date
-    ${content}=    Create List    mysql_connection 0x[0-9,a-f]+ : commit
-    ${result}=    Find Regex In Log With Timeout    ${centralLog}    ${end}    ${content}    80
+    ${end}    Get Current Date
+    ${content}    Create List    mysql_connection 0x[0-9,a-f]+ : commit
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${end}    ${content}    80
     Should Be True
     ...    ${result[0]}
-    ...    msg=timeout after network to be restablished (network failure duration : ${interval})
+    ...    timeout after network to be restablished (network failure duration : ${interval})
     Kindly Stop Broker
     Stop Engine

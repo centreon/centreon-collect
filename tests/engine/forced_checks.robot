@@ -76,11 +76,11 @@ EFHC2
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
 
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
-    ${content}=    Create List    INITIAL HOST STATE: host_1;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -89,7 +89,7 @@ EFHC2
         Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
-    ${content}=    Create List
+    ${content}    Create List
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;SOFT;1;
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
@@ -97,10 +97,10 @@ EFHC2
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;HARD;3;
 
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
-    ${result}=    Check host status    host_1    1    1    False
+    ${result}    Check host status    host_1    1    1    False
     Should be true    ${result}    host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
@@ -126,13 +126,13 @@ EFHCU1
 
     Clear Retention
     Clear db    resources
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
-    ${result}=    Check host status    host_1    4    1    True
+    ${result}    Check host status    host_1    4    1    True
     Should be true    ${result}    host_1 should be pending
-    ${content}=    Create List    INITIAL HOST STATE: host_1;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -141,7 +141,7 @@ EFHCU1
         Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
-    ${content}=    Create List
+    ${content}    Create List
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;SOFT;1;
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
@@ -149,10 +149,10 @@ EFHCU1
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;HARD;3;
 
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
-    ${result}=    Check host status    host_1    1    1    True
+    ${result}    Check host status    host_1    1    1    True
     Should be true    ${result}    host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
@@ -177,13 +177,13 @@ EFHCU2
     Broker Config Add Item    rrd    bbdo_version    3.0.0
 
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
-    ${result}=    Check host status    host_1    4    1    True
+    ${result}    Check host status    host_1    4    1    True
     Should be true    ${result}    host_1 should be pending
-    ${content}=    Create List    INITIAL HOST STATE: host_1;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -192,7 +192,7 @@ EFHCU2
         Schedule Forced HOST CHECK    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
         Sleep    5s
     END
-    ${content}=    Create List
+    ${content}    Create List
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;SOFT;1;
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
@@ -200,10 +200,10 @@ EFHCU2
     ...    EXTERNAL COMMAND: SCHEDULE_FORCED_HOST_CHECK;host_1;
     ...    HOST ALERT: host_1;DOWN;HARD;3;
 
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
-    ${result}=    Check host status    host_1    1    1    True
+    ${result}    Check host status    host_1    1    1    True
     Should be true    ${result}    host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
@@ -223,21 +223,21 @@ EMACROS
     ...    \\d+
     ...    /bin/echo "ResourceFile: $RESOURCEFILE$ - LogFile: $LOGFILE$ - AdminEmail: $ADMINEMAIL$ - AdminPager: $ADMINPAGER$"
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
 
-    ${content}=    Create List    INITIAL HOST STATE: host_1;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
     schedule_forced_svc_check    host_1    service_1
     Sleep    5s
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    ResourceFile: /tmp/etc/centreon-engine/config0/resource.cfg - LogFile: /tmp/var/log/centreon-engine/config0/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    AdminEmail: titus@bidibule.com - AdminPager: admin not found in log.
 
     Stop Engine
@@ -266,12 +266,12 @@ EMACROS_NOTIF
 
     Remove File    /tmp/notif_toto.txt
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
 
-    ${content}=    Create List    INITIAL HOST STATE: host_1;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -282,7 +282,7 @@ EMACROS_NOTIF
 
     Wait Until Created    /tmp/notif_toto.txt    30s
 
-    ${grep_res}=    Grep File
+    ${grep_res}    Grep File
     ...    /tmp/notif_toto.txt
     ...    ResourceFile: /tmp/etc/centreon-engine/resource.cfg - LogFile: /tmp/var/log/centreon-engine/centengine.log - AdminEmail: titus@bidibule.com - AdminPager: admin
 

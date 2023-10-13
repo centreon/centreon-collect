@@ -36,15 +36,15 @@ BECC1
             Broker Config Output set    module0    central-module-master-output    compression    ${comp2}
             Broker Config Log    central    bbdo    info
             Broker Config Log    module0    bbdo    info
-            ${start}=    Get Current Date
+            ${start}    Get Current Date
             Start Broker
             Start Engine
-            ${result}=    Check Connections
-            Should Be True    ${result}    msg=Engine and Broker not connected
+            ${result}    Check Connections
+            Should Be True    ${result}    Engine and Broker not connected
             Kindly Stop Broker
             Stop Engine
-            ${content1}=    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
-            ${content2}=    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
+            ${content1}    Create List    we have extensions '${ext["${comp1}"]}' and peer has '${ext["${comp2}"]}'
+            ${content2}    Create List    we have extensions '${ext["${comp2}"]}' and peer has '${ext["${comp1}"]}'
             IF    "${comp1}" == "yes" and "${comp2}" == "no"
                 Insert Into List
                 ...    ${content1}
@@ -56,11 +56,11 @@ BECC1
                 ...    ${-1}
                 ...    extension 'COMPRESSION' is set to 'yes' in the configuration but cannot be activated because of peer configuration
             END
-            ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-            ${result}=    Find In Log    ${log}    ${start}    ${content1}
+            ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
+            ${result}    Find In Log    ${log}    ${start}    ${content1}
             Should Be True    ${result}
-            ${log}=    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
-            ${result}=    Find In Log    ${log}    ${start}    ${content2}
+            ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-module-master0.log
+            ${result}    Find In Log    ${log}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END

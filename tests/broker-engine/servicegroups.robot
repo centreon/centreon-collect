@@ -30,7 +30,7 @@ EBNSG1
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
 
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Add service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
@@ -40,13 +40,13 @@ EBNSG1
     Reload Broker
     Reload Engine
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    enabling membership of service (1, 3) to service group 1 on instance 1
     ...    enabling membership of service (1, 2) to service group 1 on instance 1
     ...    enabling membership of service (1, 1) to service group 1 on instance 1
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    msg=One of the new service groups not found in logs.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new service groups not found in logs.
 
 EBNSGU1
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
@@ -61,7 +61,7 @@ EBNSGU1
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
 
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Add service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
@@ -71,13 +71,13 @@ EBNSGU1
     Reload Broker
     Reload Engine
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    enabling membership of service (1, 3) to service group 1 on instance 1
     ...    enabling membership of service (1, 2) to service group 1 on instance 1
     ...    enabling membership of service (1, 1) to service group 1 on instance 1
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    msg=One of the new service groups not found in logs.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new service groups not found in logs.
 
 EBNSGU2
     [Documentation]    New service group with several pollers and connections to DB with broker configured with unified_sql
@@ -114,14 +114,14 @@ EBNSGU2
     Reload Engine
     Sleep    3s
 
-    ${result}=    Check Number of relations between servicegroup and services    1    12    30
-    Should Be True    ${result}    msg=We should get 12 relations between the servicegroup 1 and services.
+    ${result}    Check Number of relations between servicegroup and services    1    12    30
+    Should Be True    ${result}    We should get 12 relations between the servicegroup 1 and services.
     Config Engine Remove Cfg File    ${0}    servicegroups.cfg
     Reload Broker
     Reload Engine
 
-    ${result}=    Check Number of relations between servicegroup and services    1    9    30
-    Should Be True    ${result}    msg=We should get 9 relations between the servicegroup 1 and services.
+    ${result}    Check Number of relations between servicegroup and services    1    9    30
+    Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
 *** Keywords ***
 Test End

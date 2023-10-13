@@ -95,7 +95,7 @@ Kindly Stop Broker
         IF    ${result.rc} != 0
             Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Coredump Info    b1    /usr/sbin/cbd    broker_central
-            Should Be Equal As Integers    ${result.rc}    0    msg=Central Broker not correctly stopped
+            Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
         END
     END
 
@@ -110,7 +110,7 @@ Kindly Stop Broker
             IF    ${result.rc} != 0
                 Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
                 Coredump info    b2    /usr/sbin/cbd    broker_rrd
-                Should Be Equal As Integers    ${result.rc}    0    msg=RRD Broker not correctly stopped
+                Should Be Equal As Integers    ${result.rc}    0    RRD Broker not correctly stopped
             END
         END
     END
@@ -159,7 +159,7 @@ Stop Custom Engine
     ${result}    Terminate Process    ${process_alias}
     Should Be True
     ...    ${result.rc} == -15 or ${result.rc} == 0
-    ...    msg=Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
+    ...    Engine badly stopped alias = ${process_alias} - code returned ${result.rc}.
 
 Stop Engine
     ${count}    Get Engines Count
@@ -182,7 +182,7 @@ Stop Engine
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
-            ...    msg=Engine badly stopped with ${count} instances - code returned ${result.rc}.
+            ...    Engine badly stopped with ${count} instances - code returned ${result.rc}.
         END
     END
 

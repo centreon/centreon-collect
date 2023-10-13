@@ -29,49 +29,49 @@ BEBAMIDT1
     Clone Engine Config To DB
     Add Bam Config To Engine
 
-    @{svc}=    Set Variable    ${{ [("host_16", "service_314")] }}
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create BA With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}=    Get Command Id    314
+    ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
     Start Broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     # Let's wait for the initial service states.
-    ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to critical
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
-    ${result}=    Check Service Status With Timeout    host_16    service_314    2    60    HARD
-    Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
+    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}=    Check Ba Status With Timeout    test    2    60
-    Should Be True    ${result}    msg=The BA ba_1 is not CRITICAL as expected
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # A downtime is put on service_314
     Schedule Service Downtime    host_16    service_314    3600
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    1    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is not in downtime as it should be
-    ${result}=    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
-    Should Be True    ${result}    msg=The BA ba_1 is not in downtime as it should
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    Should Be True    ${result}    The BA ba_1 is not in downtime as it should
 
     # The downtime is deleted
     Delete Service Downtime    host_16    service_314
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    0    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is in downtime and should not.
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
+    Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
 
-    ${result}=    Check Downtimes With Timeout    0    60
-    Should Be True    ${result}    msg=We should have no more running downtimes
+    ${result}    Check Downtimes With Timeout    0    60
+    Should Be True    ${result}    We should have no more running downtimes
 
-    ${result}=    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
-    Should Be True    ${result}    msg=The BA ba_1 is in downtime as it should not
+    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     Stop Engine
     Kindly Stop Broker
@@ -89,54 +89,54 @@ BEBAMIDT2
     Clone Engine Config To DB
     Add Bam Config To Engine
 
-    @{svc}=    Set Variable    ${{ [("host_16", "service_314")] }}
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     Create BA With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}=    Get Command Id    314
+    ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    2
     Start Broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     # Let's wait for the initial service states.
-    ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to critical
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
-    ${result}=    Check Service Status With Timeout    host_16    service_314    2    60
-    Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
+    ${result}    Check Service Status With Timeout    host_16    service_314    2    60
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}=    Check Ba Status With Timeout    test    2    60
-    Should Be True    ${result}    msg=The BA ba_1 is not CRITICAL as expected
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
 
     # A downtime is put on service_314
     Schedule Service Downtime    host_16    service_314    3600
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    1    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
 
-    ${result}=    Check Downtimes With Timeout    2    60
-    Should Be True    ${result}    msg=We should have one running downtime
+    ${result}    Check Downtimes With Timeout    2    60
+    Should Be True    ${result}    We should have one running downtime
 
-    ${result}=    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
-    Should Be True    ${result}    msg=The BA ba_1 is not in downtime as it should
+    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    1    60
+    Should Be True    ${result}    The BA ba_1 is not in downtime as it should
 
     FOR    ${i}    IN RANGE    2
         # Engine is restarted
         Stop Engine
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Engine
         # Let's wait for the initial service states.
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+        ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
         # Broker is restarted
         log to console    Broker is stopped (step ${i})
@@ -146,18 +146,18 @@ BEBAMIDT2
     END
 
     # There are still two downtimes: the one on the ba and the one on the kpi.
-    ${result}=    Check Downtimes With Timeout    2    60
-    Should Be True    ${result}    msg=We should have two downtimes
+    ${result}    Check Downtimes With Timeout    2    60
+    Should Be True    ${result}    We should have two downtimes
 
     # The downtime is deleted
     Delete Service Downtime    host_16    service_314
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    0    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is in downtime and should not.
-    ${result}=    Check Downtimes With Timeout    0    60
-    Should Be True    ${result}    msg=We should have no more downtime
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
+    Should Be True    ${result}    The service (host_16, service_314) is in downtime and should not.
+    ${result}    Check Downtimes With Timeout    0    60
+    Should Be True    ${result}    We should have no more downtime
 
-    ${result}=    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
-    Should Be True    ${result}    msg=The BA ba_1 is in downtime as it should not
+    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
     log to console    Broker is stopped (end of BEBAMIDT2)
     Stop Engine
@@ -184,90 +184,90 @@ BEBAMIGNDT1
     Clone Engine Config To DB
     Add Bam Config To Engine
 
-    @{svc}=    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
+    @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
     Create BA With Services    test    worst    ${svc}    ignore
     Add Bam Config To Broker    central
 
     # Command of service_313 is set to ok
-    ${cmd_1}=    Get Command Id    313
+    ${cmd_1}    Get Command Id    313
     Log To Console    service_313 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    0
 
     # Command of service_314 is set to critical
-    ${cmd_2}=    Get Command Id    314
+    ${cmd_2}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
 
     Start Broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     # Let's wait for the initial service states.
-    ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to ok
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_313    0    output critical for 313
-    ${result}=    Check Service Status With Timeout    host_16    service_313    0    60
-    Should Be True    ${result}    msg=The service (host_16,service_313) is not OK as expected
+    ${result}    Check Service Status With Timeout    host_16    service_313    0    60
+    Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
-    ${result}=    Check Service Status With Timeout    host_16    service_314    2    60
-    Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
+    ${result}    Check Service Status With Timeout    host_16    service_314    2    60
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}=    Check Ba Status With Timeout    test    2    60
-    Should Be True    ${result}    msg=The BA ba_1 is not CRITICAL as expected
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     Log To console    The BA is critical.
 
     # Two downtimes are applied on service_314
     Schedule Service Downtime    host_16    service_314    3600
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    1    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log to console    One downtime applied to service_314.
 
     Schedule Service Downtime    host_16    service_314    1800
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    2    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    2    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log to console    Two downtimes applied to service_314.
 
-    ${result}=    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
-    Should Be True    ${result}    msg=The BA ba_1 is in downtime but should not
+    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log to console    The BA is configured to ignore kpis in downtime
 
-    ${result}=    Check Ba Status With Timeout    test    0    60
-    Should Be True    ${result}    msg=The service in downtime should be ignored while computing the state of this BA.
+    ${result}    Check Ba Status With Timeout    test    0    60
+    Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
     Log to console    The BA is OK, since the critical service is in downtime.
 
     # The first downtime is deleted
     Delete Service Downtime    host_16    service_314
 
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    1    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) does not contain 1 downtime as it should
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
     Log to console    Still one downtime applied to service_314.
 
-    ${result}=    Check Downtimes With Timeout    1    60
-    Should Be True    ${result}    msg=We should have one downtime
+    ${result}    Check Downtimes With Timeout    1    60
+    Should Be True    ${result}    We should have one downtime
 
-    ${result}=    Check Ba Status With Timeout    test    0    60
-    Should Be True    ${result}    msg=The BA is not OK whereas the service_314 is still in downtime.
+    ${result}    Check Ba Status With Timeout    test    0    60
+    Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
     Log to console    The BA is still OK
 
     # The second downtime is deleted
     Delete Service Downtime    host_16    service_314
 
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    0    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) does not contain 0 downtime as it should
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
+    Should Be True    ${result}    The service (host_16, service_314) does not contain 0 downtime as it should
     Log to console    No more downtime applied to service_314.
 
-    ${result}=    Check Downtimes With Timeout    0    60
-    Should Be True    ${result}    msg=We should have no more running downtimes
+    ${result}    Check Downtimes With Timeout    0    60
+    Should Be True    ${result}    We should have no more running downtimes
 
-    ${result}=    Check Ba Status With Timeout    test    2    60
-    Should Be True    ${result}    msg=The critical service is no more in downtime, the BA should be critical.
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log to console    The BA is now critical (no more downtime)
 
     Stop Engine
@@ -287,78 +287,78 @@ BEBAMIGNDT2
     Clone Engine Config To DB
     Add Bam Config To Engine
 
-    @{svc}=    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
+    @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
     Create BA With Services    test    worst    ${svc}    ignore
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
-    ${cmd_1}=    Get Command Id    313
+    ${cmd_1}    Get Command Id    313
     Log To Console    service_314 has command id ${cmd_1}
     Set Command Status    ${cmd_1}    0
-    ${cmd_2}=    Get Command Id    314
+    ${cmd_2}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_2}
     Set Command Status    ${cmd_2}    2
     Start Broker
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     # Let's wait for the initial service states.
-    ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial service state on service (50, 1000) should be raised before we can start external commands.
+    ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to ok
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_313    0    output critical for 313
-    ${result}=    Check Service Status With Timeout    host_16    service_313    0    60
-    Should Be True    ${result}    msg=The service (host_16,service_313) is not OK as expected
+    ${result}    Check Service Status With Timeout    host_16    service_313    0    60
+    Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
     Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
-    ${result}=    Check Service Status With Timeout    host_16    service_314    2    60
-    Should Be True    ${result}    msg=The service (host_16,service_314) is not CRITICAL as expected
+    ${result}    Check Service Status With Timeout    host_16    service_314    2    60
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
-    ${result}=    Check Ba Status With Timeout    test    2    60
-    Should Be True    ${result}    msg=The BA ba_1 is not CRITICAL as expected
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     Log To console    The BA is critical.
 
     # Two downtimes are applied on service_314
     Schedule Service Downtime    host_16    service_314    60
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    1    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log to console    One downtime applied to service_314.
 
     Schedule Service Downtime    host_16    service_314    30
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    2    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) is not in downtime as it should be
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    2    60
+    Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
     Log to console    Two downtimes applied to service_314.
 
-    ${result}=    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
-    Should Be True    ${result}    msg=The BA ba_1 is in downtime but should not
+    ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
+    Should Be True    ${result}    The BA ba_1 is in downtime but should not
     Log to console    The BA is configured to ignore kpis in downtime
 
-    ${result}=    Check Ba Status With Timeout    test    0    60
-    Should Be True    ${result}    msg=The service in downtime should be ignored while computing the state of this BA.
+    ${result}    Check Ba Status With Timeout    test    0    60
+    Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
     Log to console    The BA is OK, since the critical service is in downtime.
 
     # The first downtime should reach its end
 
     Log to console    After 30s, the first downtime should be finished.
-    ${result}=    Check Service Downtime With Timeout    host_16    service_314    1    60
-    Should Be True    ${result}    msg=The service (host_16, service_314) does not contain 1 downtime as it should
+    ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
+    Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
     Log to console    Still one downtime applied to service_314.
 
     Log to console    After 30s, the second downtime should be finished.
-    ${result}=    Check Ba Status With Timeout    test    0    60
-    Should Be True    ${result}    msg=The BA is not OK whereas the service_314 is still in downtime.
+    ${result}    Check Ba Status With Timeout    test    0    60
+    Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
     Log to console    The BA is still OK
 
-    ${result}=    Check Downtimes With Timeout    0    60
-    Should Be True    ${result}    msg=We should have no more running downtimes
+    ${result}    Check Downtimes With Timeout    0    60
+    Should Be True    ${result}    We should have no more running downtimes
 
     # The second downtime finishes
-    ${result}=    Check Ba Status With Timeout    test    2    60
-    Should Be True    ${result}    msg=The critical service is no more in downtime, the BA should be critical.
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
     Log to console    The BA is now critical (no more downtime)
 
     Stop Engine
@@ -369,7 +369,7 @@ BEBAMIGNDT2
 BAM Setup
     Stop Processes
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${date}=    Get Current Date    result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
     log to console    date=${date}
     Execute SQL String
     ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null

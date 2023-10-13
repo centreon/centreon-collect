@@ -31,14 +31,14 @@ SDER
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait for the external command check start
-    ${content}=    Create List    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     Stop Engine
 
@@ -55,7 +55,7 @@ SDER
 
     FOR    ${index}    IN RANGE    30
         Log To Console    SELECT check_attempt from services WHERE description='service_1'
-        ${output}=    Query    SELECT check_attempt from services WHERE description='service_1'
+        ${output}    Query    SELECT check_attempt from services WHERE description='service_1'
         Log To Console    ${output}
         IF    "${output}" == "((280,),)"    BREAK
         Sleep    1s

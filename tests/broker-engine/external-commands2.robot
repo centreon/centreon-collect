@@ -31,11 +31,11 @@ BEEXTCMD30
         Log To Console
         ...    external command DISABLE_HOST_NOTIFICATIONS and ENABLE_HOST_NOTIFICATIONS on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -45,7 +45,7 @@ BEEXTCMD30
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT notify FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -56,7 +56,7 @@ BEEXTCMD30
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT notify FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT notify FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -83,11 +83,11 @@ BEEXTCMD31
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -98,7 +98,7 @@ BEEXTCMD31
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -108,7 +108,7 @@ BEEXTCMD31
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT active_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -118,7 +118,7 @@ BEEXTCMD31
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -131,7 +131,7 @@ BEEXTCMD31
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -141,7 +141,7 @@ BEEXTCMD31
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT active_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT active_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -151,7 +151,7 @@ BEEXTCMD31
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -173,11 +173,11 @@ BEEXTCMD32
     Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -188,7 +188,7 @@ BEEXTCMD32
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -199,7 +199,7 @@ BEEXTCMD32
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -212,7 +212,7 @@ BEEXTCMD32
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.active_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -223,7 +223,7 @@ BEEXTCMD32
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.should_be_scheduled FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -251,11 +251,11 @@ BEEXTCMD33
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -266,7 +266,7 @@ BEEXTCMD33
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -279,7 +279,7 @@ BEEXTCMD33
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -302,11 +302,11 @@ BEEXTCMD34
     Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -317,7 +317,7 @@ BEEXTCMD34
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -330,7 +330,7 @@ BEEXTCMD34
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.notify FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -358,11 +358,11 @@ BEEXTCMD35
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -372,7 +372,7 @@ BEEXTCMD35
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -381,7 +381,7 @@ BEEXTCMD35
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -392,7 +392,7 @@ BEEXTCMD35
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -401,7 +401,7 @@ BEEXTCMD35
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -423,11 +423,11 @@ BEEXTCMD36
     Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -437,7 +437,7 @@ BEEXTCMD36
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -448,7 +448,7 @@ BEEXTCMD36
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT passive_checks FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -475,11 +475,11 @@ BEEXTCMD37
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -490,7 +490,7 @@ BEEXTCMD37
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -500,7 +500,7 @@ BEEXTCMD37
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -512,7 +512,7 @@ BEEXTCMD37
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -522,7 +522,7 @@ BEEXTCMD37
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
-            ${output}=    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
+            ${output}    Query    SELECT passive_checks_enabled FROM resources WHERE name='service_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -544,11 +544,11 @@ BEEXTCMD38
     Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -559,7 +559,7 @@ BEEXTCMD38
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -572,7 +572,7 @@ BEEXTCMD38
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.passive_checks FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -600,11 +600,11 @@ BEEXTCMD39
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -614,7 +614,7 @@ BEEXTCMD39
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -625,7 +625,7 @@ BEEXTCMD39
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -647,11 +647,11 @@ BEEXTCMD40
     Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -661,7 +661,7 @@ BEEXTCMD40
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((0,),)"    BREAK
@@ -672,7 +672,7 @@ BEEXTCMD40
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT obsess_over_host FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT obsess_over_host FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((1,),)"    BREAK
@@ -699,11 +699,11 @@ BEEXTCMD41
     Config Broker Sql Output    central    unified_sql
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -714,7 +714,7 @@ BEEXTCMD41
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -727,7 +727,7 @@ BEEXTCMD41
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -750,11 +750,11 @@ BEEXTCMD42
     Broker Config Log    central    sql    debug
     Clear Retention
     FOR    ${use_grpc}    IN RANGE    0    1
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -765,7 +765,7 @@ BEEXTCMD42
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -778,7 +778,7 @@ BEEXTCMD42
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.obsess_over_service FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -807,11 +807,11 @@ BEEXTCMD_GRPC1
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -822,7 +822,7 @@ BEEXTCMD_GRPC1
         FOR    ${index}    IN RANGE    300
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -846,11 +846,11 @@ BEEXTCMD_GRPC2
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -861,7 +861,7 @@ BEEXTCMD_GRPC2
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -891,11 +891,11 @@ BEEXTCMD_GRPC3
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -905,7 +905,7 @@ BEEXTCMD_GRPC3
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((10.0,),)"    BREAK
@@ -929,11 +929,11 @@ BEEXTCMD_GRPC4
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -943,7 +943,7 @@ BEEXTCMD_GRPC4
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((15.0,),)"    BREAK
@@ -974,15 +974,15 @@ BEEXTCMD_REVERSE_GRPC1
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Sleep    1s
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    An Initial host state on host_1 should be raised before we can start our external commands.
         Change Normal Svc Check Interval    ${use_grpc}    host_1    service_1    10
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -990,7 +990,7 @@ BEEXTCMD_REVERSE_GRPC1
         FOR    ${index}    IN RANGE    300
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
@@ -1018,11 +1018,11 @@ BEEXTCMD_REVERSE_GRPC2
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1033,7 +1033,7 @@ BEEXTCMD_REVERSE_GRPC2
         FOR    ${index}    IN RANGE    30
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
             Sleep    1s
@@ -1067,11 +1067,11 @@ BEEXTCMD_REVERSE_GRPC3
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc} reversed
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1081,7 +1081,7 @@ BEEXTCMD_REVERSE_GRPC3
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((10.0,),)"    BREAK
@@ -1109,11 +1109,11 @@ BEEXTCMD_REVERSE_GRPC4
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_HOST_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc} reversed
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1124,7 +1124,7 @@ BEEXTCMD_REVERSE_GRPC4
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT check_interval FROM hosts WHERE name='host_1'
-            ${output}=    Query    SELECT check_interval FROM hosts WHERE name='host_1'
+            ${output}    Query    SELECT check_interval FROM hosts WHERE name='host_1'
             Log To Console    ${output}
             Sleep    1s
             IF    "${output}" == "((15.0,),)"    BREAK
@@ -1153,11 +1153,11 @@ BEEXTCMD_COMPRESS_GRPC1
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
-        ${start}=    Get Current Date
+        ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}=    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -1168,7 +1168,7 @@ BEEXTCMD_COMPRESS_GRPC1
         FOR    ${index}    IN RANGE    300
             Log To Console
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
-            ${output}=    Query
+            ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE s.description='service_1' AND h.name='host_1'
             Log To Console    ${output}
             Sleep    1s
@@ -1188,15 +1188,15 @@ BEATOI11
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     SEND CUSTOM HOST NOTIFICATION    host_1    1    admin    foobar
-    ${content}=    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
-    ${result}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    EXTERNAL COMMAND: SEND_CUSTOM_HOST_NOTIFICATION;host_1;1;admin;foobar
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
     Kindly Stop Broker
@@ -1210,16 +1210,16 @@ BEATOI12
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     SEND CUSTOM HOST NOTIFICATION    host_1    8    admin    foobar
-    ${content}=    Create List
+    ${content}    Create List
     ...    Error: could not send custom host notification: '8' must be an integer between 0 and 7
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument notification_option must be an integer between 0 and 7.
     Stop Engine
     Kindly Stop Broker
@@ -1233,16 +1233,16 @@ BEATOI13
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ${date}=    Get Current Date    result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
     SCHEDULE SERVICE DOWNTIME    host_1    service_1    -1
-    ${content}=    Create List    Error: could not schedule downtime : duration
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    Error: could not schedule downtime : duration
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument duration must be an integer >= 0.
     Stop Engine
     Kindly Stop Broker
@@ -1256,20 +1256,20 @@ BEATOI21
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date    exclude_millis=True
+    ${start}    Get Current Date    exclude_millis=True
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ADD HOST COMMENT    host_1    1    user    comment
-    ${content}=    Create List    ADD_HOST_COMMENT
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    ADD_HOST_COMMENT
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
-    ${com_id}=    Find Internal Id    ${start}    True    30
+    ${com_id}    Find Internal Id    ${start}    True    30
     Should Be True    ${com_id}>0    Comment id should be a positive integer.
     DEL HOST COMMENT    ${com_id}
-    ${result}=    Find Internal Id    ${start}    False    30
+    ${result}    Find Internal Id    ${start}    False    30
     Should Be True    ${result}    the comment with id:${com_id} was not deleted.
     Stop Engine
     Kindly Stop Broker
@@ -1283,23 +1283,23 @@ BEATOI22
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Sleep    1s
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ADD HOST COMMENT    host_1    1    user    comment
-    ${content}=    Create List    ADD_HOST_COMMENT
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    ADD_HOST_COMMENT
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    the comment with id:1 was not added.
-    ${com_id}=    Find Internal Id    ${start}    True    30
+    ${com_id}    Find Internal Id    ${start}    True    30
     DEL HOST COMMENT    -1
-    ${content}=    Create List    Error: could not delete comment : comment_id
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    Error: could not delete comment : comment_id
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    comment_id must be an unsigned integer.
-    ${result}=    Find Internal Id    ${start}    True    30
+    ${result}    Find Internal Id    ${start}    True    30
     Should Be True    ${result}    comment with id:-1 was deleted.
     Stop Engine
     Kindly Stop Broker
@@ -1313,16 +1313,16 @@ BEATOI23
     Config Broker    module    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    error
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ${date}=    Get Current Date    result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
     ADD SVC COMMENT    host_1    service_1    0    user    comment
-    ${content}=    Create List    ADD_SVC_COMMENT
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    ADD_SVC_COMMENT
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument persistent_flag must be 0 or 1.
     Stop Engine
     Kindly Stop Broker
@@ -1337,13 +1337,13 @@ BECUSTOMHOSTVAR
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ${date}=    Get Current Date    result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
     CHANGE CUSTOM HOST VAR COMMAND    host_1    SNMPVERSION    789456
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1351,7 +1351,7 @@ BECUSTOMHOSTVAR
     FOR    ${index}    IN RANGE    300
         Log To Console
         ...    SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name='SNMPVERSION'
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name='SNMPVERSION'
         Log To Console    ${output}
         Sleep    1s
@@ -1372,13 +1372,13 @@ BECUSTOMSVCVAR
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-    ${date}=    Get Current Date    result_format=epoch
+    ${date}    Get Current Date    result_format=epoch
     CHANGE CUSTOM SVC VAR COMMAND    host_1    service_1    CRITICAL    456123
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -1386,7 +1386,7 @@ BECUSTOMSVCVAR
     FOR    ${index}    IN RANGE    300
         Log To Console
         ...    SELECT c.value FROM customvariables c JOIN hosts h ON c.host_id=h.host_id JOIN services s ON c.service_id = s.service_id and h.host_id = s.service_id WHERE h.name='host_1' && s.description = 'service_1' && c.name='CRITICAL'
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT c.value FROM customvariables c JOIN hosts h ON c.host_id=h.host_id JOIN services s ON c.service_id = s.service_id and h.host_id = s.service_id WHERE h.name='host_1' && s.description = 'service_1' && c.name='CRITICAL'
         Log To Console    ${output}
         Sleep    1s
@@ -1407,17 +1407,17 @@ BESERVCHECK
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Config Broker Sql Output    central    unified_sql
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}=    Create List    check_for_external_commands
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
     schedule_forced_svc_check    host_1    service_1
-    ${command_param}=    get_command_service_param    1
-    ${result}=    check_service_check_with_timeout
+    ${command_param}    get_command_service_param    1
+    ${result}    check_service_check_with_timeout
     ...    host_1
     ...    service_1
     ...    30

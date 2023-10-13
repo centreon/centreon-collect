@@ -29,7 +29,7 @@ EBNHG1
     Broker Config Log    central    sql    info
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
@@ -38,13 +38,13 @@ EBNHG1
     Reload Broker
     Reload Engine
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1 on instance 1
     ...    enabling membership of host 1 to host group 1 on instance 1
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    msg=One of the new host groups not found in logs.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new host groups not found in logs.
     Stop Engine
     Kindly Stop Broker
 
@@ -59,7 +59,7 @@ EBNHGU1
     Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
@@ -68,13 +68,13 @@ EBNHGU1
     Reload Broker
     Reload Engine
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1 on instance 1
     ...    enabling membership of host 1 to host group 1 on instance 1
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    msg=One of the new host groups not found in logs.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new host groups not found in logs.
     Stop Engine
     Kindly Stop Broker
 
@@ -94,7 +94,7 @@ EBNHGU2
     Broker Config Add Item    module2    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
@@ -103,12 +103,12 @@ EBNHGU2
     Reload Broker
     Reload Engine
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1 on instance 1
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    msg=One of the new host groups not found in logs.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new host groups not found in logs.
     Stop Engine
     Kindly stop Broker
 
@@ -131,7 +131,7 @@ EBNHGU3
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Broker Config Log    central    sql    debug
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Add Host Group    ${0}    ${1}    ["host_1", "host_2", "host_3"]
@@ -143,16 +143,16 @@ EBNHGU3
     Reload Broker
     Reload Engine
 
-    ${result}=    Check Number of relations between hostgroup and hosts    1    12    30
-    Should Be True    ${result}    msg=We should have 12 hosts members of host 1.
+    ${result}    Check Number of relations between hostgroup and hosts    1    12    30
+    Should Be True    ${result}    We should have 12 hosts members of host 1.
 
     Config Engine Remove Cfg File    ${0}    hostgroups.cfg
 
     Sleep    3s
     Reload Broker
     Reload Engine
-    ${result}=    Check Number of relations between hostgroup and hosts    1    9    30
-    Should Be True    ${result}    msg=We should have 12 hosts members of host 1.
+    ${result}    Check Number of relations between hostgroup and hosts    1    9    30
+    Should Be True    ${result}    We should have 12 hosts members of host 1.
 
     Stop Engine
     Kindly Stop Broker
@@ -168,7 +168,7 @@ EBNHG4
     Broker Config Log    central    sql    info
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Sleep    3s
@@ -177,17 +177,17 @@ EBNHG4
     Reload Broker
     Reload Engine
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    msg=One of the new host groups not found in logs.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new host groups not found in logs.
 
     Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Log to Console    Step-1
     Reload Broker
     Log to Console    Step0
@@ -198,7 +198,7 @@ EBNHG4
     Log to Console    Step1
     FOR    ${index}    IN RANGE    60
         Log To Console    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
-        ${output}=    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
+        ${output}    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "(('hostgroup_test',),)"    BREAK
@@ -219,7 +219,7 @@ EBNHGU4
     Broker Config Log    central    sql    info
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
     Sleep    3s
@@ -228,17 +228,17 @@ EBNHGU4
     Reload Broker
     Reload Engine
 
-    ${content}=    Create List
+    ${content}    Create List
     ...    enabling membership of host 3 to host group 1 on instance 1
     ...    enabling membership of host 2 to host group 1
 
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
-    Should Be True    ${result}    msg=One of the new host groups not found in logs.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
+    Should Be True    ${result}    One of the new host groups not found in logs.
 
     Rename Host Group    ${0}    ${1}    test    ["host_1", "host_2", "host_3"]
 
     Sleep    10s
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Log to Console    Step-1
     Reload Broker
     Log to Console    Step0
@@ -249,7 +249,7 @@ EBNHGU4
     Log to Console    Step1
     FOR    ${index}    IN RANGE    60
         Log To Console    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
-        ${output}=    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
+        ${output}    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "(('hostgroup_test',),)"    BREAK

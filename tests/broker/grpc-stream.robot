@@ -111,5 +111,5 @@ Start Stop Instance
     Sleep    ${interval}
     Kindly Stop Broker    True
     Send Signal To Process    SIGTERM    b1
-    ${result}=    Wait For Process    b1    timeout=60s    on_timeout=kill
-    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    msg=Broker instance badly stopped
+    ${result}    Wait For Process    b1    timeout=60s    on_timeout=kill
+    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker instance badly stopped
