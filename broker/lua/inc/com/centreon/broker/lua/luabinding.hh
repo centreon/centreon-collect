@@ -1,26 +1,26 @@
-/*
-** Copyright 2018 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2018 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_LUA_LUABINDING_HH
 #define CCB_LUA_LUABINDING_HH
 
+#include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/variant.hh"
 
 extern "C" {
 #include "lauxlib.h"
@@ -101,6 +101,9 @@ class luabinding {
   // Api version among (1, 2)
   uint32_t _broker_api_version;
 
+  // logger ID.
+  std::shared_ptr<spdlog::logger> _logger;
+
   lua_State* _load_interpreter();
   void _load_script(const std::string& lua_script);
   void _init_script(std::map<std::string, misc::variant> const& conf_params);
@@ -125,6 +128,6 @@ void push_event_as_table(lua_State* L, io::data const& d);
 
 }  // namespace lua
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_LUA_LUA_HH

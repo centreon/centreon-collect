@@ -20,14 +20,13 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
+#include "broker/core/misc/string.hh"
+#include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
@@ -85,7 +84,6 @@ class OutputTest : public ::testing::Test {
     // The cache must be destroyed before the applier deinit() call.
     config::applier::deinit();
     ::remove("/tmp/broker_test_cache");
-    ::remove(log_v2::instance()->log_name().c_str());
   }
 };
 

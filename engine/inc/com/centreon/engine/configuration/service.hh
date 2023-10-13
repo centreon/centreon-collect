@@ -1,35 +1,31 @@
-/*
-** Copyright 2011-2013,2015-2017-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2015-2017-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_SERVICE_HH
 #define CCE_CONFIGURATION_SERVICE_HH
 
-#include "com/centreon/engine/common.hh"
+#include "com/centreon/engine/configuration/customvariable.hh"
 #include "com/centreon/engine/configuration/group.hh"
 #include "com/centreon/engine/configuration/object.hh"
-#include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
-namespace com::centreon::engine {
-
-namespace configuration {
-class serviceextinfo;
+namespace com::centreon::engine::configuration {
 
 class service : public object {
  public:
@@ -50,9 +46,8 @@ class service : public object {
   bool operator==(service const& other) const noexcept;
   bool operator!=(service const& other) const noexcept;
   bool operator<(service const& other) const noexcept;
-  void check_validity() const override;
+  void check_validity(error_info* err) const override;
   key_type key() const;
-  void merge(configuration::serviceextinfo const& obj);
   void merge(object const& obj) override;
   bool parse(char const* key, char const* value) override;
 
@@ -70,8 +65,9 @@ class service : public object {
   set_string& contacts() noexcept;
   set_string const& contacts() const noexcept;
   bool contacts_defined() const noexcept;
-  map_customvar const& customvariables() const noexcept;
-  map_customvar& customvariables() noexcept;
+  const std::unordered_map<std::string, customvariable>& customvariables()
+      const noexcept;
+  std::unordered_map<std::string, customvariable>& customvariables() noexcept;
   std::string const& display_name() const noexcept;
   std::string const& event_handler() const noexcept;
   bool event_handler_enabled() const noexcept;
@@ -80,10 +76,7 @@ class service : public object {
   unsigned short flap_detection_options() const noexcept;
   unsigned int freshness_threshold() const noexcept;
   unsigned int high_flap_threshold() const noexcept;
-  set_string& hostgroups() noexcept;
-  set_string const& hostgroups() const noexcept;
-  set_string& hosts() noexcept;
-  set_string const& hosts() const noexcept;
+  const std::string& host_name() const noexcept;
   uint64_t host_id() const noexcept;
   void set_host_id(uint64_t id);
   std::string const& icon_image() const noexcept;
@@ -146,8 +139,7 @@ class service : public object {
   bool _set_flap_detection_options(std::string const& value);
   bool _set_freshness_threshold(unsigned int value);
   bool _set_high_flap_threshold(unsigned int value);
-  bool _set_hostgroups(std::string const& value);
-  bool _set_hosts(std::string const& value);
+  bool _set_host_name(const std::string& value);
   bool _set_icon_image(std::string const& value);
   bool _set_icon_image_alt(std::string const& value);
   bool _set_initial_state(std::string const& value);
@@ -187,7 +179,7 @@ class service : public object {
   std::string _check_period;
   group<set_string> _contactgroups;
   group<set_string> _contacts;
-  map_customvar _customvariables;
+  std::unordered_map<std::string, customvariable> _customvariables;
   std::string _display_name;
   std::string _event_handler;
   opt<bool> _event_handler_enabled;
@@ -196,11 +188,10 @@ class service : public object {
   opt<unsigned short> _flap_detection_options;
   opt<unsigned int> _freshness_threshold;
   opt<unsigned int> _high_flap_threshold;
-  group<set_string> _hostgroups;
-  group<set_string> _hosts;
+  std::string _host_name;
   std::string _icon_image;
   std::string _icon_image_alt;
-  opt<unsigned int> _initial_state;
+  uint32_t _initial_state;
   opt<bool> _is_volatile;
   opt<unsigned int> _low_flap_threshold;
   opt<unsigned int> _max_check_attempts;
@@ -233,8 +224,7 @@ typedef std::list<service_ptr> list_service;
 typedef std::set<service> set_service;
 typedef std::unordered_map<std::pair<std::string, std::string>, service_ptr>
     map_service;
-}  // namespace configuration
 
-}
+}  // namespace com::centreon::engine::configuration
 
 #endif  // !CCE_CONFIGURATION_SERVICE_HH

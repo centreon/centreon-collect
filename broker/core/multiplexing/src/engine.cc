@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2013,2015, 2020-2021 Centreon
+ * Copyright 2009-2013,2015, 2020-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,15 +22,16 @@
 
 #include <cassert>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/pool.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Class instance.
 std::shared_ptr<engine> engine::_instance{nullptr};
@@ -41,7 +42,7 @@ std::mutex engine::_load_m;
  *
  *  @return Class instance.
  */
-std::shared_ptr<engine> engine::instance_ptr() {
+std::shared_ptr<engine>& engine::instance_ptr() {
   return _instance;
 }
 
@@ -50,7 +51,7 @@ std::shared_ptr<engine> engine::instance_ptr() {
  * queue files.
  */
 void engine::load() {
-  log_v2::core()->trace("multiplexing: loading engine");
+  log_v2::instance().get(log_v2::CORE)->trace("multiplexing: loading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   if (!_instance)
     _instance.reset(new engine);
@@ -60,12 +61,12 @@ void engine::load() {
  *  Unload class instance.
  */
 void engine::unload() {
+  log_v2::instance().get(log_v2::CORE)->trace("multiplexing: unloading engine");
   if (!_instance)
     return;
   if (_instance->_state != stopped)
     _instance->stop();
 
-  log_v2::core()->trace("multiplexing: unloading engine");
   std::lock_guard<std::mutex> lk(_load_m);
   // Commit the cache file, if needed.
   if (_instance && _instance->_cache_file)
@@ -80,22 +81,27 @@ void engine::unload() {
  *  @param[in] e  Event to publish.
  */
 void engine::publish(const std::shared_ptr<io::data>& e) {
-  // Lock mutex.
   bool have_to_send = false;
   {
     std::lock_guard<std::mutex> lock(_engine_m);
     switch (_state) {
       case stopped:
-        log_v2::core()->trace("engine::publish one event to file");
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->trace("engine::publish one event to file");
         _cache_file->add(e);
         _unprocessed_events++;
         break;
       case not_started:
-        log_v2::core()->trace("engine::publish one event to queue");
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->trace("engine::publish one event to queue");
         _kiew.push_back(e);
         break;
       default:
-        log_v2::core()->trace("engine::publish one event to queue_");
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->trace("engine::publish one event to queue_");
         _kiew.push_back(e);
         have_to_send = true;
         break;
@@ -112,22 +118,25 @@ void engine::publish(const std::deque<std::shared_ptr<io::data>>& to_publish) {
     std::lock_guard<std::mutex> lock(_engine_m);
     switch (_state) {
       case stopped:
-        log_v2::core()->trace("engine::publish {} event to file",
-                              to_publish.size());
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->trace("engine::publish {} event to file", to_publish.size());
         for (auto& e : to_publish) {
           _cache_file->add(e);
           _unprocessed_events++;
         }
         break;
       case not_started:
-        log_v2::core()->trace("engine::publish {} event to queue",
-                              to_publish.size());
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->trace("engine::publish {} event to queue", to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
         break;
       default:
-        log_v2::core()->trace("engine::publish {} event to queue_",
-                              to_publish.size());
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->trace("engine::publish {} event to queue_", to_publish.size());
         for (auto& e : to_publish)
           _kiew.push_back(e);
         have_to_send = true;
@@ -149,7 +158,9 @@ void engine::start() {
     std::lock_guard<std::mutex> lock(_engine_m);
     if (_state == not_started) {
       // Set writing method.
-      log_v2::core()->debug("multiplexing: engine starting");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->debug("multiplexing: engine starting");
       _state = running;
       stats::center::instance().update(&EngineStats::set_mode, _stats,
                                        EngineStats::RUNNING);
@@ -167,8 +178,10 @@ void engine::start() {
           kiew.push_back(d);
         }
       } catch (const std::exception& e) {
-        log_v2::core()->error(
-            "multiplexing: engine couldn't read cache file: {}", e.what());
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error("multiplexing: engine couldn't read cache file: {}",
+                    e.what());
       }
 
       // Copy global event queue to local queue.
@@ -185,7 +198,7 @@ void engine::start() {
   if (have_to_send) {
     _send_to_subscribers(nullptr);
   }
-  log_v2::core()->info("multiplexing: engine started");
+  log_v2::instance().get(log_v2::CORE)->info("multiplexing: engine started");
 }
 
 /**
@@ -195,22 +208,27 @@ void engine::start() {
  */
 void engine::stop() {
   std::unique_lock<std::mutex> lock(_engine_m);
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("engine::engine stop {}", static_cast<void*>(this));
   if (_state != stopped) {
     // Notify hooks of multiplexing loop end.
-    log_v2::core()->info("multiplexing: stopping engine");
+    log_v2::instance().get(log_v2::CORE)->info("multiplexing: stopping engine");
 
     do {
       // Make sure that no more data is available.
-      if (!_sending_to_subscribers) {
-        log_v2::core()->info(
-            "multiplexing: sending events to muxers for the last time {} "
-            "events to send",
-            _kiew.size());
-        _sending_to_subscribers = true;
+      bool expected = false;
+      if (_sending_to_subscribers.compare_exchange_strong(expected, true)) {
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->info(
+                "multiplexing: sending events to muxers for the last time {} "
+                "events to send",
+                _kiew.size());
         lock.unlock();
         std::promise<void> promise;
         if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
-          promise.get_future().get();
+          promise.get_future().wait();
         } else {  // nothing to send or no muxer
           break;
         }
@@ -226,8 +244,9 @@ void engine::stop() {
       _cache_file = std::make_unique<persistent_cache>(_cache_file_path());
       _cache_file->transaction();
     } catch (const std::exception& e) {
-      log_v2::perfdata()->error("multiplexing: could not open cache file: {}",
-                                e.what());
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("multiplexing: could not open cache file: {}", e.what());
       _cache_file.reset();
     }
 
@@ -236,8 +255,7 @@ void engine::stop() {
     stats::center::instance().update(&EngineStats::set_mode, _stats,
                                      EngineStats::STOPPED);
   }
-  log_v2::core()->debug("multiplexing: engine stopped");
-  DEBUG(fmt::format("STOP engine {:p}", static_cast<void*>(this)));
+  log_v2::instance().get(log_v2::CORE)->debug("multiplexing: engine stopped");
 }
 
 /**
@@ -246,13 +264,15 @@ void engine::stop() {
  *  @param[in] subscriber  A muxer.
  */
 void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
-  log_v2::config()->debug("engine: muxer {} subscribes to engine",
-                          subscriber->name());
+  log_v2::instance()
+      .get(log_v2::CONFIG)
+      ->debug("engine: muxer {} subscribes to engine", subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
   for (auto& m : _muxers)
     if (m.lock() == subscriber) {
-      log_v2::config()->debug("engine: muxer {} already subscribed",
-                              subscriber->name());
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->debug("engine: muxer {} already subscribed", subscriber->name());
       return;
     }
   _muxers.push_back(subscriber);
@@ -268,8 +288,10 @@ void engine::unsubscribe_muxer(const muxer* subscriber) {
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     auto w = it->lock();
     if (!w || w.get() == subscriber) {
-      log_v2::config()->debug("engine: muxer {} unsubscribes to engine",
-                              subscriber->name());
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->debug("engine: muxer {} unsubscribes to engine",
+                  subscriber->name());
       _muxers.erase(it);
       return;
     }
@@ -284,7 +306,9 @@ engine::engine()
       _stats{stats::center::instance().register_engine()},
       _unprocessed_events{0u},
       _sending_to_subscribers{false} {
-  DEBUG(fmt::format("CONSTRUCTOR engine {:p}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("engine::engine constructor {}", static_cast<void*>(this));
   stats::center::instance().update(&EngineStats::set_mode, _stats,
                                    EngineStats::NOT_STARTED);
 }
@@ -292,8 +316,10 @@ engine::engine()
 engine::~engine() noexcept {
   /* Muxers should be unsubscribed before arriving here. */
   assert(_muxers.empty());
-  log_v2::core()->debug("core: cbd engine destroyed.");
-  DEBUG(fmt::format("DESTRUCTOR engine {:p}", static_cast<void*>(this)));
+  log_v2::instance().get(log_v2::CORE)->debug("core: cbd engine destroyed.");
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("engine::engine destructor {}", static_cast<void*>(this));
 }
 
 /**
@@ -316,13 +342,13 @@ namespace com::centreon::broker::multiplexing::detail {
  *
  */
 class callback_caller {
-  engine::send_to_mux_callback_type _callback;
-  std::shared_ptr<engine> _parent;
+  std::function<void()> _callback;
+  std::shared_ptr<engine>& _parent;
 
  public:
-  callback_caller(engine::send_to_mux_callback_type&& callback,
-                  const std::shared_ptr<engine>& parent)
-      : _callback(callback), _parent(parent) {}
+  callback_caller(std::function<void()>&& callback,
+                  std::shared_ptr<engine>& parent)
+      : _callback(std::move(callback)), _parent(parent) {}
 
   /**
    * @brief Destroy the callback caller object and do the completion job
@@ -349,39 +375,40 @@ class callback_caller {
  * the sending of data to each. callback is called only if _kiew is not empty
  * @param callback
  * @return true data sent
- * @return false nothing to sent or sent in progress
+ * @return false nothing to send or currently sending.
  */
-bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
+bool engine::_send_to_subscribers(std::function<void()>&& callback) {
   // is _send_to_subscriber working? (_sending_to_subscribers=false)
   bool expected = false;
   if (!_sending_to_subscribers.compare_exchange_strong(expected, true)) {
     return false;
   }
-  // now we continue and _sending_to_subscribers = true
+  // Now we continue and _sending_to_subscribers is true.
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
   std::shared_ptr<muxer> last_muxer;
-  std::shared_ptr<detail::callback_caller> cb;
+  std::shared_ptr<detail::callback_caller> cc;
   {
     std::lock_guard<std::mutex> lck(_engine_m);
     if (_muxers.empty() || _kiew.empty()) {
-      // nothing to do true => _sending_to_subscribers
-      bool expected = true;
-      _sending_to_subscribers.compare_exchange_strong(expected, false);
+      // nothing to do
+      _sending_to_subscribers = false;
       return false;
     }
 
-    log_v2::core()->trace(
-        "engine::_send_to_subscribers send {} events to {} muxers",
-        _kiew.size(), _muxers.size());
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->trace("engine::_send_to_subscribers send {} events to {} muxers",
+                _kiew.size(), _muxers.size());
 
     kiew = std::make_shared<std::deque<std::shared_ptr<io::data>>>();
     std::swap(_kiew, *kiew);
-    // completion object
-    // it will be destroyed at the end of the scope of this function and at the
-    // end of lambdas posted
-    cb = std::make_shared<detail::callback_caller>(std::move(callback),
+    // completion object (class callback_caller at the top of this file).
+    // This object is stored in a shared_ptr and shared by all the subscribers
+    // while data are sent to them. Once the last muxer finishes to handle its
+    // publication, cc is destroyed. And it is then that its callback is called.
+    cc = std::make_shared<detail::callback_caller>(std::move(callback),
                                                    _instance);
     last_muxer = _muxers.rbegin()->lock();
     if (_muxers.size() > 1) {
@@ -394,14 +421,18 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       /* We use the thread pool for the muxers from the first one to the
        * second to last */
       for (auto it = _muxers.begin(); it != it_last; ++it) {
-        pool::io_context().post([kiew, m = it->lock(), cb]() {
+        pool::io_context().post([kiew, m = it->lock(), cc]() {
           try {
             m->publish(*kiew);
           }  // pool threads protection
           catch (const std::exception& ex) {
-            log_v2::core()->error("publish caught exception: {}", ex.what());
+            log_v2::instance()
+                .get(log_v2::CORE)
+                ->error("publish caught exception: {}", ex.what());
           } catch (...) {
-            log_v2::core()->error("publish caught unknown exception");
+            log_v2::instance()
+                .get(log_v2::CORE)
+                ->error("publish caught unknown exception");
           }
         });
       }
@@ -415,7 +446,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 }
 
 /**
- *  Clear events stored in the multiplexing engine.
+ * @brief Clear events stored in the multiplexing engine.
  */
 void engine::clear() {
   std::lock_guard<std::mutex> lck(_engine_m);

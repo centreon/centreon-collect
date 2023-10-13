@@ -1,20 +1,20 @@
-/*
-** Copyright 2019-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2019-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #ifndef CCB_UNIFIED_SQL_STREAM_HH
 #define CCB_UNIFIED_SQL_STREAM_HH
 #include <absl/container/flat_hash_map.h>
@@ -25,16 +25,18 @@
 #include <deque>
 #include <list>
 #include <mutex>
+#include <shared_mutex>
 #include <unordered_map>
 
 #include "bbdo/neb.pb.h"
+#include "broker/core/misc/perfdata.hh"
+#include "broker/core/misc/shared_mutex.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
-#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
+#include "com/centreon/broker/unified_sql/poller_configurator.hh"
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 
@@ -278,6 +280,10 @@ class stream : public io::stream {
   /* When the check_queues is really stopped */
   bool _check_queues_stopped;
 
+  /* Should pollers send their configuration when they are connected (legacy
+   * mode) or should broker send them when the connection is established? */
+  std::unique_ptr<poller_configurator> _configurator;
+
   /* Stats */
   ConflictManagerStats* _stats;
 
@@ -297,8 +303,19 @@ class stream : public io::stream {
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, uint64_t> _resource_cache;
 
   mutable std::mutex _timer_m;
+  /* This is a barrier for timers. It must be locked in shared mode in the
+   * timers functions. So we can execute several timer functions at the same
+   * time. But it is locked in write mode in the stream destructor. So When
+   * executed, we are sure that all the timer functions have finished. */
+  mutable std::shared_mutex _barrier_timer_m;
   asio::system_timer _group_clean_timer;
   asio::system_timer _loop_timer;
+
+  /* loggers  */
+  uint32_t _logger_sql_id;
+  uint32_t _logger_sto_id;
+  std::shared_ptr<spdlog::logger> _logger_sql;
+  std::shared_ptr<spdlog::logger> _logger_sto;
 
   absl::flat_hash_set<uint32_t> _hostgroup_cache;
   absl::flat_hash_set<uint32_t> _servicegroup_cache;
@@ -335,7 +352,6 @@ class stream : public io::stream {
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _pb_acknowledgement_insupdate;
   database::mysql_stmt _custom_variable_delete;
-  database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
   database::mysql_stmt _host_dependency_insupdate;

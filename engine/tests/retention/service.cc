@@ -20,7 +20,6 @@
 #include "com/centreon/engine/retention/service.hh"
 #include <gtest/gtest.h>
 
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/retention/dump.hh"
 
 using namespace com::centreon::engine;

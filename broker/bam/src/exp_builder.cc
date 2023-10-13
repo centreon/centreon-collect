@@ -46,8 +46,9 @@ using namespace com::centreon::broker::bam;
  *  @see exp_parser
  */
 exp_builder::exp_builder(exp_parser::notation const& postfix,
-                         hst_svc_mapping const& mapping)
-    : _mapping(mapping) {
+                         hst_svc_mapping const& mapping,
+                         const std::shared_ptr<spdlog::logger>& logger)
+    : _logger(logger), _mapping(mapping) {
   // Browse all tokens.
   for (exp_parser::notation::const_iterator it(postfix.begin()),
        end(postfix.end());
@@ -59,7 +60,7 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
         // XXX
       } else if (*it == "!") {
         bool_value::ptr arg(_pop_operand());
-        any_operand exp(std::make_shared<bool_not>(arg), "");
+        any_operand exp(std::make_shared<bool_not>(arg, _logger), "");
         arg->add_parent(exp.first);
         _operands.push(exp);
       }
@@ -67,26 +68,26 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
       else {
         bool_binary_operator::ptr binary;
         if (*it == "&&" || *it == "AND")
-          binary.reset(new bool_and());
+          binary.reset(new bool_and(_logger));
         else if (*it == "||" || *it == "OR")
-          binary.reset(new bool_or());
+          binary.reset(new bool_or(_logger));
         else if (*it == "^" || *it == "XOR")
-          binary.reset(new bool_xor());
+          binary.reset(new bool_xor(_logger));
         else if (*it == "==" || *it == "IS")
-          binary.reset(new bool_equal());
+          binary.reset(new bool_equal(_logger));
         else if (*it == "!=" || *it == "NOT")
-          binary.reset(new bool_not_equal());
+          binary.reset(new bool_not_equal(_logger));
         else if (*it == ">")
-          binary.reset(new bool_more_than(true));
+          binary.reset(new bool_more_than(true, _logger));
         else if (*it == ">=")
-          binary.reset(new bool_more_than(false));
+          binary.reset(new bool_more_than(false, _logger));
         else if (*it == "<")
-          binary.reset(new bool_less_than(true));
+          binary.reset(new bool_less_than(true, _logger));
         else if (*it == "<=")
-          binary.reset(new bool_less_than(false));
+          binary.reset(new bool_less_than(false, _logger));
         else if (*it == "+" || *it == "-" || *it == "*" || *it == "/" ||
                  *it == "%")
-          binary.reset(new bool_operation(*it));
+          binary.reset(new bool_operation(*it, _logger));
         else
           throw msg_fmt(
               "unsupported operator {}"
@@ -134,7 +135,7 @@ exp_builder::exp_builder(exp_parser::notation const& postfix,
 
         // Build object.
         bool_service::ptr obj{
-            std::make_shared<bool_service>(ids.first, ids.second)};
+            std::make_shared<bool_service>(ids.first, ids.second, _logger)};
 
         // Store it in the operand stack and within the service list.
         _operands.push(any_operand(obj, ""));
@@ -284,7 +285,7 @@ bool_value::ptr exp_builder::_pop_operand() {
       value = 2;
     else
       value = std::strtod(value_str.c_str(), nullptr);
-    retval.reset(new bool_constant(value));
+    retval.reset(new bool_constant(value, _logger));
   } else
     retval = _operands.top().first;
 

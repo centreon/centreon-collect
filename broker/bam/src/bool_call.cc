@@ -17,7 +17,6 @@
  */
 
 #include "com/centreon/broker/bam/bool_call.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
 
@@ -26,7 +25,9 @@ using namespace com::centreon::broker::bam;
  *
  *  @param[in] name  The name of the external expression.
  */
-bool_call::bool_call(std::string const& name) : _name(name) {}
+bool_call::bool_call(std::string const& name,
+                     const std::shared_ptr<spdlog::logger>& logger)
+    : bool_value(logger), _name(name) {}
 
 /**
  *  Get the hard value.
@@ -87,11 +88,13 @@ void bool_call::set_expression(std::shared_ptr<bool_value> expression) {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
 void bool_call::update_from(computable* child [[maybe_unused]],
-                            io::stream* visitor) {
-  log_v2::bam()->trace("bool_call::update_from");
+                            io::stream* visitor,
+                            const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("bool_call::update_from");
 
   if (child == _expression.get())
-    notify_parents_of_change(visitor);
+    notify_parents_of_change(visitor, logger);
 }

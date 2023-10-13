@@ -1,28 +1,28 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/hostescalation.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -53,9 +53,9 @@ hostescalation::hostescalation(std::string const& host_name,
                                double notification_interval,
                                std::string const& escalation_period,
                                uint32_t escalate_on,
-                               Uuid const& uuid)
+                               const size_t key)
     : escalation{first_notification, last_notification, notification_interval,
-                 escalation_period,  escalate_on,       uuid},
+                 escalation_period,  escalate_on,       key},
       _hostname{host_name} {
   if (host_name.empty())
     throw engine_error() << "Could not create escalation "
@@ -79,7 +79,7 @@ std::string const& hostescalation::get_hostname() const {
  */
 bool hostescalation::is_viable(int state, uint32_t notification_number) const {
   engine_logger(dbg_functions, basic) << "serviceescalation::is_viable()";
-  log_v2::functions()->trace("serviceescalation::is_viable()");
+  functions_logger->trace("serviceescalation::is_viable()");
 
   bool retval{escalation::is_viable(state, notification_number)};
   if (retval) {
@@ -106,7 +106,7 @@ void hostescalation::resolve(int& w, int& e) {
     engine_logger(log_verification_error, basic)
         << "Error: Host '" << this->get_hostname()
         << "' specified in host escalation is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host '{}' specified in host escalation is not defined "
         "anywhere!",
         this->get_hostname());
@@ -122,7 +122,7 @@ void hostescalation::resolve(int& w, int& e) {
   } catch (std::exception const& ee) {
     engine_logger(log_verification_error, basic)
         << "Error: Notifier escalation error: " << ee.what();
-    log_v2::config()->error("Error: Notifier escalation error: {}", ee.what());
+    config_logger->error("Error: Notifier escalation error: {}", ee.what());
   }
 
   // Add errors.

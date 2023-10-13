@@ -55,20 +55,11 @@ typedef struct sched_info_struct {
   time_t last_host_check;
 } sched_info;
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* C++ */
-
 void adjust_check_scheduling();
 void display_scheduling_info();
-
-#ifdef __cplusplus
-}
 
 bool operator==(sched_info const& obj1, sched_info const& obj2) noexcept;
 bool operator!=(sched_info const& obj1, sched_info const& obj2) noexcept;
 std::ostream& operator<<(std::ostream& os, sched_info const& obj);
-
-#endif /* C++ */
 
 #endif  // !CCE_EVENTS_SCHED_INFO_HH

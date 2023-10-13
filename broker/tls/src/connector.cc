@@ -18,21 +18,16 @@
 
 #include "com/centreon/broker/tls/connector.hh"
 
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/tls/internal.hh"
 #include "com/centreon/broker/tls/params.hh"
 #include "com/centreon/broker/tls/stream.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::tls;
 using namespace com::centreon::exceptions;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Default constructor
@@ -73,6 +68,7 @@ std::shared_ptr<io::stream> connector::open() {
  */
 std::shared_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
   std::shared_ptr<io::stream> u;
+  auto logger = log_v2::instance().get(log_v2::TLS);
   if (lower) {
     int ret;
     // Load parameters.
@@ -85,15 +81,15 @@ std::shared_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
     gnutls_session_t* session(new gnutls_session_t);
     try {
       // Initialize the TLS session
-      log_v2::tls()->debug("TLS: initializing session");
+      logger->debug("TLS: initializing session");
 #ifdef GNUTLS_NONBLOCK
       ret = gnutls_init(session, GNUTLS_CLIENT | GNUTLS_NONBLOCK);
 #else
       ret = gnutls_init(session, GNUTLS_CLIENT);
 #endif  // GNUTLS_NONBLOCK
       if (ret != GNUTLS_E_SUCCESS) {
-        log_v2::tls()->error("TLS: cannot initialize session: {}",
-                             gnutls_strerror(ret));
+        logger->error("TLS: cannot initialize session: {}",
+                      gnutls_strerror(ret));
         throw msg_fmt("TLS: cannot initialize session: {} ",
                       gnutls_strerror(ret));
       }
@@ -119,21 +115,20 @@ std::shared_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
     gnutls_transport_set_ptr(*session, u.get());
 
     // Perform the TLS handshake.
-    log_v2::tls()->debug("TLS: performing handshake");
+    logger->debug("TLS: performing handshake");
     do {
       ret = gnutls_handshake(*session);
     } while (GNUTLS_E_AGAIN == ret || GNUTLS_E_INTERRUPTED == ret);
     if (ret != GNUTLS_E_SUCCESS) {
-      log_v2::tls()->error("TLS: handshake failed: {}", gnutls_strerror(ret));
+      logger->error("TLS: handshake failed: {}", gnutls_strerror(ret));
       throw msg_fmt("TLS: handshake failed: {}", gnutls_strerror(ret));
     }
 
-    log_v2::tls()->debug("TLS: successful handshake");
+    logger->debug("TLS: successful handshake");
     gnutls_protocol_t prot = gnutls_protocol_get_version(*session);
     gnutls_cipher_algorithm_t ciph = gnutls_cipher_get(*session);
-    log_v2::tls()->debug("TLS: protocol and cipher  {} {} used",
-                         gnutls_protocol_get_name(prot),
-                         gnutls_cipher_get_name(ciph));
+    logger->debug("TLS: protocol and cipher  {} {} used",
+                  gnutls_protocol_get_name(prot), gnutls_cipher_get_name(ciph));
 
     // Check certificate if necessary.
     p.validate_cert(*session);

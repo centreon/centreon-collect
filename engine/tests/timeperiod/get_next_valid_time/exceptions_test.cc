@@ -1,28 +1,31 @@
 /**
-* Copyright 2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
+#include <absl/strings/ascii.h>
 #include <gtest/gtest.h>
+
 #include "../../timeperiod/utils.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
+#include "com/centreon/engine/configuration/parser.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/timeperiod.hh"
-
+#include "common/configuration/timeperiod_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon::engine;
@@ -72,12 +75,14 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
 
   bool wait_time_period_begin = true;
 
-  std::unique_ptr<configuration::timeperiod> conf(
-      std::make_unique<configuration::timeperiod>());
+  auto conf = std::make_unique<configuration::Timeperiod>();
+  std::unique_ptr<configuration::message_helper> conf_hlp =
+      std::make_unique<configuration::timeperiod_helper>(conf.get());
   while (!f.eof()) {
     std::getline(f, line);
 
-    if (line.empty()) {
+    line = absl::StripAsciiWhitespace(line);
+    if (line.empty() || line[0] == '#') {
       continue;
     }
 
@@ -88,10 +93,32 @@ void timeperiod_exception::parse_timeperiods_cfg_file(
       if (line[0] == '}') {
         wait_time_period_begin = true;
         _applier.add_object(*conf);
-        conf = std::make_unique<configuration::timeperiod>();
+        conf = std::make_unique<configuration::Timeperiod>();
+        conf_hlp =
+            std::make_unique<configuration::timeperiod_helper>(conf.get());
         continue;
       }
-      conf->parse(string::trim(line));
+      std::string_view l = line;
+      size_t pos = l.find_first_of(" \t");
+      std::string_view key = l.substr(0, pos);
+      if (pos != std::string::npos) {
+        l.remove_prefix(pos);
+        l = absl::StripLeadingAsciiWhitespace(l);
+      } else
+        l = {};
+
+      if (key == "name") {
+        conf->mutable_obj()->set_name(std::string(l.data(), l.size()));
+      } else if (key == "timeperiod_name") {
+        conf->set_timeperiod_name(std::string(l.data(), l.size()));
+      } else if (key == "alias") {
+        conf->set_alias(std::string(l.data(), l.size()));
+      } else {
+        bool retval = false;
+        /* particular cases with hook */
+        retval = conf_hlp->hook(key, l);
+        ASSERT_TRUE(retval);
+      }
     }
   }
 }

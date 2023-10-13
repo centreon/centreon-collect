@@ -20,9 +20,6 @@
 #include "com/centreon/engine/retention/host.hh"
 #include <gtest/gtest.h>
 
-#include "com/centreon/engine/exceptions/error.hh"
-//#include "test/unittest.hh"
-
 using namespace com::centreon::engine;
 
 class RetentionHostTest : public ::testing::Test {

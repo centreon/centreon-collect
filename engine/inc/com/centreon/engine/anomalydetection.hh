@@ -1,28 +1,27 @@
-/*
-** Copyright 2020 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2020-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_ANOMALYDETECTION_HH
 #define CCE_ANOMALYDETECTION_HH
 
 #include <map>
 #include <mutex>
-
 #include <nlohmann/json.hpp>
 #include <tuple>
 
@@ -43,8 +42,7 @@ class anomalydetection : public service {
     e_format _format;
 
    public:
-    threshold_point(time_t timepoint,
-                    double factor,
+    threshold_point(time_t timepoint, double factor,
                     const nlohmann::json& json_data);
     threshold_point(time_t timepoint);
 
@@ -76,44 +74,24 @@ class anomalydetection : public service {
   std::mutex _thresholds_m;
 
  public:
-  anomalydetection(uint64_t host_id,
-                   uint64_t service_id,
-                   std::string const& hostname,
-                   std::string const& description,
-                   std::string const& display_name,
-                   uint64_t internal_id,
-                   service* dependent_service,
-                   std::string const& metric_name,
-                   std::string const& thresholds_file,
-                   bool status_change,
-                   bool checks_enabled,
-                   bool accept_passive_checks,
-                   enum service::service_state initial_state,
-                   uint32_t check_interval,
-                   uint32_t retry_interval,
-                   uint32_t notification_interval,
-                   int max_attempts,
-                   uint32_t first_notification_delay,
-                   uint32_t recovery_notification_delay,
-                   std::string const& notification_period,
-                   bool notifications_enabled,
-                   bool is_volatile,
-                   std::string const& event_handler,
-                   bool event_handler_enabled,
-                   std::string const& notes,
-                   std::string const& notes_url,
-                   std::string const& action_url,
-                   std::string const& icon_image,
-                   std::string const& icon_image_alt,
-                   bool flap_detection_enabled,
-                   double low_flap_threshold,
-                   double high_flap_threshold,
-                   bool check_freshness,
-                   int freshness_threshold,
-                   bool obsess_over,
-                   std::string const& timezone,
-                   uint64_t icon_id,
-                   double sensitivity);
+  anomalydetection(
+      uint64_t host_id, uint64_t service_id, std::string const& hostname,
+      std::string const& description, std::string const& display_name,
+      uint64_t internal_id, service* dependent_service,
+      std::string const& metric_name, std::string const& thresholds_file,
+      bool status_change, bool checks_enabled, bool accept_passive_checks,
+      enum service::service_state initial_state, uint32_t check_interval,
+      uint32_t retry_interval, uint32_t notification_interval, int max_attempts,
+      uint32_t first_notification_delay, uint32_t recovery_notification_delay,
+      std::string const& notification_period, bool notifications_enabled,
+      bool is_volatile, std::string const& event_handler,
+      bool event_handler_enabled, std::string const& notes,
+      std::string const& notes_url, std::string const& action_url,
+      std::string const& icon_image, std::string const& icon_image_alt,
+      bool flap_detection_enabled, double low_flap_threshold,
+      double high_flap_threshold, bool check_freshness, int freshness_threshold,
+      bool obsess_over, std::string const& timezone, uint64_t icon_id,
+      double sensitivity);
   ~anomalydetection();
   uint64_t get_internal_id() const;
   void set_internal_id(uint64_t id);
@@ -122,8 +100,7 @@ class anomalydetection : public service {
   void set_metric_name(std::string const& name);
   void set_thresholds_file(std::string const& file);
 
-  void set_thresholds_lock(const std::string& filename,
-                           double json_sensitivity,
+  void set_thresholds_lock(const std::string& filename, double json_sensitivity,
                            const nlohmann::json& thresholds);
   void set_thresholds_no_lock(const std::string& filename,
                               double json_sensitivity,
@@ -133,16 +110,13 @@ class anomalydetection : public service {
   double get_sensitivity() const { return _sensitivity; }
 
   static int update_thresholds(const std::string& filename);
-  virtual int run_async_check(int check_options,
-                              double latency,
-                              bool scheduled_check,
-                              bool reschedule_check,
+  virtual int run_async_check(int check_options, double latency,
+                              bool scheduled_check, bool reschedule_check,
                               bool* time_is_valid,
                               time_t* preferred_time) noexcept override;
   int handle_async_check_result(
       const check_result& queued_check_result) override;
-  bool parse_perfdata(std::string const& perfdata,
-                      time_t check_time,
+  bool parse_perfdata(std::string const& perfdata, time_t check_time,
                       check_result& calculated_result);
   void init_thresholds();
   void set_status_change(bool status_change);
@@ -152,63 +126,33 @@ class anomalydetection : public service {
 
   static const pointer_set& get_anomaly(uint64_t dependent_service_id);
 };
-}
+}  // namespace com::centreon::engine
 
 com::centreon::engine::anomalydetection* add_anomalydetection(
-    uint64_t host_id,
-    uint64_t service_id,
-    std::string const& host_name,
-    std::string const& description,
-    std::string const& display_name,
-    uint64_t internal_id,
-    uint64_t dependent_service_id,
-    std::string const& metric_name,
-    std::string const& thresholds_file,
+    uint64_t host_id, uint64_t service_id, std::string const& host_name,
+    std::string const& description, std::string const& display_name,
+    uint64_t internal_id, uint64_t dependent_service_id,
+    std::string const& metric_name, std::string const& thresholds_file,
     bool status_change,
     enum com::centreon::engine::service::service_state initial_state,
-    int max_attempts,
-    double check_interval,
-    double retry_interval,
-    double notification_interval,
-    uint32_t first_notification_delay,
+    int max_attempts, double check_interval, double retry_interval,
+    double notification_interval, uint32_t first_notification_delay,
     uint32_t recovery_notification_delay,
-    std::string const& notification_period,
-    bool notify_recovery,
-    bool notify_unknown,
-    bool notify_warning,
-    bool notify_critical,
-    bool notify_flapping,
-    bool notify_downtime,
-    bool notifications_enabled,
-    bool is_volatile,
-    std::string const& event_handler,
-    bool event_handler_enabled,
-    bool checks_enabled,
-    bool accept_passive_checks,
-    bool flap_detection_enabled,
-    double low_flap_threshold,
-    double high_flap_threshold,
-    bool flap_detection_on_ok,
-    bool flap_detection_on_warning,
-    bool flap_detection_on_unknown,
-    bool flap_detection_on_critical,
-    bool stalk_on_ok,
-    bool stalk_on_warning,
-    bool stalk_on_unknown,
-    bool stalk_on_critical,
-    int process_perfdata,
-    bool check_freshness,
-    int freshness_threshold,
-    std::string const& notes,
-    std::string const& notes_url,
-    std::string const& action_url,
-    std::string const& icon_image,
-    std::string const& icon_image_alt,
-    int retain_status_information,
-    int retain_nonstatus_information,
-    bool obsess_over,
-    std::string const& timezone,
-    uint64_t icon_id,
+    std::string const& notification_period, bool notify_recovery,
+    bool notify_unknown, bool notify_warning, bool notify_critical,
+    bool notify_flapping, bool notify_downtime, bool notifications_enabled,
+    bool is_volatile, std::string const& event_handler,
+    bool event_handler_enabled, bool checks_enabled, bool accept_passive_checks,
+    bool flap_detection_enabled, double low_flap_threshold,
+    double high_flap_threshold, bool flap_detection_on_ok,
+    bool flap_detection_on_warning, bool flap_detection_on_unknown,
+    bool flap_detection_on_critical, bool stalk_on_ok, bool stalk_on_warning,
+    bool stalk_on_unknown, bool stalk_on_critical, int process_perfdata,
+    bool check_freshness, int freshness_threshold, std::string const& notes,
+    std::string const& notes_url, std::string const& action_url,
+    std::string const& icon_image, std::string const& icon_image_alt,
+    int retain_status_information, int retain_nonstatus_information,
+    bool obsess_over, std::string const& timezone, uint64_t icon_id,
     double sensitivity);
 
 #endif  // !CCE_ANOMALYDETECTION_HH

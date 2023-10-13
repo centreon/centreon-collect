@@ -22,9 +22,7 @@
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/io/stream.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 // Forward declaration.
 class bool_value;
 
@@ -39,7 +37,7 @@ class bool_not : public bool_value {
   bool_value::ptr _value;
 
  public:
-  bool_not(bool_value::ptr val = bool_value::ptr());
+  bool_not(bool_value::ptr val, const std::shared_ptr<spdlog::logger>& logger);
   bool_not(const bool_not&) = delete;
   ~bool_not() noexcept = default;
   bool_not& operator=(const bool_not&) = delete;
@@ -49,12 +47,12 @@ class bool_not : public bool_value {
   double value_soft();
   bool state_known() const override;
   bool in_downtime() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_NOT_HH

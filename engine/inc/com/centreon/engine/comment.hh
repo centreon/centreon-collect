@@ -26,7 +26,7 @@
 namespace com::centreon::engine {
 class comment;
 class service;
-}
+}  // namespace com::centreon::engine
 
 using comment_map =
     absl::flat_hash_map<uint64_t,
@@ -42,18 +42,11 @@ class comment {
 
   enum e_type { user = 1, downtime, flapping, acknowledgment };
 
-  comment(comment::type comment_type,
-          comment::e_type entry_type,
-          uint64_t host_id,
-          uint64_t service_id,
-          time_t entry_time,
-          std::string const& author,
-          std::string const& comment_data,
-          bool persistent,
-          comment::src source,
-          bool expires,
-          time_t expire_time,
-          uint64_t comment_id = 0);
+  comment(comment::type comment_type, comment::e_type entry_type,
+          uint64_t host_id, uint64_t service_id, time_t entry_time,
+          std::string const& author, std::string const& comment_data,
+          bool persistent, comment::src source, bool expires,
+          time_t expire_time, uint64_t comment_id = 0);
 
   comment::type get_comment_type() const;
   comment::e_type get_entry_type() const;
@@ -98,7 +91,7 @@ class comment {
   static uint64_t _next_comment_id;
 };
 
-}
+}  // namespace com::centreon::engine
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::comment const& obj);

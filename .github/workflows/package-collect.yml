@@ -77,7 +77,7 @@ jobs:
 
       - name: Compile sources
         run: |
-          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
+          sudo pip3 install conan==1.62.0 --prefix=/usr --upgrade
 
           sudo conan install . -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
@@ -88,7 +88,8 @@ jobs:
 
           sudo $CMAKE \
                   -G "Ninja" \
-                  -DDEBUG_ROBOT=OFF \
+                  -DNG=ON \
+                  -DDEBUG_ROBOT=ON \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \

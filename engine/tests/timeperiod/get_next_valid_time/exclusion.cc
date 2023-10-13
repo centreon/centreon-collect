@@ -1,23 +1,24 @@
 /**
-* Copyright 2016 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2016 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include <gtest/gtest.h>
+
 #include "com/centreon/clib.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/timeperiod.hh"
@@ -27,19 +28,31 @@ using namespace com::centreon;
 using namespace com::centreon::engine;
 
 class GetNextValidTimeExclusionTest : public ::testing::Test {
+ protected:
+  time_t _computed;
+  timeperiod_creator _creator;
+  time_t _now;
+  timeperiod* _tp;
+
  public:
   void SetUp() override {
     _computed = (time_t)-1;
     _tp = _creator.new_timeperiod();
-    for (int i(0); i < 7; ++i)
+    for (int i = 0; i < 7; ++i)
       _creator.new_timerange(0, 0, 24, 0, i);
     _now = strtotimet("2016-11-24 08:00:00");
     set_time(_now);
   }
 
+  /**
+   * @brief calendar_date_full_days_exclusion
+   * Stack a timeperiod in the creator and set its date to
+   * 2016-11-24 00:00-24:00.
+   * This timeperiod is set as exclusion in the _tp timeperiod.
+   */
   void calendar_date_full_days_exclusion() {
     _creator.new_timeperiod();
-    daterange* dr(_creator.new_calendar_date(2016, 10, 24, 2016, 10, 24));
+    daterange* dr = _creator.new_calendar_date(2016, 10, 24, 2016, 10, 24);
 
     _creator.new_timerange(0, 0, 24, 0, dr);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
@@ -132,12 +145,6 @@ class GetNextValidTimeExclusionTest : public ::testing::Test {
     _creator.new_timerange(8, 0, 14, 0, 6);
     _creator.new_exclusion(_creator.get_timeperiods_shared(), _tp);
   }
-
- protected:
-  time_t _computed;
-  timeperiod_creator _creator;
-  time_t _now;
-  timeperiod* _tp;
 };
 
 // Given a timeperiod with exclusions

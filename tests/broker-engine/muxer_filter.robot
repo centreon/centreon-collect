@@ -175,30 +175,30 @@ BAM_STREAM_FILTER
         END
     END
 
-    Should Not Be Empty    ${grep_res1}    no pb_service event
-    Should Not Be Empty    ${grep_res2}    no pb_service_status event
-    Should Not Be Empty    ${grep_res3}    no pb_ba_status event
-    Should Not Be Empty    ${grep_res4}    no pb_kpi_status event
-    Should Not Be Empty    ${grep_res5}    no KpiEvent event
-    Should Not Be Empty    ${grep_res6}    no storage event rejected
+    Should Not Be Empty    ${grep_res1}    At least, one pb_service event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res2}    At least, one pb_service_status event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res3}    At least, one pb_ba_status event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res4}    At least, one pb_kpi_status event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res5}    At least, one KpiEvent event should be written on the BAM monitoring stream
+    Should Not Be Empty    ${grep_res6}    At least, one event of category Storage should be written on the BAM monitoring stream
 
-    # reporting
+    # Reporting stream
     # pb_ba_event
     ${grep_res}    Grep File    ${centralLog}    centreon-bam-reporting event of type 60014 written
-    Should Not Be Empty    ${grep_res}    no pb_ba_event
+    Should Not Be Empty    ${grep_res}    At least, one pb_ba_event event should be written on the BAM reporting stream
     # pb_kpi_event
     ${grep_res}    Grep File    ${centralLog}    centreon-bam-reporting event of type 60015 written
-    Should Not Be Empty    ${grep_res}    no pb_kpi_event
+    Should Not Be Empty    ${grep_res}    At least, one pb_kpi_event event should be written on the BAM reporting stream
     # reject storage
     ${grep_res}    Grep File
     ...    ${centralLog}
     ...    centreon-bam-reporting event of type 3[0-9a-f]{4} rejected by write filter    regexp=True
-    Should Not Be Empty    ${grep_res}    no rejected storage event
+    Should Not Be Empty    ${grep_res}    Storage category events should be rejected from BAM reporting stream.
     # reject neb
     ${grep_res}    Grep File
     ...    ${centralLog}
     ...    centreon-bam-reporting event of type 1[0-9a-f]{4} rejected by write filter    regexp=True
-    Should Not Be Empty    ${grep_res}    no rejected neb event
+    Should Not Be Empty    ${grep_res}    Neb category events should be rejected from BAM reporting stream.
 
     Stop Engine
     Kindly Stop Broker    True
@@ -232,8 +232,9 @@ UNIFIED_SQL_FILTER
     # de_pb_service de_pb_service_status de_pb_host de_pb_custom_variable de_pb_log_entry de_pb_host_check
     FOR    ${event}    IN    1001b    1001d    1001e    10025    10029    10027
         ${to_search}    Catenate    central-broker-unified-sql event of type    ${event}    written
+	Log To Console    ${to_search}
         ${grep_res}    Grep File    ${centralLog}    ${to_search}
-        Should Not Be Empty    ${grep_res}
+        Should Not Be Empty    ${grep_res}    ${event} event does not seem to be written by unified_sql
     END
 
     Stop Engine

@@ -1,23 +1,24 @@
-/*
-** Copyright 1999-2009 Ethan Galstad
-** Copyright 2009-2010 Nagios Core Development Team and Community Contributors
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2009 Ethan Galstad
+ * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
+ * Copyright 2011-2013 Merethis
+ * Copyright 2023      Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_EVENTS_LOOP_HH
 #define CCE_EVENTS_LOOP_HH
@@ -27,9 +28,8 @@
 using timed_event_list =
     std::deque<std::unique_ptr<com::centreon::engine::timed_event>>;
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::events {
 
-namespace events {
 /**
  *  @class loop loop.hh
  *  @brief Create Centreon Engine event loop on a new thread.
@@ -68,8 +68,7 @@ class loop {
   void remove_event(timed_event_list::iterator& it, priority priority);
   void remove_event(timed_event* evt, loop::priority priority);
   void remove_events(priority, uint32_t event_type, void* data) noexcept;
-  timed_event_list::iterator find_event(priority priority,
-                                        uint32_t event_type,
+  timed_event_list::iterator find_event(priority priority, uint32_t event_type,
                                         void* data);
   const timed_event_list::const_iterator list_end(
       priority priority) const noexcept {
@@ -84,8 +83,7 @@ class loop {
   void resort_event_list(priority priority);
   void schedule(std::unique_ptr<timed_event>&& evt, bool high_priority);
 };
-}  // namespace events
 
-}
+}  // namespace com::centreon::engine::events
 
 #endif  // !CCE_EVENTS_LOOP_HH

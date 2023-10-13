@@ -25,6 +25,7 @@ BERD1
     Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Broker Config Log    module0    lua    debug
     Config Broker    rrd
+    Config BBDO3    ${1}
     Clear Retention
     ${start}    Get Current Date
     Start Broker
@@ -32,7 +33,7 @@ BERD1
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -73,7 +74,7 @@ BERD2
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -113,7 +114,7 @@ BERDUC1
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -152,7 +153,7 @@ BERDUCU1
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     Sleep    5s
     Kindly Stop Broker
@@ -187,7 +188,7 @@ BERDUC2
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -226,7 +227,7 @@ BERDUCU2
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -250,6 +251,12 @@ BERDUC3U1
     Config Broker    central
     Broker Config Add Lua Output    central    test-doubles    ${SCRIPTS}test-doubles-c.lua
     Broker Config Log    central    lua    debug
+    Broker Config Log    module0    lua    debug
+    Broker Config Log    central    core    info
+    Broker Config Log    module0    core    info
+    Broker Config Log    central    sql    info
+    Broker Config Log    central    bbdo    debug
+    Broker Config Log    module0    bbdo    debug
     Config Broker Sql Output    central    unified_sql
     Config Broker    module
     Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
@@ -264,7 +271,7 @@ BERDUC3U1
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -306,7 +313,7 @@ BERDUC3U2
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in cbd
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Lua not started in centengine
 
     # Let's wait for all the services configuration.
@@ -315,9 +322,9 @@ BERDUC3U2
 
     ${start}    Get Round Current Date
     # Let's wait for a first service status.
-    ${content}    Create List    SQL: pb service .* status .* type .* check result output
-    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result[0]}    We did not get any pb service status for 60s
+    ${content}    Create List    unified_sql: processing pb service status
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    We did not get any pb service status for 60s
 
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected.
@@ -368,7 +375,7 @@ BERDUCA300
 
     Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
 
     ${content}    Create List    BBDO: received pb stop from peer
@@ -380,7 +387,7 @@ BERDUCA300
     Should Be True    ${result[0]}    Broker should send an ack for handled events.
 
     ${content}    Create List    BBDO: received acknowledgement for [0-9]+ events before finishing
-    ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
     Kindly Stop Broker
@@ -421,7 +428,7 @@ BERDUCA301
 
     Stop Engine
     ${content}    Create List    BBDO: sending pb stop packet to peer
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    Engine should send a pb stop message to cbd.
 
     ${content}    Create List    BBDO: received pb stop from peer
@@ -433,7 +440,7 @@ BERDUCA301
     Should Be True    ${result[0]}    Broker should send an ack for handled events.
 
     ${content}    Create List    BBDO: received acknowledgement for [0-9]+ events before finishing
-    ${result}    Find Regex In Log With Timeout    ${moduleLog0}    ${start}    ${content}    30
+    ${result}    Find Regex In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result[0]}    Engine should receive an ack for handled events from broker.
 
     Kindly Stop Broker

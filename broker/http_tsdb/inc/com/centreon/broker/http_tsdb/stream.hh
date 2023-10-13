@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_HTTP_TSDB_STREAM_HH
 #define CCB_HTTP_TSDB_STREAM_HH
@@ -78,7 +78,6 @@ inline std::ostream& operator<<(std::ostream& str, const request& req) {
 class stream : public io::stream, public std::enable_shared_from_this<stream> {
  protected:
   std::shared_ptr<asio::io_context> _io_context;
-  const std::shared_ptr<spdlog::logger> _logger;
   // Database and http parameters
   std::shared_ptr<http_tsdb_config> _conf;
 
@@ -106,6 +105,9 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   stat _metric_stat;
   stat _status_stat;
 
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
   /**
    * @brief this cless calc an average over a period
    *
@@ -127,7 +129,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 
   stream(const std::string& name,
          const std::shared_ptr<asio::io_context>& io_context,
-         const std::shared_ptr<spdlog::logger>& logger,
          const std::shared_ptr<http_tsdb_config>& conf,
          http_client::client::connection_creator conn_creator =
              http_client::http_connection::load);
@@ -155,6 +156,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 };
 }  // namespace http_tsdb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_HTTP_TSDB_STREAM_HH

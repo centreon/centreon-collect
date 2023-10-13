@@ -1,28 +1,28 @@
 /**
-* Copyright 2011-2019 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/hostdependency.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/shared.hh"
 #include "com/centreon/engine/string.hh"
@@ -36,8 +36,10 @@ using namespace com::centreon::engine::string;
 hostdependency_mmap hostdependency::hostdependencies;
 
 /**
- *  Create a host dependency definition.
+ *  Create a host dependency definition. The key is given by the
+ *  applier::configuration::hostdependency object from its attributes.
  *
+ *  @param[in] key                 key representing this hostdependency.
  *  @param[in] dependent_hostname  Dependant host name.
  *  @param[in] hostname            Host name.
  *  @param[in] dependency_type     Dependency type.
@@ -50,7 +52,8 @@ hostdependency_mmap hostdependency::hostdependencies;
  *
  *  @return New host dependency.
  */
-hostdependency::hostdependency(std::string const& dependent_hostname,
+hostdependency::hostdependency(size_t key,
+                               std::string const& dependent_hostname,
                                std::string const& hostname,
                                dependency::types dependency_type,
                                bool inherits_parent,
@@ -59,7 +62,8 @@ hostdependency::hostdependency(std::string const& dependent_hostname,
                                bool fail_on_unreachable,
                                bool fail_on_pending,
                                std::string const& dependency_period)
-    : dependency(dependent_hostname,
+    : dependency(key,
+                 dependent_hostname,
                  hostname,
                  dependency_type,
                  inherits_parent,
@@ -231,13 +235,9 @@ void hostdependency::resolve(int& w, int& e) {
   int errors{0};
 
   // Find the dependent host.
-  host_map::const_iterator it{host::hosts.find(_dependent_hostname)};
+  host_map::const_iterator it = host::hosts.find(_dependent_hostname);
   if (it == host::hosts.end() || !it->second) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Dependent host specified in host dependency for "
-           "host '"
-        << _dependent_hostname << "' is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Dependent host specified in host dependency for "
         "host '{}' is not defined anywhere!",
         _dependent_hostname);
@@ -249,10 +249,7 @@ void hostdependency::resolve(int& w, int& e) {
   // Find the host we're depending on.
   it = host::hosts.find(_hostname);
   if (it == host::hosts.end() || !it->second) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Host specified in host dependency for host '"
-        << _dependent_hostname << "' is not defined anywhere!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host specified in host dependency for host '{}' is not defined "
         "anywhere!",
         _dependent_hostname);
@@ -263,10 +260,7 @@ void hostdependency::resolve(int& w, int& e) {
 
   // Make sure they're not the same host.
   if (dependent_host_ptr == master_host_ptr && dependent_host_ptr != nullptr) {
-    engine_logger(log_verification_error, basic)
-        << "Error: Host dependency definition for host '" << _dependent_hostname
-        << "' is circular (it depends on itself)!";
-    log_v2::config()->error(
+    config_logger->error(
         "Error: Host dependency definition for host '{}' is circular (it "
         "depends on itself)!",
         _dependent_hostname);
@@ -283,7 +277,7 @@ void hostdependency::resolve(int& w, int& e) {
           << "Error: Dependency period '" << this->get_dependency_period()
           << "' specified in host dependency for host '" << _dependent_hostname
           << "' is not defined anywhere!";
-      log_v2::config()->error(
+      config_logger->error(
           "Error: Dependency period '{}' specified in host dependency for host "
           "'{}' is not defined anywhere!",
           this->get_dependency_period(), _dependent_hostname);
@@ -310,45 +304,39 @@ void hostdependency::resolve(int& w, int& e) {
  */
 hostdependency_mmap::iterator hostdependency::hostdependencies_find(
     const com::centreon::engine::configuration::hostdependency& k) {
-  typedef hostdependency_mmap collection;
-  std::pair<collection::iterator, collection::iterator> p;
+  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
+
+  size_t key =
+      absl::HashOf(k.dependency_period(), k.dependency_type(),
+                   *k.dependent_hosts().begin(), *k.hosts().begin(),
+                   k.inherits_parent(), k.notification_failure_options());
 
   p = hostdependencies.equal_range(*k.dependent_hosts().begin());
   while (p.first != p.second) {
-    configuration::hostdependency current;
-    current.configuration::object::operator=(k);
-    current.dependent_hosts().insert(p.first->second->get_dependent_hostname());
-    current.hosts().insert(p.first->second->get_hostname());
-    current.dependency_period(
-        (!p.first->second->get_dependency_period().empty()
-             ? p.first->second->get_dependency_period().c_str()
-             : ""));
-    current.inherits_parent(p.first->second->get_inherits_parent());
-    unsigned int options((p.first->second->get_fail_on_up()
-                              ? configuration::hostdependency::up
-                              : 0) |
-                         (p.first->second->get_fail_on_down()
-                              ? configuration::hostdependency::down
-                              : 0) |
-                         (p.first->second->get_fail_on_unreachable()
-                              ? configuration::hostdependency::unreachable
-                              : 0) |
-                         (p.first->second->get_fail_on_pending()
-                              ? configuration::hostdependency::pending
-                              : 0));
-    if (p.first->second->get_dependency_type() ==
-        engine::hostdependency::notification) {
-      current.dependency_type(
-          configuration::hostdependency::notification_dependency);
-      current.notification_failure_options(options);
-    } else {
-      current.dependency_type(
-          configuration::hostdependency::execution_dependency);
-      current.execution_failure_options(options);
-    }
-    if (current == k)
+    if (p.first->second->internal_key() == key)
       break;
     ++p.first;
   }
-  return (p.first == p.second) ? hostdependencies.end() : p.first;
+  return p.first == p.second ? hostdependencies.end() : p.first;
+}
+
+/**
+ *  Find a service dependency from its key.
+ *
+ *  @param[in] k The service dependency configuration.
+ *
+ *  @return Iterator to the element if found,
+ *          servicedependencies().end() otherwise.
+ */
+hostdependency_mmap::iterator hostdependency::hostdependencies_find(
+    const std::pair<std::string_view, size_t>& key) {
+  std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
+
+  p = hostdependencies.equal_range(key.first);
+  while (p.first != p.second) {
+    if (p.first->second->internal_key() == key.second)
+      break;
+    ++p.first;
+  }
+  return p.first == p.second ? hostdependencies.end() : p.first;
 }

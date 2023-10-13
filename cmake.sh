@@ -274,8 +274,8 @@ elif [ -r /etc/issue ] ; then
   fi
 fi
 
-if ! pip3 install conan==1.61.0 --upgrade --break-system-packages ; then
-  pip3 install conan==1.61.0 --upgrade
+if ! pip3 install conan==1.62.0 --upgrade --break-system-packages ; then
+  pip3 install conan==1.62.0 --upgrade
 fi
 
 if which conan ; then
@@ -328,6 +328,12 @@ echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
 NG="-DNG=ON"
+
+if [ "$SC" -eq 1 ] ; then
+  SCCACHE="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
+else
+  SCCACHE=
+fi
 
 if [ "$SC" -eq 1 ] ; then
   SCCACHE="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"

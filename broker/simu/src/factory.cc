@@ -19,7 +19,7 @@
 #include "com/centreon/broker/simu/factory.hh"
 #include <absl/strings/match.h>
 #include <nlohmann/json.hpp>
-#include "com/centreon/broker/misc/variant.hh"
+#include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/simu/connector.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 

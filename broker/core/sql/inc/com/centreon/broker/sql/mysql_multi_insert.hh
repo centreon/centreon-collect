@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -212,6 +212,6 @@ class bulk_or_multi {
 
 }  // namespace database
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // CCB_MYSQL_MULTI_INSERT_HH

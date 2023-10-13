@@ -1,27 +1,29 @@
 /**
-* Copyright 2011-2019,2022 Centreon
-*
-* This file is part of Centreon Engine.
-*
-* Centreon Engine is free software: you can redistribute it and/or
-* modify it under the terms of the GNU General Public License version 2
-* as published by the Free Software Foundation.
-*
-* Centreon Engine is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-* General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with Centreon Engine. If not, see
-* <http://www.gnu.org/licenses/>.
-*/
+ * Copyright 2011-2019,2022-2023 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/checkable.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
 
-#include "com/centreon/engine/configuration/whitelist.hh"
+#include "com/centreon/engine/exceptions/error.hh"
+#include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/logging/logger.hh"
+
+#include "com/centreon/engine/whitelist.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
@@ -113,7 +115,7 @@ checkable::checkable(const std::string& name,
       oss << "Invalid freshness_threshold: value should be positive or 0";
     }
     engine_logger(log_config_error, basic) << oss.str();
-    log_v2::config()->error(oss.str());
+    config_logger->error(oss.str());
     throw engine_error() << "Could not register checkable '" << display_name
                          << "'";
   }

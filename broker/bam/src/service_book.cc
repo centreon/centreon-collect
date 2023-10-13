@@ -1,25 +1,24 @@
 /**
-* Copyright 2014-2015, 2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2014-2015, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/service_book.hh"
 
 #include "com/centreon/broker/bam/service_listener.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/acknowledgement.hh"
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/service_status.hh"
@@ -33,11 +32,8 @@ using namespace com::centreon::broker::bam;
  *  @param[in]     service_id  Service ID.
  *  @param[in,out] listnr      Service listener.
  */
-void service_book::listen(uint32_t host_id,
-                          uint32_t service_id,
+void service_book::listen(uint32_t host_id, uint32_t service_id,
                           service_listener* listnr) {
-  log_v2::bam()->trace("BAM: service ({}, {}) added to service book", host_id,
-                       service_id);
   _book.insert(std::make_pair(std::make_pair(host_id, service_id), listnr));
 }
 
@@ -48,8 +44,7 @@ void service_book::listen(uint32_t host_id,
  *  @param[in] service_id  Service ID.
  *  @param[in] listnr      Service listener.
  */
-void service_book::unlisten(uint32_t host_id,
-                            uint32_t service_id,
+void service_book::unlisten(uint32_t host_id, uint32_t service_id,
                             service_listener* listnr) {
   std::pair<multimap::iterator, multimap::iterator> range(
       _book.equal_range(std::make_pair(host_id, service_id)));
@@ -70,11 +65,12 @@ void service_book::unlisten(uint32_t host_id,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
   while (range.first != range.second) {
-    range.first->second->service_update(t, visitor);
+    range.first->second->service_update(t, visitor, logger);
     ++range.first;
   }
 }
@@ -87,11 +83,12 @@ void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   std::pair<multimap::iterator, multimap::iterator> range{
       _book.equal_range(std::make_pair(t->host_id, t->service_id))};
   while (range.first != range.second) {
-    range.first->second->service_update(t, visitor);
+    range.first->second->service_update(t, visitor, logger);
     ++range.first;
   }
 }
@@ -104,11 +101,12 @@ void service_book::update(const std::shared_ptr<neb::acknowledgement>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::downtime>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   std::pair<multimap::iterator, multimap::iterator> range{
       _book.equal_range(std::make_pair(t->host_id, t->service_id))};
   while (range.first != range.second) {
-    range.first->second->service_update(t, visitor);
+    range.first->second->service_update(t, visitor, logger);
     ++range.first;
   }
 }
@@ -121,12 +119,13 @@ void service_book::update(const std::shared_ptr<neb::downtime>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   auto& downtime = t->obj();
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(downtime.host_id(), downtime.service_id()))};
   while (range.first != range.second) {
-    range.first->second->service_update(t, visitor);
+    range.first->second->service_update(t, visitor, logger);
     ++range.first;
   }
 }
@@ -139,18 +138,18 @@ void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::service_status>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   std::pair<multimap::iterator, multimap::iterator> range{
       _book.equal_range(std::make_pair(t->host_id, t->service_id))};
   size_t count = 0;
   while (range.first != range.second) {
     count++;
-    range.first->second->service_update(t, visitor);
+    range.first->second->service_update(t, visitor, logger);
     ++range.first;
   }
-  log_v2::bam()->trace(
-      "service_book: {} listeners notified of service ({},{}) status", count,
-      t->host_id, t->service_id);
+  logger->trace("service_book: {} listeners notified of service ({},{}) status",
+                count, t->host_id, t->service_id);
 }
 
 /**
@@ -161,18 +160,18 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_service>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
   size_t count = 0;
   while (range.first != range.second) {
     ++count;
-    range.first->second->service_update(t, visitor);
+    range.first->second->service_update(t, visitor, logger);
     ++range.first;
   }
-  log_v2::bam()->trace(
-      "service_book: {} listeners notified of pb service ({},{})", count,
-      t->obj().host_id(), t->obj().service_id());
+  logger->trace("service_book: {} listeners notified of pb service ({},{})",
+                count, t->obj().host_id(), t->obj().service_id());
 }
 
 /**
@@ -183,16 +182,17 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
  * @param visitor The stream to write into.
  */
 void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
-                          io::stream* visitor) {
+                          io::stream* visitor,
+                          const std::shared_ptr<spdlog::logger>& logger) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
   size_t count = 0;
   while (range.first != range.second) {
     ++count;
-    range.first->second->service_update(t, visitor);
+    range.first->second->service_update(t, visitor, logger);
     ++range.first;
   }
-  log_v2::bam()->trace(
+  logger->trace(
       "service_book: {} listeners notified of pb service ({},{}) status", count,
       t->obj().host_id(), t->obj().service_id());
 }

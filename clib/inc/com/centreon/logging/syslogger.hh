@@ -1,47 +1,41 @@
-/*
-** Copyright 2011-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CC_LOGGING_SYSLOGGER_HH
 #define CC_LOGGING_SYSLOGGER_HH
 
 #include <string>
+
 #include "com/centreon/logging/backend.hh"
 
-namespace com::centreon {
-
-namespace logging {
+namespace com::centreon::logging {
 /**
  *  @class syslogger syslogger.hh "com/centreon/logging/syslogger.hh"
  *  @brief Log messages to syslog.
  */
 class syslogger : public backend {
  public:
-  syslogger(std::string const& id,
-            int facility,
-            bool is_sync = true,
-            bool show_pid = true,
-            time_precision show_timestamp = second,
+  syslogger(std::string const& id, int facility, bool is_sync = true,
+            bool show_pid = true, time_precision show_timestamp = second,
             bool show_thread_id = false);
   ~syslogger() throw();
   void close() throw();
-  void log(uint64_t types,
-           uint32_t verbose,
-           char const* msg,
+  void log(uint64_t types, uint32_t verbose, char const* msg,
            uint32_t size) throw();
   void open();
   void reopen();
@@ -53,8 +47,6 @@ class syslogger : public backend {
   int _facility;
   std::string _id;
 };
-}  // namespace logging
-
-}
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_SYSLOGGER_HH

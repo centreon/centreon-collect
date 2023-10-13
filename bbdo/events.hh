@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -164,6 +164,7 @@ enum data_element {
   de_pb_status = 10,
   de_pb_index_mapping = 11,
   de_pb_metric_mapping = 12,
+  de_poller_config = 13,
 };
 }
 namespace bam {

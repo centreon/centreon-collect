@@ -19,11 +19,14 @@
  */
 
 #include <thread>
+
+#include "common/log_v2/log_v2.hh"
 #include "grpc_test_include.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::grpc;
 using namespace com::centreon::exceptions;
+using com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -67,7 +70,8 @@ class channel_test : public channel {
     on_write_done(true);
   }
 
-  void start_read(event_ptr& to_read, bool first_read) override {
+  void start_read(event_ptr& to_read,
+                  bool first_read [[maybe_unused]]) override {
     pool::io_context().post(
         [me = shared_from_this(), to_read]() { me->simul_on_read(); });
   }

@@ -45,11 +45,12 @@ jobs:
           mkdir build
           cd build
 
-          sudo pip3 install conan==1.61.0 --prefix=/usr --upgrade
+          sudo pip3 install conan==1.62.0 --prefix=/usr --upgrade
           sudo conan install .. -s compiler.cppstd=17 -s compiler.libcxx=libstdc++11 --build=missing
 
           sudo cmake \
             -G "Ninja" \
+            -DNG=ON \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
             -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \

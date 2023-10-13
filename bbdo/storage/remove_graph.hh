@@ -25,6 +25,7 @@
 #include "com/centreon/broker/mapping/entry.hh"
 
 namespace com::centreon::broker::storage {
+
 /**
  *  @class remove_graph remove_graph.hh
  * "com/centreon/broker/storage/remove_graph.hh"

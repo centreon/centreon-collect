@@ -1,28 +1,27 @@
-/*
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_EXCEPTIONS_ERROR_HH
 #define CCE_EXCEPTIONS_ERROR_HH
 
-namespace com::centreon::engine {
+namespace com::centreon::engine::exceptions {
 
-namespace exceptions {
 /**
  *  @class error error.hh
  *  @brief Base exception class.
@@ -57,9 +56,7 @@ class error : public std::exception {
   char const* what() const throw() override;
 };
 
-}  // namespace exceptions
-
-}
+}  // namespace com::centreon::engine::exceptions
 
 #ifdef NDEBUG
 #define engine_error() com::centreon::engine::exceptions::error()

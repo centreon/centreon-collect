@@ -20,8 +20,8 @@
 
 #include <unistd.h>
 
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/string.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;

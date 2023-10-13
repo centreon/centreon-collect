@@ -31,10 +31,15 @@
 #include "com/centreon/engine/nebmods.hh"
 #include "com/centreon/engine/restart_stats.hh"
 #include "com/centreon/engine/utils.hh"
+#include "common/configuration/state.pb.h"
+#include "common/log_v2/log_v2.hh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif /* C++ */
+#define CONF_LEGACY
+#define CONF_PROTO
+
+// #ifdef __cplusplus
+//  extern "C" {
+// #endif /* C++ */
 
 extern int config_errors;
 extern int config_warnings;
@@ -42,8 +47,22 @@ extern int config_warnings;
 /* Start/Restart statistics */
 extern com::centreon::engine::restart_stats restart_apply_stats;
 
+extern std::shared_ptr<spdlog::logger> checks_logger;
+extern std::shared_ptr<spdlog::logger> commands_logger;
+extern std::shared_ptr<spdlog::logger> config_logger;
+extern std::shared_ptr<spdlog::logger> downtimes_logger;
+extern std::shared_ptr<spdlog::logger> eventbroker_logger;
+extern std::shared_ptr<spdlog::logger> events_logger;
+extern std::shared_ptr<spdlog::logger> external_command_logger;
+extern std::shared_ptr<spdlog::logger> functions_logger;
+extern std::shared_ptr<spdlog::logger> macros_logger;
+extern std::shared_ptr<spdlog::logger> notifications_logger;
+extern std::shared_ptr<spdlog::logger> process_logger;
+extern std::shared_ptr<spdlog::logger> runtime_logger;
+
+extern com::centreon::engine::configuration::State pb_config;
 extern com::centreon::engine::configuration::state* config;
-extern char* config_file;
+extern std::string config_file;
 
 extern com::centreon::engine::commands::command* global_host_event_handler_ptr;
 extern com::centreon::engine::commands::command*
@@ -130,8 +149,10 @@ extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
 
-#ifdef __cplusplus
-}
-#endif /* C++ */
+// #ifdef __cplusplus
+// }
+// #endif /* C++ */
+
+void init_loggers();
 
 #endif /* !CCE_GLOBALS_HH */

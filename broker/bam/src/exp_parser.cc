@@ -19,7 +19,6 @@
 #include "com/centreon/broker/bam/exp_parser.hh"
 
 #include "com/centreon/broker/bam/exp_tokenizer.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -38,9 +37,7 @@ exp_parser::exp_parser(const std::string& expression)
                                     {">=", 3},  {"<", 3},   {"<=", 3},
                                     {"==", 3},  {"!=", 3},  {"+", 4},
                                     {"-", 4},   {"*", 5},   {"/", 5},
-                                    {"%", 5},   {"-u", 6},  {"!", 6}} {
-  log_v2::bam()->trace("exp_parser constructor '{}'", expression);
-}
+                                    {"%", 5},   {"-u", 6},  {"!", 6}} {}
 
 /**
  *  Get postfix notation of expression.

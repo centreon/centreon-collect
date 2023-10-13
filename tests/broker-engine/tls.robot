@@ -52,7 +52,7 @@ BECT1
             END
             ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
             Should Be True    ${result}
-            ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
+            ${result}    Find In Log    ${engineLog0}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END
@@ -124,7 +124,7 @@ BECT2
     ${content2}    Combine Lists    ${content2}    ${LIST_HANDSHAKE}
     ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
     Should Be True    ${result}
-    ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
+    ${result}    Find In Log    ${engineLog0}    ${start}    ${content2}
     Should Be True    ${result}
 
 BECT3
@@ -298,7 +298,7 @@ BECT_GRPC1
             END
             ${result}    Find In Log    ${centralLog}    ${start}    ${content1}
             Should Be True    ${result}
-            ${result}    Find In Log    ${moduleLog0}    ${start}    ${content2}
+            ${result}    Find In Log    ${engineLog0}    ${start}    ${content2}
             Should Be True    ${result}
         END
     END

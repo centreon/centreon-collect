@@ -1,37 +1,38 @@
 /**
-* Copyright 2009-2013,2015-2017,2019-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2013,2015-2017,2019-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
 
 #include <cassert>
 
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/common/time.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::multiplexing;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 static std::mutex _add_bench_point_m;
 /**
@@ -71,7 +72,7 @@ absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
  *                        events in a persistent storage.
  */
 muxer::muxer(std::string name,
-             const std::shared_ptr<engine>& parent,
+             std::shared_ptr<engine>& parent,
              const muxer_filter& r_filter,
              const muxer_filter& w_filter,
              bool persistent)
@@ -86,9 +87,11 @@ muxer::muxer(std::string name,
       _persistent(persistent),
       _events_size{0u},
       _last_stats{std::time(nullptr)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("muxer::muxer constructor {} {}", static_cast<void*>(this),
+              _name);
   // Load head queue file back in memory.
-  DEBUG(fmt::format("CONSTRUCTOR muxer {:p} {}", static_cast<void*>(this),
-                    _name));
   std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
@@ -135,7 +138,7 @@ muxer::muxer(std::string name,
 
   // Log messages.
   SPDLOG_LOGGER_INFO(
-      log_v2::core(),
+      log_v2::instance().get(log_v2::CORE),
       "multiplexing: '{}' starts with {} in queue and the queue file is {}",
       _name, _events_size, _file ? "enable" : "disable");
 }
@@ -156,7 +159,7 @@ muxer::muxer(std::string name,
  * @return std::shared_ptr<muxer>
  */
 std::shared_ptr<muxer> muxer::create(std::string name,
-                                     const std::shared_ptr<engine>& parent,
+                                     std::shared_ptr<engine>& parent,
                                      const muxer_filter& r_filter,
                                      const muxer_filter& w_filter,
                                      bool persistent) {
@@ -169,18 +172,21 @@ std::shared_ptr<muxer> muxer::create(std::string name,
                    });
     retval = _running_muxers[name].lock();
     if (retval) {
-      log_v2::config()->debug("muxer: muxer '{}' already exists, reusing it",
-                              name);
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->debug("muxer: muxer '{}' already exists, reusing it", name);
       retval->set_read_filter(r_filter);
       retval->set_write_filter(w_filter);
-      SPDLOG_LOGGER_INFO(log_v2::core(),
+      SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                          "multiplexing: reuse '{}' starts with {} in queue and "
                          "the queue file is {}",
                          name, retval->_events_size,
                          retval->_file ? "enable" : "disable");
 
     } else {
-      log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->debug("muxer: muxer '{}' unknown, creating it", name);
       retval = std::shared_ptr<muxer>(
           new muxer(name, parent, r_filter, w_filter, persistent));
       _running_muxers[name] = retval;
@@ -198,7 +204,10 @@ muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
   unsubscribe();
   std::lock_guard<std::mutex> lock(_mutex);
-  SPDLOG_LOGGER_INFO(log_v2::core(),
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("muxer::muxer destructor {} {}", static_cast<void*>(this), _name);
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                      "Destroying muxer {}: number of events in the queue: {}",
                      _name, _events_size);
   _clean();
@@ -214,30 +223,32 @@ muxer::~muxer() noexcept {
 void muxer::ack_events(int count) {
   // Remove acknowledged events.
   SPDLOG_LOGGER_TRACE(
-      log_v2::core(),
+      log_v2::instance().get(log_v2::CORE),
       "multiplexing: acknowledging {} events from {} event queue size: {}",
       count, _name, _events_size);
 
   if (count) {
     SPDLOG_LOGGER_DEBUG(
-        log_v2::core(),
+        log_v2::instance().get(log_v2::CORE),
         "multiplexing: acknowledging {} events from {} event queue", count,
         _name);
     std::lock_guard<std::mutex> lock(_mutex);
     for (int i = 0; i < count && !_events.empty(); ++i) {
       if (_events.begin() == _pos) {
-        log_v2::core()->error(
-            "multiplexing: attempt to acknowledge "
-            "more events than available in {} event queue: {} size: {}, "
-            "requested, {} "
-            "acknowledged",
-            _name, _events_size, count, i);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "multiplexing: attempt to acknowledge "
+                "more events than available in {} event queue: {} size: {}, "
+                "requested, {} "
+                "acknowledged",
+                _name, _events_size, count, i);
         break;
       }
       _events.pop_front();
       --_events_size;
     }
-    SPDLOG_LOGGER_TRACE(log_v2::core(),
+    SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
                         "multiplexing: still {} events in {} event queue",
                         _events_size, _name);
 
@@ -252,7 +263,7 @@ void muxer::ack_events(int count) {
     _update_stats();
   } else {
     SPDLOG_LOGGER_TRACE(
-        log_v2::core(),
+        log_v2::instance().get(log_v2::CORE),
         "multiplexing: acknowledging no events from {} event queue", _name);
   }
 }
@@ -263,12 +274,16 @@ void muxer::ack_events(int count) {
  * @return The number of acknowledged events.
  */
 int32_t muxer::stop() {
-  SPDLOG_LOGGER_INFO(log_v2::core(),
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("muxer::muxer stop {} {}", static_cast<void*>(this), _name);
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                      "Stopping muxer {}: number of events in the queue: {}",
                      _name, _events_size);
   std::lock_guard<std::mutex> lck(_mutex);
+  if (_read_handler)
+    _read_handler = nullptr;
   _update_stats();
-  DEBUG(fmt::format("STOP muxer {:p} {}", static_cast<void*>(this), _name));
   return 0;
 }
 
@@ -312,7 +327,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         auto event = *evt;
         if (!_write_filter.allows(event->type())) {
           SPDLOG_LOGGER_TRACE(
-              log_v2::core(),
+              log_v2::instance().get(log_v2::CORE),
               "muxer {} event of type {:x} rejected by write filter", _name,
               event->type());
           continue;
@@ -321,13 +336,14 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
         if (event->type() == bbdo::pb_bench::static_type()) {
           add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event),
                           _name, "publish");
-          SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench publish {}", _name,
+          SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                             "{} bench publish {}", _name,
                              io::data::dump_json{*event});
         }
 
         SPDLOG_LOGGER_TRACE(
-            log_v2::core(),
-            "muxer {} event of type {:x} written queue size: {}", _name,
+            log_v2::instance().get(log_v2::CORE),
+            "muxer {} event of type {:x} written - queue size: {}", _name,
             event->type(), _events_size);
 
         at_least_one_push_to_queue = true;
@@ -359,7 +375,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       auto event = *evt;
       if (!_write_filter.allows(event->type())) {
         SPDLOG_LOGGER_TRACE(
-            log_v2::core(),
+            log_v2::instance().get(log_v2::CORE),
             "muxer {} event of type {:x} rejected by write filter", _name,
             event->type());
         continue;
@@ -367,7 +383,7 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       if (event->type() == bbdo::pb_bench::static_type()) {
         add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                         "retention_publish");
-        SPDLOG_LOGGER_INFO(log_v2::core(),
+        SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                            "muxer {} bench publish to file {} {}", _name,
                            _queue_file_name, io::data::dump_json{*event});
       }
@@ -379,14 +395,15 @@ void muxer::publish(const std::deque<std::shared_ptr<io::data>>& event_queue) {
       try {
         _file->write(event);
         SPDLOG_LOGGER_TRACE(
-            log_v2::core(),
+            log_v2::instance().get(log_v2::CORE),
             "{} publish one event of type {:x} to file {} queue size:{}", _name,
             event->type(), _queue_file_name, _events_size);
       } catch (const std::exception& ex) {
         // in case of exception, we lost event. It's mandatory to avoid
         // infinite loop in case of permanent disk problem
-        SPDLOG_LOGGER_ERROR(log_v2::core(), "{} fail to write event to {}: {}",
-                            _name, _queue_file_name, ex.what());
+        SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
+                            "{} fail to write event to {}: {}", _name,
+                            _queue_file_name, ex.what());
         _file.reset();
       }
     }
@@ -435,17 +452,20 @@ bool muxer::read(std::shared_ptr<io::data>& event, time_t deadline) {
   _update_stats();
 
   if (event) {
-    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} read {} queue size {}", _name,
-                        *event, _events_size);
+    SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
+                        "{} read {} queue size {}", _name, *event,
+                        _events_size);
     if (event->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(event), _name,
                       "read");
-      SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench read {}", _name,
+      SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                         "{} bench read {}", _name,
                          io::data::dump_json{*event});
     }
   } else {
-    SPDLOG_LOGGER_TRACE(log_v2::core(), "{} queue size {} no event available",
-                        _name, _events_size);
+    SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
+                        "{} queue size {} no event available", _name,
+                        _events_size);
   }
   return !timed_out;
 }
@@ -482,7 +502,7 @@ uint32_t muxer::get_event_queue_size() const {
  *  Reprocess non-acknowledged events.
  */
 void muxer::nack_events() {
-  SPDLOG_LOGGER_DEBUG(log_v2::core(),
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
                       "multiplexing: reprocessing unacknowledged events from "
                       "{} event queue with {} waiting events",
                       _name, _events_size);
@@ -537,12 +557,12 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
     if (d->type() == bbdo::pb_bench::static_type()) {
       add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
                       "write");
-      SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench write {}", _name,
-                         io::data::dump_json{*d});
+      SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                         "{} bench write {}", _name, io::data::dump_json{*d});
     }
     _engine->publish(d);
   } else {
-    SPDLOG_LOGGER_TRACE(log_v2::core(),
+    SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
                         "muxer {} event of type {:x} rejected by read filter",
                         _name, d->type());
   }
@@ -562,8 +582,8 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
       if (d->type() == bbdo::pb_bench::static_type()) {
         add_bench_point(*std::static_pointer_cast<bbdo::pb_bench>(d), _name,
                         "write");
-        SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench write {}", _name,
-                           io::data::dump_json{*d});
+        SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                           "{} bench write {}", _name, io::data::dump_json{*d});
       }
       ++list_iter;
     } else {
@@ -587,8 +607,9 @@ void muxer::_clean() {
   //  });
   if (_persistent && !_events.empty()) {
     try {
-      SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer: sending {} events to {}",
-                          _events_size, memory_file(_name));
+      SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
+                          "muxer: sending {} events to {}", _events_size,
+                          memory_file(_name));
       auto mf{std::make_unique<persistent_file>(memory_file(_name), nullptr)};
       while (!_events.empty()) {
         mf->write(_events.front());
@@ -596,9 +617,10 @@ void muxer::_clean() {
         --_events_size;
       }
     } catch (std::exception const& e) {
-      log_v2::core()->error(
-          "multiplexing: could not backup memory queue of '{}': {}", _name,
-          e.what());
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("multiplexing: could not backup memory queue of '{}': {}",
+                  _name, e.what());
     }
   }
   _events.clear();
@@ -663,8 +685,9 @@ std::string muxer::queue_file(std::string const& name) {
  */
 void muxer::_push_to_queue(std::shared_ptr<io::data> const& event) {
   bool pos_has_no_more_to_read(_pos == _events.end());
-  SPDLOG_LOGGER_TRACE(log_v2::core(), "muxer {} event of type {:x} pushed",
-                      _name, event->type());
+  SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
+                      "muxer {} event of type {:x} pushed", _name,
+                      event->type());
   _events.push_back(event);
   ++_events_size;
 
@@ -696,8 +719,8 @@ void muxer::_update_stats() noexcept {
  *  Remove all the queue files attached to this muxer.
  */
 void muxer::remove_queue_files() {
-  SPDLOG_LOGGER_INFO(log_v2::core(), "multiplexing: '{}' removed",
-                     _queue_file_name);
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                     "multiplexing: '{}' removed", _queue_file_name);
 
   /* Here _file is already destroyed */
   QueueFileStats* stats =
@@ -722,7 +745,9 @@ const std::string& muxer::name() const {
  * @param r_filter        The read filter.
  */
 void muxer::set_read_filter(const muxer_filter& r_filter) {
-  log_v2::config()->trace("multiplexing: '{}' set read filter...", _name);
+  log_v2::instance()
+      .get(log_v2::CONFIG)
+      ->trace("multiplexing: '{}' set read filter...", _name);
   _read_filter = r_filter;
   _read_filters_str = misc::dump_filters(r_filter);
 }
@@ -734,7 +759,9 @@ void muxer::set_read_filter(const muxer_filter& r_filter) {
  * @param r_filter        The write filter.
  */
 void muxer::set_write_filter(const muxer_filter& w_filter) {
-  log_v2::config()->trace("multiplexing: '{}' set write filter...", _name);
+  log_v2::instance()
+      .get(log_v2::CONFIG)
+      ->trace("multiplexing: '{}' set write filter...", _name);
   _write_filter = w_filter;
   _write_filters_str = misc::dump_filters(w_filter);
 }

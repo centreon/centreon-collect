@@ -18,7 +18,7 @@
 
 #include <cstdlib>
 #include <iostream>
-#include "com/centreon/broker/misc/string.hh"
+#include "broker/core/misc/string.hh"
 #include "test/cbd.hh"
 #include "test/centengine.hh"
 #include "test/centengine_config.hh"

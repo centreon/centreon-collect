@@ -30,11 +30,11 @@ EBBPS1
     ${start_broker}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
-    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    ...    A message telling check_for_external_commands() is ready should be available.
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
@@ -45,12 +45,13 @@ EBBPS1
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${date}    Get Current Date    result_format=epoch
+    ${date}    Get Round Current Date
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    60
+        Log To Console
+        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
-        Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
     END
@@ -59,7 +60,7 @@ EBBPS1
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
-            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
@@ -128,12 +129,11 @@ EBBPS2
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${date}    Get Current Date    result_format=epoch
+    ${date}    Get Round Current Date
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    120
         ${output}    Query
         ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%%' AND s.state <> 1
-        Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
     END
@@ -142,7 +142,7 @@ EBBPS2
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    2    critical${i}
         IF    ${i} % 200 == 0
-            ${first_service_status_content}    Create List    unified_sql service_status processing
+            ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
@@ -205,7 +205,7 @@ EBMSSM
     ${start}    Get Round Current Date
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    100
+        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    ${100}
     END
 
     ${duration}    Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
@@ -214,6 +214,8 @@ EBMSSM
     # Let's wait for all force checks to be in the storage database.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${500}
+        Log To Console
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         ${output}    Query
         ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         IF    ${output[0][0]} >= 100000    BREAK
@@ -251,7 +253,7 @@ EBPS2
 
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
+        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    ${20}
     END
     ${start}    Get Current Date
     ${content}    Create List    Check if some statements are ready,    sscr_bind connections
@@ -375,7 +377,7 @@ metric_mapping
 
     # We force several checks with metrics
     FOR    ${i}    IN RANGE    ${10}
-        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
+        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    ${20}
     END
 
     Wait Until Created    /tmp/test.log    30s

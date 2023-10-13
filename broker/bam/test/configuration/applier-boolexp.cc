@@ -21,8 +21,10 @@
 #include "com/centreon/broker/bam/configuration/bool_expression.hh"
 #include "com/centreon/broker/bam/configuration/kpi.hh"
 #include "com/centreon/broker/config/applier/init.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
@@ -33,7 +35,7 @@ class ApplierBoolexp : public ::testing::Test {
     // Initialization.
     config::applier::init(0, "test_broker", 0);
 
-    _aply_state.reset(new bam::configuration::applier::state);
+    _aply_state = std::make_unique<bam::configuration::applier::state>();
     _state.reset(new bam::configuration::state);
   }
 

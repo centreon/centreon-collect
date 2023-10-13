@@ -21,6 +21,8 @@
 #include <com/centreon/broker/stats/worker.hh>
 #include <com/centreon/broker/stats/worker_pool.hh>
 #include <nlohmann/json.hpp>
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
@@ -30,8 +32,6 @@
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"

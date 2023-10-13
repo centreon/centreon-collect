@@ -1,5 +1,5 @@
 /**
- * Copyright 2017 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +17,10 @@
  *
  */
 
-#include "com/centreon/engine/configuration/contact.hh"
 #include <gtest/gtest.h>
 
+#include "com/centreon/engine/configuration/contact.hh"
+#include "common/configuration/contact_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -35,9 +36,10 @@ class ConfigContact : public ::testing::Test {
   void TearDown() override { deinit_config_state(); }
 };
 
-// When I create a configuration::contact with an empty name
+// When I create a configuration::Contact with an empty name
 // Then an exception is thrown.
-TEST_F(ConfigContact, NewContactWithNoName) {
-  configuration::contact ctct("");
-  ASSERT_THROW(ctct.check_validity(), std::exception);
+TEST_F(ConfigContact, NewPbContactWithNoName) {
+  configuration::Contact ctct;
+  configuration::contact_helper ctct_hlp(&ctct);
+  ASSERT_THROW(ctct_hlp.check_validity(), std::exception);
 }

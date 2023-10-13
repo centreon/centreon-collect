@@ -1,24 +1,26 @@
-/*
-** Copyright 2020 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2020 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
 #define CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH
+
+#include "common/configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
@@ -35,19 +37,28 @@ class anomalydetection {
                               configuration::state const& s);
 
  public:
-  anomalydetection();
-  anomalydetection(anomalydetection const& right);
-  ~anomalydetection();
-  anomalydetection& operator=(anomalydetection const& right);
+  anomalydetection() = default;
+  anomalydetection(const anomalydetection&) = delete;
+  ~anomalydetection() noexcept = default;
+  anomalydetection& operator=(const anomalydetection&) = delete;
+#if LEGACY_CONF
   void add_object(configuration::anomalydetection const& obj);
-  void expand_objects(configuration::state& s);
   void modify_object(configuration::anomalydetection const& obj);
   void remove_object(configuration::anomalydetection const& obj);
+  void expand_objects(configuration::state& s);
   void resolve_object(configuration::anomalydetection const& obj);
+#else
+  void add_object(const configuration::Anomalydetection& obj);
+  void modify_object(configuration::Anomalydetection* old_obj,
+                     const configuration::Anomalydetection& new_obj);
+  void remove_object(ssize_t idx);
+  void expand_objects(configuration::State& s);
+  void resolve_object(const configuration::Anomalydetection& obj);
+#endif
 };
 }  // namespace applier
 }  // namespace configuration
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_CONFIGURATION_APPLIER_ANOMALYDETECTION_HH

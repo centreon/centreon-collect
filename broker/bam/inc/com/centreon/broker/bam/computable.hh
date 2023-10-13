@@ -19,12 +19,12 @@
 #ifndef CCB_BAM_COMPUTABLE_HH
 #define CCB_BAM_COMPUTABLE_HH
 
+#include <spdlog/logger.h>
+#include <memory>
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class computable computable.hh "com/centreon/broker/bam/computable.hh"
  *  @brief Object that get computed by the BAM engine.
@@ -35,14 +35,16 @@ namespace bam {
 class computable {
  protected:
   std::list<std::weak_ptr<computable>> _parents;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  computable() = default;
+  computable(const std::shared_ptr<spdlog::logger>& logger) : _logger(logger) {}
   computable(const computable&) = delete;
   virtual ~computable() noexcept = default;
   computable& operator=(const computable&) = delete;
   void add_parent(const std::shared_ptr<computable>& parent);
-  void notify_parents_of_change(io::stream* visitor);
+  void notify_parents_of_change(io::stream* visitor,
+                                const std::shared_ptr<spdlog::logger>& logger);
   /**
    *  @brief Update this object because there was a change in the given child.
    *
@@ -51,8 +53,11 @@ class computable {
    *
    *  @param[in] child Recently changed child node.
    *  @param[in] visitor This is used to manage events
+   *  @param[in] logger The logger to use.
    */
-  virtual void update_from(computable* child, io::stream* visitor) = 0;
+  virtual void update_from(computable* child,
+                           io::stream* visitor,
+                           const std::shared_ptr<spdlog::logger>& logger) = 0;
   void remove_parent(const std::shared_ptr<computable>& parent);
   /**
    * @brief This method is used by the dump() method. It gives a summary of this
@@ -70,8 +75,6 @@ class computable {
   virtual void dump(std::ofstream& output) const = 0;
   void dump_parents(std::ofstream& output) const;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_COMPUTABLE_HH

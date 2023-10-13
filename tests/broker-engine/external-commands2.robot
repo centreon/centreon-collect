@@ -967,8 +967,8 @@ BEEXTCMD_REVERSE_GRPC1
             ${output}    Query
             ...    SELECT s.check_interval FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description='service_1'
             Log To Console    ${output}
-            Sleep    1s
             IF    "${output}" == "((10.0,),)"    BREAK
+            Sleep    1s
         END
         Should Be Equal As Strings    ${output}    ((10.0,),)
         Stop Engine
@@ -1388,7 +1388,7 @@ BESERVCHECK
     ...    host_1
     ...    service_1
     ...    30
-    ...    ${VarRoot}/lib/centreon-engine/check.pl ${command_param}
+    ...    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_param}
     Should Be True    ${result}    service table not updated
 
 BEHOSTCHECK
@@ -1398,17 +1398,16 @@ BEHOSTCHECK
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Config BBDO3    1
-    Config Broker Sql Output    central    unified_sql
+    Config BBDO3    ${1}
     ${start}    Get Current Date
     Start Broker
     Start Engine
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
     Schedule Forced Host Check    host_1
-    ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl 0
+    ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
     Should Be True    ${result}    hosts table not updated

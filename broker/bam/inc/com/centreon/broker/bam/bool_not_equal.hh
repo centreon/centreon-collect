@@ -21,9 +21,7 @@
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_not_equal bool_not_equal.hh
  * "com/centreon/broker/bam/bool_not_equal.hh"
@@ -34,7 +32,8 @@ namespace bam {
  */
 class bool_not_equal : public bool_binary_operator {
  public:
-  bool_not_equal() = default;
+  bool_not_equal(const std::shared_ptr<spdlog::logger>& logger)
+      : bool_binary_operator(logger) {}
   bool_not_equal(const bool_not_equal&) = delete;
   ~bool_not_equal() noexcept override = default;
   bool_not_equal& operator=(const bool_not_equal&) = delete;
@@ -42,8 +41,6 @@ class bool_not_equal : public bool_binary_operator {
   bool boolean_value() const override;
   std::string object_info() const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_NOT_EQUAL_HH

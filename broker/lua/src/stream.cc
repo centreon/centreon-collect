@@ -1,32 +1,34 @@
 /**
-* Copyright 2017-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2017-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/lua/stream.hh"
 
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::misc;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::lua;
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Constructor.
@@ -38,11 +40,18 @@ stream::stream(const std::string& lua_script,
                const std::map<std::string, misc::variant>& conf_params,
                const std::shared_ptr<persistent_cache>& cache)
     : io::stream("lua"),
-      _cache{cache},
-      _luabinding(lua_script, conf_params, _cache) {}
+      _luabinding(lua_script, conf_params, _cache),
+      _logger{log_v2::instance().get(log_v2::LUA)},
+      _cache{cache, _logger} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("lua::stream constructor {}", static_cast<void*>(this));
+}
 
 stream::~stream() noexcept {
-  log_v2::lua()->debug("lua: Stream destruction");
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("lua::stream destructor {}", static_cast<void*>(this));
 }
 /**
  *  Read from the connector.
@@ -67,6 +76,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 int stream::write(std::shared_ptr<io::data> const& data) {
   assert(data);
+  _logger = log_v2::instance().get(log_v2::LUA);
 
   // Give data to cache.
   _cache.write(data);
@@ -85,7 +95,7 @@ int32_t stream::flush() {
   int32_t retval = 0;
   if (_luabinding.has_flush()) {
     retval = _luabinding.flush();
-    log_v2::lua()->debug("stream: flush {} events acknowledged", retval);
+    _logger->debug("stream: flush {} events acknowledged", retval);
   }
   return retval;
 }
@@ -96,6 +106,8 @@ int32_t stream::flush() {
  * @return The number of acknowledged events.
  */
 int32_t stream::stop() {
-  log_v2::lua()->debug("lua: stop stream");
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("lua::stream stop {}", static_cast<void*>(this));
   return _luabinding.stop();
 }

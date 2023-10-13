@@ -24,9 +24,7 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/neb/internal.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class bool_service bool_service.hh
  * "com/centreon/broker/bam/bool_service.hh"
@@ -45,28 +43,33 @@ class bool_service : public bool_value, public service_listener {
  public:
   typedef std::shared_ptr<bool_service> ptr;
 
-  bool_service(uint32_t host_id, uint32_t service_id);
+  bool_service(uint32_t host_id,
+               uint32_t service_id,
+               const std::shared_ptr<spdlog::logger>& logger);
   ~bool_service() noexcept = default;
   bool_service(const bool_service&) = delete;
   bool_service& operator=(const bool_service&) = delete;
   uint32_t get_host_id() const;
   uint32_t get_service_id() const;
   void service_update(const std::shared_ptr<neb::pb_service>& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::pb_service_status>& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   void service_update(const std::shared_ptr<neb::service_status>& status,
-                      io::stream* visitor = nullptr) override;
+                      io::stream* visitor,
+                      const std::shared_ptr<spdlog::logger>& logger) override;
   double value_hard() const override;
   bool boolean_value() const override;
   bool state_known() const override;
   bool in_downtime() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  void update_from(computable* child,
+                   io::stream* visitor,
+                   const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_BOOL_SERVICE_HH

@@ -50,18 +50,6 @@ if(WITH_DEBUG_ASIO)
   )
 endif()
 
-# With libasan
-option(WITH_ASAN
-       "Add the libasan to check memory leaks and other memory issues." OFF)
-
-if(WITH_ASAN)
-  set(CMAKE_BUILD_TYPE Debug)
-  set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-  set(CMAKE_LINKER_FLAGS_DEBUG
-      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-endif()
-
 # Default MySQL socket
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
@@ -296,6 +284,7 @@ endif()
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 add_subdirectory(core/multiplexing)
+add_subdirectory(core/misc)
 
 # Core library.
 set(LIBROKER_SOURCES
@@ -339,16 +328,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/raw.cc
     ${SRC_DIR}/io/stream.cc
     ${SRC_DIR}/mapping/entry.cc
-    ${SRC_DIR}/misc/diagnostic.cc
-    ${SRC_DIR}/misc/filesystem.cc
-    ${SRC_DIR}/misc/misc.cc
-    ${SRC_DIR}/misc/parse_perfdata.cc
-    ${SRC_DIR}/misc/perfdata.cc
-    ${SRC_DIR}/misc/processing_speed_computer.cc
-    ${SRC_DIR}/misc/string.cc
-    ${SRC_DIR}/misc/time.cc
-    ${SRC_DIR}/misc/uuid.cc
-    ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
@@ -409,16 +388,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/mapping/entry.hh
     ${INC_DIR}/mapping/property.hh
     ${INC_DIR}/mapping/source.hh
-    ${INC_DIR}/misc/diagnostic.hh
-    ${INC_DIR}/misc/filesystem.hh
-    ${INC_DIR}/misc/misc.hh
-    ${INC_DIR}/misc/perfdata.hh
-    ${INC_DIR}/misc/processing_speed_computer.hh
-    ${INC_DIR}/misc/shared_mutex.hh
-    ${INC_DIR}/misc/string.hh
-    ${INC_DIR}/misc/time.hh
-    ${INC_DIR}/misc/trash.hh
-    ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
     ${INC_DIR}/pool.hh
     ${INC_DIR}/persistent_cache.hh
@@ -439,11 +408,10 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/vars.hh
     ${INC_DIR}/version.hh)
 
-# Static libraries.
-add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
-set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
-target_precompile_headers(rokerlog REUSE_FROM multiplexing)
-target_link_libraries(rokerlog CONAN_PKG::spdlog)
+# Static libraries. add_library(rokerlog STATIC ${SRC_DIR}/log_v2.cc)
+# set_target_properties(rokerlog PROPERTIES COMPILE_FLAGS "-fPIC")
+# target_precompile_headers(rokerlog REUSE_FROM multiplexing)
+# target_link_libraries(rokerlog CONAN_PKG::spdlog)
 
 add_library(rokerbase STATIC ${LIBROKER_SOURCES})
 set_target_properties(rokerbase PROPERTIES COMPILE_FLAGS "-fPIC")
@@ -463,19 +431,21 @@ target_link_libraries(
   dl)
 
 add_library(roker STATIC ${SRC_DIR}/config/applier/init.cc)
-target_link_libraries(roker rokerbase CONAN_PKG::openssl CONAN_PKG::grpc
-                      pthread dl)
+target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc
+                      pthread)
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing centreon_common)
+add_dependencies(cbd multiplexing centreon_common misc)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
   cbd
   "-rdynamic"
-  rokerlog
+  # rokerlog
   "-Wl,--whole-archive"
+  log_v2
+  misc
   sql
   rokerbase
   roker
@@ -491,7 +461,8 @@ target_link_libraries(
   ${CONAN_LIBS_PROTOBUF}
   "-Wl,--no-whole-archive"
   CONAN_PKG::spdlog
-  CONAN_PKG::grpc)
+  CONAN_PKG::grpc
+  CONAN_PKG::abseil)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)

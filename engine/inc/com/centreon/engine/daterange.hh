@@ -1,21 +1,21 @@
-/*
-** Copyright 2011-2019 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2019 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_OBJECTS_DATERANGE_HH
 #define CCE_OBJECTS_DATERANGE_HH
@@ -45,6 +45,24 @@ class daterange {
     week_day = 4
   };
 
+ private:
+  type_range _type;
+  int _syear;  // Start year.
+  int _smon;   // Start month.
+  // Start day of month (may 3rd, last day in feb).
+  int _smday;
+  int _swday;  // Start day of week (thursday).
+  // Start weekday offset (3rd thursday, last monday in jan).
+  int _swday_offset;
+  int _eyear;
+  int _emon;
+  int _emday;
+  int _ewday;
+  int _ewday_offset;
+  int _skip_interval;
+  timerange_list _timerange;
+
+ public:
   daterange(type_range type,
             int syear,
             int smon,
@@ -96,23 +114,6 @@ class daterange {
 
   static std::string const& get_month_name(unsigned int index);
   static std::string const& get_weekday_name(unsigned int index);
-
- private:
-  type_range _type;
-  int _syear;  // Start year.
-  int _smon;   // Start month.
-  // Start day of month (may 3rd, last day in feb).
-  int _smday;
-  int _swday;  // Start day of week (thursday).
-  // Start weekday offset (3rd thursday, last monday in jan).
-  int _swday_offset;
-  int _eyear;
-  int _emon;
-  int _emday;
-  int _ewday;
-  int _ewday_offset;
-  int _skip_interval;
-  timerange_list _timerange;
 };
 
 std::ostream& operator<<(std::ostream& os,
@@ -120,6 +121,6 @@ std::ostream& operator<<(std::ostream& os,
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
-}
+}  // namespace com::centreon::engine
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH

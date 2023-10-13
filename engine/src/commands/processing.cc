@@ -18,11 +18,11 @@
 */
 
 #include "com/centreon/engine/commands/processing.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/retention/applier/state.hh"
 #include "com/centreon/engine/retention/dump.hh"
@@ -573,7 +573,7 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
     hst = it->second.get();
 
   if (!hst) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown host: {}", name);
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
     return;
   }
   (*fptr)(hst);
@@ -592,7 +592,7 @@ void processing::_redirector_host(int id, time_t entry_time, char* args) {
     hst = it->second.get();
 
   if (!hst) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown host: {}", name);
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown host: {}", name);
     return;
   }
   (*fptr)(hst, args + name.length() + 1);
@@ -610,7 +610,7 @@ void processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
   if (it != hostgroup::hostgroups.end())
     group = it->second.get();
   if (!group) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown group: {}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown group: {}",
                         group_name);
     return;
   }
@@ -634,7 +634,7 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
       service::services.find({name, description}));
 
   if (found == service::services.end() || !found->second) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service: {}@{}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service: {}@{}",
                         description, name);
     return;
   }
@@ -652,7 +652,7 @@ void processing::_redirector_service(int id, time_t entry_time, char* args) {
       service::services.find({name, description})};
 
   if (found == service::services.end() || !found->second) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service: {}@{}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service: {}@{}",
                         description, name);
     return;
   }
@@ -670,7 +670,7 @@ void processing::_redirector_servicegroup(int id,
   servicegroup_map::const_iterator sg_it{
       servicegroup::servicegroups.find(group_name)};
   if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service group: {}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service group: {}",
                         group_name);
     return;
   }
@@ -693,7 +693,7 @@ void processing::_redirector_servicegroup(int id,
   servicegroup_map::const_iterator sg_it{
       servicegroup::servicegroups.find(group_name)};
   if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service group: {}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown service group: {}",
                         group_name);
     return;
   }
@@ -722,8 +722,7 @@ void processing::_redirector_contact(int id, time_t entry_time, char* args) {
   char* name(my_strtok(args, ";"));
   contact_map::const_iterator ct_it{contact::contacts.find(name)};
   if (ct_it == contact::contacts.end()) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown contact: {}",
-                        name);
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown contact: {}", name);
     return;
   }
   (*fptr)(ct_it->second.get());
@@ -748,7 +747,7 @@ void processing::_redirector_contactgroup(int id,
   contactgroup_map::iterator it_cg{
       contactgroup::contactgroups.find(group_name)};
   if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown contact group: {}",
+    SPDLOG_LOGGER_ERROR(external_command_logger, "unknown contact group: {}",
                         group_name);
     return;
   }
@@ -774,13 +773,13 @@ void processing::_redirector_anomalydetection(int id,
       service::services.find({name, description})};
 
   if (found == service::services.end() || !found->second) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+    SPDLOG_LOGGER_ERROR(external_command_logger,
                         "unknown anomaly detection {}@{}", description, name);
     return;
   }
 
   if (found->second->get_service_type() != service_type::ANOMALY_DETECTION) {
-    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+    SPDLOG_LOGGER_ERROR(external_command_logger,
                         "{}@{} is not an anomalydetection", description, name);
     return;
   }
@@ -792,7 +791,7 @@ void processing::_redirector_anomalydetection(int id,
 
 bool processing::execute(const std::string& cmdstr) {
   engine_logger(dbg_functions, basic) << "processing external command";
-  log_v2::functions()->trace("processing external command {}", cmdstr);
+  functions_logger->trace("processing external command {}", cmdstr);
 
   char const* cmd{cmdstr.c_str()};
   size_t len{cmdstr.size()};
@@ -832,6 +831,16 @@ bool processing::execute(const std::string& cmdstr) {
 
   int command_id(CMD_CUSTOM_COMMAND);
 
+  bool log_passive_checks;
+  bool log_external_commands;
+#if LEGACY_CONF
+  log_passive_checks = config->log_passive_checks();
+  log_external_commands = config->log_external_commands();
+#else
+  log_passive_checks = pb_config.log_passive_checks();
+  log_external_commands = pb_config.log_external_commands();
+#endif
+
   std::unordered_map<std::string, command_info>::const_iterator it =
       _lst_command.find(command_name);
   if (it != _lst_command.end())
@@ -839,7 +848,7 @@ bool processing::execute(const std::string& cmdstr) {
   else if (command_name[0] != '_') {
     engine_logger(log_external_command | log_runtime_warning, basic)
         << "Warning: Unrecognized external command -> " << command_name;
-    log_v2::external_command()->warn(
+    external_command_logger->warn(
         "Warning: Unrecognized external command -> {}", command_name);
     return false;
   }
@@ -851,15 +860,15 @@ bool processing::execute(const std::string& cmdstr) {
   if (command_id == CMD_PROCESS_SERVICE_CHECK_RESULT ||
       command_id == CMD_PROCESS_HOST_CHECK_RESULT) {
     // Passive checks are logged in checks.c.
-    if (config->log_passive_checks()) {
+    if (log_passive_checks) {
       engine_logger(log_passive_check, basic)
           << "EXTERNAL COMMAND: " << command_name << ';' << args;
-      log_v2::checks()->info("EXTERNAL COMMAND: {};{}", command_name, args);
+      checks_logger->info("EXTERNAL COMMAND: {};{}", command_name, args);
     }
-  } else if (config->log_external_commands()) {
+  } else if (log_external_commands) {
     engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
-    SPDLOG_LOGGER_INFO(log_v2::external_command(), "EXTERNAL COMMAND: {};{}",
+    SPDLOG_LOGGER_INFO(external_command_logger, "EXTERNAL COMMAND: {};{}",
                        command_name, args);
   }
 
@@ -867,12 +876,11 @@ bool processing::execute(const std::string& cmdstr) {
       << "External command id: " << command_id
       << "\nCommand entry time: " << entry_time
       << "\nCommand arguments: " << args;
-  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "External command id: {}",
+  SPDLOG_LOGGER_DEBUG(external_command_logger, "External command id: {}",
                       command_id);
-  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "Command entry time: {}",
+  SPDLOG_LOGGER_DEBUG(external_command_logger, "Command entry time: {}",
                       entry_time);
-  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "Command arguments: {}",
-                      args);
+  SPDLOG_LOGGER_DEBUG(external_command_logger, "Command arguments: {}", args);
 
   // Send data to event broker.
   broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, command_id,
@@ -906,19 +914,32 @@ void processing::_wrapper_read_state_information() {
   try {
     retention::state state;
     retention::parser p;
-    p.parse(config->state_retention_file(), state);
+#if LEGACY_CONF
+    const std::string& retention_file = config->state_retention_file();
+#else
+    const std::string& retention_file = pb_config.state_retention_file();
+#endif
+    p.parse(retention_file, state);
     retention::applier::state app_state;
+#if LEGACY_CONF
     app_state.apply(*config, state);
+#else
+    app_state.apply(pb_config, state);
+#endif
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();
-    SPDLOG_LOGGER_ERROR(log_v2::runtime(),
+    SPDLOG_LOGGER_ERROR(runtime_logger,
                         "Error: could not load retention file: {}", e.what());
   }
 }
 
 void processing::_wrapper_save_state_information() {
+#if LEGACY_CONF
   retention::dump::save(config->state_retention_file());
+#else
+  retention::dump::save(pb_config.state_retention_file());
+#endif
 }
 
 void processing::wrapper_enable_host_and_child_notifications(host* hst) {
@@ -974,7 +995,7 @@ void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
     int notification_number;
     if (!absl::SimpleAtoi(args, &notification_number)) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::runtime(),
+          runtime_logger,
           "Error: could not set host notification number: '{}' must be a "
           "positive integer",
           args);
@@ -991,7 +1012,7 @@ void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
       (buf[2] = my_strtok(NULL, ";"))) {
     if (!absl::SimpleAtoi(buf[0], &option)) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::runtime(),
+          runtime_logger,
           "Error: could not send custom host notification: '{}' must be an "
           "integer between 0 and 7",
           buf[0]);
@@ -1000,7 +1021,7 @@ void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
                   static_cast<notifier::notification_option>(option));
     } else {
       SPDLOG_LOGGER_ERROR(
-          log_v2::runtime(),
+          runtime_logger,
           "Error: could not send custom host notification: '{}' must be an "
           "integer between 0 and 7",
           buf[0]);
@@ -1063,7 +1084,7 @@ void processing::_wrapper_set_service_notification_number(service* svc,
   if (svc && str) {
     if (!absl::SimpleAtoi(str, &notification_number)) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::runtime(),
+          runtime_logger,
           "Error: could not set service notification number: '{}' must be a "
           "positive integer",
           str);
@@ -1081,7 +1102,7 @@ void processing::_wrapper_send_custom_service_notification(service* svc,
       (buf[2] = my_strtok(NULL, ";"))) {
     if (!absl::SimpleAtoi(buf[0], &notification_number)) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::runtime(),
+          runtime_logger,
           "Error: could not send custom service notification: '{}' must be an "
           "integer between 0 and 7",
           buf[0]);
@@ -1091,7 +1112,7 @@ void processing::_wrapper_send_custom_service_notification(service* svc,
           static_cast<notifier::notification_option>(notification_number));
     } else {
       SPDLOG_LOGGER_ERROR(
-          log_v2::runtime(),
+          runtime_logger,
           "Error: could not send custom service notification: '{}' must be an "
           "integer between 0 and 7",
           buf[0]);
@@ -1106,7 +1127,7 @@ void processing::change_anomaly_detection_sensitivity(anomalydetection* ano,
     ano->set_sensitivity(new_sensitivity);
   } else {
     SPDLOG_LOGGER_ERROR(
-        log_v2::external_command(),
+        external_command_logger,
         "change_anomaly_detection_sensitivity unable to parse args: {}", args);
   }
 }

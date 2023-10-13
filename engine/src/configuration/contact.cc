@@ -1,5 +1,5 @@
 /**
- * Copyright 2011-2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,10 +18,12 @@
  */
 
 #include "com/centreon/engine/configuration/contact.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/numbers.h>
+#include <absl/strings/str_split.h>
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
@@ -231,10 +233,9 @@ bool contact::operator<(contact const& other) const noexcept {
  *
  *  If the object is not valid, an exception is thrown.
  */
-void contact::check_validity() const {
+void contact::check_validity(error_info* err [[maybe_unused]]) const {
   if (_contact_name.empty())
-    throw(engine_error() << "Contact has no name (property 'contact_name')");
-  return;
+    throw exceptions::msg_fmt("Contact has no name (property 'contact_name')");
 }
 
 /**
@@ -253,7 +254,8 @@ contact::key_type const& contact::key() const noexcept {
  */
 void contact::merge(object const& obj) {
   if (obj.type() != _type)
-    throw(engine_error() << "Cannot merge contact with '" << obj.type() << "'");
+    throw exceptions::msg_fmt("Cannot merge contact with object of type '{}'",
+                              static_cast<uint32_t>(obj.type()));
   contact const& tmpl(static_cast<contact const&>(obj));
 
   MRG_TAB(_address);
@@ -293,7 +295,7 @@ bool contact::parse(char const* key, char const* value) {
   if (!strncmp(key, ADDRESS_PROPERTY, sizeof(ADDRESS_PROPERTY) - 1))
     return _set_address(key + sizeof(ADDRESS_PROPERTY) - 1, value);
   else if (key[0] == '_') {
-    map_customvar::iterator it(_customvariables.find(key + 1));
+    auto it = _customvariables.find(key + 1);
     if (it == _customvariables.end())
       _customvariables[key + 1] = customvariable(value);
     else
@@ -363,7 +365,8 @@ std::string const& contact::contact_name() const noexcept {
  *
  *  @return The customvariables.
  */
-map_customvar const& contact::customvariables() const noexcept {
+const std::unordered_map<std::string, customvariable>&
+contact::customvariables() const noexcept {
   return _customvariables;
 }
 
@@ -372,7 +375,8 @@ map_customvar const& contact::customvariables() const noexcept {
  *
  *  @return The customvariables.
  */
-map_customvar& contact::customvariables() noexcept {
+std::unordered_map<std::string, customvariable>&
+contact::mutable_customvariables() noexcept {
   return _customvariables;
 }
 
@@ -501,9 +505,11 @@ std::string const& contact::timezone() const noexcept {
  *
  *  @return True on success, otherwise false.
  */
-bool contact::_set_address(std::string const& key, std::string const& value) {
+bool contact::_set_address(const std::string& key, const std::string& value) {
   unsigned int id;
-  if (!string::to(key.c_str(), id) || (id < 1) || (id > MAX_ADDRESSES))
+  if (!absl::SimpleAtoi(key, &id))
+    return false;
+  if (id < 1 || id > MAX_ADDRESSES)
     return false;
   _address[id - 1] = value;
   return true;
@@ -601,25 +607,23 @@ bool contact::_set_host_notification_commands(std::string const& value) {
  *  @return True on success, otherwise false.
  */
 bool contact::_set_host_notification_options(std::string const& value) {
-  unsigned short options(host::none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "d" || *it == "down")
+  unsigned short options = host::none;
+  auto values = absl::StrSplit(value, ',');
+  for (auto it = values.begin(), end = values.end(); it != end; ++it) {
+    std::string_view v = absl::StripAsciiWhitespace(*it);
+    if (v == "d" || v == "down")
       options |= host::down;
-    else if (*it == "u" || *it == "unreachable")
+    else if (v == "u" || v == "unreachable")
       options |= host::unreachable;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= host::up;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= host::flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= host::downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = host::none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = host::down | host::unreachable | host::up | host::flapping |
                 host::downtime;
     else
@@ -698,26 +702,24 @@ bool contact::_set_service_notification_commands(std::string const& value) {
  */
 bool contact::_set_service_notification_options(std::string const& value) {
   unsigned short options(service::none);
-  std::list<std::string> values;
-  string::split(value, values, ',');
-  for (std::list<std::string>::iterator it(values.begin()), end(values.end());
-       it != end; ++it) {
-    string::trim(*it);
-    if (*it == "u" || *it == "unknown")
+  auto values = absl::StrSplit(value, ',');
+  for (auto it = values.begin(), end = values.end(); it != end; ++it) {
+    auto v = absl::StripAsciiWhitespace(*it);
+    if (v == "u" || v == "unknown")
       options |= service::unknown;
-    else if (*it == "w" || *it == "warning")
+    else if (v == "w" || v == "warning")
       options |= service::warning;
-    else if (*it == "c" || *it == "critical")
+    else if (v == "c" || v == "critical")
       options |= service::critical;
-    else if (*it == "r" || *it == "recovery")
+    else if (v == "r" || v == "recovery")
       options |= service::ok;
-    else if (*it == "f" || *it == "flapping")
+    else if (v == "f" || v == "flapping")
       options |= service::flapping;
-    else if (*it == "s" || *it == "downtime")
+    else if (v == "s" || v == "downtime")
       options |= service::downtime;
-    else if (*it == "n" || *it == "none")
+    else if (v == "n" || v == "none")
       options = service::none;
-    else if (*it == "a" || *it == "all")
+    else if (v == "a" || v == "all")
       options = service::unknown | service::warning | service::critical |
                 service::ok | service::flapping | service::downtime;
     else

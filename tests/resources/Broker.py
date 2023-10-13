@@ -59,6 +59,7 @@ config = {
                 "tls": "error",
                 "lua": "error",
                 "bam": "error",
+                "functions": "trace",
                 "grpc": "debug"
             }}
         }},
@@ -890,9 +891,8 @@ def broker_config_output_set(name, output, key, value):
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_output_set_json(name, output, key, value):
@@ -1042,7 +1042,7 @@ def check_broker_stats_exist(name, key1, key2, timeout=TIMEOUT):
         retry = True
         while retry and time.time() < limit:
             retry = False
-            f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
+            f = open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r")
             buf = f.read()
             f.close()
 
@@ -1070,9 +1070,8 @@ def get_broker_stats_size(name, key, timeout=TIMEOUT):
         retry = True
         while retry and time.time() < limit:
             retry = False
-            f = open(VAR_ROOT + "/lib/centreon-broker/{}".format(filename), "r")
-            buf = f.read()
-            f.close()
+            with open(f"{VAR_ROOT}/lib/centreon-broker/{filename}", "r") as f:
+                buf = f.read()
             try:
                 conf = json.loads(buf)
             except:
@@ -1728,10 +1727,8 @@ def rebuild_rrd_graphs_from_db(indexes):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
-                    " DEF:x=" + VAR_ROOT +
-                    "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
-                    .format(metric))
+    res = getoutput(f"rrdtool graph dummy --start=end-180d --end=now"
+                    " DEF:x={VAR_ROOT}/lib/centreon/metrics/{metric}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf")
     lst = res.split('\n')
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))
@@ -2107,7 +2104,6 @@ def dump_ba(port, index: int, filename: str):
         except:
             logger.console("gRPC server not ready")
 
-
 def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
     """
     broker_get_ba calls the gRPC GetBa function.
@@ -2141,3 +2137,49 @@ def broker_get_ba(port: int, ba_id: int, output_file: str, timeout=TIMEOUT):
             except:
                 logger.console("gRPC server not ready")
     return res
+
+def check_all_services_with_status(host: str, service_like:str, status: int, legacy:bool=False, timeout:int=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                # Read a single record
+                if legacy:
+                    sql = f"SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{host}' AND s.description LIKE '{service_like}' AND s.state <> {status}"
+                else:
+                    sql = f"SELECT count(*) FROM resources WHERE name like '{service_like}' AND parent_name='{host}' AND status <> {status}"
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                logger.console(result[0]['count(*)'])
+                if result and result[0] and 'count(*)' in result[0] and int(result[0]['count(*)']) == 0:
+                    return True
+                time.sleep(1)
+    return False
+
+def check_last_checked_services_with_given_metric_more_than(metric_like: str, now: int, goal: int, timeout:int=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                # Read a single record
+                sql = f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}"
+                logger.console(f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}")
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                logger.console(result[0])
+                if result and result[0] and 'count(s.last_check)' in result[0] and int(result[0]['count(s.last_check)']) >= int(goal):
+                    return True
+                time.sleep(1)
+    return False

@@ -1,5 +1,5 @@
 /**
- * Copyright 2020 Centreon (https://www.centreon.com/)
+ * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,6 @@
  *
  */
 
-#include "com/centreon/engine/configuration/applier/anomalydetection.hh"
-
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 
@@ -29,6 +27,7 @@
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/commands.hh"
+#include "com/centreon/engine/configuration/applier/anomalydetection.hh"
 #include "com/centreon/engine/configuration/applier/contact.hh"
 #include "com/centreon/engine/configuration/applier/contactgroup.hh"
 #include "com/centreon/engine/configuration/applier/host.hh"
@@ -36,8 +35,7 @@
 #include "com/centreon/engine/configuration/applier/servicedependency.hh"
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/engine/globals.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -50,28 +48,29 @@ class AnomalydetectionCheck : public TestEngine {
   void SetUp() override {
     init_config_state();
 
-    log_v2::checks()->set_level(spdlog::level::trace);
-    log_v2::commands()->set_level(spdlog::level::trace);
+    init_loggers();
+    checks_logger->set_level(spdlog::level::trace);
+    commands_logger->set_level(spdlog::level::trace);
 
     configuration::applier::contact ct_aply;
-    configuration::contact ctct{new_configuration_contact("admin", true)};
+    configuration::Contact ctct{new_pb_configuration_contact("admin", true)};
     ct_aply.add_object(ctct);
-    ct_aply.expand_objects(*config);
+    ct_aply.expand_objects(pb_config);
     ct_aply.resolve_object(ctct);
 
-    configuration::host hst{new_configuration_host("test_host", "admin")};
+    configuration::Host hst{new_pb_configuration_host("test_host", "admin")};
     configuration::applier::host hst_aply;
     hst_aply.add_object(hst);
 
-    configuration::service svc{
-        new_configuration_service("test_host", "test_svc", "admin", 8)};
+    configuration::Service svc{
+        new_pb_configuration_service("test_host", "test_svc", "admin", 8)};
     configuration::applier::service svc_aply;
     svc_aply.add_object(svc);
 
     hst_aply.resolve_object(hst);
     svc_aply.resolve_object(svc);
 
-    configuration::anomalydetection ad{new_configuration_anomalydetection(
+    configuration::Anomalydetection ad{new_pb_configuration_anomalydetection(
         "test_host", "test_ad", "admin", 9, 8,
         "/tmp/thresholds_status_change.json")};
     configuration::applier::anomalydetection ad_aply;
@@ -944,7 +943,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_F(AnomalydetectionCheck, BadThresholdsFile) {
   ::unlink("/tmp/thresholds_status_change.json");
   set_time(50000);
-  std::time_t now{std::time(nullptr)};
+  std::time_t now = std::time(nullptr);
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_last_hard_state(engine::service::state_ok);
   _svc->set_last_hard_state_change(50000);

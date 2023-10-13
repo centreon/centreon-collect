@@ -17,9 +17,9 @@
  *
  */
 
-#include "com/centreon/engine/configuration/tag.hh"
 #include <gtest/gtest.h>
 
+#include "common/configuration/tag_helper.hh"
 #include "helper.hh"
 
 using namespace com::centreon;
@@ -38,45 +38,60 @@ class ConfigTag : public ::testing::Test {
 // When I create a configuration::tag with a null id
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoKey) {
-  configuration::tag tg({0, 0});
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  configuration::Tag tg;
+  configuration::tag_helper tg_hlp(&tg);
+  tg.mutable_key()->set_id(0);
+  tg.mutable_key()->set_type(0);
+  ASSERT_THROW(tg_hlp.check_validity(), std::exception);
 }
 
 // When I create a configuration::tag with a null type
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoLevel) {
-  configuration::tag tg({1, 0});
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  configuration::Tag tg;
+  configuration::tag_helper tg_hlp(&tg);
+  tg.mutable_key()->set_id(1);
+  tg.mutable_key()->set_type(0);
+  ASSERT_THROW(tg_hlp.check_validity(), std::exception);
 }
 
 // When I create a configuration::tag with an empty name
 // Then an exception is thrown.
 TEST_F(ConfigTag, NewTagWithNoName) {
-  configuration::tag tg({1, 0});
-  tg.parse("type", "hostcategory");
-  ASSERT_THROW(tg.check_validity(), std::exception);
+  configuration::Tag tg;
+  configuration::tag_helper tg_hlp(&tg);
+  tg.mutable_key()->set_id(1);
+  tg.mutable_key()->set_type(0);
+  tg_hlp.hook("type", "hostcategory");
+  ASSERT_THROW(tg_hlp.check_validity(), std::exception);
 }
 
 // When I create a configuration::tag with a non empty name,
 // non null id and non null type
 // Then no exception is thrown.
 TEST_F(ConfigTag, NewTagWellFilled) {
-  configuration::tag tg({1, 0});
-  tg.parse("type", "servicegroup");
-  tg.parse("tag_name", "foobar");
-  ASSERT_EQ(tg.key().first, 1);
-  ASSERT_EQ(tg.key().second, engine::configuration::tag::servicegroup);
+  configuration::Tag tg;
+  configuration::tag_helper tg_hlp(&tg);
+  tg.mutable_key()->set_id(1);
+  tg.mutable_key()->set_type(0);
+  tg_hlp.hook("type", "servicegroup");
+  tg.set_tag_name("foobar");
+  ASSERT_EQ(tg.key().id(), 1);
+  ASSERT_EQ(tg.key().type(), engine::configuration::tag::servicegroup);
   ASSERT_EQ(tg.tag_name(), "foobar");
-  ASSERT_NO_THROW(tg.check_validity());
+  ASSERT_NO_THROW(tg_hlp.check_validity());
 }
 
 // When I create a configuration::tag with a non empty name,
 // non null id and non null type.
 // Then we can get the type value.
 TEST_F(ConfigTag, NewTagIconId) {
-  configuration::tag tg({1, 0});
-  tg.parse("type", "hostgroup");
-  tg.parse("tag_name", "foobar");
-  ASSERT_EQ(tg.key().second, engine::configuration::tag::hostgroup);
-  ASSERT_NO_THROW(tg.check_validity());
+  configuration::Tag tg;
+  configuration::tag_helper tg_hlp(&tg);
+  tg.mutable_key()->set_id(1);
+  tg.mutable_key()->set_type(0);
+  tg_hlp.hook("type", "hostgroup");
+  tg.set_tag_name("foobar");
+  ASSERT_EQ(tg.key().type(), engine::configuration::tag::hostgroup);
+  ASSERT_NO_THROW(tg_hlp.check_validity());
 }

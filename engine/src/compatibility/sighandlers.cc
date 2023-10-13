@@ -45,7 +45,6 @@ static void sighandler_helper(char const* msg, unsigned int size, int ret) {
 
   // Exit.
   _Exit(ret);
-  return;
 }
 
 extern "C" {
@@ -58,7 +57,6 @@ void host_check_sighandler(int sig) {
   (void)sig;
   sighandler_helper(HOST_TIMEOUT_OUTPUT, sizeof(HOST_TIMEOUT_OUTPUT) - 1,
                     service::state_unknown);
-  return;
 }
 
 /**
@@ -69,7 +67,6 @@ void host_check_sighandler(int sig) {
 void my_system_sighandler(int sig) {
   (void)sig;
   sighandler_helper(NULL, 0, service::state_unknown);
-  return;
 }
 
 /**
@@ -81,6 +78,5 @@ void service_check_sighandler(int sig) {
   (void)sig;
   sighandler_helper(SERVICE_TIMEOUT_OUTPUT, sizeof(SERVICE_TIMEOUT_OUTPUT) - 1,
                     service::state_unknown);
-  return;
 }
 }

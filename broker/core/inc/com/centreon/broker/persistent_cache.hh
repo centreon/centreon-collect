@@ -22,6 +22,8 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/stream.hh"
 
+#include <spdlog/spdlog.h>
+
 namespace com::centreon::broker {
 
 /**
@@ -37,22 +39,31 @@ class persistent_cache {
   std::shared_ptr<io::stream> _read_file;
   std::shared_ptr<io::stream> _write_file;
 
+ protected:
+  /* Logger */
+  std::shared_ptr<spdlog::logger> _logger;
+
+ private:
   std::string _new_file() const;
   std::string _old_file() const;
   void _open();
 
  public:
   persistent_cache(const std::string& cache_file);
-  ~persistent_cache();
+  ~persistent_cache() noexcept = default;
   persistent_cache(const persistent_cache&) = delete;
   persistent_cache& operator=(const persistent_cache&) = delete;
   void add(std::shared_ptr<io::data> const& d);
   void commit();
   void get(std::shared_ptr<io::data>& d);
   void transaction();
+  std::shared_ptr<spdlog::logger> logger() const;
+  void update_logger();
 
   const std::string& get_cache_file() const;
+  void set_logger(const std::shared_ptr<spdlog::logger>& logger);
 };
 
 }  // namespace com::centreon::broker
+
 #endif  // !CCB_PERSISTENT_CACHE_HH

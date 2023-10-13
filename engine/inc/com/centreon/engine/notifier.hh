@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -340,7 +340,7 @@ class notifier : public checkable {
   int _pending_flex_downtime;
 };
 
-}
+}  // namespace com::centreon::engine
 
 bool is_contact_for_notifier(com::centreon::engine::notifier* notif,
                              com::centreon::engine::contact* cntct);

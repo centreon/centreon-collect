@@ -20,7 +20,6 @@
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/impact_values.hh"
 #include "com/centreon/broker/bam/internal.hh"
-#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::bam;
@@ -30,8 +29,9 @@ using namespace com::centreon::broker::bam;
  */
 kpi_boolexp::kpi_boolexp(uint32_t kpi_id,
                          uint32_t ba_id,
-                         const std::string& bool_name)
-    : kpi(kpi_id, ba_id, bool_name) {}
+                         const std::string& bool_name,
+                         const std::shared_ptr<spdlog::logger>& logger)
+    : kpi(kpi_id, ba_id, bool_name, logger) {}
 
 /**
  *  Return true if in downtime.
@@ -203,17 +203,16 @@ void kpi_boolexp::_update_state() {
   uint32_t id = _boolexp->get_id();
   if (_boolexp->state_known()) {
     _current_state = _boolexp->get_state();
-    log_v2::bam()->trace(
-        "BAM: kpi {} boolean expression: state (known) value: {}", id,
-        _current_state);
+    _logger->trace("BAM: kpi {} boolean expression: state (known) value: {}",
+                   id, _current_state);
   } else if (_event) {
     _current_state = static_cast<state>(_event->status());
-    log_v2::bam()->trace(
+    _logger->trace(
         "BAM: kpi {} boolean expression: state from internal event: {}", id,
         _current_state);
   } else {
     _current_state = _boolexp->get_state();
-    log_v2::bam()->trace(
+    _logger->trace(
         "BAM: kpi {} boolean expression: state value still taken from "
         "boolexp: {}",
         id, _current_state);
@@ -234,9 +233,12 @@ bool kpi_boolexp::ok_state() const {
  *
  * @param child The child that changed.
  * @param visitor The visitor to handle events.
+ * @param logger The logger to use.
  */
-void kpi_boolexp::update_from(computable* child, io::stream* visitor) {
-  log_v2::bam()->trace("kpi_boolexp::update_from");
+void kpi_boolexp::update_from(computable* child,
+                              io::stream* visitor,
+                              const std::shared_ptr<spdlog::logger>& logger) {
+  logger->trace("kpi_boolexp::update_from");
   // It is useless to maintain a cache of boolean expression values in
   // this class, as the bool_expression class already cache most of them.
   if (child == _boolexp.get()) {
@@ -244,12 +246,12 @@ void kpi_boolexp::update_from(computable* child, io::stream* visitor) {
     // Generate status event.
     _update_state();
     visit(visitor);
-    log_v2::bam()->debug(
+    _logger->debug(
         "BAM: boolean expression KPI {} is getting notified of child update "
         "old_state={}, new_state={}",
         _id, old_state, _current_state);
     if (old_state != _current_state)
-      notify_parents_of_change(visitor);
+      notify_parents_of_change(visitor, logger);
   }
 }
 

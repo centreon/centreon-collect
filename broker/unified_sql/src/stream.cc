@@ -1,34 +1,34 @@
 /**
-* Copyright 2021-2023 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
+
 #include <cassert>
 #include <cstring>
 #include <thread>
 
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
@@ -36,11 +36,13 @@
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::database;
 using namespace com::centreon::broker::unified_sql;
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 const std::string stream::_index_data_insert_request(
     "INSERT INTO index_data "
@@ -169,6 +171,8 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _group_clean_timer{pool::io_context()},
       _loop_timer{pool::io_context()},
+      _logger_sql{log_v2::instance().get(log_v2::SQL)},
+      _logger_sto{log_v2::instance().get(log_v2::PERFDATA)},
       _cv(queue_timer_duration,
           _max_pending_queries,
           "INSERT INTO customvariables "
@@ -176,16 +180,21 @@ stream::stream(const database_config& dbcfg,
           "value) VALUES {} "
           " ON DUPLICATE KEY UPDATE "
           "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
-          "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)"),
+          "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)",
+          _logger_sql),
       _cvs(queue_timer_duration,
            _max_pending_queries,
            "INSERT INTO customvariables "
            "(name,host_id,service_id,modified,update_time,value) VALUES {} "
            " ON DUPLICATE KEY UPDATE "
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
-           "VALUES(value)"),
+           "VALUES(value)",
+           _logger_sql),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream class instanciation");
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("unified_sql::stream constructor {}", static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?
   unsigned nb_dedicated_connection = 0;
@@ -203,7 +212,7 @@ stream::stream(const database_config& dbcfg,
 
   if (nb_dedicated_connection > 0) {
     SPDLOG_LOGGER_INFO(
-        log_v2::sql(),
+        _logger_sql,
         "use of {} dedicated connection for logs and data_bin tables",
         nb_dedicated_connection);
     database_config dedicated_cfg(dbcfg);
@@ -212,6 +221,14 @@ stream::stream(const database_config& dbcfg,
     dedicated_cfg.set_queries_per_transaction(1);
     dedicated_cfg.set_connections_count(nb_dedicated_connection);
     _dedicated_connections = std::make_unique<mysql>(dedicated_cfg);
+  }
+
+  const char* env = getenv("CENTENGINE_LEGACY");
+  bool legacy;
+  if (env && absl::SimpleAtob(env, &legacy)) {
+    // FIXME DBO: this path should not be hard coded...
+    _configurator = std::make_unique<poller_configurator>(
+        "/tmp/etc/centreon-engine/config0");
   }
 
   stats::center::instance().execute([stats = _stats,
@@ -224,14 +241,14 @@ stream::stream(const database_config& dbcfg,
   _action.resize(_mysql.connections_count());
 
   _bulk_prepared_statement = _mysql.support_bulk_statement();
-  log_v2::sql()->info("Unified sql stream connected to '{}' Server",
-                      _mysql.get_server_version());
+  _logger_sql->info("Unified sql stream connected to '{}' Server",
+                    _mysql.get_server_version());
 
   try {
     _init_statements();
     _load_caches();
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::sql(), "error while loading caches: {}",
+    SPDLOG_LOGGER_ERROR(_logger_sql, "error while loading caches: {}",
                         e.what());
     throw;
   }
@@ -240,17 +257,23 @@ stream::stream(const database_config& dbcfg,
   _queues_timer.async_wait(
       [this](const boost::system::error_code& err) { _check_queues(err); });
   _start_loop_timer();
-  SPDLOG_LOGGER_INFO(log_v2::sql(),
-                     "Unified sql stream running loop_interval={}",
+  SPDLOG_LOGGER_INFO(_logger_sql, "Unified sql stream running loop_interval={}",
                      _loop_timeout);
 }
 
 stream::~stream() noexcept {
-  std::lock_guard<std::mutex> l(_timer_m);
-  _group_clean_timer.cancel();
-  _queues_timer.cancel();
-  _loop_timer.cancel();
-  SPDLOG_LOGGER_DEBUG(log_v2::sql(), "unified sql: stream destruction");
+  {
+    std::lock_guard<std::mutex> l(_timer_m);
+    _group_clean_timer.cancel();
+    _queues_timer.cancel();
+    _loop_timer.cancel();
+  }
+  /* Let's wait a little if one of the timers is working during the cancellation
+   */
+  std::lock_guard<std::shared_mutex> lck(_barrier_timer_m);
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("unified_sql::stream destructor {}", static_cast<void*>(this));
 }
 
 void stream::_load_deleted_instances() {
@@ -265,7 +288,7 @@ void stream::_load_deleted_instances() {
       int32_t instance_id = res.value_as_i32(0);
       if (instance_id <= 0)
         SPDLOG_LOGGER_ERROR(
-            log_v2::sql(),
+            _logger_sql,
             "unified_sql: The 'instances' table contains rows with instance_id "
             "<= 0 ; you should remove them.");
       else
@@ -394,18 +417,18 @@ void stream::_load_caches() {
       if (host_id <= 0 || service_id <= 0) {
         if (host_id <= 0)
           SPDLOG_LOGGER_ERROR(
-              log_v2::sql(),
+              _logger_sql,
               "unified_sql: the 'index_data' table contains rows with host_id "
               "<= "
               "0, you should remove them.");
         if (service_id <= 0)
           SPDLOG_LOGGER_ERROR(
-              log_v2::sql(),
+              _logger_sql,
               "unified_sql: the 'index_data' table contains rows with "
               "service_id "
               "<= 0, you should remove them.");
       } else {
-        log_v2::perfdata()->debug(
+        _logger_sto->debug(
             "unified_sql: loaded index {} of ({}, {}) with rrd_len={}",
             info.index_id, host_id, service_id, info.rrd_retention);
         _index_cache[{host_id, service_id}] = std::move(info);
@@ -446,12 +469,12 @@ void stream::_load_caches() {
       else {
         if (host_id <= 0)
           SPDLOG_LOGGER_ERROR(
-              log_v2::sql(),
+              _logger_sql,
               "unified_sql: the 'hosts' table contains rows with host_id <= 0, "
               "you should remove them.");
         if (instance_id <= 0)
           SPDLOG_LOGGER_ERROR(
-              log_v2::sql(),
+              _logger_sql,
               "unified_sql: the 'hosts' table contains rows with instance_id "
               "<= 0, you should remove them.");
       }
@@ -471,7 +494,7 @@ void stream::_load_caches() {
         _hostgroup_cache.insert(hg_id);
       else
         SPDLOG_LOGGER_ERROR(
-            log_v2::sql(),
+            _logger_sql,
             "unified_sql: the table 'hostgroups' contains rows with "
             "hostgroup_id <= 0, you should remove them.");
     }
@@ -487,7 +510,7 @@ void stream::_load_caches() {
       int32_t sg_id = res.value_as_i32(0);
       if (sg_id <= 0)
         SPDLOG_LOGGER_ERROR(
-            log_v2::sql(),
+            _logger_sql,
             "unified_sql: the 'servicegroups' table contains rows with "
             "servicegroup_id <= 0, you should remove them.");
       else
@@ -518,7 +541,7 @@ void stream::_load_caches() {
 
         if (metric_id <= 0)
           SPDLOG_LOGGER_ERROR(
-              log_v2::sql(),
+              _logger_sql,
               "unified_sql: the 'metrics' table contains row with metric_id "
               "<= 0 ; you should remove them.");
         else {
@@ -594,7 +617,7 @@ void stream::update_metric_info_cache(uint64_t index_id,
   misc::read_lock lck(_metric_cache_m);
   auto it = _metric_cache.find({index_id, metric_name});
   if (it != _metric_cache.end()) {
-    log_v2::perfdata()->info(
+    _logger_sto->info(
         "unified sql: updating metric '{}' of id {} at index {} to "
         "metric_type {}",
         metric_name, metric_id, index_id, metric_type_name[metric_type]);
@@ -639,14 +662,13 @@ void stream::_finish_action(int32_t conn, uint32_t action) {
  *  events.
  */
 void stream::_finish_actions() {
-  SPDLOG_LOGGER_TRACE(log_v2::sql(), "unified sql: finish actions");
+  SPDLOG_LOGGER_TRACE(_logger_sql, "unified sql: finish actions");
   _mysql.commit();
   for (uint32_t& v : _action)
     v = actions::none;
   _ack += _processed;
   _processed = 0;
-  SPDLOG_LOGGER_TRACE(log_v2::sql(), "finish actions processed = {}",
-                      _processed);
+  SPDLOG_LOGGER_TRACE(_logger_sql, "finish actions processed = {}", _processed);
 }
 
 /**
@@ -702,31 +724,37 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   assert(data);
 
   SPDLOG_LOGGER_TRACE(
-      log_v2::sql(), "unified sql: write event category:{}, element:{}",
+      _logger_sql, "unified sql: write event category:{}, element:{}",
       category_of_type(data->type()), element_of_type(data->type()));
 
   uint32_t type = data->type();
-  uint16_t cat = category_of_type(type);
-  uint16_t elem = element_of_type(type);
-  if (cat == io::neb) {
-    if (elem < neb_processing_table_size && neb_processing_table[elem]) {
-      (this->*(neb_processing_table[elem]))(data);
-    } else {
-      SPDLOG_LOGGER_ERROR(log_v2::sql(), "unknown neb event type: {}", elem);
+  switch (type) {
+    case make_type(io::bbdo, bbdo::de_rebuild_graphs):
+      _rebuilder.rebuild_graphs(data);
+      break;
+    case make_type(io::bbdo, bbdo::de_remove_graphs):
+      remove_graphs(data);
+      break;
+    case make_type(io::bbdo, bbdo::de_remove_poller):
+      remove_poller(data);
+      break;
+    default: {
+      uint16_t cat = category_of_type(type);
+      if (cat == io::neb) {
+        uint16_t elem = element_of_type(type);
+        if (elem < neb_processing_table_size && neb_processing_table[elem]) {
+          (this->*(neb_processing_table[elem]))(data);
+        } else {
+          SPDLOG_LOGGER_ERROR(_logger_sql, "unknown neb event type: {}", elem);
+        }
+      } else {
+        SPDLOG_LOGGER_TRACE(_logger_sql,
+                            "unified sql: event of type {} thrown away ; no "
+                            "need to store it in "
+                            "the database.",
+                            type);
+      }
     }
-  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_graphs))
-    _rebuilder.rebuild_graphs(data);
-  else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
-    remove_graphs(data);
-  else if (type == make_type(io::bbdo, bbdo::de_remove_poller)) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(), "remove poller...");
-    remove_poller(data);
-  } else {
-    SPDLOG_LOGGER_TRACE(
-        log_v2::sql(),
-        "unified sql: event of type {} thrown away ; no need to store it in "
-        "the database.",
-        type);
   }
   _processed++;
   _count++;
@@ -782,7 +810,7 @@ int32_t stream::flush() {
   _ack -= retval;
   _pending_events -= retval;
   // Event acknowledgement.
-  SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: {} / {} events acknowledged", retval,
+  SPDLOG_LOGGER_TRACE(_logger_sql, "SQL: {} / {} events acknowledged", retval,
                       _pending_events);
   return retval;
 }
@@ -809,6 +837,9 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  * @return the number of events to ack.
  */
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("unified_sql::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
   /* We give the order to stop the check_queues */
   _stop_check_queues = true;
@@ -816,9 +847,9 @@ int32_t stream::stop() {
   std::unique_lock<std::mutex> lck(_queues_m);
   if (_queues_cond_var.wait_for(lck, std::chrono::seconds(queue_timer_duration),
                                 [this] { return _check_queues_stopped; })) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(), "SQL: stream correctly stopped");
+    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: stream correctly stopped");
   } else {
-    SPDLOG_LOGGER_ERROR(log_v2::sql(),
+    SPDLOG_LOGGER_ERROR(_logger_sql,
                         "SQL: stream queues check still running...");
   }
 
@@ -831,7 +862,7 @@ int32_t stream::stop() {
  * @param d The BBDO message with all the metrics/indexes to remove.
  */
 void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "remove graphs call");
+  SPDLOG_LOGGER_INFO(_logger_sql, "remove graphs call");
   asio::post(pool::instance().io_context(), [this, data = d] {
     mysql ms(_dbcfg);
     bbdo::pb_remove_graphs* ids =
@@ -861,17 +892,17 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
           if (mid <= 0 || host_id <= 0 || service_id <= 0) {
             if (mid <= 0)
               SPDLOG_LOGGER_ERROR(
-                  log_v2::sql(),
+                  _logger_sql,
                   "unified_sql: the 'metrics' table contains rows with "
                   "metric_id <= 0 ; you should remove them.");
             if (host_id <= 0)
-              SPDLOG_LOGGER_ERROR(log_v2::sql(),
+              SPDLOG_LOGGER_ERROR(_logger_sql,
                                   "unified_sql: the 'metrics' table "
                                   "contains rows with host_id "
                                   "<= 0 ; you should remove them.");
             if (service_id <= 0)
               SPDLOG_LOGGER_ERROR(
-                  log_v2::sql(),
+                  _logger_sql,
                   "unified_sql: the 'metrics' table contains rows with "
                   "service_id <= 0 ; you should remove them.");
           } else {
@@ -898,7 +929,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         while (ms.fetch_row(res)) {
           int32_t metric_id = res.value_as_i32(1);
           if (metric_id <= 0)
-            SPDLOG_LOGGER_ERROR(log_v2::sql(),
+            SPDLOG_LOGGER_ERROR(_logger_sql,
                                 "unified_sql: the 'metrics' table contains "
                                 "rows with metric_id "
                                 "<= 0 ; you should remove them.");
@@ -909,7 +940,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
         }
       }
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::sql(),
+      SPDLOG_LOGGER_ERROR(_logger_sql,
                           "could not query index / metrics table(s) to get "
                           "index to delete: "
                           "{} ",
@@ -918,7 +949,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
 
     std::string mids_str{fmt::format("{}", fmt::join(metrics_to_delete, ","))};
     if (!metrics_to_delete.empty()) {
-      SPDLOG_LOGGER_INFO(log_v2::sql(), "metrics {} erased from database",
+      SPDLOG_LOGGER_INFO(_logger_sql, "metrics {} erased from database",
                          mids_str);
       ms.run_query(
           fmt::format("DELETE FROM metrics WHERE metric_id in ({})", mids_str),
@@ -926,7 +957,7 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
     }
     std::string ids_str{fmt::format("{}", fmt::join(indexes_to_delete, ","))};
     if (!indexes_to_delete.empty()) {
-      SPDLOG_LOGGER_INFO(log_v2::sql(), "indexes {} erased from database",
+      SPDLOG_LOGGER_INFO(_logger_sql, "indexes {} erased from database",
                          ids_str);
       ms.run_query(
           fmt::format("DELETE FROM index_data WHERE id in ({})", ids_str),
@@ -940,13 +971,13 @@ void stream::remove_graphs(const std::shared_ptr<io::data>& d) {
       for (uint64_t i : indexes_to_delete)
         rmg->mut_obj().add_index_ids(i);
       SPDLOG_LOGGER_INFO(
-          log_v2::sql(),
+          _logger_sql,
           "publishing pb remove graph with {} metrics and {} indexes",
           metrics_to_delete.size(), indexes_to_delete.size());
       multiplexing::publisher().write(rmg);
     } else
       SPDLOG_LOGGER_INFO(
-          log_v2::sql(),
+          _logger_sql,
           "metrics {} and indexes {} do not appear in the storage database",
           mids_str, ids_str);
   });
@@ -982,9 +1013,8 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       }
       if (count == 0) {
         SPDLOG_LOGGER_WARN(
-            log_v2::sql(),
-            "Unable to remove poller '{}', {} not running found in the "
-            "database",
+            _logger_sql,
+            "Unable to remove poller '{}', {} running found in the database",
             poller.obj().str(), count == 0 ? "none" : "more than one");
         std::promise<database::mysql_result> promise;
         std::future<mysql_result> future = promise.get_future();
@@ -998,7 +1028,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
           if (!config::applier::state::instance().has_connection_from_poller(
                   res.value_as_u64(0))) {
             SPDLOG_LOGGER_WARN(
-                log_v2::sql(),
+                _logger_sql,
                 "The poller '{}' id {} is not connected (even if it looks "
                 "running or not deleted)",
                 poller.obj().str(), res.value_as_u64(0));
@@ -1022,8 +1052,8 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       }
       if (count == 0) {
         SPDLOG_LOGGER_WARN(
-            log_v2::sql(),
-            "Unable to remove poller {}, {} not running found in the "
+            _logger_sql,
+            "Unable to remove poller {}, {} running found in the "
             "database",
             poller.obj().idx(), count == 0 ? "none" : "more than one");
         std::promise<database::mysql_result> promise;
@@ -1038,7 +1068,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
           if (!config::applier::state::instance().has_connection_from_poller(
                   poller.obj().idx())) {
             SPDLOG_LOGGER_WARN(
-                log_v2::sql(),
+                _logger_sql,
                 "The poller '{}' id {} is not connected (even if it looks "
                 "running or not deleted)",
                 res.value_as_str(0), poller.obj().idx());
@@ -1051,17 +1081,17 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
 
     for (uint64_t id : ids) {
       conn = _mysql.choose_connection_by_instance(id);
-      SPDLOG_LOGGER_INFO(log_v2::sql(), "unified sql: removing poller {}", id);
+      SPDLOG_LOGGER_INFO(_logger_sql, "unified sql: removing poller {}", id);
       _mysql.run_query(
           fmt::format("DELETE FROM instances WHERE instance_id={}", id),
           database::mysql_error::delete_poller, conn);
-      SPDLOG_LOGGER_TRACE(log_v2::sql(),
-                          "unified sql: removing poller {} hosts", id);
+      SPDLOG_LOGGER_TRACE(_logger_sql, "unified sql: removing poller {} hosts",
+                          id);
       _mysql.run_query(
           fmt::format("DELETE FROM hosts WHERE instance_id={}", id),
           database::mysql_error::delete_poller, conn);
 
-      SPDLOG_LOGGER_TRACE(log_v2::sql(),
+      SPDLOG_LOGGER_TRACE(_logger_sql,
                           "unified sql: removing poller {} resources", id);
       _mysql.run_query(
           fmt::format("DELETE FROM resources WHERE poller_id={}", id),
@@ -1070,9 +1100,8 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
     }
     _clear_instances_cache(ids);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::sql(),
-                        "Error encountered while removing a poller: {}",
-                        e.what());
+    SPDLOG_LOGGER_ERROR(
+        _logger_sql, "Error encountered while removing a poller: {}", e.what());
   }
 }
 
@@ -1118,7 +1147,7 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
 }
 
 void stream::update() {
-  SPDLOG_LOGGER_INFO(log_v2::sql(), "unified_sql stream update");
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql stream update");
   _check_deleted_index();
   _check_rebuild_index();
 }
@@ -1129,6 +1158,7 @@ void stream::_start_loop_timer() {
     if (err) {
       return;
     }
+    std::shared_lock lck(_barrier_timer_m);
     _update_hosts_and_services_of_unresponsive_instances();
     _start_loop_timer();
   });
@@ -1321,16 +1351,16 @@ void stream::_init_statements() {
     if (_bulk_prepared_statement) {
       auto hu = std::make_unique<database::mysql_bulk_stmt>(hscr_query);
       _mysql.prepare_statement(*hu);
-      _hscr_bind = std::make_unique<bulk_bind>(_dbcfg.get_connections_count(),
-                                               dt_queue_timer_duration,
-                                               _max_pending_queries, *hu);
+      _hscr_bind = std::make_unique<bulk_bind>(
+          _dbcfg.get_connections_count(), dt_queue_timer_duration,
+          _max_pending_queries, *hu, _logger_sql);
       _hscr_update = std::move(hu);
 
       auto su = std::make_unique<database::mysql_bulk_stmt>(sscr_query);
       _mysql.prepare_statement(*su);
-      _sscr_bind = std::make_unique<bulk_bind>(_dbcfg.get_connections_count(),
-                                               dt_queue_timer_duration,
-                                               _max_pending_queries, *su);
+      _sscr_bind = std::make_unique<bulk_bind>(
+          _dbcfg.get_connections_count(), dt_queue_timer_duration,
+          _max_pending_queries, *su, _logger_sql);
       _sscr_update = std::move(su);
     } else {
       _hscr_update = std::make_unique<database::mysql_stmt>(hscr_query);
@@ -1347,7 +1377,7 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*hu);
       _hscr_resources_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *hu);
+          _max_pending_queries, *hu, _logger_sql);
       _hscr_resources_update = std::move(hu);
 
       auto su =
@@ -1355,7 +1385,7 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*su);
       _sscr_resources_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *su);
+          _max_pending_queries, *su, _logger_sql);
       _sscr_resources_update = std::move(su);
     } else {
       _hscr_resources_update =

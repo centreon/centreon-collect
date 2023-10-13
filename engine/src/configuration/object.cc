@@ -18,6 +18,8 @@
 */
 
 #include "com/centreon/engine/configuration/object.hh"
+#include <absl/strings/ascii.h>
+#include <absl/strings/str_split.h>
 #include "com/centreon/engine/configuration/anomalydetection.hh"
 #include "com/centreon/engine/configuration/command.hh"
 #include "com/centreon/engine/configuration/connector.hh"
@@ -26,18 +28,15 @@
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/hostdependency.hh"
 #include "com/centreon/engine/configuration/hostescalation.hh"
-#include "com/centreon/engine/configuration/hostextinfo.hh"
 #include "com/centreon/engine/configuration/hostgroup.hh"
 #include "com/centreon/engine/configuration/service.hh"
 #include "com/centreon/engine/configuration/servicedependency.hh"
 #include "com/centreon/engine/configuration/serviceescalation.hh"
-#include "com/centreon/engine/configuration/serviceextinfo.hh"
 #include "com/centreon/engine/configuration/servicegroup.hh"
 #include "com/centreon/engine/configuration/severity.hh"
 #include "com/centreon/engine/configuration/tag.hh"
 #include "com/centreon/engine/configuration/timeperiod.hh"
-#include "com/centreon/engine/exceptions/error.hh"
-#include "com/centreon/engine/string.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
@@ -150,10 +149,6 @@ object_ptr object::create(std::string const& type_name) {
     obj = std::make_shared<configuration::timeperiod>();
   else if (type_name == "connector")
     obj = std::make_shared<configuration::connector>();
-  else if (type_name == "serviceextinfo")
-    obj = std::make_shared<configuration::serviceextinfo>();
-  else if (type_name == "hostextinfo")
-    obj = std::make_shared<configuration::hostextinfo>();
   else if (type_name == "anomalydetection")
     obj = std::make_shared<configuration::anomalydetection>();
   else if (type_name == "severity")
@@ -204,7 +199,7 @@ bool object::parse(std::string const& line) {
     key.assign(line, 0, pos);
     value.assign(line, pos + 1, std::string::npos);
   }
-  string::trim(value);
+  value = absl::StripAsciiWhitespace(value);
   if (!parse(key.c_str(), value.c_str()))
     return object::parse(key.c_str(), value.c_str());
   return true;
@@ -223,7 +218,7 @@ void object::resolve_template(map_object& templates) {
   for (std::string& s : _templates) {
     map_object::iterator tmpl = templates.find(s);
     if (tmpl == templates.end())
-      throw engine_error() << "Cannot merge object of type '" << s << "'";
+      throw exceptions::msg_fmt("Cannot merge object of type '{}'", s);
     tmpl->second->resolve_template(templates);
     merge(*tmpl->second);
   }
@@ -268,7 +263,9 @@ std::string const& object::type_name() const noexcept {
                                     "serviceextinfo",
                                     "servicegroup",
                                     "timeperiod",
-                                    "anomalydetection"};
+                                    "anomalydetection",
+                                    "severity",
+                                    "tag"};
   return tab[_type];
 }
 
@@ -305,6 +302,17 @@ bool object::_set_should_register(bool value) {
  */
 bool object::_set_templates(std::string const& value) {
   _templates.clear();
-  string::split(value, _templates, ',');
+  _templates = absl::StrSplit(value, ',');
   return true;
+}
+
+std::string_view object::remove_comment(std::string_view line) const {
+  size_t pos = line.find_first_of(';');
+  while (pos > 0 && pos != std::string::npos && line[pos - 1] == '\\') {
+    pos = line.find_first_of(';', pos + 1);
+  }
+  if (pos != std::string::npos)
+    line = line.substr(0, pos);
+
+  return line;
 }

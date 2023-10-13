@@ -37,19 +37,22 @@ class bool_constant : public bool_value {
   const bool _boolean_value;
 
  public:
-  bool_constant(double value);
+  bool_constant(double val, const std::shared_ptr<spdlog::logger>& logger);
   ~bool_constant() noexcept override = default;
   bool_constant(const bool_constant&) = delete;
   bool_constant& operator=(const bool_constant&) = delete;
   double value_hard() const override;
   bool boolean_value() const override;
   bool state_known() const override;
-  void update_from(computable* child, io::stream* visitor) override;
+  virtual void update_from(
+      computable* child,
+      io::stream* visitor,
+      const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
   void dump(std::ofstream& output) const override;
 };
 }  // namespace bam
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_BAM_BOOL_CONSTANT_HH

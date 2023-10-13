@@ -22,9 +22,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-namespace com::centreon::broker {
-
-namespace bam {
+namespace com::centreon::broker::bam {
 /**
  *  @class connector connector.hh "com/centreon/broker/bam/connector.hh"
  *  @brief Connect to a database.
@@ -40,14 +38,12 @@ class connector : public io::endpoint {
   std::string _storage_db_name;
   std::shared_ptr<persistent_cache> _cache;
 
-  connector(stream_type type,
-            const database_config& db_cfg,
+  connector(stream_type type, const database_config& db_cfg,
             const multiplexing::muxer_filter& filter);
 
  public:
   static std::unique_ptr<connector> create_monitoring_connector(
-      const std::string& ext_cmd_file,
-      const database_config& db_cfg,
+      const std::string& ext_cmd_file, const database_config& db_cfg,
       const std::string& storage_db_name,
       std::shared_ptr<persistent_cache> cache);
 
@@ -64,8 +60,6 @@ class connector : public io::endpoint {
   void connect_reporting(database_config const& db_cfg);
   std::shared_ptr<io::stream> open() override;
 };
-}  // namespace bam
-
-}
+}  // namespace com::centreon::broker::bam
 
 #endif  // !CCB_BAM_CONNECTOR_HH
