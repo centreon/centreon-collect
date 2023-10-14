@@ -11,11 +11,11 @@ database_type=$2
 distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
-cpu=$(lscpu | awk '$1 ~ "Architecture" { print $2 }')
-
-if [ "$cpu" = "aarch64" -a "$test_file" = "broker-engine/bench.robot" ]; then
-  exit 0
-fi
+#cpu=$(lscpu | awk '$1 ~ "Architecture" { print $2 }')
+#
+#if [ "$cpu" = "aarch64" -a "$test_file" = "broker-engine/bench.robot" ]; then
+#  exit 0
+#fi
 
 if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo > tests/log.html
