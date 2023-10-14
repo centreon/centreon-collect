@@ -309,7 +309,7 @@ BEUTAG6
     Kindly Stop Broker
 
 BEUTAG7
-    [Documentation]    some services are configured and deleted with tags on two pollers.
+    [Documentation]    Some services are configured with tags on two pollers. Then tags configuration is modified.
     [Tags]    broker    engine    protobuf    bbdo    tags
     Config Engine    ${2}
     Create Tags File    ${0}    ${20}
@@ -343,7 +343,7 @@ BEUTAG7
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    # We need to wait a little before reloading Engine
+    # We check in the DB if the service (1,1) has well its servicegroup tags configured.
     ${result}    check resources tags With Timeout    1    1    servicegroup    [2,4]    60
     Should Be True    ${result}    First step: Service (1, 1) should have servicegroup tags 2 and 4
 
@@ -359,17 +359,21 @@ BEUTAG7
     Create Tags File    ${0}    ${18}
     Create Tags File    ${1}    ${18}
     Add Tags To Services    ${1}    group_tags    3,5    [505, 506, 507, 508]
+    ${start}    Get Round Current Date
     Reload Engine
     Reload Broker
-    Sleep    3s
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
     ${result}    check resources tags With Timeout    26    507    servicegroup    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 507) should have servicegroup tags 3 and 5
 
     ${result}    check resources tags With Timeout    26    508    servicegroup    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 508) should have servicegroup tags 3 and 5
 
-    Stop Engine
-    Kindly Stop Broker
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
 
 BEUTAG8
     [Documentation]    Services have tags provided by templates.

@@ -1052,10 +1052,8 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
 
         with connection:
             with connection.cursor() as cursor:
-                logger.console("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
-                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
+                logger.console(f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                cursor.execute(f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
                 result = cursor.fetchall()
                 logger.console(result)
                 if not enabled:
@@ -1077,8 +1075,7 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
                                 break
                         return True
                     else:
-                        logger.console("different sizes: result:{} and tag_ids:{}".format(
-                            len(result), len(tag_ids)))
+                        logger.console("Result and tag_ids should have the same size, moreover 'id' in result should be values of tag_ids, result size = {len(result)} and tag_ids size = {len(tag_ids)} - their content are result: {result} and tag_ids: {tag_ids}")
                 else:
                     logger.console("result")
                     logger.console(result)
