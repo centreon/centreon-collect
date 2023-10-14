@@ -13,6 +13,10 @@ distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
 cpu=$(lscpu | awk '$1 ~ "Architecture" { print $2 }')
 
+if [ "$cpu" = "aarch64" -a "$test_file" = "broker-engine/bench.robot" ]; then
+  exit 0
+fi
+
 if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo > tests/log.html
     echo '<?xml version="1.0" encoding="UTF-8"?>' > tests/output.xml
@@ -107,10 +111,5 @@ echo "##### Starting tests #####"
 cd tests
 ./init-proto.sh
 
-exclude=
-if [ "$cpu" = "aarch64" ]; then
-  exclude="-e exclude-arm"
-fi
-
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot $exclude $test_file
+robot $test_file
