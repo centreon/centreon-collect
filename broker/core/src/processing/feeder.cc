@@ -95,6 +95,7 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
+  stop();
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "destroy feeder {}, {:p}", get_name(),
                       static_cast<const void*>(this));
   stop();
@@ -264,6 +265,8 @@ void feeder::stop() {
  *
  */
 void feeder::_stop_no_lock() {
+  SPDLOG_LOGGER_INFO(log_v2::processing(), "{} Stop without lock called",
+                     _name);
   state expected = state::running;
   if (!_state.compare_exchange_strong(expected, state::finished)) {
     return;
