@@ -44,7 +44,7 @@ BERES1
     ...    processing service status event (host:
     ...    UPDATE services SET checked=
     ${content_present}    Create List    UPDATE resources SET status=
-    ${result}    Find In log With Timeout    ${centralLog}    ${start}    ${content_present}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
     Should Be True    ${result}    no updates concerning resources available.
     FOR    ${l}    IN    ${content_not_present}
         ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
@@ -79,7 +79,7 @@ BEHS1
     ...    INSERT INTO tags
     ...    UPDATE severities
     ...    INSERT INTO severities
-    ${result}    Find In log With Timeout    ${centralLog}    ${start}    ${content_present}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content_present}    60
     Should Be True    ${result}    no updates concerning hosts/services available.
     FOR    ${l}    IN    ${content_not_present}
         ${result}    Find In Log    ${centralLog}    ${start}    ${content_not_present}
@@ -114,7 +114,7 @@ BEINSTANCESTATUS
     Start Broker
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${result}    check_field_db_value
     ...    SELECT global_host_event_handler FROM instances WHERE instance_id=1
@@ -206,7 +206,7 @@ BE_NOTIF_OVERFLOW
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_16;service_314;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_16 should be raised before we can start our external commands.

@@ -35,7 +35,7 @@ STUPID_FILTER
 
     ${content}    Create List
     ...    The configured write filters for the endpoint 'central-broker-unified-sql' are too restrictive and will be ignored. neb,bbdo,extcmd categories are mandatory.
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling bad filter should be available.
 
     Stop Engine
@@ -133,7 +133,7 @@ BAM_STREAM_FILTER
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}
+    Create Ba With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
@@ -144,7 +144,7 @@ BAM_STREAM_FILTER
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # KPI set to critical
@@ -227,7 +227,7 @@ UNIFIED_SQL_FILTER
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # one service set to critical in order to have some events
@@ -266,18 +266,18 @@ CBD_RELOAD_AND_FILTERS
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
-    ${result}    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # New configuration
@@ -289,7 +289,7 @@ CBD_RELOAD_AND_FILTERS
     Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
 
@@ -298,12 +298,12 @@ CBD_RELOAD_AND_FILTERS
     ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
-    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
@@ -319,20 +319,20 @@ CBD_RELOAD_AND_FILTERS
     Reload Broker
     # wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
     ${start}    Get Current Date
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
-    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything
@@ -369,18 +369,18 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
-    ${result}    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # New configuration
@@ -392,7 +392,7 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
 
@@ -401,12 +401,12 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     ...    create endpoint TCP for endpoint 'centreon-broker-master-rrd'
     ...    endpoint applier: filters
     ...    storage for endpoint 'centreon-broker-master-rrd' applied.
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
-    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd are set to "storage"
@@ -422,19 +422,19 @@ CBD_RELOAD_AND_FILTERS_WITH_OPR
     Reload Broker
     #wait broker reload
     ${content}  Create List  creating endpoint centreon-broker-master-rrd
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No creating endpoint centreon-broker-master-rrd.
     ${start2}    Get Current Date
 
     # We check that output filters to rrd are set to "all"
     ${content}    Create List
     ...    endpoint applier: filters for endpoint 'centreon-broker-master-rrd' reduced to the needed ones: all
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    No message about the output filters to rrd broker.
 
     # Let's wait for storage data written into rrd files
     ${content}    Create List    RRD: new pb status data for index
-    ${result}    Find In Log with Timeout    ${rrdLog}    ${start2}    ${content}    60
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start2}    ${content}    60
     Should Be True    ${result}    No status from central broker for 1mn.
 
     # We check that output filters to rrd doesn't filter anything

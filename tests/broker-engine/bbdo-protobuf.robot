@@ -34,7 +34,7 @@ BEPBBEE1
     Start Broker
     Start Engine
     ${content}    Create List    BBDO: peer is using protocol version 3.0.0 whereas we're using protocol version 2.0.0
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about not matching bbdo versions not available
     Stop Engine
     Kindly Stop Broker
@@ -57,7 +57,7 @@ BEPBBEE2
     Start Engine
     ${content}    Create List
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about a missing config of unified_sql not available.
     Stop Engine
 
@@ -176,7 +176,7 @@ BEPBCVS
     Start Broker    True
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 

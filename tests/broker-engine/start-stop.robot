@@ -389,7 +389,7 @@ BESS_ENGINE_DELETE_HOST
     Start Broker    True
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -456,7 +456,7 @@ Start_Stop_Engine_Broker_${id}
     ${start_stop}    Get Current Date
     Stop Engine
     ${content}    Create List    feeder 'central-broker-master-input-1', connection closed
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start_stop}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start_stop}    ${content}    60
     Should Be True    ${result}    connection closed not found
 
     Examples:    id    grpc    --

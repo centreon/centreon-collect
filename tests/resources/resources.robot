@@ -88,11 +88,13 @@ Kindly Stop Broker
     ${result}    Wait For Process    b1    timeout=60s
     # In case of process not stopping
     IF    "${result}" == "${None}"
+        Save Logs
         Dump Process    b1    /usr/sbin/cbd    broker-central
         Send Signal To Process    SIGKILL    b1
         Fail    Central Broker not correctly stopped (coredump generated)
     ELSE
         IF    ${result.rc} != 0
+            Save Logs
             Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
@@ -103,11 +105,13 @@ Kindly Stop Broker
         ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
         # In case of process not stopping
         IF    "${result}" == "${None}"
+            Save Logs
             Dump Process    b2    /usr/sbin/cbd    broker-rrd
             Send Signal To Process    SIGKILL    b2
             Fail    RRD Broker not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0
+                Save Logs
                 Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
                 Coredump info    b2    /usr/sbin/cbd    broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    RRD Broker not correctly stopped

@@ -24,14 +24,14 @@ BAWORST
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    Create BA With Services    test    worst    ${svc}
+    Create Ba With Services    test    worst    ${svc}
     Start Broker
     ${start}    Get Current Date
     Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
@@ -104,7 +104,7 @@ BABEST_SERVICE_CRITICAL
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    Create BA With Services    test    best    ${svc}
+    Create Ba With Services    test    best    ${svc}
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
@@ -114,7 +114,7 @@ BABEST_SERVICE_CRITICAL
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
@@ -213,7 +213,7 @@ BA_IMPACT_2KPI_SERVICES
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # service_302 critical service_303 warning => ba warning 30%
@@ -335,7 +335,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
@@ -446,7 +446,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
@@ -561,7 +561,7 @@ BA_BOOL_KPI
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 302 warning and 303 critical    => ba critical
@@ -632,7 +632,7 @@ BEPB_DIMENSION_BA_EVENT
     Remove File    /tmp/all_lua_event.log
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}
+    Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -666,7 +666,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Clear Db    mod_bam_reporting_relations_ba_bv
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
 
-    Create BA With Services    test    worst    ${svc}
+    Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -700,7 +700,7 @@ BEPB_DIMENSION_TIMEPERIOD
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}
+    Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
 
@@ -921,7 +921,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # all serv ok => ba ok
@@ -982,7 +982,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # all serv ok => ba ok

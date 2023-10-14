@@ -196,7 +196,6 @@ class EngineInstance:
             host_id, service_id, self.service_cmd[service_id])
         return retval
 
-
     def create_anomaly_detection(self, host_id: int, dependent_service_id: int, metric_name: string, sensitivity: float = 0.0):
         self.last_service_id += 1
         service_id = self.last_service_id
@@ -751,6 +750,7 @@ def engine_config_set_value_in_services(idx: int, desc: str, key: str, value: st
     f.writelines(lines)
     f.close()
 
+
 def engine_config_replace_value_in_services(idx: int, desc: str, key: str, value: str):
     """! Function to update a value in the services.cfg for the config idx.
     @param idx index of the configuration (from 0)
@@ -917,6 +917,7 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
         ff.writelines(lines)
 
+
 def engine_config_remove_service_host(idx: int, host: str):
     filename = ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(idx)
     f = open(filename, "r")
@@ -1049,10 +1050,12 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.write(engine.create_service_group(id_service_group, members))
     f.close()
 
+
 def add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)
         f.write(engine.create_contact_group(id_contact_group, members))
+
 
 def create_service(index: int, host_id: int, cmd_id: int):
     f = open(ETC_ROOT + "/centreon-engine/config{}/services.cfg".format(index), "a+")
@@ -1556,40 +1559,36 @@ def stop_obsessing_over_svc(use_grpc: int, hst: str, svc: str):
         f.close()
 
 
+def external_command(func):
+    def wrapper(*args):
+        now = int(time.time())
+        cmd = f"[{now}] {func(*args)}"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
+
+    return wrapper
+
+
+@external_command
 def service_ext_commands(hst: str, svc: str, state: int, output: str):
-    now = int(time.time())
-    cmd = "[{}] PROCESS_SERVICE_CHECK_RESULT;{};{};{};{}\n".format(
-        now, hst, svc, state, output)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
 
 
+@external_command
 def process_host_check_result(hst: str, state: int, output: str):
-    now = int(time.time())
-    cmd = "[{}] PROCESS_HOST_CHECK_RESULT;{};{};{}\n".format(
-        now, hst, state, output)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"PROCESS_HOST_CHECK_RESULT;{hst};{state};{output}\n"
 
 
+@external_command
 def schedule_service_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
-    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};0;0;{4};admin;Downtime set by admin\n".format(
-        hst, svc, now, now+duration, duration)
-    f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};0;0;{duration};admin;Downtime set by admin\n"
 
 
+@external_command
 def schedule_service_fixed_downtime(hst: str, svc: str, duration: int):
     now = int(time.time())
-    cmd = "[{2}] SCHEDULE_SVC_DOWNTIME;{0};{1};{2};{3};1;0;{4};admin;Downtime set by admin\n".format(
-        hst, svc, now, now + duration, duration)
-    f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    return f"SCHEDULE_SVC_DOWNTIME;{hst};{svc};{now};{now+int(duration)};1;0;{duration};admin;Downtime set by admin\n"
 
 
 def schedule_host_fixed_downtime(poller: int, hst: str, duration: int):
@@ -1920,17 +1919,6 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
 
 
-def external_command(func):
-    def wrapper(*args):
-        now = int(time.time())
-        cmd = f"[{now}] {func(*args)}"
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
-
-    return wrapper
-
-
 def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
     now = int(time.time())
     pd = [output + " | "]
@@ -1956,7 +1944,6 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
         with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
             for i in range(nb_check):
                 cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
-                logger.console(cmd)
                 f.write(cmd)
 
 
@@ -2209,6 +2196,7 @@ def send_bench(id: int, port: int):
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
 
+
 def config_host_command_status(idx: int, cmd_name: str, status: int):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
     with open(filename, "r") as f:
@@ -2217,9 +2205,9 @@ def config_host_command_status(idx: int, cmd_name: str, status: int):
     r = re.compile(rf"^\s*command_name\s+{cmd_name}\s*$")
     for i in range(len(lines)):
         if r.match(lines[i]):
-            lines[i + 1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
+            lines[i +
+                  1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
             break
 
     with open(filename, "w") as f:
         f.writelines(lines)
-

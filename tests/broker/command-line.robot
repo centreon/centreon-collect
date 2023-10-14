@@ -30,7 +30,7 @@ BCL2
     Sleep    1s
     Start Broker With Args    -s5    ${EtcRoot}/centreon-broker/central-broker.json
     ${table}    Create List    Starting the TCP thread pool of 5 threads
-    ${logger_res}    Find in log with timeout    ${centralLog}    ${start}    ${table}    30
+    ${logger_res}    Find In Log With Timeout    ${centralLog}    ${start}    ${table}    30
     Should be True
     ...    ${logger_res}
     ...    Didn't found 5 threads in ${VarRoot}/log/centreon-broker/central-broker-master.log

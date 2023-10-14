@@ -30,7 +30,7 @@ BEBAMIDT1
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}
+    Create Ba With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
@@ -41,7 +41,7 @@ BEBAMIDT1
     Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
@@ -90,7 +90,7 @@ BEBAMIDT2
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}
+    Create Ba With Services    test    worst    ${svc}
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
@@ -101,7 +101,7 @@ BEBAMIDT2
     Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
@@ -133,7 +133,7 @@ BEBAMIDT2
         Start Engine
         # Let's wait for the initial service states.
         ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
         ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
@@ -185,7 +185,7 @@ BEBAMIGNDT1
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}    ignore
+    Create Ba With Services    test    worst    ${svc}    ignore
     Add Bam Config To Broker    central
 
     # Command of service_313 is set to ok
@@ -203,7 +203,7 @@ BEBAMIGNDT1
     Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
@@ -288,7 +288,7 @@ BEBAMIGNDT2
     Add Bam Config To Engine
 
     @{svc}    Set Variable    ${{ [("host_16", "service_313"), ("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}    ignore
+    Create Ba With Services    test    worst    ${svc}    ignore
     Add Bam Config To Broker    central
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    313
@@ -302,7 +302,7 @@ BEBAMIGNDT2
     Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.

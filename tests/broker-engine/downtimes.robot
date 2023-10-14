@@ -46,7 +46,7 @@ BEDTMASS1
     Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
@@ -102,7 +102,7 @@ BEDTMASS2
     Start Engine
     # Let's wait for the initial service states.
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
@@ -153,7 +153,7 @@ BEDTSVCREN1
     Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
@@ -168,7 +168,7 @@ BEDTSVCREN1
     Reload Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     Delete service downtime full    ${0}    host_1    toto_1
@@ -196,7 +196,7 @@ BEDTSVCFIXED
     Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
@@ -231,7 +231,7 @@ BEDTHOSTFIXED
     Start Engine
     # Let's wait for the check of external commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule downtimes

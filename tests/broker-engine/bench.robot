@@ -42,7 +42,7 @@ BENCH_${nb_check}STATUS
     Start Broker
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     ${broker_stat_before}    Get Broker Process Stat    51001
@@ -110,7 +110,7 @@ BENCH_${nb_check}STATUS_TRACES
     Start Broker
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     ${broker_stat_before}    Get Broker Process Stat    51001
@@ -180,7 +180,7 @@ BENCH_1000STATUS_100${suffixe}
     ${connected}    Wait For Connections    5669    100
     Should Be True    ${connected}    No 100 engine to broker connections
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     Sleep    5
@@ -213,7 +213,7 @@ BENCH_1000STATUS_100${suffixe}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
     ${content}    Create List    pb service (100, 2000) status 1 type 1 check result output: <<warning_99>>
-    ${result}    Find In Log with Timeout with Line    ${centralLog}    ${start_check}    ${content}    240
+    ${result}    Find In Log With Timeout with Line    ${centralLog}    ${start_check}    ${content}    240
     Should Be True    ${result[0]}    No check check result received.
     ${date_last_check_received}    Extract Date From Log    ${result[1][0]}
     ${all_check_delay}    Subtract Date From Date    ${date_last_check_received}    ${start_check}

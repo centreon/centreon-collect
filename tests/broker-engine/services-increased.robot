@@ -89,14 +89,14 @@ Service_increased_huge_check_interval
     Should be true    ${result}    host_1 should be pending
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "host_1 init not found in log"
     # End Checkers
 
     Process Service Check result with metrics    host_1    service_1    1    warning0    1
 
     ${content}    Create List    new pb data for metric
-    ${result}    Find In Log with Timeout    ${rrdLog}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
 
     ${index}    Get Indexes To Rebuild    2
     ${metrics}    Get Metrics Matching Indexes    ${index}
@@ -129,7 +129,7 @@ Service_increased_huge_check_interval
     Reload Engine
 
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_${new_service_id};
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "service_"${new_service_id}" init not found in log"
 
     ${start}    Get Current Date
