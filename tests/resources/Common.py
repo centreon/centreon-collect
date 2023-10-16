@@ -802,38 +802,38 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
     return False
 
 
-def check_host_downtime_with_timeout(hostname: str, enabled, timeout: int):
-    limit = time.time() + timeout
-    while time.time() < limit:
-        connection = pymysql.connect(host=DB_HOST,
-                                     user=DB_USER,
-                                     password=DB_PASS,
-                                     database=DB_NAME_STORAGE,
-                                     charset='utf8mb4',
-                                     cursorclass=pymysql.cursors.DictCursor)
-
-        with connection:
-            with connection.cursor() as cursor:
-                if enabled != '0':
-                    cursor.execute(
-                        f"SELECT h.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id AND d.service_id=0 WHERE d.deletion_time is null AND h.name='{hostname}'")
-                    result = cursor.fetchall()
-                    if len(result) == int(enabled) and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
-                        return True
-                    if (len(result) > 0):
-                        logger.console(
-                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth={result[0]['scheduled_downtime_depth']}")
-                    else:
-                        logger.console(
-                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth=None")
-                else:
-                    cursor.execute(
-                        f"SELECT h.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM hosts h LEFT JOIN downtimes d ON h.host_id = d.host_id AND d.service_id=0 WHERE h.name='{hostname}'")
-                    result = cursor.fetchall()
-                    if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or not result[0]['deletion_time'] is None):
-                        return True
-        time.sleep(1)
-    return False
+#def check_host_downtime_with_timeout(hostname: str, enabled, timeout: int):
+#    limit = time.time() + timeout
+#    while time.time() < limit:
+#        connection = pymysql.connect(host=DB_HOST,
+#                                     user=DB_USER,
+#                                     password=DB_PASS,
+#                                     database=DB_NAME_STORAGE,
+#                                     charset='utf8mb4',
+#                                     cursorclass=pymysql.cursors.DictCursor)
+#
+#        with connection:
+#            with connection.cursor() as cursor:
+#                if enabled != '0':
+#                    cursor.execute(
+#                        f"SELECT h.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id AND d.service_id=0 WHERE d.deletion_time is null AND h.name='{hostname}'")
+#                    result = cursor.fetchall()
+#                    if len(result) == int(enabled) and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+#                        return True
+#                    if (len(result) > 0):
+#                        logger.console(
+#                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth={result[0]['scheduled_downtime_depth']}")
+#                    else:
+#                        logger.console(
+#                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth=None")
+#                else:
+#                    cursor.execute(
+#                        f"SELECT h.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM hosts h LEFT JOIN downtimes d ON h.host_id = d.host_id AND d.service_id=0 WHERE h.name='{hostname}'")
+#                    result = cursor.fetchall()
+#                    if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or not result[0]['deletion_time'] is None):
+#                        return True
+#        time.sleep(1)
+#    return False
 
 
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
