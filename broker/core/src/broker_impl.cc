@@ -210,7 +210,7 @@ grpc::Status broker_impl::SetSqlManagerStats(
     grpc::ServerContext* context [[maybe_unused]],
     const SqlManagerStatsOptions* request,
     ::google::protobuf::Empty*) {
-  auto& conf = config::applier::state::instance().mut_stats_conf();
+  auto& conf = config::applier::state::mut_stats_conf();
 
   if (request->has_slowest_statements_count())
     conf.sql_slowest_statements_count = request->slowest_statements_count();
