@@ -114,13 +114,13 @@ EBNSGU2
     Reload Engine
     Sleep    3s
 
-    ${result}    Check Number of relations between servicegroup and services    1    12    30
+    ${result}    Check Number Of Relations Between Servicegroup And Services    1    12    30
     Should Be True    ${result}    We should get 12 relations between the servicegroup 1 and services.
     Config Engine Remove Cfg File    ${0}    servicegroups.cfg
     Reload Broker
     Reload Engine
 
-    ${result}    Check Number of relations between servicegroup and services    1    9    30
+    ${result}    Check Number Of Relations Between Servicegroup And Services    1    9    30
     Should Be True    ${result}    We should get 9 relations between the servicegroup 1 and services.
 
 *** Keywords ***
