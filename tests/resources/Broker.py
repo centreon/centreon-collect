@@ -1,5 +1,5 @@
-from os import import setsid
 import signal
+from os import setsid
 from os import makedirs
 from os.path import exists, dirname
 import pymysql.cursors
