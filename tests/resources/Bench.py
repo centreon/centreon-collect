@@ -159,9 +159,6 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
 
     version = get_version()
     version = version[0:version.rfind(".")] + ".x"
-    # This will have to be changed when we will release the next version
-    if version == "24.04.x":
-        version = "develop"
     row['origin'] = version
 
     # rev_name is like <commit sha> <branch>~*
