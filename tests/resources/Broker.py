@@ -1,3 +1,5 @@
+from os import import setsid
+import signal
 from os import makedirs
 from os.path import exists, dirname
 import pymysql.cursors
@@ -1323,10 +1325,10 @@ def create_metrics(count: int):
 
 
 def run_reverse_bam(duration, interval):
-    subp.Popen("broker/map_client.py {:f}".format(interval),
-               shell=True, stdout=subp.PIPE, stdin=subp.PIPE)
+    pro = subp.Popen("broker/map_client.py {:f}".format(interval),
+               shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)
-    getoutput("kill -9 $(ps aux | grep map_client.py | awk '{print $2}')")
+    os.killpg(os.getpgid(pro.pid), signal.SIGKILL)
 
 
 def start_map():
