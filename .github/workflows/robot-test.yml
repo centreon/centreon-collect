@@ -75,7 +75,7 @@ jobs:
         uses: actions/cache/save@v3
         with:
           path:  /tmp/${{inputs.image}}
-          key: ${{inputs.image_test}}.${{ needs.get-version.outputs.test_img_version }}
+          key: ${{inputs.image_test}}
 
   robot-test-list:
     needs: [test-image-to-cache]
@@ -108,14 +108,13 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v4
         with:
-
           fetch-depth: 0
 
       - name: Restore image
         uses: actions/cache@v3
         with:
           path: /tmp/${{inputs.image}}
-          key: ${{inputs.image_test}}.${{ needs.get-version.outputs.test_img_version }}
+          key: ${{inputs.image_test}}
           fail-on-cache-miss: true
 
       - name: Restore packages
@@ -127,7 +126,7 @@ jobs:
             
       - name: load image
         run: |
-          docker load --input  /tmp/${{inputs.image}}   
+          docker load --input /tmp/${{ inputs.image }}   
 
       - name: Test ${{ matrix.feature }}
         run: |
@@ -153,12 +152,9 @@ jobs:
           mkdir reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
           if [ -d tests/failed ] ; then
-            mv tests/log.html reports/$FILE_PREFIX-log.html
-            mv tests/output.xml reports/$FILE_PREFIX-output.xml
-            mv tests/failed reports/$FILE_PREFIX-failed
-            mv tests/log.html reports/$FILE_PREFIX-log.html
-            mv tests/output.xml reports/$FILE_PREFIX-output.xml
-            mv tests/report.html reports/$FILE_PREFIX-report.html
+            cp -rp tests/failed reports/$FILE_PREFIX-failed
+            cp tests/log.html reports/$FILE_PREFIX-log.html
+            cp tests/output.xml reports/$FILE_PREFIX-output.xml
           fi
 
       - name: Upload Test Results

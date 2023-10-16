@@ -20,7 +20,7 @@ jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
 
-  create-and-push-docker:   
+  create-and-push-docker:
     needs: [get-version]
 
     strategy:
@@ -54,7 +54,6 @@ jobs:
             image-test: centreon-collect-debian-bullseye-arm64-test
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
-
 
 
     name: build container ${{ matrix.image }}
