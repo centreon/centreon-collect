@@ -1645,7 +1645,7 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
+def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
     cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
     with open(pipe, "w") as f:

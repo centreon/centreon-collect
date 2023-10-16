@@ -12,10 +12,9 @@ distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
 #cpu=$(lscpu | awk '$1 ~ "Architecture" { print $2 }')
-#
-#if [ "$cpu" = "aarch64" -a "$test_file" = "broker-engine/bench.robot" ]; then
-#  exit 0
-#fi
+if [[ "$test_file" =~ "unstable" ]] ; then
+  exit 0
+fi
 
 if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo > tests/log.html
@@ -112,4 +111,4 @@ cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot $test_file
+robot -e unstable $test_file

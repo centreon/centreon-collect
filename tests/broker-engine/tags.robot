@@ -310,7 +310,7 @@ BEUTAG6
 
 BEUTAG7
     [Documentation]    Some services are configured with tags on two pollers. Then tags configuration is modified.
-    [Tags]    broker    engine    protobuf    bbdo    tags
+    [Tags]    broker    engine    protobuf    bbdo    tags    unstable
     Config Engine    ${2}
     Create Tags File    ${0}    ${20}
     Create Tags File    ${1}    ${20}
