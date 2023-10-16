@@ -82,7 +82,7 @@ jobs:
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
-          find ./build -type f -not \( -name "*.so" \) -delete
+          find ./build/lib -type f -not \( -name "*.so" \) -delete
 
           echo "[INFO] - Removing veracode exclusions"
             if [[ -f ".veracode-exclusions" ]]; then
