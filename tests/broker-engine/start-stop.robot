@@ -96,7 +96,7 @@ BESS5
     Start Engine
     ${result}    Check Connections
     Should Be True    ${result}    Broker and Engine seem not connected
-    [Teardown]    Run Keywords    Kindly Stop Broker    AND    Stop Engine
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BESS_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first

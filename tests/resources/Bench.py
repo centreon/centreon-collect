@@ -12,6 +12,7 @@ from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb
 from cpuinfo import get_cpu_info
 from robot.api import logger
 from dateutil import parser as date_parser
+from Common import get_version
 
 
 class delta_process_stat:
@@ -156,6 +157,13 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         for key, value in other_bench_data.items():
             row[key] = value
 
+    version = get_version()
+    version = version[0:version.rfind(".")] + ".x"
+    # This will have to be changed when we will release the next version
+    if version == "24.04.x":
+        version = "develop"
+    row['origin'] = version
+
     # rev_name is like <commit sha> <branch>~*
     rev_name_dev_branch = re.compile(
         r'[0-9a-f]+\s(dev[\w\.]+).*')
@@ -169,28 +177,6 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         repo = Repo(os.getcwd() + "/..")
     commit = repo.head.commit
     row['date_commit'] = commit.authored_datetime.timestamp()
-    origin_found = False
-    while True:
-        m = rev_name_dev_branch.match(commit.name_rev)
-        if m is not None:
-            row['origin'] = m.group(1)
-            origin_found = True
-            break
-        m = remote_rev_name_dev_branch.match(commit.name_rev)
-        if m is not None:
-            row['origin'] = m.group(1)
-            origin_found = True
-            break
-
-        parents = commit.parents
-        if len(parents) == 0:
-            break
-        commit = parents[0]
-
-    if not origin_found:
-        logger.console(
-            f"origin not found for commit {repo.head.commit} your branch needs rebase?")
-        return False
     if repo.is_dirty():
         row['commit'] = f'uncommited files last_commit:{repo.head.commit.hexsha}'
     else:

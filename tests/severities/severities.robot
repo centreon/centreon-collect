@@ -142,7 +142,7 @@ BEUSEV3
     Start Broker
     Sleep    2s
 
-    ${result}    check service severity With Timeout    1    1    11    60
+    ${result}    Check Service Severity With Timeout    1    1    11    60
     Should Be True    ${result}    Service (1, 1) should have severity_id=11
 
     Remove Severities From Services    ${0}
@@ -150,9 +150,9 @@ BEUSEV3
     Add Severity To Services    0    7    [3]
     Reload Engine
     Reload Broker
-    ${result}    check service severity With Timeout    1    3    7    60
+    ${result}    Check Service Severity With Timeout    1    3    7    60
     Should Be True    ${result}    Service (1, 3) should have severity_id=7
-    ${result}    check service severity With Timeout    1    1    None    60
+    ${result}    Check Service Severity With Timeout    1    1    None    60
     Should Be True    ${result}    Service (1, 1) should have no severity
 
     Stop Engine
@@ -188,25 +188,25 @@ BEUSEV4
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}    check_service_severity_With_Timeout    1    2    19    60
+    ${result}    Check Service Severity With Timeout    1    2    19    60
     Should Be True    ${result}    First step: Service (1, 2) should have severity_id=19
 
-    ${result}    check service severity With Timeout    1    4    19    60
+    ${result}    Check Service Severity With Timeout    1    4    19    60
     Should Be True    ${result}    First step: Service (1, 4) should have severity_id=19
 
-    ${result}    check service severity With Timeout    26    501    19    60
+    ${result}    Check Service Severity With Timeout    26    501    19    60
     Should Be True    ${result}    First step: Service (26, 501) should have severity_id=19
 
-    ${result}    check service severity With Timeout    26    502    19    60
+    ${result}    Check Service Severity With Timeout    26    502    19    60
     Should Be True    ${result}    First step: Service (26, 502) should have severity_id=19
 
-    ${result}    check service severity With Timeout    1    3    17    60
+    ${result}    Check Service Severity With Timeout    1    3    17    60
     Should Be True    ${result}    First step: Service (1, 3) should have severity_id=17
 
-    ${result}    check service severity With Timeout    1    5    17    60
+    ${result}    Check Service Severity With Timeout    1    5    17    60
     Should Be True    ${result}    First step: Service (1, 5) should have severity_id=17
 
-    ${result}    check service severity With Timeout    26    503    17    60
+    ${result}    Check Service Severity With Timeout    26    503    17    60
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=17
 
     Remove Severities From Services    ${0}
@@ -216,16 +216,16 @@ BEUSEV4
     Reload Engine
     Reload Broker
     Sleep    3s
-    ${result}    check service severity With Timeout    26    503    17    60
+    ${result}    Check Service Severity With Timeout    26    503    17    60
     Should Be True    ${result}    Second step: Service (26, 503) should have severity_id=17
 
-    ${result}    check service severity With Timeout    1    4    None    60
+    ${result}    Check Service Severity With Timeout    1    4    None    60
     Should Be True    ${result}    Second step: Service (1, 4) should have severity_id=None
 
-    ${result}    check service severity With Timeout    1    3    None    60
+    ${result}    Check Service Severity With Timeout    1    3    None    60
     Should Be True    ${result}    Second step: Service (1, 3) should have severity_id=17
 
-    ${result}    check service severity With Timeout    1    5    None    60
+    ${result}    Check Service Severity With Timeout    1    5    None    60
     Should Be True    ${result}    Second step: Service (1, 5) should have severity_id=17
 
     Stop Engine
@@ -266,19 +266,19 @@ BETUSEV1
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}    check service severity With Timeout    1    2    1    60
+    ${result}    Check Service Severity With Timeout    1    2    1    60
     Should Be True    ${result}    First step: Service (1, 2) should have severity_id=1
 
-    ${result}    check service severity With Timeout    1    4    1    60
+    ${result}    Check Service Severity With Timeout    1    4    1    60
     Should Be True    ${result}    First step: Service (1, 4) should have severity_id=1
 
-    ${result}    check service severity With Timeout    1    5    3    60
+    ${result}    Check Service Severity With Timeout    1    5    3    60
     Should Be True    ${result}    First step: Service (1, 5) should have severity_id=3
 
-    ${result}    check service severity With Timeout    26    502    3    60
+    ${result}    Check Service Severity With Timeout    26    502    3    60
     Should Be True    ${result}    First step: Service (26, 502) should have severity_id=3
 
-    ${result}    check service severity With Timeout    26    503    5    60
+    ${result}    Check Service Severity With Timeout    26    503    5    60
     Should Be True    ${result}    First step: Service (26, 503) should have severity_id=5
 
     Stop Engine

@@ -110,7 +110,7 @@ process_stat::process_stat(pid_t process_id)
     } else if (first_char == 'w') {
       if (second_char == 'c') {  // wchar
         _query_write_bytes = extract_io_value(line, file_path);
-      } else if (second_char == 'e') {  // write_bytes
+      } else if (second_char == 'r') {  // write_bytes
         _real_write_bytes = extract_io_value(line, file_path);
       }
     }

@@ -373,7 +373,7 @@ BEUTAG7
     ${result}    Check Resources Tags With Timeout    26    508    servicegroup    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 508) should have servicegroup tags 3 and 5
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BEUTAG8
     [Documentation]    Services have tags provided by templates.

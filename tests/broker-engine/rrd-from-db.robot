@@ -222,7 +222,7 @@ BRRDUPLICATE
 
     # We get 3 indexes to rebuild
     ${index}    Get Indexes To Rebuild    3    2
-    ${duplicates}    add_duplicate_metrics
+    ${duplicates}    Add Duplicate Metrics
     Rebuild Rrd Graphs from DB    ${index}
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
@@ -241,5 +241,5 @@ BRRDUPLICATE
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    500
     Should Be True    ${result}    RRD cbd did not receive metrics to rebuild END
 
-    ${result}    check_for_NaN_metric    ${duplicates}
+    ${result}    Check For Nan Metric    ${duplicates}
     Should Be True    ${result}    at least one metric contains NaN value

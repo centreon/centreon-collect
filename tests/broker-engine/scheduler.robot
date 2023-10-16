@@ -50,4 +50,4 @@ ENRSCHE1
     ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    False    240
     Should Be True    ${result}    The delta between last_check and next_check is not equal to 300 as expected for a normal check
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    [Teardown]    Stop Engine Broker And Save Logs
