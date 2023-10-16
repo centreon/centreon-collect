@@ -94,6 +94,7 @@ jobs:
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
           if [ -d tests/failed ] ; then
             mv tests/log.html reports/$FILE_PREFIX-log.html
+            mv tests/output.xml reports/$FILE_PREFIX-output.xml
             mv tests/failed reports/$FILE_PREFIX-failed
           fi
 
