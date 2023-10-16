@@ -37,11 +37,7 @@ on:
 
 
 jobs:
-  get-version:
-    uses: ./.github/workflows/get-version.yml
-
   test-image-to-cache:
-    needs: [get-version]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
     steps:
       - name: Checkout sources
@@ -74,7 +70,7 @@ jobs:
       - name: image to cache
         uses: actions/cache/save@v3
         with:
-          path:  /tmp/${{inputs.image}}
+          path: /tmp/${{inputs.image}}
           key: ${{inputs.image_test}}
 
   robot-test-list:
@@ -94,7 +90,7 @@ jobs:
           echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
 
   robot-test:
-    needs: [robot-test-list, get-version]
+    needs: [robot-test-list]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
 
     strategy:
