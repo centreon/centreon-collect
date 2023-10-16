@@ -27,9 +27,10 @@ CCCM_BEGIN()
 
 std::string hex_dump(const unsigned char* buffer,
                      size_t buff_len,
-                     int nb_char_per_line);
+                     uint32_t nb_char_per_line);
 
-inline std::string hex_dump(const std::string& buffer, int nb_char_per_line) {
+inline std::string hex_dump(const std::string& buffer,
+                            uint32_t nb_char_per_line) {
   return hex_dump(reinterpret_cast<const unsigned char*>(buffer.data()),
                   buffer.size(), nb_char_per_line);
 }
