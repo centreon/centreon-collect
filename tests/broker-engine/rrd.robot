@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Test Clean
+Test Teardown       Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -429,17 +429,10 @@ Rrd_1
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
-    ${content}    Create List    Metrics rebuild: metrics doesn't exist
+    ${content}    Create List    Metrics rebuild: metrics don't exist
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Central did not send metrics to rebuild
 
     ${content1}    Create List    mysql_connection: You have an error in your SQL syntax
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Not Be True    ${result}    Database did not receive command to rebuild metrics
-
-
-*** Keywords ***
-Test Clean
-    Stop Engine
-    Kindly Stop Broker
-    Save logs If Failed
