@@ -74,11 +74,6 @@ jobs:
           echo "[DEBUG] - Build size"
           du -sh ./lib/*.so | sort -rh
 
-          cd ..
-          ls -la ./build
-          ls -laR ./build/lib
-          ls -laR ./build/bin
-
       - name: Binary preparation
         run: |
           echo "[INFO] - Keeping only compiled files"
@@ -107,11 +102,10 @@ jobs:
           fi
           echo "[INFO] - Keeping only build's non empty folders"
           find ./build -empty -type d -delete
+          ls -la ./build
 
           echo "[INFO] - Generating the tarball"
           tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
-
-          ls -la ./build
 
       - name: Cache
         uses: actions/cache/save@v3
