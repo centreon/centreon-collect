@@ -15,7 +15,7 @@ Library             ../resources/specific-duplication.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -92,17 +92,17 @@ BEINSTANCESTATUS
     [Documentation]    Instance status to bdd
     [Tags]    broker    engine
     Config Engine    ${1}    ${50}    ${20}
-    engine_config_set_value    0    enable_flap_detection    1    True
-    engine_config_set_value    0    enable_notifications    0    True
-    engine_config_set_value    0    execute_host_checks    0    True
-    engine_config_set_value    0    execute_service_checks    0    True
-    engine_config_set_value    0    global_host_event_handler    command_1    True
-    engine_config_set_value    0    global_service_event_handler    command_2    True
-    engine_config_set_value    0    instance_heartbeat_interval    1    True
-    engine_config_set_value    0    obsess_over_hosts    1    True
-    engine_config_set_value    0    obsess_over_services    1    True
-    engine_config_set_value    0    accept_passive_host_checks    0    True
-    engine_config_set_value    0    accept_passive_service_checks    0    True
+    Engine Config Set Value    0    enable_flap_detection    1    True
+    Engine Config Set Value    0    enable_notifications    0    True
+    Engine Config Set Value    0    execute_host_checks    0    True
+    Engine Config Set Value    0    execute_service_checks    0    True
+    Engine Config Set Value    0    global_host_event_handler    command_1    True
+    Engine Config Set Value    0    global_service_event_handler    command_2    True
+    Engine Config Set Value    0    instance_heartbeat_interval    1    True
+    Engine Config Set Value    0    obsess_over_hosts    1    True
+    Engine Config Set Value    0    obsess_over_services    1    True
+    Engine Config Set Value    0    accept_passive_host_checks    0    True
+    Engine Config Set Value    0    accept_passive_service_checks    0    True
 
     Config Broker    central
     Config Broker    module    ${1}

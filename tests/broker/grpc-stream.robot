@@ -9,7 +9,7 @@ Library             ../resources/Broker.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -18,36 +18,36 @@ BGRPCSS1
     [Tags]    broker    start-stop    grpc
     Config Broker    central
     Config Broker    rrd
-    Change Broker tcp output to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Repeat Keyword    5 times    Start Stop Service    100ms
 
 BGRPCSS2
     [Documentation]    Start/Stop 10 times broker configured with grpc stream with 300ms interval and no coredump
     [Tags]    broker    start-stop    grpc
     Config Broker    central
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Repeat Keyword    10 times    Start Stop Instance    300ms
 
 BGRPCSS3
     [Documentation]    Start-Stop one instance of broker configured with grpc stream and no coredump
     [Tags]    broker    start-stop    grpc
     Config Broker    central
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Repeat Keyword    5 times    Start Stop Instance    100ms
 
 BGRPCSS4
     [Documentation]    Start/Stop 10 times broker configured with grpc stream with 1sec interval and no coredump
     [Tags]    broker    start-stop    grpc
     Config Broker    central
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Repeat Keyword    10 times    Start Stop Instance    1s
 
 BGRPCSS5
     [Documentation]    Start-Stop with reversed connection on grpc acceptor with only one instance and no deadlock
     [Tags]    broker    start-stop    grpc
     Config Broker    central
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Repeat Keyword    5 times    Start Stop Instance    1s
@@ -58,8 +58,8 @@ BGRPCSSU1
     Config Broker    central
     Config Broker    rrd
     Config Broker Sql Output    central    unified_sql
-    Change Broker tcp output to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Repeat Keyword    5 times    Start Stop Service    100ms
 
 BGRPCSSU2
@@ -67,14 +67,14 @@ BGRPCSSU2
     [Tags]    broker    start-stop    unified_sql    grpc
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Repeat Keyword    10 times    Start Stop Instance    300ms
 
 BGRPCSSU3
     [Documentation]    Start-Stop with unified_sql one instance of broker configured with grpc and no coredump
     [Tags]    broker    start-stop    unified_sql    grpc
     Config Broker    central
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Config Broker Sql Output    central    unified_sql
     Repeat Keyword    5 times    Start Stop Instance    100ms
 
@@ -82,7 +82,7 @@ BGRPCSSU4
     [Documentation]    Start/Stop with unified_sql 10 times broker configured with grpc stream with 1sec interval and no coredump
     [Tags]    broker    start-stop    unified_sql    grpc
     Config Broker    central
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Config Broker Sql Output    central    unified_sql
     Repeat Keyword    10 times    Start Stop Instance    1s
 
@@ -93,7 +93,7 @@ BGRPCSSU5
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    centreon-broker-master-rrd    one_peer_retention_mode    yes
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
-    Change Broker tcp output to grpc    central
+    Change Broker Tcp Output To Grpc    central
     Repeat Keyword    5 times    Start Stop Instance    1s
 
 

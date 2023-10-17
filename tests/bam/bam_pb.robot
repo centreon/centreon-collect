@@ -14,7 +14,7 @@ Library             Telnet
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          BAM Setup
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -328,7 +328,7 @@ BA_RATIO_PERCENT_BA_SERVICE
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
-    add_ba_kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Start Broker
     ${start}    Get Current Date
@@ -356,7 +356,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ...    output critical for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
-    sleep    2s
+    Sleep    2s
     ${result}    Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
@@ -587,7 +587,7 @@ BA_BOOL_KPI
     ${result}    Check Service Status With Timeout    host_16    service_314    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
 
-#    schedule_forced_svc_check    _Module_BAM_1    ba_1
+#    Schedule Forced Svc Check    _Module_BAM_1    ba_1
     ${result}    Check Ba Status With Timeout    test    2    30
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 

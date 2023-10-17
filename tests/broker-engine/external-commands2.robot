@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -797,8 +797,8 @@ BEEXTCMD_GRPC1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
@@ -840,8 +840,8 @@ BEEXTCMD_GRPC2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_NORMAL_SVC_CHECK_INTERVAL on bbdo2.0 use_grpc=${use_grpc}
@@ -879,8 +879,8 @@ BEEXTCMD_GRPC3
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
@@ -922,8 +922,8 @@ BEEXTCMD_GRPC4
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -960,8 +960,8 @@ BEEXTCMD_REVERSE_GRPC1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Output Remove    module0    central-module-master-output    host
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -1008,8 +1008,8 @@ BEEXTCMD_REVERSE_GRPC2
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Output Remove    module0    central-module-master-output    host
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -1051,8 +1051,8 @@ BEEXTCMD_REVERSE_GRPC3
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Add Item    central    bbdo_version    3.0.0
     Broker Config Add Item    rrd    bbdo_version    3.0.0
@@ -1098,8 +1098,8 @@ BEEXTCMD_REVERSE_GRPC4
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Broker Config Output Remove    module0    central-module-master-output    host
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -1141,8 +1141,8 @@ BEEXTCMD_COMPRESS_GRPC1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
     Change Broker Compression Output    module0    central-module-master-output    yes
     Change Broker Compression Input    central    centreon-broker-master-input    yes
     Broker Config Add Item    module0    bbdo_version    3.0.0
@@ -1225,7 +1225,7 @@ BEATOI12
     Kindly Stop Broker
 
 BEATOI13
-    [Documentation]    external command SCHEDULE SERVICE DOWNTIME with duration<0 should fail
+    [Documentation]    external command Schedule Service Downtime with duration<0 should fail
     [Tags]    broker    engine    host    extcmd    atoi
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
@@ -1240,7 +1240,7 @@ BEATOI13
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
     ${date}    Get Current Date    result_format=epoch
-    SCHEDULE SERVICE DOWNTIME    host_1    service_1    -1
+    Schedule Service Downtime    host_1    service_1    -1
     ${content}    Create List    Error: could not schedule downtime : duration
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    command argument duration must be an integer >= 0.
@@ -1415,7 +1415,7 @@ BESERVCHECK
     Should Be True    ${result}    No check for external commands executed for 1mn.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
-    schedule_forced_svc_check    host_1    service_1
+    Schedule Forced Svc Check    host_1    service_1
     ${command_param}    get_command_service_param    1
     ${result}    check_service_check_with_timeout
     ...    host_1

@@ -19,7 +19,7 @@ Test Setup          Stop Processes
 BEUHSEV1
     [Documentation]    Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear DB    severities
+    # Clear Db    severities
     Config Engine    ${1}
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
@@ -39,7 +39,7 @@ BEUHSEV1
     Start Broker
     Sleep    2s
 
-    ${result}    check host severity With Timeout    1    10    60
+    ${result}    Check Host Severity With Timeout    1    10    60
     Should Be True    ${result}    Host 1 should have severity_id=10
 
     Remove Severities From Hosts    ${0}
@@ -47,9 +47,9 @@ BEUHSEV1
     Add Severity To Hosts    0    8    [3]
     Reload Engine
     Reload Broker
-    ${result}    check host severity With Timeout    3    8    60
+    ${result}    Check Host Severity With Timeout    3    8    60
     Should Be True    ${result}    Host 3 should have severity_id=8
-    ${result}    check host severity With Timeout    1    None    60
+    ${result}    Check Host Severity With Timeout    1    None    60
     Should Be True    ${result}    Host 1 should have no severity
 
     Stop Engine
@@ -86,25 +86,25 @@ BEUHSEV2
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}    check host severity With Timeout    2    18    60
+    ${result}    Check Host Severity With Timeout    2    18    60
     Should Be True    ${result}    First step: Host 2 should have severity_id=18
 
-    ${result}    check host severity With Timeout    4    18    60
+    ${result}    Check Host Severity With Timeout    4    18    60
     Should Be True    ${result}    First step: Host 4 should have severity_id=18
 
-    ${result}    check host severity With Timeout    26    18    60
+    ${result}    Check Host Severity With Timeout    26    18    60
     Should Be True    ${result}    First step: Host 26 should have severity_id=18
 
-    ${result}    check host severity With Timeout    27    18    60
+    ${result}    Check Host Severity With Timeout    27    18    60
     Should Be True    ${result}    First step: Host 27 should have severity_id=18
 
-    ${result}    check host severity With Timeout    3    16    60
+    ${result}    Check Host Severity With Timeout    3    16    60
     Should Be True    ${result}    First step: Host 3 should have severity_id=16
 
-    ${result}    check host severity With Timeout    5    16    60
+    ${result}    Check Host Severity With Timeout    5    16    60
     Should Be True    ${result}    First step: Host 5 should have severity_id=16
 
-    ${result}    check host severity With Timeout    28    16    60
+    ${result}    Check Host Severity With Timeout    28    16    60
     Should Be True    ${result}    First step: Host 28 should have severity_id=16
 
     Remove Severities From Hosts    ${0}
@@ -114,16 +114,16 @@ BEUHSEV2
     Reload Engine
     Reload Broker
     Sleep    3s
-    ${result}    check host severity With Timeout    28    16    60
+    ${result}    Check Host Severity With Timeout    28    16    60
     Should Be True    ${result}    Second step: Host 28 should have severity_id=16
 
-    ${result}    check host severity With Timeout    4    None    60
+    ${result}    Check Host Severity With Timeout    4    None    60
     Should Be True    ${result}    Second step: Host 4 should have severity_id=None
 
-    ${result}    check host severity With Timeout    3    None    60
+    ${result}    Check Host Severity With Timeout    3    None    60
     Should Be True    ${result}    Second step: Host 3 should have severity_id=17
 
-    ${result}    check host severity With Timeout    5    None    60
+    ${result}    Check Host Severity With Timeout    5    None    60
     Should Be True    ${result}    Second step: Host 5 should have severity_id=17
 
     Stop Engine
@@ -165,19 +165,19 @@ BETUHSEV1
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}    check host severity With Timeout    2    2    60
+    ${result}    Check Host Severity With Timeout    2    2    60
     Should Be True    ${result}    First step: Host 2 should have severity_id=2
 
-    ${result}    check host severity With Timeout    4    2    60
+    ${result}    Check Host Severity With Timeout    4    2    60
     Should Be True    ${result}    First step: Host 4 should have severity_id=2
 
-    ${result}    check host severity With Timeout    5    4    60
+    ${result}    Check Host Severity With Timeout    5    4    60
     Should Be True    ${result}    First step: Host 5 should have severity_id=4
 
-    ${result}    check host severity With Timeout    31    6    60
+    ${result}    Check Host Severity With Timeout    31    6    60
     Should Be True    ${result}    First step: Host 31 should have severity_id=6
 
-    ${result}    check host severity With Timeout    33    10    60
+    ${result}    Check Host Severity With Timeout    33    10    60
     Should Be True    ${result}    First step: Host 33 should have severity_id=10
 
     Stop Engine

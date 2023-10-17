@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -42,13 +42,13 @@ SDER
 
     Stop Engine
 
-    modify retention dat    0    host_1    service_1    current_attempt    280
+    Modify Retention Dat    0    host_1    service_1    current_attempt    280
     # modified attributes is a bit field. We must set the bit corresponding to MAX_ATTEMPTS to be allowed to change max_attempts. Otherwise it will be set to 3.
-    modify retention dat    0    host_1    service_1    modified_attributes    65535
-    modify retention dat    0    host_1    service_1    max_attempts    280
+    Modify Retention Dat    0    host_1    service_1    modified_attributes    65535
+    Modify Retention Dat    0    host_1    service_1    max_attempts    280
 
-    modify retention dat    0    host_1    service_1    current_state    2
-    modify retention dat    0    host_1    service_1    state_type    1
+    Modify Retention Dat    0    host_1    service_1    current_state    2
+    Modify Retention Dat    0    host_1    service_1    state_type    1
     Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}

@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite With rrdcached
 Suite Teardown      Clean After Suite With rrdcached
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -50,7 +50,7 @@ BRRDCDDM1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
-        Log to Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 
@@ -86,11 +86,11 @@ BRRDCDDID1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about indexes ${indexes_str} deletion.
     FOR    ${i}    IN    @{indexes}
-        log to console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/status/${i}.rrd    20s
     END
     FOR    ${m}    IN    @{metrics}
-        log to console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 

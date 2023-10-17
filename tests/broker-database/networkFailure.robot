@@ -46,9 +46,9 @@ NetworkDBFail6
     Config Engine    ${1}
     Config Broker    central
     Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-master-sql    connections_count    5
+    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-master-perfdata    connections_count    5
+    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
@@ -76,7 +76,7 @@ NetworkDBFailU6
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-unified-sql    connections_count    5
+    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
@@ -89,9 +89,9 @@ NetworkDBFailU6
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result}    No SELECT done by broker in the DB
     Disable Eth Connection On Port    port=3306
-    Log to console    Waiting for 1m while the connection to the DB is cut.
+    Log To Console    Waiting for 1m while the connection to the DB is cut.
     Sleep    1m
-    Log to console    Reestablishing the connection and test last steps.
+    Log To Console    Reestablishing the connection and test last steps.
     Reset Eth Connection
     ${content}    Create List    0 events acknowledged
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    40
@@ -105,9 +105,9 @@ NetworkDBFail7
     Config Broker    central
     Reset Eth Connection
     Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-master-sql    connections_count    5
+    Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-master-perfdata    connections_count    5
+    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
@@ -139,7 +139,7 @@ NetworkDBFailU7
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-unified-sql    connections_count    5
+    Broker Config Output Set    central    central-broker-unified-sql    connections_count    5
     Broker Config Log    central    sql    trace
     Config Broker    rrd
     Config Broker    module
@@ -179,11 +179,11 @@ Network Failure
     Config Broker    rrd
     Config Broker    central
     Broker Config Output Set    central    central-broker-master-sql    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-master-sql    connections_count    10
+    Broker Config Output Set    central    central-broker-master-sql    connections_count    10
     Broker Config Output Set    central    central-broker-master-perfdata    db_host    127.0.0.1
-    Broker Config Output set    central    central-broker-master-perfdata    connections_count    10
+    Broker Config Output Set    central    central-broker-master-perfdata    connections_count    10
     Broker Config Log    central    sql    trace
-    broker_config_source_log    central    true
+    Broker Config Source Log    central    true
     ${start}    Get Current Date
     Start Broker
     Start Engine

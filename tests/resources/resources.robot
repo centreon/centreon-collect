@@ -45,11 +45,11 @@ Clean Before Suite
 
 Clean Before Suite With rrdcached
     Clean Before Suite
-    log to console    Starting RRDCached
+    Log To Console    Starting RRDCached
     Run Process    /usr/bin/rrdcached    -l    unix:${BROKER_LIB}/rrdcached.sock    -V    LOG_DEBUG    -F
 
 Clean Grpc Before Suite
-    set grpc port    0
+    Set Grpc Port    0
     Clean Before Suite
 
 Clean After Suite
@@ -58,8 +58,8 @@ Clean After Suite
     Terminate All Processes    kill=True
 
 Clean After Suite With rrdcached
-    Clean after Suite
-    log to console    Stopping RRDCached
+    Clean After Suite
+    Log To Console    Stopping RRDCached
     Stop rrdcached
 
 Clear Engine Logs
@@ -113,7 +113,7 @@ Kindly Stop Broker
             IF    ${result.rc} != 0
                 Save Logs
                 Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
-                Coredump info    b2    /usr/sbin/cbd    broker_rrd
+                Coredump Info    b2    /usr/sbin/cbd    broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    RRD Broker not correctly stopped
             END
         END
@@ -182,7 +182,7 @@ Stop Engine
         ELSE
             IF    ${result.rc} != 0 and ${result.rc} != -15
                 Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
-                Coredump info    ${alias}    /usr/sbin/centengine    ${alias}
+                Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
             END
             Should Be True
             ...    ${result.rc} == -15 or ${result.rc} == 0
@@ -200,9 +200,9 @@ Stop Engine Broker And Save Logs
     TRY
         Kindly Stop Broker    only_central=${only_central}
     EXCEPT
-        Log    can't kindly stop broker
+        Log    Can't kindly stop Broker
     END
-    Save Logs If failed
+    Save Logs If Failed
 
 Get Engine Pid
     [Arguments]    ${process_alias}
@@ -222,12 +222,12 @@ Check Connections
     FOR    ${idx}    IN RANGE    0    ${count}
         ${alias}    Catenate    SEPARATOR=    e    ${idx}
         ${pid2}    Get Process Id    ${alias}
-        Log to console    Check Connection 5669 ${pid1} ${pid2}
+        Log To Console    Check Connection 5669 ${pid1} ${pid2}
         ${retval}    Check Connection    5669    ${pid1}    ${pid2}
         IF    ${retval} == ${False}    RETURN    ${False}
     END
     ${pid2}    Get Process Id    b2
-    Log to console    Check Connection 5670 ${pid1} ${pid2}
+    Log To Console    Check Connection 5670 ${pid1} ${pid2}
     ${retval}    Check Connection    5670    ${pid1}    ${pid2}
     RETURN    ${retval}
 
@@ -241,17 +241,17 @@ Reset Eth Connection
     Run    iptables -F
     Run    iptables -X
 
-Save Logs If failed
+Save Logs If Failed
     Run Keyword If Test Failed    Save Logs
 
 Save Logs
     Create Directory    failed
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
-    Copy files    ${centralLog}    ${failDir}
-    Copy files    ${rrdLog}    ${failDir}
-    Copy files    ${moduleLog0}    ${failDir}
-    Copy files    ${engineLog0}    ${failDir}
+    Copy Files    ${centralLog}    ${failDir}
+    Copy Files    ${rrdLog}    ${failDir}
+    Copy Files    ${moduleLog0}    ${failDir}
+    Copy Files    ${engineLog0}    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker
     Move Files    /tmp/lua*.log    ${failDir}

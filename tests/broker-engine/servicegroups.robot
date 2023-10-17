@@ -33,7 +33,7 @@ EBNSG1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    Add service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
+    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
@@ -64,7 +64,7 @@ EBNSGU1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    Add service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
+    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Sleep    3s
 
@@ -101,10 +101,10 @@ EBNSGU2
     Clear Retention
     Start Broker
     Start Engine
-    Add service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
-    Add service Group    ${1}    ${1}    ["host_14","service_261", "host_14","service_262","host_14", "service_263"]
-    Add service Group    ${2}    ${1}    ["host_27","service_521", "host_27","service_522","host_27", "service_523"]
-    Add service Group    ${3}    ${1}    ["host_40","service_781", "host_40","service_782","host_40", "service_783"]
+    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_1","service_2","host_1", "service_3"]
+    Add Service Group    ${1}    ${1}    ["host_14","service_261", "host_14","service_262","host_14", "service_263"]
+    Add Service Group    ${2}    ${1}    ["host_27","service_521", "host_27","service_522","host_27", "service_523"]
+    Add Service Group    ${3}    ${1}    ["host_40","service_781", "host_40","service_782","host_40", "service_783"]
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
     Config Engine Add Cfg File    ${1}    servicegroups.cfg
     Config Engine Add Cfg File    ${2}    servicegroups.cfg
@@ -127,4 +127,4 @@ EBNSGU2
 Test End
     Stop Engine
     Kindly Stop Broker
-    Save logs If Failed
+    Save Logs If Failed

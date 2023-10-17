@@ -13,7 +13,7 @@ Library             ../resources/Engine.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          BAM Setup
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***

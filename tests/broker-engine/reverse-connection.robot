@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -204,7 +204,7 @@ BRCTSMNS
     # The output file of the map script is cleared.
     Remove File    ${/}tmp${/}map-output.log
 
-    log to console    Second configuration with one more service per host
+    Log To Console    Second configuration with one more service per host
     # For each host, one service is added (20 -> 21)
     Config Engine    ${1}    ${50}    ${21}
     Reload Engine

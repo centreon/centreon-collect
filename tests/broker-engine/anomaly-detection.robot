@@ -12,7 +12,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -30,7 +30,7 @@ ANO_NOFILE
     Clear Db    services
     Start Broker    True
     Start Engine
-    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata
+    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Stop Broker    True
     Stop Engine
@@ -50,7 +50,7 @@ ANO_TOO_OLD_FILE
     Clear Db    services
     Start Broker    True
     Start Engine
-    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
+    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=70%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    3    30
     Stop Broker    True
     Stop Engine
@@ -70,7 +70,7 @@ ANO_OUT_LOWER_THAN_LIMIT
     Clear Db    services
     Start Broker    True
     Start Engine
-    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
+    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=20%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Broker    True
     Stop Engine
@@ -90,7 +90,7 @@ ANO_OUT_UPPER_THAN_LIMIT
     Clear Db    services
     Start Broker    True
     Start Engine
-    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
+    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Broker    True
     Stop Engine
@@ -184,7 +184,7 @@ AOUTLU1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    Process Service Check result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
+    Process Service Check Result    host_1    anomaly_${serv_id}    2    taratata|metric=80%;50;75
     Check Service Status With Timeout    host_1    anomaly_${serv_id}    2    30
     Stop Engine
     Kindly Stop Broker
@@ -221,7 +221,7 @@ ANO_DT1
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     #create dependent service downtime
-    schedule_service_fixed_downtime    host_1    service_1    3600
+    Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    service_1    1    60
     Should Be True    ${result}    dependent service must be in downtime
@@ -258,7 +258,7 @@ ANO_DT2
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     #create dependent service downtime
-    schedule_service_fixed_downtime    host_1    service_1    3600
+    Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
@@ -299,7 +299,7 @@ ANO_DT3
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     #create dependent service downtime
-    schedule_service_fixed_downtime    host_1    service_1    3600
+    Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
     Should Be True    ${result}    anomaly service must be in downtime
@@ -341,8 +341,8 @@ ANO_DT4
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     #create dependent service downtime
-    schedule_service_fixed_downtime    host_1    service_1    3600
-    schedule_service_fixed_downtime    host_1    anomaly_${serv_id}    3600
+    Schedule Service Fixed Downtime    host_1    service_1    3600
+    Schedule Service Fixed Downtime    host_1    anomaly_${serv_id}    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    2    60
     Should Be True    ${result}    anomaly service must be in double downtime

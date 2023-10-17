@@ -13,7 +13,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Variables ***
@@ -32,8 +32,8 @@ BECC1
             Log To Console    Compression set to ${comp1} on central and to ${comp2} on module
             Config Broker    central
             Config Broker    module
-            Broker Config Input set    central    central-broker-master-input    compression    ${comp1}
-            Broker Config Output set    module0    central-module-master-output    compression    ${comp2}
+            Broker Config Input Set    central    central-broker-master-input    compression    ${comp1}
+            Broker Config Output Set    module0    central-module-master-output    compression    ${comp2}
             Broker Config Log    central    bbdo    info
             Broker Config Log    module0    bbdo    info
             ${start}    Get Current Date

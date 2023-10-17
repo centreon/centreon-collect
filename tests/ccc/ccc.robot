@@ -36,7 +36,7 @@ BECCC1
         IF    len("${content.strip()}") > 0    BREAK
         Sleep    1s
     END
-    should be equal as strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
+    Should Be Equal As Strings    ${content.strip()}    You must specify a port for the connection to the gRPC server
     Stop Engine
     Kindly Stop Broker
     Remove File    /tmp/output.txt

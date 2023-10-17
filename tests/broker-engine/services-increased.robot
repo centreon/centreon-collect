@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -39,7 +39,7 @@ EBNSVC1
     FOR    ${i}    IN RANGE    ${3}
         Sleep    10s
         ${srv_by_host}    Evaluate    20 + 4 * $i
-        log to console    ${srv_by_host} services by host with 50 hosts among 3 pollers.
+        Log To Console    ${srv_by_host} services by host with 50 hosts among 3 pollers.
         Config Engine    ${3}    ${50}    ${srv_by_host}
         Reload Engine
         Reload Broker
@@ -79,21 +79,21 @@ Service_increased_huge_check_interval
     Clear Db    index_data
     Clear Db    metrics
 
-    Delete All rrd metrics
+    Delete All Rrd Metrics
 
     ${start}    Get Current Date
     Start Broker
     Start Engine
     # Start Checkers
     ${result}    Check host status    host_1    4    1    False
-    Should be true    ${result}    host_1 should be pending
+    Should Be True    ${result}    host_1 should be pending
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    "host_1 init not found in log"
     # End Checkers
 
-    Process Service Check result with metrics    host_1    service_1    1    warning0    1
+    Process Service Check Result With Metrics    host_1    service_1    1    warning0    1
 
     ${content}    Create List    new pb data for metric
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    60
@@ -136,7 +136,7 @@ Service_increased_huge_check_interval
 
     Sleep    5
 
-    Process Service Check result with metrics    host_1    service_${new_service_id}    1    warning0    1
+    Process Service Check Result With Metrics    host_1    service_${new_service_id}    1    warning0    1
 
     ${metrics}    Get Metrics For Service    ${new_service_id}
 

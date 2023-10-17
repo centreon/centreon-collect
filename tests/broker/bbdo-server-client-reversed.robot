@@ -10,7 +10,7 @@ Library             ../resources/Broker.py
 Suite Setup         Prepare Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -32,7 +32,7 @@ BSCSSRR1
     Config Broker    rrd
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
     Broker Config Log    central    config    debug
     ${start}    Get Round Current Date
@@ -49,7 +49,7 @@ BSCSSPRR1
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_server    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Broker Config Log    central    config    info
     Repeat Keyword    5 times    Start Stop Service    0
 
@@ -59,7 +59,7 @@ BSCSSRR2
     Config Broker    central
     Config Broker BBDO Input    central    bbdo_client    5669    tcp    localhost
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Repeat Keyword    10 times    Start Stop Instance    300ms
 
 BSCSSGRR1
@@ -69,7 +69,7 @@ BSCSSGRR1
     Config Broker    rrd
     Config Broker BBDO Input    central    bbdo_server    5669    grpc    localhost
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
     Broker Config Log    central    config    info
     ${start}    Get Round Current Date
@@ -87,9 +87,9 @@ BSCSSTRR1
     Config Broker    rrd
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Output set    central    central-broker-master-output    retention    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    central-broker-master-output    encryption    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
+    Broker Config Input Set    rrd    rrd-broker-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    central    tls    debug
@@ -106,29 +106,29 @@ BSCSSTRR2
     Config Broker    rrd
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Output set    central    central-broker-master-output    retention    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    central-broker-master-output    encryption    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
+    Broker Config Input Set    rrd    rrd-broker-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    central    tls    debug
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
     ...    central-broker-master-output
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
     ...    central-broker-master-output
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
     ...    central-broker-master-output
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Broker Config Input Set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
+    Broker Config Input Set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
     ${start}    Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List    TLS: successful handshake
@@ -142,9 +142,9 @@ BSCSSTGRR2
     Config Broker    rrd
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
     Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Output set    central    central-broker-master-output    retention    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    central-broker-master-output    encryption    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
+    Broker Config Input Set    rrd    rrd-broker-master-input    encryption    yes
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
     Broker Config Log    central    config    off
@@ -161,19 +161,19 @@ BSCSSTGRR2
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
     ...    central-broker-master-output
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
     ...    central-broker-master-output
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Input set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input set
+    Broker Config Input Set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
+    Broker Config Input Set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    Broker Config Input Set
     ...    rrd
     ...    rrd-broker-master-input
     ...    ca_certificate
@@ -192,8 +192,8 @@ BSCSSCRR1
     Config Broker    rrd
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
-    Broker Config Output set    central    central-broker-master-output    compression    yes
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    compression    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    trace
     Broker Config Log    rrd    core    trace
@@ -212,8 +212,8 @@ BSCSSCRR2
     Config Broker    rrd
     Config Broker BBDO Output    central    bbdo_server    5670    tcp
     Config Broker BBDO Input    rrd    bbdo_client    5670    tcp    localhost
-    Broker Config Output set    central    central-broker-master-output    compression    no
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    compression    no
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    trace
@@ -233,8 +233,8 @@ BSCSSCGRR1
     Config Broker    rrd
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
     Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
-    Broker Config Output set    central    central-broker-master-output    compression    yes
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    compression    yes
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    off
@@ -255,8 +255,8 @@ BSCSSCGRR2
     Config Broker    rrd
     Config Broker BBDO Output    central    bbdo_server    5670    grpc
     Config Broker BBDO Input    rrd    bbdo_client    5670    grpc    localhost
-    Broker Config Output set    central    central-broker-master-output    compression    no
-    Broker Config Output set    central    central-broker-master-output    retention    yes
+    Broker Config Output Set    central    central-broker-master-output    compression    no
+    Broker Config Output Set    central    central-broker-master-output    retention    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    off

@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -32,7 +32,7 @@ EBSNU1
     Broker Config Log    central    bbdo    debug
     Config Broker Sql Output    central    unified_sql
     ${nu}    Evaluate    2000*"X"
-    Engine Config set value in services    0    service_1    notes_url    ${nu}
+    Engine Config Set Value In Services    0    service_1    notes_url    ${nu}
     Clear Retention
     Start Broker
     Start Engine
@@ -67,7 +67,7 @@ EBSAU2
     Broker Config Log    central    bbdo    debug
     Config Broker Sql Output    central    unified_sql
     ${au}    Evaluate    2000*"Y"
-    Engine Config set value in services    0    service_2    action_url    ${au}
+    Engine Config Set Value In Services    0    service_2    action_url    ${au}
     Clear Retention
     Start Broker
     Start Engine
@@ -102,7 +102,7 @@ EBSN3
     Broker Config Log    central    bbdo    debug
     Config Broker Sql Output    central    unified_sql
     ${n}    Evaluate    500*"Z"
-    Engine Config set value in services    0    service_3    notes    ${n}
+    Engine Config Set Value In Services    0    service_3    notes    ${n}
     Clear Retention
     Start Broker
     Start Engine

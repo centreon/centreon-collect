@@ -23,7 +23,7 @@ EBBPS1
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -76,11 +76,11 @@ EBBPS1
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
-            Log to Console    Stopping Broker
+            Log To Console    Stopping Broker
             Kindly Stop Broker
-            Log to Console    Waiting for 5s
+            Log To Console    Waiting for 5s
             Sleep    5s
-            Log to Console    Restarting Broker
+            Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
             Start Broker
         END
@@ -108,7 +108,7 @@ EBBPS2
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
@@ -162,9 +162,9 @@ EBBPS2
             ...    30
             Should Be True    ${result}    No service_status processing found.
             Kindly Stop Broker
-            Log to Console    Waiting for 5s
+            Log To Console    Waiting for 5s
             Sleep    5s
-            Log to Console    Restarting Broker
+            Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
             Start Broker
         END
@@ -193,7 +193,7 @@ EBMSSM
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -240,7 +240,7 @@ EBPS2
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
@@ -393,7 +393,7 @@ metric_mapping
 
     # We force several checks with metrics
     FOR    ${i}    IN RANGE    ${10}
-        Process Service Check result with metrics    host_1    service_${i+1}    1    warning${i}    20
+        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
 
     Wait Until Created    /tmp/test.log    30s
@@ -404,4 +404,4 @@ metric_mapping
 Test Clean
     Stop Engine
     Kindly Stop Broker
-    Save logs If Failed
+    Save Logs If Failed

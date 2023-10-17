@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -624,7 +624,7 @@ not13
     Config Engine    ${1}    ${2}    ${1}
     Engine Config Set Value    0    interval_length    10    True
     Config Engine Add Cfg File    ${0}    servicegroups.cfg
-    Add service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
+    Add Service Group    ${0}    ${1}    ["host_1","service_1", "host_2","service_2"]
     Config Notifications
     Config Escalations
 

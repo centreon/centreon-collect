@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -45,7 +45,7 @@ BRRDDMDB1
     Log To Console    Metrics to delete ${metrics}
 
     ${empty}    Create List
-    Remove Graphs from DB    ${empty}    ${metrics}
+    Remove Graphs From Db    ${empty}    ${metrics}
     Reload Broker
     ${metrics_str}    Catenate    SEPARATOR=,    @{metrics}
     ${content}    Create List    metrics ${metrics_str} erased from database
@@ -53,7 +53,7 @@ BRRDDMDB1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about metrics ${metrics_str} deletion.
     FOR    ${m}    IN    @{metrics}
-        Log to Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 
@@ -79,15 +79,15 @@ BRRDDIDDB1
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
 
-    log to console    STEP1
+    Log To Console    STEP1
     ${indexes}    Get Indexes To Delete    2
-    log to console    STEP2
+    Log To Console    STEP2
     ${metrics}    Get Metrics Matching Indexes    ${indexes}
-    log to console    STEP3
+    Log To Console    STEP3
     Log To Console    indexes ${indexes} to delete with their metrics
 
     ${empty}    Create List
-    Remove Graphs from DB    ${indexes}    ${empty}
+    Remove Graphs From Db    ${indexes}    ${empty}
     Reload Broker
     ${indexes_str}    Catenate    SEPARATOR=,    @{indexes}
     ${content}    Create List    indexes ${indexes_str} erased from database
@@ -95,11 +95,11 @@ BRRDDIDDB1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    No log message telling about indexes ${indexes_str} deletion.
     FOR    ${i}    IN    @{indexes}
-        log to console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/status/${i}.rrd    20s
     END
     FOR    ${m}    IN    @{metrics}
-        log to console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 
@@ -125,7 +125,7 @@ BRRDRBDB1
 
     # We get 3 indexes to rebuild
     ${index}    Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs from DB    ${index}
+    Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}
@@ -175,7 +175,7 @@ BRRDRBUDB1
 
     # We get 3 indexes to rebuild
     ${index}    Get Indexes To Rebuild    3
-    Rebuild Rrd Graphs from DB    ${index}
+    Rebuild Rrd Graphs From Db    ${index}
     Reload Broker
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
@@ -223,7 +223,7 @@ BRRDUPLICATE
     # We get 3 indexes to rebuild
     ${index}    Get Indexes To Rebuild    3    2
     ${duplicates}    Add Duplicate Metrics
-    Rebuild Rrd Graphs from DB    ${index}
+    Rebuild Rrd Graphs From Db    ${index}
     Log To Console    Indexes to rebuild: ${index}
     ${metrics}    Get Metrics Matching Indexes    ${index}
     Log To Console    Metrics to rebuild: ${metrics}

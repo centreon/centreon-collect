@@ -39,7 +39,7 @@ TestBadUser
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}=  Get Current Date
-    schedule forced host check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to toto@127.0.0.10
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -68,7 +68,7 @@ TestBadPwd
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}=  Get Current Date
-    schedule forced host check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to testconnssh@127.0.0.11
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -115,7 +115,7 @@ Test6Hosts
 
     ${start}=  Get Current Date
     FOR    ${idx}    IN RANGE    1    7
-        schedule forced host check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
     END
     
     IF    "${run_env}" == "docker"

@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -110,7 +110,7 @@ EBNHGU2
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    45
     Should Be True    ${result}    One of the new host groups not found in logs.
     Stop Engine
-    Kindly stop Broker
+    Kindly Stop Broker
 
 EBNHGU3
     [Documentation]    New host group with several pollers and connections to DB with broker configured with unified_sql
@@ -188,14 +188,14 @@ EBNHG4
 
     Sleep    10s
     ${start}    Get Current Date
-    Log to Console    Step-1
+    Log To Console    Step-1
     Reload Broker
-    Log to Console    Step0
+    Log To Console    Step0
     Reload Engine
 
-    Log to Console    Step1
+    Log To Console    Step1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log to Console    Step1
+    Log To Console    Step1
     FOR    ${index}    IN RANGE    60
         Log To Console    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         ${output}    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
@@ -239,14 +239,14 @@ EBNHGU4
 
     Sleep    10s
     ${start}    Get Current Date
-    Log to Console    Step-1
+    Log To Console    Step-1
     Reload Broker
-    Log to Console    Step0
+    Log To Console    Step0
     Reload Engine
 
-    Log to Console    Step1
+    Log To Console    Step1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log to Console    Step1
+    Log To Console    Step1
     FOR    ${index}    IN RANGE    60
         Log To Console    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}
         ${output}    Query    SELECT name FROM hostgroups WHERE hostgroup_id = ${1}

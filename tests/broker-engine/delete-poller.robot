@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -93,7 +93,7 @@ EBDP2
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -110,7 +110,7 @@ EBDP2
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
     Should Be True    ${result}    connection closed not found.
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -132,7 +132,7 @@ EBDP2
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -165,7 +165,7 @@ EBDP_GRPC2
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -183,7 +183,7 @@ EBDP_GRPC2
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
     Should Be True    ${result}    connection closed not found.
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -205,7 +205,7 @@ EBDP_GRPC2
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -232,7 +232,7 @@ EBDP3
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -245,7 +245,7 @@ EBDP3
     Terminate Process    e1
     Terminate Process    e2
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -265,7 +265,7 @@ EBDP3
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -281,7 +281,7 @@ EBDP4
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
-    Broker Config Flush log    central    0
+    Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -308,8 +308,8 @@ EBDP4
 
     # Generation of many service status but kept in memory on poller3.
     FOR    ${i}    IN RANGE    200
-        Process Service Check result    host_40    service_781    2    service_781 should fail    config3
-        Process Service Check result    host_40    service_782    1    service_782 should fail    config3
+        Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
+        Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
     END
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
@@ -353,9 +353,9 @@ EBDP4
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
-    log to console    date ${start}
+    Log To Console    date ${start}
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should be True    ${result}    No message about these two wrong service status.
+    Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine
     Kindly Stop Broker
 
@@ -399,7 +399,7 @@ EBDP5
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller by id    51001    ${4}
+    Remove Poller By Id    51001    ${4}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -438,7 +438,7 @@ EBDP6
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -451,7 +451,7 @@ EBDP6
     Terminate Process    e1
     Terminate Process    e2
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -466,7 +466,7 @@ EBDP6
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller by id    51001    ${3}
+    Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -479,7 +479,7 @@ EBDP6
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -506,7 +506,7 @@ EBDP7
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -519,7 +519,7 @@ EBDP7
     Terminate Process    e1
     Terminate Process    e2
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -532,7 +532,7 @@ EBDP7
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller by id    51001    ${3}
+    Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
@@ -545,7 +545,7 @@ EBDP7
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -561,7 +561,7 @@ EBDP8
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
-    Broker Config Flush log    central    0
+    Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -588,8 +588,8 @@ EBDP8
 
     # Generation of many service status but kept in memory on poller3.
     FOR    ${i}    IN RANGE    200
-        Process Service Check result    host_40    service_781    2    service_781 should fail    config3
-        Process Service Check result    host_40    service_782    1    service_782 should fail    config3
+        Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
+        Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
     END
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
@@ -612,7 +612,7 @@ EBDP8
 
     # Restart Broker
     Start Broker
-    Remove Poller by id    51001    ${4}
+    Remove Poller By Id    51001    ${4}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
@@ -627,8 +627,8 @@ EBDP8
     Should Be True    ${result}    check_for_external_commands is missing.
 
     ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
-    log to console    date ${start}
+    Log To Console    date ${start}
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should be True    ${result}    No message about these two wrong service status.
+    Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine
     Kindly Stop Broker

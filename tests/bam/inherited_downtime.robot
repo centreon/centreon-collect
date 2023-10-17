@@ -12,7 +12,7 @@ Library             ../resources/Engine.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          BAM Setup
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -139,9 +139,9 @@ BEBAMIDT2
         ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
         # Broker is restarted
-        log to console    Broker is stopped (step ${i})
+        Log To Console    Broker is stopped (step ${i})
         Kindly Stop Broker
-        log to console    Broker is started
+        Log To Console    Broker is started
         Start Broker
     END
 
@@ -159,7 +159,7 @@ BEBAMIDT2
     ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime as it should not
 
-    log to console    Broker is stopped (end of BEBAMIDT2)
+    Log To Console    Broker is stopped (end of BEBAMIDT2)
     Stop Engine
     Kindly Stop Broker
 
@@ -171,7 +171,7 @@ BEBAMIGNDT1
     Config Broker    central
     Broker Config Log    central    bam    trace
     Broker Config Log    central    sql    trace
-    broker_config_source_log    central    true
+    Broker Config Source Log    central    true
     Broker Config Flush Log    module0    0
     Broker Config Log    module0    neb    trace
     Config Broker    rrd
@@ -221,54 +221,54 @@ BEBAMIGNDT1
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
-    Log To console    The BA is critical.
+    Log To Console    The BA is critical.
 
     # Two downtimes are applied on service_314
     Schedule Service Downtime    host_16    service_314    3600
     ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
-    Log to console    One downtime applied to service_314.
+    Log To Console    One downtime applied to service_314.
 
     Schedule Service Downtime    host_16    service_314    1800
     ${result}    Check Service Downtime With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
-    Log to console    Two downtimes applied to service_314.
+    Log To Console    Two downtimes applied to service_314.
 
     ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
-    Log to console    The BA is configured to ignore kpis in downtime
+    Log To Console    The BA is configured to ignore kpis in downtime
 
     ${result}    Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
-    Log to console    The BA is OK, since the critical service is in downtime.
+    Log To Console    The BA is OK, since the critical service is in downtime.
 
     # The first downtime is deleted
     Delete Service Downtime    host_16    service_314
 
     ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
-    Log to console    Still one downtime applied to service_314.
+    Log To Console    Still one downtime applied to service_314.
 
     ${result}    Check Downtimes With Timeout    1    60
     Should Be True    ${result}    We should have one downtime
 
     ${result}    Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
-    Log to console    The BA is still OK
+    Log To Console    The BA is still OK
 
     # The second downtime is deleted
     Delete Service Downtime    host_16    service_314
 
     ${result}    Check Service Downtime With Timeout    host_16    service_314    0    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 0 downtime as it should
-    Log to console    No more downtime applied to service_314.
+    Log To Console    No more downtime applied to service_314.
 
     ${result}    Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more running downtimes
 
     ${result}    Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
-    Log to console    The BA is now critical (no more downtime)
+    Log To Console    The BA is now critical (no more downtime)
 
     Stop Engine
     Kindly Stop Broker
@@ -320,38 +320,38 @@ BEBAMIGNDT2
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
-    Log To console    The BA is critical.
+    Log To Console    The BA is critical.
 
     # Two downtimes are applied on service_314
     Schedule Service Downtime    host_16    service_314    60
     ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
-    Log to console    One downtime applied to service_314.
+    Log To Console    One downtime applied to service_314.
 
     Schedule Service Downtime    host_16    service_314    30
     ${result}    Check Service Downtime With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16, service_314) is not in downtime as it should be
-    Log to console    Two downtimes applied to service_314.
+    Log To Console    Two downtimes applied to service_314.
 
     ${result}    Check Service Downtime With Timeout    _Module_BAM_1    ba_1    0    60
     Should Be True    ${result}    The BA ba_1 is in downtime but should not
-    Log to console    The BA is configured to ignore kpis in downtime
+    Log To Console    The BA is configured to ignore kpis in downtime
 
     ${result}    Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The service in downtime should be ignored while computing the state of this BA.
-    Log to console    The BA is OK, since the critical service is in downtime.
+    Log To Console    The BA is OK, since the critical service is in downtime.
 
     # The first downtime should reach its end
 
-    Log to console    After 30s, the first downtime should be finished.
+    Log To Console    After 30s, the first downtime should be finished.
     ${result}    Check Service Downtime With Timeout    host_16    service_314    1    60
     Should Be True    ${result}    The service (host_16, service_314) does not contain 1 downtime as it should
-    Log to console    Still one downtime applied to service_314.
+    Log To Console    Still one downtime applied to service_314.
 
-    Log to console    After 30s, the second downtime should be finished.
+    Log To Console    After 30s, the second downtime should be finished.
     ${result}    Check Ba Status With Timeout    test    0    60
     Should Be True    ${result}    The BA is not OK whereas the service_314 is still in downtime.
-    Log to console    The BA is still OK
+    Log To Console    The BA is still OK
 
     ${result}    Check Downtimes With Timeout    0    60
     Should Be True    ${result}    We should have no more running downtimes
@@ -359,7 +359,7 @@ BEBAMIGNDT2
     # The second downtime finishes
     ${result}    Check Ba Status With Timeout    test    2    60
     Should Be True    ${result}    The critical service is no more in downtime, the BA should be critical.
-    Log to console    The BA is now critical (no more downtime)
+    Log To Console    The BA is now critical (no more downtime)
 
     Stop Engine
     Kindly Stop Broker
@@ -370,6 +370,6 @@ BAM Setup
     Stop Processes
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
-    log to console    date=${date}
+    Log To Console    date=${date}
     Execute SQL String
     ...    UPDATE downtimes SET deletion_time=${date}, actual_end_time=${date} WHERE actual_end_time is null

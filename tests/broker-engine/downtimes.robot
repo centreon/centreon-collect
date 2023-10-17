@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Downtimes Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -56,26 +56,26 @@ BEDTMASS1
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Schedule host downtime    ${0}    ${host0}    ${3600}
-        Schedule host downtime    ${1}    ${host1}    ${3600}
-        Schedule host downtime    ${2}    ${host2}    ${3600}
+        Schedule Host Downtime    ${0}    ${host0}    ${3600}
+        Schedule Host Downtime    ${1}    ${host1}    ${3600}
+        Schedule Host Downtime    ${2}    ${host2}    ${3600}
     END
 
     ${result}    check number of downtimes    ${1050}    ${start}    ${60}
-    Should be true    ${result}    We should have 1050 downtimes enabled.
+    Should Be True    ${result}    We should have 1050 downtimes enabled.
 
     # It's time to delete downtimes
     FOR    ${i}    IN RANGE    ${17}
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Delete host downtimes    ${0}    ${host0}
-        Delete host downtimes    ${1}    ${host1}
-        Delete host downtimes    ${2}    ${host2}
+        Delete Host Downtimes    ${0}    ${host0}
+        Delete Host Downtimes    ${1}    ${host1}
+        Delete Host Downtimes    ${2}    ${host2}
     END
 
     ${result}    check number of downtimes    ${0}    ${start}    ${60}
-    Should be true    ${result}    We should have no downtime enabled.
+    Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
     Kindly Stop Broker
@@ -112,26 +112,26 @@ BEDTMASS2
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Schedule host downtime    ${0}    ${host0}    ${3600}
-        Schedule host downtime    ${1}    ${host1}    ${3600}
-        Schedule host downtime    ${2}    ${host2}    ${3600}
+        Schedule Host Downtime    ${0}    ${host0}    ${3600}
+        Schedule Host Downtime    ${1}    ${host1}    ${3600}
+        Schedule Host Downtime    ${2}    ${host2}    ${3600}
     END
 
     ${result}    check number of downtimes    ${1050}    ${start}    ${60}
-    Should be true    ${result}    We should have 1050 downtimes enabled.
+    Should Be True    ${result}    We should have 1050 downtimes enabled.
 
     # It's time to delete downtimes
     FOR    ${i}    IN RANGE    ${17}
         ${host0}    Catenate    SEPARATOR=    host_    ${i + 1}
         ${host1}    Catenate    SEPARATOR=    host_    ${i + 18}
         ${host2}    Catenate    SEPARATOR=    host_    ${i + 35}
-        Delete host downtimes    ${0}    ${host0}
-        Delete host downtimes    ${1}    ${host1}
-        Delete host downtimes    ${2}    ${host2}
+        Delete Host Downtimes    ${0}    ${host0}
+        Delete Host Downtimes    ${1}    ${host1}
+        Delete Host Downtimes    ${2}    ${host2}
     END
 
     ${result}    check number of downtimes    ${0}    ${start}    ${60}
-    Should be true    ${result}    We should have no downtime enabled.
+    Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
     Kindly Stop Broker
@@ -157,10 +157,10 @@ BEDTSVCREN1
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
-    Schedule service downtime    host_1    service_1    ${3600}
+    Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    check number of downtimes    ${1}    ${start}    ${60}
-    Should be true    ${result}    We should have 1 downtime enabled.
+    Should Be True    ${result}    We should have 1 downtime enabled.
 
     # Let's rename the service service_1
     Rename Service    ${0}    host_1    service_1    toto_1
@@ -171,10 +171,10 @@ BEDTSVCREN1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    Delete service downtime full    ${0}    host_1    toto_1
+    Delete Service Downtime Full    ${0}    host_1    toto_1
 
     ${result}    check number of downtimes    ${0}    ${start}    ${60}
-    Should be true    ${result}    We should have no downtime enabled.
+    Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
     Kindly Stop Broker
@@ -200,15 +200,15 @@ BEDTSVCFIXED
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule a downtime
-    Schedule service downtime    host_1    service_1    ${3600}
+    Schedule Service Downtime    host_1    service_1    ${3600}
 
     ${result}    check number of downtimes    ${1}    ${start}    ${60}
-    Should be true    ${result}    We should have 1 downtime enabled.
+    Should Be True    ${result}    We should have 1 downtime enabled.
 
-    Delete service downtime full    ${0}    host_1    service_1
+    Delete Service Downtime Full    ${0}    host_1    service_1
 
     ${result}    check number of downtimes    ${0}    ${start}    ${60}
-    Should be true    ${result}    We should have no downtime enabled.
+    Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
     Kindly Stop Broker
@@ -235,16 +235,16 @@ BEDTHOSTFIXED
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     # It's time to schedule downtimes
-    Schedule host fixed downtime    ${0}    host_1    ${3600}
+    Schedule Host Fixed Downtime    ${0}    host_1    ${3600}
 
     ${result}    check number of downtimes    ${21}    ${start}    ${60}
-    Should be true    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
+    Should Be True    ${result}    We should have 21 downtimes (1 host + 20 services) enabled.
 
     # It's time to delete downtimes
-    Delete host downtimes    ${0}    host_1
+    Delete Host Downtimes    ${0}    host_1
 
     ${result}    check number of downtimes    ${0}    ${start}    ${60}
-    Should be true    ${result}    We should have no downtime enabled.
+    Should Be True    ${result}    We should have no downtime enabled.
 
     Stop Engine
     Kindly Stop Broker

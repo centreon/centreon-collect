@@ -58,7 +58,7 @@ BRRDDM1
         END
     END
     FOR    ${m}    IN    @{metrics}
-        Log to Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 
@@ -126,11 +126,11 @@ BRRDDID1
     END
 
     FOR    ${i}    IN    @{indexes}
-        log to console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/status/${i}.rrd    20s
     END
     FOR    ${m}    IN    @{metrics}
-        log to console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 
@@ -402,8 +402,8 @@ BRRDRMU1
         ...    Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
     END
 
-Rrd_1
-    [Documentation]    RRD metric rebuild with gRPC API. 3 non existing indexes ids are selected then a error message is sent. This is done with unified_sql output.
+RRD1
+    [Documentation]    RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
     [Tags]    rrd    metric    rebuild    unified_sql    grpc
     Config Engine    ${1}
     Config Broker    rrd
@@ -436,3 +436,9 @@ Rrd_1
     ${content1}    Create List    mysql_connection: You have an error in your SQL syntax
     ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
     Should Not Be True    ${result}    Database did not receive command to rebuild metrics
+
+*** Keywords ***
+Test Clean
+    Stop Engine
+    Kindly Stop Broker
+    Save Logs If Failed

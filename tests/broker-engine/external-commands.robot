@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -853,7 +853,7 @@ BEEXTCMD21
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host And child Notifications    ${use_grpc}    host_1
+        Disable Host And Child Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -875,7 +875,7 @@ BEEXTCMD21
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host And child Notifications    ${use_grpc}    host_1
+        Enable Host And Child Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
@@ -920,7 +920,7 @@ BEEXTCMD22
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host And child Notifications    ${use_grpc}    host_1
+        Disable Host And Child Notifications    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
@@ -933,7 +933,7 @@ BEEXTCMD22
         END
         Should Be Equal As Strings    ${output}    ((0,),)
 
-        Enable Host And child Notifications    ${use_grpc}    host_1
+        Enable Host And Child Notifications    ${use_grpc}    host_1
 
         FOR    ${index}    IN RANGE    30
             Log To Console    SELECT notify FROM hosts WHERE name='host_1'
@@ -1270,7 +1270,7 @@ BEEXTCMD28
         Should Be True
         ...    ${result}
         ...    An Initial host state on host_1 should be raised before we can start our external commands.
-        Disable Host Flap detection    ${use_grpc}    host_1
+        Disable Host Flap Detection    ${use_grpc}    host_1
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
