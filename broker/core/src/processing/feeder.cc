@@ -97,6 +97,7 @@ feeder::feeder(const std::string& name,
 feeder::~feeder() {
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "destroy feeder {}, {:p}", get_name(),
                       static_cast<const void*>(this));
+  stop();
 
   multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
 }
