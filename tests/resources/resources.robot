@@ -296,7 +296,7 @@ Coredump Info
 Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${docker_env}    Get Environment Variable    RUN_ENV    ${None}
-    IF    ${docker_env} is None
+    IF    ${docker_env} == ""
         ${pid}    Get Process Id    ${process_name}
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
