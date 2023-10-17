@@ -135,8 +135,8 @@ Start Engine
     END
 
 Restart Engine
-	Stop Engine
-	Start Engine
+    Stop Engine
+    Start Engine
 
 Start Custom Engine
     [Arguments]    ${conf_path}    ${process_alias}
@@ -169,6 +169,20 @@ Stop Engine
             ...    msg=Engine badly stopped with ${count} instances - code returned ${result.rc}.
         END
     END
+
+Stop Engine Broker And Save Logs
+    [Arguments]    ${only_central}=False
+    TRY
+        Stop Engine
+    EXCEPT
+        Log    can't kindly stop engine
+    END
+    TRY
+        Kindly Stop Broker    only_central=${only_central}
+    EXCEPT
+        Log    Can't kindly stop Broker
+    END
+    Save Logs If Failed
 
 Get Engine Pid
     [Arguments]    ${process_alias}
