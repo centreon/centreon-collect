@@ -239,35 +239,17 @@ BABOOORREL
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     # 302 is set to critical => {host_16 service_302} {IS} {OK} is then False
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_302
-    ...    2
-    ...    output critical for service_302
+    Process Service Result Hard    host_16    service_302    2    output critical for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL/HARD as expected
 
     # 303 is set to critical => {host_16 service_303} {IS} {OK} is then False
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_303
-    ...    2
-    ...    output critical for service_303
+    Process Service Result Hard    host_16    service_303    2    output critical for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL/HARD as expected
 
     # 304 is set to ok => {host_16 service_304} {IS} {OK} is then True
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_304
-    ...    0
-    ...    output ok for service_304
+    Process Service Result Hard    host_16    service_304    0    output ok for service_304
     ${result}    Check Service Status With Timeout    host_16    service_304    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_304) is not OK/HARD as expected
 
@@ -279,13 +261,17 @@ BABOOORREL
     ...    ${id_bool}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_304} {IS} {OK}
 
-    Restart Engine
+    Reload Engine
     Reload Broker
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    Process Service Result Hard    host_16    service_302    2    output ok for service_302
+    Process Service Result Hard    host_16    service_304    0    output ok for service_304
+
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The 'boolean-ba' BA is not OK as expected
@@ -294,8 +280,11 @@ BABOOORREL
     ...    ${id_bool}
     ...    {host_16 service_302} {IS} {OK} {OR} {host_16 service_303} {IS} {OK}
 
-    Restart Engine
+    Reload Engine
     Reload Broker
+
+    Process Service Result Hard    host_16    service_302    2    output critical for service_302
+    Process Service Result Hard    host_16    service_303    2    output critical for service_303
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
@@ -393,3 +382,13 @@ Dump Ba On Error
         Save Logs
         Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
     END
+
+Process Service Result Hard
+    [Arguments]    ${host}    ${svc}    ${state}    ${output}
+    Repeat Keyword
+    ...    3 times
+    ...    Process Service Check Result
+    ...    ${host}
+    ...    ${svc}
+    ...    ${state}
+    ...    ${output}
