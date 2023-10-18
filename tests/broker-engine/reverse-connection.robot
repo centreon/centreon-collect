@@ -3,6 +3,7 @@ Documentation       Centreon Broker and Engine communication with or without com
 
 Resource            ../resources/resources.robot
 Library             Process
+Library             DatabaseLibrary
 Library             OperatingSystem
 Library             DateTime
 Library             String
@@ -160,6 +161,7 @@ BRCTSMN
 BRCTSMNS
     [Documentation]    Broker connected to map with neb and storage filters
     [Tags]    broker    map    reverse connection
+    Clear Metrics
     Config Engine    ${1}
     Config Broker    rrd
     Config Broker    central_map
@@ -184,7 +186,7 @@ BRCTSMNS
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+    Should Be True    ${result}    A message about check_for_external_commands() should be available.
     # pb_service pb_host pb_service_status pb_host_status pb_metric pb_status pb_index_mapping
     ${expected_events}    Create List    65563    65566    65565    65568    196617    196618    196619
     ${categories}    Create List    1    3
