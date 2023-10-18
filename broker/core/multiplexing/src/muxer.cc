@@ -84,6 +84,8 @@ muxer::muxer(std::string name,
       _events_size{0u},
       _last_stats{std::time(nullptr)} {
   // Load head queue file back in memory.
+  DEBUG(fmt::format("CONSTRUCTOR muxer {:p} {}", static_cast<void*>(this),
+                    _name));
   std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
@@ -197,6 +199,8 @@ muxer::~muxer() noexcept {
                      "Destroying muxer {}: number of events in the queue: {}",
                      _name, _events_size);
   _clean();
+  DEBUG(fmt::format("DESTRUCTOR muxer {:p} {}", static_cast<void*>(this),
+                    _name));
 }
 
 /**

@@ -81,6 +81,7 @@ feeder::feeder(const std::string& name,
       _stat_timer(pool::io_context()),
       _read_from_stream_timer(pool::io_context()),
       _io_context(pool::io_context_ptr()) {
+  DEBUG(fmt::format("CONSTRUCTOR feeder {:p} {} - muxer: {:p}", static_cast<void*>(this), name, static_cast<void*>(_muxer.get())));
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
@@ -101,6 +102,7 @@ feeder::~feeder() {
   stop();
 
   multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
+  DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));
 }
 
 bool feeder::is_finished() const noexcept {

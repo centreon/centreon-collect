@@ -25,6 +25,7 @@
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/pool.hh"
 
@@ -281,11 +282,13 @@ engine::engine()
       _stats{stats::center::instance().register_engine()},
       _unprocessed_events{0u},
       _sending_to_subscribers{false} {
+  DEBUG(fmt::format("CONSTRUCTOR engine {:p}", static_cast<void*>(this)));
   stats::center::instance().update(&EngineStats::set_mode, _stats,
                                    EngineStats::NOT_STARTED);
 }
 
 engine::~engine() noexcept {
+  DEBUG(fmt::format("DESTRUCTOR engine {:p}", static_cast<void*>(this)));
   log_v2::core()->debug("core: cbd engine destroyed.");
 }
 
