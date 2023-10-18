@@ -237,6 +237,7 @@ void engine::stop() {
                                      EngineStats::STOPPED);
   }
   log_v2::core()->debug("multiplexing: engine stopped");
+  DEBUG(fmt::format("STOP engine {:p}", static_cast<void*>(this)));
 }
 
 /**
@@ -244,7 +245,7 @@ void engine::stop() {
  *
  *  @param[in] subscriber  A muxer.
  */
-void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
+void engine::subscribe(muxer* subscriber) {
   log_v2::config()->debug("engine: muxer {} subscribes to engine",
                           subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
@@ -265,7 +266,7 @@ void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
 void engine::unsubscribe(const muxer* subscriber) {
   std::lock_guard<std::mutex> l(_engine_m);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
-    if (it->get() == subscriber) {
+    if (*it == subscriber) {
       log_v2::config()->debug("engine: muxer {} unsubscribes to engine",
                               subscriber->name());
       _muxers.erase(it);
@@ -362,7 +363,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
 
   // Process all queued events.
   std::shared_ptr<std::deque<std::shared_ptr<io::data>>> kiew;
-  std::shared_ptr<muxer> last_muxer;
+  muxer* last_muxer;
   std::shared_ptr<detail::callback_caller> cb;
   {
     std::lock_guard<std::mutex> lck(_engine_m);

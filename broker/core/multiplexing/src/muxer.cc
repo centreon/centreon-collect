@@ -62,6 +62,7 @@ absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
  *
  * @param name            Name associated to this muxer. It is used to create
  *                        on-disk files.
+ * @param parent          The engine that relies all the muxers.
  * @param r_filter        The read filter constructed from the stream and the
  *                        user configuration.
  * @param w_filter        The write filter constructed from the stream and the
@@ -70,11 +71,13 @@ absl::flat_hash_map<std::string, std::weak_ptr<muxer>> muxer::_running_muxers;
  *                        events in a persistent storage.
  */
 muxer::muxer(std::string name,
+             const std::shared_ptr<engine>& parent,
              const muxer_filter& r_filter,
              const muxer_filter& w_filter,
              bool persistent)
     : io::stream("muxer"),
       _name(std::move(name)),
+      _engine(parent),
       _queue_file_name{queue_file(_name)},
       _read_filter{r_filter},
       _write_filter{w_filter},
@@ -143,6 +146,7 @@ muxer::muxer(std::string name,
  *
  * @param name            Name associated to this muxer. It is used to create
  *                        on-disk files.
+ * @param parent          The engine that relies all the muxers.
  * @param r_filter        The read filter constructed from the stream and the
  *                        user configuration.
  * @param w_filter        The write filter constructed from the stream and the
@@ -152,6 +156,7 @@ muxer::muxer(std::string name,
  * @return std::shared_ptr<muxer>
  */
 std::shared_ptr<muxer> muxer::create(std::string name,
+                                     const std::shared_ptr<engine>& parent,
                                      const muxer_filter& r_filter,
                                      const muxer_filter& w_filter,
                                      bool persistent) {
@@ -177,12 +182,12 @@ std::shared_ptr<muxer> muxer::create(std::string name,
     } else {
       log_v2::config()->debug("muxer: muxer '{}' unknown, creating it", name);
       retval = std::shared_ptr<muxer>(
-          new muxer(name, r_filter, w_filter, persistent));
+          new muxer(name, parent, r_filter, w_filter, persistent));
       _running_muxers[name] = retval;
     }
   }
 
-  engine::instance_ptr()->subscribe(retval);
+  parent->subscribe(retval.get());
   return retval;
 }
 
@@ -191,16 +196,14 @@ std::shared_ptr<muxer> muxer::create(std::string name,
  */
 muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
-  auto eng = engine::instance_ptr();
-  if (eng)
-    eng->unsubscribe(this);
+  _engine->unsubscribe(this);
   std::lock_guard<std::mutex> lock(_mutex);
   SPDLOG_LOGGER_INFO(log_v2::core(),
                      "Destroying muxer {}: number of events in the queue: {}",
                      _name, _events_size);
   _clean();
-  DEBUG(fmt::format("DESTRUCTOR muxer {:p} {}", static_cast<void*>(this),
-                    _name));
+  DEBUG(
+      fmt::format("DESTRUCTOR muxer {:p} {}", static_cast<void*>(this), _name));
 }
 
 /**
@@ -265,6 +268,7 @@ int32_t muxer::stop() {
                      _name, _events_size);
   std::lock_guard<std::mutex> lck(_mutex);
   _update_stats();
+  DEBUG(fmt::format("STOP muxer {:p} {}", static_cast<void*>(this), _name));
   return 0;
 }
 
@@ -536,7 +540,7 @@ int muxer::write(std::shared_ptr<io::data> const& d) {
       SPDLOG_LOGGER_INFO(log_v2::core(), "{} bench write {}", _name,
                          io::data::dump_json{*d});
     }
-    engine::instance_ptr()->publish(d);
+    _engine->publish(d);
   } else {
     SPDLOG_LOGGER_TRACE(log_v2::core(),
                         "muxer {} event of type {:x} rejected by read filter",
@@ -567,7 +571,7 @@ void muxer::write(std::deque<std::shared_ptr<io::data>>& to_publish) {
     }
   }
   if (!to_publish.empty()) {
-    engine::instance_ptr()->publish(to_publish);
+    _engine->publish(to_publish);
   }
 }
 

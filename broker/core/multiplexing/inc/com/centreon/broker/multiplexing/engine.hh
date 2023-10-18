@@ -82,7 +82,7 @@ class engine : public std::enable_shared_from_this<engine> {
   std::deque<std::shared_ptr<io::data>> _kiew;
 
   // Subscriber.
-  std::vector<std::shared_ptr<muxer>> _muxers;
+  std::vector<muxer*> _muxers;
   std::mutex _muxers_m;
 
   // Statistics.
@@ -111,7 +111,7 @@ class engine : public std::enable_shared_from_this<engine> {
   void publish(const std::deque<std::shared_ptr<io::data>>& to_publish);
   void start();
   void stop();
-  void subscribe(const std::shared_ptr<muxer>& subscriber);
+  void subscribe(muxer* subscriber);
   void unsubscribe(const muxer* subscriber);
 };
 }  // namespace multiplexing
