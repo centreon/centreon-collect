@@ -112,7 +112,7 @@ class engine : public std::enable_shared_from_this<engine> {
   void start();
   void stop();
   void subscribe(muxer* subscriber);
-  void unsubscribe(const muxer* subscriber);
+  void unsubscribe_muxer(const muxer* subscriber);
 };
 }  // namespace multiplexing
 

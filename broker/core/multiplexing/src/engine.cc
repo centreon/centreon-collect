@@ -263,7 +263,7 @@ void engine::subscribe(muxer* subscriber) {
  *
  *  @param[in] subscriber  Subscriber.
  */
-void engine::unsubscribe(const muxer* subscriber) {
+void engine::unsubscribe_muxer(const muxer* subscriber) {
   std::lock_guard<std::mutex> l(_engine_m);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
     if (*it == subscriber) {

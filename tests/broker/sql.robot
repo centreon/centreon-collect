@@ -289,7 +289,6 @@ BDBU1
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Config Broker    rrd
-    Config Broker    module
     # We replace the usual centreon_storage database by centreon to make the wanted error
     Broker Config Output Set    central    central-broker-unified-sql    db_name    centreon
     Broker Config Log    central    sql    trace

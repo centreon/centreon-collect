@@ -124,6 +124,7 @@ class muxer : public io::stream {
   void set_read_filter(const muxer_filter& w_filter);
   void set_write_filter(const muxer_filter& w_filter);
   void clear_read_handler();
+  void unsubscribe();
 };
 
 /**

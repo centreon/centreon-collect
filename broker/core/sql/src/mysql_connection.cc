@@ -890,7 +890,7 @@ void mysql_connection::_run() {
             SPDLOG_LOGGER_ERROR(log_v2::sql(), "SQL: Reconnection failed.");
             reconnect_failed_logged = true;
           } else if (config::applier::mode == config::applier::finished) {
-            finish();
+            _finish();
             /* We avoid deadlocks in case of broker termination and database
              * error */
             _send_exceptions_to_task_futures(tasks_list);
@@ -910,6 +910,8 @@ void mysql_connection::_run() {
     }
   }
   _clear_connection();
+  _state = finished;
+  _start_condition.notify_all();
   mysql_thread_end();
   log_v2::core()->trace("mysql connection main loop finished.");
 }
@@ -1118,7 +1120,7 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
 mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection {:p}: finished",
                      static_cast<const void*>(this));
-  finish();
+  stop();
   stats::center::instance().remove_connection(_proto_stats);
   _thread->join();
   DEBUG(fmt::format("DESTRUCTOR mysql_connection {:p}",
@@ -1193,14 +1195,22 @@ void mysql_connection::run_statement_and_get_result(
 }
 
 /**
- * @brief Stop the mysql_connection and waits for it to be completly stopped.
+ * @brief Asks the mysql_connection main thread to be stopped. It doesn't wait
+ * for it to happen. If you want to wait, call stop().
  */
-void mysql_connection::finish() {
-  {
-    std::lock_guard<std::mutex> lock(_tasks_m);
-    _finish_asked = true;
-    _tasks_condition.notify_all();
-  }
+void mysql_connection::_finish() {
+  std::lock_guard<std::mutex> lock(_tasks_m);
+  _finish_asked = true;
+  _tasks_condition.notify_all();
+}
+
+/**
+ * @brief Stop the mysql_connection and waits for it to be completly stopped.
+ * This function mustn't be called from the mysql_connection main thread
+ * or we'll have a deadlock.
+ */
+void mysql_connection::stop() {
+  _finish();
   {
     std::unique_lock<std::mutex> lock(_start_m);
     _start_condition.wait(lock, [this] { return _state == finished; });

@@ -108,7 +108,7 @@ feeder::~feeder() {
                       static_cast<const void*>(this));
   stop();
 
-  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
+  _muxer->unsubscribe();
   DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));
 }
 
@@ -285,7 +285,7 @@ void feeder::_stop_no_lock() {
   set_state("disconnected");
 
   // muxer should not receive events
-  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
+  _muxer->unsubscribe();
   _stat_timer.cancel();
   _read_from_stream_timer.cancel();
 

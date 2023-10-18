@@ -196,7 +196,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
  */
 muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
-  _engine->unsubscribe(this);
+  unsubscribe();
   std::lock_guard<std::mutex> lock(_mutex);
   SPDLOG_LOGGER_INFO(log_v2::core(),
                      "Destroying muxer {}: number of events in the queue: {}",
@@ -746,4 +746,11 @@ void muxer::set_write_filter(const muxer_filter& w_filter) {
 void muxer::clear_read_handler() {
   std::unique_lock<std::mutex> lock(_mutex);
   _read_handler = nullptr;
+}
+
+/**
+ * @brief Unsubscribe this muxer from the parent engine.
+ */
+void muxer::unsubscribe() {
+  _engine->unsubscribe_muxer(this);
 }
