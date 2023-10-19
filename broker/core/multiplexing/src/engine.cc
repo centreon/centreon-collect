@@ -384,7 +384,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     // it will be destroyed at the end of the scope of this function and at the
     // end of lambdas posted
     cb = std::make_shared<detail::callback_caller>(std::move(callback),
-                                                   shared_from_this());
+                                                   _instance);
     last_muxer = *_muxers.rbegin();
     if (_muxers.size() > 1) {
       /* Since the sending is parallelized, we use the thread pool for this
