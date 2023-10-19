@@ -319,3 +319,11 @@ Clear Metrics
     Execute SQL String    DELETE FROM metrics
     Execute SQL String    DELETE FROM index_data
     Execute SQL String    DELETE FROM data_bin
+
+Dump Ba On Error
+    [Arguments]    ${result}    ${ba_id}
+    IF    not ${result}
+        Save Logs
+        Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
+    END
+

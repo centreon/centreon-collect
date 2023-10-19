@@ -376,13 +376,6 @@ BAM Setup
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
 
-Dump Ba On Error
-    [Arguments]    ${result}    ${ba_id}
-    IF    not ${result}
-        Save Logs
-        Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
-    END
-
 Process Service Result Hard
     [Arguments]    ${host}    ${svc}    ${state}    ${output}
     Repeat Keyword

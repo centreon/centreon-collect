@@ -24,7 +24,7 @@ BAWORST
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    Create Ba With Services    test    worst    ${svc}
+    ${ba__svc}    Create Ba With Services    test    worst    ${svc}
     Start Broker
     ${start}    Get Current Date
     Start Engine
@@ -35,6 +35,7 @@ BAWORST
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -51,6 +52,7 @@ BAWORST
 
     # The BA should become unknown
     ${result}    Check Ba Status With Timeout    test    3    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
 
     ${result}    Check Ba Output With Timeout
@@ -67,6 +69,7 @@ BAWORST
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     ${result}    Check Ba Output With Timeout
@@ -83,6 +86,7 @@ BAWORST
 
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -104,7 +108,7 @@ BABEST_SERVICE_CRITICAL
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    Create Ba With Services    test    best    ${svc}
+    ${ba__svc}    Create Ba With Services    test    best    ${svc}
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
@@ -118,6 +122,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -135,6 +140,7 @@ BABEST_SERVICE_CRITICAL
     # The BA should remain OK
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -150,6 +156,7 @@ BABEST_SERVICE_CRITICAL
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    3    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -165,6 +172,7 @@ BABEST_SERVICE_CRITICAL
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -180,6 +188,7 @@ BABEST_SERVICE_CRITICAL
 
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -195,6 +204,7 @@ BABEST_SERVICE_CRITICAL
 
     # The BA should become OK
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -227,6 +237,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -244,6 +255,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -269,6 +281,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -281,6 +294,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_302    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -308,6 +322,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -339,6 +354,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -358,6 +374,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -385,6 +402,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -417,8 +435,10 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test_child    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test_child is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -450,6 +470,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -469,6 +490,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -497,6 +519,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The test BA is not in WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -533,8 +556,10 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test_child    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test_child is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -589,6 +614,7 @@ BA_BOOL_KPI
 
 #    Schedule Forced Svc Check    _Module_BAM_1    ba_1
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -598,7 +624,7 @@ BEPB_DIMENSION_BV_EVENT
     [Tags]    broker    engine    protobuf    bam    bbdo
     BAM Init
 
-    Create Ba    test    worst    100    100
+    ${id_ba__sid}    Create Ba    test    worst    100    100
 
     Remove File    /tmp/all_lua_event.log
 
@@ -632,7 +658,7 @@ BEPB_DIMENSION_BA_EVENT
     Remove File    /tmp/all_lua_event.log
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -666,7 +692,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Clear Db    mod_bam_reporting_relations_ba_bv
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
 
-    Create Ba With Services    test    worst    ${svc}
+    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -700,7 +726,7 @@ BEPB_DIMENSION_TIMEPERIOD
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create Ba With Services    test    worst    ${svc}
+    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
 
@@ -927,6 +953,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
 
     # all serv ok => ba ok
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
@@ -940,6 +967,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
@@ -953,6 +981,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
@@ -963,6 +992,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -988,6 +1018,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
 
     # all serv ok => ba ok
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
@@ -1001,6 +1032,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
@@ -1014,6 +1046,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
@@ -1024,6 +1057,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
