@@ -855,9 +855,7 @@ BEPB_BA_DURATION_EVENT
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
         Sleep    1s
         Log To Console    ${output}
-        IF    ${output} and len(${output}) >= 1 and len(${output[0]}) >= 5
-            BREAK
-        END
+        IF    "${output}" != "()"    BREAK
     END
 
     Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
@@ -891,7 +889,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
         ${output}    Query
         ...    SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
         Sleep    1s
-        IF    len("""${output}""") > 5    BREAK
+        IF    "${output}" != "()"    BREAK
     END
 
     Should Be True
