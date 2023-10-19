@@ -18,7 +18,6 @@
 
 #include "com/centreon/broker/misc/filesystem.hh"
 #include <dirent.h>
-#include <filesystem>
 #include <fnmatch.h>
 #include <sys/stat.h>
 #include <sys/types.h>
