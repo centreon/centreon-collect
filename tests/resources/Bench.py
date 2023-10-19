@@ -161,11 +161,6 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     version = version[0:version.rfind(".")] + ".x"
     row['origin'] = version
 
-    # rev_name is like <commit sha> <branch>~*
-    rev_name_dev_branch = re.compile(
-        r'[0-9a-f]+\s(dev[\w\.]+).*')
-    remote_rev_name_dev_branch = re.compile(
-        r'[0-9a-f]+\sremotes/origin/(dev[\w\.]+).*')
     # git branch and commit
     try:
         repo = Repo(os.getcwd())
@@ -179,6 +174,7 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     else:
         row['commit'] = repo.head.commit.hexsha
     row['t'] = time.time()
+    row['branch'] = repo.head.name
     db = UnQLite(file_path)
     benchs = db.collection(
         f'collectbench_{test_name}_{broker_or_engine}_{bench_event_result["id"]}')

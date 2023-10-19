@@ -76,6 +76,31 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     return False
 
 
+def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
+    port1 = int(port1)
+    port2 = int(port2)
+    rng = range(port1, port2 + 1)
+    limit = time.time() + timeout
+    r = re.compile(rf"^LISTEN [0-9]+\s+[0-9]+\s+\[::1\]:([0-9]+)\s+.*{prog}")
+    size = port2 - port1 + 1
+
+    def ok(l):
+        m = r.match(l)
+        if m:
+            value = int(m.group(1))
+            if int(m.group(1)) in rng:
+                return True
+        return False
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        listen_port = list(filter(ok, lst))
+        if len(listen_port) >= size:
+            return True
+    return False
+
+
 def get_date(d: str):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 

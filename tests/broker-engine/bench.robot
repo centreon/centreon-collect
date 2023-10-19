@@ -178,12 +178,11 @@ BENCH_1000STATUS_100${suffixe}
     Start Broker
     Start Engine
     ${connected}    Wait For Connections    5669    100
-    Should Be True    ${connected}    No 100 engine to broker connections
+    Should Be True    ${connected}    100 engines should be connected to broker
+    ${result}    Wait For Listen On Range    50001    50100    centengine    60
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-
-    Sleep    5
 
     ${broker_stat_before}    Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
