@@ -189,6 +189,7 @@ std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
   return ret;
 }
 
+#if DEBUG_ROBOT
 void misc::debug(const std::string& content) {
   int p = getpid();
   std::string filename{fmt::format("failed/{}.log", p)};
@@ -203,3 +204,4 @@ void misc::debug(const std::string& content) {
     fclose(f);
   }
 }
+#endif

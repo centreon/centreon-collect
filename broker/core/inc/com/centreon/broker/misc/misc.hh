@@ -36,11 +36,13 @@ std::string dump_filters(const multiplexing::muxer_filter& filters);
 std::list<perfdata> parse_perfdata(uint32_t host_id,
                                    uint32_t service_id,
                                    const char* str);
+#if DEBUG_ROBOT
 void debug(const std::string& content);
+#endif
 }  // namespace misc
 
 #if DEBUG_ROBOT
-#define DEBUG(content)   misc::debug(content)
+#define DEBUG(content) misc::debug(content)
 #else
 #define DEBUG(content)
 #endif
