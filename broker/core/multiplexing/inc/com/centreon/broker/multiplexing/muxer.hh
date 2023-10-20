@@ -1,5 +1,5 @@
 /**
- * Copyright 2009-2017-2023 Centreon
+ * Copyright 2009-2017,2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -83,7 +83,7 @@ class muxer : public io::stream {
   void _update_stats(void) noexcept;
 
   muxer(std::string name,
-        std::unique_ptr<engine>& parent,
+        std::shared_ptr<engine>& parent,
         const muxer_filter& r_filter,
         const muxer_filter& w_filter,
         bool persistent = false);
@@ -95,7 +95,7 @@ class muxer : public io::stream {
   static uint32_t event_queue_max_size() noexcept;
 
   static std::shared_ptr<muxer> create(std::string name,
-                                       std::unique_ptr<engine>& parent,
+                                       std::shared_ptr<engine>& parent,
                                        const muxer_filter& r_filter,
                                        const muxer_filter& w_filter,
                                        bool persistent = false);

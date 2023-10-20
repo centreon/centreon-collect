@@ -62,7 +62,7 @@ class callback_caller;
  */
 class engine {
   static std::mutex _load_m;
-  static std::unique_ptr<engine> _instance;
+  static std::shared_ptr<engine> _instance;
 
   enum state { not_started, running, stopped };
 
@@ -94,7 +94,7 @@ class engine {
  public:
   static void load();
   static void unload();
-  static std::unique_ptr<engine>& instance_ptr();
+  static std::shared_ptr<engine>& instance_ptr();
 
   engine(const engine&) = delete;
   engine& operator=(const engine&) = delete;
