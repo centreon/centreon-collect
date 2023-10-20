@@ -1,20 +1,20 @@
 /*
-** Copyright 2009-2017-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2009-2017-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_MULTIPLEXING_MUXER_HH
 #define CCB_MULTIPLEXING_MUXER_HH
@@ -84,7 +84,7 @@ class muxer : public io::stream {
   void _update_stats(void) noexcept;
 
   muxer(std::string name,
-        std::unique_ptr<engine>& parent,
+        std::shared_ptr<engine>& parent,
         const muxer_filter& r_filter,
         const muxer_filter& w_filter,
         bool persistent = false);
@@ -96,7 +96,7 @@ class muxer : public io::stream {
   static uint32_t event_queue_max_size() noexcept;
 
   static std::shared_ptr<muxer> create(std::string name,
-                                       std::unique_ptr<engine>& parent,
+                                       std::shared_ptr<engine>& parent,
                                        const muxer_filter& r_filter,
                                        const muxer_filter& w_filter,
                                        bool persistent = false);

@@ -49,7 +49,7 @@ constexpr unsigned max_event_queue_size = 0x10000;
  */
 std::shared_ptr<feeder> feeder::create(
     const std::string& name,
-    std::unique_ptr<multiplexing::engine>& parent,
+    std::shared_ptr<multiplexing::engine>& parent,
     std::shared_ptr<io::stream>& client,
     const multiplexing::muxer_filter& read_filters,
     const multiplexing::muxer_filter& write_filters) {
@@ -72,7 +72,7 @@ std::shared_ptr<feeder> feeder::create(
  *  @param[in] write_filters  Write filters.
  */
 feeder::feeder(const std::string& name,
-               std::unique_ptr<multiplexing::engine>& parent,
+               std::shared_ptr<multiplexing::engine>& parent,
                std::shared_ptr<io::stream>& client,
                const multiplexing::muxer_filter& read_filters,
                const multiplexing::muxer_filter& write_filters)
@@ -272,8 +272,8 @@ void feeder::stop() {
  *
  */
 void feeder::_stop_no_lock() {
-  SPDLOG_LOGGER_INFO(log_v2::processing(), "{} Stop without lock called",
-                     _name);
+  auto logger = log_v2::instance().get(_logger_id);
+  SPDLOG_LOGGER_INFO(logger, "{} Stop without lock called", _name);
   state expected = state::running;
   if (!_state.compare_exchange_strong(expected, state::finished)) {
     return;
@@ -285,8 +285,6 @@ void feeder::_stop_no_lock() {
   _muxer->unsubscribe();
   _stat_timer.cancel();
   _read_from_stream_timer.cancel();
-
-  auto logger = log_v2::instance().get(_logger_id);
 
   /* We don't get back the return value of stop() because it has non sense,
    * the only interest in calling stop() is to send an acknowledgement to the
