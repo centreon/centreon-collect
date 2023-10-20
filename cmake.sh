@@ -49,10 +49,11 @@ do
       STD="gnu17"
       shift
       ;;
-    -dr)
+    -dr|--debug-robot)
       echo "DEBUG_ROBOT enabled"
       DR="-DDEBUG_ROBOT=ON"
       shift
+      ;;
     -r|--release)
       echo "Release build"
       BUILD_TYPE="Release"
