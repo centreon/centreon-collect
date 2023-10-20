@@ -770,7 +770,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                     f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
                 logger.console(f"ba: {result[0]}")
-                if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
+                if len(result) > 0 and result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -827,7 +827,7 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
     return False
 
 
-#def check_host_downtime_with_timeout(hostname: str, enabled, timeout: int):
+# def check_host_downtime_with_timeout(hostname: str, enabled, timeout: int):
 #    limit = time.time() + timeout
 #    while time.time() < limit:
 #        connection = pymysql.connect(host=DB_HOST,
