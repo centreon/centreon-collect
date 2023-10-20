@@ -27,7 +27,7 @@ for i in $(cat conanfile.txt) ; do
   fi
 done
 
-STD=gnu14
+STD=gnu17
 COMPILER=gcc
 CC=gcc
 CXX=g++
@@ -42,11 +42,6 @@ do
     -f|--force)
       echo "Forced rebuild"
       force=1
-      shift
-      ;;
-    -ng)
-      echo "C++17 applied on this compilation"
-      STD="gnu17"
       shift
       ;;
     -dr|--debug-robot)
@@ -322,11 +317,7 @@ cd build
 echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
-if [[ "$STD" -eq "gnu17" ]] ; then
-  NG="-DNG=ON"
-else
-  NG="-DNG=OFF"
-fi
+NG="-DNG=ON"
 
 if [[ "$maj" == "Raspbian" ]] ; then
   CC=$CC CXX=$CXX CXXFLAGS="-Wall -Wextra" $cmake $DR -DWITH_CLANG=$WITH_CLANG -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=$BUILD_TYPE -DWITH_TESTING=On -DWITH_MODULE_SIMU=On -DWITH_BENCH=On -DWITH_CREATE_FILES=OFF $NG $* ..

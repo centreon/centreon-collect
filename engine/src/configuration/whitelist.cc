@@ -179,6 +179,7 @@ void whitelist_file::_read_file_content(const ryml_tree& file_content) {
   ryml::ConstNodeRef regexps = root.find_child("regex");
   if (wildcards.valid() && !wildcards.empty()) {
     if (!wildcards.is_seq()) {  // not an array => throw
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: wildcards is not a sequence");
       BOOST_THROW_EXCEPTION(yaml_structure_exception() << err_info_rapidyaml(
                                 "wildcards is not a sequence"));
     }
@@ -193,6 +194,7 @@ void whitelist_file::_read_file_content(const ryml_tree& file_content) {
   }
   if (regexps.valid() && !regexps.empty()) {
     if (!regexps.is_seq()) {  // not an array => throw
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: regexps is not a sequence");
       BOOST_THROW_EXCEPTION(yaml_structure_exception()
                             << err_info_rapidyaml("regexps is not a sequence"));
     }
