@@ -82,7 +82,7 @@ class engine {
   std::deque<std::shared_ptr<io::data>> _kiew;
 
   // Subscriber.
-  std::vector<muxer*> _muxers;
+  std::vector<std::weak_ptr<muxer>> _muxers;
 
   // Statistics.
   EngineStats* _stats;
@@ -110,7 +110,7 @@ class engine {
   void publish(const std::deque<std::shared_ptr<io::data>>& to_publish);
   void start();
   void stop();
-  void subscribe(muxer* subscriber);
+  void subscribe(std::shared_ptr<muxer>& subscriber);
   void unsubscribe_muxer(const muxer* subscriber);
 };
 }  // namespace multiplexing

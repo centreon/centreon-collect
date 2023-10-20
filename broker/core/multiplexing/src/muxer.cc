@@ -187,7 +187,7 @@ std::shared_ptr<muxer> muxer::create(std::string name,
     }
   }
 
-  parent->subscribe(retval.get());
+  parent->subscribe(retval);
   return retval;
 }
 
