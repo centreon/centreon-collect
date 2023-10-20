@@ -45,7 +45,7 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to unknown
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    3    output unknown for 303
+    Process Service Result Hard    host_16    service_303    3    output unknown for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    3    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not UNKNOWN as expected
@@ -62,7 +62,7 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to warning
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    1    output warning for 303
+    Process Service Result Hard    host_16    service_303    1    output warning for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
@@ -79,7 +79,7 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -132,7 +132,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -149,7 +149,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to unknown
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    3    output unknown for 303
+    Process Service Result Hard    host_16    service_303    3    output unknown for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    3    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not UNKNOWN as expected
@@ -165,7 +165,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to warning
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    1    output warning for 303
+    Process Service Result Hard    host_16    service_303    1    output warning for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
@@ -181,7 +181,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    2    output critical for 303
+    Process Service Result Hard    host_16    service_303    2    output critical for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
@@ -227,13 +227,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # service_302 critical service_303 warning => ba warning 30%
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_302
-    ...    2
-    ...    output critical for service_302
+    Process Service Result Hard    host_16    service_302    2    output critical for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    0    60
@@ -245,13 +239,7 @@ BA_IMPACT_2KPI_SERVICES
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_303
-    ...    1
-    ...    output warning for service_303
+    Process Service Result Hard    host_16    service_303    1    output warning for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
     ${result}    Check Ba Status With Timeout    test    1    60
@@ -264,16 +252,12 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # service_302 critical service_303 critical => ba critical 80%
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -303,16 +287,12 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # both warning => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    1
     ...    output warning for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    1
@@ -363,9 +343,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # one serv critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -383,16 +361,12 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # two serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -411,23 +385,17 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # two serv critical and child ba critical => mother ba critical
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -479,9 +447,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # One service CRITICAL => The BA is still OK
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -500,16 +466,12 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # Two services CRITICAL => The BA passes to WARNING
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -528,23 +490,17 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # Two services CRITICAL and also the child BA => The mother BA passes to CRITICAL
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -590,16 +546,12 @@ BA_BOOL_KPI
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 302 warning and 303 critical    => ba critical
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    1
     ...    output warning for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -798,7 +750,7 @@ BEPB_KPI_STATUS
     ${start}    Get Current Date    result_format=epoch
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
@@ -841,7 +793,7 @@ BEPB_BA_DURATION_EVENT
     # KPI set to critical
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start_event}    get_round_current_date
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     Sleep    2s
@@ -955,9 +907,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -969,9 +919,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -1020,9 +968,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -1034,9 +980,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2

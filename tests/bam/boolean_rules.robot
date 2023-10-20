@@ -345,13 +345,3 @@ BAM Setup
     Execute SQL String    DELETE FROM mod_bam_reporting_ba_events
     Execute SQL String    ALTER TABLE mod_bam_reporting_ba_events AUTO_INCREMENT = 1
     Execute SQL String    SET GLOBAL FOREIGN_KEY_CHECKS=1
-
-Process Service Result Hard
-    [Arguments]    ${host}    ${svc}    ${state}    ${output}
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    ${host}
-    ...    ${svc}
-    ...    ${state}
-    ...    ${output}

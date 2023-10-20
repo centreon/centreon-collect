@@ -47,7 +47,7 @@ BEBAMIDT1
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for service_314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
@@ -107,7 +107,7 @@ BEBAMIDT2
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for service_314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
@@ -209,12 +209,12 @@ BEBAMIGNDT1
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to ok
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_313    0    output critical for 313
+    Process Service Result Hard    host_16    service_313    0    output critical for service_313
     ${result}    Check Service Status With Timeout    host_16    service_313    0    60
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for service_314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
@@ -308,12 +308,12 @@ BEBAMIGNDT2
     ...    An Initial service state on service (50, 1000) should be raised before we can start external commands.
 
     # KPI set to ok
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_313    0    output critical for 313
+    Process Service Result Hard    host_16    service_313    0    output critical for service_313
     ${result}    Check Service Status With Timeout    host_16    service_313    0    60
     Should Be True    ${result}    The service (host_16,service_313) is not OK as expected
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 

@@ -133,9 +133,7 @@ VICT_ONE_CHECK_STATUS
 
     # service warning
     ${start}    Get Round Current Date
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    1
@@ -169,9 +167,7 @@ VICT_ONE_CHECK_STATUS
     # service critical
 
     ${start}    Get Round Current Date
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2

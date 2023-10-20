@@ -148,7 +148,7 @@ BAM_STREAM_FILTER
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -231,7 +231,7 @@ UNIFIED_SQL_FILTER
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # one service set to critical in order to have some events
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected

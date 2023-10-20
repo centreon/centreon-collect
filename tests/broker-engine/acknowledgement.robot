@@ -51,7 +51,7 @@ BEACK1
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set back to OK.
-    Repeat Keyword    3 times    Process Service Check Result    host_1    service_1    0    (1;1) is OK
+    Process Service Result Hard    host_1    service_1    0    (1;1) is OK
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (1;1) should be OK HARD
 
@@ -92,7 +92,7 @@ BEACK2
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set back to OK.
-    Repeat Keyword    3 times    Process Service Check Result    host_1    service_1    0    (1;1) is OK
+    Process Service Result Hard    host_1    service_1    0    (1;1) is OK
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (1;1) should be OK HARD
 
@@ -213,7 +213,7 @@ BEACK5
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set to WARNING.
-    Repeat Keyword    3 times    Process Service Check Result    host_1    service_1    1    (1;1) is WARNING
+    Process Service Result Hard    host_1    service_1    1    (1;1) is WARNING
     ${result}    Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
@@ -261,7 +261,7 @@ BEACK6
     Should Be True    ${ack_id} > 0    No acknowledgement on service (1, 1).
 
     # Service_1 is set to WARNING.
-    Repeat Keyword    3 times    Process Service Check Result    host_1    service_1    1    (1;1) is WARNING
+    Process Service Result Hard    host_1    service_1    1    (1;1) is WARNING
     ${result}    Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 

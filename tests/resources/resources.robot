@@ -327,3 +327,12 @@ Dump Ba On Error
         Dump Ba    51001    ${ba_id}    failed/${Test Name}/ba_${ba_id}.dot
     END
 
+Process Service Result Hard
+    [Arguments]    ${host}    ${svc}    ${state}    ${output}
+    Repeat Keyword
+    ...    3 times
+    ...    Process Service Check Result
+    ...    ${host}
+    ...    ${svc}
+    ...    ${state}
+    ...    ${output}
