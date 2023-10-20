@@ -66,7 +66,7 @@ static bool has_already_been_loaded(false);
  *  Apply new configuration.
  *
  *  @param[in] new_cfg        The new configuration.
- *  @param[in] waiting_thread True to wait thread after calulate differencies.
+ *  @param[in] waiting_thread True to wait thread after calculate differences.
  */
 void applier::state::apply(configuration::state& new_cfg) {
   configuration::state save(*config);
@@ -1540,6 +1540,8 @@ void applier::state::_processing(configuration::state& new_cfg,
           << runtimes[4] << " sec  * = " << runtimes[3] << " sec ("
           << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
     }
+
+    config->refresh_whitelist();
   } catch (...) {
     _processing_state = state_error;
     throw;

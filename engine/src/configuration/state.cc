@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/configuration/state.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -393,6 +394,9 @@ static std::string const default_log_level_runtime("error");
 static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
 static const std::string default_rpc_listen_address("localhost");
+
+constexpr std::string_view whitelist_directory =
+    "/etc/centreon-engine-whitelist";
 
 /**
  *  Default constructor.
@@ -4761,4 +4765,11 @@ bool state::enable_macros_filter() const noexcept {
  */
 void state::enable_macros_filter(bool value) {
   _enable_macros_filter = value;
+}
+
+void state::refresh_whitelist() {
+  if (!_whitelist)
+    _whitelist =
+        std::make_shared<whitelist_directory>("/etc/centreon-engine-whitelist");
+  _whitelist->refresh();
 }

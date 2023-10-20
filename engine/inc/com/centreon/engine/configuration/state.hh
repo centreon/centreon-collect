@@ -41,6 +41,8 @@
 CCE_BEGIN()
 
 namespace configuration {
+class whitelist_directory;
+
 /**
  *  @class state state.hh
  *  @brief Simple configuration state class.
@@ -435,6 +437,7 @@ class state {
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
+  void refresh_whitelist();
 
  private:
   typedef bool (*setter_func)(state&, char const*);
@@ -661,6 +664,8 @@ class state {
   std::string _log_level_runtime;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
+
+  std::shared_ptr<whitelist_directory> _whitelist;
 };
 }  // namespace configuration
 

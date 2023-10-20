@@ -21,19 +21,27 @@
 
 #include "com/centreon/engine/namespace.hh"
 
-// namespace ryml {
-// class Tree;
-// };
-
 CCE_BEGIN()
 
 namespace configuration {
 
+/**
+ * @brief the goal of this class is to parse yaml or json file with the
+structure whitelist: wildcard:
+    - /usr/lib/centreon/plugins/centreon_toto*titi
+    - /usr/lib/centreon/plugins/centreon_toto*tata*
+  regex:
+    - /usr/lib/centreon/plugins/centreon_\d{5}.*
+    -  /usr/lib/centreon/plugins/check_centreon_bam
+
+When this kind of file is present in /etc/centreon-engine-whitelist directory
+commands are executed only if they match to at least one wildcard or regex
+string
+ *
+ */
 class whitelist_file {
   std::string _path;
   time_t _last_file_write;
-
-  std::string _error;
 
   std::vector<std::string> _wildcards;
   std::vector<std::unique_ptr<re2::RE2>> _regex;
@@ -44,9 +52,6 @@ class whitelist_file {
   static void init_ryml_error_handler();
 
  public:
-  struct regex_load_exception : public virtual boost::exception,
-                                public virtual std::exception {};
-
   struct open_file_exception : public virtual boost::exception,
                                public virtual std::exception {};
 
@@ -60,13 +65,20 @@ class whitelist_file {
 
   bool test(const std::string& cmdline) const;
 
-  const std::string& get_error() const { return _error; }
+  template <typename str>
+  static std::unique_ptr<whitelist_file> create(const str& path);
+
   time_t get_last_file_write() const { return _last_file_write; }
 
   const std::vector<std::string> get_wildcards() const { return _wildcards; }
   const std::string& get_path() const { return _path; }
 };
 
+/**
+ * @brief contains one whitelist_file instance by file found in _path directory
+ * beware: search isn't recursive
+ *
+ */
 class whitelist_directory {
   std::string _path;
 

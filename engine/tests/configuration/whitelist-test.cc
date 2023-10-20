@@ -138,6 +138,38 @@ TEST_F(whitelist_test, regexp_and_wildcards) {
   ASSERT_FALSE(file.test("/usr/lib/centreon/plugins/centreon_tototato"));
 }
 
+TEST_F(whitelist_test, regexp_and_wildcards_json) {
+  create_file("/tmp/toto", R"({"whitelist": {
+  "wildcard": [
+    "/usr/lib/centreon/plugins/centreon_toto*titi",
+    "/usr/lib/centreon/plugins/centreon_toto*tata*"
+  ],
+  "regex": [
+    "/usr/lib/centreon/plugins/centreon_\\d{5}.*",
+    "/usr/lib/centreon/plugins/check_centreon_bam"
+  ]
+}})");
+
+  whitelist_file file("/tmp/toto");
+  ASSERT_NO_THROW(file.parse());
+  ASSERT_TRUE(file.test("/usr/lib/centreon/plugins/check_centreon_bam"));
+  ASSERT_TRUE(file.test("/usr/lib/centreon/plugins/centreon_12345bam"));
+  ASSERT_TRUE(file.test("/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(file.test("a/usr/lib/centreon/plugins/centreon_12345"));
+  ASSERT_FALSE(file.test("/usr/lib/centreon/plugins/centreon_bam"));
+  ASSERT_TRUE(file.test(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti"));
+  ASSERT_FALSE(file.test(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftiti15449"));
+  ASSERT_TRUE(file.test(
+      "/usr/lib/centreon/plugins/centreon_totozuiefizenfuieznfizeftata"));
+  ASSERT_TRUE(
+      file.test("/usr/lib/centreon/plugins/"
+                "centreon_totozuiefizenfuieznfizeftata561798189"));
+  ASSERT_TRUE(file.test("/usr/lib/centreon/plugins/centreon_tototata"));
+  ASSERT_FALSE(file.test("/usr/lib/centreon/plugins/centreon_tototato"));
+}
+
 TEST_F(whitelist_test, empty_allow_all) {
   std::error_code err;
   std::experimental::filesystem::remove_all("/tmp/whitelist", err);

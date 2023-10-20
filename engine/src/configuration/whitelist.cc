@@ -39,6 +39,12 @@ using namespace com::centreon::engine::configuration;
 CCE_BEGIN()
 
 namespace configuration {
+/**
+ * @brief rapidyaml call abort on error
+ * the goal of these structs and local function is to throw a
+ * rapid_yaml_exception instead
+ *
+ */
 using err_info_rapidyaml =
     boost::error_info<struct err_info_rapidyaml_, std::string>;
 
@@ -60,6 +66,10 @@ void on_rapidyaml_error(const char* buff,
 
 CCE_END();
 
+/**
+ * @brief before using rapidyaml, we change error handler
+ *
+ */
 void whitelist_file::init_ryml_error_handler() {
   static absl::once_flag _initialized;
   absl::call_once(_initialized, []() {
@@ -68,9 +78,14 @@ void whitelist_file::init_ryml_error_handler() {
   });
 }
 
+/**
+ * @brief read and parse a json or yaml file
+ *
+ */
 void whitelist_file::parse() {
   size_t file_size = 0;
   try {
+    // check file
     struct stat infos;
     if (::stat(_path.c_str(), &infos)) {
       SPDLOG_LOGGER_ERROR(log_v2::config(), "{} doesn't exist", _path);
@@ -84,7 +99,7 @@ void whitelist_file::parse() {
     }
     _last_file_write = infos.st_mtime;
     if (!infos.st_size) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not an empty file", _path);
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is an empty file", _path);
       BOOST_THROW_EXCEPTION(open_file_exception()
                             << boost::errinfo_file_name(_path));
     }
@@ -110,17 +125,19 @@ void whitelist_file::parse() {
                         boost::diagnostic_information(e));
     throw;
   }
+  // read file
   std::unique_ptr<char[]> buff(new char[file_size]);
   try {
     std::ifstream f(_path);
-    size_t read = f.readsome(buff.get(), file_size);
-    if (read != file_size) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          " read {} bytes instead of {} from {}", read,
-                          file_size, _path);
-      open_file_exception ex;
-      ex << boost::errinfo_file_name(_path);
-      BOOST_THROW_EXCEPTION(ex);
+    size_t read = 0;
+    while (read != file_size) {
+      std::streamsize some_read =
+          f.readsome(buff.get() + read, file_size - read);
+      if (some_read < 0) {
+        BOOST_THROW_EXCEPTION(open_file_exception()
+                              << boost::errinfo_file_name(_path));
+      }
+      read += some_read;
     }
   } catch (const boost::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to read {}: {}", _path,
@@ -131,11 +148,12 @@ void whitelist_file::parse() {
                         boost::diagnostic_information(e));
     throw;
   }
+  // init rapidyaml error handler
   init_ryml_error_handler();
+  // parse file content
   try {
     // parse in place more efficient so we copy read only mapping
     ryml::Tree tree = ryml::parse_in_place(ryml::substr(buff.get(), file_size));
-
     _read_file_content(tree);
   } catch (const boost::exception& e) {
     SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse {}: {}", _path,
@@ -148,14 +166,19 @@ void whitelist_file::parse() {
   }
 }
 
+/**
+ * @brief file content has been decoded in an ryml::Tree, now we extract data
+ *
+ * @tparam ryml_tree ryml::Tree
+ * @param file_content
+ */
 template <class ryml_tree>
 void whitelist_file::_read_file_content(const ryml_tree& file_content) {
   ryml::ConstNodeRef root = file_content["whitelist"];
   ryml::ConstNodeRef wildcards = root.find_child("wildcard");
   ryml::ConstNodeRef regexps = root.find_child("regex");
   if (wildcards.valid() && !wildcards.empty()) {
-    if (!wildcards.is_seq()) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: wildcards is not a sequence");
+    if (!wildcards.is_seq()) {  // not an array => throw
       BOOST_THROW_EXCEPTION(yaml_structure_exception() << err_info_rapidyaml(
                                 "wildcards is not a sequence"));
     }
@@ -169,8 +192,7 @@ void whitelist_file::_read_file_content(const ryml_tree& file_content) {
     }
   }
   if (regexps.valid() && !regexps.empty()) {
-    if (!regexps.is_seq()) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: regexps is not a sequence");
+    if (!regexps.is_seq()) {  // not an array => throw
       BOOST_THROW_EXCEPTION(yaml_structure_exception()
                             << err_info_rapidyaml("regexps is not a sequence"));
     }
@@ -179,12 +201,13 @@ void whitelist_file::_read_file_content(const ryml_tree& file_content) {
       std::string_view str_value(value.data(), value.size());
       std::unique_ptr<re2::RE2> to_push_back =
           std::make_unique<re2::RE2>(str_value);
-      if (to_push_back->error_code() == re2::RE2::ErrorCode::NoError) {
+      if (to_push_back->error_code() ==
+          re2::RE2::ErrorCode::NoError) {  // success compile regex
         SPDLOG_LOGGER_INFO(log_v2::config(),
                            "{} regexp '{}' added to whitelist", _path,
                            str_value);
         _regex.push_back(std::move(to_push_back));
-      } else {
+      } else {  // bad regex
         SPDLOG_LOGGER_ERROR(
             log_v2::config(), "fail to parse regex {}: error: {} at {} ",
             str_value, to_push_back->error(), to_push_back->error_arg());
@@ -193,6 +216,13 @@ void whitelist_file::_read_file_content(const ryml_tree& file_content) {
   }
 }
 
+/**
+ * @brief test if a cmdline matches
+ *
+ * @param cmdline
+ * @return true  cmdline matches to at least one regex or wildcard
+ * @return false  cmdline don't match
+ */
 bool whitelist_file::test(const std::string& cmdline) const {
   for (const std::string& wildcard : _wildcards) {
     if (!fnmatch(wildcard.c_str(), cmdline.c_str(), FNM_PATHNAME | FNM_PERIOD))
@@ -206,6 +236,29 @@ bool whitelist_file::test(const std::string& cmdline) const {
   return false;
 }
 
+/**
+ * @brief create a whitelist_file
+ *
+ * @tparam str
+ * @param path  file path
+ * @return std::unique_ptr<whitelist_file>  null if parse throw
+ */
+template <typename str>
+std::unique_ptr<whitelist_file> whitelist_file::create(const str& path) {
+  try {
+    std::unique_ptr<whitelist_file> ret =
+        std::make_unique<whitelist_file>(path);
+    ret->parse();
+    return ret;
+  } catch (const std::exception&) {
+    return std::unique_ptr<whitelist_file>();
+  }
+}
+
+/**
+ * @brief scan whitelist directory and refresh whitelist_file list
+ *
+ */
 void whitelist_directory::refresh() {
   // check permissions
   struct stat dir_infos;
@@ -232,6 +285,7 @@ void whitelist_directory::refresh() {
                         "directory {} must have 750 right access", _path);
   }
 
+  // all must be sorted in order to perform an incremental comparaison
   std::set<std::string> files_in_directory;
   for (const auto& dir_entry :
        std::experimental::filesystem::directory_iterator{_path}) {
@@ -256,24 +310,12 @@ void whitelist_directory::refresh() {
   std::vector<std::unique_ptr<whitelist_file>>::iterator whitelist_iter =
       _files.begin();
 
-  auto create_whitelist_file =
-      [](const std::string& path) -> std::unique_ptr<whitelist_file> {
-    try {
-      std::unique_ptr<whitelist_file> ret =
-          std::make_unique<whitelist_file>(path);
-      ret->parse();
-      return ret;
-    } catch (const std::exception&) {
-      return std::unique_ptr<whitelist_file>();
-    }
-  };
-
   while (child_iter != child_end && whitelist_iter != _files.end()) {
     int cmp = child_iter->compare((*whitelist_iter)->get_path());
     if (cmp < 0) {  // new file
       std::unique_ptr<whitelist_file> to_add =
-          create_whitelist_file(*child_iter);
-      if (to_add) {
+          whitelist_file::create(*child_iter);
+      if (to_add) {  // file correct
         whitelist_iter = _files.emplace(whitelist_iter, std::move(to_add));
         ++whitelist_iter;
       }
@@ -285,8 +327,8 @@ void whitelist_directory::refresh() {
       ::stat(child_iter->c_str(), &file_infos);
       if (file_infos.st_mtime != (*whitelist_iter)->get_last_file_write()) {
         std::unique_ptr<whitelist_file> update =
-            create_whitelist_file(*child_iter);
-        if (update) {
+            whitelist_file::create(*child_iter);
+        if (update) {  // file correct
           *whitelist_iter = std::move(update);
           ++whitelist_iter;
         } else
@@ -297,16 +339,27 @@ void whitelist_directory::refresh() {
       ++child_iter;
     }
   }
+  // some files to delete?
   while (whitelist_iter != _files.end()) {
     whitelist_iter = _files.erase(whitelist_iter);
   }
+  // some new files
   for (; child_iter != child_end; ++child_iter) {
-    std::unique_ptr<whitelist_file> to_add = create_whitelist_file(*child_iter);
+    std::unique_ptr<whitelist_file> to_add =
+        whitelist_file::create(*child_iter);
     if (to_add)
       _files.emplace_back(std::move(to_add));
   }
 }
 
+/**
+ * @brief test cmdline with each whitelist file
+ * beware, if file list is empty, return always true
+ *
+ * @param cmdline
+ * @return true match to at least one regex or wildcard
+ * @return false
+ */
 bool whitelist_directory::test(const std::string& cmdline) const {
   if (_files.empty()) {
     return true;
