@@ -250,7 +250,7 @@ void engine::subscribe(std::shared_ptr<muxer>& subscriber) {
                           subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
   for (auto& m : _muxers)
-    if (m == subscriber) {
+    if (m.lock() == subscriber) {
       log_v2::config()->debug("engine: muxer {} already subscribed",
                               subscriber->name());
       return;
@@ -266,7 +266,8 @@ void engine::subscribe(std::shared_ptr<muxer>& subscriber) {
 void engine::unsubscribe_muxer(const muxer* subscriber) {
   std::lock_guard<std::mutex> l(_engine_m);
   for (auto it = _muxers.begin(); it != _muxers.end(); ++it) {
-    if (it->get() == subscriber) {
+    auto w = it->lock();
+    if (!w || w.get() == subscriber) {
       log_v2::config()->debug("engine: muxer {} unsubscribes to engine",
                               subscriber->name());
       _muxers.erase(it);
@@ -387,7 +388,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
     // end of lambdas posted
     cb = std::make_shared<detail::callback_caller>(std::move(callback),
                                                    _instance);
-    last_muxer = *_muxers.rbegin();
+    last_muxer = _muxers.rbegin()->lock();
     if (_muxers.size() > 1) {
       /* Since the sending is parallelized, we use the thread pool for this
        * purpose except for the last muxer where we use this thread. */
@@ -398,7 +399,9 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       /* We use the thread pool for the muxers from the first one to the
        * second to last */
       for (auto it = _muxers.begin(); it != it_last; ++it) {
-        pool::io_context().post([kiew, m = *it, cb]() {
+        auto s = it->lock();
+        assert(s);
+        pool::io_context().post([kiew, m = std::move(s), cb]() {
           try {
             m->publish(*kiew);
           }  // pool threads protection

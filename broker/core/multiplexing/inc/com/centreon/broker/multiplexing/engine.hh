@@ -82,7 +82,7 @@ class engine {
   std::deque<std::shared_ptr<io::data>> _kiew;
 
   // Subscriber.
-  std::vector<std::shared_ptr<muxer>> _muxers;
+  std::vector<std::weak_ptr<muxer>> _muxers;
 
   // Statistics.
   EngineStats* _stats;
