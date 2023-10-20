@@ -64,13 +64,7 @@ BABOO
     FOR    ${i}    IN RANGE    10
         Log To Console    @@@@@@@@@@@@@@ Step ${i} @@@@@@@@@@@@@@
         # 302 is set to critical => the two ba become critical
-        Repeat Keyword
-        ...    3 times
-        ...    Process Service Check Result
-        ...    host_16
-        ...    service_302
-        ...    2
-        ...    output critical for service_302
+        Process Service Result Hard    host_16    service_302    2    output critical for service_302
 
         ${result}    Check Service Resource Status With Timeout    host_16    service_302    2    30    HARD
         Should Be True    ${result}    The service (host_16:service_302) should be CRITICAL.
@@ -134,13 +128,7 @@ BABOOOR
     # 303 is unknown but since the boolean operator is OR, if 302 result is true, we should have already a result.
 
     # 302 is set to critical => the two ba become critical
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_302
-    ...    2
-    ...    output critical for service_302
+    Process Service Result Hard    host_16    service_302    2    output critical for service_302
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -187,13 +175,7 @@ BABOOAND
     # 303 is unknown but since the boolean operator is AND, if 302 result is false, we should have already a result.
 
     # 302 is set to critical => the two ba become critical
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_302
-    ...    2
-    ...    output critical for service_302
+    Process Service Result Hard    host_16    service_302    2    output critical for service_302
 
     ${result}    Check Ba Status With Timeout    boolean-ba    2    30
     Dump Ba On Error    ${result}    ${id_ba__sid[0]}
@@ -335,26 +317,14 @@ BABOOCOMPL
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
     FOR    ${i}    IN RANGE    ${1}    ${21}
-        Repeat Keyword
-        ...    3 times
-        ...    Process Service Check Result
-        ...    host_1
-        ...    service_${i}
-        ...    2
-        ...    output critical for service_${i}
+        Process Service Result Hard    host_1    service_${i}    2    output critical for service_${i}
     END
 
     FOR    ${i}    IN RANGE    ${1}    ${21}    ${2}
         ${result}    Check Ba Status With Timeout    boolean-ba    2    30
         Dump Ba On Error    ${result}    ${id_ba__sid[0]}
         Should Be True    ${result}    Step${i}: The 'boolean-ba' BA is not CRITICAL as expected
-        Repeat Keyword
-        ...    3 times
-        ...    Process Service Check Result
-        ...    host_1
-        ...    service_${i}
-        ...    0
-        ...    output ok for service_${i}
+        Process Service Result Hard    host_1    service_${i}    0    output ok for service_${i}
     END
 
     ${result}    Check Ba Status With Timeout    boolean-ba    0    30

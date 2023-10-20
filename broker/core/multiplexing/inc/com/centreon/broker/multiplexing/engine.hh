@@ -83,7 +83,6 @@ class engine {
 
   // Subscriber.
   std::vector<muxer*> _muxers;
-  std::mutex _muxers_m;
 
   // Statistics.
   EngineStats* _stats;
