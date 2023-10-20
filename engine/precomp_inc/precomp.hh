@@ -63,6 +63,7 @@
 #include <absl/strings/numbers.h>
 #include <absl/strings/str_split.h>
 #include <absl/strings/string_view.h>
+#include <re2/re2.h>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/container/flat_map.hpp>

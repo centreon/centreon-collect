@@ -542,6 +542,8 @@ target_link_libraries(
   CONAN_PKG::openssl
   ${c-ares_LIBS}
   CONAN_PKG::zlib
+  CONAN_PKG::rapidyaml
+  stdc++fs
   dl)
 
 # centenginestats target.
