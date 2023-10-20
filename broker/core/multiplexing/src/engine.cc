@@ -34,7 +34,7 @@ using namespace com::centreon::broker::multiplexing;
 using log_v2 = com::centreon::common::log_v2::log_v2;
 
 // Class instance.
-std::unique_ptr<engine> engine::_instance{nullptr};
+std::shared_ptr<engine> engine::_instance{nullptr};
 std::mutex engine::_load_m;
 
 /**
@@ -42,7 +42,7 @@ std::mutex engine::_load_m;
  *
  *  @return Class instance.
  */
-std::unique_ptr<engine>& engine::instance_ptr() {
+std::shared_ptr<engine>& engine::instance_ptr() {
   assert(_instance);
   return _instance;
 }
@@ -246,18 +246,17 @@ void engine::stop() {
  *
  *  @param[in] subscriber  A muxer.
  */
-void engine::subscribe(muxer* subscriber) {
+void engine::subscribe(const std::shared_ptr<muxer> subscriber) {
   log_v2::instance().get(1)->debug("engine: muxer {} subscribes to engine",
                                    subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);
-  muxer* s = subscriber.get();
   for (auto& m : _muxers)
     if (m.lock() == subscriber) {
       log_v2::instance().get(1)->debug("engine: muxer {} already subscribed",
-                                       s->name());
+                                       subscriber->name());
       return;
     }
-  _muxers.push_back(s);
+  _muxers.push_back(subscriber);
 }
 
 /**
@@ -319,11 +318,11 @@ namespace com::centreon::broker::multiplexing::detail {
  */
 class callback_caller {
   std::function<void()> _callback;
-  std::unique_ptr<engine>& _parent;
+  std::shared_ptr<engine>& _parent;
 
  public:
   callback_caller(std::function<void()>&& callback,
-                  std::unique_ptr<engine>& parent)
+                  std::shared_ptr<engine>& parent)
       : _callback(std::move(callback)), _parent(parent) {}
 
   /**
