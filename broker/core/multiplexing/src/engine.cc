@@ -399,9 +399,7 @@ bool engine::_send_to_subscribers(send_to_mux_callback_type&& callback) {
       /* We use the thread pool for the muxers from the first one to the
        * second to last */
       for (auto it = _muxers.begin(); it != it_last; ++it) {
-        auto s = it->lock();
-        assert(s);
-        pool::io_context().post([kiew, m = std::move(s), cb]() {
+        pool::io_context().post([kiew, m = it->lock(), cb]() {
           try {
             m->publish(*kiew);
           }  // pool threads protection
