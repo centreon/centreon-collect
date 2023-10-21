@@ -36,7 +36,7 @@ inline std::string operator+(const std::string& left,
 std::shared_ptr<global_cache> global_cache::_instance;
 
 global_cache::global_cache(const std::string& file_path)
-    : _file_path(file_path), _file_size(0) {}
+    : _file_size(0), _file_path(file_path) {}
 
 global_cache::~global_cache() {
   if (_file) {
