@@ -41,17 +41,19 @@ constexpr unsigned max_event_queue_size = 0x10000;
  * is created by a new
  *
  *  @param[in] name           Name.
+ *  @param[in] parent         Engine relying muxers.
  *  @param[in] client         Client stream.
  *  @param[in] read_filters   Read filters.
  *  @param[in] write_filters  Write filters.
  */
 std::shared_ptr<feeder> feeder::create(
     const std::string& name,
+    const std::shared_ptr<multiplexing::engine>& parent,
     std::shared_ptr<io::stream>& client,
     const multiplexing::muxer_filter& read_filters,
     const multiplexing::muxer_filter& write_filters) {
   std::shared_ptr<feeder> ret(
-      new feeder(name, client, read_filters, write_filters));
+      new feeder(name, parent, client, read_filters, write_filters));
   ret->_start_stat_timer();
 
   ret->_read_from_muxer();
@@ -63,11 +65,13 @@ std::shared_ptr<feeder> feeder::create(
  *  Constructor.
  *
  *  @param[in] name           Name.
+ *  @param[in] parent         Engine relying muxers.
  *  @param[in] client         Client stream.
  *  @param[in] read_filters   Read filters.
  *  @param[in] write_filters  Write filters.
  */
 feeder::feeder(const std::string& name,
+               const std::shared_ptr<multiplexing::engine>& parent,
                std::shared_ptr<io::stream>& client,
                const multiplexing::muxer_filter& read_filters,
                const multiplexing::muxer_filter& write_filters)
@@ -75,12 +79,16 @@ feeder::feeder(const std::string& name,
       _state{state::running},
       _client(std::move(client)),
       _muxer(multiplexing::muxer::create(name,
+                                         parent,
                                          std::move(read_filters),
                                          std::move(write_filters),
                                          false)),
       _stat_timer(pool::io_context()),
       _read_from_stream_timer(pool::io_context()),
       _io_context(pool::io_context_ptr()) {
+  DEBUG(fmt::format("CONSTRUCTOR feeder {:p} {} - muxer: {:p}",
+                    static_cast<void*>(this), name,
+                    static_cast<void*>(_muxer.get())));
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
@@ -98,8 +106,7 @@ feeder::~feeder() {
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "destroy feeder {}, {:p}", get_name(),
                       static_cast<const void*>(this));
   stop();
-
-  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
+  DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));
 }
 
 bool feeder::is_finished() const noexcept {
@@ -257,6 +264,7 @@ void feeder::_ack_event_to_muxer(unsigned count) noexcept {
 void feeder::stop() {
   std::unique_lock<std::timed_mutex> l(_protect);
   _stop_no_lock();
+  DEBUG(fmt::format("STOP feeder {:p}", static_cast<void*>(this)));
 }
 
 /**
@@ -264,6 +272,8 @@ void feeder::stop() {
  *
  */
 void feeder::_stop_no_lock() {
+  SPDLOG_LOGGER_INFO(log_v2::processing(), "{} Stop without lock called",
+                     _name);
   state expected = state::running;
   if (!_state.compare_exchange_strong(expected, state::finished)) {
     return;
@@ -272,7 +282,7 @@ void feeder::_stop_no_lock() {
   set_state("disconnected");
 
   // muxer should not receive events
-  multiplexing::engine::instance_ptr()->unsubscribe(_muxer.get());
+  _muxer->unsubscribe();
   _stat_timer.cancel();
   _read_from_stream_timer.cancel();
 

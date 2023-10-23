@@ -143,7 +143,7 @@ void mysql_manager::clear() {
   for (std::shared_ptr<mysql_connection>& conn : _connection) {
     if (!conn.unique() && !conn->is_finish_asked())
       try {
-        conn->finish();
+        conn->stop();
       } catch (const std::exception& e) {
         log_v2::sql()->info("mysql_manager: Unable to stop a connection: {}",
                             e.what());

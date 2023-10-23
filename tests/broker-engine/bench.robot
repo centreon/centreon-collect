@@ -42,12 +42,12 @@ BENCH_${nb_check}STATUS
     Start Broker
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     ${broker_stat_before}    Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
-    Process Service Check result    host_1    service_1    1    warning    config0    1    ${nb_check}
+    Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Get Broker Process Stat    51001
@@ -110,12 +110,12 @@ BENCH_${nb_check}STATUS_TRACES
     Start Broker
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
     ${broker_stat_before}    Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
-    Process Service Check result    host_1    service_1    1    warning    config0    1    ${nb_check}
+    Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
     ${broker_stat_after}    Get Broker Process Stat    51001
@@ -178,12 +178,11 @@ BENCH_1000STATUS_100${suffixe}
     Start Broker
     Start Engine
     ${connected}    Wait For Connections    5669    100
-    Should Be True    ${connected}    No 100 engine to broker connections
+    Should Be True    ${connected}    100 engines should be connected to broker
+    ${result}    Wait For Listen On Range    50001    50100    centengine    60
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${ENGINE_LOG}/config99/centengine.log    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
-
-    Sleep    5
 
     ${broker_stat_before}    Get Broker Process Stat    51001
     ${engine_stat_before}    Get Engine Process Stat    50001
@@ -194,13 +193,13 @@ BENCH_1000STATUS_100${suffixe}
         ${host_id}    Evaluate    ${poller_index} + 1
         FOR    ${serv_index}    IN RANGE    20
             ${serv_id}    Evaluate    1 + ${serv_index} + ${poller_index} * 20
-            Process Service Check result
+            Process Service Check Result
             ...    host_${host_id}
             ...    service_${serv_id}
             ...    1
             ...    warning
             ...    config${poller_index}
-            ...    1
+            ...    0
             ...    100
             IF    ${poller_index} == 1    Send Bench    1    50001
         END
@@ -213,7 +212,7 @@ BENCH_1000STATUS_100${suffixe}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
     ${content}    Create List    pb service (100, 2000) status 1 type 1 check result output: <<warning_99>>
-    ${result}    Find In Log with Timeout with Line    ${centralLog}    ${start_check}    ${content}    240
+    ${result}    Find In Log With Timeout With Line    ${centralLog}    ${start_check}    ${content}    240
     Should Be True    ${result[0]}    No check check result received.
     ${date_last_check_received}    Extract Date From Log    ${result[1][0]}
     ${all_check_delay}    Subtract Date From Date    ${date_last_check_received}    ${start_check}
