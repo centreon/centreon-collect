@@ -143,7 +143,7 @@ EBNHGU3
     Reload Broker
     Reload Engine
 
-    ${result}    Check Number Of Relations Between Hosgroup And Hosts    1    12    30
+    ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    12    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
     Config Engine Remove Cfg File    ${0}    hostgroups.cfg
@@ -151,7 +151,7 @@ EBNHGU3
     Sleep    3s
     Reload Broker
     Reload Engine
-    ${result}    Check Number Of Relations Between Hosgroup And Hosts    1    9    30
+    ${result}    Check Number Of Relations Between Hostgroup And Hosts    1    9    30
     Should Be True    ${result}    We should have 12 hosts members of host 1.
 
     Stop Engine
