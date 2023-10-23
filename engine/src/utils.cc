@@ -139,7 +139,7 @@ int get_raw_command_line_r(nagios_macros* mac,
   std::string arg_buffer;
   unsigned int x = 0;
   unsigned int y = 0;
-  int arg_index = 0;
+  uint32_t arg_index = 0;
   int escaped = false;
 
   engine_logger(dbg_functions, basic) << "get_raw_command_line_r()";
