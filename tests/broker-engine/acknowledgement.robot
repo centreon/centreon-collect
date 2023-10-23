@@ -97,7 +97,7 @@ BEACK2
     Should Be True    ${result}    Service (1;1) should be OK HARD
 
     # Acknowledgement is deleted but to see this we have to check in the comments table
-    ${result}    check acknowledgement is deleted with timeout    ${ack_id}    30
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
 BEACK3
