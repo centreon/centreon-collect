@@ -430,7 +430,7 @@ LOGV2FE2
 
     Sleep    2m
 
-    ${res}    check engine logs are duplicated    ${engineLog0}    ${start}
+    ${res}    Check Engine Logs Are Duplicated    ${engineLog0}    ${start}
     Should Be True    ${res}    one or other log are not duplicate in logsfile
     Stop Engine
     Kindly Stop Broker
