@@ -38,9 +38,9 @@ BETAG1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    check tag With Timeout    tag20    3    30
+    ${result}    Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    check tag With Timeout    tag1    0    30
+    ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
     Stop Engine
     Kindly Stop Broker
@@ -67,9 +67,9 @@ BETAG2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    check tag With Timeout    tag20    3    30
+    ${result}    Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    check tag With Timeout    tag1    0    30
+    ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
     Stop Engine
     Kindly Stop Broker
@@ -99,9 +99,9 @@ BEUTAG1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    check tag With Timeout    tag20    3    30
+    ${result}    Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    check tag With Timeout    tag1    0    30
+    ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
     Stop Engine
     Kindly Stop Broker
@@ -179,9 +179,9 @@ BEUTAG3
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
-    ${result}    check tag With Timeout    tag20    3    30
+    ${result}    Check Tag With Timeout    tag20    3    30
     Should Be True    ${result}    tag20 should be of type 3
-    ${result}    check tag With Timeout    tag1    0    30
+    ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
     Stop Engine
     Kindly Stop Broker

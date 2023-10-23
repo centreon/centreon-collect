@@ -33,9 +33,9 @@ BESEV1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}    check severity With Timeout    severity20    5    1    30
+    ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
-    ${result}    check severity With Timeout    severity1    1    5    30
+    ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
@@ -57,9 +57,9 @@ BESEV2
     Start Engine
     Sleep    1s
     Start Broker
-    ${result}    check severity With Timeout    severity20    5    1    30
+    ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
-    ${result}    check severity With Timeout    severity1    1    5    30
+    ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
@@ -84,9 +84,9 @@ BEUSEV1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}    check severity With Timeout    severity20    5    1    30
+    ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
-    ${result}    check severity With Timeout    severity1    1    5    30
+    ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
@@ -112,9 +112,9 @@ BEUSEV2
     Start Engine
     Sleep    1s
     Start Broker
-    ${result}    check severity With Timeout    severity20    5    1    30
+    ${result}    Check Severity With Timeout    severity20    5    1    30
     Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
-    ${result}    check severity With Timeout    severity1    1    5    30
+    ${result}    Check Severity With Timeout    severity1    1    5    30
     Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
