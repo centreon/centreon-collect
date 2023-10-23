@@ -24,7 +24,7 @@ test use connector perl unknown script
     [Tags]    connector    engine
     Schedule Forced Host Check    local_host_test_machine_bad_test    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
-    ${search_result}    check search    /tmp/test_connector_perl/log/centengine.debug    test_titi.pl
+    ${search_result}    Check Search    /tmp/test_connector_perl/log/centengine.debug    test_titi.pl
     Should Contain
     ...    ${search_result}
     ...    Embedded Perl error: failed to open Perl file '/tmp/test_connector_perl/test_titi.pl'
