@@ -135,7 +135,7 @@ BEACK3
     Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
-    ${result}    check acknowledgement is deleted with timeout    ${ack_id}    30    BOTH
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
 BEACK4
