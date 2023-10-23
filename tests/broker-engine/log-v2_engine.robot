@@ -33,7 +33,7 @@ LOGV2EB1
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
@@ -80,7 +80,7 @@ LOGV2EBU1
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
@@ -124,7 +124,7 @@ LOGV2DB1
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
@@ -170,7 +170,7 @@ LOGV2DB2
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
     Start Broker
     Start Engine
@@ -215,7 +215,7 @@ LOGV2EB2
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
@@ -263,7 +263,7 @@ LOGV2EBU2
 
     ${start}    Get Current Date    exclude_millis=yes
     ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    evaluate    int(${time_stamp})
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
