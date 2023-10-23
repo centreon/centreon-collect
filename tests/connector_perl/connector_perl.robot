@@ -40,7 +40,7 @@ test use connector perl multiple script
     Sleep    10 seconds    we wait engine forced checks
     FOR    ${idx}    IN RANGE    2    12
         ${search_str}    Catenate    SEPARATOR=    test.pl -H 127.0.0.    ${idx}
-        ${search_result}    check search    /tmp/test_connector_perl/log/centengine.debug    ${search_str}
+        ${search_result}    Check Search    /tmp/test_connector_perl/log/centengine.debug    ${search_str}
         Should Contain    ${search_result}    a dummy check    check not found
     END
 
