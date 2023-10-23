@@ -266,7 +266,7 @@ BEACK6
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
     # Acknowledgement is not deleted.
-    ${result}    check acknowledgement is deleted with timeout    ${ack_id}    10
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
     Should Be True    ${result}==${False}    Acknowledgement ${ack_id} should not be deleted.
 
     Remove Service Acknowledgement    host_1    service_1
