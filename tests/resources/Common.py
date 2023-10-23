@@ -450,10 +450,7 @@ def check_reschedule(log: str, date, content: str, retry: bool):
         idx = find_line_from(lines, date)
 
         r = re.compile(r".* last check at (.*) and next check at (.*)$")
-        if retry:
-            target = 60
-        else:
-            target = 300
+        target = 60 if retry else 300
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
