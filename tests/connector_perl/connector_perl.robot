@@ -16,7 +16,7 @@ test use connector perl exist script
     [Tags]    connector    engine
     Schedule Forced Host Check    local_host_test_machine    /tmp/test_connector_perl/rw/centengine.cmd
     Sleep    5 seconds    we wait engine forced checks
-    ${search_result}    check search    /tmp/test_connector_perl/log/centengine.debug    test.pl
+    ${search_result}    Check Search    /tmp/test_connector_perl/log/centengine.debug    test.pl
     Should Contain    ${search_result}    a dummy check    check not found
 
 test use connector perl unknown script
