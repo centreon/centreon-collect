@@ -33,7 +33,7 @@ EFHC1
     ${start}    Get Current Date
     Start Engine
     Start Broker
-    ${result}    Check host status    host_1    4    1    False
+    ${result}    Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
 
     ${content}    Create List    INITIAL HOST STATE: host_1;
@@ -57,7 +57,7 @@ EFHC1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
-    ${result}    Check host status    host_1    1    1    False
+    ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
@@ -100,7 +100,7 @@ EFHC2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
-    ${result}    Check host status    host_1    1    1    False
+    ${result}    Check Host Status    host_1    1    1    False
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
@@ -129,7 +129,7 @@ EFHCU1
     ${start}    Get Current Date
     Start Engine
     Start Broker
-    ${result}    Check host status    host_1    4    1    True
+    ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -152,7 +152,7 @@ EFHCU1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
-    ${result}    Check host status    host_1    1    1    True
+    ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker
@@ -180,7 +180,7 @@ EFHCU2
     ${start}    Get Current Date
     Start Engine
     Start Broker
-    ${result}    Check host status    host_1    4    1    True
+    ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
     ${content}    Create List    INITIAL HOST STATE: host_1;
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -203,7 +203,7 @@ EFHCU2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    Message about SCHEDULE FORCED CHECK and HOST ALERT should be available in log.
 
-    ${result}    Check host status    host_1    1    1    True
+    ${result}    Check Host Status    host_1    1    1    True
     Should Be True    ${result}    host_1 should be down/hard
     Stop Engine
     Kindly Stop Broker

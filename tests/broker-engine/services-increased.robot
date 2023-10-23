@@ -85,7 +85,7 @@ Service_increased_huge_check_interval
     Start Broker
     Start Engine
     # Start Checkers
-    ${result}    Check host status    host_1    4    1    False
+    ${result}    Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
 
     ${content}    Create List    INITIAL HOST STATE: host_1;

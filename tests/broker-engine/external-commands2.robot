@@ -1416,8 +1416,8 @@ BESERVCHECK
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE services set command_line='toto', next_check=0 where service_id=1 and host_id=1
     Schedule Forced Svc Check    host_1    service_1
-    ${command_param}    get_command_service_param    1
-    ${result}    check_service_check_with_timeout
+    ${command_param}    Get Command Service Param    1
+    ${result}    Check Service Check With Timeout
     ...    host_1
     ...    service_1
     ...    30

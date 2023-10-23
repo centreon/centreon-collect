@@ -212,7 +212,7 @@ BENCH_1000STATUS_100${suffixe}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
     ${content}    Create List    pb service (100, 2000) status 1 type 1 check result output: <<warning_99>>
-    ${result}    Find In Log With Timeout with Line    ${centralLog}    ${start_check}    ${content}    240
+    ${result}    Find In Log With Timeout With Line    ${centralLog}    ${start_check}    ${content}    240
     Should Be True    ${result[0]}    No check check result received.
     ${date_last_check_received}    Extract Date From Log    ${result[1][0]}
     ${all_check_delay}    Subtract Date From Date    ${date_last_check_received}    ${start_check}
