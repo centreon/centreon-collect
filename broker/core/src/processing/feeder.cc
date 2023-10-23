@@ -103,12 +103,9 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
-  stop();
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "destroy feeder {}, {:p}", get_name(),
                       static_cast<const void*>(this));
   stop();
-
-  _muxer->unsubscribe();
   DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));
 }
 

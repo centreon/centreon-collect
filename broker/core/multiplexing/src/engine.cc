@@ -245,7 +245,7 @@ void engine::stop() {
  *
  *  @param[in] subscriber  A muxer.
  */
-void engine::subscribe(std::shared_ptr<muxer>& subscriber) {
+void engine::subscribe(const std::shared_ptr<muxer>& subscriber) {
   log_v2::config()->debug("engine: muxer {} subscribes to engine",
                           subscriber->name());
   std::lock_guard<std::mutex> l(_engine_m);

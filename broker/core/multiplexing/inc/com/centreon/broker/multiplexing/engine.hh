@@ -110,7 +110,7 @@ class engine {
   void publish(const std::deque<std::shared_ptr<io::data>>& to_publish);
   void start();
   void stop();
-  void subscribe(std::shared_ptr<muxer>& subscriber);
+  void subscribe(const std::shared_ptr<muxer>& subscriber);
   void unsubscribe_muxer(const muxer* subscriber);
 };
 }  // namespace multiplexing
