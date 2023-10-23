@@ -399,7 +399,7 @@ Start Stop Service
     Sleep    ${interval}
     ${pid1}    Get Process Id    b1
     ${pid2}    Get Process Id    b2
-    ${result}    check connection    5670    ${pid1}    ${pid2}
+    ${result}    Check Connection    5670    ${pid1}    ${pid2}
     Should Be True    ${result}    The connection between cbd central and rrd is not established.
 
     Send Signal To Process    SIGTERM    b1
