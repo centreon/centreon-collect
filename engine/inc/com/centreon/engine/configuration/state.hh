@@ -438,6 +438,7 @@ class state {
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
   void refresh_whitelist();
+  bool cmd_allowed_by_whitelist(const std::string& process_cmd) const;
 
  private:
   typedef bool (*setter_func)(state&, char const*);

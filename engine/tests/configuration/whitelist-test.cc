@@ -79,7 +79,8 @@ TEST_F(whitelist_test, wildcards) {
   create_file("/tmp/toto", R"(whitelist:
   wildcard:
     - /usr/lib/centreon/plugins/centreon_*
-    -  /usr/lib/centreon/plugins/check_centreon_bam 
+    -  /usr/lib/centreon/plugins/check_centreon_bam
+    -  /tmp/var/lib/centreon-engine/toto* * *
 )");
 
   whitelist_file file("/tmp/toto");
@@ -87,8 +88,11 @@ TEST_F(whitelist_test, wildcards) {
 
   std::vector<std::string> expected{
       "/usr/lib/centreon/plugins/centreon_*",
-      "/usr/lib/centreon/plugins/check_centreon_bam"};
+      "/usr/lib/centreon/plugins/check_centreon_bam",
+      "/tmp/var/lib/centreon-engine/toto* * *"};
   ASSERT_EQ(file.get_wildcards(), expected);
+  ASSERT_TRUE(file.test("/tmp/var/lib/centreon-engine/totozea 1 1.0.0.0"));
+  ASSERT_TRUE(file.test("/usr/lib/centreon/plugins/centreon_rrgersgesrg0"));
 }
 
 TEST_F(whitelist_test, regexp) {

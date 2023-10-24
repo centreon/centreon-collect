@@ -4767,9 +4767,24 @@ void state::enable_macros_filter(bool value) {
   _enable_macros_filter = value;
 }
 
+/**
+ * @brief refresh whitelist files
+ *
+ */
 void state::refresh_whitelist() {
   if (!_whitelist)
     _whitelist =
         std::make_shared<whitelist_directory>("/etc/centreon-engine-whitelist");
   _whitelist->refresh();
+}
+
+/**
+ * @brief test if a command line (macros calculated) is allowed by whitelist
+ *
+ * @param process_cmd entire final command line
+ * @return true  allowed
+ * @return false
+ */
+bool state::cmd_allowed_by_whitelist(const std::string& process_cmd) const {
+  return _whitelist->test(process_cmd);
 }

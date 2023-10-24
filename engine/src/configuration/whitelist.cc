@@ -92,7 +92,7 @@ void whitelist_file::parse() {
       BOOST_THROW_EXCEPTION(open_file_exception()
                             << boost::errinfo_file_name(_path));
     }
-    if (infos.st_mode & S_IFMT != S_IFREG) {
+    if ((infos.st_mode & S_IFMT) != S_IFREG) {
       SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a regular file", _path);
       BOOST_THROW_EXCEPTION(open_file_exception()
                             << boost::errinfo_file_name(_path));
@@ -110,7 +110,7 @@ void whitelist_file::parse() {
                           _path);
     }
 
-    if (infos.st_mode & S_IRWXO || infos.st_mode & S_IRWXG != S_IRGRP) {
+    if (infos.st_mode & S_IRWXO || (infos.st_mode & S_IRWXG) != S_IRGRP) {
       SPDLOG_LOGGER_ERROR(log_v2::config(),
                           "file {} must have x40 right access", _path);
     }
@@ -270,8 +270,9 @@ void whitelist_directory::refresh() {
         "{}: no whitelist directory found, all commands are accepted", _path);
     return;
   }
-  if (dir_infos.st_mode & S_IFMT != S_IFDIR) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a directory", _path);
+  if ((dir_infos.st_mode & S_IFMT) != S_IFDIR) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a directory: {}", _path,
+                        dir_infos.st_mode);
     return;
   }
 
@@ -282,7 +283,7 @@ void whitelist_directory::refresh() {
   }
 
   if (dir_infos.st_mode & S_IRWXO ||
-      dir_infos.st_mode & S_IRWXG != S_IRGRP + S_IXGRP) {
+      (dir_infos.st_mode & S_IRWXG) != S_IRGRP + S_IXGRP) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
                         "directory {} must have 750 right access", _path);
   }
