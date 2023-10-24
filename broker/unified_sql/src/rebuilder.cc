@@ -135,8 +135,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
         }
 
         if (mids.empty()) {
-          log_v2::sql()->error("Metrics rebuild: metrics don't exist: {}",
-                               ids_str);
+          logger->error("Metrics rebuild: metrics don't exist: {}", ids_str);
           return;
         }
 
