@@ -259,6 +259,7 @@ Save Logs
 Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
+    IF    ${pid} is None    RETURN
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Create Directory    ${failDir}
     ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
