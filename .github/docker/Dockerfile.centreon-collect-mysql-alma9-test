@@ -35,7 +35,8 @@ dnf install -y gcc \
     procps-ng \
     zstd \
     psmisc \
-    sudo
+    sudo \
+    iproute
 
 echo "install robot and dependencies"
 
