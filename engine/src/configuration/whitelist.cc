@@ -226,9 +226,19 @@ void whitelist_file::_read_file_content(const ryml_tree& file_content) {
  * @return false  cmdline don't match
  */
 bool whitelist_file::test(const std::string& cmdline) const {
-  for (const std::string& wildcard : _wildcards) {
-    if (!fnmatch(wildcard.c_str(), cmdline.c_str(), FNM_PATHNAME | FNM_PERIOD))
-      return true;
+  // remove double /
+  if (cmdline.find("//") != std::string::npos) {
+    std::string copy = boost::algorithm::replace_all_copy(cmdline, "//", "/");
+    for (const std::string& wildcard : _wildcards) {
+      if (!fnmatch(wildcard.c_str(), copy.c_str(), FNM_PATHNAME | FNM_PERIOD))
+        return true;
+    }
+  } else {
+    for (const std::string& wildcard : _wildcards) {
+      if (!fnmatch(wildcard.c_str(), cmdline.c_str(),
+                   FNM_PATHNAME | FNM_PERIOD))
+        return true;
+    }
   }
 
   for (const auto& regex : _regex) {

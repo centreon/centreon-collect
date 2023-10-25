@@ -2666,7 +2666,14 @@ int service::run_async_check_local(int check_options,
 
   // allowed by whitelist?
   if (!config->cmd_allowed_by_whitelist(processed_cmd)) {
-    SPDLOG_LOGGER_ERROR(log_v2::commands(),
+    SPDLOG_LOGGER_ERROR(
+        log_v2::commands(),
+        "service {}: this command cannot be executed because of "
+        "security restrictions on the poller. A whitelist has "
+        "been defined, and it does not include this command.",
+        name());
+
+    SPDLOG_LOGGER_DEBUG(log_v2::commands(),
                         "service {}: command not allowed by whitelist {}",
                         name(), processed_cmd);
     run_failure("(command not allowed by whitelist)");

@@ -9,14 +9,14 @@ Library             Examples
 Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 
-Suite Setup         Whitelist Suite Setup
+Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
+Test Setup          Whitelist Setup
 Test Teardown       Stop Engine Broker And Save Logs    only_central=${True}
 
 
 *** Test Cases ***
-whitelist no whitelist
+Whitelist_No_Whitelist_Directory
     [Documentation]    log if /etc/centreon-engine-whitelist doesn't exist
     [Tags]    whitelist    engine
     Config Engine    ${1}    ${50}    ${20}
@@ -29,7 +29,7 @@ whitelist no whitelist
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    no whitelist directory found must be found in logs
 
-whitelist empty whitelist
+Whitelist_Empty_Directory
     [Documentation]    log if /etc/centreon-engine-whitelist if empty
     [Tags]    whitelist    engine
     Config Engine    ${1}    ${50}    ${20}
@@ -42,12 +42,12 @@ whitelist empty whitelist
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    all commands are accepted must be found in logs
 
-whitelist directory rights
+Whitelist_Directory_Rights
     [Documentation]    log if /etc/centreon-engine-whitelist has not mandatory rights or owner
     [Tags]    whitelist    engine
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    module    ${1}
-    Run    chown root::root /etc/centreon-engine-whitelist
+    Run    chown root:root /etc/centreon-engine-whitelist
     ${start}    Get Current Date
     Start Engine
     ${content}    Create List
@@ -56,7 +56,7 @@ whitelist directory rights
     Should Be True    ${result}    owned by root@centron_engine must be found in logs
 
     ${start}    Get Current Date
-    Run    chown root::centreon-engine /etc/centreon-engine-whitelist
+    Run    chown root:centreon-engine /etc/centreon-engine-whitelist
     Run    chmod 0777 /etc/centreon-engine-whitelist
     Reload Engine
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -71,7 +71,7 @@ whitelist directory rights
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be False    ${result}    must have 750 right access must not be found in logs
 
-whitelist host
+Whitelist_Host
     [Documentation]    test allowed and forbidden commands for hosts
     [Tags]    whitelist    engine
     Config Engine    ${1}    ${50}    ${20}
@@ -127,7 +127,7 @@ whitelist host
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
-whitelist service
+Whitelist_Service
     [Documentation]    test allowed and forbidden commands for services
     [Tags]    whitelist    engine
     Config Engine    ${1}    ${50}    ${20}
@@ -184,8 +184,50 @@ whitelist service
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    totozea not found
 
+Whitelist_Perl_Connector
+    [Documentation]    test allowed and forbidden commands for services
+    [Tags]    whitelist    engine    connector
+    Config Engine    ${1}    ${50}    ${20}
+    Empty Directory    /etc/centreon-engine-whitelist
+    Config Broker    central
+    Config Broker    module    ${1}
+    Engine Config Set Value    0    log_level_checks    trace    True
+    Engine Config Set Value    0    log_level_commands    trace    True
+    # service_1 uses command_14 (uses perl connector)
+    Engine Config Replace Value In Services    0    service_1    check_command    command_14
+    Engine Config Change Command    0    14    /tmp/var/lib/centreon-engine/check.pl 0 $HOSTADDRESS$
+
+    ${whitelist_content}    Catenate
+    ...    {"whitelist":{"wildcard":["/tmp/var/lib/centreon-engine/toto* * *"], "regex":["/tmp/var/lib/centreon-engine/check.pl [1-9] 1.0.0.0"]}}
+    Create File    /etc/centreon-engine-whitelist/test    ${whitelist_content}
+
+    ${start}    Get Current Date
+    Start Broker    only_central=${True}
+    Start Engine
+    ${content}    Create List    check_for_external_commands
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No check for external commands executed for 1mn.
+
+    # command not allowed because of 0 in first argument
+    ${start}    Get Current Date
+    Schedule Forced Svc Check    host_1    service_1
+    ${content}    Create List
+    ...    service_1: command not allowed by whitelist /tmp/var/lib/centreon-engine/check.pl 0 1.0.0.0
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    No command not allowed found for service_1
+
+    # command allowed by whitelist
+    Engine Config Change Command    0    14    /tmp/var/lib/centreon-engine/check.pl 1 $HOSTADDRESS$
+    Reload Engine
+    ${start}    Get Current Date
+    Schedule Forced Svc Check    host_1    service_1
+    ${content}    Create List
+    ...    connector::run: connector='Perl Connector', cmd='/tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0'
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    /tmp/var/lib/centreon-engine/check.pl 1 1.0.0.0 not found
+
 
 *** Keywords ***
-Whitelist Suite Setup
+Whitelist Setup
     Create Directory    /etc/centreon-engine-whitelist
-    Clean Before Suite
+    Stop Processes
