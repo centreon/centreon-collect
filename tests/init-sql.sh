@@ -1,5 +1,7 @@
 #!/bin/bash
+DBUser=$(awk '($1=="${DBUser}") {print $2}' resources/db_variables.robot)
 DBUserRoot=$(awk '($1=="${DBUserRoot}") {print $2}' resources/db_variables.robot)
+DBPass=$(awk '($1=="${DBPass}") {print $2}' resources/db_variables.robot)
 DBPassRoot=$(awk '($1=="${DBPassRoot}") {print $2}' resources/db_variables.robot)
 DBStorage=$(awk '($1=="${DBName}") {print $2}' resources/db_variables.robot)
 DBConf=$(awk '($1=="${DBNameConf}") {print $2}' resources/db_variables.robot)
@@ -12,6 +14,10 @@ if [ -z $DBPassRoot ] ; then
     DBPassRoot="centreon"
 fi
 
+mysql -e  "CREATE USER IF NOT EXISTS '$DBUser'@'localhost'"
+mysql -e "set password for '$DBUser'@'localhost' = PASSWORD('$DBPass')"
+mysql -e "GRANT ALL PRIVILEGES ON $DBStorage.* TO $DBUser@localhost"
+mysql -e "GRANT ALL PRIVILEGES ON $DBConf.* TO $DBUser@localhost"
 mysql -e "set password for '$DBUserRoot'@'localhost' = PASSWORD('$DBPassRoot')"
 mysql -e "GRANT ALL PRIVILEGES ON *.* TO '$DBUserRoot'@'localhost'"
 mysql -e "flush privileges"
@@ -30,10 +36,7 @@ else
     mysql --user="$DBUserRoot" --password="$DBPassRoot" < ../resources/centreon_storage.sql
 fi
 
-mkdir /tmp/mariadb_log
-chown mysql: /tmp/mariadb_log
-
 #activate queries log
 mysql --user="$DBUserRoot" --password="$DBPassRoot"  -e "SET GLOBAL general_log=1;"
-mysql --user="$DBUserRoot" --password="$DBPassRoot"  -e "SET GLOBAL general_log_file='/tmp/mariadb_log/mariadb.log';"
+mysql --user="$DBUserRoot" --password="$DBPassRoot"  -e "SET GLOBAL general_log_file='/tmp/mariadb.log';"
 

@@ -24,7 +24,8 @@ Test Teardown       Stop Engine Broker And Save Logs
 *** Test Cases ***
 BENCH_${nb_check}STATUS
     [Documentation]    external command CHECK_SERVICE_RESULT 1000 times
-    [Tags]    broker    engine    bench    toto
+    [Tags]    broker    engine    bench
+    Clear Retention
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
@@ -50,6 +51,7 @@ BENCH_${nb_check}STATUS
     Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    Should Not Be Equal As Strings    ${bench_data}    None    We should have received some bench.
     ${broker_stat_after}    Get Broker Process Stat    51001
     ${engine_stat_after}    Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -92,6 +94,7 @@ BENCH_${nb_check}STATUS
 BENCH_${nb_check}STATUS_TRACES
     [Documentation]    external command CHECK_SERVICE_RESULT ${nb_check} times
     [Tags]    broker    engine    bench
+    Clear Retention
     Config Engine    ${1}    ${50}    ${20}
     # We want all the services to be passive to avoid parasite checks during our test.
     Set Services Passive    ${0}    service_.*
@@ -118,6 +121,7 @@ BENCH_${nb_check}STATUS_TRACES
     Process Service Check Result    host_1    service_1    1    warning    config0    0    ${nb_check}
     Send Bench    1    50001
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    Should Not Be Equal As Strings    ${bench_data}    None    We should have received some bench.
     ${broker_stat_after}    Get Broker Process Stat    51001
     ${engine_stat_after}    Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
@@ -160,6 +164,7 @@ BENCH_${nb_check}STATUS_TRACES
 BENCH_1000STATUS_100${suffixe}
     [Documentation]    external command CHECK_SERVICE_RESULT 100 times    with 100 pollers with 20 services
     [Tags]    broker    engine    bench
+    Clear Retention
     Config Engine    ${100}    ${100}    ${20}
     Config Broker    module    ${100}
     Config Broker    central
@@ -206,12 +211,13 @@ BENCH_1000STATUS_100${suffixe}
     END
 
     ${bench_data}    Get Last Bench Result With Timeout    ${rrdLog}    1    central-rrd-master-output    60
+    Should Not Be Equal As Strings    ${bench_data}    None    We should have received some bench.
     ${broker_stat_after}    Get Broker Process Stat    51001
     ${engine_stat_after}    Get Engine Process Stat    50001
     ${diff_broker}    Diff Process Stat    ${broker_stat_after}    ${broker_stat_before}
     ${diff_engine}    Diff Process Stat    ${engine_stat_after}    ${engine_stat_before}
 
-    ${content}    Create List    pb service (100, 2000) status 1 type 1 check result output: <<warning_99>>
+    ${content}    Create List    pb service status of (100, 2000) - state 1 - type 1 check result output: <<warning_99>>
     ${result}    Find In Log With Timeout With Line    ${centralLog}    ${start_check}    ${content}    240
     Should Be True    ${result[0]}    No check check result received.
     ${date_last_check_received}    Extract Date From Log    ${result[1][0]}
