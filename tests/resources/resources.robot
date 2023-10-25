@@ -306,7 +306,7 @@ Copy Coredump In Failed Dir
 Wait Or Dump And Kill Process
     [Arguments]    ${process_name}    ${timeout}
     ${result}    Wait For Process    ${process_name}    timeout=${timeout}    on_timeout=continu
-    ${test_none}    Set Variable If    $result is None    "not killed"    "killed"
+    ${test_none}    Set Variable If    $result is None    not killed    killed
     IF    "${test_none}" == "not killed"
         ${pid}    Get Process Id    ${process_name}
         Run Process    gcore    -o    ${ENGINE_LOG}/config0/gcore_${process_name}    ${pid}
