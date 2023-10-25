@@ -25,6 +25,8 @@ CCE_BEGIN()
 
 namespace configuration {
 
+extern const std::string command_blacklist_output;
+
 /**
  * @brief the goal of this class is to parse yaml or json file with the
 structure whitelist: wildcard:

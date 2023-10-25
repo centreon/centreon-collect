@@ -4786,5 +4786,6 @@ void state::refresh_whitelist() {
  * @return false
  */
 bool state::cmd_allowed_by_whitelist(const std::string& process_cmd) const {
-  return _whitelist->test(process_cmd);
+  //_whitelist may be null in some TUs
+  return _whitelist ? _whitelist->test(process_cmd) : true;
 }

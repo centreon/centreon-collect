@@ -1805,7 +1805,7 @@ int host::run_async_check(int check_options,
       reschedule_check, latency, start_time, start_time, false, true,
       service::state_ok, "");
 
-  auto run_failure = [&](const char* reason) {
+  auto run_failure = [&](const std::string& reason) {
     // Update check result.
     timeval tv;
     gettimeofday(&tv, nullptr);
@@ -1829,7 +1829,7 @@ int host::run_async_check(int check_options,
     SPDLOG_LOGGER_DEBUG(log_v2::commands(),
                         "host {}: command not allowed by whitelist {}", name(),
                         processed_cmd);
-    run_failure("(command not allowed by whitelist)");
+    run_failure(configuration::command_blacklist_output);
   } else {
     // Run command.
     bool retry;

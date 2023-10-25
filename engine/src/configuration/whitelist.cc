@@ -20,6 +20,8 @@
 #define C4_NO_DEBUG_BREAK 1
 
 #include <fnmatch.h>
+#include <grp.h>
+#include <sys/types.h>
 
 #include <experimental/filesystem>
 #include <iostream>
@@ -39,6 +41,12 @@ using namespace com::centreon::engine::configuration;
 CCE_BEGIN()
 
 namespace configuration {
+
+const std::string command_blacklist_output(
+    "UNKNOWN: this command cannot be executed because of security restrictions "
+    "on the poller. A whitelist has been defined, and it does not include this "
+    "command.");
+
 /**
  * @brief rapidyaml call abort on error
  * the goal of these structs and local function is to throw a
@@ -104,12 +112,15 @@ void whitelist_file::parse() {
                             << boost::errinfo_file_name(_path));
     }
 
-    if (infos.st_uid || infos.st_gid != getgid()) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          "file {} must be owned by root@centron_engine",
-                          _path);
-    }
+    struct ::group* centengine_group = getgrnam("centreon-engine");
 
+    if (centengine_group) {
+      if (infos.st_uid || infos.st_gid != centengine_group->gr_gid) {
+        SPDLOG_LOGGER_ERROR(log_v2::config(),
+                            "file {} must be owned by root@centreon-engine",
+                            _path);
+      }
+    }
     if (infos.st_mode & S_IRWXO || (infos.st_mode & S_IRWXG) != S_IRGRP) {
       SPDLOG_LOGGER_ERROR(log_v2::config(),
                           "file {} must have x40 right access", _path);
@@ -286,10 +297,14 @@ void whitelist_directory::refresh() {
     return;
   }
 
-  if (dir_infos.st_uid || dir_infos.st_gid != getgid()) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "directory {} must be owned by root@centron_engine",
-                        _path);
+  struct ::group* centengine_group = getgrnam("centreon-engine");
+
+  if (centengine_group) {
+    if (dir_infos.st_uid || dir_infos.st_gid != centengine_group->gr_gid) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "directory {} must be owned by root@centreon-engine",
+                          _path);
+    }
   }
 
   if (dir_infos.st_mode & S_IRWXO ||

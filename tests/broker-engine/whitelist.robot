@@ -51,25 +51,25 @@ Whitelist_Directory_Rights
     ${start}    Get Current Date
     Start Engine
     ${content}    Create List
-    ...    directory /etc/centreon-engine-whitelist must be owned by root@centron_engine
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    owned by root@centron_engine must be found in logs
+    ...    directory /etc/centreon-engine-whitelist must be owned by root@centreon-engine
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result}    owned by root@centreon-engine must be found in logs
 
     ${start}    Get Current Date
     Run    chown root:centreon-engine /etc/centreon-engine-whitelist
     Run    chmod 0777 /etc/centreon-engine-whitelist
     Reload Engine
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Not Be True    ${result}    owned by root@centron_engine must not be found in logs
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Not Be True    ${result}    owned by root@centreon-engine must not be found in logs
     ${content}    Create List    directory /etc/centreon-engine-whitelist must have 750 right access
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result}    must have 750 right access must be found in logs
 
     ${start}    Get Current Date
     Run    chmod 0750 /etc/centreon-engine-whitelist
     Reload Engine
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be False    ${result}    must have 750 right access must not be found in logs
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Not Be True    ${result}    must have 750 right access must not be found in logs
 
 Whitelist_Host
     [Documentation]    test allowed and forbidden commands for hosts

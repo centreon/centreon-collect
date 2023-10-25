@@ -526,7 +526,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
 
   commands::result res;
 
-  auto run_failure = [&](const char* reason) {
+  auto run_failure = [&](const std::string& reason) {
     // Update check result.
     res.command_id = 0;
     res.end_time = timestamp::now();
@@ -540,7 +540,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     SPDLOG_LOGGER_ERROR(log_v2::commands(),
                         "host {}: command forbidden by whitelist {}",
                         hst->name(), processed_cmd);
-    run_failure("(command not allowed by whitelist)");
+    run_failure(configuration::command_blacklist_output);
   } else {
     // Run command.
     try {

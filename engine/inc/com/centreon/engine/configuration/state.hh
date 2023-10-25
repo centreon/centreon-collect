@@ -43,6 +43,8 @@ CCE_BEGIN()
 namespace configuration {
 class whitelist_directory;
 
+extern const std::string command_blacklist_output;
+
 /**
  *  @class state state.hh
  *  @brief Simple configuration state class.
