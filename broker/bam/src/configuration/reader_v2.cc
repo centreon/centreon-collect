@@ -91,7 +91,7 @@ void reader_v2::_load(state::kpis& kpis) {
         "        COALESCE(COALESCE(k.drop_unknown, uu.impact), "
         "g.average_impact),"
         "        k.last_state_change, k.in_downtime, k.last_impact,"
-        "        mb.name AS ba_name, mbb.name AS boolean_name, "
+        "        kpiba.name AS ba_name, mbb.name AS boolean_name, "
         "        CONCAT(hst.host_name, '/', serv.service_description) AS "
         "service_name"
         "  FROM mod_bam_kpi AS k"
@@ -110,6 +110,8 @@ void reader_v2::_load(state::kpis& kpis) {
         "               WHERE activate='1'"
         "               GROUP BY id_ba) AS g"
         "    ON k.id_ba=g.id_ba"
+        "  LEFT JOIN mod_bam as kpiba"
+        "  ON k.id_indicator_ba=kpiba.ba_id"
         "  LEFT JOIN mod_bam_boolean AS mbb"
         "  ON mbb.boolean_id= k.boolean_id"
         "  LEFT JOIN service as serv"
@@ -132,11 +134,11 @@ void reader_v2::_load(state::kpis& kpis) {
         uint32_t id_indicator_ba = res.value_as_u32(5);
 
         if (service_id > 0)
-          kpi_name = res.value_as_str(21);
+          kpi_name = "Service " + res.value_as_str(21);
         else if (boolean_id > 0)
-          kpi_name = res.value_as_str(20);
+          kpi_name = "Boolean rule " + res.value_as_str(20);
         else
-          kpi_name = res.value_as_str(19);
+          kpi_name = "Business Activity " + res.value_as_str(19);
 
         // KPI object.
         uint32_t kpi_id(res.value_as_u32(0));
