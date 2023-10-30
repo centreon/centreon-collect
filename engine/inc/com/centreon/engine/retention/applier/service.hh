@@ -36,15 +36,14 @@ namespace retention {
 namespace applier {
 class service {
  public:
-  void apply(configuration::state const& config,
-             list_service const& lst,
-             bool scheduling_info_is_ok);
+  static void apply(configuration::state const& config,
+                    list_service const& lst,
+                    bool scheduling_info_is_ok);
 
- private:
-  void _update(configuration::state const& config,
-               retention::service const& state,
-               com::centreon::engine::service& obj,
-               bool scheduling_info_is_ok);
+  static void update(configuration::state const& config,
+                     retention::service const& state,
+                     com::centreon::engine::service& obj,
+                     bool scheduling_info_is_ok);
 };
 }  // namespace applier
 }  // namespace retention

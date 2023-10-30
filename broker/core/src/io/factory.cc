@@ -17,6 +17,7 @@
 */
 
 #include "com/centreon/broker/io/factory.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -38,7 +39,7 @@ using namespace com::centreon::broker::io;
 std::shared_ptr<stream> factory::new_stream(
     std::shared_ptr<stream> to,
     bool is_acceptor,
-    const std::unordered_map<std::string, std::string>& options) {
+    const std::unordered_map<std::string, std::string>&) {
   (void)to;
   (void)is_acceptor;
   throw msg_fmt(

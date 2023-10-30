@@ -20,13 +20,18 @@
 #include "com/centreon/broker/processing/feeder.hh"
 #include <gtest/gtest.h>
 #include "com/centreon/broker/config/applier/state.hh"
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
+#include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/stats/center.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
+
+extern std::shared_ptr<asio::io_context> g_io_context;
 
 class TestStream : public io::stream {
  public:
@@ -39,37 +44,42 @@ class TestStream : public io::stream {
 
 class TestFeeder : public ::testing::Test {
  protected:
-  std::unique_ptr<feeder> _feeder;
+  std::shared_ptr<feeder> _feeder;
 
  public:
   void SetUp() override {
-    pool::load(0);
+    g_io_context->restart();
+    pool::load(g_io_context, 0);
     stats::center::load();
     config::applier::state::load();
+    file::disk_accessor::load(10000);
     multiplexing::engine::load();
     io::protocols::load();
     io::events::load();
 
-    std::unique_ptr<io::stream> client(new TestStream);
-    absl::flat_hash_set<uint32_t> read_filters;
-    absl::flat_hash_set<uint32_t> write_filters;
-    _feeder = std::make_unique<feeder>("test-feeder", client, read_filters,
-                                       write_filters);
+    std::shared_ptr<io::stream> client(new TestStream);
+    multiplexing::muxer_filter read_filters;
+    multiplexing::muxer_filter write_filters;
+    _feeder =
+        feeder::create("test-feeder", multiplexing::engine::instance_ptr(),
+                       client, read_filters, write_filters);
   }
 
   void TearDown() override {
+    _feeder->stop();
     _feeder.reset();
     multiplexing::engine::unload();
     config::applier::state::unload();
     io::events::unload();
     io::protocols::unload();
     stats::center::unload();
+    file::disk_accessor::unload();
     pool::unload();
   }
 };
 
 TEST_F(TestFeeder, ImmediateStartExit) {
-  ASSERT_NO_THROW(_feeder.reset());
+  ASSERT_NO_THROW(_feeder->stop());
 }
 
 TEST_F(TestFeeder, isFinished) {

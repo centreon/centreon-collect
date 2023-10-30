@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2013 Centreon
+** Copyright 2011-2013, 2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -18,18 +18,15 @@
 
 #include "com/centreon/broker/compression/factory.hh"
 
+#include <absl/strings/match.h>
+
 #include "com/centreon/broker/compression/opener.hh"
 #include "com/centreon/broker/compression/stream.hh"
 #include "com/centreon/broker/config/parser.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::compression;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  Check if an endpoint configuration match the compression layer.
@@ -45,13 +42,58 @@ using namespace com::centreon::broker::compression;
  */
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext) {
-    auto it = cfg.params.find("compression");
-    if (it == cfg.params.end() || strncasecmp(it->second.c_str(), "no", 3) == 0)
-      *ext = io::extension("COMPRESSION", false, false);
-    else if (strncasecmp(it->second.c_str(), "auto", 5) == 0)
-      *ext = io::extension("COMPRESSION", true, false);
-    else if (strncasecmp(it->second.c_str(), "yes", 4) == 0)
-      *ext = io::extension("COMPRESSION", false, true);
+    if (cfg.type == "bbdo_server" || cfg.type == "bbdo_client") {
+      auto it = cfg.params.find("transport_protocol");
+      if (it != cfg.params.end()) {
+        if (absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "grpc")) {
+          *ext = io::extension("COMPRESSION", false, false);
+          return false;
+        }
+      }
+
+      it = cfg.params.find("compression");
+      bool has_compression;
+      if (it == cfg.params.end())
+        has_compression = false;
+      else if (!absl::SimpleAtob(it->second, &has_compression)) {
+        log_v2::core()->error(
+            "TLS: the field 'compression' in endpoint '{}' should be a boolean",
+            cfg.name);
+        has_compression = false;
+      }
+
+      if (cfg.get_io_type() == config::endpoint::output) {
+        if (!has_compression)
+          *ext = io::extension("COMPRESSION", false, false);
+        else
+          *ext = io::extension("COMPRESSION", false, true);
+      } else
+        *ext = io::extension("COMPRESSION", true, false);
+    } else {
+      /* legacy case */
+      auto it = cfg.params.find("compression");
+      bool has_compression;
+      if (it == cfg.params.end())
+        has_compression = false;
+      else if (!absl::SimpleAtob(it->second, &has_compression)) {
+        if (absl::EqualsIgnoreCase(it->second, "auto"))
+          has_compression = true;
+        else {
+          log_v2::core()->error(
+              "TLS: the field 'compression' in endpoint '{}' should be a "
+              "boolean",
+              cfg.name);
+          has_compression = false;
+        }
+      }
+
+      if (!has_compression)
+        *ext = io::extension("COMPRESSION", false, false);
+      else if (absl::EqualsIgnoreCase(it->second, "auto"))
+        *ext = io::extension("COMPRESSION", true, false);
+      else
+        *ext = io::extension("COMPRESSION", false, true);
+    }
   }
   return false;
 }
@@ -76,19 +118,31 @@ io::endpoint* factory::new_endpoint(
   int level{-1};
   std::map<std::string, std::string>::const_iterator it{
       cfg.params.find("compression_level")};
-  if (it != cfg.params.end())
-    level = std::stol(it->second);
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &level)) {
+      log_v2::core()->error(
+          "compression: the 'compression_level' should be an integer and not "
+          "'{}'",
+          it->second);
+      level = -1;
+    }
+  }
 
   // Get buffer size.
-  uint32_t size(0);
+  uint32_t size = 0;
   it = cfg.params.find("compression_buffer");
-  if (it != cfg.params.end())
-    size = std::stoul(it->second);
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtoi(it->second, &size)) {
+      log_v2::core()->error(
+          "compression: compression_buffer is the size of the compression "
+          "buffer represented by an integer and not '{}'",
+          it->second);
+      size = 0;
+    }
+  }
 
   // Create compression object.
-  std::unique_ptr<compression::opener> openr(new compression::opener);
-  openr->set_level(level);
-  openr->set_size(size);
+  auto openr{std::make_unique<compression::opener>(level, size)};
   return openr.release();
 }
 

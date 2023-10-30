@@ -18,6 +18,7 @@
  */
 
 #include "com/centreon/broker/rrd/cached.hh"
+#include <absl/strings/str_split.h>
 
 #include <gtest/gtest.h>
 
@@ -99,7 +100,14 @@ TEST(RRDCached, BatchLocal) {
 
   t.join();
   ASSERT_TRUE(batch_done);
-  ASSERT_EQ(testing::internal::GetCapturedStdout(), "connected\n");
+  auto arr = absl::StrSplit(testing::internal::GetCapturedStdout(), "\n");
+  bool connection_found = false;
+  for (auto& s : arr)
+    if (s == "connected") {
+      connection_found = true;
+      break;
+    }
+  ASSERT_TRUE(connection_found);
 }
 
 TEST(RRDCached, BatchRemote) {
@@ -158,5 +166,12 @@ TEST(RRDCached, BatchRemote) {
 
   t.join();
   ASSERT_TRUE(batch_done);
-  ASSERT_EQ(testing::internal::GetCapturedStdout(), "connected\n");
+  auto arr = absl::StrSplit(testing::internal::GetCapturedStdout(), "\n");
+  bool connection_found = false;
+  for (auto& s : arr)
+    if (s == "connected") {
+      connection_found = true;
+      break;
+    }
+  ASSERT_TRUE(connection_found);
 }

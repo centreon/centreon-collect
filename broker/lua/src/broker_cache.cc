@@ -49,15 +49,15 @@ static int l_broker_cache_get_ba_v1(lua_State* L) {
   int ba_id(luaL_checkinteger(L, 2));
 
   try {
-    const bam::dimension_ba_event& ba(*cache->get_dimension_ba_event(ba_id));
+    const DimensionBaEvent& ba(cache->get_dimension_ba_event(ba_id)->obj());
     lua_createtable(L, 0, 7);
-    lua_pushinteger(L, ba.ba_id);
+    lua_pushinteger(L, ba.ba_id());
     lua_setfield(L, -2, "ba_id");
 
-    lua_pushstring(L, ba.ba_name.c_str());
+    lua_pushstring(L, ba.ba_name().c_str());
     lua_setfield(L, -2, "ba_name");
 
-    lua_pushstring(L, ba.ba_description.c_str());
+    lua_pushstring(L, ba.ba_description().c_str());
     lua_setfield(L, -2, "ba_description");
   } catch (std::exception const& e) {
     (void)e;
@@ -80,6 +80,10 @@ static int l_broker_cache_get_ba_v2(lua_State* L) {
   return 1;
 }
 
+static inline void lua_pushstring(lua_State* state, const std::string& str) {
+  lua_pushlstring(state, str.c_str(), str.length());
+}
+
 /**
  *  The get_bv() method available in the Lua interpreter.
  *  It returns a table containing the bv data.
@@ -94,15 +98,15 @@ static int l_broker_cache_get_bv_v1(lua_State* L) {
   int bv_id(luaL_checkinteger(L, 2));
 
   try {
-    const bam::dimension_bv_event& bv(*cache->get_dimension_bv_event(bv_id));
+    const bam::pb_dimension_bv_event& bv(*cache->get_dimension_bv_event(bv_id));
     lua_createtable(L, 0, 3);
-    lua_pushinteger(L, bv.bv_id);
+    lua_pushinteger(L, bv.obj().bv_id());
     lua_setfield(L, -2, "bv_id");
 
-    lua_pushstring(L, bv.bv_name.c_str());
+    lua_pushstring(L, bv.obj().bv_name());
     lua_setfield(L, -2, "bv_name");
 
-    lua_pushstring(L, bv.bv_description.c_str());
+    lua_pushstring(L, bv.obj().bv_description());
     lua_setfield(L, -2, "bv_description");
   } catch (std::exception const& e) {
     (void)e;
@@ -145,7 +149,7 @@ static int l_broker_cache_get_bvs(lua_State* L) {
 
   int i = 1;
   while (it != relations.end() && it->first == ba_id) {
-    lua_pushinteger(L, it->second->bv_id);
+    lua_pushinteger(L, it->second->obj().bv_id());
     lua_rawseti(L, -2, i);
     ++i;
     ++it;
@@ -287,16 +291,18 @@ static int l_broker_cache_get_index_mapping(lua_State* L) {
   int index_id(luaL_checkinteger(L, 2));
 
   try {
-    storage::index_mapping const& mapping(cache->get_index_mapping(index_id));
+    const storage::pb_index_mapping& mapping{
+        cache->get_index_mapping(index_id)};
+    const auto& m_obj = mapping.obj();
     lua_createtable(L, 0, 3);
 
-    lua_pushinteger(L, mapping.index_id);
+    lua_pushinteger(L, m_obj.index_id());
     lua_setfield(L, -2, "index_id");
 
-    lua_pushinteger(L, mapping.host_id);
+    lua_pushinteger(L, m_obj.host_id());
     lua_setfield(L, -2, "host_id");
 
-    lua_pushinteger(L, mapping.service_id);
+    lua_pushinteger(L, m_obj.service_id());
     lua_setfield(L, -2, "service_id");
   } catch (std::exception const& e) {
     (void)e;
@@ -342,14 +348,15 @@ static int l_broker_cache_get_metric_mapping_v1(lua_State* L) {
   int metric_id(luaL_checkinteger(L, 2));
 
   try {
-    storage::metric_mapping const& mapping(
+    const storage::pb_metric_mapping& mapping(
         *cache->get_metric_mapping(metric_id));
+    const auto& m_obj = mapping.obj();
     lua_createtable(L, 0, 2);
 
-    lua_pushinteger(L, mapping.metric_id);
+    lua_pushinteger(L, m_obj.metric_id());
     lua_setfield(L, -2, "metric_id");
 
-    lua_pushinteger(L, mapping.index_id);
+    lua_pushinteger(L, m_obj.index_id());
     lua_setfield(L, -2, "index_id");
   } catch (std::exception const& e) {
     (void)e;
@@ -364,7 +371,7 @@ static int l_broker_cache_get_metric_mapping_v2(lua_State* L) {
   int metric_id(luaL_checkinteger(L, 2));
 
   try {
-    const std::shared_ptr<storage::metric_mapping>& mm{
+    const std::shared_ptr<storage::pb_metric_mapping>& mm{
         cache->get_metric_mapping(metric_id)};
     broker_event::create(L, mm);
   } catch (std::exception const& e) {
@@ -609,6 +616,25 @@ static int32_t l_broker_cache_get_severity(lua_State* L) {
   return 1;
 }
 
+static int32_t l_broker_cache_get_check_command(lua_State* L) {
+  macro_cache const* cache(
+      *static_cast<macro_cache**>(luaL_checkudata(L, 1, "lua_broker_cache")));
+  int host_id = luaL_checkinteger(L, 2);
+  int service_id = 0;
+  if (lua_gettop(L) >= 3)
+    service_id = luaL_checkinteger(L, 3);
+
+  try {
+    absl::string_view check_command =
+        cache->get_check_command(host_id, service_id);
+    lua_pushlstring(L, check_command.data(), check_command.size());
+  } catch (std::exception const& e) {
+    (void)e;
+    lua_pushnil(L);
+  }
+  return 1;
+}
+
 /**
  *  Load the Lua interpreter with the standard libraries
  *  and the broker lua sdk.
@@ -645,6 +671,7 @@ void broker_cache::broker_cache_reg(lua_State* L,
       {"get_notes", l_broker_cache_get_notes},
       {"get_action_url", l_broker_cache_get_action_url},
       {"get_severity", l_broker_cache_get_severity},
+      {"get_check_command", l_broker_cache_get_check_command},
       {nullptr, nullptr}};
 
   if (api_version == 2) {

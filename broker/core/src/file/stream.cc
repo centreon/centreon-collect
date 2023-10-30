@@ -37,9 +37,12 @@ static constexpr double eps = 0.000001;
  *
  *  @param[in] file  Splitted file on which the stream will operate.
  */
-stream::stream(splitter* file, QueueFileStats* s)
+stream::stream(const std::string& path,
+               QueueFileStats* s,
+               uint32_t max_file_size,
+               bool auto_delete)
     : io::stream("file"),
-      _file(file),
+      _splitter(path, max_file_size, auto_delete),
       _stats{s},
       _last_stats{time(nullptr)},
       _last_stats_perc{time(nullptr)},
@@ -56,7 +59,7 @@ stream::stream(splitter* file, QueueFileStats* s)
  *  @return Peer name.
  */
 std::string stream::peer() const {
-  return fmt::format("file://{}", _file->get_file_path());
+  return fmt::format("file://{}", _splitter.get_file_path());
 }
 
 /**
@@ -77,7 +80,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   data->resize(BUFSIZ);
 
   // Read data.
-  long rb(_file->read(data->data(), data->size()));
+  long rb(_splitter.read(data->data(), data->size()));
   if (rb) {
     data->resize(rb);
     d.reset(data.release());
@@ -94,11 +97,11 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 void stream::statistics(nlohmann::json& tree) const {
   // Get base properties.
-  uint32_t max_file_size(_file->max_file_size());
-  int rid(_file->get_rid());
-  long roffset(_file->get_roffset());
-  int wid(_file->get_wid());
-  long woffset(_file->get_woffset());
+  uint32_t max_file_size(_splitter.max_file_size());
+  int rid(_splitter.get_rid());
+  long roffset(_splitter.get_roffset());
+  int wid(_splitter.get_wid());
+  long woffset(_splitter.get_woffset());
 
   // Easy to print.
   tree["file_read_path"] = rid;
@@ -138,7 +141,7 @@ void stream::statistics(nlohmann::json& tree) const {
         }
       }
 
-      if (max_file_size == std::numeric_limits<long>::max()) {
+      if (max_file_size == std::numeric_limits<uint32_t>::max()) {
         tree["file_expected_max_size"] = static_cast<double>(
             fwoffset +
             (fwoffset - _last_write_offset) * (eta - now) / (now - _last_time));
@@ -162,11 +165,11 @@ void stream::_update_stats() {
   if (now > _last_stats) {
     _last_stats = now;
 
-    const double mm = _file->max_file_size();
-    int32_t roffset = _file->get_roffset();
-    int32_t woffset = _file->get_woffset();
-    int32_t wid = _file->get_wid();
-    int32_t rid = _file->get_rid();
+    const double mm = _splitter.max_file_size();
+    int32_t roffset = _splitter.get_roffset();
+    int32_t woffset = _splitter.get_woffset();
+    int32_t wid = _splitter.get_wid();
+    int32_t rid = _splitter.get_rid();
     double a = static_cast<double>(roffset) + static_cast<double>(rid) * mm;
     double b = static_cast<double>(woffset) + static_cast<double>(wid) * mm;
     double m, p;
@@ -268,7 +271,7 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
 
     // Write data.
     while (size > 0) {
-      long wb(_file->write(memory, size));
+      long wb(_splitter.write(memory, size));
       size -= wb;
       memory += wb;
     }
@@ -291,9 +294,9 @@ int32_t stream::stop() {
  *  Remove all the files this stream in concerned by.
  */
 void stream::remove_all_files() {
-  _file->remove_all_files();
+  _splitter.remove_all_files();
 }
 
 uint32_t stream::max_file_size() const {
-  return _file->max_file_size();
+  return _splitter.max_file_size();
 }

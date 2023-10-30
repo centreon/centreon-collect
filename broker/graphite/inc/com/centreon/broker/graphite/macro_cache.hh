@@ -19,10 +19,9 @@
 #ifndef CCB_GRAPHITE_MACRO_CACHE_HH
 #define CCB_GRAPHITE_MACRO_CACHE_HH
 
-#include "bbdo/storage/index_mapping.hh"
-#include "bbdo/storage/metric_mapping.hh"
+#include <absl/container/flat_hash_map.h>
+#include "com/centreon/broker/graphite/internal.hh"
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/instance.hh"
@@ -39,16 +38,17 @@ namespace graphite {
  */
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
-  std::unordered_map<uint64_t, std::shared_ptr<neb::instance> > _instances;
-  std::unordered_map<uint64_t, std::shared_ptr<io::data> > _hosts;
-  std::unordered_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data> >
+  std::unordered_map<uint64_t, std::shared_ptr<io::data>> _instances;
+  std::unordered_map<uint64_t, std::shared_ptr<io::data>> _hosts;
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
-  std::unordered_map<uint64_t, std::shared_ptr<storage::index_mapping> >
+  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_index_mapping>>
       _index_mappings;
-  std::unordered_map<uint64_t, std::shared_ptr<storage::metric_mapping> >
+  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_metric_mapping>>
       _metric_mappings;
 
   void _process_instance(std::shared_ptr<io::data> const& data);
+  void _process_pb_instance(std::shared_ptr<io::data> const& data);
   void _process_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
@@ -65,12 +65,13 @@ class macro_cache {
 
   void write(std::shared_ptr<io::data> const& data);
 
-  storage::index_mapping const& get_index_mapping(uint64_t index_id) const;
-  storage::metric_mapping const& get_metric_mapping(uint64_t metric_id) const;
-  std::string const& get_host_name(uint64_t host_id) const;
-  std::string const& get_service_description(uint64_t host_id,
+  const storage::pb_index_mapping& get_index_mapping(uint64_t index_id) const;
+  const storage::pb_metric_mapping& get_metric_mapping(
+      uint64_t metric_id) const;
+  const std::string& get_host_name(uint64_t host_id) const;
+  const std::string& get_service_description(uint64_t host_id,
                                              uint64_t service_id) const;
-  std::string const& get_instance(uint64_t instance_id) const;
+  const std::string& get_instance(uint64_t instance_id) const;
 };
 }  // namespace graphite
 

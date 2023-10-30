@@ -30,21 +30,38 @@ using namespace com::centreon::broker::grpc;
 
 client::client(const grpc_config::pointer& conf)
     : channel("client", conf), _hold_to_remove(false) {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
   ::grpc::ChannelArguments args;
   args.SetInt(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
-  args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS, 30000);
-  args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, 10000);
+  args.SetInt(GRPC_ARG_KEEPALIVE_TIME_MS,
+              conf->get_second_keepalive_interval() * 1000);
+  args.SetInt(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
+              conf->get_second_keepalive_interval() * 300);
   args.SetInt(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
+  if (!conf->get_ca_name().empty())
+    args.SetString(GRPC_SSL_TARGET_NAME_OVERRIDE_ARG, conf->get_ca_name());
+  if (conf->get_compression() == grpc_config::YES) {
+    grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
+        GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
+
+    const char* algo_name;
+    if (grpc_compression_algorithm_name(algo, &algo_name)) {
+      log_v2::grpc()->debug("client this={:p} activate compression {}",
+                            static_cast<void*>(this), algo_name);
+    } else {
+      log_v2::grpc()->debug("client this={:p} activate compression unknown",
+                            static_cast<void*>(this));
+    }
+    args.SetCompressionAlgorithm(algo);
+  }
   std::shared_ptr<::grpc::ChannelCredentials> creds;
 #ifdef USE_TLS
   if (conf->is_crypted()) {
-    log_v2::grpc()->info(
-        "{} crypted connexion to {} cert: {}..., key: {}..., ca: {}...",
-        __PRETTY_FUNCTION__, conf->get_hostport(),
-        conf->get_cert().substr(0, 10), conf->get_key().substr(0, 10),
-        conf->get_ca().substr(0, 10));
+    SPDLOG_LOGGER_INFO(
+        log_v2::grpc(),
+        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+        conf->get_hostport(), conf->get_cert().substr(0, 10),
+        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
 
     ::grpc::experimental::TlsChannelCredentialsOptions opts;
     creds = ::grpc::experimental::TlsCredentials(opts);
@@ -52,11 +69,11 @@ client::client(const grpc_config::pointer& conf)
   if (conf->is_crypted()) {
     ::grpc::SslCredentialsOptions ssl_opts = {conf->get_ca(), conf->get_key(),
                                               conf->get_cert()};
-    log_v2::grpc()->info(
-        "{} crypted connexion to {} cert: {}..., key: {}..., ca: {}...",
-        __PRETTY_FUNCTION__, conf->get_hostport(),
-        conf->get_cert().substr(0, 10), conf->get_key().substr(0, 10),
-        conf->get_ca().substr(0, 10));
+    SPDLOG_LOGGER_INFO(
+        log_v2::grpc(),
+        "encrypted connection to {} cert: {}..., key: {}..., ca: {}...",
+        conf->get_hostport(), conf->get_cert().substr(0, 10),
+        conf->get_key().substr(0, 10), conf->get_ca().substr(0, 10));
     creds = ::grpc::SslCredentials(ssl_opts);
 #ifdef CAN_USE_JWT
     if (!_conf->get_jwt().empty()) {
@@ -67,8 +84,8 @@ client::client(const grpc_config::pointer& conf)
 #endif
 #endif
   } else {
-    log_v2::grpc()->info("{} uncrypted connexion to {}", __PRETTY_FUNCTION__,
-                         conf->get_hostport());
+    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted connection to {}",
+                       conf->get_hostport());
     creds = ::grpc::InsecureChannelCredentials();
   }
 
@@ -89,12 +106,16 @@ client::pointer client::create(const grpc_config::pointer& conf) {
 }
 
 client::~client() {
-  if (_context) {
-    _context->TryCancel();
-  }
+  shutdown();
   _stub.reset();
   _channel.reset();
   _context.reset();
+}
+
+void client::shutdown() {
+  if (_context) {
+    _context->TryCancel();
+  }
 }
 
 void client::start_read(event_ptr& to_read, bool first_read) {
@@ -123,6 +144,9 @@ void client::start_write(const event_ptr& to_send) {
 void client::OnWriteDone(bool ok) {
   on_write_done(ok);
   if (!ok) {
+    SPDLOG_LOGGER_ERROR(log_v2::grpc(),
+                        "Write failed, server logs should help to understand "
+                        "what's gone wrong");
     remove_hold();
   }
 }

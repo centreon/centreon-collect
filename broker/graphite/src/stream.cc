@@ -78,7 +78,8 @@ stream::stream(std::string const& metric_naming,
     ip::tcp::resolver::iterator it{resolver.resolve(query)};
     ip::tcp::resolver::iterator end;
 
-    std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+    boost::system::error_code err{
+        make_error_code(asio::error::host_unreachable)};
 
     // it can resolve to multiple addresses like ipv4 and ipv6
     // we need to try all to find the first available socket
@@ -96,7 +97,7 @@ stream::stream(std::string const& metric_naming,
           "graphite: can't connect to graphite on host '{}', port '{}' : {}",
           _db_host, _db_port, err.message());
     }
-  } catch (std::system_error const& se) {
+  } catch (boost::system::system_error const& se) {
     throw msg_fmt(
         "graphite: can't connect to graphite on host '{}', port '{}' : {}",
         _db_host, _db_port, se.what());
@@ -178,14 +179,27 @@ int stream::write(std::shared_ptr<io::data> const& data) {
   _cache.write(data);
 
   // Process metric events.
-  if (data->type() ==
-      io::events::data_type<io::storage, storage::de_metric>::value) {
-    if (_process_metric(*std::static_pointer_cast<storage::metric const>(data)))
-      ++_actual_query;
-  } else if (data->type() ==
-             io::events::data_type<io::storage, storage::de_status>::value) {
-    if (_process_status(*std::static_pointer_cast<storage::status const>(data)))
-      ++_actual_query;
+  switch (data->type()) {
+    case storage::metric::static_type():
+      if (_process_metric(
+              *std::static_pointer_cast<storage::metric const>(data)))
+        ++_actual_query;
+      break;
+    case storage::pb_metric::static_type():
+      if (_process_metric(
+              *std::static_pointer_cast<storage::pb_metric const>(data)))
+        ++_actual_query;
+      break;
+    case storage::status::static_type():
+      if (_process_status(
+              *std::static_pointer_cast<storage::status const>(data)))
+        ++_actual_query;
+      break;
+    case storage::pb_status::static_type():
+      if (_process_status(
+              *std::static_pointer_cast<storage::pb_status const>(data)))
+        ++_actual_query;
+      break;
   }
   if (_actual_query >= _queries_per_transaction)
     _commit_flag = true;
@@ -202,6 +216,17 @@ int stream::write(std::shared_ptr<io::data> const& data) {
  *  @param[in] me  The event to process.
  */
 bool stream::_process_metric(storage::metric const& me) {
+  storage::pb_metric converted;
+  me.convert_to_pb(converted.mut_obj());
+  return _process_metric(converted);
+}
+
+/**
+ *  Process a metric event.
+ *
+ *  @param[in] me  The event to process.
+ */
+bool stream::_process_metric(storage::pb_metric const& me) {
   std::string to_append = _metric_query.generate_metric(me);
   _query.append(to_append);
   return !to_append.empty();
@@ -213,6 +238,17 @@ bool stream::_process_metric(storage::metric const& me) {
  *  @param[in] st  The status event.
  */
 bool stream::_process_status(storage::status const& st) {
+  storage::pb_status converted;
+  st.convert_to_pb(converted.mut_obj());
+  return _process_status(converted);
+}
+
+/**
+ *  Process a status event.
+ *
+ *  @param[in] st  The status event.
+ */
+bool stream::_process_status(storage::pb_status const& st) {
   std::string to_append = _status_query.generate_status(st);
   _query.append(to_append);
   return !to_append.empty();
@@ -223,7 +259,7 @@ bool stream::_process_status(storage::status const& st) {
  */
 void stream::_commit() {
   if (!_query.empty()) {
-    std::error_code err;
+    boost::system::error_code err;
 
     asio::write(_socket, buffer(_query), asio::transfer_all(), err);
     if (err)

@@ -19,6 +19,7 @@
 #ifndef CCB_NEB_PRECOMP_HH
 #define CCB_NEB_PRECOMP_HH
 
+#include <chrono>
 #include <condition_variable>
 #include <ctime>
 #include <deque>
@@ -37,8 +38,14 @@
 #include <absl/strings/string_view.h>
 
 #include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #endif

@@ -30,6 +30,7 @@ namespace retention {
 class service : public object {
  public:
   service();
+  service(type_id object_type);
   service(service const& right);
   ~service() throw() override;
   service& operator=(service const& right);

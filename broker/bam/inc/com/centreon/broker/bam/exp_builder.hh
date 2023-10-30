@@ -41,27 +41,27 @@ class exp_builder {
   using list_service = std::list<bool_service::ptr>;
   using any_operand = std::pair<bool_value::ptr, std::string>;
 
-  exp_builder(exp_parser::notation const& postfix,
-              hst_svc_mapping const& mapping);
-  exp_builder(exp_parser::notation const& postfix);
-  ~exp_builder() noexcept = default;
-  list_call const& get_calls() const;
-  list_service const& get_services() const;
-  bool_value::ptr get_tree() const;
-
  private:
-  exp_builder(exp_builder const& other);
-  exp_builder& operator=(exp_builder const& other);
-  void _check_arity(std::string const& func, int expected, int given);
-  bool _is_static_function(std::string const& str) const;
-  bool_value::ptr _pop_operand();
-  std::string _pop_string();
-
   hst_svc_mapping const& _mapping;
   list_call _calls;
   list_service _services;
   std::stack<any_operand> _operands;
   bool_value::ptr _tree;
+
+  void _check_arity(std::string const& func, int expected, int given);
+  bool _is_static_function(std::string const& str) const;
+  bool_value::ptr _pop_operand();
+  std::string _pop_string();
+
+ public:
+  exp_builder(exp_parser::notation const& postfix,
+              hst_svc_mapping const& mapping);
+  exp_builder(const exp_builder&) = delete;
+  exp_builder& operator=(const exp_builder&);
+  ~exp_builder() noexcept = default;
+  list_call const& get_calls() const;
+  list_service const& get_services() const;
+  bool_value::ptr get_tree() const;
 };
 }  // namespace bam
 

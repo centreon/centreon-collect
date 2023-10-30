@@ -170,7 +170,7 @@ void process::exec(char const* cmd, char** env, uint32_t timeout) {
 
     // Parse and get command line arguments.
     misc::command_line cmdline(cmd);
-    char** args = cmdline.get_argv();
+    char* const* args = cmdline.get_argv();
 
     // volatile prevent compiler optimization
     // that might clobber variable.
@@ -494,7 +494,7 @@ void process::_close(int& fd) noexcept {
   fd = -1;
 }
 
-pid_t process::_create_process_with_setpgid(char** args, char** env) {
+pid_t process::_create_process_with_setpgid(char* const* args, char** env) {
   pid_t pid(static_cast<pid_t>(-1));
 #ifdef HAVE_SPAWN_H
   posix_spawnattr_t attr;
@@ -541,7 +541,7 @@ pid_t process::_create_process_with_setpgid(char** args, char** env) {
   return pid;
 }
 
-pid_t process::_create_process_without_setpgid(char** args, char** env) {
+pid_t process::_create_process_without_setpgid(char* const* args, char** env) {
   pid_t pid(static_cast<pid_t>(-1));
 #ifdef HAVE_SPAWN_H
   if (posix_spawnp(&pid, args[0], NULL, NULL, args, env)) {

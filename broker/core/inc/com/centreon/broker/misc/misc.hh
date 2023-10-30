@@ -20,6 +20,7 @@
 #define CCB_MISC_MISC_HH
 
 #include "com/centreon/broker/misc/perfdata.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -31,12 +32,20 @@ uint16_t crc16_ccitt(char const* data, uint32_t data_len);
 std::string exec(std::string const& cmd);
 int32_t exec_process(char const** argv, bool wait_for_completion);
 std::vector<char> from_hex(std::string const& str);
-std::string dump_filters(const absl::flat_hash_set<uint32_t>& filters);
+std::string dump_filters(const multiplexing::muxer_filter& filters);
 std::list<perfdata> parse_perfdata(uint32_t host_id,
                                    uint32_t service_id,
                                    const char* str);
+#if DEBUG_ROBOT
+void debug(const std::string& content);
+#endif
 }  // namespace misc
 
+#if DEBUG_ROBOT
+#define DEBUG(content) misc::debug(content)
+#else
+#define DEBUG(content)
+#endif
 CCB_END()
 
 #endif  // !CCB_MISC_MISC_HH

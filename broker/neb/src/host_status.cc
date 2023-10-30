@@ -18,16 +18,10 @@
 
 #include "com/centreon/broker/neb/host_status.hh"
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  @brief Constructor.
@@ -165,7 +159,9 @@ mapping::entry const host_status::entries[] = {
                    false),
     mapping::entry(&host_status::no_more_notifications,
                    "no_more_notifications"),
-    mapping::entry(&host_status::notification_number, "notification_number"),
+    mapping::entry(&host_status::notification_number,
+                   "notification_number",
+                   mapping::entry::invalid_on_negative),
     mapping::entry(&host_status::notifications_enabled, "notify"),
     mapping::entry(&host_status::obsess_over, "obsess_over_host"),
     mapping::entry(&host_status::passive_checks_enabled, "passive_checks"),

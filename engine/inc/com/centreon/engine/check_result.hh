@@ -31,11 +31,13 @@ CCE_BEGIN()
 class notifier;
 class check_result {
  public:
-  check_result() = delete;
+  using pointer = std::shared_ptr<check_result>;
+
+  check_result();
   check_result(enum check_source object_check_type,
                notifier* notifier,
                enum checkable::check_type check_type,
-               int check_options,
+               unsigned check_options,
                bool reschedule_check,
                double latency,
                struct timeval start_time,
@@ -43,42 +45,43 @@ class check_result {
                bool early_timeout,
                bool exited_ok,
                int return_code,
-               std::string const& output);
-  check_result(check_result const&) = delete;
-  check_result(check_result&&) = delete;
-  check_result& operator=(check_result const&) = delete;
+               std::string output);
 
-  enum check_source get_object_check_type() const;
+  inline enum check_source get_object_check_type() const {
+    return _object_check_type;
+  }
   void set_object_check_type(enum check_source object_check_type);
-  notifier* get_notifier();
+  inline notifier* get_notifier() { return _notifier; }
   void set_notifier(notifier* notifier);
-  struct timeval get_finish_time() const;
+  inline struct timeval get_finish_time() const { return _finish_time; }
   void set_finish_time(struct timeval finish_time);
-  struct timeval get_start_time() const;
+  inline struct timeval get_start_time() const { return _start_time; }
   void set_start_time(struct timeval start_time);
-  int get_return_code() const;
+  inline int get_return_code() const { return _return_code; }
   void set_return_code(int return_code);
-  bool get_early_timeout() const;
+  inline bool get_early_timeout() const { return _early_timeout; }
   void set_early_timeout(bool early_timeout);
-  std::string const& get_output() const;
+  inline const std::string& get_output() const { return _output; }
   void set_output(std::string const& output);
-  bool get_exited_ok() const;
+  inline bool get_exited_ok() const { return _exited_ok; }
   void set_exited_ok(bool exited_ok);
-  bool get_reschedule_check() const;
+  inline bool get_reschedule_check() const { return _reschedule_check; }
   void set_reschedule_check(bool reschedule_check);
-  enum checkable::check_type get_check_type() const;
+  inline enum checkable::check_type get_check_type() const {
+    return _check_type;
+  };
   void set_check_type(enum checkable::check_type check_type);
-  double get_latency() const;
+  inline double get_latency() const { return _latency; };
   void set_latency(double latency);
-  int get_check_options() const;
-  void set_check_options(int check_options);
+  inline unsigned get_check_options() const { return _check_options; };
+  void set_check_options(unsigned check_options);
 
  private:
   enum check_source _object_check_type;  // is this a service or a host check?
   notifier* _notifier;
   // was this an active or passive service check?
   enum checkable::check_type _check_type;
-  int _check_options;
+  unsigned _check_options;
   bool _reschedule_check;  // should we reschedule the next check
   double _latency;
   struct timeval _start_time;   // time the service check was initiated

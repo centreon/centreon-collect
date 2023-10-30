@@ -33,7 +33,7 @@ using namespace com::centreon::broker::sql;
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {}
+connector::connector() : io::endpoint(false, {}) {}
 
 /**
  *  Set connection parameters.
@@ -63,8 +63,8 @@ void connector::connect_to(database_config const& dbcfg,
  *
  *  @return SQL connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
-  return std::unique_ptr<io::stream>(
+std::shared_ptr<io::stream> connector::open() {
+  return std::shared_ptr<io::stream>(
       new stream(_dbcfg, _cleanup_check_interval, _loop_timeout,
                  _instance_timeout, _with_state_events));
 }

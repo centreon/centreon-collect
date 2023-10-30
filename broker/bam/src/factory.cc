@@ -18,9 +18,10 @@
 
 #include "com/centreon/broker/bam/factory.hh"
 
+#include <absl/strings/match.h>
 #include "com/centreon/broker/bam/connector.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/database_config.hh"
+#include "com/centreon/broker/sql/database_config.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -37,8 +38,8 @@ using namespace com::centreon::broker::bam;
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("BAM", false, false);
-  bool is_bam{!strncasecmp("bam", cfg.type.c_str(), 4)};
-  bool is_bam_bi{!strncasecmp("bam_bi", cfg.type.c_str(), 7)};
+  bool is_bam{absl::EqualsIgnoreCase("bam", cfg.type)};
+  bool is_bam_bi{absl::EqualsIgnoreCase("bam_bi", cfg.type)};
   if (is_bam || is_bam_bi)
     cfg.read_timeout = 1;
 
@@ -65,7 +66,7 @@ io::endpoint* factory::new_endpoint(
   database_config db_cfg(cfg);
 
   // Is it a BAM or BAM-BI output ?
-  bool is_bam_bi{!strncasecmp(cfg.type.c_str(), "bam_bi", 7)};
+  bool is_bam_bi{absl::EqualsIgnoreCase(cfg.type, "bam_bi")};
 
   // External command file.
   std::string ext_cmd_file;
@@ -87,11 +88,12 @@ io::endpoint* factory::new_endpoint(
   }
 
   // Connector.
-  std::unique_ptr<bam::connector> c(new bam::connector);
+  std::unique_ptr<bam::connector> c;
   if (is_bam_bi)
-    c->connect_reporting(db_cfg);
+    c = connector::create_reporting_connector(db_cfg);
   else
-    c->connect_monitoring(ext_cmd_file, db_cfg, storage_db_name, cache);
+    c = connector::create_monitoring_connector(ext_cmd_file, db_cfg,
+                                               storage_db_name, cache);
   is_acceptor = false;
   return c.release();
 }

@@ -1,6 +1,6 @@
 /*
 ** Copyright 1999-2008           Ethan Galstad
-** Copyright 2011-2013,2015-2020 Centreon
+** Copyright 2011-2013,2015-2022 Centreon
 **
 ** This file is part of Centreon Engine.
 **
@@ -21,6 +21,7 @@
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
 
+#include <absl/strings/escaping.h>
 #include <sys/time.h>
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -163,8 +164,9 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   char* svc_description(nullptr);
   char* user(nullptr);
   char* comment_data(nullptr);
-  int persistent(0);
+  bool persistent{false};
   uint64_t service_id = 0;
+  const char* command_name;
 
   /* get the host name */
   if ((host_name = my_strtok(args, ";")) == nullptr)
@@ -172,6 +174,8 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
 
   /* if we're adding a service comment...  */
   if (cmd == CMD_ADD_SVC_COMMENT) {
+    command_name = "ADD_SVC_COMMENT";
+
     /* get the service description */
     if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
       return ERROR;
@@ -181,7 +185,9 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
         service::services.find({host_name, svc_description}));
     if (found == service::services.end() || !found->second)
       return ERROR;
-    service_id = found->second->get_service_id();
+    service_id = found->second->service_id();
+  } else {
+    command_name = "ADD_HOST_COMMENT";
   }
 
   /* else verify that the host is valid */
@@ -195,11 +201,13 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
   /* get the persistent flag */
   if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
     return ERROR;
-  persistent = atoi(temp_ptr);
-  if (persistent > 1)
-    persistent = 1;
-  else if (persistent < 0)
-    persistent = 0;
+
+  if (!absl::SimpleAtob(temp_ptr, &persistent)) {
+    log_v2::external_command()->error(
+        "Error: could not {} : persistent '{}' must be 1 or 0", command_name,
+        temp_ptr);
+    return ERROR;
+  }
 
   /* get the name of the user who entered the comment */
   if ((user = my_strtok(nullptr, ";")) == nullptr)
@@ -210,26 +218,31 @@ int cmd_add_comment(int cmd, time_t entry_time, char* args) {
     return ERROR;
 
   /* add the comment */
-  std::shared_ptr<comment> com{new comment(
+  auto com = std::make_shared<comment>(
       (cmd == CMD_ADD_HOST_COMMENT) ? comment::host : comment::service,
-      comment::user, temp_host->get_host_id(), service_id, entry_time, user,
-      comment_data, persistent, comment::external, false, (time_t)0)};
-  comment::comments.insert({com->get_comment_id(), com});
-
+      comment::user, temp_host->host_id(), service_id, entry_time, user,
+      comment_data, persistent, comment::external, false, (time_t)0);
+  uint64_t comment_id = com->get_comment_id();
+  comment::comments.insert({comment_id, com});
+  log_v2::external_command()->trace("{}, comment_id: {}, data: {}",
+                                    command_name, comment_id,
+                                    com->get_comment_data());
   return OK;
 }
 
 /* removes a host or service comment from the status log */
-int cmd_delete_comment(int cmd[[maybe_unused]], char* args) {
+int cmd_delete_comment(int cmd [[maybe_unused]], char* args) {
   uint64_t comment_id{0};
-
   /* get the comment id we should delete */
-  if ((comment_id = strtoul(args, nullptr, 10)) == 0)
+  if (!absl::SimpleAtoi(args, &comment_id)) {
+    log_v2::external_command()->error(
+        "Error: could not delete comment : comment_id '{}' must be an "
+        "integer >= 0",
+        args);
     return ERROR;
-
+  }
   /* delete the specified comment */
   comment::delete_comment(comment_id);
-
   return OK;
 }
 
@@ -258,8 +271,8 @@ int cmd_delete_all_comments(int cmd, char* args) {
     if (temp_service == nullptr)
       return ERROR;
     /* delete comments */
-    comment::delete_service_comments(temp_service->get_host_id(),
-                                     temp_service->get_service_id());
+    comment::delete_service_comments(temp_service->host_id(),
+                                     temp_service->service_id());
   } else {
     /* else verify that the host is valid */
     host_map::const_iterator it(host::hosts.find(host_name));
@@ -268,7 +281,7 @@ int cmd_delete_all_comments(int cmd, char* args) {
     if (temp_host == nullptr)
       return ERROR;
     /* delete comments */
-    comment::delete_host_comments(temp_host->get_host_id());
+    comment::delete_host_comments(temp_host->host_id());
   }
   return OK;
 }
@@ -312,7 +325,13 @@ int cmd_delay_notification(int cmd, char* args) {
   /* get the time that we should delay until... */
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
-  delay_time = strtoul(temp_ptr, nullptr, 10);
+  if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
+    log_v2::external_command()->error(
+        "Error: could not delay notification : delay_time '{}' must be "
+        "an integer",
+        temp_ptr);
+    return ERROR;
+  }
 
   /* delay the next notification... */
   if (cmd == CMD_DELAY_HOST_NOTIFICATION)
@@ -361,7 +380,13 @@ int cmd_schedule_check(int cmd, char* args) {
   /* get the next check time */
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
-  delay_time = strtoul(temp_ptr, nullptr, 10);
+  if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
+    log_v2::external_command()->error(
+        "Error: could not schedule check : delay_time '{}' must be "
+        "an integer",
+        temp_ptr);
+    return ERROR;
+  }
 
   /* schedule the host check */
   if (cmd == CMD_SCHEDULE_HOST_CHECK || cmd == CMD_SCHEDULE_FORCED_HOST_CHECK)
@@ -416,7 +441,13 @@ int cmd_schedule_host_service_checks(int cmd, char* args, int force) {
   /* get the next check time */
   if ((temp_ptr = my_strtok(nullptr, "\n")) == nullptr)
     return ERROR;
-  delay_time = strtoul(temp_ptr, nullptr, 10);
+  if (!absl::SimpleAtoi(temp_ptr, &delay_time)) {
+    log_v2::external_command()->error(
+        "Error: could not schedule host service checks : delay_time '{}' "
+        "must be an integer",
+        temp_ptr);
+    return ERROR;
+  }
 
   /* reschedule all services on the specified host */
   for (service_map_unsafe::iterator it(temp_host->services.begin()),
@@ -439,15 +470,21 @@ void cmd_signal_process(int cmd, char* args) {
   /* get the time to schedule the event */
   if ((temp_ptr = my_strtok(args, "\n")) == nullptr)
     scheduled_time = 0L;
-  else
-    scheduled_time = strtoul(temp_ptr, nullptr, 10);
+  else if (!absl::SimpleAtoi(temp_ptr, &scheduled_time)) {
+    log_v2::external_command()->error(
+        "Error: could not signal process : scheduled_time '{}' "
+        "must be an integer",
+        temp_ptr);
+    return;
+  }
 
   /* add a scheduled program shutdown or restart to the event list */
-  timed_event* evt = new timed_event(
-      (cmd == CMD_SHUTDOWN_PROCESS) ? timed_event::EVENT_PROGRAM_SHUTDOWN
-                                    : timed_event::EVENT_PROGRAM_RESTART,
-      scheduled_time, false, 0, nullptr, false, nullptr, nullptr, 0);
-  events::loop::instance().schedule(evt, true);
+  events::loop::instance().schedule(
+      std::make_unique<timed_event>(
+          cmd == CMD_SHUTDOWN_PROCESS ? timed_event::EVENT_PROGRAM_SHUTDOWN
+                                      : timed_event::EVENT_PROGRAM_RESTART,
+          scheduled_time, false, 0, nullptr, false, nullptr, nullptr, 0),
+      true);
 }
 
 /**
@@ -459,44 +496,110 @@ void cmd_signal_process(int cmd, char* args) {
  *
  *  @return OK on success.
  */
-int cmd_process_service_check_result(int cmd, time_t check_time, char* args) {
-  (void)cmd;
-
-  if (!args)
+int cmd_process_service_check_result(int cmd [[maybe_unused]],
+                                     time_t check_time,
+                                     char* args) {
+  /* skip this service check result if we aren't accepting passive service
+   * checks */
+  if (!config->accept_passive_service_checks())
     return ERROR;
-  char* delimiter;
 
-  // Get the host name.
-  char* host_name(args);
-
-  // Get the service description.
-  delimiter = strchr(host_name, ';');
-  if (!delimiter)
+  auto a{absl::StrSplit(args, absl::MaxSplits(';', 3))};
+  auto ait = a.begin();
+  if (ait == a.end())
     return ERROR;
-  *delimiter = '\0';
-  ++delimiter;
-  char* svc_description(delimiter);
 
-  // Get the service check return code and output.
-  delimiter = strchr(svc_description, ';');
-  if (!delimiter)
+  std::string real_host_name;
+  auto host_name = *ait;
+  ++ait;
+
+  if (ait == a.end())
     return ERROR;
-  *delimiter = '\0';
-  ++delimiter;
-  char* output(strchr(delimiter, ';'));
-  if (output) {
-    *output = '\0';
-    ++output;
-  } else
-    output = "";
-  int return_code(strtol(delimiter, nullptr, 0));
+  std::string svc_description{ait->data(), ait->size()};
+  ++ait;
+
+  /* find the host by its name or address */
+  host_map::const_iterator it(host::hosts.find(host_name));
+  if (it != host::hosts.end() && it->second)
+    real_host_name = std::string(host_name.data(), host_name.size());
+  else {
+    for (host_map::iterator itt = host::hosts.begin(), end = host::hosts.end();
+         itt != end; ++itt) {
+      if (itt->second && itt->second->get_address() == host_name) {
+        real_host_name = itt->first;
+        it = itt;
+        break;
+      }
+    }
+  }
+
+  /* we couldn't find the host */
+  if (real_host_name.empty()) {
+    engine_logger(log_runtime_warning, basic)
+        << "Warning:  Passive check result was received for service '"
+        << svc_description << "' on host '" << real_host_name
+        << "', but the host could not be found!";
+    log_v2::runtime()->warn(
+        "Warning:  Passive check result was received for service '{}' on host "
+        "'{}', but the host could not be found!",
+        fmt::string_view(svc_description.data(), svc_description.size()),
+        fmt::string_view(host_name.data(), host_name.size()));
+    return ERROR;
+  }
+
+  /* make sure the service exists */
+  service_map::const_iterator found(
+      service::services.find({real_host_name, svc_description}));
+  if (found == service::services.end() || !found->second) {
+    engine_logger(log_runtime_warning, basic)
+        << "Warning:  Passive check result was received for service '"
+        << svc_description << "' on host '" << real_host_name
+        << "', but the service could not be found!";
+    log_v2::runtime()->warn(
+        "Warning:  Passive check result was received for service '{}' on "
+        "host "
+        "'{}', but the service could not be found!",
+        svc_description, host_name);
+    return ERROR;
+  }
+
+  /* skip this is we aren't accepting passive checks for this service */
+  if (!found->second->passive_checks_enabled())
+    return ERROR;
+
+  int32_t return_code;
+  if (!absl::SimpleAtoi(*ait, &return_code))
+    return ERROR;
+  ++ait;
 
   // replace \\n with \n
-  string::unescape(output);
+  std::string output;
+  absl::CUnescape(*ait, &output);
 
-  // Submit the passive check result.
-  return process_passive_service_check(check_time, host_name, svc_description,
-                                       return_code, output);
+  timeval tv;
+  gettimeofday(&tv, nullptr);
+
+  timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
+
+  check_result::pointer result = std::make_shared<check_result>(
+      service_check, found->second.get(), checkable::check_passive,
+      CHECK_OPTION_NONE, false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec / 1000000.0),
+      set_tv, set_tv, false, true, return_code, std::move(output));
+
+  /* make sure the return code is within bounds */
+  if (result->get_return_code() < 0 || result->get_return_code() > 3) {
+    result->set_return_code(service::state_unknown);
+  }
+
+  if (result->get_latency() < 0.0) {
+    result->set_latency(0.0);
+  }
+
+  checks::checker::instance().add_check_result_to_reap(result);
+
+  return OK;
 }
 
 /* submits a passive service check result for later processing */
@@ -570,12 +673,12 @@ int process_passive_service_check(time_t check_time,
 
   timeval set_tv = {.tv_sec = check_time, .tv_usec = 0};
 
-  check_result* result =
-      new check_result(service_check, found->second.get(),
-                       checkable::check_passive, CHECK_OPTION_NONE, false,
-                       static_cast<double>(tv.tv_sec - check_time) +
-                           static_cast<double>(tv.tv_usec / 1000000.0),
-                       set_tv, set_tv, false, true, return_code, output);
+  check_result::pointer result = std::make_shared<check_result>(
+      service_check, found->second.get(), checkable::check_passive,
+      CHECK_OPTION_NONE, false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec / 1000000.0),
+      set_tv, set_tv, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3) {
@@ -684,12 +787,12 @@ int process_passive_host_check(time_t check_time,
   gettimeofday(&tv, nullptr);
   timeval tv_start = {.tv_sec = check_time, .tv_usec = 0};
 
-  check_result* result =
-      new check_result(host_check, it->second.get(), checkable::check_passive,
-                       CHECK_OPTION_NONE, false,
-                       static_cast<double>(tv.tv_sec - check_time) +
-                           static_cast<double>(tv.tv_usec / 1000000.0),
-                       tv_start, tv_start, false, true, return_code, output);
+  check_result::pointer result = std::make_shared<check_result>(
+      host_check, it->second.get(), checkable::check_passive, CHECK_OPTION_NONE,
+      false,
+      static_cast<double>(tv.tv_sec - check_time) +
+          static_cast<double>(tv.tv_usec / 1000000.0),
+      tv_start, tv_start, false, true, return_code, output);
 
   /* make sure the return code is within bounds */
   if (result->get_return_code() < 0 || result->get_return_code() > 3)
@@ -709,7 +812,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   std::string svc_description;
   std::string ack_author;
   std::string ack_data;
-  int type(ACKNOWLEDGEMENT_NORMAL);
+  int type(AckType::NORMAL);
   int notify(true);
   int persistent(true);
   service_map::const_iterator found;
@@ -732,7 +835,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
       return ERROR;
 
     /* verify that the service is valid */
-    found = service::services.find({it->second->get_name(), svc_description});
+    found = service::services.find({it->second->name(), svc_description});
 
     if (found == service::services.end() || !found->second)
       return ERROR;
@@ -741,6 +844,7 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   /* get the type */
   if (!arg.extract(';', type))
     return ERROR;
+  log_v2::external_command()->trace("New acknowledgement with type {}", type);
 
   /* get the notification option */
   int ival;
@@ -777,145 +881,172 @@ int cmd_acknowledge_problem(int cmd, char* args) {
 
 /* removes a host or service acknowledgement */
 int cmd_remove_acknowledgement(int cmd, char* args) {
-  std::string host_name;
-  std::string svc_description;
-  service_map::const_iterator found;
-
-  string::c_strtok arg(args);
-
-  /* get the host name */
-  if (!arg.extract(';', host_name))
+  auto a{absl::StrSplit(args, ';')};
+  auto ait = a.begin();
+  if (ait == a.end())
     return ERROR;
 
   /* verify that the host is valid */
-  host_map::const_iterator it(host::hosts.find(host_name));
-  if (it == host::hosts.end() || !it->second)
-    return ERROR;
+  auto hostname = *ait;
+  ++ait;
 
-  /* we are removing a service acknowledgement */
-  if (cmd == CMD_REMOVE_SVC_ACKNOWLEDGEMENT) {
-    /* get the service name */
-    if (!arg.extract(';', svc_description))
-      return ERROR;
+  switch (cmd) {
+    case CMD_REMOVE_HOST_ACKNOWLEDGEMENT: {
+      host_map::const_iterator hit = host::hosts.find(hostname);
+      if (hit == host::hosts.end() || !hit->second)
+        return ERROR;
+      remove_host_acknowledgement(hit->second.get());
+    } break;
+    case CMD_REMOVE_SVC_ACKNOWLEDGEMENT:
+      /* we are removing a service acknowledgement */
+      {
+        /* get the service name */
+        if (ait == a.end())
+          return ERROR;
 
-    /* verify that the service is valid */
-    found = service::services.find({it->second->get_name(), svc_description});
+        /* verify that the service is valid */
+        service_map::const_iterator sit = service::services.find(
+            std::make_pair(std::string(hostname.data(), hostname.size()),
+                           std::string(ait->data(), ait->size())));
 
-    if (found == service::services.end() || !found->second)
-      return ERROR;
+        if (sit == service::services.end() || !sit->second)
+          return ERROR;
+        remove_service_acknowledgement(sit->second.get());
+      }
+      break;
   }
-
-  /* acknowledge the host problem */
-  if (cmd == CMD_REMOVE_HOST_ACKNOWLEDGEMENT)
-    remove_host_acknowledgement(it->second.get());
-
-  /* acknowledge the service problem */
-  else
-    remove_service_acknowledgement(found->second.get());
-
   return OK;
 }
 
 /* schedules downtime for a specific host or service */
 int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   host* temp_host{nullptr};
+  service* temp_service{nullptr};
   host* last_host{nullptr};
   hostgroup* hg{nullptr};
-  char* host_name{nullptr};
-  char* hostgroup_name{nullptr};
-  char* servicegroup_name{nullptr};
-  char* svc_description{nullptr};
-  char* temp_ptr{nullptr};
   time_t start_time{0};
   time_t end_time{0};
-  int fixed{0};
+  bool fixed{false};
   uint64_t triggered_by{0};
   unsigned long duration{0};
-  char* author{nullptr};
-  char* comment_data{nullptr};
   uint64_t downtime_id{0};
   servicegroup_map::const_iterator sg_it;
+
+  auto a{absl::StrSplit(args, ';')};
+  auto ait = a.begin();
+
+  if (ait == a.end())
+    return ERROR;
 
   if (cmd == CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME ||
       cmd == CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME) {
     /* get the hostgroup name */
-    if ((hostgroup_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    hostgroup_map::const_iterator it(
-        hostgroup::hostgroups.find(hostgroup_name));
+    hostgroup_map::const_iterator it = hostgroup::hostgroups.find(*ait);
     if (it == hostgroup::hostgroups.end() || !it->second)
       return ERROR;
     hg = it->second.get();
+    ++ait;
   } else if (cmd == CMD_SCHEDULE_SERVICEGROUP_HOST_DOWNTIME ||
              cmd == CMD_SCHEDULE_SERVICEGROUP_SVC_DOWNTIME) {
     /* get the servicegroup name */
-    if ((servicegroup_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    /* verify that the servicegroup is valid */
-    sg_it = servicegroup::servicegroups.find(servicegroup_name);
+    sg_it = servicegroup::servicegroups.find(*ait);
     if (sg_it == servicegroup::servicegroups.end() || !sg_it->second)
       return ERROR;
+    ++ait;
   } else {
     /* get the host name */
-    if ((host_name = my_strtok(args, ";")) == nullptr)
-      return ERROR;
-
-    /* verify that the host is valid */
-    temp_host = nullptr;
-    host_map::const_iterator it{host::hosts.find(host_name)};
+    host_map::const_iterator it{host::hosts.find(*ait)};
     if (it == host::hosts.end() || !it->second)
       return ERROR;
+    ++ait;
     temp_host = it->second.get();
 
     /* this is a service downtime */
     if (cmd == CMD_SCHEDULE_SVC_DOWNTIME) {
       /* get the service name */
-      if ((svc_description = my_strtok(nullptr, ";")) == nullptr)
+      if (ait == a.end())
         return ERROR;
-
-      /* verify that the service is valid */
-      service_map::const_iterator found(
-          service::services.find({temp_host->get_name(), svc_description}));
+      service_map::const_iterator found = service::services.find(
+          {temp_host->name(), std::string(ait->data(), ait->size())});
 
       if (found == service::services.end() || !found->second)
         return ERROR;
+      ++ait;
+      temp_service = found->second.get();
     }
   }
 
   /* get the start time */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  start_time = (time_t)strtoul(temp_ptr, nullptr, 10);
+  if (!absl::SimpleAtoi(*ait, &start_time)) {
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : start_time '{}' must be "
+        "an integer",
+        *ait);
+    return ERROR;
+  }
+  ++ait;
 
   /* get the end time */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  end_time = (time_t)strtoul(temp_ptr, nullptr, 10);
+  if (!absl::SimpleAtoi(*ait, &end_time)) {
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : end_time '{}' must be "
+        "an integer",
+        *ait);
+    return ERROR;
+  }
+  ++ait;
 
   /* get the fixed flag */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  fixed = atoi(temp_ptr);
+  if (!absl::SimpleAtob(*ait, &fixed)) {
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : fixed '{}' must be 1 or 0", *ait);
+    return ERROR;
+  }
+  ++ait;
 
   /* get the trigger id */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  triggered_by = strtoul(temp_ptr, nullptr, 10);
+  if (!absl::SimpleAtoi(*ait, &triggered_by)) {
+    log_v2::external_command()->error(
+        "Error: could not schedule downtime : triggered_by '{}' must be an "
+        "integer >= 0",
+        *ait);
+    return ERROR;
+  }
+  ++ait;
 
   /* get the duration */
-  if ((temp_ptr = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
-  duration = strtoul(temp_ptr, nullptr, 10);
+  if (!ait->empty()) {
+    if (!absl::SimpleAtoi(*ait, &duration)) {
+      log_v2::external_command()->error(
+          "Error: could not schedule downtime : duration '{}' must be an "
+          "integer "
+          ">= 0",
+          *ait);
+      return ERROR;
+    }
+  }
+  ++ait;
 
   /* get the author */
-  if ((author = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
+  std::string author(ait->data(), ait->size());
+  ++ait;
 
   /* get the comment */
-  if ((comment_data = my_strtok(nullptr, ";")) == nullptr)
+  if (ait == a.end())
     return ERROR;
+  std::string comment_data(ait->data(), ait->size());
 
   /* check if flexible downtime demanded and duration set to non-zero.
   ** according to the documentation, a flexible downtime is started
@@ -923,50 +1054,55 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
   ** strtoul converts a nullptr value to 0 so if set to 0, bail out as a
   ** duration>0 is needed.
   */
-  if (!fixed && !duration)
+  if (!fixed && !duration) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "no duration defined for a fixed downtime");
     return ERROR;
+  }
 
   /* duration should be auto-calculated, not user-specified */
-  if (fixed > 0)
+  if (fixed)
     duration = (unsigned long)(end_time - start_time);
 
   /* schedule downtime */
   switch (cmd) {
     case CMD_SCHEDULE_HOST_DOWNTIME:
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, host_name, "", entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_SVC_DOWNTIME:
       downtime_manager::instance().schedule_downtime(
-          downtime::service_downtime, host_name, svc_description, entry_time,
-          author, comment_data, start_time, end_time, fixed, triggered_by,
+          downtime::service_downtime, temp_service->host_id(),
+          temp_service->service_id(), entry_time, author.c_str(),
+          comment_data.c_str(), start_time, end_time, fixed, triggered_by,
           duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_HOST_SVC_DOWNTIME:
-      for (service_map_unsafe::iterator it(temp_host->services.begin()),
-           end(temp_host->services.end());
+      for (service_map_unsafe::iterator it = temp_host->services.begin(),
+                                        end = temp_host->services.end();
            it != end; ++it) {
         if (!it->second)
           continue;
         downtime_manager::instance().schedule_downtime(
-            downtime::service_downtime, host_name,
-            it->second->get_description(), entry_time, author, comment_data,
-            start_time, end_time, fixed, triggered_by, duration, &downtime_id);
+            downtime::service_downtime, temp_host->host_id(),
+            it->second->service_id(), entry_time, author.c_str(),
+            comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+            duration, &downtime_id);
       }
       break;
 
     case CMD_SCHEDULE_HOSTGROUP_HOST_DOWNTIME:
-      for (host_map_unsafe::iterator it(hg->members.begin()),
-           end(hg->members.end());
+      for (host_map_unsafe::iterator it = hg->members.begin(),
+                                     end = hg->members.end();
            it != end; ++it)
         downtime_manager::instance().schedule_downtime(
-            downtime::host_downtime, it->first, "", entry_time, author,
-            comment_data, start_time, end_time, fixed, triggered_by, duration,
-            &downtime_id);
+            downtime::host_downtime, it->second->host_id(), 0, entry_time,
+            author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+            triggered_by, duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_HOSTGROUP_SVC_DOWNTIME:
@@ -975,16 +1111,16 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            it != end; ++it) {
         if (!it->second)
           continue;
-        for (service_map_unsafe::iterator it2(it->second->services.begin()),
-             end2(it->second->services.end());
+        for (service_map_unsafe::iterator it2 = it->second->services.begin(),
+                                          end2 = it->second->services.end();
              it2 != end2; ++it2) {
           if (!it2->second)
             continue;
           downtime_manager::instance().schedule_downtime(
-              downtime::service_downtime, it2->second->get_hostname(),
-              it2->second->get_description(), entry_time, author, comment_data,
-              start_time, end_time, fixed, triggered_by, duration,
-              &downtime_id);
+              downtime::service_downtime, it2->second->host_id(),
+              it2->second->service_id(), entry_time, author.c_str(),
+              comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+              duration, &downtime_id);
         }
       }
       break;
@@ -995,16 +1131,16 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            end(sg_it->second->members.end());
            it != end; ++it) {
         temp_host = nullptr;
-        host_map::const_iterator found(host::hosts.find(it->first.first));
+        host_map::const_iterator found = host::hosts.find(it->first.first);
         if (found == host::hosts.end() || !found->second)
           continue;
         temp_host = found->second.get();
         if (last_host == temp_host)
           continue;
         downtime_manager::instance().schedule_downtime(
-            downtime::host_downtime, it->first.first, "", entry_time, author,
-            comment_data, start_time, end_time, fixed, triggered_by, duration,
-            &downtime_id);
+            downtime::host_downtime, it->second->host_id(), 0, entry_time,
+            author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+            triggered_by, duration, &downtime_id);
         last_host = temp_host;
       }
       break;
@@ -1014,35 +1150,36 @@ int cmd_schedule_downtime(int cmd, time_t entry_time, char* args) {
            end(sg_it->second->members.end());
            it != end; ++it)
         downtime_manager::instance().schedule_downtime(
-            downtime::service_downtime, it->first.first, it->first.second,
-            entry_time, author, comment_data, start_time, end_time, fixed,
-            triggered_by, duration, &downtime_id);
+            downtime::service_downtime, it->second->host_id(),
+            it->second->service_id(), entry_time, author.c_str(),
+            comment_data.c_str(), start_time, end_time, fixed, triggered_by,
+            duration, &downtime_id);
       break;
 
     case CMD_SCHEDULE_AND_PROPAGATE_HOST_DOWNTIME:
       /* schedule downtime for "parent" host */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, host_name, "", entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
 
       /* schedule (non-triggered) downtime for all child hosts */
-      schedule_and_propagate_downtime(temp_host, entry_time, author,
-                                      comment_data, start_time, end_time, fixed,
-                                      0, duration);
+      schedule_and_propagate_downtime(temp_host, entry_time, author.c_str(),
+                                      comment_data.c_str(), start_time,
+                                      end_time, fixed, 0, duration);
       break;
 
     case CMD_SCHEDULE_AND_PROPAGATE_TRIGGERED_HOST_DOWNTIME:
       /* schedule downtime for "parent" host */
       downtime_manager::instance().schedule_downtime(
-          downtime::host_downtime, host_name, "", entry_time, author,
-          comment_data, start_time, end_time, fixed, triggered_by, duration,
-          &downtime_id);
+          downtime::host_downtime, temp_host->host_id(), 0, entry_time,
+          author.c_str(), comment_data.c_str(), start_time, end_time, fixed,
+          triggered_by, duration, &downtime_id);
 
       /* schedule triggered downtime for all child hosts */
-      schedule_and_propagate_downtime(temp_host, entry_time, author,
-                                      comment_data, start_time, end_time, fixed,
-                                      downtime_id, duration);
+      schedule_and_propagate_downtime(temp_host, entry_time, author.c_str(),
+                                      comment_data.c_str(), start_time,
+                                      end_time, fixed, downtime_id, duration);
       break;
 
     default:
@@ -1060,7 +1197,13 @@ int cmd_delete_downtime(int cmd, char* args) {
   if (nullptr == (temp_ptr = my_strtok(args, "\n")))
     return ERROR;
 
-  downtime_id = strtoul(temp_ptr, nullptr, 10);
+  if (!absl::SimpleAtoi(temp_ptr, &downtime_id)) {
+    log_v2::external_command()->error(
+        "Error: could not delete downtime : downtime_id '{}' must be an "
+        "integer >= 0",
+        temp_ptr);
+    return ERROR;
+  }
 
   if (CMD_DEL_HOST_DOWNTIME == cmd || CMD_DEL_SVC_DOWNTIME == cmd)
     downtime_manager::instance().unschedule_downtime(downtime_id);
@@ -1075,64 +1218,82 @@ int cmd_delete_downtime(int cmd, char* args) {
  *  @param[in] args  Command arguments.
  */
 int cmd_delete_downtime_full(int cmd, char* args) {
-  char* temp_ptr(nullptr);
+  log_v2::functions()->trace("cmd_delete_downtime_full() args = {}", args);
   downtime_finder::criteria_set criterias;
 
+  auto a{absl::StrSplit(args, ';')};
+  auto it = a.begin();
+
   // Host name.
-  if (!(temp_ptr = my_strtok(args, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("host", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("host", std::string(it->data(), it->size()));
+
+  ++it;
+
   // Service description and downtime type.
   if (cmd == CMD_DEL_SVC_DOWNTIME_FULL) {
-    if (!(temp_ptr = my_strtok(nullptr, ";")))
-      return ERROR;
-    if (*temp_ptr)
-      criterias.push_back(downtime_finder::criteria("service", temp_ptr));
+    if (!it->empty())
+      criterias.emplace_back("service", std::string(it->data(), it->size()));
+    ++it;
   }
 
   // Start time.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("start", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("start", std::string(it->data(), it->size()));
+  ++it;
+
   // End time.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("end", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("end", std::string(it->data(), it->size()));
+  ++it;
+
   // Fixed.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("fixed", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("fixed", std::string(it->data(), it->size()));
+  ++it;
+
   // Trigger ID.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("triggered_by", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("triggered_by", std::string(it->data(), it->size()));
+  ++it;
+
   // Duration.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("duration", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("duration", std::string(it->data(), it->size()));
+  ++it;
+
   // Author.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("author", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("author", std::string(it->data(), it->size()));
+  ++it;
+
   // Comment.
-  if (!(temp_ptr = my_strtok(nullptr, ";")))
+  if (it == a.end())
     return ERROR;
-  if (*temp_ptr)
-    criterias.push_back(downtime_finder::criteria("comment", temp_ptr));
+  if (!it->empty())
+    criterias.emplace_back("comment", std::string(it->data(), it->size()));
+  ++it;
 
   // Find downtimes.
   downtime_finder dtf(
       downtimes::downtime_manager::instance().get_scheduled_downtimes());
   downtime_finder::result_set result(dtf.find_matching_all(criterias));
-  for (downtime_finder::result_set::const_iterator it(result.begin()),
-       end(result.end());
+  for (downtime_finder::result_set::const_iterator it = result.begin(),
+                                                   end = result.end();
        it != end; ++it) {
     downtime_manager::instance().unschedule_downtime(*it);
   }
@@ -1433,8 +1594,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
                                     CHECK_OPTION_NONE);
       }
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
 
       /* We need check result to handle next check */
       temp_host->update_status();
@@ -1446,8 +1606,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
       temp_host->set_modified_attributes(temp_host->get_modified_attributes() |
                                          attr);
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
       break;
 
     case CMD_CHANGE_MAX_HOST_CHECK_ATTEMPTS:
@@ -1457,8 +1616,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
                                          attr);
 
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, CMD_NONE, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
 
       /* adjust current attempt number if in a hard state */
       if (temp_host->get_state_type() == notifier::hard &&
@@ -1502,10 +1660,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       }
       found_svc->second->set_modified_attributes(
           found_svc->second->get_modified_attributes() | attr);
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), CMD_NONE, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
 
       /* We need check result to handle next check */
       found_svc->second->update_status();
@@ -1516,10 +1672,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       attr = MODATTR_RETRY_CHECK_INTERVAL;
       found_svc->second->set_modified_attributes(
           found_svc->second->get_modified_attributes() | attr);
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), CMD_NONE, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
       break;
 
     case CMD_CHANGE_MAX_SVC_CHECK_ATTEMPTS:
@@ -1528,10 +1682,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       found_svc->second->set_modified_attributes(
           found_svc->second->get_modified_attributes() | attr);
       /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), cmd, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
 
       /* adjust current attempt number if in a hard state */
       if (found_svc->second->get_state_type() == notifier::hard &&
@@ -1549,8 +1701,7 @@ int cmd_change_object_int_var(int cmd, char* args) {
       temp_host->set_modified_attributes(attr);
       /* send data to event broker */
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, cmd, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
       break;
 
     case CMD_CHANGE_SVC_MODATTR:
@@ -1558,10 +1709,8 @@ int cmd_change_object_int_var(int cmd, char* args) {
       found_svc->second->set_modified_attributes(attr);
 
       /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), cmd, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
       break;
 
     case CMD_CHANGE_CONTACT_MODATTR:
@@ -1790,7 +1939,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_HOST_CHECK_COMMAND:
       temp_host->set_check_command(temp_ptr);
-      temp_host->set_check_command_ptr(cmd_found->second.get());
+      temp_host->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
       break;
 
@@ -1814,7 +1963,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
     case CMD_CHANGE_SVC_CHECK_COMMAND:
       found_svc->second->set_check_command(temp_ptr);
-      found_svc->second->set_check_command_ptr(cmd_found->second.get());
+      found_svc->second->set_check_command_ptr(cmd_found->second);
       attr = MODATTR_CHECK_COMMAND;
       break;
 
@@ -1884,10 +2033,8 @@ int cmd_change_object_char_var(int cmd, char* args) {
       found_svc->second->add_modified_attributes(attr);
 
       /* send data to event broker */
-      broker_adaptive_service_data(
-          NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE, NEBATTR_NONE,
-          found_svc->second.get(), cmd, attr,
-          found_svc->second->get_modified_attributes(), nullptr);
+      broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
+                                   NEBATTR_NONE, found_svc->second.get(), attr);
       break;
 
     case CMD_CHANGE_HOST_EVENT_HANDLER:
@@ -1899,8 +2046,7 @@ int cmd_change_object_char_var(int cmd, char* args) {
 
       /* send data to event broker */
       broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                                NEBATTR_NONE, temp_host, cmd, attr,
-                                temp_host->get_modified_attributes(), nullptr);
+                                NEBATTR_NONE, temp_host, attr);
       break;
 
     case CMD_CHANGE_CONTACT_HOST_NOTIFICATION_TIMEPERIOD:
@@ -2062,8 +2208,7 @@ void disable_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* enables a service check */
@@ -2102,8 +2247,7 @@ void enable_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 
   /* update the status log with the host info */
   svc->update_status();
@@ -2175,8 +2319,7 @@ void enable_service_notifications(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* disables notifications for a service */
@@ -2195,8 +2338,7 @@ void disable_service_notifications(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* enables notifications for a host */
@@ -2215,8 +2357,7 @@ void enable_host_notifications(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables notifications for a host */
@@ -2235,8 +2376,7 @@ void disable_host_notifications(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* enables notifications for all hosts and services "beyond" a given host */
@@ -2429,7 +2569,7 @@ void schedule_and_propagate_downtime(host* temp_host,
                                      char const* comment_data,
                                      time_t start_time,
                                      time_t end_time,
-                                     int fixed,
+                                     bool fixed,
                                      unsigned long triggered_by,
                                      unsigned long duration) {
   /* check all child hosts... */
@@ -2446,7 +2586,7 @@ void schedule_and_propagate_downtime(host* temp_host,
 
     /* schedule downtime for this host */
     downtime_manager::instance().schedule_downtime(
-        downtime::host_downtime, it->first, "", entry_time, author,
+        downtime::host_downtime, it->second->host_id(), 0, entry_time, author,
         comment_data, start_time, end_time, fixed, triggered_by, duration,
         nullptr);
   }
@@ -2464,12 +2604,8 @@ void acknowledge_host_problem(host* hst,
     return;
 
   /* set the acknowledgement flag */
-  hst->set_problem_has_been_acknowledged(true);
-
-  /* set the acknowledgement type */
-  hst->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
-                                    ? ACKNOWLEDGEMENT_STICKY
-                                    : ACKNOWLEDGEMENT_NORMAL);
+  hst->set_acknowledgement(type == AckType::STICKY ? AckType::STICKY
+                                                   : AckType::NORMAL);
 
   /* schedule acknowledgement expiration */
   time_t current_time = time(nullptr);
@@ -2477,10 +2613,10 @@ void acknowledge_host_problem(host* hst,
   hst->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
-                              NEBATTR_NONE, HOST_ACKNOWLEDGEMENT, (void*)hst,
+  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
+                              acknowledgement_resource_type::HOST, (void*)hst,
                               ack_author.c_str(), ack_data.c_str(), type,
-                              notify, persistent, nullptr);
+                              notify, persistent);
 
   /* send out an acknowledgement notification */
   if (notify)
@@ -2491,10 +2627,9 @@ void acknowledge_host_problem(host* hst,
   hst->update_status();
 
   /* add a comment for the acknowledgement */
-  auto com{std::make_shared<comment>(comment::host, comment::acknowledgment,
-                                     hst->get_host_id(), 0, current_time,
-                                     ack_author, ack_data, persistent,
-                                     comment::internal, false, (time_t)0)};
+  auto com{std::make_shared<comment>(
+      comment::host, comment::acknowledgment, hst->host_id(), 0, current_time,
+      ack_author, ack_data, persistent, comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
 }
 
@@ -2510,12 +2645,8 @@ void acknowledge_service_problem(service* svc,
     return;
 
   /* set the acknowledgement flag */
-  svc->set_problem_has_been_acknowledged(true);
-
-  /* set the acknowledgement type */
-  svc->set_acknowledgement_type(type == ACKNOWLEDGEMENT_STICKY
-                                    ? ACKNOWLEDGEMENT_STICKY
-                                    : ACKNOWLEDGEMENT_NORMAL);
+  svc->set_acknowledgement(type == AckType::STICKY ? AckType::STICKY
+                                                   : AckType::NORMAL);
 
   /* schedule acknowledgement expiration */
   time_t current_time = time(nullptr);
@@ -2523,10 +2654,10 @@ void acknowledge_service_problem(service* svc,
   svc->schedule_acknowledgement_expiration();
 
   /* send data to event broker */
-  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD, NEBFLAG_NONE,
-                              NEBATTR_NONE, SERVICE_ACKNOWLEDGEMENT, (void*)svc,
-                              ack_author.c_str(), ack_data.c_str(), type,
-                              notify, persistent, nullptr);
+  broker_acknowledgement_data(NEBTYPE_ACKNOWLEDGEMENT_ADD,
+                              acknowledgement_resource_type::SERVICE,
+                              (void*)svc, ack_author.c_str(), ack_data.c_str(),
+                              type, notify, persistent);
 
   /* send out an acknowledgement notification */
   if (notify)
@@ -2538,8 +2669,8 @@ void acknowledge_service_problem(service* svc,
 
   /* add a comment for the acknowledgement */
   auto com{std::make_shared<comment>(
-      comment::service, comment::acknowledgment, svc->get_host_id(),
-      svc->get_service_id(), current_time, ack_author, ack_data, persistent,
+      comment::service, comment::acknowledgment, svc->host_id(),
+      svc->service_id(), current_time, ack_author, ack_data, persistent,
       comment::internal, false, (time_t)0)};
   comment::comments.insert({com->get_comment_id(), com});
 }
@@ -2547,7 +2678,7 @@ void acknowledge_service_problem(service* svc,
 /* removes a host acknowledgement */
 void remove_host_acknowledgement(host* hst) {
   /* set the acknowledgement flag */
-  hst->set_problem_has_been_acknowledged(false);
+  hst->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the host info */
   hst->update_status();
@@ -2559,7 +2690,7 @@ void remove_host_acknowledgement(host* hst) {
 /* removes a service acknowledgement */
 void remove_service_acknowledgement(service* svc) {
   /* set the acknowledgement flag */
-  svc->set_problem_has_been_acknowledged(false);
+  svc->set_acknowledgement(AckType::NONE);
 
   /* update the status log with the service info */
   svc->update_status();
@@ -2680,8 +2811,7 @@ void enable_passive_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* disables passive service checks for a particular service */
@@ -2700,8 +2830,7 @@ void disable_passive_service_checks(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* starts executing host checks */
@@ -2815,8 +2944,7 @@ void enable_passive_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables passive host checks for a particular host */
@@ -2835,8 +2963,7 @@ void disable_passive_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* enables event handlers on a program-wide basis */
@@ -2905,8 +3032,7 @@ void enable_service_event_handler(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* disables the event handler for a particular service */
@@ -2925,8 +3051,7 @@ void disable_service_event_handler(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* enables the event handler for a particular host */
@@ -2945,8 +3070,7 @@ void enable_host_event_handler(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables the event handler for a particular host */
@@ -2965,8 +3089,7 @@ void disable_host_event_handler(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* disables checks of a particular host */
@@ -2986,8 +3109,7 @@ void disable_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* enables checks of a particular host */
@@ -3026,8 +3148,7 @@ void enable_host_checks(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 
   /* update the status log with the host info */
   hst->update_status();
@@ -3288,8 +3409,7 @@ void start_obsessing_over_service(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* stop obsessing over a particular service */
@@ -3308,8 +3428,7 @@ void stop_obsessing_over_service(service* svc) {
 
   /* send data to event broker */
   broker_adaptive_service_data(NEBTYPE_ADAPTIVESERVICE_UPDATE, NEBFLAG_NONE,
-                               NEBATTR_NONE, svc, CMD_NONE, attr,
-                               svc->get_modified_attributes(), nullptr);
+                               NEBATTR_NONE, svc, attr);
 }
 
 /* start obsessing over a particular host */
@@ -3328,8 +3447,7 @@ void start_obsessing_over_host(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 /* stop obsessing over a particular host */
@@ -3348,8 +3466,7 @@ void stop_obsessing_over_host(host* hst) {
 
   /* send data to event broker */
   broker_adaptive_host_data(NEBTYPE_ADAPTIVEHOST_UPDATE, NEBFLAG_NONE,
-                            NEBATTR_NONE, hst, CMD_NONE, attr,
-                            hst->get_modified_attributes(), nullptr);
+                            NEBATTR_NONE, hst, attr);
 }
 
 void new_thresholds_file(char* filename) {

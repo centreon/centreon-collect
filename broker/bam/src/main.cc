@@ -16,7 +16,6 @@
 ** For more information : contact@centreon.com
 */
 #include "bbdo/bam/ba_duration_event.hh"
-#include "bbdo/bam/ba_event.hh"
 #include "bbdo/bam/ba_status.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
@@ -24,19 +23,16 @@
 #include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_kpi_event.hh"
 #include "bbdo/bam/dimension_timeperiod.hh"
-#include "bbdo/bam/dimension_timeperiod_exception.hh"
-#include "bbdo/bam/dimension_timeperiod_exclusion.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
 #include "bbdo/bam/inherited_downtime.hh"
 #include "bbdo/bam/kpi_event.hh"
 #include "bbdo/bam/kpi_status.hh"
 #include "bbdo/bam/rebuild.hh"
 #include "bbdo/events.hh"
-#include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
-#include "bbdo/storage/metric_mapping.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/bam/factory.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -75,13 +71,14 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     io::protocols::instance().unreg(bam_module);
     // Deregister bam events.
     io::events::instance().unregister_category(io::bam);
   }
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -110,16 +107,9 @@ void broker_module_init(void const* arg) {
                        "rt_metrics");
       e.register_event(make_type(io::storage, storage::de_status), "status",
                        &storage::status::operations, storage::status::entries);
-      e.register_event(make_type(io::storage, storage::de_index_mapping),
-                       "index_mapping", &storage::index_mapping::operations,
-                       storage::index_mapping::entries);
-      e.register_event(make_type(io::storage, storage::de_metric_mapping),
-                       "metric_mapping", &storage::metric_mapping::operations,
-                       storage::metric_mapping::entries);
 
       register_bam_event<bam::ba_status>(e, bam::de_ba_status, "ba_status");
       register_bam_event<bam::kpi_status>(e, bam::de_kpi_status, "kpi_status");
-      register_bam_event<bam::ba_event>(e, bam::de_ba_event, "ba_event");
       register_bam_event<bam::kpi_event>(e, bam::de_kpi_event, "kpi_event");
       register_bam_event<bam::ba_duration_event>(e, bam::de_ba_duration_event,
                                                  "ba_duration_event");
@@ -141,14 +131,44 @@ void broker_module_init(void const* arg) {
       register_bam_event<bam::dimension_ba_timeperiod_relation>(
           e, bam::de_dimension_ba_timeperiod_relation,
           "dimension_ba_timeperiod_relation");
-      register_bam_event<bam::dimension_timeperiod_exception>(
-          e, bam::de_dimension_timeperiod_exception,
-          "dimension_ba_timeperiod_exception");
-      register_bam_event<bam::dimension_timeperiod_exclusion>(
-          e, bam::de_dimension_timeperiod_exclusion,
-          "dimension_timeperiod_exclusion");
       register_bam_event<bam::inherited_downtime>(e, bam::de_inherited_downtime,
                                                   "inherited_downtime");
+      e.register_event(make_type(io::bam, bam::de_pb_inherited_downtime),
+                       "InheritedDowntime",
+                       &bam::pb_inherited_downtime::operations,
+                       "InheritedDowntime");
+      e.register_event(make_type(io::bam, bam::de_pb_ba_status), "BaStatus",
+                       &bam::pb_ba_status::operations, "BaStatus");
+      e.register_event(make_type(io::bam, bam::de_pb_ba_event), "BaEvent",
+                       &bam::pb_ba_event::operations, "BaEvent");
+      e.register_event(make_type(io::bam, bam::de_pb_kpi_event), "KpiEvent",
+                       &bam::pb_kpi_event::operations, "KpiEvent");
+      e.register_event(bam::pb_dimension_bv_event::static_type(),
+                       "DimensionBvEvent",
+                       &bam::pb_dimension_bv_event::operations);
+      e.register_event(bam::pb_dimension_ba_bv_relation_event::static_type(),
+                       "DimensionBvEvent",
+                       &bam::pb_dimension_ba_bv_relation_event::operations);
+      e.register_event(bam::pb_dimension_timeperiod::static_type(),
+                       "DimensionTimePeriod",
+                       &bam::pb_dimension_timeperiod::operations);
+      e.register_event(bam::pb_dimension_ba_event::static_type(),
+                       "DimensionBaEvent",
+                       &bam::pb_dimension_ba_event::operations);
+      e.register_event(bam::pb_dimension_kpi_event::static_type(),
+                       "DimensionKpiEvent",
+                       &bam::pb_dimension_kpi_event::operations);
+      e.register_event(bam::pb_kpi_status::static_type(), "KpiStatus",
+                       &bam::pb_kpi_status::operations);
+      e.register_event(bam::pb_ba_duration_event::static_type(),
+                       "BaDurationEvent",
+                       &bam::pb_ba_duration_event::operations);
+      e.register_event(bam::pb_dimension_ba_timeperiod_relation::static_type(),
+                       "DimensionBaTimeperiodRelation",
+                       &bam::pb_dimension_ba_timeperiod_relation::operations);
+      e.register_event(bam::pb_dimension_truncate_table_signal::static_type(),
+                       "DimensionTruncateTableSignal",
+                       &bam::pb_dimension_truncate_table_signal::operations);
     }
   }
 }

@@ -1,5 +1,5 @@
 /*
-** Copyright 2019 Centreon
+** Copyright 2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -16,9 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include <absl/strings/str_split.h>
 #include <gtest/gtest.h>
 #include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 
 using namespace com::centreon::broker;
 
@@ -32,34 +32,35 @@ void remove_file(std::string const& filename) {
 }
 
 TEST(WatchdogTest, Help) {
-  std::string result = com::centreon::broker::misc::exec("watchdog/cbwd -h");
+  std::string result = com::centreon::broker::misc::exec("bin/cbwd -h");
   ASSERT_EQ("USAGE: cbwd configuration_file\n", result);
 }
 
 TEST(WatchdogTest, NoConfig) {
-  std::string result = com::centreon::broker::misc::exec("watchdog/cbwd");
+  std::string result = com::centreon::broker::misc::exec("bin/cbwd");
   ASSERT_EQ("USAGE: cbwd configuration_file\n", result);
 }
 
 TEST(WatchdogTest, NotExistingConfig) {
-  std::string result = com::centreon::broker::misc::exec("watchdog/cbwd foo");
-  ASSERT_EQ(
-      "ERROR: could not parse the configuration file 'foo': config parser: "
-      "cannot read file 'foo': No such file or directory\n",
-      result);
+  std::string result = com::centreon::broker::misc::exec("bin/cbwd foo");
+  ASSERT_TRUE(
+      result.find(
+          "Could not parse the configuration file 'foo': Config parser: Cannot "
+          "read file 'foo': No such file or directory\n") != std::string::npos);
 }
 
 TEST(WatchdogTest, BadConfig) {
   std::string result = com::centreon::broker::misc::exec(
-      "watchdog/cbwd " CENTREON_BROKER_WD_TEST "/bad-config.json");
-  char const* str =
-      "ERROR: could not parse the configuration file '" CENTREON_BROKER_WD_TEST
-      "/bad-config.json': reload field not provided for cbd instance\n";
-  ASSERT_EQ(std::string(str), result);
+      "bin/cbwd " CENTREON_BROKER_WD_TEST "/bad-config.json");
+  ASSERT_TRUE(
+      result.find(
+          "Could not parse the configuration file '" CENTREON_BROKER_WD_TEST
+          "/bad-config.json': reload field not provided for cbd instance\n") !=
+      std::string::npos);
 }
 
 TEST(WatchdogTest, SimpleConfig) {
-  std::string const& content{
+  const std::string& content{
       "{\n"
       "  \"centreonBroker\": {\n"
       "   \"cbd\": [\n"
@@ -84,40 +85,66 @@ TEST(WatchdogTest, SimpleConfig) {
       "  }\n"
       "}"};
   create_conf("/tmp/simple-conf.json", content);
-  char const* arg[]{"watchdog/cbwd", "/tmp/simple-conf.json", nullptr};
+  char const* arg[]{"bin/cbwd", "/tmp/simple-conf.json", nullptr};
   com::centreon::broker::misc::exec_process(arg, false);
-  std::string r =
-      misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
-  std::list<std::string> lst = misc::string::split(r, '\n');
+  std::string r;
+  int32_t time = 0;
+  std::list<absl::string_view> lst1;
+  while (time < 5) {
+    r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
+    lst1 = absl::StrSplit(r, '\n');
+    if (lst1.size() == 3u)
+      break;
+    time++;
+    sleep(1);
+  }
+  // There are 3 elements, but the last one is empty
+  ASSERT_EQ(lst1.size(), 3u);
+  ASSERT_TRUE(lst1.back().empty());
+
+  std::list<absl::string_view> lst = absl::StrSplit(r, '\n');
   // There are 3 elements, but the last one is empty
   ASSERT_EQ(lst.size(), 3u);
   ASSERT_TRUE(lst.back().empty());
 
   // We send a term signal to one child
-  int pid = std::stol(lst.front());
+  int pid;
+  if (!absl::SimpleAtoi(lst.front(), &pid)) {
+    ASSERT_FALSE("First element in lst should be a pid.");
+  }
   kill(pid, SIGTERM);
 
   // We wait for the next event
-  sleep(5);
-  r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
-  lst = misc::string::split(r, '\n');
-  // There are still 3 elements, the lost child is resurrected
+  time = 0;
+  for (;;) {
+    r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
+    lst = absl::StrSplit(r, '\n');
+    // There are still 3 elements, the lost child is resurrected
+    if (lst.size() == 3u || time > 10)
+      break;
+    sleep(1);
+    time++;
+  }
   ASSERT_EQ(lst.size(), 3u);
   ASSERT_TRUE(lst.back().empty());
 
   // We send a term signal to cbwd
-  r = misc::exec(
-      "ps ax | grep watchdog/cbwd | grep -v grep | awk '{print $1}'");
+  r = misc::exec("ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
   pid = std::stol(r);
   kill(pid, SIGTERM);
-  sleep(2);
 
-  // No tester anymore.
-  r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
+  time = 0;
+  for (;;) {
+    // No tester anymore.
+    r = misc::exec("ps ax | grep tester | grep -v grep | awk '{print $1}'");
+    if (r == "" || time > 10)
+      break;
+    sleep(1);
+    time++;
+  }
   ASSERT_EQ(r, "");
 
-  r = misc::exec(
-      "ps ax | grep watchdog/cbwd | grep -v grep | awk '{print $1}'");
+  r = misc::exec("ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
   // No cbwd anymore.
   ASSERT_EQ(r, "");
 }
@@ -172,22 +199,30 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
       "  }\n"
       "}"};
   create_conf("/tmp/simple-conf.json", content1);
-  char const* arg[]{"watchdog/cbwd", "/tmp/simple-conf.json", nullptr};
+  char const* arg[]{"bin/cbwd", "/tmp/simple-conf.json", nullptr};
 
   com::centreon::broker::misc::exec_process(arg, false);
-  std::string r = misc::exec(
-      "ps ax | grep tester-echo | grep -v grep | grep -v defunc | awk '{print "
-      "$1}'");
-  std::list<std::string> lst = misc::string::split(r, '\n');
+  std::list<absl::string_view> lst;
+  int32_t time = 0;
+  std::string r;
+  while (lst.size() != 3 && time < 5) {
+    r = misc::exec(
+        "ps ax | grep tester-echo | grep -v grep | grep -v defunc | awk "
+        "'{print "
+        "$1}'");
+    lst = absl::StrSplit(r, '\n');
+    time++;
+    sleep(1);
+  }
   // There are 3 elements, but the last one is empty
+
   ASSERT_EQ(lst.size(), 3u);
   ASSERT_TRUE(lst.back().empty());
 
   // We change the configuration
   create_conf("/tmp/simple-conf.json", content2);
   // We send a sighup signal to cbwd
-  r = misc::exec(
-      "ps ax | grep watchdog/cbwd | grep -v grep | awk '{print $1}'");
+  r = misc::exec("ps ax | grep bin/cbwd | grep -v grep | awk '{print $1}'");
   int pid = std::stol(r);
   kill(pid, SIGHUP);
 
@@ -196,7 +231,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
     sleep(1);
     // Testers are here again but with different pid.
     r = misc::exec("ps ax | grep tester-echo | grep -v grep | grep -v defunc");
-    lst = misc::string::split(r, '\n');
+    lst = absl::StrSplit(r, '\n');
     // There are 3 elements, but the last one is empty
   } while ((lst.size() < 3u || !lst.back().empty()) && --timeout > 0);
   ASSERT_GT(timeout, 0);
@@ -208,7 +243,7 @@ TEST(WatchdogTest, SimpleConfigUpdated) {
   do {
     sleep(1);
     r = misc::exec(
-        "ps ax | grep watchdog/cbwd | grep -v grep | grep -v defunc | awk "
+        "ps ax | grep bin/cbwd | grep -v grep | grep -v defunc | awk "
         "'{print $1}'");
   } while (!r.empty());
   ASSERT_GT(timeout, 0);

@@ -34,6 +34,14 @@
 #include <absl/strings/string_view.h>
 
 #include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
 #include <boost/optional.hpp>
+
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #endif  // CCE_EXTERNAL_COMMANDS_PRECOMP_HH

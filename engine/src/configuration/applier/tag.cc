@@ -46,7 +46,7 @@ void applier::tag::add_object(const configuration::tag& obj) {
 
   auto tg{std::make_shared<engine::tag>(
       obj.key().first, static_cast<engine::tag::tagtype>(obj.key().second),
-      obj.name())};
+      obj.tag_name())};
   if (!tg)
     throw engine_error() << "Could not register tag (" << obj.key().first << ","
                          << obj.key().second << ")";
@@ -58,9 +58,7 @@ void applier::tag::add_object(const configuration::tag& obj) {
         "Could not insert tag ({},{}) into cache because it already exists",
         obj.key().first, obj.key().second);
 
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                           tg.get(), &tv);
+  broker_adaptive_tag_data(NEBTYPE_TAG_ADD, tg.get());
 }
 
 /**
@@ -104,12 +102,10 @@ void applier::tag::modify_object(const configuration::tag& obj) {
     config->mut_tags().erase(it_cfg);
     config->mut_tags().insert(obj);
 
-    t->set_name(obj.name());
+    t->set_name(obj.tag_name());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, t,
-                             &tv);
+    broker_adaptive_tag_data(NEBTYPE_TAG_UPDATE, t);
   } else
     log_v2::config()->debug("Tag ({},{}) did not change", obj.key().first,
                             obj.key().second);
@@ -126,14 +122,13 @@ void applier::tag::remove_object(const configuration::tag& obj) {
                           obj.key().second);
 
   // Find tag.
-  tag_map::iterator it = engine::tag::tags.find(obj.key(), obj.type());
+  tag_map::iterator it =
+      engine::tag::tags.find({obj.key().first, obj.key().second});
   if (it != engine::tag::tags.end()) {
     engine::tag* tg(it->second.get());
 
     // Notify event broker.
-    timeval tv(get_broker_timestamp(nullptr));
-    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, NEBFLAG_NONE, NEBATTR_NONE, tg,
-                             &tv);
+    broker_adaptive_tag_data(NEBTYPE_TAG_DELETE, tg);
 
     // Erase tag object (this will effectively delete the object).
     engine::tag::tags.erase(it);
@@ -149,8 +144,9 @@ void applier::tag::remove_object(const configuration::tag& obj) {
  *  @param[in] obj  Object to resolve.
  */
 void applier::tag::resolve_object(const configuration::tag& obj) {
-  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key(), obj.type())};
-  if (tg_it == engine::tag::tags.end() || !tg_it->second)
+  tag_map::const_iterator tg_it{engine::tag::tags.find(obj.key())};
+  if (tg_it == engine::tag::tags.end() || !tg_it->second) {
     throw engine_error() << "Cannot resolve non-existing tag ("
                          << obj.key().first << "," << obj.key().second << ")";
+  }
 }

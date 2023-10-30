@@ -118,10 +118,10 @@ connector::~connector() noexcept {
  *  @return The command id.
  */
 uint64_t connector::run(const std::string& processed_cmd,
-                        nagios_macros& macros,
-                        uint32_t timeout) {
-  (void)macros;
-
+                        nagios_macros&,
+                        uint32_t timeout,
+                        const check_result::pointer& to_push_to_checker,
+                        const void* caller) {
   engine_logger(dbg_commands, basic)
       << "connector::run: connector='" << _name << "', cmd='" << processed_cmd
       << "', timeout=" << timeout;
@@ -131,7 +131,12 @@ uint64_t connector::run(const std::string& processed_cmd,
 
   // Set query informations.
   uint64_t command_id(get_uniq_id());
-  std::shared_ptr<query_info> info(new query_info);
+
+  if (!gest_call_interval(command_id, to_push_to_checker, caller)) {
+    return command_id;
+  }
+
+  auto info = std::make_shared<query_info>();
   info->processed_cmd = processed_cmd;
   info->start_time = timestamp::now();
   info->timeout = timeout;
@@ -197,7 +202,7 @@ void connector::run(const std::string& processed_cmd,
 
   // Set query informations.
   uint64_t command_id(get_uniq_id());
-  std::shared_ptr<query_info> info(new query_info);
+  auto info = std::make_shared<query_info>();
   info->processed_cmd = processed_cmd;
   info->start_time = timestamp::now();
   info->timeout = timeout;
@@ -371,6 +376,7 @@ void connector::finished(process& p) noexcept {
   try {
     engine_logger(dbg_commands, basic) << "connector::finished: process=" << &p;
     log_v2::commands()->trace("connector::finished: process={}", (void*)&p);
+
     UNIQUE_LOCK(lock, _lock);
     _is_running = false;
     _data_available.clear();
@@ -661,14 +667,10 @@ void connector::_recv_query_execute(char const* data) {
                                        << res.output << "'";
     log_v2::commands()->trace(
         "connector::_recv_query_execute: "
-        "id={}, "
-        "start_time={}, "
-        "end_time={}, "
-        "exit_code={}, "
-        "exit_status={}, "
-        "output='{}'",
-        command_id, res.start_time.to_mseconds(), res.end_time.to_mseconds(),
-        res.exit_code, res.exit_status, res.output);
+        "id={}, {}",
+        command_id, res);
+
+    update_result_cache(command_id, res);
 
     if (!info->waiting_result) {
       // Forward result to the listener.

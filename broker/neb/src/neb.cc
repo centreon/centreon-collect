@@ -33,6 +33,8 @@ using namespace com::centreon::exceptions;
 // Specify the event broker API version.
 NEB_API_VERSION(CURRENT_NEB_API_VERSION)
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 extern "C" {
 /**
  *  @brief Module exit point.
@@ -55,6 +57,8 @@ int nebmodule_deinit(int flags, int reason) {
     neb::unregister_callbacks();
 
     // Unload singletons.
+    log_v2::instance()
+        ->stop_flush_timer();  // beware at the order of these two calls
     com::centreon::broker::config::applier::deinit();
   }
   // Avoid exception propagation in C code.
@@ -109,6 +113,7 @@ int nebmodule_init(int flags, char const* args, void* handle) {
     setlocale(LC_NUMERIC, "C");
 
     try {
+      log_v2::load(g_io_context);
       // Set configuration file.
       if (args) {
         char const* config_file("config_file=");
@@ -127,13 +132,32 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Initialization.
       com::centreon::broker::config::applier::init(s);
       try {
-        log_v2::instance().apply(s);
+        log_v2::instance()->apply(s);
       } catch (const std::exception& e) {
         log_v2::core()->error("main: {}", e.what());
       }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
 
+      // Register process and log callback.
+      if (s.get_bbdo_version().major_v > 2) {
+        neb::gl_registered_callbacks.emplace_back(
+            std::make_unique<neb::callback>(NEBCALLBACK_PROCESS_DATA,
+                                            neb::gl_mod_handle,
+                                            &neb::callback_pb_process));
+        neb::gl_registered_callbacks.emplace_back(
+            std::make_unique<neb::callback>(NEBCALLBACK_LOG_DATA,
+                                            neb::gl_mod_handle,
+                                            &neb::callback_pb_log));
+      } else {
+        neb::gl_registered_callbacks.emplace_back(
+            std::make_unique<neb::callback>(NEBCALLBACK_PROCESS_DATA,
+                                            neb::gl_mod_handle,
+                                            &neb::callback_process));
+        neb::gl_registered_callbacks.emplace_back(
+            std::make_unique<neb::callback>(
+                NEBCALLBACK_LOG_DATA, neb::gl_mod_handle, &neb::callback_log));
+      }
     } catch (std::exception const& e) {
       log_v2::core()->error("main: {}", e.what());
       return -1;
@@ -141,12 +165,6 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       log_v2::core()->error("main: configuration file parsing failed");
       return -1;
     }
-
-    // Register process and log callback.
-    neb::gl_registered_callbacks.emplace_back(std::make_unique<neb::callback>(
-        NEBCALLBACK_PROCESS_DATA, neb::gl_mod_handle, &neb::callback_process));
-    neb::gl_registered_callbacks.emplace_back(std::make_unique<neb::callback>(
-        NEBCALLBACK_LOG_DATA, neb::gl_mod_handle, &neb::callback_log));
 
   } catch (std::exception const& e) {
     log_v2::core()->error("main: cbmod loading failed: {}", e.what());

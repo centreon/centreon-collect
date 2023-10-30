@@ -19,7 +19,7 @@
 #ifndef CCB_BAM_CONFIGURATION_KPI_HH
 #define CCB_BAM_CONFIGURATION_KPI_HH
 
-#include "bbdo/bam/kpi_event.hh"
+#include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
@@ -44,7 +44,6 @@ class kpi {
   uint32_t _meta_id;
   uint32_t _boolexp_id;
   short _status;
-  short _last_level;
   bool _downtimed;
   bool _acknowledged;
   bool _ignore_downtime;
@@ -52,7 +51,7 @@ class kpi {
   double _impact_warning;
   double _impact_critical;
   double _impact_unknown;
-  bam::kpi_event _event;
+  KpiEvent _event;
 
  public:
   kpi(uint32_t id = 0,
@@ -64,7 +63,6 @@ class kpi {
       uint32_t meta_id = 0,
       uint32_t boolexp_id = 0,
       short status = 0,
-      short last_level = 0,
       bool downtimed = false,
       bool acknowledged = false,
       bool ignoredowntime = false,
@@ -91,7 +89,6 @@ class kpi {
   uint32_t get_meta_id() const;
   uint32_t get_boolexp_id() const;
   short get_status() const;
-  short get_last_level() const;
   bool is_downtimed() const;
   bool is_acknowledged() const;
   bool ignore_downtime() const;
@@ -99,7 +96,7 @@ class kpi {
   double get_impact_warning() const;
   double get_impact_critical() const;
   double get_impact_unknown() const;
-  bam::kpi_event const& get_opened_event() const;
+  const KpiEvent& get_opened_event() const;
 
   void set_id(uint32_t id);
   void set_state_type(short state_type);
@@ -110,7 +107,6 @@ class kpi {
   void set_meta_id(uint32_t meta_id);
   void set_boolexp_id(uint32_t boolexp_id);
   void set_status(short status);
-  void set_last_level(short last_level);
   void set_downtimed(bool downtimed);
   void set_acknowledged(bool acknowledged);
   void ignore_downtime(bool ignore);
@@ -118,7 +114,7 @@ class kpi {
   void set_impact_warning(double impact);
   void set_impact_critical(double impact);
   void set_impact_unknown(double impact);
-  void set_opened_event(bam::kpi_event const& kpi_event);
+  void set_opened_event(const KpiEvent& kpi_event);
 };
 }  // namespace configuration
 }  // namespace bam

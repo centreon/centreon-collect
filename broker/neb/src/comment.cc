@@ -18,16 +18,10 @@
 
 #include "com/centreon/broker/neb/comment.hh"
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  @brief Default constructor.
@@ -153,9 +147,7 @@ mapping::entry const comment::entries[] = {
     mapping::entry(&comment::poller_id,
                    "instance_id",
                    mapping::entry::invalid_on_zero),
-    mapping::entry(&comment::service_id,
-                   "service_id",
-                   mapping::entry::invalid_on_zero),
+    mapping::entry(&comment::service_id, "service_id"),
     mapping::entry(&comment::source, "source"),
     mapping::entry()};
 

@@ -351,13 +351,13 @@ int xpddefault_run_service_performance_data_command(
   if (early_timeout == true)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Service performance data command '"
-        << processed_command_line << "' for service '" << svc->get_description()
+        << processed_command_line << "' for service '" << svc->description()
         << "' on host '" << svc->get_hostname() << "' timed out after "
         << config->perfdata_timeout() << " seconds";
   log_v2::runtime()->warn(
       "Warning: Service performance data command '{}' for service '{}' on host "
       "'{}' timed out after {} seconds",
-      processed_command_line, svc->get_description(), svc->get_hostname(),
+      processed_command_line, svc->description(), svc->get_hostname(),
       config->perfdata_timeout());
 
   return result;
@@ -426,12 +426,12 @@ int xpddefault_run_host_performance_data_command(nagios_macros* mac,
   if (early_timeout == true)
     engine_logger(log_runtime_warning, basic)
         << "Warning: Host performance data command '" << processed_command_line
-        << "' for host '" << hst->get_name() << "' timed out after "
+        << "' for host '" << hst->name() << "' timed out after "
         << config->perfdata_timeout() << " seconds";
   log_v2::runtime()->warn(
       "Warning: Host performance data command '{}' for host '{}' timed out "
       "after {} seconds",
-      processed_command_line, hst->get_name(), config->perfdata_timeout());
+      processed_command_line, hst->name(), config->perfdata_timeout());
 
   return result;
 }

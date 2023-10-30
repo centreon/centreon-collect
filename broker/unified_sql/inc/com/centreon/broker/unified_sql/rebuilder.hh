@@ -21,10 +21,9 @@
 
 #include <memory>
 
-#include "com/centreon/broker/database_config.hh"
-#include "com/centreon/broker/mysql.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/sql/database_config.hh"
+#include "com/centreon/broker/sql/mysql.hh"
 
 CCB_BEGIN()
 
@@ -61,14 +60,18 @@ class rebuilder {
     uint32_t check_interval;
   };
 
+  std::mutex _rebuilding_m;
+  std::condition_variable _rebuilding_cv;
+  int32_t _rebuilding = 0;
+
  public:
   rebuilder(database_config const& db_cfg,
             uint32_t interval_length = 60,
             uint32_t rrd_length = 15552000);
-  ~rebuilder() noexcept = default;
+  ~rebuilder() noexcept;
   rebuilder(const rebuilder&) = delete;
   rebuilder& operator=(const rebuilder&) = delete;
-  void rebuild_rrd_graphs(const std::shared_ptr<io::data>& d);
+  void rebuild_graphs(const std::shared_ptr<io::data>& d);
 };
 }  // namespace unified_sql
 

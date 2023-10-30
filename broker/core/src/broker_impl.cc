@@ -1,5 +1,5 @@
 /*
- * Copyright 2020-2021 Centreon (https://www.centreon.com/)
+ * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@
 #include "com/centreon/broker/stats/center.hh"
 #include "com/centreon/broker/stats/helper.hh"
 #include "com/centreon/broker/version.hh"
+#include "com/centreon/common/process_stat.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::version;
@@ -40,9 +41,9 @@ using namespace com::centreon::broker::version;
  * @return Status::OK
  */
 grpc::Status broker_impl::GetVersion(grpc::ServerContext* context
-                                     __attribute__((unused)),
+                                     [[maybe_unused]],
                                      const ::google::protobuf::Empty* request
-                                     __attribute__((unused)),
+                                     [[maybe_unused]],
                                      Version* response) {
   response->set_major(major);
   response->set_minor(minor);
@@ -51,7 +52,7 @@ grpc::Status broker_impl::GetVersion(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetNumModules(grpc::ServerContext* context
-                                        __attribute__((unused)),
+                                        [[maybe_unused]],
                                         const ::google::protobuf::Empty*,
                                         GenericSize* response) {
   auto& mod_applier(config::applier::state::instance().get_modules());
@@ -63,7 +64,7 @@ grpc::Status broker_impl::GetNumModules(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetNumEndpoint(grpc::ServerContext* context
-                                         __attribute__((unused)),
+                                         [[maybe_unused]],
                                          const ::google::protobuf::Empty*,
                                          GenericSize* response) {
   // Endpoint applier.
@@ -78,7 +79,7 @@ grpc::Status broker_impl::GetNumEndpoint(grpc::ServerContext* context
 }
 
 grpc::Status broker_impl::GetModulesStats(grpc::ServerContext* context
-                                          __attribute__((unused)),
+                                          [[maybe_unused]],
                                           const GenericNameOrIndex* request,
                                           GenericString* response) {
   std::vector<nlohmann::json> value;
@@ -190,11 +191,33 @@ grpc::Status broker_impl::GetGenericStats(
   return grpc::Status::OK;
 }
 
-grpc::Status broker_impl::GetSqlManagerStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
-    SqlManagerStats* response) {
-  stats::center::instance().get_sql_manager_stats(response);
+grpc::Status broker_impl::GetSqlManagerStats(grpc::ServerContext* context
+                                             __attribute__((unused)),
+                                             const SqlConnection* request,
+                                             SqlManagerStats* response) {
+  if (!request->has_id())
+    stats::center::instance().get_sql_manager_stats(response);
+  else {
+    try {
+      stats::center::instance().get_sql_manager_stats(response, request->id());
+    } catch (const std::exception& e) {
+      return grpc::Status(grpc::StatusCode::NOT_FOUND, e.what());
+    }
+  }
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::SetSqlManagerStats(
+    grpc::ServerContext* context [[maybe_unused]],
+    const SqlManagerStatsOptions* request,
+    ::google::protobuf::Empty*) {
+  auto& conf = config::applier::state::mut_stats_conf();
+
+  if (request->has_slowest_statements_count())
+    conf.sql_slowest_statements_count = request->slowest_statements_count();
+  if (request->has_slowest_queries_count())
+    conf.sql_slowest_queries_count = request->slowest_queries_count();
+
   return grpc::Status::OK;
 }
 
@@ -238,26 +261,138 @@ grpc::Status broker_impl::RebuildRRDGraphs(grpc::ServerContext* context
                                            ::google::protobuf::Empty* response
                                            __attribute__((unused))) {
   multiplexing::publisher pblshr;
-  auto e{std::make_shared<bbdo::pb_rebuild_rrd_graphs>(*request)};
+  auto e{std::make_shared<bbdo::pb_rebuild_graphs>(*request)};
   pblshr.write(e);
   return grpc::Status::OK;
 }
 
 grpc::Status broker_impl::RemoveGraphs(grpc::ServerContext* context
-                                       __attribute__((unused)),
+                                       [[maybe_unused]],
                                        const ToRemove* request,
                                        ::google::protobuf::Empty* response
-                                       __attribute__((unused))) {
+                                       [[maybe_unused]]) {
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_graphs>(*request)};
   pblshr.write(e);
   return grpc::Status::OK;
 }
 
+grpc::Status broker_impl::GetBa(grpc::ServerContext* context [[maybe_unused]],
+                                const BaInfo* request,
+                                ::google::protobuf::Empty* response
+                                [[maybe_unused]]) {
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<extcmd::pb_ba_info>(*request)};
+  pblshr.write(e);
+  return grpc::Status::OK;
+}
+
 grpc::Status broker_impl::GetProcessingStats(
-    grpc::ServerContext* context __attribute__((unused)),
-    const ::google::protobuf::Empty* request __attribute__((unused)),
+    grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     ::ProcessingStats* response) {
   stats::center::instance().get_processing_stats(response);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
+                                       __attribute__((unused)),
+                                       const GenericNameOrIndex* request,
+                                       ::google::protobuf::Empty*) {
+  log_v2::core()->info("Remove poller...");
+  multiplexing::publisher pblshr;
+  auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
+  pblshr.write(e);
+  return grpc::Status::OK;
+}
+
+grpc::Status broker_impl::GetLogInfo(grpc::ServerContext* context
+                                     [[maybe_unused]],
+                                     const GenericString* request,
+                                     LogInfo* response) {
+  auto& name{request->str_arg()};
+  auto& map = *response->mutable_level();
+  auto lvs = log_v2::instance()->levels();
+  response->set_log_name(log_v2::instance()->log_name());
+  response->set_log_file(log_v2::instance()->file_path());
+  response->set_log_flush_period(
+      log_v2::instance()->get_flush_interval().count());
+  if (!name.empty()) {
+    auto found = std::find_if(lvs.begin(), lvs.end(),
+                              [&name](std::pair<std::string, std::string>& p) {
+                                return p.first == name;
+                              });
+    if (found != lvs.end()) {
+      map[name] = std::move(found->second);
+      return grpc::Status::OK;
+    } else {
+      std::string msg{fmt::format("'{}' is not a logger in broker", name)};
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT, msg);
+    }
+  } else {
+    for (auto& p : lvs)
+      map[p.first] = p.second;
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
+                                      [[maybe_unused]],
+                                      const LogLevel* request,
+                                      ::google::protobuf::Empty*) {
+  const std::string& logger_name{request->logger()};
+  std::shared_ptr<spdlog::logger> logger = spdlog::get(logger_name);
+  if (!logger) {
+    std::string err_detail =
+        fmt::format("The '{}' logger does not exist", logger_name);
+    SPDLOG_LOGGER_ERROR(log_v2::core(), err_detail);
+    return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
+  } else {
+    logger->set_level(spdlog::level::level_enum(request->level()));
+    return grpc::Status::OK;
+  }
+}
+
+grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
+                                            [[maybe_unused]],
+                                            const LogFlushPeriod* request,
+                                            ::google::protobuf::Empty*) {
+  bool done = false;
+  spdlog::apply_all([&](const std::shared_ptr<spdlog::logger> logger) {
+    if (!done) {
+      std::shared_ptr<com::centreon::engine::log_v2_logger> logger_base =
+          std::dynamic_pointer_cast<com::centreon::engine::log_v2_logger>(
+              logger);
+      if (logger_base) {
+        logger_base->get_parent()->set_flush_interval(request->period());
+        done = true;
+      }
+    }
+  });
+  return grpc::Status::OK;
+}
+
+/**
+ * @brief get stats of the process (cpu, memory...)
+ *
+ * @param context
+ * @param request
+ * @param response
+ * @return ::grpc::Status
+ */
+::grpc::Status broker_impl::GetProcessStats(
+    ::grpc::ServerContext* context,
+    const ::google::protobuf::Empty* request,
+    ::com::centreon::common::pb_process_stat* response) {
+  try {
+    com::centreon::common::process_stat stat(getpid());
+    stat.to_protobuff(*response);
+  } catch (const boost::exception& e) {
+    SPDLOG_LOGGER_ERROR(log_v2::core(), "fail to get process info: {}",
+                        boost::diagnostic_information(e));
+
+    return grpc::Status(grpc::StatusCode::INTERNAL,
+                        boost::diagnostic_information(e));
+  }
   return grpc::Status::OK;
 }

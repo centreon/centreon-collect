@@ -17,6 +17,8 @@
 */
 
 #include "com/centreon/broker/neb/set_log_data.hh"
+#include <absl/strings/str_split.h>
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/engine/host.hh"
@@ -47,49 +49,51 @@ static char* log_extract(char** lasts) {
 }
 
 /**
- *  Get the id of a log status.
+ * @brief Get the id of a log status.
+ *
+ * @param status A string corresponding to the state of the resource.
+ *
+ * @return A status code.
  */
-static int status_id(char const* status) {
-  int id;
-  if (!strcmp(status, "DOWN") || !strcmp(status, "WARNING"))
-    id = 1;
-  else if (!strcmp(status, "UNREACHABLE") || !strcmp(status, "CRITICAL"))
-    id = 2;
-  else if (!strcmp(status, "UNKNOWN"))
-    id = 3;
-  else if (!strcmp(status, "PENDING"))
-    id = 4;
+static int status_id(const absl::string_view& status) {
+  int retval;
+  if (status == "DOWN" || status == "WARNING")
+    retval = 1;
+  else if (status == "UNREACHABLE" || status == "CRITICAL")
+    retval = 2;
+  else if (status == "UNKNOWN")
+    retval = 3;
+  else if (status == "PENDING")
+    retval = 4;
   else
-    id = 0;
-  return id;
+    retval = 0;
+  return retval;
 }
 
 /**
  *  Get the notification status of a log.
  */
-static int notification_status_id(char const* status) {
-  char const* ptr(strchr(status, '('));
-  int id;
-  if (ptr) {
-    std::string substatus(ptr + 1);
-    size_t it(substatus.find_first_of(')'));
-    if (it != std::string::npos)
-      substatus.erase(it);
-    id = status_id(substatus.c_str());
+static int notification_status_id(const absl::string_view& status) {
+  int retval;
+  size_t pos_start = status.find_first_of('(');
+  if (pos_start != std::string::npos) {
+    size_t pos_end = status.find_first_of(')', pos_start);
+    absl::string_view nstatus = status.substr(pos_start, pos_end - pos_start);
+    retval = status_id(nstatus);
   } else
-    id = status_id(status);
-  return id;
+    retval = status_id(status);
+  return retval;
 }
 
 /**
  *  Get the id of a log type.
  */
-static int type_id(char const* type) {
-  int id;
-  if (!strcmp(type, "HARD"))
-    id = 1;
+static LogEntry_LogType type_id(const absl::string_view& type) {
+  LogEntry_LogType id;
+  if (type == "HARD")
+    id = LogEntry_LogType_HARD;
   else
-    id = 0;
+    id = LogEntry_LogType_SOFT;
   return id;
 }
 
@@ -223,4 +227,405 @@ void neb::set_log_data(neb::log_entry& le, char const* log_data) {
   // Set host and service IDs.
   le.host_id = engine::get_host_id(le.host_name);
   le.service_id = engine::get_service_id(le.host_name, le.service_description);
+}
+
+#define test_fail(name)                                                   \
+  if (ait == args.end()) {                                                \
+    log_v2::neb()->error("Missing " name " in log message '{}'", output); \
+    return false;                                                         \
+  }
+
+#define test_fail_and_not_empty(name)                                     \
+  if (ait == args.end()) {                                                \
+    log_v2::neb()->error("Missing " name " in log message '{}'", output); \
+    return false;                                                         \
+  }                                                                       \
+  if (ait->empty()) {                                                     \
+    return false;                                                         \
+  }
+
+/**
+ *  Extract Nagios-formated log data to the C++ object.
+ *
+ *  Return true on success.
+ */
+bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
+  // Duplicate string so that we can split it with strtok_r.
+  auto& le_obj = le.mut_obj();
+
+  /**
+   * @brief The only goal of this internal class is to fill host_id and
+   * service_id when destructor is called ie on each returns
+   * macro used in this function can do a return false
+   *
+   */
+  class fill_obj_on_exit {
+    LogEntry& _to_fill;
+
+   public:
+    fill_obj_on_exit(LogEntry& to_fill) : _to_fill(to_fill) {}
+    ~fill_obj_on_exit() {
+      if (!_to_fill.host_name().empty()) {
+        _to_fill.set_host_id(engine::get_host_id(_to_fill.host_name()));
+        if (!_to_fill.service_description().empty()) {
+          _to_fill.set_service_id(engine::get_service_id(
+              _to_fill.host_name(), _to_fill.service_description()));
+        }
+      }
+    }
+  };
+
+  // try to fill host_id and service_id whereever function exits
+  fill_obj_on_exit on_exit_executor(le_obj);
+
+  // First part is the log description.
+  auto s = absl::StrSplit(output, absl::MaxSplits(':', 1));
+  auto it = s.begin();
+  auto typ = *it;
+  ++it;
+  auto lasts = *it;
+  lasts = absl::StripLeadingAsciiWhitespace(lasts);
+  auto args = absl::StrSplit(lasts, ';');
+  auto ait = args.begin();
+
+  if (typ == "SERVICE ALERT") {
+    le_obj.set_msg_type(LogEntry_MsgType_SERVICE_ALERT);
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "HOST ALERT") {
+    le_obj.set_msg_type(LogEntry_MsgType_HOST_ALERT);
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "SERVICE NOTIFICATION") {
+    le_obj.set_msg_type(LogEntry_MsgType_SERVICE_NOTIFICATION);
+
+    test_fail("notification contact");
+    le_obj.set_notification_contact(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(notification_status_id(*ait));
+    ++ait;
+
+    test_fail("notification command");
+    le_obj.set_notification_cmd(ait->data(), ait->size());
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "HOST NOTIFICATION") {
+    le_obj.set_msg_type(LogEntry_MsgType_HOST_NOTIFICATION);
+
+    test_fail("notification contact");
+    le_obj.set_notification_contact(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(notification_status_id(*ait));
+    ++ait;
+
+    test_fail("notification command");
+    le_obj.set_notification_cmd(ait->data(), ait->size());
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "INITIAL HOST STATE") {
+    le_obj.set_msg_type(LogEntry_MsgType_HOST_INITIAL_STATE);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(notification_status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "INITIAL SERVICE STATE") {
+    le_obj.set_msg_type(LogEntry_MsgType_SERVICE_INITIAL_STATE);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "EXTERNAL COMMAND") {
+    test_fail("acknowledge type");
+    auto& data = *ait;
+    ++ait;
+    if (data == "ACKNOWLEDGE_SVC_PROBLEM") {
+      le_obj.set_msg_type(LogEntry_MsgType_SERVICE_ACKNOWLEDGE_PROBLEM);
+      test_fail("host name");
+      le_obj.set_host_name(ait->data(), ait->size());
+      ++ait;
+
+      test_fail("service description");
+      le_obj.set_service_description(ait->data(), ait->size());
+      ++ait;
+
+      for (int i = 0; i < 3; i++) {
+        test_fail("data");
+        ++ait;
+      }
+
+      test_fail("notification contact");
+      le_obj.set_notification_contact(ait->data(), ait->size());
+      ++ait;
+
+      test_fail_and_not_empty("output");
+      le_obj.set_output(ait->data(), ait->size());
+    } else if (data == "ACKNOWLEDGE_HOST_PROBLEM") {
+      le_obj.set_msg_type(LogEntry_MsgType_HOST_ACKNOWLEDGE_PROBLEM);
+
+      test_fail("host name");
+      le_obj.set_host_name(ait->data(), ait->size());
+      ++ait;
+
+      for (int i = 0; i < 3; i++) {
+        test_fail("data");
+        ++ait;
+      }
+
+      test_fail("notification contact");
+      le_obj.set_notification_contact(ait->data(), ait->size());
+      ++ait;
+
+      test_fail_and_not_empty("output");
+      le_obj.set_output(ait->data(), ait->size());
+    } else {
+      le_obj.set_msg_type(LogEntry_MsgType_OTHER);
+      le_obj.set_output(output);
+    }
+  } else if (typ == "HOST EVENT HANDLER") {
+    le_obj.set_msg_type(LogEntry_MsgType_HOST_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "SERVICE EVENT HANDLER") {
+    le_obj.set_msg_type(LogEntry_MsgType_SERVICE_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "GLOBAL HOST EVENT HANDLER") {
+    le_obj.set_msg_type(LogEntry_MsgType_GLOBAL_HOST_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "GLOBAL SERVICE EVENT HANDLER") {
+    le_obj.set_msg_type(LogEntry_MsgType_GLOBAL_SERVICE_EVENT_HANDLER);
+
+    test_fail("host name");
+    le_obj.set_host_name(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("service description");
+    le_obj.set_service_description(ait->data(), ait->size());
+    ++ait;
+
+    test_fail("status");
+    le_obj.set_status(status_id(*ait));
+    ++ait;
+
+    test_fail("log type");
+    le_obj.set_type(type_id(*ait));
+    ++ait;
+
+    test_fail("retry value");
+    int retry;
+    if (!absl::SimpleAtoi(*ait, &retry)) {
+      log_v2::neb()->error(
+          "Retry value in log message should be an integer and not '{}'",
+          fmt::string_view(ait->data(), ait->size()));
+      return false;
+    }
+    le_obj.set_retry(retry);
+    ++ait;
+
+    test_fail_and_not_empty("output");
+    le_obj.set_output(ait->data(), ait->size());
+  } else if (typ == "Warning") {
+    le_obj.set_msg_type(LogEntry_MsgType_WARNING);
+    le_obj.set_output(lasts.data(), lasts.size());
+  } else {
+    le_obj.set_msg_type(LogEntry_MsgType_OTHER);
+    le_obj.set_output(output);
+  }
+
+  return true;
 }

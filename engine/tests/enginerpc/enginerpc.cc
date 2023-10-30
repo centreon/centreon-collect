@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -135,20 +135,20 @@ class EngineRpc : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_down);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
     service_map const& sm{engine::service::services};
     for (auto& p : sm) {
       std::shared_ptr<engine::service> svc = p.second;
-      if (svc->get_service_id() == 12)
+      if (svc->service_id() == 12)
         _ad = std::static_pointer_cast<engine::anomalydetection>(svc);
       else
         _svc = svc;
     }
     _svc->set_current_state(engine::service::state_critical);
     _svc->set_state_type(checkable::hard);
-    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_acknowledgement(AckType::NONE);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
 
     contact_map const& cm{engine::contact::contacts};
@@ -251,19 +251,20 @@ TEST_F(EngineRpc, GetHost) {
   std::mutex mutex;
   bool continuerunning = false;
 
-  std::vector<std::string> vectests = {"GetHost",
-                                       "Host name: test_host",
-                                       "Host alias: test_host",
-                                       "Host id: 12",
-                                       "Host address: 127.0.0.1",
-                                       "Host state: 1",
-                                       "Host period: test_period"};
+  std::vector<std::string> vectests = {
+      "GetHost",
+      fmt::format("Host name: {}", _host->name()),
+      fmt::format("Host alias: {}", _host->get_alias()),
+      fmt::format("Host id: {}", _host->host_id()),
+      "Host address: 127.0.0.1",
+      "Host state: 1",
+      "Host period: test_period"};
   _host->set_current_state(engine::host::state_down);
   _host->set_check_period("test_period");
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute("GetHost byhostid 12");
-  auto output2 = execute("GetHost byhostname test_host");
+  auto output = execute(fmt::format("GetHost byhostid {}", _host->host_id()));
+  auto output2 = execute(fmt::format("GetHost byhostname {}", _host->name()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -673,8 +674,8 @@ TEST_F(EngineRpc, DeleteComment) {
   std::ostringstream oss;
   oss << "my comment ";
   auto cmt = std::make_shared<comment>(
-      comment::host, comment::user, _host->get_host_id(), 0, 10000,
-      "test-admin", oss.str(), true, comment::external, false, 0);
+      comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
+      oss.str(), true, comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
@@ -729,30 +730,30 @@ TEST_F(EngineRpc, DeleteAllHostComments) {
   ASSERT_EQ(comment::comments.size(), 0u);
   // create some comments
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my host comment " << i;
+    std::string cmt_str{fmt::format("my host comment {}", i)};
     auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, _host->get_host_id(), 0, 10000,
-        "test-admin", oss.str(), true, comment::external, false, 0);
+        comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
+        cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute("DeleteAllHostComments byhostid 12");
+  auto output = execute(
+      fmt::format("DeleteAllHostComments byhostid {}", _host->host_id()));
 
   ASSERT_EQ(comment::comments.size(), 0u);
   // second test
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my host comment " << i;
+    std::string cmt_str{fmt::format("my host comment {}", i)};
     auto cmt = std::make_shared<comment>(
-        comment::host, comment::user, _host->get_host_id(), 0, 10000,
-        "test-admin", oss.str(), true, comment::external, false, 0);
+        comment::host, comment::user, _host->host_id(), 0, 10000, "test-admin",
+        cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
-  output = execute("DeleteAllHostComments byhostname test_host");
+  output = execute(
+      fmt::format("DeleteAllHostComments byhostname {}", _host->name()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -770,37 +771,39 @@ TEST_F(EngineRpc, DeleteAllServiceComments) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
+  auto svc = _svc;
+  auto hit = engine::host::hosts_by_id.find(svc->host_id());
+  auto hst = hit->second;
 
   // first test
   ASSERT_EQ(comment::comments.size(), 0u);
   // create some comments
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my service comment " << i;
+    std::string cmt_str{fmt::format("my service comment {} on service ({}, {})",
+                                    i, svc->host_id(), svc->service_id())};
     auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, _host->get_host_id(),
-        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
-        comment::external, false, 0);
+        comment::service, comment::user, svc->host_id(), svc->service_id(),
+        10000, "test-admin", cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute("DeleteAllServiceComments byids 12 13");
+  auto output = execute(fmt::format("DeleteAllServiceComments byids {} {}",
+                                    svc->host_id(), svc->service_id()));
 
   ASSERT_EQ(comment::comments.size(), 0u);
   // second test
   for (int i = 0; i < 10; ++i) {
-    std::ostringstream oss;
-    oss << "my service comment " << i;
+    std::string cmt_str{fmt::format("my service comment {}", i)};
     auto cmt = std::make_shared<comment>(
-        comment::service, comment::user, _host->get_host_id(),
-        _svc->get_service_id(), 10000, "test-admin", oss.str(), true,
-        comment::external, false, 0);
+        comment::service, comment::user, svc->host_id(), svc->service_id(),
+        10000, "test-admin", cmt_str, true, comment::external, false, 0);
     comment::comments.insert({cmt->get_comment_id(), cmt});
   }
   ASSERT_EQ(comment::comments.size(), 10u);
-  output = execute("DeleteAllServiceComments bynames test_host test_svc");
+  output = execute(fmt::format("DeleteAllServiceComments bynames {} {}",
+                               hst->name(), svc->description()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -821,26 +824,28 @@ TEST_F(EngineRpc, RemoveHostAcknowledgement) {
   bool continuerunning = false;
   oss << "my comment ";
   // first test
-  _host->set_problem_has_been_acknowledged(true);
+  _host->set_acknowledgement(AckType::NORMAL);
   // create comment
   auto cmt = std::make_shared<comment>(
-      comment::host, comment::acknowledgment, _host->get_host_id(), 0, 10000,
+      comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
       "test-admin", oss.str(), false, comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute("RemoveHostAcknowledgement byhostid 12");
+  auto output = execute(
+      fmt::format("RemoveHostAcknowledgement byhostid {}", _host->host_id()));
 
   ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
   ASSERT_EQ(comment::comments.size(), 0u);
   // second test
-  _host->set_problem_has_been_acknowledged(true);
+  _host->set_acknowledgement(AckType::NORMAL);
   cmt = std::make_shared<comment>(
-      comment::host, comment::acknowledgment, _host->get_host_id(), 0, 10000,
+      comment::host, comment::acknowledgment, _host->host_id(), 0, 10000,
       "test-admin", oss.str(), false, comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
-  output = execute("RemoveHostAcknowledgement byhostname test_host");
+  output = execute(
+      fmt::format("RemoveHostAcknowledgement byhostname {}", _host->name()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -858,14 +863,16 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
   std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
-  std::ostringstream oss;
   bool continuerunning = false;
-  oss << "my comment ";
-  _svc->set_problem_has_been_acknowledged(true);
+  auto svc = _svc;
+  auto hit = engine::host::hosts_by_id.find(svc->host_id());
+  auto hst = hit->second;
+  std::string ack_str{"my comment"};
+  _svc->set_acknowledgement(AckType::NORMAL);
   auto cmt = std::make_shared<comment>(
-      comment::service, comment::acknowledgment, _host->get_host_id(),
-      _svc->get_service_id(), 10000, "test-admin", oss.str(), false,
-      comment::external, false, 0);
+      comment::service, comment::acknowledgment, hst->host_id(),
+      svc->service_id(), 10000, "test-admin", ack_str, false, comment::external,
+      false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
@@ -874,12 +881,12 @@ TEST_F(EngineRpc, RemoveServiceAcknowledgement) {
       execute("RemoveServiceAcknowledgement bynames test_host test_svc");
 
   ASSERT_EQ(comment::comments.size(), 0u);
-  ASSERT_EQ(_svc->problem_has_been_acknowledged(), false);
+  ASSERT_EQ(svc->problem_has_been_acknowledged(), false);
 
-  _svc->set_problem_has_been_acknowledged(true);
+  svc->set_acknowledgement(AckType::NORMAL);
   cmt = std::make_shared<comment>(comment::service, comment::acknowledgment,
-                                  _host->get_host_id(), _svc->get_service_id(),
-                                  10000, "test-admin", oss.str(), false,
+                                  hst->host_id(), svc->service_id(), 10000,
+                                  "test-admin", ack_str, false,
                                   comment::external, false, 0);
   comment::comments.insert({cmt->get_comment_id(), cmt});
 
@@ -905,8 +912,8 @@ TEST_F(EngineRpc, AcknowledgementHostProblem) {
   ASSERT_EQ(_host->problem_has_been_acknowledged(), false);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output =
-      execute("AcknowledgementHostProblem test_host admin test 1 0 0");
+  auto output = execute(fmt::format(
+      "AcknowledgementHostProblem {} admin test 1 0 0", _host->name()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -1048,7 +1055,9 @@ TEST_F(EngineRpc, ScheduleServiceDowntime) {
   oss << "ScheduleServiceDowntime test_host test_svc " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(2u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleServiceDowntime 1", output.back());
 
   oss.str("");
@@ -1127,7 +1136,9 @@ TEST_F(EngineRpc, ScheduleHostServicesDowntime) {
   oss << "ScheduleHostServicesDowntime test_host " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(2u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(3u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleHostServicesDowntime 1", output.back());
 
   oss2 << "DeleteServiceDowntimeFull test_host undef undef undef"
@@ -1211,7 +1222,9 @@ TEST_F(EngineRpc, ScheduleHostGroupServicesDowntime) {
   oss << "ScheduleHostGroupServicesDowntime test_hg " << now << " " << now + 1
       << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(2u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(3u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleHostGroupServicesDowntime 1", output.back());
 
   oss.str("");
@@ -1299,7 +1312,9 @@ TEST_F(EngineRpc, ScheduleServiceGroupServicesDowntime) {
   oss << "ScheduleServiceGroupServicesDowntime test_sg " << now << " "
       << now + 1 << " 0 0 10000 admin host " << now;
   output = execute(oss.str());
-  ASSERT_EQ(1u, downtime_manager::instance().get_scheduled_downtimes().size());
+  ASSERT_EQ(2u, downtime_manager::instance()
+                    .get_scheduled_downtimes()
+                    .size());  // one for service and one for ano
   ASSERT_EQ("ScheduleServiceGroupServicesDowntime 1", output.back());
 
   uint64_t id = downtime_manager::instance()
@@ -1413,18 +1428,19 @@ TEST_F(EngineRpc, DelayHostNotification) {
   std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
-  std::ostringstream oss;
   bool continuerunning = false;
+  auto hst = engine::host::hosts_by_id.find(12)->second;
 
-  ASSERT_EQ(_host->get_next_notification(), 0);
+  ASSERT_EQ(hst->get_next_notification(), 0);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
   auto output = execute("DelayHostNotification byhostid 12 20");
-  ASSERT_EQ(_host->get_next_notification(), 20);
+  ASSERT_EQ(hst->get_next_notification(), 20);
 
-  output = execute("DelayHostNotification byhostname test_host 10");
-  ASSERT_EQ(_host->get_next_notification(), 10);
+  output = execute(
+      fmt::format("DelayHostNotification byhostname {} 10", hst->name()));
+  ASSERT_EQ(hst->get_next_notification(), 10);
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;
@@ -1440,7 +1456,6 @@ TEST_F(EngineRpc, DelayServiceNotification) {
   std::unique_ptr<std::thread> th;
   std::condition_variable condvar;
   std::mutex mutex;
-  std::ostringstream oss;
   bool continuerunning = false;
 
   ASSERT_EQ(_host->get_next_notification(), 0);
@@ -1471,11 +1486,14 @@ TEST_F(EngineRpc, ChangeHostObjectIntVar) {
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute("ChangeHostObjectIntVar test_host 0 1 1.0");
+  auto output =
+      execute(fmt::format("ChangeHostObjectIntVar {} 0 1 1.0", _host->name()));
   ASSERT_EQ(_host->check_interval(), 1u);
-  output = execute("ChangeHostObjectIntVar test_host 1 1 2.0");
+  output =
+      execute(fmt::format("ChangeHostObjectIntVar {} 1 1 2.0", _host->name()));
   ASSERT_EQ(_host->retry_interval(), 2u);
-  output = execute("ChangeHostObjectIntVar test_host 2 1 1.0");
+  output =
+      execute(fmt::format("ChangeHostObjectIntVar {} 2 1 1.0", _host->name()));
   ASSERT_EQ(_host->max_check_attempts(), 1);
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1559,25 +1577,19 @@ TEST_F(EngineRpc, ChangeHostObjectCharVar) {
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute(
-      "ChangeHostObjectCharVar"
-      " null 0 cmd");
+  auto output = execute("ChangeHostObjectCharVar null 0 cmd");
   ASSERT_EQ(output.back(), "ChangeHostObjectCharVar 1");
-  output = execute(
-      "ChangeHostObjectCharVar"
-      " test_host 1 cmd");
+  output =
+      execute(fmt::format("ChangeHostObjectCharVar {} 1 cmd", _host->name()));
   ASSERT_EQ(_host->event_handler(), "cmd");
-  output = execute(
-      "ChangeHostObjectCharVar"
-      " test_host 2 cmd");
+  output =
+      execute(fmt::format("ChangeHostObjectCharVar {} 2 cmd", _host->name()));
   ASSERT_EQ(_host->check_command(), "cmd");
-  output = execute(
-      "ChangeHostObjectCharVar"
-      " test_host 3 24x7");
+  output =
+      execute(fmt::format("ChangeHostObjectCharVar {} 3 24x7", _host->name()));
   ASSERT_EQ(_host->check_period(), "24x7");
-  output = execute(
-      "ChangeHostObjectCharVar"
-      " test_host 4 24x7");
+  output =
+      execute(fmt::format("ChangeHostObjectCharVar {} 4 24x7", _host->name()));
   ASSERT_EQ(_host->notification_period(), "24x7");
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1595,30 +1607,27 @@ TEST_F(EngineRpc, ChangeServiceObjectCharVar) {
   std::condition_variable condvar;
   std::mutex mutex;
   bool continuerunning = false;
+  auto svc = _svc;
+  auto hit = engine::host::hosts_by_id.find(svc->host_id());
+  auto hst = hit->second;
 
   ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
 
   call_command_manager(th, &condvar, &mutex, &continuerunning);
 
-  auto output = execute(
-      "ChangeServiceObjectCharVar"
-      " null null 0 cmd");
+  auto output = execute("ChangeServiceObjectCharVar null null 0 cmd");
   ASSERT_EQ(output.back(), "ChangeServiceObjectCharVar 1");
-  output = execute(
-      "ChangeServiceObjectCharVar"
-      " test_host test_svc 1 cmd");
+  output = execute(fmt::format("ChangeServiceObjectCharVar {} {} 1 cmd",
+                               hst->name(), svc->description()));
   ASSERT_EQ(_svc->event_handler(), "cmd");
-  output = execute(
-      "ChangeServiceObjectCharVar"
-      " test_host test_svc 2 cmd");
+  output = execute(fmt::format("ChangeServiceObjectCharVar {} {} 2 cmd",
+                               hst->name(), svc->description()));
   ASSERT_EQ(_svc->check_command(), "cmd");
-  output = execute(
-      "ChangeServiceObjectCharVar"
-      " test_host test_svc 3 24x7");
+  output = execute(fmt::format("ChangeServiceObjectCharVar {} {} 3 24x7",
+                               hst->name(), svc->description()));
   ASSERT_EQ(_svc->check_period(), "24x7");
-  output = execute(
-      "ChangeServiceObjectCharVar"
-      " test_host test_svc 4 24x7");
+  output = execute(fmt::format("ChangeServiceObjectCharVar {} {} 4 24x7",
+                               hst->name(), svc->description()));
   ASSERT_EQ(_svc->notification_period(), "24x7");
   {
     std::lock_guard<std::mutex> lock(mutex);
@@ -1669,9 +1678,8 @@ TEST_F(EngineRpc, ChangeHostObjectCustomVar) {
 
   ASSERT_EQ(_host->custom_variables.size(), 0u);
   call_command_manager(th, &condvar, &mutex, &continuerunning);
-  auto output = execute(
-      "ChangeHostObjectCustomVar"
-      " test_host test_var test_val");
+  auto output = execute(fmt::format(
+      "ChangeHostObjectCustomVar {} test_var test_val", _host->name()));
   {
     std::lock_guard<std::mutex> lock(mutex);
     continuerunning = true;

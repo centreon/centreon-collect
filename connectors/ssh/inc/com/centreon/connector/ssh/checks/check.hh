@@ -19,6 +19,8 @@
 #ifndef CCCS_CHECKS_CHECK_HH
 #define CCCS_CHECKS_CHECK_HH
 
+#include <libssh2.h>
+
 #include "com/centreon/connector/result.hh"
 #include "com/centreon/connector/ssh/namespace.hh"
 
@@ -101,5 +103,12 @@ std::ostream& operator<<(std::ostream& os, const check& chk);
 }  // namespace checks
 
 CCCS_END()
+
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::connector::ssh::checks::check>
+    : ostream_formatter {};
+}  // namespace fmt
 
 #endif  // !CCCS_CHECKS_CHECK_HH

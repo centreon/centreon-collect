@@ -64,7 +64,7 @@ class policy : public com::centreon::connector::policy_interface {
   policy& operator=(policy const& p) = delete;
 
   void start(const std::string& test_cmd_file);
-  void on_connect(const std::error_code& err,
+  void on_connect(const boost::system::error_code& err,
                   const sessions::credentials& creds);
 
  public:

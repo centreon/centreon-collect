@@ -18,16 +18,10 @@
 
 #include "com/centreon/broker/neb/host.hh"
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  @brief Default constructor.
@@ -256,7 +250,9 @@ mapping::entry const host::entries[] = {
                    get_hosts_col_size(hosts_notes_url)),
     mapping::entry(static_cast<double(host::*)>(&host::notification_interval),
                    "notification_interval"),
-    mapping::entry(&host::notification_number, "notification_number"),
+    mapping::entry(&host::notification_number,
+                   "notification_number",
+                   mapping::entry::invalid_on_negative),
     mapping::entry(
         static_cast<std::string(host::*)>(&host::notification_period),
         "notification_period",

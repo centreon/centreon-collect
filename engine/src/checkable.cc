@@ -24,7 +24,8 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
-checkable::checkable(const std::string& display_name,
+checkable::checkable(const std::string& name,
+                     const std::string& display_name,
                      const std::string& check_command,
                      bool checks_enabled,
                      bool accept_passive_checks,
@@ -48,7 +49,8 @@ checkable::checkable(const std::string& display_name,
                      const std::string& timezone,
                      uint64_t icon_id)
     : check_period_ptr{nullptr},
-      _display_name{display_name},
+      _name{name},
+      _display_name{display_name.empty() ? name : display_name},
       _check_command{check_command},
       _check_interval{check_interval},
       _retry_interval{retry_interval},
@@ -120,7 +122,7 @@ const std::string& checkable::get_display_name() const {
 }
 
 void checkable::set_display_name(const std::string& display_name) {
-  _display_name = display_name;
+  _display_name = display_name.empty() ? _name : display_name;
 }
 
 const std::string& checkable::check_command() const {
@@ -456,11 +458,8 @@ void checkable::set_event_handler_ptr(commands::command* cmd) {
   _event_handler_ptr = cmd;
 }
 
-commands::command* checkable::get_check_command_ptr() const {
-  return _check_command_ptr;
-}
-
-void checkable::set_check_command_ptr(commands::command* cmd) {
+void checkable::set_check_command_ptr(
+    const std::shared_ptr<commands::command>& cmd) {
   _check_command_ptr = cmd;
 }
 
@@ -524,4 +523,12 @@ std::forward_list<std::shared_ptr<tag>>& checkable::mut_tags() {
 
 const std::forward_list<std::shared_ptr<tag>>& checkable::tags() const {
   return _tags;
+}
+
+const std::string& checkable::name() const {
+  return _name;
+}
+
+void checkable::set_name(const std::string& name) {
+  _name = name;
 }

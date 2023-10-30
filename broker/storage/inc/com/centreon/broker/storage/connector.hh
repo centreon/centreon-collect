@@ -19,9 +19,9 @@
 #ifndef CCB_STORAGE_CONNECTOR_HH
 #define CCB_STORAGE_CONNECTOR_HH
 
-#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/database_config.hh"
 
 CCB_BEGIN()
 
@@ -35,7 +35,6 @@ namespace storage {
 class connector : public io::endpoint {
   database_config _dbcfg;
   uint32_t _interval_length;
-  uint32_t _rebuild_check_interval;
   uint32_t _rrd_len;
   bool _store_in_data_bin;
 
@@ -49,7 +48,7 @@ class connector : public io::endpoint {
                   uint32_t rrd_len,
                   uint32_t interval_length,
                   bool store_in_data_bin = true);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace storage
 

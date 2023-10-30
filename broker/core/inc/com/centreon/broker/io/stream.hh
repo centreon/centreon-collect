@@ -74,6 +74,8 @@ class stream {
   bool validate(std::shared_ptr<io::data> const& d, std::string const& error);
   virtual int write(std::shared_ptr<data> const& d) = 0;
   const std::string& get_name() const { return _name; }
+
+  virtual bool wait_for_all_events_written(unsigned ms_timeout);
 };
 }  // namespace io
 

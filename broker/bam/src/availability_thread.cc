@@ -18,9 +18,9 @@
 
 #include "com/centreon/broker/bam/availability_thread.hh"
 
-#include "com/centreon/broker/database/mysql_error.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/time.hh"
+#include "com/centreon/broker/sql/mysql_error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;
@@ -425,7 +425,7 @@ void availability_thread::_write_availability(
       builder.get_unknown_opened(), builder.get_downtime_opened()));
 
   log_v2::bam()->debug("Query: {}", query_str);
-  _mysql->run_query(query_str, database::mysql_error::insert_availability, true,
+  _mysql->run_query(query_str, database::mysql_error::insert_availability,
                     thread_id);
 }
 

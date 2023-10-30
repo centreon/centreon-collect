@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
  *
  */
 #include <gtest/gtest.h>
+#include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/file/splitter.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -30,7 +31,12 @@ using namespace com::centreon::broker::file;
 
 class FileSplitterPermissionDenied : public ::testing::Test {
  public:
-  void SetUp() override { _path = FILE_WITH_BAD_PERMISSION; }
+  void SetUp() override {
+    file::disk_accessor::load(100000);
+    _path = FILE_WITH_BAD_PERMISSION;
+  }
+
+  void TearDown() override { file::disk_accessor::unload(); }
 
  protected:
   std::string _path;
@@ -41,8 +47,6 @@ class FileSplitterPermissionDenied : public ::testing::Test {
 // Then the creation does not crash
 TEST_F(FileSplitterPermissionDenied, DefaultFile) {
   if (getuid() != 0) {
-    ASSERT_THROW(new splitter(_path, file::fs_file::open_read_write_truncate,
-                              10000, true),
-                 msg_fmt);
+    ASSERT_THROW(new splitter(_path, 10000, true), msg_fmt);
   }
 }

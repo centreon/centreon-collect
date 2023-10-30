@@ -21,37 +21,6 @@
 using namespace com::centreon::broker::bam;
 
 /**
- *  Default constructor.
- */
-service_listener::service_listener() {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-service_listener::service_listener(service_listener const& other) {
-  (void)other;
-}
-
-/**
- *  Destructor.
- */
-service_listener::~service_listener() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-service_listener& service_listener::operator=(service_listener const& other) {
-  (void)other;
-  return (*this);
-}
-
-/**
  *  Notify of a service status update.
  *
  *  @param[in]  status   Service status.
@@ -91,6 +60,19 @@ void service_listener::service_update(
 }
 
 /**
+ *  Notify of a protobuf acknowledgement.
+ *
+ *  @param[in]  ack      Acknowledgement.
+ *  @param[out] visitor  Visitor.
+ */
+void service_listener::service_update(
+    const std::shared_ptr<neb::pb_acknowledgement>& ack,
+    io::stream* visitor) {
+  (void)ack;
+  (void)visitor;
+}
+
+/**
  *  Notify of an acknowledgement.
  *
  *  @param[in]  ack      Acknowledgement.
@@ -111,6 +93,19 @@ void service_listener::service_update(
  */
 void service_listener::service_update(std::shared_ptr<neb::downtime> const& dt,
                                       io::stream* visitor) {
+  (void)dt;
+  (void)visitor;
+}
+
+/**
+ *  Notify of a downtime (protobuf).
+ *
+ *  @param[in]  dt       Downtime.
+ *  @param[out] visitor  Visitor.
+ */
+void service_listener::service_update(
+    const std::shared_ptr<neb::pb_downtime>& dt,
+    io::stream* visitor) {
   (void)dt;
   (void)visitor;
 }

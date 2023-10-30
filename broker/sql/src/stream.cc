@@ -24,7 +24,7 @@
 #include "com/centreon/broker/neb/downtime.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
-#include "com/centreon/broker/query_preparator.hh"
+#include "com/centreon/broker/sql/query_preparator.hh"
 #include "com/centreon/broker/storage/conflict_manager.hh"
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/host.hh"
@@ -69,7 +69,6 @@ stream::stream(database_config const& dbcfg,
       //                      dbcfg.get_name(),
       //                      cleanup_check_interval),
       _pending_events{0},
-      _with_state_events(with_state_events),
       _stopped(false) {
   // FIXME DBR
   (void)cleanup_check_interval;

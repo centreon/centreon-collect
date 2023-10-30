@@ -21,6 +21,7 @@
 
 #include "com/centreon/broker/io/limit_endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/tcp/tcp_config.hh"
 
 CCB_BEGIN()
 
@@ -32,20 +33,18 @@ namespace tcp {
  *  Connect to some remote TCP host.
  */
 class connector : public io::limit_endpoint {
-  const std::string _host;
-  const uint16_t _port;
-  const int32_t _read_timeout;
+  tcp_config::pointer _conf;
 
  public:
-  connector(const std::string& host, uint16_t port, int32_t read_timeout);
+  connector(const tcp_config::pointer& conf);
   ~connector();
 
   connector& operator=(const connector&) = delete;
   connector(const connector&) = delete;
 
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 
-  std::unique_ptr<io::stream> create_stream() override;
+  std::shared_ptr<io::stream> create_stream() override;
 };
 }  // namespace tcp
 

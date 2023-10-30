@@ -17,7 +17,6 @@
 */
 #include "com/centreon/broker/io/limit_endpoint.hh"
 
-
 using namespace com::centreon::broker::io;
 
 /**
@@ -25,10 +24,10 @@ using namespace com::centreon::broker::io;
  *
  * @return The connection object.
  */
-std::unique_ptr<stream> limit_endpoint::open() {
+std::shared_ptr<stream> limit_endpoint::open() {
   // Launch connection process.
   try {
-    std::unique_ptr<stream> retval = create_stream();
+    std::shared_ptr<stream> retval = create_stream();
     _is_ready_count = 0;
     return retval;
   } catch (const std::exception& e) {
@@ -56,4 +55,3 @@ bool limit_endpoint::is_ready() const {
   }
   return false;
 }
-

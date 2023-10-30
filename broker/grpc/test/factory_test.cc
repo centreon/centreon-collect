@@ -17,9 +17,7 @@
  *
  */
 
-#include <mutex>
-
-#include <gtest/gtest.h>
+#include "grpc_test_include.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;
@@ -34,7 +32,7 @@ using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
 TEST(grpc_factory, HasEndpoint) {
-  grpc::factory fact;
+  com::centreon::broker::grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
 
   cfg.type = "grpc";
@@ -44,7 +42,7 @@ TEST(grpc_factory, HasEndpoint) {
 }
 
 TEST(grpc_factory, Exception) {
-  grpc::factory fact;
+  com::centreon::broker::grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
@@ -53,7 +51,7 @@ TEST(grpc_factory, Exception) {
 }
 
 TEST(grpc_factory, Acceptor) {
-  grpc::factory fact;
+  com::centreon::broker::grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
@@ -69,7 +67,7 @@ TEST(grpc_factory, Acceptor) {
 }
 
 TEST(grpc_factory, BadPort) {
-  grpc::factory fact;
+  com::centreon::broker::grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
@@ -81,7 +79,7 @@ TEST(grpc_factory, BadPort) {
 }
 
 TEST(grpc_factory, BadHost) {
-  grpc::factory fact;
+  com::centreon::broker::grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
@@ -96,7 +94,7 @@ TEST(grpc_factory, BadHost) {
 }
 
 TEST(grpc_factory, Connector) {
-  grpc::factory fact;
+  com::centreon::broker::grpc::factory fact;
   config::endpoint cfg(config::endpoint::io_type::output);
   bool is_acceptor;
   std::shared_ptr<persistent_cache> cache;
@@ -104,7 +102,7 @@ TEST(grpc_factory, Connector) {
   cfg.type = "grpc";
   cfg.params["port"] = "4444";
   cfg.params["host"] = "127.0.0.1";
-  std::unique_ptr<io::factory> f{new grpc::factory};
+  std::unique_ptr<io::factory> f{new com::centreon::broker::grpc::factory};
   ASSERT_TRUE(f->has_endpoint(cfg, nullptr));
   std::unique_ptr<io::endpoint> endp{
       fact.new_endpoint(cfg, is_acceptor, cache)};

@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012, 2020-2021 Centreon
+** Copyright 2011-2012, 2020-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@
 
 #include <climits>
 
-#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
@@ -40,40 +39,66 @@ namespace processing {
  *
  *  Take events from a source and send them to a destination.
  */
-class feeder : public stat_visitable {
-  enum state { stopped, running, finished };
+class feeder : public stat_visitable,
+               public std::enable_shared_from_this<feeder> {
+  enum class state : unsigned { running, finished };
   // Condition variable used when waiting for the thread to finish
-  std::unique_ptr<std::thread> _thread;
-  state _state;
-  mutable std::mutex _state_m;
-  std::condition_variable _state_cv;
+  std::atomic<state> _state;
 
-  std::atomic_bool _should_exit;
+  std::shared_ptr<io::stream> _client;
+  // as the muxer may be embeded in a lambda run by asio thread, we use a
+  // shared_ptr
+  std::shared_ptr<multiplexing::muxer> _muxer;
 
-  std::unique_ptr<io::stream> _client;
-  multiplexing::muxer _muxer;
+  asio::system_timer _stat_timer;
+  asio::system_timer _read_from_stream_timer;
+  std::shared_ptr<asio::io_context> _io_context;
 
-  // This mutex is used for the stat thread.
-  mutable misc::shared_mutex _client_m;
-
-  void _callback() noexcept;
+  mutable std::timed_mutex _protect;
 
  protected:
+  feeder(const std::string& name,
+         const std::shared_ptr<multiplexing::engine>& parent,
+         std::shared_ptr<io::stream>& client,
+         const multiplexing::muxer_filter& read_filters,
+         const multiplexing::muxer_filter& write_filters);
+
   const std::string& _get_read_filters() const override;
   const std::string& _get_write_filters() const override;
   void _forward_statistic(nlohmann::json& tree) override;
   uint32_t _get_queued_events() const override;
 
+  void _start_stat_timer();
+  void _stat_timer_handler(const boost::system::error_code& err);
+
+  void _start_read_from_stream_timer();
+  void _read_from_stream_timer_handler(const boost::system::error_code& err);
+
+  void _read_from_muxer();
+  unsigned _write_to_client(
+      const std::vector<std::shared_ptr<io::data>>& events);
+
+  void _stop_no_lock();
+
+  void _ack_event_to_muxer(unsigned count) noexcept;
+
  public:
-  feeder(const std::string& name,
-         std::unique_ptr<io::stream>& client,
-         multiplexing::muxer::filters read_filters,
-         multiplexing::muxer::filters write_filters);
+  static std::shared_ptr<feeder> create(
+      const std::string& name,
+      const std::shared_ptr<multiplexing::engine>& parent,
+      std::shared_ptr<io::stream>& client,
+      const multiplexing::muxer_filter& read_filters,
+      const multiplexing::muxer_filter& write_filters);
+
   ~feeder();
   feeder(const feeder&) = delete;
   feeder& operator=(const feeder&) = delete;
+
+  void stop();
+
   bool is_finished() const noexcept;
-  const char* get_state() const;
+
+  bool wait_for_all_events_written(unsigned ms_timeout);
 };
 }  // namespace processing
 

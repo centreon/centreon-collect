@@ -33,19 +33,20 @@ using namespace com::centreon::broker::grpc;
  * @param port The port used for the connection.
  */
 connector::connector(const grpc_config::pointer& conf)
-    : io::limit_endpoint(false), _conf(conf) {}
+    : io::limit_endpoint(false, {}), _conf(conf) {}
 
 /**
  * @brief open a new connection
  *
  * @return std::unique_ptr<io::stream>
  */
-std::unique_ptr<io::stream> connector::open() {
-  log_v2::grpc()->info("TCP: connecting to {}", _conf->get_hostport());
+std::shared_ptr<io::stream> connector::open() {
+  SPDLOG_LOGGER_INFO(log_v2::grpc(), "Connecting to {}", _conf->get_hostport());
   try {
     return limit_endpoint::open();
   } catch (const std::exception& e) {
-    log_v2::tcp()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::tcp(),
         "Unable to establish the connection to {} (attempt {}): {}",
         _conf->get_hostport(), _is_ready_count, e.what());
     return nullptr;
@@ -57,6 +58,6 @@ std::unique_ptr<io::stream> connector::open() {
  *
  * @return std::unique_ptr<io::stream>
  */
-std::unique_ptr<io::stream> connector::create_stream() {
-  return std::make_unique<stream>(_conf);
+std::shared_ptr<io::stream> connector::create_stream() {
+  return std::make_shared<stream>(_conf);
 }

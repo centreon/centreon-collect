@@ -18,17 +18,31 @@
 
 #include "com/centreon/broker/rrd/connector.hh"
 
+#include "bbdo/storage/metric.hh"
+#include "bbdo/storage/remove_graph.hh"
+#include "bbdo/storage/status.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/rrd/internal.hh"
 #include "com/centreon/broker/rrd/output.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 
+static constexpr multiplexing::muxer_filter _rrd_stream_filter = {
+    storage::metric::static_type(),
+    storage::pb_metric::static_type(),
+    storage::status::static_type(),
+    storage::pb_status::static_type(),
+    storage::pb_rebuild_message::static_type(),
+    storage::remove_graph::static_type(),
+    storage::pb_remove_graph_message::static_type(),
+    make_type(io::extcmd, extcmd::de_pb_bench)};
+
 /**
  *  Default constructor.
  */
 connector::connector()
-    : io::endpoint(false),
+    : io::endpoint(false, _rrd_stream_filter),
       _cache_size(16),
       _cached_port(0),
       _ignore_update_errors(true),
@@ -36,17 +50,12 @@ connector::connector()
       _write_status(true) {}
 
 /**
- *  Destructor.
- */
-connector::~connector() {}
-
-/**
  *  Connect.
  *
  *  @return Stream object.
  */
-std::unique_ptr<io::stream> connector::open() {
-  std::unique_ptr<io::stream> retval;
+std::shared_ptr<io::stream> connector::open() {
+  std::shared_ptr<io::stream> retval;
   if (!_cached_local.empty())
     retval.reset(new output<cached<asio::local::stream_protocol::socket>>(
         _metrics_path, _status_path, _cache_size, _ignore_update_errors,

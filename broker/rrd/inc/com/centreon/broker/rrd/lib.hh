@@ -48,7 +48,8 @@ class lib : public backend {
             uint32_t length,
             time_t from,
             uint32_t step,
-            short value_type = 0) override;
+            short value_type = 0,
+            bool without_cache = false) override;
   void remove(std::string const& filename) override;
   void update(time_t t, std::string const& value) override;
   void update(const std::deque<std::string>& pts) override;

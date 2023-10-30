@@ -19,6 +19,7 @@
 #ifndef CCB_STORAGE_STATUS_HH
 #define CCB_STORAGE_STATUS_HH
 
+#include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -58,6 +59,9 @@ class status : public io::data {
          int16_t state);
   status(status const& s);
   ~status();
+
+  void convert_to_pb(Status& pb_status) const;
+
   status& operator=(status const& s);
   constexpr static uint32_t static_type() {
     return io::events::data_type<io::storage, storage::de_status>::value;

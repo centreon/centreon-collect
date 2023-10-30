@@ -1,5 +1,5 @@
 /*
-** Copyright 2017-2019 Centreon
+** Copyright 2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -17,21 +17,25 @@
 */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
-
+#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
+#include "bbdo/bam/dimension_ba_event.hh"
+#include "bbdo/bam/dimension_bv_event.hh"
+#include "bbdo/storage/index_mapping.hh"
+#include "bbdo/storage/metric_mapping.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
+using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::lua;
-using namespace com::centreon::exceptions;
 
 /**
  *  Construct a macro cache
  *
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
-macro_cache::macro_cache(std::shared_ptr<persistent_cache> const& cache)
-    : _cache(cache), _services{} {
+macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache)
+    : _cache(cache) {
   if (_cache != nullptr) {
     std::shared_ptr<io::data> d;
     do {
@@ -49,8 +53,9 @@ macro_cache::~macro_cache() {
     try {
       _save_to_disk();
     } catch (std::exception const& e) {
-      log_v2::lua()->error("lua: macro cache couldn't save data to disk: '{}'",
-                           e.what());
+      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+                          "lua: macro cache couldn't save data to disk: '{}'",
+                          e.what());
     }
   }
 }
@@ -62,9 +67,9 @@ macro_cache::~macro_cache() {
  *
  *  @return               The status mapping.
  */
-storage::index_mapping const& macro_cache::get_index_mapping(
-    uint32_t index_id) const {
-  auto found = _index_mappings.find(index_id);
+const storage::pb_index_mapping& macro_cache::get_index_mapping(
+    uint64_t index_id) const {
+  const auto found = _index_mappings.find(index_id);
   if (found == _index_mappings.end())
     throw msg_fmt("lua: could not find host/service of index {}", index_id);
   return *found->second;
@@ -77,9 +82,9 @@ storage::index_mapping const& macro_cache::get_index_mapping(
  *
  *  @return               The metric mapping.
  */
-const std::shared_ptr<storage::metric_mapping>& macro_cache::get_metric_mapping(
-    uint32_t metric_id) const {
-  auto found = _metric_mappings.find(metric_id);
+const std::shared_ptr<storage::pb_metric_mapping>&
+macro_cache::get_metric_mapping(uint64_t metric_id) const {
+  auto const found = _metric_mappings.find(metric_id);
   if (found == _metric_mappings.end())
     throw msg_fmt("lua: could not find index of metric {}", metric_id);
   return found->second;
@@ -157,7 +162,75 @@ int32_t macro_cache::get_severity(uint64_t host_id, uint64_t service_id) const {
         "lua: could not find the severity of the object (host_id: {}, "
         "service_id: {})",
         host_id, service_id);
-  return atoi(found->second->value.c_str());
+  int32_t ret;
+  if (found->second->type() == neb::custom_variable::static_type()) {
+    if (absl::SimpleAtoi(
+            std::static_pointer_cast<neb::custom_variable>(found->second)
+                ->value,
+            &ret)) {
+      return ret;
+    } else {
+      return 0;
+    }
+  } else {
+    if (absl::SimpleAtoi(
+            std::static_pointer_cast<neb::pb_custom_variable>(found->second)
+                ->obj()
+                .value(),
+            &ret)) {
+      return ret;
+    } else {
+      return 0;
+    }
+  }
+}
+
+/**
+ * @brief Get the resource check command from the given host_id, service_id. If
+ * only the host_id is given then the service_id is considered to be 0 and we
+ * looke for a host check command. Otherwise we looke for a service check
+ * command.
+ *
+ * @param host_id An integer representing a host ID.
+ * @param service_id An service ID or 0 for a host.
+ *
+ * @return A string view pointing to the check command.
+ */
+absl::string_view macro_cache::get_check_command(uint64_t host_id,
+                                                 uint64_t service_id) const {
+  /* Case of services */
+  absl::string_view retval;
+  if (service_id) {
+    auto found = _services.find({host_id, service_id});
+    if (found == _services.end())
+      throw msg_fmt(
+          "lua: could not find the check command of the service (host_id: {}, "
+          "service_id: {})",
+          host_id, service_id);
+    if (found->second->type() == neb::service::static_type()) {
+      neb::service& s = static_cast<neb::service&>(*found->second);
+      retval = s.check_command;
+    } else {
+      neb::pb_service& s = static_cast<neb::pb_service&>(*found->second);
+      retval = s.obj().check_command();
+    }
+  }
+  /* Case of hosts */
+  else {
+    auto found = _hosts.find(host_id);
+    if (found == _hosts.end())
+      throw msg_fmt(
+          "lua: could not find the check command of the host (host_id: {})",
+          host_id);
+    if (found->second->type() == neb::host::static_type()) {
+      neb::host& s = static_cast<neb::host&>(*found->second);
+      retval = s.check_command;
+    } else {
+      neb::pb_host& s = static_cast<neb::pb_host&>(*found->second);
+      retval = s.obj().check_command();
+    }
+  }
+  return retval;
 }
 
 /**
@@ -368,7 +441,11 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
   if (found == _instances.end())
     throw msg_fmt("lua: could not find information on instance {}",
                   instance_id);
-  return found->second->name;
+  return found->second->type() == neb::instance::static_type()
+             ? std::static_pointer_cast<neb::instance>(found->second)->name
+             : std::static_pointer_cast<neb::pb_instance>(found->second)
+                   ->obj()
+                   .name();
 }
 
 /**
@@ -379,7 +456,7 @@ std::string const& macro_cache::get_instance(uint64_t instance_id) const {
  */
 std::unordered_multimap<
     uint64_t,
-    std::shared_ptr<bam::dimension_ba_bv_relation_event>> const&
+    std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>> const&
 macro_cache::get_dimension_ba_bv_relation_events() const {
   return _dimension_ba_bv_relation_events;
 }
@@ -391,7 +468,7 @@ macro_cache::get_dimension_ba_bv_relation_events() const {
  *
  * @return a reference to the dimension_ba_event.
  */
-const std::shared_ptr<bam::dimension_ba_event>&
+const std::shared_ptr<bam::pb_dimension_ba_event>&
 macro_cache::get_dimension_ba_event(uint64_t ba_id) const {
   auto const found = _dimension_ba_events.find(ba_id);
   if (found == _dimension_ba_events.end())
@@ -407,7 +484,7 @@ macro_cache::get_dimension_ba_event(uint64_t ba_id) const {
  *
  * @return a reference to the dimension_bv_event.
  */
-const std::shared_ptr<bam::dimension_bv_event>&
+const std::shared_ptr<bam::pb_dimension_bv_event>&
 macro_cache::get_dimension_bv_event(uint64_t bv_id) const {
   auto const found = _dimension_bv_events.find(bv_id);
   if (found == _dimension_bv_events.end())
@@ -428,6 +505,9 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
   switch (data->type()) {
     case neb::instance::static_type():
       _process_instance(data);
+      break;
+    case neb::pb_instance::static_type():
+      _process_pb_instance(data);
       break;
     case neb::host::static_type():
       _process_host(data);
@@ -462,23 +542,38 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::custom_variable::static_type():
       _process_custom_variable(data);
       break;
+    case neb::pb_custom_variable::static_type():
+      _process_pb_custom_variable(data);
+      break;
+    case storage::pb_index_mapping::static_type():
+      _process_index_mapping(data);
+      break;
     case storage::index_mapping::static_type():
       _process_index_mapping(data);
+      break;
+    case storage::pb_metric_mapping::static_type():
+      _process_metric_mapping(data);
       break;
     case storage::metric_mapping::static_type():
       _process_metric_mapping(data);
       break;
     case bam::dimension_ba_event::static_type():
+    case bam::pb_dimension_ba_event::static_type():
       _process_dimension_ba_event(data);
       break;
     case bam::dimension_ba_bv_relation_event::static_type():
+    case bam::pb_dimension_ba_bv_relation_event::static_type():
       _process_dimension_ba_bv_relation_event(data);
       break;
     case bam::dimension_bv_event::static_type():
+    case bam::pb_dimension_bv_event::static_type():
       _process_dimension_bv_event(data);
       break;
     case bam::dimension_truncate_table_signal::static_type():
       _process_dimension_truncate_table_signal(data);
+      break;
+    case bam::pb_dimension_truncate_table_signal::static_type():
+      _process_pb_dimension_truncate_table_signal(data);
       break;
     default:
       break;
@@ -497,6 +592,16 @@ void macro_cache::_process_instance(std::shared_ptr<io::data> const& data) {
 }
 
 /**
+ *  Process an instance event.
+ *
+ *  @param in  The event.
+ */
+void macro_cache::_process_pb_instance(std::shared_ptr<io::data> const& data) {
+  auto const& in = std::static_pointer_cast<neb::pb_instance>(data);
+  _instances[in->obj().instance_id()] = in;
+}
+
+/**
  *  Process a host event.
  *
  *  @param h  The event.
@@ -504,8 +609,8 @@ void macro_cache::_process_instance(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host> const& h =
       std::static_pointer_cast<neb::host>(data);
-  log_v2::lua()->debug("lua: processing host '{}' of id {}", h->host_name,
-                       h->host_id);
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+                      h->host_name, h->host_id);
   if (h->enabled)
     _hosts[h->host_id] = data;
   else
@@ -520,8 +625,8 @@ void macro_cache::_process_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::pb_host> const& h =
       std::static_pointer_cast<neb::pb_host>(data);
-  log_v2::lua()->debug("lua: processing host '{}' of id {}", h->obj().name(),
-                       h->obj().host_id());
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host '{}' of id {}",
+                      h->obj().name(), h->obj().host_id());
   if (h->obj().enabled())
     _hosts[h->obj().host_id()] = data;
   else
@@ -536,7 +641,8 @@ void macro_cache::_process_pb_host(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_adaptive_host(
     const std::shared_ptr<io::data>& data) {
   const auto& h = std::static_pointer_cast<neb::pb_adaptive_host>(data);
-  log_v2::lua()->debug("lua: processing adaptive host {}", h->obj().host_id());
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing adaptive host {}",
+                      h->obj().host_id());
   auto& ah = h->obj();
   auto it = _hosts.find(ah.host_id());
   if (it != _hosts.end()) {
@@ -606,7 +712,8 @@ void macro_cache::_process_pb_adaptive_host(
         h.set_notification_period(ah.notification_period());
     }
   } else
-    log_v2::lua()->warn(
+    SPDLOG_LOGGER_WARN(
+        log_v2::lua(),
         "lua: cannot update cache for host {}, it does not exist in "
         "the cache",
         h->obj().host_id());
@@ -620,8 +727,8 @@ void macro_cache::_process_pb_adaptive_host(
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host_group> const& hg =
       std::static_pointer_cast<neb::host_group>(data);
-  log_v2::lua()->debug("lua: processing host group '{}' of id {}", hg->name,
-                       hg->id);
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host group '{}' of id {}",
+                      hg->name, hg->id);
   if (hg->enabled)
     _host_groups[hg->id] = hg;
 }
@@ -635,7 +742,8 @@ void macro_cache::_process_host_group_member(
     std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host_group_member> const& hgm =
       std::static_pointer_cast<neb::host_group_member>(data);
-  log_v2::lua()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::lua(),
       "lua: processing host group member (group_name: '{}', group_id: {}, "
       "host_id: {})",
       hgm->group_name, hgm->group_id, hgm->host_id);
@@ -652,8 +760,9 @@ void macro_cache::_process_host_group_member(
  */
 void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::service>(data);
-  log_v2::lua()->debug("lua: processing service ({}, {}) (description:{})",
-                       s->host_id, s->service_id, s->service_description);
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing service ({}, {}) (description:{})",
+                      s->host_id, s->service_id, s->service_description);
   if (s->enabled)
     _services[{s->host_id, s->service_id}] = data;
   else
@@ -667,9 +776,9 @@ void macro_cache::_process_service(std::shared_ptr<io::data> const& data) {
  */
 void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
   auto const& s = std::static_pointer_cast<neb::pb_service>(data);
-  log_v2::lua()->debug("lua: processing service ({}, {}) (description:{})",
-                       s->obj().host_id(), s->obj().service_id(),
-                       s->obj().description());
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::lua(), "lua: processing service ({}, {}) (description:{})",
+      s->obj().host_id(), s->obj().service_id(), s->obj().description());
   if (s->obj().enabled())
     _services[{s->obj().host_id(), s->obj().service_id()}] = data;
   else
@@ -684,8 +793,9 @@ void macro_cache::_process_pb_service(std::shared_ptr<io::data> const& data) {
 void macro_cache::_process_pb_adaptive_service(
     std::shared_ptr<io::data> const& data) {
   const auto& s = std::static_pointer_cast<neb::pb_adaptive_service>(data);
-  log_v2::lua()->debug("lua: processing adaptive service ({}, {})",
-                       s->obj().host_id(), s->obj().service_id());
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing adaptive service ({}, {})",
+                      s->obj().host_id(), s->obj().service_id());
   auto& as = s->obj();
   auto it = _services.find({as.host_id(), as.service_id()});
   if (it != _services.end()) {
@@ -756,7 +866,8 @@ void macro_cache::_process_pb_adaptive_service(
         s.set_notification_period(as.notification_period());
     }
   } else {
-    log_v2::lua()->warn(
+    SPDLOG_LOGGER_WARN(
+        log_v2::lua(),
         "lua: cannot update cache for service ({}, {}), it does not exist in "
         "the cache",
         s->obj().host_id(), s->obj().service_id());
@@ -771,8 +882,9 @@ void macro_cache::_process_pb_adaptive_service(
 void macro_cache::_process_service_group(
     std::shared_ptr<io::data> const& data) {
   auto const& sg = std::static_pointer_cast<neb::service_group>(data);
-  log_v2::lua()->debug("lua: processing service group '{}' of id {}", sg->name,
-                       sg->id);
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing service group '{}' of id {}", sg->name,
+                      sg->id);
   if (sg->enabled)
     _service_groups[sg->id] = sg;
 }
@@ -785,7 +897,8 @@ void macro_cache::_process_service_group(
 void macro_cache::_process_service_group_member(
     std::shared_ptr<io::data> const& data) {
   auto const& sgm = std::static_pointer_cast<neb::service_group_member>(data);
-  log_v2::lua()->debug(
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::lua(),
       "lua: processing service group member (group_name: {}, group_id: {}, "
       "host_id: {}, service_id: {}",
       sgm->group_name, sgm->group_id, sgm->host_id, sgm->service_id);
@@ -804,13 +917,25 @@ void macro_cache::_process_service_group_member(
  */
 void macro_cache::_process_index_mapping(
     std::shared_ptr<io::data> const& data) {
-  std::shared_ptr<storage::index_mapping> const& im =
-      std::static_pointer_cast<storage::index_mapping>(data);
-  log_v2::lua()->debug(
-      "lua: processing index mapping (index_id: {}, host_id: {}, service_id: "
-      "{})",
-      im->index_id, im->host_id, im->service_id);
-  _index_mappings[im->index_id] = im;
+  switch (data->type()) {
+    case storage::pb_index_mapping::static_type(): {
+      auto im = std::static_pointer_cast<storage::pb_index_mapping>(data);
+      _index_mappings[im->obj().index_id()] = im;
+    } break;
+    case storage::index_mapping::static_type(): {
+      const auto& im = std::static_pointer_cast<storage::index_mapping>(data);
+      auto pb_im = std::make_shared<storage::pb_index_mapping>();
+      auto& obj = pb_im->mut_obj();
+      obj.set_index_id(im->index_id);
+      obj.set_host_id(im->host_id);
+      obj.set_service_id(im->service_id);
+      _index_mappings[obj.index_id()] = pb_im;
+    } break;
+    default:
+      /* Should not arrive */
+      assert(1 == 0);
+      break;
+  }
 }
 
 /**
@@ -820,11 +945,27 @@ void macro_cache::_process_index_mapping(
  */
 void macro_cache::_process_metric_mapping(
     std::shared_ptr<io::data> const& data) {
-  auto const& mm = std::static_pointer_cast<storage::metric_mapping>(data);
-  log_v2::lua()->debug(
-      "lua: processing metric mapping (metric_id: {}, index_id: {})",
-      mm->metric_id, mm->index_id);
-  _metric_mappings[mm->metric_id] = mm;
+  switch (data->type()) {
+    case storage::pb_metric_mapping::static_type(): {
+      const auto& mm =
+          std::static_pointer_cast<storage::pb_metric_mapping>(data);
+      _metric_mappings[mm->obj().metric_id()] = mm;
+    } break;
+    case storage::metric_mapping::static_type(): {
+      /* To avoid conflicts and thinking about future we force all the cache
+       * to contain protobuf messages. */
+      const auto& mm = std::static_pointer_cast<storage::metric_mapping>(data);
+      auto pb_mm = std::make_shared<storage::pb_metric_mapping>();
+      auto& obj = pb_mm->mut_obj();
+      obj.set_index_id(mm->index_id);
+      obj.set_metric_id(mm->metric_id);
+      _metric_mappings[obj.metric_id()] = std::move(pb_mm);
+    } break;
+    default:
+      /* Should not arrive */
+      assert(1 == 0);
+      break;
+  }
 }
 
 /**
@@ -834,10 +975,30 @@ void macro_cache::_process_metric_mapping(
  */
 void macro_cache::_process_dimension_ba_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& dbae = std::static_pointer_cast<bam::dimension_ba_event>(data);
-  log_v2::lua()->debug("lua: processing dimension ba event of id {}",
-                       dbae->ba_id);
-  _dimension_ba_events[dbae->ba_id] = dbae;
+  if (data->type() == bam::pb_dimension_ba_event::static_type()) {
+    auto const& dbae =
+        std::static_pointer_cast<bam::pb_dimension_ba_event>(data);
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: pb processing dimension ba event of id {}",
+                        dbae->obj().ba_id());
+    _dimension_ba_events[dbae->obj().ba_id()] = dbae;
+  } else {
+    const auto& to_convert =
+        std::static_pointer_cast<bam::dimension_ba_event>(data);
+    auto dbae = std::make_shared<bam::pb_dimension_ba_event>();
+    DimensionBaEvent& to_fill = dbae->mut_obj();
+    to_fill.set_ba_id(to_convert->ba_id);
+    to_fill.set_ba_name(to_convert->ba_name);
+    to_fill.set_ba_description(to_convert->ba_description);
+    to_fill.set_sla_month_percent_crit(to_convert->sla_month_percent_crit);
+    to_fill.set_sla_month_percent_warn(to_convert->sla_month_percent_warn);
+    to_fill.set_sla_duration_crit(to_convert->sla_duration_crit);
+    to_fill.set_sla_duration_warn(to_convert->sla_duration_warn);
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: pb processing dimension ba event of id {}",
+                        dbae->obj().ba_id());
+    _dimension_ba_events[dbae->obj().ba_id()] = dbae;
+  }
 }
 
 /**
@@ -847,12 +1008,27 @@ void macro_cache::_process_dimension_ba_event(
  */
 void macro_cache::_process_dimension_ba_bv_relation_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& rel =
-      std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
-  log_v2::lua()->debug(
-      "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
-      rel->ba_id, rel->bv_id);
-  _dimension_ba_bv_relation_events.insert({rel->ba_id, rel});
+  if (data->type() == bam::pb_dimension_ba_bv_relation_event::static_type()) {
+    const auto& pb_data =
+        std::static_pointer_cast<bam::pb_dimension_ba_bv_relation_event>(data);
+    const DimensionBaBvRelationEvent& rel = pb_data->obj();
+    SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                        "lua: processing pb dimension ba bv relation event "
+                        "(ba_id: {}, bv_id: {})",
+                        rel.ba_id(), rel.bv_id());
+    _dimension_ba_bv_relation_events.insert({rel.ba_id(), pb_data});
+  } else {
+    auto const& rel =
+        std::static_pointer_cast<bam::dimension_ba_bv_relation_event>(data);
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::lua(),
+        "lua: processing dimension ba bv relation event (ba_id: {}, bv_id: {})",
+        rel->ba_id, rel->bv_id);
+    auto pb_data(std::make_shared<bam::pb_dimension_ba_bv_relation_event>());
+    pb_data->mut_obj().set_ba_id(rel->ba_id);
+    pb_data->mut_obj().set_bv_id(rel->bv_id);
+    _dimension_ba_bv_relation_events.insert({rel->ba_id, pb_data});
+  }
 }
 
 /**
@@ -862,10 +1038,19 @@ void macro_cache::_process_dimension_ba_bv_relation_event(
  */
 void macro_cache::_process_dimension_bv_event(
     std::shared_ptr<io::data> const& data) {
-  auto const& dbve = std::static_pointer_cast<bam::dimension_bv_event>(data);
-  log_v2::lua()->debug("lua: processing dimension bv event of id {}",
-                       dbve->bv_id);
-  _dimension_bv_events[dbve->bv_id] = dbve;
+  if (data->type() == bam::pb_dimension_bv_event::static_type()) {
+    const auto& dbve =
+        std::static_pointer_cast<bam::pb_dimension_bv_event>(data);
+    _dimension_bv_events[dbve->obj().bv_id()] = dbve;
+  } else if (data->type() == bam::dimension_bv_event::static_type()) {
+    const auto& old_ev =
+        std::static_pointer_cast<bam::dimension_bv_event>(data);
+    auto ev = std::make_shared<bam::pb_dimension_bv_event>();
+    ev->mut_obj().set_bv_id(old_ev->bv_id);
+    ev->mut_obj().set_bv_name(old_ev->bv_name);
+    ev->mut_obj().set_bv_description(old_ev->bv_description);
+    _dimension_bv_events[ev->obj().bv_id()] = ev;
+  }
 }
 
 /**
@@ -877,9 +1062,29 @@ void macro_cache::_process_dimension_truncate_table_signal(
     std::shared_ptr<io::data> const& data) {
   auto const& trunc =
       std::static_pointer_cast<bam::dimension_truncate_table_signal>(data);
-  log_v2::lua()->debug("lua: processing dimension truncate table signal");
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing dimension truncate table signal");
 
   if (trunc->update_started) {
+    _dimension_ba_events.clear();
+    _dimension_ba_bv_relation_events.clear();
+    _dimension_bv_events.clear();
+  }
+}
+
+/**
+ *  Process a dimension truncate table signal
+ *
+ * @param data  The event.
+ */
+void macro_cache::_process_pb_dimension_truncate_table_signal(
+    std::shared_ptr<io::data> const& data) {
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing dimension truncate table signal");
+
+  if (std::static_pointer_cast<bam::pb_dimension_truncate_table_signal>(data)
+          ->obj()
+          .update_started()) {
     _dimension_ba_events.clear();
     _dimension_ba_bv_relation_events.clear();
     _dimension_bv_events.clear();
@@ -897,13 +1102,46 @@ void macro_cache::_process_custom_variable(
     std::shared_ptr<io::data> const& data) {
   auto const& cv = std::static_pointer_cast<neb::custom_variable>(data);
   if (cv->name == "CRITICALITY_LEVEL") {
-    log_v2::lua()->debug(
+    SPDLOG_LOGGER_DEBUG(
+        log_v2::lua(),
         "lua: processing custom variable representing a criticality level for "
         "host_id {} and service_id {} and level {}",
         cv->host_id, cv->service_id, cv->value);
     int32_t value = std::atoi(cv->value.c_str());
     if (value)
       _custom_vars[{cv->host_id, cv->service_id}] = cv;
+  }
+}
+
+/**
+ *  Process a custom variable event.
+ *  The goal is to keep in cache only custom variables concerning severity on
+ *  hosts and services.
+ *
+ *  @param data  The event.
+ */
+void macro_cache::_process_pb_custom_variable(
+    std::shared_ptr<io::data> const& data) {
+  neb::pb_custom_variable::shared_ptr cv =
+      std::static_pointer_cast<neb::pb_custom_variable>(data);
+  if (cv->obj().name() == "CRITICALITY_LEVEL") {
+    int32_t value;
+    if (absl::SimpleAtoi(cv->obj().value(), &value)) {
+      SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                          "lua: processing custom variable representing a "
+                          "criticality level for "
+                          "host_id {} and service_id {} and level {}",
+                          cv->obj().host_id(), cv->obj().service_id(), value);
+      if (value)
+        _custom_vars[{cv->obj().host_id(), cv->obj().service_id()}] = cv;
+    } else {
+      SPDLOG_LOGGER_ERROR(log_v2::lua(),
+                          "lua: processing custom variable representing a "
+                          "criticality level for "
+                          "host_id {} and service_id {} incorrect value {}",
+                          cv->obj().host_id(), cv->obj().service_id(),
+                          cv->obj().value());
+    }
   }
 }
 
@@ -942,7 +1180,7 @@ void macro_cache::_save_to_disk() {
        ++it)
     _cache->add(it->second);
 
-  for (auto it(_metric_mappings.begin()), end(_metric_mappings.end());
+  for (auto it = _metric_mappings.begin(), end = _metric_mappings.end();
        it != end; ++it)
     _cache->add(it->second);
 

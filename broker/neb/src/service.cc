@@ -18,16 +18,10 @@
 
 #include "com/centreon/broker/neb/service.hh"
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb;
-
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
 
 /**
  *  @brief Default constructor.
@@ -269,7 +263,9 @@ mapping::entry const service::entries[] = {
     mapping::entry(
         static_cast<double(service::*)>(&service::notification_interval),
         "notification_interval"),
-    mapping::entry(&service::notification_number, "notification_number"),
+    mapping::entry(&service::notification_number,
+                   "notification_number",
+                   mapping::entry::invalid_on_negative),
     mapping::entry(
         static_cast<std::string(service::*)>(&service::notification_period),
         "notification_period",

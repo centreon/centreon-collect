@@ -1,20 +1,20 @@
 /*
-** Copyright 2014 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/bool_more_than.hh"
 
@@ -28,29 +28,32 @@ using namespace com::centreon::broker::bam;
 bool_more_than::bool_more_than(bool strict) : _strict(strict) {}
 
 /**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-// bool_more_than::bool_more_than(bool_more_than const& right)
-//    : bool_binary_operator(right) {
-//  _strict = right._strict;
-//}
-
-/**
  *  Get the hard value.
  *
  *  @return Evaluation of the expression with hard values.
  */
-double bool_more_than::value_hard() {
-  return (_strict ? _left_hard > _right_hard : _left_hard >= _right_hard);
+double bool_more_than::value_hard() const {
+  return _strict ? _left_hard > _right_hard : _left_hard >= _right_hard;
 }
 
 /**
- *  Get the soft value.
+ * @brief Get the current value as a boolean.
  *
- *  @return Evaluation of the expression with soft values.
+ * @return True or false.
  */
-double bool_more_than::value_soft() {
-  return (_strict ? _left_soft > _right_soft : _left_soft >= _right_soft);
+bool bool_more_than::boolean_value() const {
+  return _strict ? _left_hard > _right_hard : _left_hard >= _right_hard;
+}
+
+/**
+ * @brief This method is used by the dump() method. It gives a summary of this
+ * computable main informations.
+ *
+ * @return A multiline strings with various informations.
+ */
+std::string bool_more_than::object_info() const {
+  return fmt::format(
+      "{} {:p}\nknown: {}\nvalue: {}", static_cast<const void*>(this),
+      _strict ? "GREATER THAN" : "GREATER OR EQUAL",
+      state_known() ? "true" : "false", boolean_value() ? "true" : "false");
 }

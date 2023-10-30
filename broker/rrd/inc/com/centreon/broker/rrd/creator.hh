@@ -43,7 +43,8 @@ class creator {
               uint32_t length,
               time_t from,
               uint32_t step,
-              short value_type);
+              short value_type,
+              bool without_cache = false);
 
  private:
   struct tmpl_info {
@@ -52,8 +53,16 @@ class creator {
         return (length < right.length);
       if (step != right.step)
         return (step < right.step);
-      return (value_type < right.value_type);
+      if (value_type != right.value_type)
+        return (value_type < right.value_type);
+      // from must be the last compared value
+      return from < right.from;
     }
+    bool is_length_step_type_equal(const tmpl_info& right) const {
+      return length == right.length && step == right.step &&
+             value_type == right.value_type;
+    }
+    time_t from;
     uint32_t length;
     uint32_t step;
     short value_type;
@@ -62,6 +71,7 @@ class creator {
   struct fd_info {
     int fd;
     off_t size;
+    std::string path;
   };
 
   void _duplicate(std::string const& filename, fd_info const& in_fd);

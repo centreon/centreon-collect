@@ -19,10 +19,10 @@
 #ifndef CCB_STORAGE_REBUILDER_HH
 #define CCB_STORAGE_REBUILDER_HH
 
-#include "com/centreon/broker/database_config.hh"
-#include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/sql/database_config.hh"
+#include "com/centreon/broker/sql/mysql.hh"
 
 CCB_BEGIN()
 
@@ -66,7 +66,7 @@ class rebuilder {
   ~rebuilder() noexcept = default;
   rebuilder(const rebuilder&) = delete;
   rebuilder& operator=(const rebuilder&) = delete;
-  void rebuild_rrd_graphs(const std::shared_ptr<io::data>& d);
+  void rebuild_graphs(const std::shared_ptr<io::data>& d);
 };
 }  // namespace storage
 

@@ -33,12 +33,6 @@ using namespace com::centreon::broker::compression;
 
 const size_t stream::max_data_size = 100000000u;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Constructor.
  *
@@ -72,6 +66,10 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
   // Clear existing content.
   data.reset();
 
+  if (_shutdown) {  // shutdown
+    throw exceptions::shutdown("compression stream has been shuted down");
+  }
+
   try {
     // Process buffer as long as data is corrupted
     // or until an exception occurs.
@@ -93,13 +91,17 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
           unsigned char const* buff((unsigned char const*)_rbuffer.data());
           size = static_cast<uint32_t>((buff[0] << 24) | (buff[1] << 16) |
                                        (buff[2] << 8) | (buff[3]));
+          log_v2::core()->trace(
+              "extract size: {} from {:02X} {:02X} {:02X} {:02X}", size,
+              buff[0], buff[1], buff[2], buff[3]);
         }
 
         // Check if size is within bounds.
         if (size <= 0 || size > max_data_size) {
           // Skip corrupted data, one byte at a time.
           log_v2::core()->error(
-              "compression: stream got corrupted packet size of {} bytes, not in "
+              "compression: stream got corrupted packet size of {} bytes, not "
+              "in "
               "the 0-{} range, skipping next byte",
               size, max_data_size);
           if (!skipped)
@@ -107,8 +109,10 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
                 "compression: peer {} is sending corrupted data", peer());
           ++skipped;
           _rbuffer.pop(1);
-        } else
+        } else {
+          log_v2::core()->trace("compression: reading {} bytes", size);
           corrupted = false;
+        }
       }
 
       // Get compressed data.
@@ -163,9 +167,9 @@ bool stream::read(std::shared_ptr<io::data>& data, time_t deadline) {
   } catch (exceptions::shutdown const& e) {
     _shutdown = true;
     if (!_wbuffer.empty()) {
-      std::shared_ptr<io::raw> r(new io::raw);
-      r.get()->get_buffer() = _wbuffer;
-      data = r;
+      auto r = std::make_shared<io::raw>();
+      r.get()->get_buffer() = std::move(_wbuffer);
+      data = std::move(r);
       _wbuffer.clear();
     } else
       throw;
@@ -231,11 +235,11 @@ int stream::write(std::shared_ptr<io::data> const& d) {
     // Check length.
     if (r.size() > max_data_size)
       throw msg_fmt(
-          "cannot compress buffers longer than  {}"
-          " bytes: you should report this error "
-          "to Centreon Broker developers",
+          "cannot compress buffers longer than  {} bytes: you should report "
+          "this error to Centreon Broker developers",
           max_data_size);
     else if (r.size() > 0) {
+      log_v2::core()->trace("compression: writing {} bytes", r.size());
       // Append data to write buffer.
       std::copy(r.get_buffer().begin(), r.get_buffer().end(),
                 std::back_inserter(_wbuffer));
@@ -255,13 +259,11 @@ void stream::_flush() {
   // Check for shutdown stream.
   if (_shutdown)
     throw exceptions::shutdown(
-        "cannot flush compression "
-        "stream: sub-stream is already "
-        "shutdown");
+        "cannot flush compression stream: sub-stream is already shutdown");
 
   if (_wbuffer.size() > 0) {
     // Compress data.
-    std::shared_ptr<io::raw> compressed(new io::raw);
+    auto compressed{std::make_shared<io::raw>()};
     std::vector<char>& data(compressed->get_buffer());
     data = zlib::compress(_wbuffer, _level);
     log_v2::core()->debug(
@@ -271,7 +273,7 @@ void stream::_flush() {
 
     // Add compressed data size.
     unsigned char buffer[4];
-    uint32_t size(compressed->size());
+    uint32_t size = compressed->size();
     buffer[0] = (size >> 24) & 0xFF;
     buffer[1] = (size >> 16) & 0xFF;
     buffer[2] = (size >> 8) & 0xFF;

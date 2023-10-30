@@ -69,7 +69,6 @@ class state {
   kpis _kpis;
   bool_exps _bool_expressions;
   hst_svc_mapping _hst_svc_mapping;
-  ba_svc_mapping _meta_svc_mapping;
 };
 }  // namespace configuration
 }  // namespace bam

@@ -20,7 +20,6 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -56,7 +55,7 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances) {
     // Deregister storage layer.
@@ -64,6 +63,7 @@ void broker_module_deinit() {
     io::events::instance().unregister_category(io::storage);
     io::protocols::instance().unreg("storage");
   }
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -87,9 +87,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric), "metric",
                        &storage::metric::operations, storage::metric::entries,
                        "rt_metrics");
-      e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
-                       &storage::rebuild::operations,
-                       storage::rebuild::entries);
       e.register_event(make_type(io::storage, storage::de_remove_graph),
                        "remove_graph", &storage::remove_graph::operations,
                        storage::remove_graph::entries);
@@ -104,9 +101,8 @@ void broker_module_init(void const* arg) {
 
       /* Let's register the rebuild_metrics bbdo event. This is needed to send
        * the rebuild message from the gRPC interface. */
-      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_rrd_graphs),
-                       "rebuild_metrics",
-                       &bbdo::pb_rebuild_rrd_graphs::operations);
+      e.register_event(make_type(io::bbdo, bbdo::de_rebuild_graphs),
+                       "rebuild_metrics", &bbdo::pb_rebuild_graphs::operations);
 
       /* Let's register the message to start rebuilds, send rebuilds and
        * terminate rebuilds. This is pb_rebuild_message. */

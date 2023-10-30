@@ -1,27 +1,26 @@
 /*
-** Copyright 2011-2013 Merethis
+** Copyright 2011-2021 Centreon
 **
-** This file is part of Centreon Engine.
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
 **
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
+**     http://www.apache.org/licenses/LICENSE-2.0
 **
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
+** limitations under the License.
 **
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+** For more information : contact@centreon.com
 */
-
 #include "com/centreon/engine/retention/applier/downtime.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/downtimes/host_downtime.hh"
 #include "com/centreon/engine/downtimes/service_downtime.hh"
 #include "com/centreon/engine/globals.hh"
+#include "com/centreon/engine/log_v2.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::retention;
@@ -49,28 +48,44 @@ void applier::downtime::apply(list_downtime const& lst) {
  *  @param[in] obj The downtime to add into the host.
  */
 void applier::downtime::_add_host_downtime(
-    retention::downtime const& obj) throw() {
-  downtimes::host_downtime* dt{new downtimes::host_downtime(
-      obj.host_name(), obj.entry_time(), obj.author(), obj.comment_data(),
-      obj.start_time(), obj.end_time(), obj.fixed(), obj.triggered_by(),
-      obj.duration(), obj.downtime_id())};
-  dt->schedule();
-  downtimes::downtime_manager::instance().register_downtime(
-      downtimes::downtime::host_downtime, obj.downtime_id());
+    retention::downtime const& obj) noexcept {
+  auto found = host::hosts.find(obj.host_name());
+  if (found != host::hosts.end()) {
+    auto dt{std::make_shared<downtimes::host_downtime>(
+        found->second->host_id(), obj.entry_time(), obj.author(),
+        obj.comment_data(), obj.start_time(), obj.end_time(), obj.fixed(),
+        obj.triggered_by(), obj.duration(), obj.downtime_id())};
+    downtimes::downtime_manager::instance().add_downtime(dt);
+    dt->schedule();
+    downtimes::downtime_manager::instance().register_downtime(
+        downtimes::downtime::host_downtime, obj.downtime_id());
+  } else
+    log_v2::downtimes()->error(
+        "Cannot add host downtime on host '{}' because it does not exist",
+        obj.host_name());
 }
 
 /**
- *  Add serivce downtime.
+ *  Add service downtime.
  *
  *  @param[in] obj The downtime to add into the service.
  */
 void applier::downtime::_add_service_downtime(
-    retention::downtime const& obj) throw() {
-  downtimes::service_downtime* dt{new downtimes::service_downtime(
-      obj.host_name(), obj.service_description(), obj.entry_time(),
-      obj.author(), obj.comment_data(), obj.start_time(), obj.end_time(),
-      obj.fixed(), obj.triggered_by(), obj.duration(), obj.downtime_id())};
-  dt->schedule();
-  downtimes::downtime_manager::instance().register_downtime(
-      downtimes::downtime::service_downtime, obj.downtime_id());
+    retention::downtime const& obj) noexcept {
+  auto found =
+      service::services.find({obj.host_name(), obj.service_description()});
+  if (found != service::services.end()) {
+    auto dt{std::make_shared<downtimes::service_downtime>(
+        found->second->host_id(), found->second->service_id(), obj.entry_time(),
+        obj.author(), obj.comment_data(), obj.start_time(), obj.end_time(),
+        obj.fixed(), obj.triggered_by(), obj.duration(), obj.downtime_id())};
+    downtimes::downtime_manager::instance().add_downtime(dt);
+    dt->schedule();
+    downtimes::downtime_manager::instance().register_downtime(
+        downtimes::downtime::service_downtime, obj.downtime_id());
+  } else
+    log_v2::downtimes()->error(
+        "Cannot create service downtime on service ('{}', '{}') because it "
+        "does not exist",
+        obj.host_name(), obj.service_description());
 }

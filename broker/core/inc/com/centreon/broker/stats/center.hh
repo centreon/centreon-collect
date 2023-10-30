@@ -20,7 +20,7 @@
 #define CCB_STATS_CENTER_HH
 
 #include "broker.pb.h"
-#include "com/centreon/broker/pool.hh"
+#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -51,8 +51,8 @@ namespace stats {
  */
 class center {
   static center* _instance;
-  asio::io_context::strand _strand;
   BrokerStats _stats;
+  mutable std::mutex _stats_m;
   int _json_stats_file_creation;
 
   center();
@@ -66,7 +66,7 @@ class center {
 
   EngineStats* register_engine();
   ConflictManagerStats* register_conflict_manager();
-  bool unregister_muxer(const std::string& name);
+  void unregister_muxer(const std::string& name);
   void update_muxer(std::string name,
                     std::string queue_file,
                     uint32_t size,
@@ -80,14 +80,18 @@ class center {
   void clear_muxer_queue_file(const std::string& name);
 
   bool get_sql_connection_stats(uint32_t index, SqlConnectionStats* response);
-  void get_sql_manager_stats(SqlManagerStats* response);
+  void get_conflict_manager_stats(ConflictManagerStats* response);
+  void get_sql_manager_stats(SqlManagerStats* response, int32_t id = -1);
+  SqlConnectionStats* connection(size_t idx);
   SqlConnectionStats* add_connection();
   void remove_connection(SqlConnectionStats* stats);
-  void get_conflict_manager_stats(ConflictManagerStats* response);
 
   int get_json_stats_file_creation(void);
   void get_sql_connection_size(GenericSize* response);
   void get_processing_stats(ProcessingStats* response);
+  const BrokerStats& stats() const;
+  void lock();
+  void unlock();
 
   /**
    * @brief Set the value pointed by ptr to the value value.
@@ -98,7 +102,8 @@ class center {
    */
   template <typename T>
   void update(T* ptr, T value) {
-    _strand.post([ptr, value = std::move(value)] { *ptr = value; });
+    std::lock_guard<std::mutex> lck(_stats_m);
+    *ptr = std::move(value);
   }
 
   /**
@@ -128,17 +133,19 @@ class center {
    */
   template <typename U, typename T>
   void update(void (U::*f)(T), U* ptr, T value) {
-    _strand.post([ptr, f, value] { (ptr->*f)(value); });
+    std::lock_guard<std::mutex> lck(_stats_m);
+    (ptr->*f)(value);
   }
 
-  void execute(std::function<void()> f) { _strand.post(f); }
+  void execute(std::function<void()>&& f) {
+    std::lock_guard<std::mutex> lck(_stats_m);
+    f();
+  }
 
   template <typename U, typename T>
   const T& get(T (U::*f)() const, const U* ptr) {
-    std::promise<T> p;
-    std::future<T> retval = p.get_future();
-    _strand.post([&p, ptr, f] { p.set_value((ptr->*f)()); });
-    return retval.get();
+    std::lock_guard<std::mutex> lck(_stats_m);
+    return (ptr->*f)();
   }
 };
 

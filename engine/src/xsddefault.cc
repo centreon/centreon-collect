@@ -293,7 +293,7 @@ int xsddefault_save_status_data() {
     stream
         << "hoststatus {\n"
            "\thost_name="
-        << it->second->get_name()
+        << it->second->name()
         << "\n"
            "\tmodified_attributes="
         << it->second->get_modified_attributes()
@@ -414,7 +414,7 @@ int xsddefault_save_status_data() {
         << it->second->problem_has_been_acknowledged()
         << "\n"
            "\tacknowledgement_type="
-        << it->second->get_acknowledgement_type()
+        << it->second->get_acknowledgement()
         << "\n"
            "\tactive_checks_enabled="
         << it->second->active_checks_enabled()
@@ -465,7 +465,7 @@ int xsddefault_save_status_data() {
            << it->second->get_hostname()
            << "\n"
               "\tservice_description="
-           << it->second->get_description()
+           << it->second->description()
            << "\n"
               "\tmodified_attributes="
            << it->second->get_modified_attributes()
@@ -599,7 +599,7 @@ int xsddefault_save_status_data() {
            << it->second->problem_has_been_acknowledged()
            << "\n"
               "\tacknowledgement_type="
-           << it->second->get_acknowledgement_type()
+           << it->second->get_acknowledgement()
            << "\n"
               "\tflap_detection_enabled="
            << it->second->flap_detection_enabled()

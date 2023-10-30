@@ -25,7 +25,7 @@ using namespace com::centreon::broker::lua;
 /**
  *  Default constructor.
  */
-connector::connector() : io::endpoint(false) {}
+connector::connector() : io::endpoint(false, {}) {}
 
 /**
  *  Copy constructor.
@@ -52,9 +52,9 @@ connector::~connector() {}
  *  @param[in] cache                   The cache
  */
 void connector::connect_to(
-    std::string const& lua_script,
-    std::map<std::string, misc::variant> const& cfg_params,
-    std::shared_ptr<persistent_cache> const& cache) {
+    const std::string& lua_script,
+    const std::map<std::string, misc::variant>& cfg_params,
+    const std::shared_ptr<persistent_cache>& cache) {
   _conf_params = cfg_params;
   _lua_script = lua_script;
   _cache = cache;
@@ -65,6 +65,6 @@ void connector::connect_to(
  *
  *  @return a lua connection object.
  */
-std::unique_ptr<io::stream> connector::open() {
-  return std::unique_ptr<stream>(new stream(_lua_script, _conf_params, _cache));
+std::shared_ptr<io::stream> connector::open() {
+  return std::make_unique<stream>(_lua_script, _conf_params, _cache);
 }

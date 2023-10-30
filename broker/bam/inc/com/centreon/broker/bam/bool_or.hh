@@ -1,5 +1,5 @@
 /*
-** Copyright 2014, 2021 Centreon
+** Copyright 2014, 2021-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -33,13 +33,19 @@ namespace bam {
  *  OR between two bool_value.
  */
 class bool_or : public bool_binary_operator {
+  bool _boolean_value = false;
+
+ protected:
+  virtual void _update_state() override;
+
  public:
   bool_or() = default;
   ~bool_or() noexcept override = default;
   bool_or(const bool_or&) = delete;
   bool_or& operator=(const bool_or&) = delete;
-  double value_hard() override;
-  double value_soft() override;
+  double value_hard() const override;
+  bool boolean_value() const override;
+  std::string object_info() const override;
 };
 }  // namespace bam
 

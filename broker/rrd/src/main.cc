@@ -21,7 +21,6 @@
 #include "bbdo/storage/index_mapping.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/metric_mapping.hh"
-#include "bbdo/storage/rebuild.hh"
 #include "bbdo/storage/remove_graph.hh"
 #include "bbdo/storage/status.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -54,11 +53,12 @@ const char* const* broker_module_parents() {
 /**
  *  Module deinitialization routine.
  */
-void broker_module_deinit() {
+bool broker_module_deinit() {
   // Decrement instance number.
   if (!--instances)
     // Deregister RRD layer.
     io::protocols::instance().unreg("RRD");
+  return true;  // ok to be unloaded
 }
 
 /**
@@ -87,9 +87,6 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_metric), "metric",
                        &storage::metric::operations, storage::metric::entries,
                        "rt_metrics");
-      e.register_event(make_type(io::storage, storage::de_rebuild), "rebuild",
-                       &storage::rebuild::operations,
-                       storage::rebuild::entries);
       e.register_event(make_type(io::storage, storage::de_remove_graph),
                        "remove_graph", &storage::remove_graph::operations,
                        storage::remove_graph::entries);
@@ -113,6 +110,11 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::storage, storage::de_remove_graph_message),
                        "remove_graphs_message",
                        &storage::pb_remove_graph_message::operations);
+
+      e.register_event(make_type(io::storage, storage::de_pb_metric),
+                       "pb_metric", &storage::pb_metric::operations);
+      e.register_event(make_type(io::storage, storage::de_pb_status),
+                       "pb_status", &storage::pb_status::operations);
     }
 
     // Register RRD layer.

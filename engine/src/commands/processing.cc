@@ -551,7 +551,244 @@ const std::unordered_map<std::string, command_info> processing::_lst_command(
                    &_redirector_file<&new_thresholds_file>)},
      {"PROCESS_FILE",
       command_info(CMD_PROCESS_FILE,
-                   &_redirector<&cmd_process_external_commands_from_file>)}});
+                   &_redirector<&cmd_process_external_commands_from_file>)},
+     {"CHANGE_ANOMALYDETECTION_SENSITIVITY",
+      command_info(CMD_CHANGE_ANOMALYDETECTION_SENSITIVITY,
+                   &_redirector_anomalydetection<
+                       &change_anomaly_detection_sensitivity>)}});
+
+/********************************************************************
+ * redirectors
+ ********************************************************************/
+template <void (*fptr)(host*)>
+void processing::_redirector_host(int id, time_t entry_time, char* args) {
+  (void)id;
+  (void)entry_time;
+
+  char* name(my_strtok(args, ";"));
+
+  host* hst{nullptr};
+  host_map::const_iterator it(host::hosts.find(name));
+  if (it != host::hosts.end())
+    hst = it->second.get();
+
+  if (!hst) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown host: {}", name);
+    return;
+  }
+  (*fptr)(hst);
+}
+
+template <void (*fptr)(host*, char*)>
+void processing::_redirector_host(int id, time_t entry_time, char* args) {
+  (void)id;
+  (void)entry_time;
+
+  std::string name(my_strtok(args, ";"));
+
+  host* hst{nullptr};
+  host_map::const_iterator it(host::hosts.find(name));
+  if (it != host::hosts.end())
+    hst = it->second.get();
+
+  if (!hst) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown host: {}", name);
+    return;
+  }
+  (*fptr)(hst, args + name.length() + 1);
+}
+
+template <void (*fptr)(host*)>
+void processing::_redirector_hostgroup(int id, time_t entry_time, char* args) {
+  (void)id;
+  (void)entry_time;
+
+  char* group_name(my_strtok(args, ";"));
+
+  hostgroup* group(nullptr);
+  hostgroup_map::const_iterator it{hostgroup::hostgroups.find(group_name)};
+  if (it != hostgroup::hostgroups.end())
+    group = it->second.get();
+  if (!group) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown group: {}",
+                        group_name);
+    return;
+  }
+
+  for (host_map_unsafe::iterator it(group->members.begin()),
+       end(group->members.begin());
+       it != end; ++it)
+    if (it->second)
+      (*fptr)(it->second);
+}
+
+template <void (*fptr)(service*)>
+void processing::_redirector_service(int id, time_t entry_time, char* args) {
+  (void)id;
+  (void)entry_time;
+
+  char* name(my_strtok(args, ";"));
+  char* description(my_strtok(NULL, ";"));
+
+  service_map::const_iterator found(
+      service::services.find({name, description}));
+
+  if (found == service::services.end() || !found->second) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service: {}@{}",
+                        description, name);
+    return;
+  }
+  (*fptr)(found->second.get());
+}
+
+template <void (*fptr)(service*, char*)>
+void processing::_redirector_service(int id, time_t entry_time, char* args) {
+  (void)id;
+  (void)entry_time;
+
+  std::string name{my_strtok(args, ";")};
+  std::string description{my_strtok(NULL, ";")};
+  service_map::const_iterator found{
+      service::services.find({name, description})};
+
+  if (found == service::services.end() || !found->second) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service: {}@{}",
+                        description, name);
+    return;
+  }
+  (*fptr)(found->second.get(), args + name.length() + description.length() + 2);
+}
+
+template <void (*fptr)(service*)>
+void processing::_redirector_servicegroup(int id,
+                                          time_t entry_time,
+                                          char* args) {
+  (void)id;
+  (void)entry_time;
+
+  char* group_name(my_strtok(args, ";"));
+  servicegroup_map::const_iterator sg_it{
+      servicegroup::servicegroups.find(group_name)};
+  if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service group: {}",
+                        group_name);
+    return;
+  }
+
+  for (service_map_unsafe::iterator it2(sg_it->second->members.begin()),
+       end2(sg_it->second->members.end());
+       it2 != end2; ++it2)
+    if (it2->second)
+      (*fptr)(it2->second);
+}
+
+template <void (*fptr)(host*)>
+void processing::_redirector_servicegroup(int id,
+                                          time_t entry_time,
+                                          char* args) {
+  (void)id;
+  (void)entry_time;
+
+  char* group_name(my_strtok(args, ";"));
+  servicegroup_map::const_iterator sg_it{
+      servicegroup::servicegroups.find(group_name)};
+  if (sg_it == servicegroup::servicegroups.end() || !sg_it->second) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown service group: {}",
+                        group_name);
+    return;
+  }
+
+  host* last_host{nullptr};
+  for (service_map_unsafe::iterator it2(sg_it->second->members.begin()),
+       end2(sg_it->second->members.end());
+       it2 != end2; ++it2) {
+    host* hst{nullptr};
+    host_map::const_iterator found(host::hosts.find(it2->first.first));
+    if (found != host::hosts.end())
+      hst = found->second.get();
+
+    if (!hst || hst == last_host)
+      continue;
+    (*fptr)(hst);
+    last_host = hst;
+  }
+}
+
+template <void (*fptr)(contact*)>
+void processing::_redirector_contact(int id, time_t entry_time, char* args) {
+  (void)id;
+  (void)entry_time;
+
+  char* name(my_strtok(args, ";"));
+  contact_map::const_iterator ct_it{contact::contacts.find(name)};
+  if (ct_it == contact::contacts.end()) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown contact: {}",
+                        name);
+    return;
+  }
+  (*fptr)(ct_it->second.get());
+}
+
+template <void (*fptr)(char*)>
+void processing::_redirector_file(int id __attribute__((unused)),
+                                  time_t entry_time __attribute__((unused)),
+                                  char* args) {
+  char* filename(my_strtok(args, ";"));
+  (*fptr)(filename);
+}
+
+template <void (*fptr)(contact*)>
+void processing::_redirector_contactgroup(int id,
+                                          time_t entry_time,
+                                          char* args) {
+  (void)id;
+  (void)entry_time;
+
+  char* group_name(my_strtok(args, ";"));
+  contactgroup_map::iterator it_cg{
+      contactgroup::contactgroups.find(group_name)};
+  if (it_cg == contactgroup::contactgroups.end() || !it_cg->second) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(), "unknown contact group: {}",
+                        group_name);
+    return;
+  }
+
+  for (contact_map_unsafe::const_iterator
+           it(it_cg->second->get_members().begin()),
+       end(it_cg->second->get_members().end());
+       it != end; ++it)
+    if (it->second)
+      (*fptr)(it->second);
+}
+
+template <void (*fptr)(anomalydetection*, char*)>
+void processing::_redirector_anomalydetection(int id,
+                                              time_t entry_time,
+                                              char* args) {
+  (void)id;
+  (void)entry_time;
+
+  std::string name{my_strtok(args, ";")};
+  std::string description{my_strtok(NULL, ";")};
+  service_map::const_iterator found{
+      service::services.find({name, description})};
+
+  if (found == service::services.end() || !found->second) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "unknown anomaly detection {}@{}", description, name);
+    return;
+  }
+
+  if (found->second->get_service_type() != service_type::ANOMALY_DETECTION) {
+    SPDLOG_LOGGER_ERROR(log_v2::external_command(),
+                        "{}@{} is not an anomalydetection", description, name);
+    return;
+  }
+
+  std::shared_ptr<anomalydetection> ano =
+      std::static_pointer_cast<anomalydetection>(found->second);
+  (*fptr)(ano.get(), args + name.length() + description.length() + 2);
+}
 
 bool processing::execute(const std::string& cmdstr) {
   engine_logger(dbg_functions, basic) << "processing external command";
@@ -622,31 +859,30 @@ bool processing::execute(const std::string& cmdstr) {
   } else if (config->log_external_commands()) {
     engine_logger(log_external_command, basic)
         << "EXTERNAL COMMAND: " << command_name << ';' << args;
-    log_v2::external_command()->info("EXTERNAL COMMAND: {};{}", command_name,
-                                     args);
+    SPDLOG_LOGGER_INFO(log_v2::external_command(), "EXTERNAL COMMAND: {};{}",
+                       command_name, args);
   }
 
   engine_logger(dbg_external_command, more)
       << "External command id: " << command_id
       << "\nCommand entry time: " << entry_time
       << "\nCommand arguments: " << args;
-  log_v2::external_command()->debug("External command id: {}", command_id);
-  log_v2::external_command()->debug("Command entry time: {}", entry_time);
-  log_v2::external_command()->debug("Command arguments: {}", args);
+  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "External command id: {}",
+                      command_id);
+  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "Command entry time: {}",
+                      entry_time);
+  SPDLOG_LOGGER_DEBUG(log_v2::external_command(), "Command arguments: {}",
+                      args);
 
   // Send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, NEBFLAG_NONE,
-                          NEBATTR_NONE, command_id, entry_time,
-                          const_cast<char*>(command_name.c_str()),
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_START, command_id,
                           const_cast<char*>(args.c_str()), nullptr);
 
   if (it != _lst_command.end())
     (*it->second.func)(command_id, entry_time, const_cast<char*>(args.c_str()));
 
   // Send data to event broker.
-  broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, NEBFLAG_NONE,
-                          NEBATTR_NONE, command_id, entry_time,
-                          const_cast<char*>(command_name.c_str()),
+  broker_external_command(NEBTYPE_EXTERNALCOMMAND_END, command_id,
                           const_cast<char*>(args.c_str()), nullptr);
   return true;
 }
@@ -676,8 +912,8 @@ void processing::_wrapper_read_state_information() {
   } catch (std::exception const& e) {
     engine_logger(log_runtime_error, basic)
         << "Error: could not load retention file: " << e.what();
-    log_v2::runtime()->error("Error: could not load retention file: {}",
-                             e.what());
+    SPDLOG_LOGGER_ERROR(log_v2::runtime(),
+                        "Error: could not load retention file: {}", e.what());
   }
 }
 
@@ -734,16 +970,41 @@ void processing::_wrapper_enable_host_svc_checks(host* hst) {
 }
 
 void processing::_wrapper_set_host_notification_number(host* hst, char* args) {
-  if (hst && args)
-    hst->set_notification_number(atoi(args));
+  if (hst && args) {
+    int notification_number;
+    if (!absl::SimpleAtoi(args, &notification_number)) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::runtime(),
+          "Error: could not set host notification number: '{}' must be a "
+          "positive integer",
+          args);
+      return;
+    }
+    hst->set_notification_number(notification_number);
+  }
 }
 
 void processing::_wrapper_send_custom_host_notification(host* hst, char* args) {
   char* buf[3] = {NULL, NULL, NULL};
+  int option;
   if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
       (buf[2] = my_strtok(NULL, ";"))) {
-    hst->notify(notifier::reason_custom, buf[1], buf[2],
-                static_cast<notifier::notification_option>(atoi(buf[0])));
+    if (!absl::SimpleAtoi(buf[0], &option)) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::runtime(),
+          "Error: could not send custom host notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    } else if (option >= 0 && option <= 7) {
+      hst->notify(notifier::reason_custom, buf[1], buf[2],
+                  static_cast<notifier::notification_option>(option));
+    } else {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::runtime(),
+          "Error: could not send custom host notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    }
   }
 }
 
@@ -798,16 +1059,54 @@ void processing::_wrapper_disable_passive_service_checks(host* hst) {
 void processing::_wrapper_set_service_notification_number(service* svc,
                                                           char* args) {
   char* str(my_strtok(args, ";"));
-  if (svc && str)
-    svc->set_notification_number(atoi(str));
+  int notification_number;
+  if (svc && str) {
+    if (!absl::SimpleAtoi(str, &notification_number)) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::runtime(),
+          "Error: could not set service notification number: '{}' must be a "
+          "positive integer",
+          str);
+      return;
+    }
+    svc->set_notification_number(notification_number);
+  }
 }
 
 void processing::_wrapper_send_custom_service_notification(service* svc,
                                                            char* args) {
   char* buf[3] = {NULL, NULL, NULL};
+  int notification_number;
   if ((buf[0] = my_strtok(args, ";")) && (buf[1] = my_strtok(NULL, ";")) &&
       (buf[2] = my_strtok(NULL, ";"))) {
-    svc->notify(notifier::reason_custom, buf[1], buf[2],
-                static_cast<notifier::notification_option>(atoi(buf[0])));
+    if (!absl::SimpleAtoi(buf[0], &notification_number)) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::runtime(),
+          "Error: could not send custom service notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    } else if (notification_number >= 0 && notification_number <= 7) {
+      svc->notify(
+          notifier::reason_custom, buf[1], buf[2],
+          static_cast<notifier::notification_option>(notification_number));
+    } else {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::runtime(),
+          "Error: could not send custom service notification: '{}' must be an "
+          "integer between 0 and 7",
+          buf[0]);
+    }
+  }
+}
+
+void processing::change_anomaly_detection_sensitivity(anomalydetection* ano,
+                                                      char* args) {
+  double new_sensitivity;
+  if (absl::SimpleAtod(args, &new_sensitivity)) {
+    ano->set_sensitivity(new_sensitivity);
+  } else {
+    SPDLOG_LOGGER_ERROR(
+        log_v2::external_command(),
+        "change_anomaly_detection_sensitivity unable to parse args: {}", args);
   }
 }

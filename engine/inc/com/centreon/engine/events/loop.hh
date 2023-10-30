@@ -24,7 +24,8 @@
 
 #include "com/centreon/engine/events/timed_event.hh"
 
-typedef std::deque<com::centreon::engine::timed_event*> timed_event_list;
+using timed_event_list =
+    std::deque<std::unique_ptr<com::centreon::engine::timed_event>>;
 
 CCE_BEGIN()
 
@@ -60,16 +61,28 @@ class loop {
   void clear();
   void run();
   void adjust_check_scheduling();
-  void add_event(timed_event* event, priority priority);
+  void add_event(std::unique_ptr<timed_event>&& event, priority priority);
   void compensate_for_system_time_change(unsigned long last_time,
                                          unsigned long current_time);
   void remove_downtime(uint64_t downtime_id);
-  void remove_event(timed_event* event, priority priority);
+  void remove_event(timed_event_list::iterator& it, priority priority);
+  void remove_event(timed_event* evt, loop::priority priority);
   void remove_events(priority, uint32_t event_type, void* data) noexcept;
-  timed_event* find_event(priority priority, uint32_t event_type, void* data);
-  void reschedule_event(timed_event* event, priority priority);
+  timed_event_list::iterator find_event(priority priority,
+                                        uint32_t event_type,
+                                        void* data);
+  const timed_event_list::const_iterator list_end(
+      priority priority) const noexcept {
+    if (priority == low)
+      return _event_list_low.end();
+    else
+      return _event_list_high.end();
+  }
+
+  void reschedule_event(std::unique_ptr<timed_event>&& event,
+                        priority priority);
   void resort_event_list(priority priority);
-  void schedule(timed_event* evt, bool high_priority);
+  void schedule(std::unique_ptr<timed_event>&& evt, bool high_priority);
 };
 }  // namespace events
 

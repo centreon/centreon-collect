@@ -18,7 +18,7 @@
 
 #include "com/centreon/broker/neb/service_status.hh"
 
-#include "com/centreon/broker/database/table_max_size.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::neb;
@@ -156,7 +156,9 @@ mapping::entry const service_status::entries[] = {
                    mapping::entry::invalid_on_zero),
     mapping::entry(&service_status::no_more_notifications,
                    "no_more_notifications"),
-    mapping::entry(&service_status::notification_number, "notification_number"),
+    mapping::entry(&service_status::notification_number,
+                   "notification_number",
+                   mapping::entry::invalid_on_negative),
     mapping::entry(&service_status::notifications_enabled, "notify"),
     mapping::entry(&service_status::obsess_over, "obsess_over_service"),
     mapping::entry(&service_status::passive_checks_enabled, "passive_checks"),

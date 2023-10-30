@@ -20,6 +20,7 @@
 #ifndef CCE_RETENTION_STATE_HH
 #define CCE_RETENTION_STATE_HH
 
+#include "com/centreon/engine/retention/anomalydetection.hh"
 #include "com/centreon/engine/retention/comment.hh"
 #include "com/centreon/engine/retention/contact.hh"
 #include "com/centreon/engine/retention/downtime.hh"
@@ -53,6 +54,12 @@ class state {
   info const& informations() const throw();
   list_service& services() throw();
   list_service const& services() const throw();
+  list_anomalydetection& anomalydetection() noexcept {
+    return _anomalydetection;
+  }
+  list_anomalydetection const& anomalydetection() const {
+    return _anomalydetection;
+  }
 
  private:
   list_comment _comments;
@@ -62,6 +69,7 @@ class state {
   info _info;
   program _globals;
   list_service _services;
+  list_anomalydetection _anomalydetection;
 };
 }  // namespace retention
 

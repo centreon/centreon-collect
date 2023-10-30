@@ -20,6 +20,8 @@
 #define CCB_IO_PROTOBUF_HH
 
 #include <google/protobuf/message.h>
+#include <google/protobuf/util/json_util.h>
+#include <google/protobuf/util/message_differencer.h>
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -87,6 +89,10 @@ class protobuf : public protobuf_base {
   T _obj;
 
  public:
+  using pb_type = T;
+  using this_type = protobuf<T, Typ>;
+  using shared_ptr = std::shared_ptr<this_type>;
+
   /**
    * @brief Default constructor
    */
@@ -100,9 +106,19 @@ class protobuf : public protobuf_base {
    * @param o The protobuf object (it is copied).
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
-  protobuf(const protobuf&) = delete;
+
+  protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
+    _obj.CopyFrom(to_clone._obj);
+  }
+
+  protobuf& operator=(const protobuf& to_clone) {
+    _obj.CopyFrom(to_clone._obj);
+    return *this;
+  }
+
   ~protobuf() noexcept = default;
-  protobuf& operator=(const protobuf&) = delete;
+
+  bool operator==(const this_type& to_cmp) const;
 
   /**
    *  Get the type of this event.
@@ -158,6 +174,10 @@ class protobuf : public protobuf_base {
 
   void set_obj(T&& obj) { _obj = std::move(obj); }
 
+  void dump(std::ostream& s) const override;
+  void dump_more_detail(std::ostream& s) const override;
+  void dump_to_json(std::ostream& s) const override;
+
   /**
    * @brief An internal BBDO object used to access to the constructor,
    * serialization and unserialization functions.
@@ -168,6 +188,35 @@ class protobuf : public protobuf_base {
 template <typename T, uint32_t Typ>
 const io::event_info::event_operations protobuf<T, Typ>::operations{
     &new_proto, &serialize, &unserialize};
+
+template <typename T, uint32_t Typ>
+bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
+  return google::protobuf::util::MessageDifferencer::Equals(_obj, to_cmp._obj);
+}
+
+template <typename T, uint32_t Typ>
+void protobuf<T, Typ>::dump(std::ostream& s) const {
+  data::dump(s);
+  std::string dump{_obj.ShortDebugString()};
+  if (dump.size() > 200) {
+    dump.resize(200);
+    s << fmt::format(" content:'{}...'", dump);
+  } else
+    s << " content:'" << dump << '\'';
+}
+
+template <typename T, uint32_t Typ>
+void protobuf<T, Typ>::dump_more_detail(std::ostream& s) const {
+  data::dump(s);
+  s << " content:'" << _obj.ShortDebugString() << '\'';
+}
+
+template <typename T, uint32_t Typ>
+void protobuf<T, Typ>::dump_to_json(std::ostream& s) const {
+  std::string json_dump;
+  google::protobuf::util::MessageToJsonString(_obj, &json_dump);
+  s << " content:'" << json_dump << '\'';
+}
 
 }  // namespace io
 CCB_END()

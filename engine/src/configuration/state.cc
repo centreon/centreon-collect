@@ -140,6 +140,7 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"log_notifications", SETTER(bool, log_notifications)},
     {"log_passive_checks", SETTER(bool, log_passive_checks)},
     {"log_pid", SETTER(bool, log_pid)},
+    {"log_file_line", SETTER(bool, log_file_line)},
     {"log_rotation_method",
      SETTER(std::string const&, _set_log_rotation_method)},
     {"log_service_retries", SETTER(bool, log_service_retries)},
@@ -169,6 +170,7 @@ std::unordered_map<std::string, state::setter_func> const state::_setters{
     {"poller_name", SETTER(std::string const&, poller_name)},
     {"poller_id", SETTER(uint32_t, poller_id)},
     {"rpc_port", SETTER(uint16_t, rpc_port)},
+    {"rpc_listen_address", SETTER(const std::string&, rpc_listen_address)},
     {"precached_object_file",
      SETTER(std::string const&, _set_precached_object_file)},
     {"process_performance_data", SETTER(bool, process_performance_data)},
@@ -327,7 +329,7 @@ static float const default_low_service_flap_threshold(20.0);
 static unsigned long const default_max_debug_file_size(1000000);
 static unsigned int const default_max_host_check_spread(5);
 static unsigned long const default_max_log_file_size(0);
-static constexpr uint32_t default_log_flush_period{5u};
+static constexpr uint32_t default_log_flush_period{2u};
 static unsigned int const default_max_parallel_service_checks(0);
 static unsigned int const default_max_service_check_spread(5);
 static unsigned int const default_notification_timeout(30);
@@ -390,6 +392,7 @@ static std::string const default_log_level_process("info");
 static std::string const default_log_level_runtime("error");
 static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
+static const std::string default_rpc_listen_address("localhost");
 
 /**
  *  Default constructor.
@@ -455,6 +458,7 @@ state::state()
       _log_notifications(default_log_notifications),
       _log_passive_checks(default_log_passive_checks),
       _log_pid(default_log_pid),
+      _log_file_line(false),
       _log_service_retries(default_log_service_retries),
       _low_host_flap_threshold(default_low_host_flap_threshold),
       _low_service_flap_threshold(default_low_service_flap_threshold),
@@ -475,6 +479,7 @@ state::state()
       _poller_name{"unknown"},
       _poller_id{0},
       _rpc_port{0},
+      _rpc_listen_address{default_rpc_listen_address},
       _process_performance_data(default_process_performance_data),
       _retained_contact_host_attribute_mask(
           default_retained_contact_host_attribute_mask),
@@ -626,6 +631,7 @@ state& state::operator=(state const& right) {
     _log_notifications = right._log_notifications;
     _log_passive_checks = right._log_passive_checks;
     _log_pid = right._log_pid;
+    _log_file_line = right._log_file_line;
     _log_service_retries = right._log_service_retries;
     _low_host_flap_threshold = right._low_host_flap_threshold;
     _low_service_flap_threshold = right._low_service_flap_threshold;
@@ -646,6 +652,7 @@ state& state::operator=(state const& right) {
     _poller_name = right._poller_name;
     _poller_id = right._poller_id;
     _rpc_port = right._rpc_port;
+    _rpc_listen_address = right._rpc_listen_address;
     _process_performance_data = right._process_performance_data;
     _retained_contact_host_attribute_mask =
         right._retained_contact_host_attribute_mask;
@@ -788,7 +795,7 @@ bool state::operator==(state const& right) const noexcept {
       _log_host_retries == right._log_host_retries &&
       _log_notifications == right._log_notifications &&
       _log_passive_checks == right._log_passive_checks &&
-      _log_pid == right._log_pid &&
+      _log_pid == right._log_pid && _log_file_line == right._log_file_line &&
       _log_service_retries == right._log_service_retries &&
       _low_host_flap_threshold == right._low_host_flap_threshold &&
       _low_service_flap_threshold == right._low_service_flap_threshold &&
@@ -808,6 +815,7 @@ bool state::operator==(state const& right) const noexcept {
       _perfdata_timeout == right._perfdata_timeout &&
       _poller_name == right._poller_name && _poller_id == right._poller_id &&
       _rpc_port == right._rpc_port &&
+      _rpc_listen_address == right._rpc_listen_address &&
       _process_performance_data == right._process_performance_data &&
       _retained_contact_host_attribute_mask ==
           right._retained_contact_host_attribute_mask &&
@@ -2458,6 +2466,15 @@ void state::log_pid(bool value) {
 }
 
 /**
+ *  Set the log file line value.
+ *
+ *  @param[in] value  The new log file line value.
+ */
+void state::log_file_line(bool value) {
+  _log_file_line = value;
+}
+
+/**
  *  Get log_service_retries value.
  *
  *  @return The log_service_retries value.
@@ -2793,7 +2810,7 @@ std::string const& state::poller_name() const noexcept {
  *
  *  @param[in] value The new poller_name value.
  */
-void state::poller_name(std::string const& value) noexcept {
+void state::poller_name(std::string const& value) {
   _poller_name = value;
 }
 
@@ -2811,7 +2828,7 @@ uint32_t state::poller_id() const noexcept {
  *
  *  @param[in] value The new poller_id value.
  */
-void state::poller_id(uint32_t value) noexcept {
+void state::poller_id(uint32_t value) {
   _poller_id = value;
 }
 
@@ -2825,12 +2842,30 @@ uint16_t state::rpc_port() const noexcept {
 }
 
 /**
- *  Set poller_id value.
+ *  Set the rpc_port value.
  *
  *  @param[in] value The new poller_id value.
  */
-void state::rpc_port(uint16_t value) noexcept {
+void state::rpc_port(uint16_t value) {
   _rpc_port = value;
+}
+
+/**
+ *  Get rpc_listen_address value.
+ *
+ *  @return The grpc api listen address value.
+ */
+const std::string& state::rpc_listen_address() const noexcept {
+  return _rpc_listen_address;
+}
+
+/**
+ *  Set grpc api listen_address value.
+ *
+ *  @param[in] value The new grpc api listen address.
+ */
+void state::rpc_listen_address(const std::string& listen_address) {
+  _rpc_listen_address = listen_address;
 }
 
 /**

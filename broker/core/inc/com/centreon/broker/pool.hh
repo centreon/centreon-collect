@@ -45,8 +45,9 @@ CCB_BEGIN()
  * initialized with the number of cpus on the host computer.
  *
  * To post tasks to the pool, we use the ASIO api, for that we need an
- * asio::io_context and an asio::io_service::work which are defined when then
- * pool is constructed.
+ * asio::io_context witch is g_io_context instanciated in both main of engine
+ * and cbd and an asio::io_service::work which are defined when then pool is
+ * constructed.
  *
  * There is a _closed boolean variable used internally to know if the pool is
  * running (and not closed) or stopped (and closed). To work with it, we also
@@ -67,8 +68,8 @@ class pool {
   ThreadPool* _stats;
   const size_t _pool_size;
 
-  asio::io_context _io_context;
-  std::unique_ptr<asio::io_context::work> _worker;
+  std::shared_ptr<asio::io_context> _io_context;
+  asio::executor_work_guard<asio::io_context::executor_type> _worker;
   std::vector<std::thread> _pool;
   bool _closed;
   mutable std::mutex _closed_m;
@@ -76,19 +77,21 @@ class pool {
   asio::steady_timer _timer;
   std::atomic_bool _stats_running;
 
-  pool(size_t size);
+  pool(const std::shared_ptr<asio::io_context>& io_context, size_t size);
   ~pool() noexcept;
   void _stop();
-  void _check_latency(asio::error_code ec);
+  void _check_latency(const boost::system::error_code& ec);
 
  public:
   pool(const pool&) = delete;
   pool& operator=(const pool&) = delete;
 
-  static void load(size_t size);
+  static void load(const std::shared_ptr<asio::io_context>& io_context,
+                   size_t size);
   static void unload();
   static pool& instance();
   static asio::io_context& io_context();
+  static std::shared_ptr<asio::io_context> io_context_ptr();
 
   void start_stats(ThreadPool* stats);
   void stop_stats();

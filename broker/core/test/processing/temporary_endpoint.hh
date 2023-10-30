@@ -41,7 +41,7 @@ class temporary_endpoint : public io::endpoint {
    *  @param[in] id The temporary id.
    */
   temporary_endpoint(std::string const& id = "")
-      : io::endpoint(false), _id(id) {}
+      : io::endpoint(false, {}), _id(id) {}
   /**
    *  Copy constructor.
    *
@@ -67,8 +67,8 @@ class temporary_endpoint : public io::endpoint {
    *
    *  @return New temporary_stream.
    */
-  std::unique_ptr<io::stream> open() override {
-    return std::unique_ptr<io::stream>(new temporary_stream);
+  std::shared_ptr<io::stream> open() override {
+    return std::shared_ptr<io::stream>(new temporary_stream);
   }
 };
 

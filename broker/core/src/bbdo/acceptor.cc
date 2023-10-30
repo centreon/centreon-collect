@@ -53,7 +53,7 @@ acceptor::acceptor(std::string name,
                    bool coarse,
                    uint32_t ack_limit,
                    std::list<std::shared_ptr<io::extension>>&& extensions)
-    : io::endpoint(!one_peer_retention_mode),
+    : io::endpoint(!one_peer_retention_mode, {}),
       _coarse(coarse),
       _name(std::move(name)),
       _negotiate(negotiate),
@@ -78,10 +78,10 @@ acceptor::~acceptor() noexcept {
  *  @return Always return null stream. A new thread will be launched to
  *          process the incoming connection.
  */
-std::unique_ptr<io::stream> acceptor::open() {
+std::shared_ptr<io::stream> acceptor::open() {
   // Wait for client from the lower layer.
   if (_from) {
-    std::unique_ptr<io::stream> u = _from->open();
+    std::shared_ptr<io::stream> u = _from->open();
 
     // Add BBDO layer.
     if (u) {
@@ -103,7 +103,7 @@ std::unique_ptr<io::stream> acceptor::open() {
     }
   }
 
-  return std::unique_ptr<io::stream>();
+  return std::shared_ptr<io::stream>();
 }
 
 /**

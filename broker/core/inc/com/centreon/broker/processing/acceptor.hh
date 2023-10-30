@@ -1,5 +1,5 @@
 /*
-** Copyright 2015-2022 Centreon
+** Copyright 2015-2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #ifndef CCB_PROCESSING_ACCEPTOR_HH
 #define CCB_PROCESSING_ACCEPTOR_HH
 
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
 
@@ -50,11 +51,11 @@ class acceptor : public endpoint {
   std::atomic_bool _should_exit;
 
   std::shared_ptr<io::endpoint> _endp;
-  std::list<processing::feeder*> _feeders;
-  absl::flat_hash_set<uint32_t> _read_filters;
+  std::list<std::shared_ptr<processing::feeder>> _feeders;
+  const multiplexing::muxer_filter _read_filters;
   std::string _read_filters_str;
-  time_t _retry_interval;
-  absl::flat_hash_set<uint32_t> _write_filters;
+  time_t _retry_interval = 15;
+  const multiplexing::muxer_filter _write_filters;
   std::string _write_filters_str;
   std::atomic_bool _listening;
 
@@ -70,16 +71,19 @@ class acceptor : public endpoint {
   virtual uint32_t _get_queued_events() const override;
 
  public:
-  acceptor(std::shared_ptr<io::endpoint> endp, std::string const& name);
+  acceptor(std::shared_ptr<io::endpoint> endp,
+           std::string const& name,
+           const multiplexing::muxer_filter& r_filter,
+           const multiplexing::muxer_filter& w_filter);
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;
   ~acceptor();
   void accept();
   void start() override;
   void exit() override final;
-  void set_read_filters(const absl::flat_hash_set<uint32_t>& filters);
   void set_retry_interval(time_t retry_interval);
-  void set_write_filters(const absl::flat_hash_set<uint32_t>& filters);
+
+  bool wait_for_all_events_written(unsigned ms_timeout) override;
 };
 }  // namespace processing
 

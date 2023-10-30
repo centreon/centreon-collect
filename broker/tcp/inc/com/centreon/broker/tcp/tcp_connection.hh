@@ -1,5 +1,5 @@
 /*
-** Copyright 2020 Centreon
+** Copyright 2020-2021 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -30,13 +30,14 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   asio::io_context::strand _strand;
 
   std::mutex _error_m;
-  asio::error_code _current_error;
+  boost::system::error_code _current_error;
 
   std::mutex _exposed_write_queue_m;
   std::queue<std::vector<char>> _exposed_write_queue;
   std::queue<std::vector<char>> _write_queue;
   std::atomic_bool _write_queue_has_events;
   std::atomic_bool _writing;
+  std::condition_variable _writing_cv;
 
   std::atomic<int32_t> _acks;
   std::atomic_bool _reading;
@@ -65,20 +66,22 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   int32_t flush();
 
   void writing();
-  void handle_write(const asio::error_code& ec);
+  void handle_write(const boost::system::error_code& ec);
   int32_t write(const std::vector<char>& v);
 
   void start_reading();
-  void handle_read(const asio::error_code& ec, size_t read_bytes);
+  void handle_read(const boost::system::error_code& ec, size_t read_bytes);
   std::vector<char> read(time_t timeout_time, bool* timeout);
 
   void close();
 
   bool is_closed() const;
-  void update_peer(asio::error_code& ec);
+  void update_peer(boost::system::error_code& ec);
   const std::string peer() const;
   const std::string& address() const;
   uint16_t port() const;
+
+  bool wait_for_all_events_written(unsigned ms_timeout);
 };
 
 }  // namespace tcp

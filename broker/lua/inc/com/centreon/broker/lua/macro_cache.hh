@@ -1,5 +1,5 @@
 /*
-** Copyright 2018 Centreon
+** Copyright 2018-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,13 +19,9 @@
 #ifndef CCB_LUA_MACRO_CACHE_HH
 #define CCB_LUA_MACRO_CACHE_HH
 
-#include "bbdo/bam/dimension_ba_bv_relation_event.hh"
-#include "bbdo/bam/dimension_ba_event.hh"
-#include "bbdo/bam/dimension_bv_event.hh"
 #include "bbdo/bam/dimension_truncate_table_signal.hh"
-#include "bbdo/storage/index_mapping.hh"
-#include "bbdo/storage/metric_mapping.hh"
-#include "com/centreon/broker/misc/pair.hh"
+#include "com/centreon/broker/bam/internal.hh"
+#include "com/centreon/broker/lua/internal.hh"
 #include "com/centreon/broker/neb/custom_variable.hh"
 #include "com/centreon/broker/neb/host.hh"
 #include "com/centreon/broker/neb/host_group.hh"
@@ -45,14 +41,13 @@ namespace lua {
  */
 class macro_cache {
   std::shared_ptr<persistent_cache> _cache;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<neb::instance>> _instances;
+  absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _instances;
   absl::flat_hash_map<uint64_t, std::shared_ptr<io::data>> _hosts;
   absl::flat_hash_map<uint64_t, std::shared_ptr<neb::host_group>> _host_groups;
   absl::btree_map<std::pair<uint64_t, uint64_t>,
                   std::shared_ptr<neb::host_group_member>>
       _host_group_members;
-  absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
-                      std::shared_ptr<neb::custom_variable>>
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _custom_vars;
   absl::flat_hash_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>
       _services;
@@ -61,16 +56,17 @@ class macro_cache {
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
                   std::shared_ptr<neb::service_group_member>>
       _service_group_members;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::index_mapping>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_index_mapping>>
       _index_mappings;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::metric_mapping>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<storage::pb_metric_mapping>>
       _metric_mappings;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::dimension_ba_event>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_ba_event>>
       _dimension_ba_events;
-  std::unordered_multimap<uint64_t,
-                          std::shared_ptr<bam::dimension_ba_bv_relation_event>>
+  std::unordered_multimap<
+      uint64_t,
+      std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>>
       _dimension_ba_bv_relation_events;
-  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::dimension_bv_event>>
+  absl::flat_hash_map<uint64_t, std::shared_ptr<bam::pb_dimension_bv_event>>
       _dimension_bv_events;
 
  public:
@@ -79,37 +75,39 @@ class macro_cache {
 
   void write(std::shared_ptr<io::data> const& data);
 
-  storage::index_mapping const& get_index_mapping(uint32_t index_id) const;
-  const std::shared_ptr<storage::metric_mapping>& get_metric_mapping(
-      uint32_t metric_id) const;
+  const storage::pb_index_mapping& get_index_mapping(uint64_t index_id) const;
+  const std::shared_ptr<storage::pb_metric_mapping>& get_metric_mapping(
+      uint64_t metric_id) const;
   const std::shared_ptr<io::data>& get_host(uint64_t host_id) const;
   const std::shared_ptr<io::data>& get_service(uint64_t host_id,
                                                uint64_t service_id) const;
-  std::string const& get_host_name(uint64_t host_id) const;
-  std::string const& get_notes_url(uint64_t host_id, uint64_t service_id) const;
-  std::string const& get_notes(uint64_t host_id, uint64_t service_id) const;
-  std::string const& get_action_url(uint64_t host_id,
+  const std::string& get_host_name(uint64_t host_id) const;
+  const std::string& get_notes_url(uint64_t host_id, uint64_t service_id) const;
+  const std::string& get_notes(uint64_t host_id, uint64_t service_id) const;
+  const std::string& get_action_url(uint64_t host_id,
                                     uint64_t service_id) const;
   int32_t get_severity(uint64_t host_id, uint64_t service_id) const;
-  std::string const& get_host_group_name(uint64_t id) const;
+  absl::string_view get_check_command(uint64_t host_id,
+                                      uint64_t service_id = 0) const;
+  const std::string& get_host_group_name(uint64_t id) const;
   absl::btree_map<std::pair<uint64_t, uint64_t>,
                   std::shared_ptr<neb::host_group_member>> const&
   get_host_group_members() const;
-  std::string const& get_service_description(uint64_t host_id,
+  const std::string& get_service_description(uint64_t host_id,
                                              uint64_t service_id) const;
-  std::string const& get_service_group_name(uint64_t id) const;
+  const std::string& get_service_group_name(uint64_t id) const;
   absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
                   std::shared_ptr<neb::service_group_member>> const&
   get_service_group_members() const;
-  std::string const& get_instance(uint64_t instance_id) const;
+  const std::string& get_instance(uint64_t instance_id) const;
 
   const std::unordered_multimap<
       uint64_t,
-      std::shared_ptr<bam::dimension_ba_bv_relation_event>>&
+      std::shared_ptr<bam::pb_dimension_ba_bv_relation_event>>&
   get_dimension_ba_bv_relation_events() const;
-  const std::shared_ptr<bam::dimension_ba_event>& get_dimension_ba_event(
+  const std::shared_ptr<bam::pb_dimension_ba_event>& get_dimension_ba_event(
       uint64_t id) const;
-  const std::shared_ptr<bam::dimension_bv_event>& get_dimension_bv_event(
+  const std::shared_ptr<bam::pb_dimension_bv_event>& get_dimension_bv_event(
       uint64_t id) const;
 
  private:
@@ -117,12 +115,14 @@ class macro_cache {
   macro_cache& operator=(macro_cache const& f);
 
   void _process_instance(std::shared_ptr<io::data> const& data);
+  void _process_pb_instance(std::shared_ptr<io::data> const& data);
   void _process_host(std::shared_ptr<io::data> const& data);
   void _process_pb_host(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_host(std::shared_ptr<io::data> const& data);
   void _process_host_group(std::shared_ptr<io::data> const& data);
   void _process_host_group_member(std::shared_ptr<io::data> const& data);
   void _process_custom_variable(std::shared_ptr<io::data> const& data);
+  void _process_pb_custom_variable(std::shared_ptr<io::data> const& data);
   void _process_service(std::shared_ptr<io::data> const& data);
   void _process_pb_service(std::shared_ptr<io::data> const& data);
   void _process_pb_adaptive_service(std::shared_ptr<io::data> const& data);
@@ -135,6 +135,8 @@ class macro_cache {
       std::shared_ptr<io::data> const& data);
   void _process_dimension_bv_event(std::shared_ptr<io::data> const& data);
   void _process_dimension_truncate_table_signal(
+      std::shared_ptr<io::data> const& data);
+  void _process_pb_dimension_truncate_table_signal(
       std::shared_ptr<io::data> const& data);
 
   void _save_to_disk();

@@ -18,7 +18,10 @@
 
 #include "com/centreon/broker/sql/factory.hh"
 
+#include <absl/strings/match.h>
+
 #include "com/centreon/broker/config/parser.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/sql/connector.hh"
 
 using namespace com::centreon::broker;
@@ -34,7 +37,7 @@ using namespace com::centreon::broker::sql;
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("SQL", false, false);
-  bool is_sql{!strncasecmp(cfg.type.c_str(), "sql", 4)};
+  bool is_sql{absl::EqualsIgnoreCase(cfg.type, "sql")};
   return is_sql;
 }
 
@@ -57,20 +60,30 @@ io::endpoint* factory::new_endpoint(
   database_config dbcfg(cfg);
 
   // Cleanup check interval.
-  uint32_t cleanup_check_interval(0);
+  uint32_t cleanup_check_interval = 0;
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("cleanup_check_interval")};
-    if (it != cfg.params.end())
-      cleanup_check_interval = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &cleanup_check_interval)) {
+      log_v2::sql()->error(
+          "sql: the 'cleanup_check_interval' value must be a positive integer. "
+          "Otherwise, 0 is used for its value.");
+      cleanup_check_interval = 0u;
+    }
   }
 
-  bool enable_cmd_cache(false);
+  bool enable_cmd_cache = false;
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("enable_command_cache"));
-    if (it != cfg.params.end())
-      enable_cmd_cache = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtob(it->second, &enable_cmd_cache)) {
+      log_v2::sql()->error(
+          "sql: the 'enable_command_cache' value must be a boolean. Otherwise "
+          "'false' is used for its value.");
+      enable_cmd_cache = false;
+    }
   }
 
   // Loop timeout
@@ -85,21 +98,33 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("instance_timeout"));
-    if (it != cfg.params.end())
-      instance_timeout = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &instance_timeout)) {
+      log_v2::sql()->error(
+          "sql: the 'instance_timeout' value must be a positive integer. "
+          "Otherwise, 300 is used for its value.");
+      instance_timeout = 300;
+    }
   }
 
   // Use state events ?
-  bool wse(false);
+  bool wse = false;
   {
     std::map<std::string, std::string>::const_iterator it(
         cfg.params.find("with_state_events"));
-    if (it != cfg.params.end())
-      wse = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &wse)) {
+        log_v2::rrd()->error(
+            "factory: cannot parse the 'with_state_events' boolean: the "
+            "content is '{}'",
+            it->second);
+        wse = false;
+      }
+    }
   }
 
   // Connector.
-  std::unique_ptr<sql::connector> c{new sql::connector};
+  auto c{std::make_unique<sql::connector>()};
   c->connect_to(dbcfg, cleanup_check_interval, loop_timeout, instance_timeout,
                 wse, enable_cmd_cache);
   is_acceptor = false;

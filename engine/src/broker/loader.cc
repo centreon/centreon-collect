@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/broker/loader.hh"
+#include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging/logger.hh"
@@ -30,12 +31,6 @@ using namespace com::centreon::engine::exceptions;
 using namespace com::centreon::engine::broker;
 using namespace com::centreon::engine::logging;
 
-/**************************************
- *                                     *
- *           Public Methods            *
- *                                     *
- **************************************/
-
 /**
  *  Add a new module.
  *
@@ -44,9 +39,10 @@ using namespace com::centreon::engine::logging;
  *
  *  @return The new object module.
  */
-std::shared_ptr<broker::handle> loader::add_module(std::string const& filename,
-                                                   std::string const& args) {
-  std::shared_ptr<handle> module(new handle(filename, args));
+std::shared_ptr<engine::broker::handle> loader::add_module(
+    std::string const& filename,
+    std::string const& args) {
+  auto module = std::make_shared<handle>(filename, args);
   _modules.push_back(module);
   return module;
 }
@@ -57,7 +53,7 @@ std::shared_ptr<broker::handle> loader::add_module(std::string const& filename,
  *  @param[in] mod Module to remove.
  */
 void loader::del_module(std::shared_ptr<handle> const& module) {
-  for (std::list<std::shared_ptr<handle> >::iterator it(_modules.begin()),
+  for (std::list<std::shared_ptr<handle>>::iterator it(_modules.begin()),
        end(_modules.end());
        it != end; ++it)
     if (it->get() == module.get()) {
@@ -71,7 +67,8 @@ void loader::del_module(std::shared_ptr<handle> const& module) {
  *
  *  @return All modules in a list.
  */
-std::list<std::shared_ptr<broker::handle> > const& loader::get_modules() const {
+std::list<std::shared_ptr<engine::broker::handle>> const& loader::get_modules()
+    const {
   return _modules;
 }
 
@@ -140,7 +137,7 @@ unsigned int loader::load_directory(std::string const& dir) {
  *  Unload all modules.
  */
 void loader::unload_modules() {
-  for (std::list<std::shared_ptr<handle> >::iterator it(_modules.begin()),
+  for (std::list<std::shared_ptr<handle>>::iterator it(_modules.begin()),
        end(_modules.end());
        it != end; ++it) {
     try {

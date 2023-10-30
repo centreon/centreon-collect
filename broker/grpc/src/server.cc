@@ -31,11 +31,13 @@ using namespace com::centreon::exceptions;
 /****************************************************************************
  * accepted_service
  ****************************************************************************/
-
-accepted_service::accepted_service(const grpc_config::pointer& conf)
-    : channel("accepted_service", conf) {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+accepted_service::accepted_service(const grpc_config::pointer& conf,
+                                   const shared_bool& server_finished)
+    : channel("accepted_service", conf),
+      _server_finished(server_finished),
+      _finished_called(false) {
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service construction this={:p}",
+                      static_cast<void*>(this));
 }
 
 void accepted_service::start() {
@@ -43,8 +45,8 @@ void accepted_service::start() {
 }
 
 accepted_service::~accepted_service() {
-  log_v2::grpc()->trace("{} this={:p}", __PRETTY_FUNCTION__,
-                        static_cast<void*>(this));
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "accepted_service desctruction this={:p}",
+                      static_cast<void*>(this));
 }
 
 void accepted_service::desactivate() {
@@ -52,11 +54,21 @@ void accepted_service::desactivate() {
 }
 
 void accepted_service::OnCancel() {
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
   desactivate();
 }
 
 void accepted_service::start_read(event_ptr& to_read, bool) {
-  StartRead(to_read.get());
+  if (*_server_finished || _thrown) {
+    bool expected = false;
+    if (_finished_called.compare_exchange_strong(expected, true)) {
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}  Finish",
+                          static_cast<void*>(this));
+      Finish(::grpc::Status(::grpc::CANCELLED, "start_read server finished"));
+    }
+  } else {
+    StartRead(to_read.get());
+  }
 }
 
 void accepted_service::OnReadDone(bool ok) {
@@ -64,17 +76,43 @@ void accepted_service::OnReadDone(bool ok) {
 }
 
 void accepted_service::start_write(const event_ptr& to_send) {
-  StartWrite(to_send.get());
+  if (*_server_finished || _thrown) {
+    bool expected = false;
+    if (_finished_called.compare_exchange_strong(expected, true)) {
+      SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p} Finish",
+                          static_cast<void*>(this));
+      Finish(::grpc::Status(::grpc::CANCELLED, "start_write server finished"));
+    }
+  } else {
+    StartWrite(to_send.get());
+  }
 }
 
 void accepted_service::OnWriteDone(bool ok) {
   on_write_done(ok);
 }
 
+int accepted_service::stop() {
+  SPDLOG_LOGGER_TRACE(log_v2::grpc(), "this={:p}", static_cast<void*>(this));
+  shutdown();
+  return channel::stop();
+}
+
+void accepted_service::shutdown() {
+  bool expected = false;
+  if (_finished_called.compare_exchange_strong(expected, true)) {
+    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "{} this={:p}",
+                        static_cast<void*>(this));
+    Finish(::grpc::Status(::grpc::CANCELLED, "stop server finished"));
+  }
+}
+
 /****************************************************************************
  *                              server
  ****************************************************************************/
-server::server(const grpc_config::pointer& conf) : _conf(conf) {}
+server::server(const grpc_config::pointer& conf) : _conf(conf) {
+  _server_finished = std::make_shared<bool>(false);
+}
 
 void server::start() {
   ::grpc::Service::MarkMethodCallback(
@@ -100,15 +138,16 @@ void server::start() {
     creds_opts.set_root_cert_name("Root");
     server_creds = ::grpc::experimental::TlsServerCredentials(creds_opts);
 #else
-  if (!_conf->get_cert().empty() && !_conf->get_key().empty()) {
+  if (_conf->is_crypted() && !_conf->get_cert().empty() &&
+      !_conf->get_key().empty()) {
     ::grpc::SslServerCredentialsOptions::PemKeyCertPair pkcp = {
         _conf->get_key(), _conf->get_cert()};
 
-    log_v2::grpc()->info(
-        "{} crypted server listen on {} cert: {}..., key: {}..., ca: {}....",
-        __PRETTY_FUNCTION__, _conf->get_hostport(),
-        _conf->get_cert().substr(0, 10), _conf->get_key().substr(0, 10),
-        _conf->get_ca().substr(0, 10));
+    SPDLOG_LOGGER_INFO(
+        log_v2::grpc(),
+        "encrypted server listening on {} cert: {}..., key: {}..., ca: {}....",
+        _conf->get_hostport(), _conf->get_cert().substr(0, 10),
+        _conf->get_key().substr(0, 10), _conf->get_ca().substr(0, 10));
 
     ::grpc::SslServerCredentialsOptions ssl_opts;
     ssl_opts.pem_root_certs = _conf->get_ca();
@@ -117,19 +156,35 @@ void server::start() {
     server_creds = ::grpc::SslServerCredentials(ssl_opts);
 #endif
   } else {
-    log_v2::grpc()->info("{} uncrypted server listen on {}",
-                         __PRETTY_FUNCTION__, _conf->get_hostport());
+    SPDLOG_LOGGER_INFO(log_v2::grpc(), "unencrypted server listening on {}",
+                       _conf->get_hostport());
     server_creds = ::grpc::InsecureServerCredentials();
   }
   builder.AddListeningPort(_conf->get_hostport(), server_creds);
   builder.RegisterService(this);
   builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS, 1);
-  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIME_MS, 30000);
-  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIMEOUT_MS, 10000);
+  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIME_MS,
+                             _conf->get_second_keepalive_interval() * 1000);
+  builder.AddChannelArgument(GRPC_ARG_KEEPALIVE_TIMEOUT_MS,
+                             _conf->get_second_keepalive_interval() * 300);
   builder.AddChannelArgument(GRPC_ARG_HTTP2_MAX_PING_STRIKES, 0);
   builder.AddChannelArgument(GRPC_ARG_HTTP2_MAX_PINGS_WITHOUT_DATA, 0);
   builder.AddChannelArgument(
       GRPC_ARG_HTTP2_MIN_RECV_PING_INTERVAL_WITHOUT_DATA_MS, 60000);
+
+  if (_conf->get_compression() == grpc_config::YES) {
+    grpc_compression_algorithm algo = grpc_compression_algorithm_for_level(
+        GRPC_COMPRESS_LEVEL_HIGH, calc_accept_all_compression_mask());
+    const char* algo_name;
+    if (grpc_compression_algorithm_name(algo, &algo_name))
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression {}",
+                          algo_name);
+    else
+      SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "server default compression unknown");
+
+    builder.SetDefaultCompressionAlgorithm(algo);
+    builder.SetDefaultCompressionLevel(GRPC_COMPRESS_LEVEL_HIGH);
+  }
   _server = std::unique_ptr<::grpc::Server>(builder.BuildAndStart());
 }
 
@@ -147,16 +202,14 @@ server::pointer server::create(const grpc_config::pointer& conf) {
 
     auto header_search = metas.lower_bound(authorization_header);
     if (header_search == metas.end()) {
-      log_v2::grpc()->error("{} header {} not found", __PRETTY_FUNCTION__,
-                            authorization_header);
+      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "header {} not found",
+                          authorization_header);
       return nullptr;
     }
     bool found = false;
     for (; header_search != metas.end() && !found; ++header_search) {
       if (header_search->first != authorization_header) {
-        log_v2::grpc()->error("{} header {} don't match to {}",
-                              __PRETTY_FUNCTION__, authorization_header,
-                              _conf->get_authorization());
+        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "Wrong client authorization token");
         return nullptr;
       }
       found = _conf->get_authorization() == header_search->second;
@@ -165,7 +218,7 @@ server::pointer server::create(const grpc_config::pointer& conf) {
   accepted_service::pointer serv;
   {
     unique_lock l(_protect);
-    serv = std::make_shared<accepted_service>(_conf);
+    serv = std::make_shared<accepted_service>(_conf, _server_finished);
     _accepted.push(serv);
     _accept_cond.notify_one();
   }
@@ -209,4 +262,29 @@ std::unique_ptr<io::stream> server::open(
 bool server::is_ready() const {
   unique_lock l(_protect);
   return !_accepted.empty();
+}
+
+void server::shutdown() {
+  *_server_finished = true;
+  std::unique_ptr<::grpc::Server> to_shutdown;
+  std::queue<accepted_service::pointer> accepted_to_shutdown;
+  {
+    unique_lock l(_protect);
+    if (!_accepted.empty()) {
+      accepted_to_shutdown.swap(_accepted);
+    }
+    if (_server) {
+      to_shutdown = std::move(_server);
+    }
+  }
+  while (!accepted_to_shutdown.empty()) {
+    auto svc = accepted_to_shutdown.front();
+    accepted_to_shutdown.pop();
+    svc->to_trash();
+  }
+  if (to_shutdown) {
+    SPDLOG_LOGGER_DEBUG(log_v2::grpc(), "grpc server shutdown");
+    to_shutdown->Shutdown(std::chrono::system_clock::now() +
+                          std::chrono::seconds(15));
+  }
 }

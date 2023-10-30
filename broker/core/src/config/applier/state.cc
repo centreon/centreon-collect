@@ -34,6 +34,14 @@ using namespace com::centreon::broker::config::applier;
 static state* gl_state = nullptr;
 
 /**
+ * @brief this conf info may be used by late thread like database connection
+ * after state::unload
+ * So it's static
+ *
+ */
+state::stats state::_stats_conf;
+
+/**
  *  Default constructor.
  */
 state::state() : _poller_id(0), _rpc_port(0), _bbdo_version{2u, 0u, 0u} {}
@@ -46,7 +54,7 @@ state::state() : _poller_id(0), _rpc_port(0), _bbdo_version{2u, 0u, 0u} {}
  */
 void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   /* With bbdo 3.0, unified_sql must replace sql/storage */
-  if (std::get<0>(s.bbdo_version()) >= 3) {
+  if (s.get_bbdo_version().major_v >= 3) {
     auto& lst = s.module_list();
     bool found_sql =
         std::find(lst.begin(), lst.end(), "80-sql.so") != lst.end();
@@ -69,33 +77,20 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     throw msg_fmt(
         "state applier: poller information are "
         "not set: please fill poller_id and poller_name");
-  if (!s.broker_id() || s.broker_name().empty())
+  if (s.broker_name().find_first_not_of(allowed_chars) != std::string::npos)
     throw msg_fmt(
-        "state applier: instance information "
-        "are not set: please fill broker_id and broker_name");
-  for (std::string::const_iterator it(s.broker_name().begin()),
-       end(s.broker_name().end());
-       it != end; ++it)
-    if (!strchr(allowed_chars, *it))
+        "state applier: broker_name is not valid: allowed characters are {}",
+        allowed_chars);
+  for (auto& e : s.endpoints()) {
+    if (e.name.empty())
       throw msg_fmt(
-          "state applier: broker_name is not "
-          " valid: allowed characters are {}",
-          allowed_chars);
-  for (std::list<config::endpoint>::const_iterator it(s.endpoints().begin()),
-       end(s.endpoints().end());
-       it != end; ++it) {
-    if (it->name.empty())
+          "state applier: endpoint name is not set: please fill name of all "
+          "endpoints");
+    if (e.name.find_first_not_of(allowed_chars) != std::string::npos)
       throw msg_fmt(
-          "state applier: endpoint name is not set: "
-          "please fill name of all endpoints");
-    for (std::string::const_iterator it_name(it->name.begin()),
-         end_name(it->name.end());
-         it_name != end_name; ++it_name)
-      if (!strchr(allowed_chars, *it_name))
-        throw msg_fmt(
-            "state applier: endpoint name '{}'"
-            "' is not valid: allowed characters are '{}'",
-            *it_name, allowed_chars);
+          "state applier: endpoint name '{}' is not valid: allowed characters "
+          "are '{}'",
+          e.name, allowed_chars);
   }
 
   // Set Broker instance ID.
@@ -105,7 +100,7 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   _poller_id = s.poller_id();
   _poller_name = s.poller_name();
   _rpc_port = s.rpc_port();
-  _bbdo_version = s.bbdo_version();
+  _bbdo_version = s.get_bbdo_version();
 
   // Thread pool size.
   _pool_size = s.pool_size();
@@ -147,11 +142,11 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   ib->poller_id = _poller_id;
   ib->poller_name = _poller_name;
   ib->enabled = true;
-  com::centreon::broker::multiplexing::engine::instance().publish(ib);
+  com::centreon::broker::multiplexing::engine::instance_ptr()->publish(ib);
 
   // Enable multiplexing loop.
   if (run_mux)
-    com::centreon::broker::multiplexing::engine::instance().start();
+    com::centreon::broker::multiplexing::engine::instance_ptr()->start();
 }
 
 /**
@@ -168,8 +163,7 @@ const std::string& state::cache_dir() const noexcept {
  *
  * @return The bbdo version.
  */
-const std::tuple<uint16_t, uint16_t, uint16_t>& state::bbdo_version()
-    const noexcept {
+bbdo::bbdo_version state::get_bbdo_version() const noexcept {
   return _bbdo_version;
 }
 
@@ -238,4 +232,62 @@ void state::unload() {
 
 config::applier::modules& state::get_modules() {
   return _modules;
+}
+
+config::applier::state::stats& state::mut_stats_conf() {
+  return _stats_conf;
+}
+
+const config::applier::state::stats& state::stats_conf() {
+  return _stats_conf;
+}
+
+/**
+ * @brief Add a poller to the list of connected pollers.
+ *
+ * @param poller_id The id of the poller (an id by host)
+ * @param poller_name The name of the poller
+ */
+void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
+  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+  auto found = _connected_pollers.find(poller_id);
+  if (found == _connected_pollers.end()) {
+    log_v2::core()->info("Poller '{}' with id {} connected", poller_name,
+                         poller_id);
+    _connected_pollers[poller_id] = poller_name;
+  } else {
+    log_v2::core()->warn(
+        "Poller '{}' with id {} already known as connected. Replacing it with "
+        "'{}'",
+        _connected_pollers[poller_id], poller_id, poller_name);
+    found->second = poller_name;
+  }
+}
+
+/**
+ * @brief Remove a poller from the list of connected pollers.
+ *
+ * @param poller_id The id of the poller to remove.
+ */
+void state::remove_poller(uint64_t poller_id) {
+  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+  auto found = _connected_pollers.find(poller_id);
+  if (found == _connected_pollers.end())
+    log_v2::core()->warn("There is currently no poller {} connected",
+                         poller_id);
+  else {
+    log_v2::core()->info("Poller '{}' with id {} just disconnected",
+                         _connected_pollers[poller_id], poller_id);
+    _connected_pollers.erase(found);
+  }
+}
+
+/**
+ * @brief Check if a poller is currently connected.
+ *
+ * @param poller_id The poller to check.
+ */
+bool state::has_connection_from_poller(uint64_t poller_id) const {
+  std::lock_guard<std::mutex> lck(_connected_pollers_m);
+  return _connected_pollers.contains(poller_id);
 }

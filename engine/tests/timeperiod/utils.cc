@@ -17,11 +17,17 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include "tests/timeperiod/utils.hh"
+#include <array>
 #include <cstring>
+#include <list>
+#include <memory>
+#include <unordered_map>
+
+#include "com/centreon/engine/namespace.hh"
 
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/timerange.hh"
+#include "tests/timeperiod/utils.hh"
 
 using namespace com::centreon::engine;
 // Global time.

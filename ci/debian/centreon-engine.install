@@ -1,5 +1,0 @@
-debian/extra/centreon-engine/centengine.service                     lib/systemd/system
-debian/tmp-centreon-collect/etc/centreon-engine/*                   etc/centreon-engine
-debian/tmp-centreon-collect/usr/sbin/centengine                     usr/sbin
-debian/tmp-centreon-collect/usr/sbin/centenginestats                usr/sbin
-packaging/rpm/centreonengine_integrate_centreon_engine2centreon.sh  usr/share/centreon-engine/extra

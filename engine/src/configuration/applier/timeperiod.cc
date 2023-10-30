@@ -74,8 +74,8 @@ void applier::timeperiod::add_object(configuration::timeperiod const& obj) {
   config->timeperiods().insert(obj);
 
   // Create time period.
-  std::shared_ptr<engine::timeperiod> tp{
-      new engine::timeperiod(obj.timeperiod_name(), obj.alias())};
+  auto tp =
+      std::make_shared<engine::timeperiod>(obj.timeperiod_name(), obj.alias());
 
   engine::timeperiod::timeperiods.insert({obj.timeperiod_name(), tp});
 

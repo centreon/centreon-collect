@@ -30,14 +30,13 @@ class hostgroup;
 class hostescalation;
 CCE_END()
 
-typedef std::unordered_map<std::string,
-                           std::shared_ptr<com::centreon::engine::host>>
-    host_map;
-typedef std::unordered_map<std::string, com::centreon::engine::host*>
-    host_map_unsafe;
-typedef std::unordered_map<uint64_t,
-                           std::shared_ptr<com::centreon::engine::host>>
-    host_id_map;
+using host_map =
+    absl::flat_hash_map<std::string,
+                        std::shared_ptr<com::centreon::engine::host>>;
+using host_map_unsafe =
+    absl::flat_hash_map<std::string, com::centreon::engine::host*>;
+using host_id_map =
+    absl::flat_hash_map<uint64_t, std::shared_ptr<com::centreon::engine::host>>;
 
 CCE_BEGIN()
 class host : public notifier {
@@ -104,12 +103,12 @@ class host : public notifier {
        std::string const& timezone,
        uint64_t icon_id);
   ~host() noexcept = default;
-  uint64_t get_host_id(void) const;
+  uint64_t host_id() const;
   void set_host_id(uint64_t id);
   void add_child_host(host* child);
   void add_parent_host(std::string const& host_name);
   int log_event();
-  int handle_async_check_result_3x(check_result* queued_check_result);
+  int handle_async_check_result_3x(const check_result& queued_check_result);
   int run_scheduled_check(int check_options, double latency);
   int run_async_check(int check_options,
                       double latency,
@@ -118,7 +117,7 @@ class host : public notifier {
                       bool* time_is_valid,
                       time_t* preferred_time) noexcept;
   bool schedule_check(time_t check_time,
-                      int options,
+                      uint32_t options,
                       bool no_update_status_now = false) override;
   void check_for_flapping(bool update,
                           bool actual_check,
@@ -176,8 +175,6 @@ class host : public notifier {
   std::string const& get_current_state_as_string() const override;
 
   // setters / getters
-  std::string const& get_name() const;
-  void set_name(std::string const& name);
   std::string const& get_alias() const;
   void set_alias(std::string const& alias);
   std::string const& get_address() const;
@@ -261,7 +258,6 @@ class host : public notifier {
 
  private:
   uint64_t _id;
-  std::string _name;
   std::string _alias;
   std::string _address;
   bool _process_performance_data;
@@ -311,8 +307,9 @@ CCE_BEGIN()
 
 void check_for_expired_acknowledgement(com::centreon::engine::host* h);
 com::centreon::engine::host& find_host(uint64_t host_id);
-bool is_host_exist(uint64_t host_id) throw();
+bool host_exists(uint64_t host_id) noexcept;
 uint64_t get_host_id(std::string const& name);
+std::string get_host_name(const uint64_t host_id);
 
 CCE_END()
 

@@ -317,6 +317,35 @@ TEST_F(Macro, ContactPager) {
   ASSERT_EQ(out, "0473729383");
 }
 
+TEST_F(Macro, FullCmd) {
+  configuration::parser parser;
+  configuration::state st;
+
+  std::remove("/tmp/test-config.cfg");
+
+  std::ofstream ofs("/tmp/test-config.cfg");
+  ofs << "admin_email=contactadmin@centreon.com" << std::endl;
+  ofs << "log_file=\"my-log-file\"" << std::endl;
+  ofs << "admin_pager=\"pager\"" << std::endl;
+  ofs.close();
+
+  parser.parse("/tmp/test-config.cfg", st);
+  configuration::applier::state::instance().apply(st);
+
+  init_macros();
+
+  std::string out;
+  nagios_macros* mac(get_global_macros());
+  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  process_macros_r(mac,
+                   "/bin/sh -c '/bin/echo \"LogFile: $LOGFILE$ - AdminEmail: "
+                   "$ADMINEMAIL$ - AdminPager: $ADMINPAGER$\"",
+                   out, 1);
+  ASSERT_EQ(out,
+            "/bin/sh -c '/bin/echo \"LogFile: my-log-file - AdminEmail: "
+            "contactadmin@centreon.com - AdminPager: pager\"");
+}
+
 TEST_F(Macro, AdminEmail) {
   configuration::parser parser;
   configuration::state st;
@@ -335,7 +364,8 @@ TEST_F(Macro, AdminEmail) {
 
   std::string out;
   nagios_macros* mac(get_global_macros());
-  process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  //process_macros_r(mac, "$ADMINEMAIL:test_host$", out, 1);
+  process_macros_r(mac, "$ADMINEMAIL$", out, 1);
   ASSERT_EQ(out, "contactadmin@centreon.com");
 }
 
@@ -631,14 +661,14 @@ TEST_F(Macro, NotificationRecipients) {
   _host3 = hm.begin()->second;
   _host3->set_current_state(engine::host::state_up);
   _host3->set_state_type(checkable::hard);
-  _host3->set_problem_has_been_acknowledged(false);
+  _host3->set_acknowledgement(AckType::NONE);
   _host3->set_notify_on(static_cast<uint32_t>(-1));
 
   service_map const& sm{engine::service::services};
   _svc = sm.begin()->second;
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_state_type(checkable::hard);
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
   nagios_macros* mac(get_global_macros());
@@ -685,14 +715,14 @@ TEST_F(Macro, NotificationAuthor) {
   _host3 = hm.begin()->second;
   _host3->set_current_state(engine::host::state_up);
   _host3->set_state_type(checkable::hard);
-  _host3->set_problem_has_been_acknowledged(false);
+  _host3->set_acknowledgement(AckType::NONE);
   _host3->set_notify_on(static_cast<uint32_t>(-1));
 
   service_map const& sm{engine::service::services};
   _svc = sm.begin()->second;
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_state_type(checkable::hard);
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
   nagios_macros* mac(get_global_macros());
@@ -739,14 +769,14 @@ TEST_F(Macro, NotificationAuthorName) {
   _host3 = hm.begin()->second;
   _host3->set_current_state(engine::host::state_up);
   _host3->set_state_type(checkable::hard);
-  _host3->set_problem_has_been_acknowledged(false);
+  _host3->set_acknowledgement(AckType::NONE);
   _host3->set_notify_on(static_cast<uint32_t>(-1));
 
   service_map const& sm{engine::service::services};
   _svc = sm.begin()->second;
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_state_type(checkable::hard);
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
   nagios_macros* mac(get_global_macros());
@@ -792,14 +822,14 @@ TEST_F(Macro, NotificationAuthorAlias) {
   _host3 = hm.begin()->second;
   _host3->set_current_state(engine::host::state_up);
   _host3->set_state_type(checkable::hard);
-  _host3->set_problem_has_been_acknowledged(false);
+  _host3->set_acknowledgement(AckType::NONE);
   _host3->set_notify_on(static_cast<uint32_t>(-1));
 
   service_map const& sm{engine::service::services};
   _svc = sm.begin()->second;
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_state_type(checkable::hard);
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
   nagios_macros* mac(get_global_macros());
@@ -845,14 +875,14 @@ TEST_F(Macro, NotificationComment) {
   _host3 = hm.begin()->second;
   _host3->set_current_state(engine::host::state_up);
   _host3->set_state_type(checkable::hard);
-  _host3->set_problem_has_been_acknowledged(false);
+  _host3->set_acknowledgement(AckType::NONE);
   _host3->set_notify_on(static_cast<uint32_t>(-1));
 
   service_map const& sm{engine::service::services};
   _svc = sm.begin()->second;
   _svc->set_current_state(engine::service::state_ok);
   _svc->set_state_type(checkable::hard);
-  _svc->set_problem_has_been_acknowledged(false);
+  _svc->set_acknowledgement(AckType::NONE);
   _svc->set_notify_on(static_cast<uint32_t>(-1));
 
   nagios_macros* mac(get_global_macros());

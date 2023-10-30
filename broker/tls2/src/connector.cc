@@ -50,9 +50,9 @@ connector::connector(std::string cert,
  *
  *  @return New connected stream.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   // First connect the lower layer.
-  std::unique_ptr<io::stream> lower(_from->open());
+  std::shared_ptr<io::stream> lower(_from->open());
   if (lower)
     return open(std::move(lower));
   return nullptr;
@@ -148,7 +148,7 @@ static void info_callback(const SSL* s, int where, int ret) {
  *
  *  @return Encrypted stream.
  */
-std::unique_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
+std::shared_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
   std::unique_ptr<stream> u;
   if (lower) {
     try {

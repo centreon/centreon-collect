@@ -17,6 +17,7 @@
 */
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
+#include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -24,6 +25,9 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker::tcp;
 using com::centreon::broker::misc::string::debug_buf;
+
+static const boost::system::error_code _eof_error =
+    boost::asio::error::make_error_code(boost::asio::error::misc_errors::eof);
 
 /**
  * @brief tcp_connection constructor.
@@ -152,6 +156,21 @@ int32_t tcp_connection::write(const std::vector<char>& v) {
 }
 
 /**
+ * @brief wait for all events sent on the wire
+ *
+ * @param ms_timeout
+ * @return true if all events are sent
+ * @return false if timeout expires
+ */
+bool tcp_connection::wait_for_all_events_written(unsigned ms_timeout) {
+  log_v2::tcp()->trace("wait_for_all_events_written _writing={}", _writing);
+  std::mutex dummy;
+  std::unique_lock<std::mutex> l(dummy);
+  return _writing_cv.wait_for(l, std::chrono::milliseconds(ms_timeout),
+                              [this]() { return _writing == false; });
+}
+
+/**
  * @brief Execute the real writing on the socket. Infact, this function:
  *  * checks if the _write_queue is empty, and then exchanges its content with
  *    the _exposed_write_queue. No mutex is needed because if this function is
@@ -168,6 +187,7 @@ void tcp_connection::writing() {
   }
   if (!_write_queue_has_events) {
     _writing = false;
+    _writing_cv.notify_all();
     return;
   }
 
@@ -182,9 +202,13 @@ void tcp_connection::writing() {
  *
  * @param ec
  */
-void tcp_connection::handle_write(const asio::error_code& ec) {
+void tcp_connection::handle_write(const boost::system::error_code& ec) {
   if (ec) {
-    log_v2::tcp()->error("Error while writing on tcp socket: {}", ec.message());
+    if (ec == _eof_error)
+      log_v2::tcp()->debug("write: socket closed: {}", _address);
+    else
+      log_v2::tcp()->error("Error while writing on tcp socket to {}: {}",
+                           _address, ec.message());
     std::lock_guard<std::mutex> lck(_error_m);
     _current_error = ec;
     _writing = false;
@@ -221,7 +245,7 @@ void tcp_connection::start_reading() {
                              std::placeholders::_1, std::placeholders::_2)));
 }
 
-void tcp_connection::handle_read(const asio::error_code& ec,
+void tcp_connection::handle_read(const boost::system::error_code& ec,
                                  size_t read_bytes) {
   log_v2::tcp()->trace("Incoming data: {} bytes: {}", read_bytes,
                        debug_buf(&_read_buffer[0], read_bytes));
@@ -232,7 +256,11 @@ void tcp_connection::handle_read(const asio::error_code& ec,
     _read_queue_cv.notify_one();
   }
   if (ec) {
-    log_v2::tcp()->error("Error while reading on socket: {}", ec.message());
+    if (ec == _eof_error)
+      log_v2::tcp()->debug("read: socket closed: {}", _address);
+    else
+      log_v2::tcp()->error("Error while reading on socket from {}: {}",
+                           _address, ec.message());
     std::lock_guard<std::mutex> lck(_read_queue_m);
     _closing = true;
     _read_queue_cv.notify_one();
@@ -247,7 +275,11 @@ void tcp_connection::handle_read(const asio::error_code& ec,
 void tcp_connection::close() {
   log_v2::tcp()->trace("closing tcp connection");
   if (!_closed) {
-    while (!_closed && (_writing || _write_queue_has_events)) {
+    std::chrono::system_clock::time_point timeout =
+        std::chrono::system_clock::now() + std::chrono::seconds(10);
+    while (!_closed &&
+           (_writing || (_write_queue_has_events &&
+                         std::chrono::system_clock::now() < timeout))) {
       log_v2::tcp()->debug(
           "Finishing to write data before closing the connection");
       if (!_writing) {
@@ -258,7 +290,7 @@ void tcp_connection::close() {
       std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     _closed = true;
-    std::error_code ec;
+    boost::system::error_code ec;
     _socket.shutdown(asio::ip::tcp::socket::shutdown_both, ec);
     log_v2::tcp()->trace("socket shutdown with message: {}", ec.message());
     _socket.close(ec);
@@ -313,7 +345,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
           _read_queue_cv.wait(
               lck, [this] { return !_read_queue.empty() || _closing; });
           if (_read_queue.empty())
-            throw msg_fmt(
+            throw exceptions::connection_closed(
                 "Attempt to read data from peer {}:{} on a closing socket",
                 _address, _port);
           /* Timeout on wait */
@@ -327,7 +359,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
                 return !_read_queue.empty() || _closing;
               })) {
             if (_read_queue.empty())
-              throw msg_fmt(
+              throw exceptions::connection_closed(
                   "Attempt to read data from peer {}:{} on a closing socket",
                   _address, _port);
           } else {
@@ -375,7 +407,7 @@ const std::string tcp_connection::peer() const {
  *
  * @param ec In case of error this param is filled with the error message.
  */
-void tcp_connection::update_peer(asio::error_code& ec) {
+void tcp_connection::update_peer(boost::system::error_code& ec) {
   if (_socket.is_open()) {
     auto re{_socket.remote_endpoint(ec)};
     if (!ec) {

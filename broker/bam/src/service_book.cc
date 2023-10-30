@@ -63,6 +63,23 @@ void service_book::unlisten(uint32_t host_id,
 }
 
 /**
+ * @brief Propagate events of type neb::pb_acknowledgement to the concerned
+ * services and then to the corresponding kpi.
+ *
+ * @param t The event to handle.
+ * @param visitor The stream to write into.
+ */
+void service_book::update(const std::shared_ptr<neb::pb_acknowledgement>& t,
+                          io::stream* visitor) {
+  std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
+      std::make_pair(t->obj().host_id(), t->obj().service_id()))};
+  while (range.first != range.second) {
+    range.first->second->service_update(t, visitor);
+    ++range.first;
+  }
+}
+
+/**
  * @brief Propagate events of type neb::acknowledgement to the concerned
  * services and then to the corresponding kpi.
  *
@@ -97,6 +114,24 @@ void service_book::update(const std::shared_ptr<neb::downtime>& t,
 }
 
 /**
+ * @brief Propagate events of type neb::pb_downtime to the concerned services
+ * and then to the corresponding kpi.
+ *
+ * @param t The event to handle.
+ * @param visitor The stream to write into.
+ */
+void service_book::update(const std::shared_ptr<neb::pb_downtime>& t,
+                          io::stream* visitor) {
+  auto& downtime = t->obj();
+  std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
+      std::make_pair(downtime.host_id(), downtime.service_id()))};
+  while (range.first != range.second) {
+    range.first->second->service_update(t, visitor);
+    ++range.first;
+  }
+}
+
+/**
  * @brief Propagate events of type neb::service_status to the concerned services
  * and then to the corresponding kpi.
  *
@@ -107,10 +142,15 @@ void service_book::update(const std::shared_ptr<neb::service_status>& t,
                           io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{
       _book.equal_range(std::make_pair(t->host_id, t->service_id))};
+  size_t count = 0;
   while (range.first != range.second) {
+    count++;
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
+  log_v2::bam()->trace(
+      "service_book: {} listeners notified of service ({},{}) status", count,
+      t->host_id, t->service_id);
 }
 
 /**
@@ -124,10 +164,15 @@ void service_book::update(const std::shared_ptr<neb::pb_service>& t,
                           io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
+  size_t count = 0;
   while (range.first != range.second) {
+    ++count;
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
+  log_v2::bam()->trace(
+      "service_book: {} listeners notified of pb service ({},{})", count,
+      t->obj().host_id(), t->obj().service_id());
 }
 
 /**
@@ -141,8 +186,13 @@ void service_book::update(const std::shared_ptr<neb::pb_service_status>& t,
                           io::stream* visitor) {
   std::pair<multimap::iterator, multimap::iterator> range{_book.equal_range(
       std::make_pair(t->obj().host_id(), t->obj().service_id()))};
+  size_t count = 0;
   while (range.first != range.second) {
+    ++count;
     range.first->second->service_update(t, visitor);
     ++range.first;
   }
+  log_v2::bam()->trace(
+      "service_book: {} listeners notified of pb service ({},{}) status", count,
+      t->obj().host_id(), t->obj().service_id());
 }

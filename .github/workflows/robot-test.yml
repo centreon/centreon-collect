@@ -1,0 +1,138 @@
+on:
+  workflow_call:
+    inputs:
+      distrib:
+        required: true
+        type: string
+      arch:
+        required: true
+        type: string
+      image:
+        required: true
+        type: string
+      image_version:
+        required: true
+        type: string
+      package_cache_key:
+        required: true
+        type: string
+      package_cache_path:
+        required: true
+        type: string
+      database_type:
+        required: true
+        type: string
+    secrets:
+      registry_username:
+        required: true
+      registry_password:
+        required: true
+      collect_s3_access_key:
+        required: true
+      collect_s3_secret_key:
+        required: true
+
+
+jobs:
+  robot-test-list:
+    runs-on: ubuntu-22.04
+    outputs:
+      features: ${{ steps.list-features.outputs.features }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: List features
+        id: list-features
+        run: |
+          cd tests
+          echo "features=$(grep -Rl '*** Test Cases ***' . | grep '.robot' | sed -e "s#^./##" | sort | jq -R -s -c 'split("\n")[:-1]')" >> $GITHUB_OUTPUT
+
+  robot-test:
+    needs: [robot-test-list]
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
+    container:
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
+      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
+      credentials:
+        username: ${{ secrets.registry_username }}
+        password: ${{ secrets.registry_password }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
+
+    name: ${{ matrix.feature }} ${{inputs.database_type}}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Restore packages
+        uses: actions/cache@v3
+        with:
+          path: ${{ inputs.package_cache_path }}
+          key: ${{ inputs.package_cache_key }}
+          fail-on-cache-miss: true
+
+      - name: Test ${{ matrix.feature }}
+        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}
+        shell: bash
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+          AWS_BUCKET: centreon-collect-robot-report
+
+      - name: Move reports
+        if: ${{ failure() }}
+        run: |
+          mkdir reports
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
+          if [ -d tests/failed ] ; then
+            mv tests/log.html reports/$FILE_PREFIX-log.html
+            mv tests/output.xml reports/$FILE_PREFIX-output.xml
+            mv tests/failed reports/$FILE_PREFIX-failed
+          fi
+
+      - name: Upload Test Results
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          path: reports
+          retention-days: 1
+
+  robot-test-report:
+    needs: [robot-test]
+    if: ${{ failure() }}
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          path: reports
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - run: |
+          pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil
+          cd reports
+          rebot -o output.xml ./*-output.xml || true
+        shell: bash
+
+      - name: Send report to commit
+        uses: joonvena/robotframework-reporter-action@v2.1
+        with:
+          gh_access_token: ${{ secrets.GITHUB_TOKEN }}
+          report_path: reports
+          show_passed_tests: false

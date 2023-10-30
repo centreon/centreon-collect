@@ -50,7 +50,6 @@ extern "C" {
 #endif  // C++
 
 char* my_strtok(char const* buffer, char const* tokens);
-void strip(char* buffer);
 int compare_hashdata(char const* val1a,
                      char const* val1b,
                      char const* val2a,
@@ -64,7 +63,6 @@ void get_time_breakdown(unsigned long raw_time,
                         int* hours,
                         int* minutes,
                         int* seconds);
-char* resize_string(char* str, size_t size);
 
 #ifdef __cplusplus
 }

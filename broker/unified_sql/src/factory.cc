@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/unified_sql/factory.hh"
 
+#include <absl/strings/match.h>
 #include <cstring>
 #include <memory>
 
@@ -59,7 +60,7 @@ static std::string const& find_param(config::endpoint const& cfg,
 bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   if (ext)
     *ext = io::extension("STORAGE", false, false);
-  bool is_unified_sql(!strncasecmp(cfg.type.c_str(), "unified_sql", 8));
+  bool is_unified_sql{absl::EqualsIgnoreCase(cfg.type, "unified_sql")};
   return is_unified_sql;
 }
 
@@ -80,15 +81,12 @@ io::endpoint* factory::new_endpoint(
 
   // Find RRD length.
   uint32_t rrd_length;
-  try {
-    rrd_length = static_cast<uint32_t>(std::stoul(find_param(cfg, "length")));
-  } catch (std::exception const& e) {
+  if (!absl::SimpleAtoi(find_param(cfg, "length"), &rrd_length)) {
     /* This default length represents 180 days. */
     rrd_length = 15552000;
     log_v2::sql()->error(
-        "unified_sql: the length field should contain "
-        "a string containing a number. We use the "
-        "default value in replacement 15552000.");
+        "unified_sql: the length field should contain a string containing a "
+        "number. We use the default value in replacement 15552000.");
   }
 
   // Find interval length if set.
@@ -97,15 +95,11 @@ io::endpoint* factory::new_endpoint(
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("interval")};
     if (it != cfg.params.end()) {
-      try {
-        interval_length = std::stoul(it->second);
-      } catch (std::exception const& e) {
+      if (!absl::SimpleAtoi(it->second, &interval_length)) {
         interval_length = 60;
         log_v2::sql()->error(
-            "unified_sql: the interval field should "
-            "contain a string containing a "
-            "number. We use the default value in "
-            "replacement 60.");
+            "unified_sql: the interval field should contain a string "
+            "containing a number. We use the default value in replacement 60.");
       }
     }
     if (!interval_length)
@@ -120,8 +114,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("store_in_data_bin")};
-    if (it != cfg.params.end())
-      store_in_data_bin = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &store_in_data_bin)) {
+        log_v2::sql()->error(
+            "factory: cannot parse the 'store_in_data_bin' boolean: the "
+            "content is '{}'",
+            it->second);
+        store_in_data_bin = true;
+      }
+    }
   }
 
   // Store or not in resources.
@@ -129,8 +130,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("store_in_resources")};
-    if (it != cfg.params.end())
-      store_in_resources = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &store_in_resources)) {
+        log_v2::sql()->error(
+            "factory: cannot parse the 'store_in_resources' boolean: the "
+            "content is '{}'",
+            it->second);
+        store_in_resources = true;
+      }
+    }
   }
 
   // Store or not in hosts_services.
@@ -138,8 +146,15 @@ io::endpoint* factory::new_endpoint(
   {
     std::map<std::string, std::string>::const_iterator it{
         cfg.params.find("store_in_hosts_services")};
-    if (it != cfg.params.end())
-      store_in_hosts_services = config::parser::parse_boolean(it->second);
+    if (it != cfg.params.end()) {
+      if (!absl::SimpleAtob(it->second, &store_in_hosts_services)) {
+        log_v2::sql()->error(
+            "factory: cannot parse the 'store_in_hosts_services' boolean: the "
+            "content is '{}'",
+            it->second);
+        store_in_hosts_services = true;
+      }
+    }
   }
 
   log_v2::sql()->debug("SQL: store in hosts/services: {}",
@@ -158,8 +173,13 @@ io::endpoint* factory::new_endpoint(
   uint32_t instance_timeout = 5 * 60;
   {
     auto it = cfg.params.find("instance_timeout");
-    if (it != cfg.params.end())
-      instance_timeout = std::stoul(it->second);
+    if (it != cfg.params.end() &&
+        !absl::SimpleAtoi(it->second, &instance_timeout)) {
+      log_v2::sql()->error(
+          "factory: cannot parse the 'instance_timeout' value. It should be an "
+          "unsigned integer. 300 is set by default.");
+      instance_timeout = 300;
+    }
   }
 
   // Connector.

@@ -36,7 +36,6 @@ class environment;
  *  Raw is a specific implementation of command.
  */
 class raw : public command, public process_listener {
-  std::mutex _lock;
   std::unordered_map<process*, uint64_t> _processes_busy;
   std::deque<process*> _processes_free;
 
@@ -68,7 +67,9 @@ class raw : public command, public process_listener {
   raw& operator=(const raw&) = delete;
   uint64_t run(const std::string& process_cmd,
                nagios_macros& macros,
-               uint32_t timeout) override;
+               uint32_t timeout,
+               const check_result::pointer& to_push_to_checker,
+               const void* caller = nullptr) override;
   void run(const std::string& process_cmd,
            nagios_macros& macros,
            uint32_t timeout,

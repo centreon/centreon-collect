@@ -149,7 +149,7 @@ void reporter::write() {
     _buffer = std::make_shared<std::string>();
     asio::async_write(_sout, asio::buffer(*buff),
                       [buff, me = shared_from_this()](
-                          const std::error_code error, std::size_t) {
+                          const boost::system::error_code error, std::size_t) {
                         if (error) {
                           log::core()->error("failed to write to stdout {}",
                                              error.message());

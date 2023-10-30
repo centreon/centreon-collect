@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Centreon (https://www.centreon.com/)
+ * Copyright 2019-2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +27,12 @@
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::downtimes;
 
+/* Just a hash map helper to store host id by their name. It is useful
+ * to know if the host is already declared when creating a new service. */
+static absl::flat_hash_map<std::string, uint64_t> conf_hosts;
+
 configuration::contact TestEngine::new_configuration_contact(
-    std::string const& name,
+    const std::string& name,
     bool full,
     const std::string& notif) const {
   if (full) {
@@ -72,8 +76,8 @@ configuration::contact TestEngine::new_configuration_contact(
 }
 
 configuration::contactgroup TestEngine::new_configuration_contactgroup(
-    std::string const& name,
-    std::string const& contactname) {
+    const std::string& name,
+    const std::string& contactname) {
   configuration::contactgroup cg;
   cg.parse("contactgroup_name", name.c_str());
   cg.parse("alias", name.c_str());
@@ -83,9 +87,9 @@ configuration::contactgroup TestEngine::new_configuration_contactgroup(
 
 configuration::serviceescalation
 TestEngine::new_configuration_serviceescalation(
-    std::string const& hostname,
-    std::string const& svc_desc,
-    std::string const& contactgroup) {
+    const std::string& hostname,
+    const std::string& svc_desc,
+    const std::string& contactgroup) {
   configuration::serviceescalation se;
   se.parse("first_notification", "2");
   se.parse("last_notification", "11");
@@ -98,8 +102,8 @@ TestEngine::new_configuration_serviceescalation(
 }
 
 configuration::hostdependency TestEngine::new_configuration_hostdependency(
-    std::string const& hostname,
-    std::string const& dep_hostname) {
+    const std::string& hostname,
+    const std::string& dep_hostname) {
   configuration::hostdependency hd;
   hd.parse("master_host", hostname.c_str());
   hd.parse("dependent_host", dep_hostname.c_str());
@@ -111,10 +115,10 @@ configuration::hostdependency TestEngine::new_configuration_hostdependency(
 
 configuration::servicedependency
 TestEngine::new_configuration_servicedependency(
-    std::string const& hostname,
-    std::string const& service,
-    std::string const& dep_hostname,
-    std::string const& dep_service) {
+    const std::string& hostname,
+    const std::string& service,
+    const std::string& dep_hostname,
+    const std::string& dep_service) {
   configuration::servicedependency sd;
   sd.parse("master_host", hostname.c_str());
   sd.parse("master_description", service.c_str());
@@ -126,8 +130,8 @@ TestEngine::new_configuration_servicedependency(
 }
 
 configuration::host TestEngine::new_configuration_host(
-    std::string const& hostname,
-    std::string const& contacts,
+    const std::string& hostname,
+    const std::string& contacts,
     uint64_t hst_id) {
   configuration::host hst;
   hst.parse("host_name", hostname.c_str());
@@ -141,12 +145,13 @@ configuration::host TestEngine::new_configuration_host(
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
 
+  conf_hosts[hostname] = hst_id;
   return hst;
 }
 
 configuration::hostescalation TestEngine::new_configuration_hostescalation(
-    std::string const& hostname,
-    std::string const& contactgroup,
+    const std::string& hostname,
+    const std::string& contactgroup,
     uint32_t first_notif,
     uint32_t last_notif,
     uint32_t interval_notif) {
@@ -161,23 +166,30 @@ configuration::hostescalation TestEngine::new_configuration_hostescalation(
 }
 
 configuration::service TestEngine::new_configuration_service(
-    std::string const& hostname,
-    std::string const& description,
-    std::string const& contacts,
+    const std::string& hostname,
+    const std::string& description,
+    const std::string& contacts,
     uint64_t svc_id) {
   configuration::service svc;
   svc.parse("host_name", hostname.c_str());
   svc.parse("description", description.c_str());
-  svc.parse("_HOST_ID", "12");
+  auto it = conf_hosts.find(hostname);
+  if (it != conf_hosts.end())
+    svc.parse("_HOST_ID", std::to_string(it->second).c_str());
+  else
+    svc.parse("_HOST_ID", "12");
   svc.parse("_SERVICE_ID", std::to_string(svc_id).c_str());
   svc.parse("contacts", contacts.c_str());
 
   // We fake here the expand_object on configuration::service
-  svc.set_host_id(12);
+  if (it != conf_hosts.end())
+    svc.set_host_id(it->second);
+  else
+    svc.set_host_id(12);
 
   configuration::command cmd("cmd");
-  cmd.parse("command_line", "echo 'output| metric=12;50;75'");
-  svc.parse("check_command", "cmd");
+  cmd.parse("command_line", "echo 'output| metric=$ARG1$;50;75'");
+  svc.parse("check_command", "cmd!12");
   configuration::applier::command cmd_aply;
   cmd_aply.add_object(cmd);
 
@@ -185,12 +197,12 @@ configuration::service TestEngine::new_configuration_service(
 }
 
 configuration::anomalydetection TestEngine::new_configuration_anomalydetection(
-    std::string const& hostname,
-    std::string const& description,
-    std::string const& contacts,
+    const std::string& hostname,
+    const std::string& description,
+    const std::string& contacts,
     uint64_t svc_id,
     uint64_t dependent_svc_id,
-    std::string const& thresholds_file) {
+    const std::string& thresholds_file) {
   configuration::anomalydetection ad;
   ad.parse("host_name", hostname.c_str());
   ad.parse("description", description.c_str());
@@ -199,6 +211,7 @@ configuration::anomalydetection TestEngine::new_configuration_anomalydetection(
   ad.parse("_SERVICE_ID", std::to_string(svc_id).c_str());
   ad.parse("contacts", contacts.c_str());
   ad.parse("metric_name", "metric");
+  ad.parse("internal_id", "1234");
   ad.parse("thresholds_file", thresholds_file.c_str());
 
   // We fake here the expand_object on configuration::service

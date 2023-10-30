@@ -20,9 +20,9 @@
 #define CCB_SQL_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/mysql.hh"
 #include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/cleanup.hh"
+#include "com/centreon/broker/sql/mysql.hh"
 
 CCB_BEGIN()
 
@@ -48,7 +48,6 @@ class stream : public io::stream {
   database::mysql_stmt _service_state_insupdate;
   //  cleanup _cleanup_thread;
   int _pending_events;
-  bool _with_state_events;
   mutable std::mutex _stat_mutex;
   bool _stopped;
 

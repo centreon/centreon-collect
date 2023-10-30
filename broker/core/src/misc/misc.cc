@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/misc/misc.hh"
 
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -163,28 +164,44 @@ std::vector<char> misc::from_hex(std::string const& str) {
  *
  *  @return             A string containing all the filters.
  */
-std::string misc::dump_filters(const absl::flat_hash_set<uint32_t>& filters) {
+std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
   io::events::events_container all_event_container =
       io::events::instance().get_events_by_category_name("all");
   std::map<uint32_t, std::string> name_by_id;
 
-  absl::flat_hash_set<uint32_t> all_events;
   for (io::events::events_container::const_iterator
            it = all_event_container.begin(),
            end = all_event_container.end();
        it != end; ++it) {
-    all_events.insert(it->first);
-    name_by_id[it->first] = it->second.get_name();
+    if (filters.allows(it->first))
+      name_by_id[it->first] = it->second.get_name();
   }
 
-  if (filters.size() == all_events.size())
+  if (all_event_container.size() == name_by_id.size())
     return "all";
 
   std::string ret;
-  for (auto it = filters.cbegin(), end = filters.cend(); it != end; ++it) {
-    auto found = name_by_id.find(*it);
-    if (found != name_by_id.end())
-      ret.append(", ").append(found->second);
-  }
+  for (auto it = name_by_id.cbegin(), end = name_by_id.cend(); it != end; ++it)
+    if (ret.empty())
+      ret.append(it->second);
+    else
+      ret.append(", ").append(it->second);
   return ret;
 }
+
+#if DEBUG_ROBOT
+void misc::debug(const std::string& content) {
+  int p = getpid();
+  std::string filename{fmt::format("failed/{}.log", p)};
+  FILE* f = fopen(filename.c_str(), "a");
+  if (!f) {
+    if (mkdir("failed", 0755) != 0)
+      return;
+    f = fopen(filename.c_str(), "a");
+  }
+  if (f) {
+    fprintf(f, "%s\n", content.c_str());
+    fclose(f);
+  }
+}
+#endif

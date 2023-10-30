@@ -19,6 +19,7 @@
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/ssh/options.hh"
 #include "com/centreon/connector/ssh/policy.hh"
+#include "com/centreon/connector/ssh/sessions/session.hh"
 #include "com/centreon/exceptions/basic.hh"
 
 using namespace com::centreon;
@@ -93,7 +94,7 @@ int main(int argc, char* argv[]) {
       asio::signal_set signal_handler(*io_context, SIGTERM, SIGINT, SIGPIPE);
 
       signal_handler.async_wait(
-          [io_context](const std::error_code&, int signal_number) {
+          [io_context](const boost::system::error_code&, int signal_number) {
             if (signal_number == SIGPIPE) {
               log::core()->info("SIGPIPE received");
               return;

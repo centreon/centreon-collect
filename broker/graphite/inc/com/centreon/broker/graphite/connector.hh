@@ -19,9 +19,9 @@
 #ifndef CCB_GRAPHITE_CONNECTOR_HH
 #define CCB_GRAPHITE_CONNECTOR_HH
 
-#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/database_config.hh"
 
 CCB_BEGIN()
 
@@ -43,7 +43,7 @@ class connector : public io::endpoint {
 
  public:
   connector();
-  ~connector() noexcept {}
+  ~connector() noexcept = default;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;
   void connect_to(std::string const& metric_naming,
@@ -55,7 +55,7 @@ class connector : public io::endpoint {
                   unsigned short db_port,
                   uint32_t queries_per_transaction,
                   std::shared_ptr<persistent_cache> const& cache);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace graphite
 

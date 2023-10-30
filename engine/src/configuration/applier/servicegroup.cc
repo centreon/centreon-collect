@@ -77,9 +77,9 @@ void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   config->servicegroups().insert(obj);
 
   // Create servicegroup.
-  std::shared_ptr<engine::servicegroup> sg{new engine::servicegroup(
+  auto sg = std::make_shared<engine::servicegroup>(
       obj.servicegroup_id(), obj.servicegroup_name(), obj.alias(), obj.notes(),
-      obj.notes_url(), obj.action_url())};
+      obj.notes_url(), obj.action_url());
 
   // Add  new items to the list.
   engine::servicegroup::servicegroups.insert({sg->get_group_name(), sg});
@@ -88,9 +88,7 @@ void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   sg->set_id(obj.servicegroup_id());
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(nullptr));
-  broker_group(NEBTYPE_SERVICEGROUP_ADD, NEBFLAG_NONE, NEBATTR_NONE, sg.get(),
-               &tv);
+  broker_group(NEBTYPE_SERVICEGROUP_ADD, sg.get());
 
   // Apply resolved services on servicegroup.
   for (set_pair_string::const_iterator it(obj.members().begin()),
@@ -169,9 +167,7 @@ void applier::servicegroup::modify_object(
     for (service_map_unsafe::iterator it(it_obj->second->members.begin()),
          end(it_obj->second->members.end());
          it != end; ++it) {
-      timeval tv(get_broker_timestamp(NULL));
-      broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE, NEBFLAG_NONE,
-                          NEBATTR_NONE, it->second, sg, &tv);
+      broker_group_member(NEBTYPE_SERVICEGROUPMEMBER_DELETE, it->second, sg);
     }
     it_obj->second->members.clear();
 
@@ -183,9 +179,7 @@ void applier::servicegroup::modify_object(
   }
 
   // Notify event broker.
-  timeval tv(get_broker_timestamp(NULL));
-  broker_group(NEBTYPE_SERVICEGROUP_UPDATE, NEBFLAG_NONE, NEBATTR_NONE, sg,
-               &tv);
+  broker_group(NEBTYPE_SERVICEGROUP_UPDATE, sg);
 }
 
 /**
@@ -207,9 +201,7 @@ void applier::servicegroup::remove_object(
       engine::servicegroup::servicegroups.find(obj.key())};
   if (it != engine::servicegroup::servicegroups.end()) {
     // Notify event broker.
-    timeval tv(get_broker_timestamp(NULL));
-    broker_group(NEBTYPE_SERVICEGROUP_DELETE, NEBFLAG_NONE, NEBATTR_NONE,
-                 it->second.get(), &tv);
+    broker_group(NEBTYPE_SERVICEGROUP_DELETE, it->second.get());
 
     // Remove service dependency from its list.
     engine::servicegroup::servicegroups.erase(it);

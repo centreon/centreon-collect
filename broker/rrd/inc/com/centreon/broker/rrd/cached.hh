@@ -77,7 +77,8 @@ class cached : public backend {
             uint32_t length,
             time_t from,
             uint32_t step,
-            short value_type = 0) {
+            short value_type = 0,
+            bool without_cache = false) {
     // Close previous file.
     this->close();
 
@@ -87,7 +88,7 @@ class cached : public backend {
     /* We are unfortunately forced to use librrd to create RRD file as
     ** rrdcached does not support RRD file creation.
     */
-    _lib.open(filename, length, from, step, value_type);
+    _lib.open(filename, length, from, step, value_type, without_cache);
   }
 
   /**
@@ -110,6 +111,7 @@ class cached : public backend {
    */
   void remove(std::string const& filename) {
     // Build rrdcached command.
+    log_v2::rrd()->trace("RRD: FORGET the {} file", filename);
     std::string cmd(fmt::format("FORGET {}\n", filename));
 
     try {
@@ -129,15 +131,13 @@ class cached : public backend {
    *  @param[in] command Command to send.
    */
   void _send_to_cached(const std::string& command) {
-    std::error_code err;
+    boost::system::error_code err;
 
     asio::write(_socket, asio::buffer(command), asio::transfer_all(), err);
 
     if (err)
-      throw msg_fmt(
-          "RRD: error while sending "
-          "command to rrdcached: {}",
-          err.message());
+      throw msg_fmt("RRD: error while sending command to rrdcached: {}",
+                    err.message());
 
     // Read response.
     if (!_batch) {
@@ -147,10 +147,8 @@ class cached : public backend {
       asio::read_until(_socket, stream, '\n', err);
 
       if (err)
-        throw msg_fmt(
-            "RRD: error while getting "
-            "response from rrdcached: {}",
-            err.message());
+        throw msg_fmt("RRD: error while getting response from rrdcached: {}",
+                      err.message());
 
       std::istream is(&stream);
       std::getline(is, line);
@@ -203,7 +201,7 @@ class cached : public backend {
 
     try {
       _socket.connect(ep);
-    } catch (std::system_error const& se) {
+    } catch (boost::system::system_error const& se) {
       throw msg_fmt("RRD: could not connect to local socket '{}: {}", name,
                     se.what());
     }
@@ -223,7 +221,8 @@ class cached : public backend {
       asio::ip::tcp::resolver::iterator it{resolver.resolve(query)};
       asio::ip::tcp::resolver::iterator end;
 
-      std::error_code err{std::make_error_code(std::errc::host_unreachable)};
+      boost::system::error_code err{
+          make_error_code(asio::error::host_unreachable)};
 
       // it can resolve to multiple addresses like ipv4 and ipv6
       // we need to try all to find the first available socket
@@ -245,7 +244,7 @@ class cached : public backend {
 
       asio::socket_base::keep_alive option{true};
       _socket.set_option(option);
-    } catch (std::system_error const& se) {
+    } catch (boost::system::system_error const& se) {
       throw msg_fmt(
           "RRD: could not resolve remove server '{}"
           ":{} : {}",
@@ -295,6 +294,8 @@ class cached : public backend {
         fmt::format("UPDATE {} {}\n", _filename, fmt::join(pts, " "))};
     try {
       _send_to_cached(cmd);
+      log_v2::rrd()->trace("RRD: flushing file '{}'", _filename);
+      _send_to_cached(fmt::format("FLUSH {}\n", _filename));
     } catch (msg_fmt const& e) {
       if (!strstr(e.what(), "illegal attempt to update using time"))
         throw exceptions::update(e.what());

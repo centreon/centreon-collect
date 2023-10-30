@@ -143,7 +143,7 @@ void schedule_and_propagate_downtime(com::centreon::engine::host* temp_host,
                                      char const* comment_data,
                                      time_t start_time,
                                      time_t end_time,
-                                     int fixed,
+                                     bool fixed,
                                      unsigned long triggered_by,
                                      unsigned long duration);  // schedules
                                                                // downtime for

@@ -101,11 +101,11 @@ TEST_F(Connector, RunWithTimeout) {
 }
 
 TEST_F(Connector, RunConnectorAsync) {
-  std::unique_ptr<my_listener> lstnr(new my_listener);
+  auto lstnr{std::make_unique<my_listener>()};
   nagios_macros macros = nagios_macros();
   connector cmd_connector("RunConnectorAsync", "tests/bin_connector_test_run");
   cmd_connector.set_listener(lstnr.get());
-  cmd_connector.run("commande", macros, 1);
+  cmd_connector.run("commande", macros, 1, std::make_shared<check_result>());
 
   int timeout = 0;
   int max_timeout{15};
@@ -123,10 +123,11 @@ TEST_F(Connector, RunWithConnectorSwitchedOff) {
   connector cmd_connector("RunWithConnectorSwitchedOff",
                           "tests/bin_connector_test_run");
   {
-    std::unique_ptr<my_listener> lstnr(new my_listener);
+    std::unique_ptr<my_listener> lstnr(std::make_unique<my_listener>());
     nagios_macros macros = nagios_macros();
     cmd_connector.set_listener(lstnr.get());
-    cmd_connector.run("commande --kill=1", macros, 1);
+    cmd_connector.run("commande --kill=1", macros, 1,
+                      std::make_shared<check_result>());
 
     int timeout = 0;
     int max_timeout{15};
@@ -146,7 +147,7 @@ TEST_F(Connector, RunConnectorSetCommandLine) {
   nagios_macros macros = nagios_macros();
   connector cmd_connector("SetCommandLine", "tests/bin_connector_test_run");
   cmd_connector.set_listener(&lstnr);
-  cmd_connector.run("commande1", macros, 1);
+  cmd_connector.run("commande1", macros, 1, std::make_shared<check_result>());
 
   int timeout = 0;
   int max_timeout{15};
@@ -161,7 +162,7 @@ TEST_F(Connector, RunConnectorSetCommandLine) {
 
   lstnr.clear();
   cmd_connector.set_command_line("tests/bin_connector_test_run");
-  cmd_connector.run("commande2", macros, 1);
+  cmd_connector.run("commande2", macros, 1, std::make_shared<check_result>());
 
   timeout = 0;
   max_timeout = 15;

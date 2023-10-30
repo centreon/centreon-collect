@@ -34,6 +34,7 @@
 #include <exception>
 #include <fstream>
 #include <functional>
+#include <future>
 #include <iostream>
 #include <limits>
 #include <list>
@@ -42,6 +43,7 @@
 #include <mutex>
 #include <queue>
 #include <set>
+#include <shared_mutex>
 #include <sstream>
 #include <stack>
 #include <string>
@@ -55,7 +57,24 @@
 #include <absl/container/btree_set.h>
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
+#include <absl/hash/hash.h>
+#include <absl/strings/numbers.h>
+#include <absl/synchronization/mutex.h>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
+
+// with this define boost::interprocess doesn't need Boost.DataTime
+#define BOOST_DATE_TIME_NO_LIB 1
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
+
+#include <boost/algorithm/string.hpp>
+#include <boost/exception/diagnostic_information.hpp>
+
+namespace asio = boost::asio;
+#include <boost/container/flat_map.hpp>
 
 #endif

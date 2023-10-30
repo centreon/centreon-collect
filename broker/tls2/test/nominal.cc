@@ -33,12 +33,17 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 const static std::string test_addr("127.0.0.1");
 constexpr static uint16_t test_port(4444);
 
 class TcpAcceptor : public ::testing::Test {
  public:
-  void SetUp() override { pool::load(0); }
+  void SetUp() override {
+    g_io_context->restart();
+    pool::load(g_io_context >, 0);
+  }
 
   void TearDown() override {
     tcp::tcp_async::instance().stop_timer();
@@ -54,7 +59,7 @@ TEST_F(TcpAcceptor, QuestionAnswer) {
     std::unique_ptr<io::endpoint> endp(a.release());
 
     /* Nominal case, cbd is acceptor and read on the socket */
-    std::unique_ptr<io::stream> u_cbd;
+    std::shared_ptr<io::stream> u_cbd;
     do {
       u_cbd = endp->open();
     } while (!u_cbd);

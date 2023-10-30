@@ -35,8 +35,8 @@ using namespace com::centreon::broker::tcp;
  * @param port A port.
  * @param read_timeout A duration in seconds.
  */
-acceptor::acceptor(uint16_t port, int32_t read_timeout)
-    : io::endpoint(true), _port(port), _read_timeout(read_timeout) {}
+acceptor::acceptor(const tcp_config::pointer& conf)
+    : io::endpoint(true, {}), _conf(conf) {}
 
 /**
  *  Destructor.
@@ -62,10 +62,10 @@ void acceptor::add_child(std::string const& child) {
  *  Start connection acception.
  *
  */
-std::unique_ptr<io::stream> acceptor::open() {
+std::shared_ptr<io::stream> acceptor::open() {
   if (!_acceptor) {
-    _acceptor = tcp_async::instance().create_acceptor(_port);
-    tcp_async::instance().start_acceptor(_acceptor);
+    _acceptor = tcp_async::instance().create_acceptor(_conf);
+    tcp_async::instance().start_acceptor(_acceptor, _conf);
   }
 
   /* Timeout in seconds during get_connection */
@@ -73,9 +73,8 @@ std::unique_ptr<io::stream> acceptor::open() {
   auto conn = tcp_async::instance().get_connection(_acceptor, timeout_s);
   if (conn) {
     assert(conn->port());
-    log_v2::tcp()->debug("acceptor gets a new connection from {}",
-                         conn->peer());
-    return std::make_unique<stream>(conn, -1);
+    log_v2::tcp()->info("acceptor gets a new connection from {}", conn->peer());
+    return std::make_shared<stream>(conn, _conf);
   }
   return nullptr;
 }

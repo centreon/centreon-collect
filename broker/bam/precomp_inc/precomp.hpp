@@ -33,10 +33,16 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/string_view.h>
+#include <absl/types/optional.h>
 
 #include <boost/circular_buffer.hpp>
 #include <boost/optional.hpp>
 
-#include <asio.hpp>
+#include <boost/asio.hpp>
+
+namespace asio = boost::asio;
+
+#include <spdlog/fmt/ostr.h>
+#include <spdlog/spdlog.h>
 
 #endif

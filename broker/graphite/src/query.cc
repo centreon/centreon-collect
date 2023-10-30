@@ -52,7 +52,7 @@ query::query(std::string const& naming_scheme,
  *
  *  @return  The query for a metric.
  */
-std::string query::generate_metric(storage::metric const& me) {
+std::string query::generate_metric(storage::pb_metric const& me) {
   if (_type != metric)
     throw msg_fmt(
         "graphite: attempt to generate metric"
@@ -74,12 +74,12 @@ std::string query::generate_metric(storage::metric const& me) {
     }
   } catch (std::exception const& e) {
     log_v2::graphite()->error(
-        "graphite: couldn't generate query for metric {}: {}", me.metric_id,
-        e.what());
+        "graphite: couldn't generate query for metric {}: {}",
+        me.obj().metric_id(), e.what());
     return "";
   }
 
-  iss << (" ") << me.value << " " << me.time << "\n";
+  iss << (" ") << me.obj().value() << " " << me.obj().time() << "\n";
 
   return iss.str();
 }
@@ -91,7 +91,7 @@ std::string query::generate_metric(storage::metric const& me) {
  *
  *  @return  The query for a status.
  */
-std::string query::generate_status(storage::status const& st) {
+std::string query::generate_status(storage::pb_status const& st) {
   if (_type != status)
     throw msg_fmt(
         "graphite: attempt to generate status"
@@ -113,12 +113,12 @@ std::string query::generate_status(storage::status const& st) {
     }
   } catch (std::exception const& e) {
     log_v2::graphite()->error(
-        "graphite: couldn't generate query for status {}: {}", st.index_id,
-        e.what());
+        "graphite: couldn't generate query for status {}: {}",
+        st.obj().index_id(), e.what());
     return "";
   }
 
-  iss << (" ") << st.state << " " << st.time << "\n";
+  iss << (" ") << st.obj().state() << " " << st.obj().time() << "\n";
 
   return iss.str();
 }
@@ -156,9 +156,7 @@ void query::_compile_naming_scheme(std::string const& naming_scheme,
       _compiled_getters.push_back(&query::_get_dollar_sign);
     if (macro == "$METRICID$") {
       _throw_on_invalid(metric);
-      _compiled_getters.push_back(
-          &query::_get_member<uint32_t, storage::metric,
-                              &storage::metric::metric_id>);
+      _compiled_getters.push_back(&query::_get_metric_id);
     } else if (macro == "$INSTANCE$")
       _compiled_getters.push_back(&query::_get_instance);
     else if (macro == "$INSTANCEID$")
@@ -174,8 +172,7 @@ void query::_compile_naming_scheme(std::string const& naming_scheme,
       _compiled_getters.push_back(&query::_get_service_id);
     else if (macro == "$METRIC$") {
       _throw_on_invalid(metric);
-      _compiled_getters.push_back(
-          &query::_get_string_member<storage::metric, &storage::metric::name>);
+      _compiled_getters.push_back(&query::_get_metric_name);
     } else if (macro == "$INDEXID$") {
       _compiled_getters.push_back(&query::_get_index_id);
     } else
@@ -234,17 +231,6 @@ void query::_get_member(io::data const& d, std::ostream& is) {
 }
 
 /**
- *  Get a string data member.
- *
- *  @param[in]  d   The data.
- *  @param[out] is  The stream.
- */
-template <typename U, std::string(U::*member)>
-void query::_get_string_member(io::data const& d, std::ostream& is) {
-  is << _escape(static_cast<U const*>(&d)->*member);
-}
-
-/**
  *  Get a string in the compiled naming scheme.
  *
  *  @param[in] d     The data, unused.
@@ -275,11 +261,13 @@ void query::_get_dollar_sign(io::data const& d, std::ostream& is) {
  */
 uint64_t query::_get_index_id(io::data const& d) {
   if (_type == status)
-    return static_cast<storage::status const&>(d).index_id;
+    return static_cast<const storage::pb_status&>(d).obj().index_id();
   else
     return _cache
-        ->get_metric_mapping(static_cast<storage::metric const&>(d).metric_id)
-        .index_id;
+        ->get_metric_mapping(
+            static_cast<storage::pb_metric const&>(d).obj().metric_id())
+        .obj()
+        .index_id();
 }
 
 /**
@@ -293,6 +281,26 @@ void query::_get_index_id(io::data const& d, std::ostream& is) {
 }
 
 /**
+ *  Get the metric id of a metric data,
+ *
+ *  @param[in] d    The data.
+ *  @param[out] is  The stream
+ */
+void query::_get_metric_id(io::data const& d, std::ostream& is) {
+  is << static_cast<storage::pb_metric const&>(d).obj().metric_id();
+}
+
+/**
+ *  Get the metric name of a metric data,
+ *
+ *  @param[in] d    The data.
+ *  @param[out] is  The stream
+ */
+void query::_get_metric_name(io::data const& d, std::ostream& is) {
+  is << static_cast<storage::pb_metric const&>(d).obj().name();
+}
+
+/**
  *  Get the name of a host.
  *
  *  @param[in] d  The data.
@@ -301,10 +309,10 @@ void query::_get_index_id(io::data const& d, std::ostream& is) {
 void query::_get_host(io::data const& d, std::ostream& is) {
   if (_type == status)
     is << _escape(_cache->get_host_name(
-        _cache->get_index_mapping(_get_index_id(d)).host_id));
+        _cache->get_index_mapping(_get_index_id(d)).obj().host_id()));
   else
-    is << _escape(
-        _cache->get_host_name(static_cast<storage::metric const&>(d).host_id));
+    is << _escape(_cache->get_host_name(
+        static_cast<storage::pb_metric const&>(d).obj().host_id()));
 }
 
 /**
@@ -315,9 +323,9 @@ void query::_get_host(io::data const& d, std::ostream& is) {
  */
 void query::_get_host_id(io::data const& d, std::ostream& is) {
   if (_type == status)
-    is << _cache->get_index_mapping(_get_index_id(d)).host_id;
+    is << static_cast<storage::pb_status const&>(d).obj().host_id();
   else
-    is << static_cast<storage::metric const&>(d).host_id;
+    is << static_cast<storage::pb_metric const&>(d).obj().host_id();
 }
 
 /**
@@ -328,13 +336,13 @@ void query::_get_host_id(io::data const& d, std::ostream& is) {
  */
 void query::_get_service(io::data const& d, std::ostream& is) {
   if (_type == status) {
-    storage::index_mapping const& stm =
-        _cache->get_index_mapping(_get_index_id(d));
-    is << _escape(_cache->get_service_description(stm.host_id, stm.service_id));
+    is << _escape(_cache->get_service_description(
+        static_cast<storage::pb_status const&>(d).obj().host_id(),
+        static_cast<storage::pb_status const&>(d).obj().service_id()));
   } else
     is << _escape(_cache->get_service_description(
-        static_cast<storage::metric const&>(d).host_id,
-        static_cast<storage::metric const&>(d).service_id));
+        static_cast<storage::pb_metric const&>(d).obj().host_id(),
+        static_cast<storage::pb_metric const&>(d).obj().service_id()));
 }
 
 /**
@@ -345,9 +353,9 @@ void query::_get_service(io::data const& d, std::ostream& is) {
  */
 void query::_get_service_id(io::data const& d, std::ostream& is) {
   if (_type == status)
-    is << _cache->get_index_mapping(_get_index_id(d)).service_id;
+    is << static_cast<storage::pb_status const&>(d).obj().service_id();
   else
-    is << static_cast<storage::metric const&>(d).service_id;
+    is << static_cast<storage::pb_metric const&>(d).obj().service_id();
 }
 
 /**

@@ -20,7 +20,6 @@
 #define CCB_CONFIG_APPLIER_INIT_HH_
 
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/namespace.hh"
 
 CCB_BEGIN()
 
@@ -30,7 +29,9 @@ enum applier_state { not_started, initialized, finished };
 extern std::atomic<applier_state> mode;
 void deinit();
 void init(const config::state& conf);
-void init(size_t n_thread, const std::string& name);
+void init(size_t n_thread,
+          const std::string& name,
+          size_t event_queues_total_size);
 }  // namespace applier
 }  // namespace config
 

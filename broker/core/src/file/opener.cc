@@ -28,7 +28,7 @@ using namespace com::centreon::broker::file;
  *  Constructor.
  */
 opener::opener()
-    : io::endpoint(false), _auto_delete(true), _max_size(100000000) {}
+    : io::endpoint(false, {}), _auto_delete(true), _max_size(100000000) {}
 
 /**
  *  Copy constructor.
@@ -51,13 +51,9 @@ opener::~opener() {}
  *
  *  @return Opened stream.
  */
-std::unique_ptr<io::stream> opener::open() {
+std::shared_ptr<io::stream> opener::open() {
   // Open splitted file.
-  std::unique_ptr<io::stream> retval{std::make_unique<stream>(
-      new splitter(_filename, fs_file::open_read_write_truncate, _max_size,
-                   _auto_delete),
-      nullptr)};
-  return retval;
+  return std::make_shared<stream>(_filename, nullptr, _max_size, _auto_delete);
 }
 
 /**

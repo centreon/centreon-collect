@@ -19,6 +19,7 @@
 
 #include "com/centreon/engine/retention/object.hh"
 
+#include "com/centreon/engine/retention/anomalydetection.hh"
 #include "com/centreon/engine/retention/comment.hh"
 #include "com/centreon/engine/retention/contact.hh"
 #include "com/centreon/engine/retention/downtime.hh"
@@ -94,23 +95,25 @@ bool retention::object::operator!=(object const& right) const throw() {
 retention::object_ptr retention::object::create(std::string const& type_name) {
   object_ptr obj;
   if (type_name == "service")
-    obj = object_ptr(new retention::service);
+    obj = std::make_shared<retention::service>();
+  if (type_name == "anomalydetection")
+    obj = std::make_shared<retention::anomalydetection>();
   else if (type_name == "host")
-    obj = object_ptr(new retention::host);
+    obj = std::make_shared<retention::host>();
   else if (type_name == "contact")
-    obj = object_ptr(new retention::contact);
+    obj = std::make_shared<retention::contact>();
   else if (type_name == "hostcomment")
-    obj = object_ptr(new retention::comment(comment::host));
+    obj = std::make_shared<retention::comment>(comment::host);
   else if (type_name == "servicecomment")
-    obj = object_ptr(new retention::comment(comment::service));
+    obj = std::make_shared<retention::comment>(comment::service);
   else if (type_name == "hostdowntime")
-    obj = object_ptr(new retention::downtime(downtime::host));
+    obj = std::make_shared<retention::downtime>(downtime::host);
   else if (type_name == "servicedowntime")
-    obj = object_ptr(new retention::downtime(downtime::service));
+    obj = std::make_shared<retention::downtime>(downtime::service);
   else if (type_name == "info")
-    obj = object_ptr(new retention::info);
+    obj = std::make_shared<retention::info>();
   else if (type_name == "program")
-    obj = object_ptr(new retention::program);
+    obj = std::make_shared<retention::program>();
   return obj;
 }
 

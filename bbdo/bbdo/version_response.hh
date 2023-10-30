@@ -19,6 +19,7 @@
 #ifndef CCB_BBDO_VERSION_RESPONSE_HH
 #define CCB_BBDO_VERSION_RESPONSE_HH
 
+#include "bbdo/bbdo/bbdo_version.hh"
 #include "bbdo/events.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/io/data.hh"
@@ -45,8 +46,7 @@ class version_response : public io::data {
   std::string extensions;
 
   version_response();
-  version_response(const std::tuple<uint16_t, uint16_t, uint16_t>& bbdo_version,
-                   std::string extensions);
+  version_response(bbdo_version bbdo_version, std::string extensions);
   version_response(const version_response&) = delete;
   ~version_response() noexcept = default;
   version_response& operator=(const version_response&) = delete;

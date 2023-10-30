@@ -28,8 +28,9 @@ class comment;
 class service;
 CCE_END()
 
-typedef std::map<uint64_t, std::shared_ptr<com::centreon::engine::comment>>
-    comment_map;
+using comment_map =
+    absl::flat_hash_map<uint64_t,
+                        std::shared_ptr<com::centreon::engine::comment>>;
 
 CCE_BEGIN()
 // COMMENT structure

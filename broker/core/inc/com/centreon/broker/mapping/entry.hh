@@ -43,7 +43,8 @@ class entry {
   enum attribute {
     always_valid = 0,
     invalid_on_zero = (1 << 0),
-    invalid_on_minus_one = (1 << 1)
+    invalid_on_minus_one = (1 << 1),
+    invalid_on_negative = (1 << 2)
   };
 
   /**
@@ -239,14 +240,7 @@ class entry {
     other._source = nullptr;
   }
 
-  ~entry() noexcept {
-    // This is not the better fix, but entries are static objects
-    // only destroyed at the end of the program.
-    //    if (_source) {
-    //      delete _source;
-    //      _source = nullptr;
-    //    }
-  }
+  ~entry() noexcept = default;
   entry& operator=(entry const&) = delete;
   uint32_t get_attribute() const { return _attribute; }
   bool get_bool(const io::data& d) const;

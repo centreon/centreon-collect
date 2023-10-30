@@ -60,7 +60,7 @@ void applier::hostescalation::add_object(
   config->hostescalations().insert(obj);
 
   // Create host escalation.
-  std::shared_ptr<engine::hostescalation> he{new engine::hostescalation(
+  auto he = std::make_shared<engine::hostescalation>(
       *obj.hosts().begin(), obj.first_notification(), obj.last_notification(),
       obj.notification_interval(), obj.escalation_period(),
       ((obj.escalation_options() & configuration::hostescalation::down)
@@ -73,7 +73,7 @@ void applier::hostescalation::add_object(
           ((obj.escalation_options() & configuration::hostescalation::recovery)
                ? notifier::up
                : notifier::none),
-      obj.uuid())};
+      obj.uuid());
 
   // Add new items to the configuration state.
   engine::hostescalation::hostescalations.insert({he->get_hostname(), he});

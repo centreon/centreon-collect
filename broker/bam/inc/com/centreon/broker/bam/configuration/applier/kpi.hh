@@ -67,7 +67,8 @@ class kpi {
   void _invalidate_ba(configuration::kpi const& cfg);
   std::map<uint32_t, applied>::iterator _remove_kpi(
       std::map<uint32_t, applied>::iterator& kpi_it);
-  void _resolve_kpi(configuration::kpi const& cfg, std::shared_ptr<bam::kpi>);
+  void _resolve_kpi(configuration::kpi const& cfg,
+                    const std::shared_ptr<bam::kpi>&);
 
   std::map<uint32_t, applied> _applied;
   ba* _bas;

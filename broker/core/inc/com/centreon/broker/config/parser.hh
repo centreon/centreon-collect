@@ -1,5 +1,5 @@
 /*
-** Copyright 2011-2012 Centreon
+** Copyright 2011-2013,2015,2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,9 +19,11 @@
 #ifndef CCB_CONFIG_PARSER_HH
 #define CCB_CONFIG_PARSER_HH
 
+#include <absl/types/optional.h>
 #include <nlohmann/json.hpp>
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
 
 CCB_BEGIN()
 
@@ -34,19 +36,65 @@ namespace config {
  *  handling.
  */
 class parser {
- public:
-  parser();
-  parser(parser const&) = delete;
-  ~parser();
-  parser& operator=(const parser&) = delete;
-  state parse(const std::string& file);
-  static bool parse_boolean(const std::string& value);
-
- private:
+  void _get_generic_endpoint_configuration(const nlohmann::json& elem,
+                                           endpoint& e);
   void _parse_endpoint(const nlohmann::json& elem,
                        endpoint& e,
                        std::string& module);
+
+ public:
+  /**
+   * @brief Check if the json object elem contains an entry with the given key.
+   *        If it contains it, it gets it and returns it as a T. In case of
+   *        error, it throws an exception.
+   *        If the key doesn't exist, nothing is returned, that's the reason we
+   *        use absl::optional<>.
+   *
+   * @param elem The json object to work with.
+   * @param key  the key to obtain the value.
+   *
+   * @return an absl::optional<T> containing the wanted value or empty if
+   *         nothing found.
+   */
+  template <typename T>
+  static absl::optional<T> check_and_read(const nlohmann::json& elem,
+                                          const std::string& key) {
+    if (elem.contains(key)) {
+      auto& ret = elem[key];
+      if (ret.is_number())
+        return {ret};
+      else if (ret.is_string()) {
+        T tmp;
+        if (!absl::SimpleAtoi(ret.get<absl::string_view>(), &tmp))
+          throw exceptions::msg_fmt(
+              "config parser: cannot parse key '{}': "
+              "the string value must contain an integer",
+              key);
+        return {tmp};
+      } else
+        throw exceptions::msg_fmt(
+            "config parser: cannot parse key '{}': "
+            "the content must be an integer",
+            key);
+    }
+    return absl::nullopt;
+  }
+
+  parser() = default;
+  ~parser() noexcept = default;
+  parser(parser const&) = delete;
+  parser& operator=(const parser&) = delete;
+  state parse(const std::string& file);
 };
+
+template <>
+absl::optional<std::string> parser::check_and_read<std::string>(
+    const nlohmann::json& elem,
+    const std::string& key);
+
+template <>
+absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,
+                                                  const std::string& key);
 }  // namespace config
 
 CCB_END()

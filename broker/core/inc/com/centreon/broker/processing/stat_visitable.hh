@@ -27,6 +27,7 @@
 CCB_BEGIN()
 
 namespace processing {
+constexpr unsigned idle_microsec_wait_idle_thread_delay = 100000;
 /**
  *  @class stat_visitable stat_visitable.hh
  * "com/centreon/broker/processing/stat_visitable.hh"

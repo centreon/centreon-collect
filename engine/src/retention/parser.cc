@@ -34,7 +34,10 @@ parser::store parser::_store[] = {
     &parser::_store_into_list<list_host, host, &state::hosts>,
     &parser::_store_object<info, &state::informations>,
     &parser::_store_object<program, &state::globals>,
-    &parser::_store_into_list<list_service, service, &state::services>};
+    &parser::_store_into_list<list_service, service, &state::services>,
+    &parser::_store_into_list<list_anomalydetection,
+                              anomalydetection,
+                              &state::anomalydetection>};
 
 /**
  *  Default constructor.
@@ -103,8 +106,8 @@ void parser::parse(std::string const& path, state& retention) {
  *  @param[in] retention The state to fill.
  *  @param[in] obj       The object to store.
  */
-template <typename T, typename T2, T& (state::*ptr)() throw()>
-void parser::_store_into_list(state& retention, object_ptr obj) {
+template <typename T, typename T2, T& (state::*ptr)() noexcept>
+void parser::_store_into_list(state& retention, object_ptr obj) noexcept {
   (retention.*ptr)().push_back(std::static_pointer_cast<T2>(obj));
 }
 
@@ -114,7 +117,7 @@ void parser::_store_into_list(state& retention, object_ptr obj) {
  *  @param[in] retention The state to fill.
  *  @param[in] obj       The object to store.
  */
-template <typename T, T& (state::*ptr)() throw()>
-void parser::_store_object(state& retention, object_ptr obj) {
+template <typename T, T& (state::*ptr)() noexcept>
+void parser::_store_object(state& retention, object_ptr obj) noexcept {
   (retention.*ptr)() = *std::static_pointer_cast<T>(obj);
 }

@@ -1,5 +1,5 @@
 /*
-** Copyright 2012-2013,2019-2021 Centreon
+** Copyright 2012-2013,2019-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -109,6 +109,7 @@ class process_manager {
   std::unordered_map<int32_t, process*> _processes_fd;
   std::atomic_bool _running;
   std::atomic_bool _finished;
+  std::time_t _finished_time{0};
   mutable std::mutex _running_m;
   mutable std::condition_variable _running_cv;
   std::thread _thread;

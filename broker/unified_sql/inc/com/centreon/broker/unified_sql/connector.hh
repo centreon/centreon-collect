@@ -19,9 +19,9 @@
 #ifndef CCB_UNIFIED_SQL_CONNECTOR_HH
 #define CCB_UNIFIED_SQL_CONNECTOR_HH
 
-#include "com/centreon/broker/database_config.hh"
 #include "com/centreon/broker/io/endpoint.hh"
 #include "com/centreon/broker/namespace.hh"
+#include "com/centreon/broker/sql/database_config.hh"
 
 CCB_BEGIN()
 
@@ -56,7 +56,7 @@ class connector : public io::endpoint {
                   bool store_in_data_bin = true,
                   bool store_in_resources = true,
                   bool store_in_hosts_services = true);
-  std::unique_ptr<io::stream> open() override;
+  std::shared_ptr<io::stream> open() override;
 };
 }  // namespace unified_sql
 

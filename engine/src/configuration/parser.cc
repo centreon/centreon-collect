@@ -401,7 +401,7 @@ void parser::_parse_object_definitions(std::string const& path) {
       << "Processing object config file '" << path << "'";
   log_v2::config()->info("Processing object config file '{}'", path);
 
-  std::ifstream stream(path.c_str(), std::ios::binary);
+  std::ifstream stream(path, std::ios::binary);
   if (!stream.is_open())
     throw engine_error() << "Parsing of object definition failed: "
                          << "Can't open file '" << path << "'";
@@ -409,7 +409,7 @@ void parser::_parse_object_definitions(std::string const& path) {
   _current_line = 0;
   _current_path = path;
 
-  bool parse_object(false);
+  bool parse_object = false;
   object_ptr obj;
   std::string input;
   while (string::get_next_line(stream, input, _current_line)) {

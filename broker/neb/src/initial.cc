@@ -53,7 +53,10 @@ nebmodule* neb_module_list;
 /**
  *  Send to the global publisher the list of custom variables.
  */
-static void send_custom_variables_list() {
+
+typedef int (*neb_sender)(int, void*);
+static void send_custom_variables_list(
+    neb_sender sender = neb::callback_custom_variable) {
   // Start log message.
   log_v2::neb()->info("init: beginning custom variables dump");
 
@@ -78,7 +81,7 @@ static void send_custom_variables_list() {
         nscvd.object_ptr = it->second.get();
 
         // Callback.
-        neb::callback_custom_variable(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
+        sender(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
       }
     }
   }
@@ -105,13 +108,17 @@ static void send_custom_variables_list() {
         nscvd.object_ptr = it->second.get();
 
         // Callback.
-        neb::callback_custom_variable(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
+        sender(NEBCALLBACK_CUSTOM_VARIABLE_DATA, &nscvd);
       }
     }
   }
 
   // End log message.
   log_v2::neb()->info("init: end of custom variables dump");
+}
+
+static void send_pb_custom_variables_list() {
+  send_custom_variables_list(neb::callback_pb_custom_variable);
 }
 
 /**
@@ -127,22 +134,21 @@ static void send_downtimes_list() {
       com::centreon::engine::downtimes::downtime_manager::instance()
           .get_scheduled_downtimes()};
   // Iterate through all downtimes.
-  for (auto p : dts) {
+  for (const auto& p : dts) {
     // Fill callback struct.
     nebstruct_downtime_data nsdd;
     memset(&nsdd, 0, sizeof(nsdd));
     nsdd.type = NEBTYPE_DOWNTIME_ADD;
     nsdd.timestamp.tv_sec = time(nullptr);
     nsdd.downtime_type = p.second->get_type();
-    nsdd.host_name = p.second->get_hostname().c_str();
-    nsdd.service_description =
+    nsdd.host_id = p.second->host_id();
+    nsdd.service_id =
         p.second->get_type() ==
                 com::centreon::engine::downtimes::downtime::service_downtime
             ? std::static_pointer_cast<
                   com::centreon::engine::downtimes::service_downtime>(p.second)
-                  ->get_service_description()
-                  .c_str()
-            : nullptr;
+                  ->service_id()
+            : 0;
     nsdd.entry_time = p.second->get_entry_time();
     nsdd.author_name = p.second->get_author().c_str();
     nsdd.comment_data = p.second->get_comment().c_str();
@@ -152,7 +158,6 @@ static void send_downtimes_list() {
     nsdd.duration = p.second->get_duration();
     nsdd.triggered_by = p.second->get_triggered_by();
     nsdd.downtime_id = p.second->get_downtime_id();
-    nsdd.object_ptr = p.second.get();
 
     // Callback.
     neb::callback_downtime(NEBCALLBACK_DOWNTIME_DATA, &nsdd);
@@ -180,9 +185,6 @@ static void send_host_dependencies_list() {
       nebstruct_adaptive_dependency_data nsadd;
       memset(&nsadd, 0, sizeof(nsadd));
       nsadd.type = NEBTYPE_HOSTDEPENDENCY_ADD;
-      nsadd.flags = NEBFLAG_NONE;
-      nsadd.attr = NEBATTR_NONE;
-      nsadd.timestamp.tv_sec = time(nullptr);
       nsadd.object_ptr = it->second.get();
 
       // Callback.
@@ -250,12 +252,10 @@ static void send_severity_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning severity dump");
 
-  timeval timestamp = get_broker_timestamp(nullptr);
   for (auto it = com::centreon::engine::severity::severities.begin(),
             end = com::centreon::engine::severity::severities.end();
        it != end; ++it) {
-    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, NEBFLAG_NONE,
-                                  NEBATTR_NONE, it->second.get(), &timestamp);
+    broker_adaptive_severity_data(NEBTYPE_SEVERITY_ADD, it->second.get());
   }
 }
 
@@ -266,19 +266,17 @@ static void send_tag_list() {
   /* Start log message. */
   log_v2::neb()->info("init: beginning tag dump");
 
-  timeval timestamp = get_broker_timestamp(nullptr);
   for (auto it = com::centreon::engine::tag::tags.begin(),
             end = com::centreon::engine::tag::tags.end();
        it != end; ++it) {
-    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, NEBFLAG_NONE, NEBATTR_NONE,
-                             it->second.get(), &timestamp);
+    broker_adaptive_tag_data(NEBTYPE_TAG_ADD, it->second.get());
   }
 }
 
 /**
  *  Send to the global publisher the list of hosts within Nagios.
  */
-static void send_host_list() {
+static void send_host_list(neb_sender sender = neb::callback_host) {
   // Start log message.
   log_v2::neb()->info("init: beginning host dump");
 
@@ -290,13 +288,11 @@ static void send_host_list() {
     nebstruct_adaptive_host_data nsahd;
     memset(&nsahd, 0, sizeof(nsahd));
     nsahd.type = NEBTYPE_HOST_ADD;
-    nsahd.command_type = CMD_NONE;
     nsahd.modified_attribute = MODATTR_ALL;
-    nsahd.modified_attributes = MODATTR_ALL;
     nsahd.object_ptr = it->second.get();
 
     // Callback.
-    neb::callback_host(NEBCALLBACK_ADAPTIVE_HOST_DATA, &nsahd);
+    sender(NEBCALLBACK_ADAPTIVE_HOST_DATA, &nsahd);
   }
 
   // End log message.
@@ -307,28 +303,7 @@ static void send_host_list() {
  *  Send to the global publisher the list of hosts within Nagios.
  */
 static void send_pb_host_list() {
-  // Start log message.
-  log_v2::neb()->info("init: beginning pb host dump");
-
-  // Loop through all hosts.
-  for (host_map::iterator it{com::centreon::engine::host::hosts.begin()},
-       end{com::centreon::engine::host::hosts.end()};
-       it != end; ++it) {
-    // Fill callback struct.
-    nebstruct_adaptive_host_data nsahd;
-    memset(&nsahd, 0, sizeof(nsahd));
-    nsahd.type = NEBTYPE_HOST_ADD;
-    nsahd.command_type = CMD_NONE;
-    nsahd.modified_attribute = MODATTR_ALL;
-    nsahd.modified_attributes = MODATTR_ALL;
-    nsahd.object_ptr = it->second.get();
-
-    // Callback.
-    neb::callback_pb_host(NEBCALLBACK_ADAPTIVE_HOST_DATA, &nsahd);
-  }
-
-  // End log message.
-  log_v2::neb()->info("init: end of pb host dump");
+  send_host_list(neb::callback_pb_host);
 }
 
 /**
@@ -351,9 +326,6 @@ static void send_host_parents_list() {
         nebstruct_relation_data nsrd;
         memset(&nsrd, 0, sizeof(nsrd));
         nsrd.type = NEBTYPE_PARENT_ADD;
-        nsrd.flags = NEBFLAG_NONE;
-        nsrd.attr = NEBATTR_NONE;
-        nsrd.timestamp.tv_sec = time(nullptr);
         nsrd.hst = pit->second;
         nsrd.dep_hst = it->second.get();
 
@@ -371,31 +343,6 @@ static void send_host_parents_list() {
 
   // End log message.
   log_v2::neb()->info("init: end of host parents dump");
-}
-
-/**
- *  Send to the global publisher the list of modules loaded by Engine.
- */
-static void send_module_list() {
-  // Start log message.
-  log_v2::neb()->info("init: beginning modules dump");
-
-  // Browse module list.
-  for (nebmodule* nm(neb_module_list); nm; nm = nm->next)
-    if (nm->filename) {
-      // Fill callback struct.
-      nebstruct_module_data nsmd;
-      memset(&nsmd, 0, sizeof(nsmd));
-      nsmd.module = nm->filename;
-      nsmd.args = nm->args;
-      nsmd.type = NEBTYPE_MODULE_ADD;
-
-      // Callback.
-      neb::callback_module(NEBTYPE_MODULE_ADD, &nsmd);
-    }
-
-  // End log message.
-  log_v2::neb()->info("init: end of modules dump");
 }
 
 /**
@@ -418,9 +365,6 @@ static void send_service_dependencies_list() {
       nebstruct_adaptive_dependency_data nsadd;
       memset(&nsadd, 0, sizeof(nsadd));
       nsadd.type = NEBTYPE_SERVICEDEPENDENCY_ADD;
-      nsadd.flags = NEBFLAG_NONE;
-      nsadd.attr = NEBATTR_NONE;
-      nsadd.timestamp.tv_sec = time(nullptr);
       nsadd.object_ptr = it->second.get();
 
       // Callback.
@@ -483,7 +427,7 @@ static void send_service_group_list() {
 /**
  *  Send to the global publisher the list of services within Nagios.
  */
-static void send_service_list() {
+static void send_service_list(neb_sender sender = neb::callback_service) {
   // Start log message.
   log_v2::neb()->info("init: beginning service dump");
 
@@ -496,13 +440,11 @@ static void send_service_list() {
     nebstruct_adaptive_service_data nsasd;
     memset(&nsasd, 0, sizeof(nsasd));
     nsasd.type = NEBTYPE_SERVICE_ADD;
-    nsasd.command_type = CMD_NONE;
     nsasd.modified_attribute = MODATTR_ALL;
-    nsasd.modified_attributes = MODATTR_ALL;
     nsasd.object_ptr = it->second.get();
 
     // Callback.
-    neb::callback_service(NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &nsasd);
+    sender(NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &nsasd);
   }
 
   // End log message.
@@ -513,29 +455,7 @@ static void send_service_list() {
  *  Send to the global publisher the list of services within Nagios.
  */
 static void send_pb_service_list() {
-  // Start log message.
-  log_v2::neb()->info("init: beginning pb service dump");
-
-  // Loop through all services.
-  for (service_map::const_iterator
-           it{com::centreon::engine::service::services.begin()},
-       end{com::centreon::engine::service::services.end()};
-       it != end; ++it) {
-    // Fill callback struct.
-    nebstruct_adaptive_service_data nsasd;
-    memset(&nsasd, 0, sizeof(nsasd));
-    nsasd.type = NEBTYPE_SERVICE_ADD;
-    nsasd.command_type = CMD_NONE;
-    nsasd.modified_attribute = MODATTR_ALL;
-    nsasd.modified_attributes = MODATTR_ALL;
-    nsasd.object_ptr = it->second.get();
-
-    // Callback.
-    neb::callback_pb_service(NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &nsasd);
-  }
-
-  // End log message.
-  log_v2::neb()->info("init: end of pb services dump");
+  send_service_list(neb::callback_pb_service);
 }
 
 /**
@@ -572,7 +492,6 @@ void neb::send_initial_configuration() {
   send_service_group_list();
   send_host_dependencies_list();
   send_service_dependencies_list();
-  send_module_list();
   send_instance_configuration();
 }
 
@@ -590,13 +509,12 @@ void neb::send_initial_pb_configuration() {
   send_tag_list();
   send_pb_host_list();
   send_pb_service_list();
-  send_custom_variables_list();
+  send_pb_custom_variables_list();
   send_downtimes_list();
   send_host_parents_list();
   send_host_group_list();
   send_service_group_list();
   send_host_dependencies_list();
   send_service_dependencies_list();
-  send_module_list();
   send_instance_configuration();
 }

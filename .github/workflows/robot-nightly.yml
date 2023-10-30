@@ -1,0 +1,129 @@
+name: robot-nightly
+run-name: nightly robot ${{ github.head_ref || github.ref_name }}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  dispatch-to-maintained-branches:
+    if: ${{ github.event_name == 'schedule' && github.ref_name == 'develop' }}
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - run: |
+          gh workflow run robot-nightly.yml -r "dev-23.10.x"
+          gh workflow run robot-nightly.yml -r "dev-23.04.x"
+          gh workflow run robot-nightly.yml -r "dev-22.10.x"
+          gh workflow run robot-nightly.yml -r "dev-22.04.x"
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  get-version:
+    uses: ./.github/workflows/get-version.yml
+
+  package:
+    needs: [get-version]
+    uses: ./.github/workflows/package-collect.yml
+    with:
+      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+      img_version: ${{ needs.get-version.outputs.img_version }}
+      release: ${{ needs.get-version.outputs.release }}
+      commit_hash: ${{ github.sha }}
+    secrets: inherit
+
+  robot-test:
+    needs: [get-version, package]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distrib: el9
+            image: centreon-collect-alma9
+            package_extension: rpm
+            arch: amd64
+            database_type: mariadb
+          - distrib: el9
+            image: centreon-collect-mysql-alma9
+            package_extension: rpm
+            arch: amd64
+            database_type: mysql
+          - distrib: bullseye
+            image: centreon-collect-debian-bullseye-arm64
+            package_extension: deb
+            arch: arm64
+            database_type: mariadb
+    name: robot test ${{ matrix.database_type }} ${{ matrix.distrib }} ${{ matrix.arch }}
+
+    uses: ./.github/workflows/robot-test.yml
+    with:
+      distrib: ${{ matrix.distrib }}
+      arch: ${{ matrix.arch }}
+      image: ${{ matrix.image }}
+      image_version: ${{ needs.get-version.outputs.img_version }}
+      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+      package_cache_path: ./*.${{ matrix.package_extension}}
+      database_type: ${{ matrix.database_type }}
+    secrets:
+      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+    
+  deliver-rpm:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, el9]
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Publish RPM packages
+        uses: ./.github/actions/delivery
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}
+
+  deliver-deb:
+    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+    needs: [robot-test, get-version]
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        include:
+          - distrib: bullseye
+            arch: amd64
+          - distrib: bullseye
+            arch: arm64
+    name: deliver ${{ matrix.distrib }}
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Publish DEB packages
+        uses: ./.github/actions/delivery
+        with:
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          version: ${{ needs.get-version.outputs.version }}
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+          stability: ${{ needs.get-version.outputs.stability }}

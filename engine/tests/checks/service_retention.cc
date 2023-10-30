@@ -81,14 +81,14 @@ class ServiceRetention : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
     service_map const& sm{engine::service::services};
     _svc = sm.begin()->second;
     _svc->set_current_state(engine::service::state_ok);
     _svc->set_state_type(checkable::hard);
-    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_acknowledgement(AckType::NONE);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
   }
 
@@ -553,9 +553,9 @@ TEST_F(ServiceRetention, RetentionWithMultilineOutput) {
       std::string::npos);
 
   std::shared_ptr<comment> cmt = std::make_shared<comment>(
-      comment::service, comment::flapping, _svc->get_host_id(),
-      _svc->get_service_id(), time(nullptr), "test1", "test2", false,
-      comment::internal, false, (time_t)0);
+      comment::service, comment::flapping, _svc->host_id(), _svc->service_id(),
+      time(nullptr), "test1", "test2", false, comment::internal, false,
+      (time_t)0);
 
   comment::comments.insert({cmt->get_comment_id(), cmt});
 

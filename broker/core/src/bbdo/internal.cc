@@ -19,9 +19,9 @@
 #include "com/centreon/broker/bbdo/internal.hh"
 
 #include "bbdo/bbdo/ack.hh"
-#include "com/centreon/broker/bbdo/factory.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "com/centreon/broker/bbdo/factory.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -40,14 +40,21 @@ void bbdo::load() {
   // Register BBDO category.
   io::events& e(io::events::instance());
 
-  // Register BBDO events.
+  // Register BBDO events. Be careful, on Broker, these events are initialized
+  // in core/src/io/events, method events::events().
   e.register_event(make_type(io::bbdo, bbdo::de_version_response),
                    "version_response", &version_response::operations,
                    version_response::entries);
+  e.register_event(make_type(io::bbdo, bbdo::de_welcome), "welcome",
+                   &bbdo::pb_welcome::operations);
   e.register_event(make_type(io::bbdo, bbdo::de_ack), "ack", &ack::operations,
                    ack::entries);
   e.register_event(make_type(io::bbdo, bbdo::de_stop), "stop",
                    &stop::operations, stop::entries);
+  e.register_event(make_type(io::bbdo, bbdo::de_pb_ack), "Ack",
+                   &bbdo::pb_ack::operations);
+  e.register_event(make_type(io::bbdo, bbdo::de_pb_stop), "Stop",
+                   &bbdo::pb_stop::operations);
 
   // Register BBDO protocol.
   io::protocols::instance().reg("BBDO", std::make_shared<bbdo::factory>(), 7,

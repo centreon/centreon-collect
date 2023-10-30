@@ -23,9 +23,9 @@
 #include "com/centreon/broker/config/endpoint.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/mysql_manager.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/processing/endpoint.hh"
+#include "com/centreon/broker/sql/mysql_manager.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::stats;
@@ -42,8 +42,8 @@ void com::centreon::broker::stats::get_generic_stats(
   object["now"] = fmt::format("{}", ::time(nullptr));
 
   object["asio_version"] =
-      fmt::format("{}.{}.{}", ASIO_VERSION / 100000, ASIO_VERSION / 100 % 1000,
-                  ASIO_VERSION % 100);
+      fmt::format("{}.{}.{}", BOOST_ASIO_VERSION / 100000,
+                  BOOST_ASIO_VERSION / 100 % 1000, BOOST_ASIO_VERSION % 100);
 
   nlohmann::json pool;
   pool["size"] = static_cast<int32_t>(pool::instance().get_pool_size());

@@ -20,7 +20,9 @@
 # a cbd instance. It is useful to test the validity of BBDO packets sent by
 # centengine.
 
-import socket, sys, time
+import socket
+import sys
+import time
 from datetime import datetime
 import sys
 

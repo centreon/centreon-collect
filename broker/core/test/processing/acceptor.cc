@@ -21,64 +21,79 @@
 #include <gtest/gtest.h>
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/io/raw.hh"
+#include "com/centreon/broker/multiplexing/muxer_filter.hh"
+#include "com/centreon/broker/log_v2.hh"
 #include "temporary_endpoint.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::processing;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 class ProcessingTest : public ::testing::Test {
  public:
   void SetUp() override {
+    g_io_context->restart();
     try {
-      config::applier::init(0, "test_broker");
+      config::applier::init(0, "test_broker", 0);
     } catch (std::exception const& e) {
       (void)e;
     }
 
-    std::shared_ptr<io::endpoint> endpoint =
-        std::make_shared<temporary_endpoint>();
-    _acceptor = std::make_unique<acceptor>(endpoint, "temporary_endpoint");
+    log_v2::core()->set_level(spdlog::level::debug);
+    _endpoint = std::make_shared<temporary_endpoint>();
   }
 
   void TearDown() override {
-    _acceptor.reset();
+    _endpoint.reset();
     config::applier::deinit();
   }
 
  protected:
-  std::unique_ptr<acceptor> _acceptor;
+  std::shared_ptr<io::endpoint> _endpoint;
 };
 
 TEST_F(ProcessingTest, NotStarted) {
-  ASSERT_NO_THROW(_acceptor->exit());
+  multiplexing::muxer_filter f{};
+  std::unique_ptr<acceptor> acc =
+      std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
+  ASSERT_NO_THROW(acc->exit());
 }
 
 TEST_F(ProcessingTest, StartStop1) {
-  _acceptor->start();
-  ASSERT_NO_THROW(_acceptor->exit());
+  multiplexing::muxer_filter f{};
+  auto acc = std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
+  acc->start();
+  ASSERT_NO_THROW(acc->exit());
 }
 
 TEST_F(ProcessingTest, StartStop2) {
-  _acceptor->start();
+  multiplexing::muxer_filter f{};
+  auto acc = std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
+  acc->start();
   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-  ASSERT_NO_THROW(_acceptor->exit());
+  ASSERT_NO_THROW(acc->exit());
 }
 
 TEST_F(ProcessingTest, StartStop3) {
-  _acceptor->start();
+  multiplexing::muxer_filter f{};
+  auto acc = std::make_unique<acceptor>(_endpoint, "temporary_endpoint", f, f);
+  acc->start();
   std::this_thread::sleep_for(std::chrono::seconds(1));
-  ASSERT_NO_THROW(_acceptor->exit());
+  ASSERT_NO_THROW(acc->exit());
 }
 
 TEST_F(ProcessingTest, StartWithFilterStop) {
-  absl::flat_hash_set<uint32_t> filters;
+  multiplexing::muxer_filter filters({});
   filters.insert(io::raw::static_type());
-  _acceptor->set_read_filters(filters);
+  multiplexing::muxer_filter f{};
+  auto acc =
+      std::make_unique<acceptor>(_endpoint, "temporary_endpoint", filters, f);
   time_t now{time(nullptr)};
-  _acceptor->set_retry_interval(2);
-  _acceptor->start();
+  acc->set_retry_interval(2);
+  acc->start();
   std::this_thread::sleep_for(std::chrono::milliseconds(1500));
-  ASSERT_NO_THROW(_acceptor->exit());
+  ASSERT_NO_THROW(acc->exit());
   time_t now1{time(nullptr)};
   ASSERT_TRUE(now1 <= now + 3);
 }

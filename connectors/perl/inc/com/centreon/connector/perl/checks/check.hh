@@ -52,7 +52,7 @@ class check : public std::enable_shared_from_this<check> {
   check(check const& c) = delete;
   check& operator=(check const& c) = delete;
 
-  void on_timeout(const std::error_code& err, bool final);
+  void on_timeout(const boost::system::error_code& err, bool final);
 
   void dump(std::ostream& s) const;
 
@@ -100,5 +100,12 @@ inline std::ostream& operator<<(std::ostream& s, const check& obj) {
 }  // namespace checks
 
 CCCP_END()
+
+namespace fmt {
+// formatter specializations for fmt
+template <>
+struct formatter<com::centreon::connector::perl::checks::check>
+    : ostream_formatter {};
+}  // namespace fmt
 
 #endif  // !CCCP_CHECKS_CHECK_HH

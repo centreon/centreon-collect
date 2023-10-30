@@ -1187,8 +1187,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
   // Call prelauch broker event the first time to run applier state.
   if (!has_already_been_loaded)
-    broker_program_state(NEBTYPE_PROCESS_PRELAUNCH, NEBFLAG_NONE, NEBATTR_NONE,
-                         nullptr);
+    broker_program_state(NEBTYPE_PROCESS_PRELAUNCH, NEBFLAG_NONE);
 
   //
   // Expand all objects.
@@ -1322,7 +1321,7 @@ void applier::state::_processing(configuration::state& new_cfg,
 
     applier::logging::instance().apply(new_cfg);
 
-    log_v2::instance().apply(new_cfg);
+    log_v2::instance()->apply(new_cfg);
 
     // Apply globals configurations.
     applier::globals::instance().apply(new_cfg);
@@ -1483,8 +1482,7 @@ void applier::state::_processing(configuration::state& new_cfg,
     if (!has_already_been_loaded) {
       neb_load_all_modules();
 
-      broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE, NEBATTR_NONE,
-                           nullptr);
+      broker_program_state(NEBTYPE_PROCESS_START, NEBFLAG_NONE);
     } else
       neb_reload_all_modules();
 

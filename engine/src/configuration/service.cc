@@ -131,7 +131,7 @@ static bool const default_is_volatile(false);
 static unsigned int const default_low_flap_threshold(0);
 static unsigned int const default_max_check_attempts(3);
 static bool const default_notifications_enabled(true);
-static unsigned int const default_notification_interval(30);
+static unsigned int const default_notification_interval(0);
 static unsigned short const default_notification_options(
     service::ok | service::warning | service::critical | service::unknown |
     service::flapping | service::downtime);
@@ -2172,7 +2172,7 @@ bool service::_set_category_tags(const std::string& value) {
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;
-    parse_ok = SimpleAtoi(tag, &id);
+    parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
       _tags.emplace(id, tag::servicecategory);
     } else {
@@ -2207,7 +2207,7 @@ bool service::_set_group_tags(const std::string& value) {
   for (auto& tag : tags) {
     int64_t id;
     bool parse_ok;
-    parse_ok = SimpleAtoi(tag, &id);
+    parse_ok = absl::SimpleAtoi(tag, &id);
     if (parse_ok) {
       _tags.emplace(id, tag::servicegroup);
     } else {

@@ -64,14 +64,14 @@ class LoopTest : public TestEngine {
     _host = hm.begin()->second;
     _host->set_current_state(engine::host::state_up);
     _host->set_state_type(checkable::hard);
-    _host->set_problem_has_been_acknowledged(false);
+    _host->set_acknowledgement(AckType::NONE);
     _host->set_notify_on(static_cast<uint32_t>(-1));
 
     service_map const& sm{engine::service::services};
     _svc = sm.begin()->second;
     _svc->set_current_state(engine::service::state_ok);
     _svc->set_state_type(checkable::hard);
-    _svc->set_problem_has_been_acknowledged(false);
+    _svc->set_acknowledgement(AckType::NONE);
     _svc->set_notify_on(static_cast<uint32_t>(-1));
   }
 
@@ -100,11 +100,12 @@ TEST_F(LoopTest, ServiceCheck) {
   time_t now = tv.tv_sec;
   uint32_t options = 0;
   set_time(now);
-  timed_event* new_event =
-      new timed_event(timed_event::EVENT_SERVICE_CHECK, now, false, 0L, nullptr,
-                      true, _svc.get(), nullptr, options);
+  auto new_event{std::make_unique<timed_event>(timed_event::EVENT_SERVICE_CHECK,
+                                               now, false, 0L, nullptr, true,
+                                               _svc.get(), nullptr, options)};
   ASSERT_EQ(new_event->name(), "EVENT_SERVICE_CHECK");
-  events::loop::instance().reschedule_event(new_event, events::loop::low);
+  events::loop::instance().reschedule_event(std::move(new_event),
+                                            events::loop::low);
   /* The interest of this test is just to verify that the timed_event is
    * consumed by the loop. */
   ASSERT_NO_THROW(events::loop::instance().run());
@@ -119,11 +120,12 @@ TEST_F(LoopTest, HostCheck) {
   time_t now = tv.tv_sec;
   uint32_t options = 0;
   set_time(now);
-  timed_event* new_event =
-      new timed_event(timed_event::EVENT_HOST_CHECK, now, false, 0L, nullptr,
-                      true, _host.get(), nullptr, options);
+  auto new_event{std::make_unique<timed_event>(timed_event::EVENT_HOST_CHECK,
+                                               now, false, 0L, nullptr, true,
+                                               _host.get(), nullptr, options)};
   ASSERT_EQ(new_event->name(), "EVENT_HOST_CHECK");
-  events::loop::instance().reschedule_event(new_event, events::loop::low);
+  events::loop::instance().reschedule_event(std::move(new_event),
+                                            events::loop::low);
   /* The interest of this test is just to verify that the timed_event is
    * consumed by the loop. */
   ASSERT_NO_THROW(events::loop::instance().run());
@@ -137,14 +139,15 @@ TEST_F(LoopTest, ScheduledDowntime) {
   // Do not forget time is modified in the test...
   time_t now = tv.tv_sec;
   set_time(now);
-  timed_event* new_event =
-      new timed_event(timed_event::EVENT_SCHEDULED_DOWNTIME, now, false, 0L,
-                      nullptr, false, new_downtime_id, nullptr, 0);
+  auto new_event{std::make_unique<timed_event>(
+      timed_event::EVENT_SCHEDULED_DOWNTIME, now, false, 0L, nullptr, false,
+      new_downtime_id, nullptr, 0)};
   ASSERT_EQ(new_event->name(), "EVENT_SCHEDULED_DOWNTIME");
-  events::loop::instance().schedule(new_event, true);
-  new_event = new timed_event(timed_event::EVENT_EXPIRE_DOWNTIME, now, false, 0,
-                              nullptr, false, nullptr, nullptr, 0);
-  events::loop::instance().schedule(new_event, true);
+  events::loop::instance().schedule(std::move(new_event), true);
+  new_event = std::make_unique<timed_event>(timed_event::EVENT_EXPIRE_DOWNTIME,
+                                            now, false, 0, nullptr, false,
+                                            nullptr, nullptr, 0);
+  events::loop::instance().schedule(std::move(new_event), true);
   /* The interest of this test is just to verify that the timed_event is
    * consumed by the loop. */
   ASSERT_NO_THROW(events::loop::instance().run());

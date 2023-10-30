@@ -18,12 +18,12 @@
 #ifndef CCB_SQL_CONFLICT_MANAGER_HH
 #define CCB_SQL_CONFLICT_MANAGER_HH
 
+#include <absl/hash/hash.h>
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/misc/mfifo.hh"
-#include "com/centreon/broker/misc/pair.hh"
 #include "com/centreon/broker/misc/perfdata.hh"
-#include "com/centreon/broker/mysql.hh"
+#include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/storage/rebuilder.hh"
 #include "com/centreon/broker/storage/stored_timestamp.hh"
 
@@ -192,13 +192,21 @@ class conflict_manager {
   std::unordered_set<uint32_t> _cache_deleted_instance_id;
   std::unordered_map<uint32_t, uint32_t> _cache_host_instance;
   std::unordered_map<uint64_t, size_t> _cache_hst_cmd;
-  std::unordered_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
-  std::unordered_map<std::pair<uint64_t, uint64_t>, index_info> _index_cache;
-  std::unordered_map<std::pair<uint64_t, std::string>, metric_info>
+  absl::flat_hash_map<std::pair<uint64_t, uint64_t>, size_t> _cache_svc_cmd;
+  std::unordered_map<std::pair<uint64_t, uint64_t>,
+                     index_info,
+                     absl::Hash<std::pair<uint64_t, uint64_t>>>
+      _index_cache;
+  std::unordered_map<std::pair<uint64_t, std::string>,
+                     metric_info,
+                     absl::Hash<std::pair<uint64_t, std::string>>>
       _metric_cache;
   std::mutex _metric_cache_m;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _severity_cache;
   absl::flat_hash_map<std::pair<uint64_t, uint16_t>, uint64_t> _tags_cache;
+
+  std::mutex _group_clean_timer_m;
+  asio::system_timer _group_clean_timer;
 
   std::unordered_set<uint32_t> _hostgroup_cache;
   std::unordered_set<uint32_t> _servicegroup_cache;
@@ -221,10 +229,10 @@ class conflict_manager {
    * 'customvariables'/'logs'. The queue elements are pairs of a string used
    * for the query and a pointer to a boolean so that we can acknowledge the
    * BBDO event when written. */
-  std::deque<std::pair<bool*, std::string> > _cv_queue;
-  std::deque<std::pair<bool*, std::string> > _cvs_queue;
-  std::deque<std::pair<bool*, std::string> > _log_queue;
-  std::deque<std::pair<bool*, std::string> > _downtimes_queue;
+  std::deque<std::pair<bool*, std::string>> _cv_queue;
+  std::deque<std::pair<bool*, std::string>> _cvs_queue;
+  std::deque<std::pair<bool*, std::string>> _log_queue;
+  std::deque<std::pair<bool*, std::string>> _downtimes_queue;
 
   timestamp _oldest_timestamp;
   std::unordered_map<uint32_t, stored_timestamp> _stored_timestamps;
@@ -291,10 +299,6 @@ class conflict_manager {
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_downtime(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_event_handler(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_flapping_status(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_check(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_host_dependency(
@@ -313,8 +317,6 @@ class conflict_manager {
   void _process_instance_status(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_log(std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
-  void _process_module(
-      std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_check(
       std::tuple<std::shared_ptr<io::data>, uint32_t, bool*>& t);
   void _process_service_dependency(
@@ -341,6 +343,7 @@ class conflict_manager {
   void _load_deleted_instances();
   void _load_caches();
   void _clean_tables(uint32_t instance_id);
+  void _clean_group_table();
   void _prepare_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
   void _finish_action(int32_t conn, uint32_t action);

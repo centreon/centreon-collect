@@ -1,5 +1,5 @@
 /*
-** Copyright 2013,2017 Centreon
+** Copyright 2013,2017-2022 Centreon
 **
 ** Licensed under the Apache License, Version 2.0 (the "License");
 ** you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #ifndef CCB_BBDO_STREAM_HH
 #define CCB_BBDO_STREAM_HH
 
+#include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/stream.hh"
 
@@ -135,25 +136,29 @@ class stream : public io::stream {
   uint32_t _acknowledged_events;
   uint32_t _ack_limit;
   uint32_t _events_received_since_last_ack;
+  time_t _last_sent_ack;
+
   /**
    * It is possible to mix bbdo stream with others like tls or compression.
    * This list of extensions provides a simple access to others ones with
    * their configuration.
    */
   std::list<std::shared_ptr<io::extension>> _extensions;
-  const std::tuple<uint16_t, uint16_t, uint16_t> _bbdo_version;
+  bbdo::bbdo_version _bbdo_version;
 
   void _write(std::shared_ptr<io::data> const& d);
   bool _read_any(std::shared_ptr<io::data>& d, time_t deadline);
   void _send_event_stop_and_wait_for_ack();
   std::string _get_extension_names(bool mandatory) const;
+  std::string _poller_name;
+  uint64_t _poller_id = 0u;
 
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };
 
   stream(bool is_input,
          const std::list<std::shared_ptr<io::extension>>& extensions = {});
-  ~stream() noexcept = default;
+  ~stream();
   stream(const stream&) = delete;
   stream& operator=(const stream&) = delete;
   int32_t stop() override;

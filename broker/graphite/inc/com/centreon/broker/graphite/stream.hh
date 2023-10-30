@@ -26,12 +26,6 @@
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/namespace.hh"
 
-#if ASIO_VERSION < 101200
-namespace asio {
-typedef io_service io_context;
-}
-#endif
-
 CCB_BEGIN()
 
 // Forward declaration.
@@ -77,6 +71,8 @@ class stream : public io::stream {
   // Process metric/status and generate query.
   bool _process_metric(storage::metric const& me);
   bool _process_status(storage::status const& st);
+  bool _process_metric(storage::pb_metric const& me);
+  bool _process_status(storage::pb_status const& st);
 
   void _commit();
 

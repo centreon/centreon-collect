@@ -1,5 +1,5 @@
 /*
- * Copyright 2011 - 2021 Centreon (https://www.centreon.com/)
+ * Copyright 2011 - 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,16 +46,15 @@ std::atomic<size_t> stream::_total_tcp_count{0};
  * @param port The port used by the host to listen.
  * @param read_timeout The read_timeout in seconds or -1 if no timeout.
  */
-stream::stream(std::string const& host, uint16_t port, int32_t read_timeout)
+stream::stream(const tcp_config::pointer& conf)
     : io::stream("TCP"),
-      _host(host),
-      _port(port),
-      _read_timeout(read_timeout),
-      _connection(tcp_async::instance().create_connection(host, port)),
+      _conf(conf),
+      _connection(tcp_async::instance().create_connection(_conf)),
       _parent(nullptr) {
   assert(_connection->port());
   _total_tcp_count++;
-  log_v2::tcp()->trace("New stream to {}:{}", _host, _port);
+  log_v2::tcp()->trace("New stream to {}:{}", _conf->get_host(),
+                       _conf->get_port());
   log_v2::tcp()->info(
       "{} TCP streams are configured on a thread pool of {} threads",
       _total_tcp_count, pool::instance().get_pool_size());
@@ -68,16 +67,13 @@ stream::stream(std::string const& host, uint16_t port, int32_t read_timeout)
  * @param conn The connection to use by this stream.
  * @param read_timeout A duration in seconds or -1 if no timeout.
  */
-stream::stream(tcp_connection::pointer conn, int32_t read_timeout)
-    : io::stream("TCP"),
-      _host{conn->address()},
-      _port{conn->port()},
-      _read_timeout(read_timeout),
-      _connection(conn),
-      _parent(nullptr) {
+stream::stream(const tcp_connection::pointer& conn,
+               const tcp_config::pointer& conf)
+    : io::stream("TCP"), _conf(conf), _connection(conn), _parent(nullptr) {
   assert(_connection->port());
   _total_tcp_count++;
-  log_v2::tcp()->info("New stream to {}:{}", _host, _port);
+  log_v2::tcp()->info("New stream to {}:{}", _conf->get_host(),
+                      _conf->get_port());
   log_v2::tcp()->info(
       "{} TCP streams are configured on a thread pool of {} threads",
       _total_tcp_count, pool::instance().get_pool_size());
@@ -117,16 +113,16 @@ std::string stream::peer() const {
  *
  *  @return Respects io::stream::read()'s return value.
  */
-
 bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   log_v2::tcp()->trace("read on stream");
 
   // Set deadline.
   {
     time_t now = ::time(nullptr);
-    if (_read_timeout != -1 &&
-        (deadline == static_cast<time_t>(-1) || now + _read_timeout < deadline))
-      deadline = now + _read_timeout / 1000;
+    if (_conf->get_read_timeout() != -1 &&
+        (deadline == static_cast<time_t>(-1) ||
+         now + _conf->get_read_timeout() < deadline))
+      deadline = now + _conf->get_read_timeout() / 1000;
   }
 
   if (_connection->is_closed()) {
@@ -172,7 +168,7 @@ int32_t stream::stop() {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& d) {
-  log_v2::tcp()->trace("write on stream");
+  log_v2::tcp()->trace("write event of type {} on tcp stream", d->type());
   // Check that data exists and should be processed.
   assert(d);
 
@@ -182,9 +178,8 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
   if (d->type() == io::raw::static_type()) {
     std::shared_ptr<io::raw> r(std::static_pointer_cast<io::raw>(d));
     log_v2::tcp()->trace("TCP: write request of {} bytes to peer '{}:{}'",
-                         r->size(), _host, _port);
+                         r->size(), _conf->get_host(), _conf->get_port());
     log_v2::tcp()->trace("write {} bytes", r->size());
-    std::error_code err;
     try {
       return _connection->write(r->get_buffer());
     } catch (std::exception const& e) {
@@ -193,4 +188,19 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
     }
   }
   return 1;
+}
+
+/**
+ * @brief wait for connection write queue empty
+ *
+ * @param ms_timeout
+ * @return true queue is empty
+ * @return false timeout expired
+ */
+bool stream::wait_for_all_events_written(unsigned ms_timeout) {
+  if (_connection->is_closed()) {
+    return true;
+  }
+
+  return _connection->wait_for_all_events_written(ms_timeout);
 }

@@ -1,86 +1,52 @@
 /*
-** Copyright 2016 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bam/bool_constant.hh"
+#include "com/centreon/broker/log_v2.hh"
 
 using namespace com::centreon::broker::bam;
+
+constexpr double eps = 0.000001;
 
 /**
  *  Constructor.
  *
  *  @param[in] val  The constant value to assign.
  */
-bool_constant::bool_constant(double val) : _value(val) {}
-
-/**
- *  Copy constructor.
- *
- *  @param[in] right Object to copy.
- */
-bool_constant::bool_constant(bool_constant const& right) : bool_value(right) {
-  _value = right._value;
-}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] right Object to copy.
- *
- *  @return This object.
- */
-bool_constant& bool_constant::operator=(bool_constant const& right) {
-  bool_value::operator=(right);
-  if (this != &right) {
-    _value = right._value;
-  }
-  return (*this);
-}
-
-/**
- *  Get notified of child update.
- *
- *  @param[in] child    The child.
- *  @param[in] visitor  A visitor.
- *
- *  @return True if the parent was modified.
- */
-bool bool_constant::child_has_update(computable* child, io::stream* visitor) {
-  (void)child;
-  (void)visitor;
-  return (true);
-}
+bool_constant::bool_constant(double val)
+    : _value(val), _boolean_value{std::abs(val) > ::eps} {}
 
 /**
  *  Get the hard value.
  *
  *  @return Evaluation of the expression with hard values.
  */
-double bool_constant::value_hard() {
-  return (_value);
+double bool_constant::value_hard() const {
+  return _value;
 }
 
 /**
- *  Get the soft value.
+ * @brief Returns the contant of bool_constant but as a boolean value.
  *
- *  @return Evaluation of the expression with soft values.
+ * @return true or false.
  */
-double bool_constant::value_soft() {
-  return (_value);
+bool bool_constant::boolean_value() const {
+  return _boolean_value;
 }
 
 /**
@@ -89,5 +55,25 @@ double bool_constant::value_soft() {
  *  @return  True if the state is known.
  */
 bool bool_constant::state_known() const {
-  return (true);
+  return true;
+}
+
+/**
+ * @brief Update this computable with the child modifications.
+ *
+ * @param child The child that changed.
+ * @param visitor The visitor to handle events.
+ */
+void bool_constant::update_from(computable* child [[maybe_unused]],
+                                io::stream* visitor [[maybe_unused]]) {
+  log_v2::bam()->trace("bool_constant::update_from");
+}
+
+std::string bool_constant::object_info() const {
+  return fmt::format("Constant {:p}\nvalue: {}", static_cast<const void*>(this),
+                     value_hard());
+}
+
+void bool_constant::dump(std::ofstream& output [[maybe_unused]]) const {
+  dump_parents(output);
 }

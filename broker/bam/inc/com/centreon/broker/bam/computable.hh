@@ -1,20 +1,20 @@
 /*
-** Copyright 2014 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_COMPUTABLE_HH
 #define CCB_BAM_COMPUTABLE_HH
@@ -34,34 +34,42 @@ namespace bam {
  *  provides an effective way to compute whole part of the BA/KPI tree.
  */
 class computable {
- public:
-  computable();
-  computable(computable const& right);
-  virtual ~computable();
-  computable& operator=(computable const& right);
-  void add_parent(std::shared_ptr<computable> const& parent);
-  void propagate_update(io::stream* visitor = NULL);
-  void remove_parent(std::shared_ptr<computable> const& parent);
-
-  /**
-   *  @brief Notify node of the change of a child node.
-   *
-   *  This is the method used to compute the value of a node (either a
-   *  BA or a KPI). This method does not recursively recompute all
-   *  dependencies (this is left to the computable class) but rather
-   *  update the node value.
-   *
-   *  @param[in] child Recently updated child node.
-   *
-   *  @return True if the parent was modified.
-   */
-  virtual bool child_has_update(computable* child,
-                                io::stream* visitor = NULL) = 0;
-
- private:
-  void _internal_copy(computable const& right);
-
+ protected:
   std::list<std::weak_ptr<computable>> _parents;
+
+ public:
+  computable() = default;
+  computable(const computable&) = delete;
+  virtual ~computable() noexcept = default;
+  computable& operator=(const computable&) = delete;
+  void add_parent(const std::shared_ptr<computable>& parent);
+  void notify_parents_of_change(io::stream* visitor);
+  /**
+   *  @brief Update this object because there was a change in the given child.
+   *
+   *  Once this object is updated, if it has changed, it notifies its parents
+   *  to propagate the information.
+   *
+   *  @param[in] child Recently changed child node.
+   *  @param[in] visitor This is used to manage events
+   */
+  virtual void update_from(computable* child, io::stream* visitor) = 0;
+  void remove_parent(const std::shared_ptr<computable>& parent);
+  /**
+   * @brief This method is used by the dump() method. It gives a summary of this
+   * computable main informations.
+   *
+   * @return A multiline string with various informations.
+   */
+  virtual std::string object_info() const = 0;
+  /**
+   * @brief Recursive or not method that writes object informations to the
+   * output stream. If there are children, each one dump() is then called.
+   *
+   * @param output An output stream.
+   */
+  virtual void dump(std::ofstream& output) const = 0;
+  void dump_parents(std::ofstream& output) const;
 };
 }  // namespace bam
 

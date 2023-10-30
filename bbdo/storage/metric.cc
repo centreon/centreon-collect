@@ -21,8 +21,8 @@
 #include <cassert>
 #include <cmath>
 
-#include "com/centreon/broker/database/table_max_size.hh"
 #include "com/centreon/broker/io/events.hh"
+#include "com/centreon/broker/sql/table_max_size.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::storage;
@@ -64,6 +64,18 @@ metric::metric(uint32_t host_id,
       host_id{host_id},
       service_id{service_id} {
   assert(rrd_len != 0);
+}
+
+void metric::convert_to_pb(Metric& pb_metric) const {
+  pb_metric.set_metric_id(metric_id);
+  pb_metric.set_rrd_len(rrd_len);
+  pb_metric.set_interval(interval);
+  pb_metric.set_value_type(Metric::ValueType(value_type));
+  pb_metric.set_time(time.get_time_t());
+  pb_metric.set_value(value);
+  pb_metric.set_name(name);
+  pb_metric.set_host_id(host_id);
+  pb_metric.set_service_id(service_id);
 }
 
 /**************************************

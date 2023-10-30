@@ -33,13 +33,13 @@ class limit_endpoint : public endpoint {
   mutable std::time_t _is_ready_now;
 
  public:
-  limit_endpoint(bool is_accptr)
-      : endpoint(is_accptr), _is_ready_count(0), _is_ready_now(0) {}
+  limit_endpoint(bool is_accptr, const multiplexing::muxer_filter& filter)
+      : endpoint(is_accptr, filter), _is_ready_count(0), _is_ready_now(0) {}
 
-  std::unique_ptr<stream> open() override;
+  std::shared_ptr<stream> open() override;
   bool is_ready() const override;
 
-  virtual std::unique_ptr<stream> create_stream() = 0;
+  virtual std::shared_ptr<stream> create_stream() = 0;
 };
 
 }  // namespace io

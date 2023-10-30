@@ -46,7 +46,7 @@ connector::connector(bool negotiate,
                      bool coarse,
                      uint32_t ack_limit,
                      std::list<std::shared_ptr<io::extension>>&& extensions)
-    : io::endpoint{false},
+    : io::endpoint{false, {}},
       _is_input{connector_is_input},
       _coarse{coarse},
       _negotiate{negotiate},
@@ -60,9 +60,9 @@ connector::connector(bool negotiate,
  *
  *  @return Open stream.
  */
-std::unique_ptr<io::stream> connector::open() {
+std::shared_ptr<io::stream> connector::open() {
   // Return value.
-  std::unique_ptr<io::stream> retval;
+  std::shared_ptr<io::stream> retval;
 
   // We must have a lower layer.
   if (_from)
@@ -77,7 +77,7 @@ std::unique_ptr<io::stream> connector::open() {
  *
  *  @return Open stream.
  */
-std::unique_ptr<io::stream> connector::_open(
+std::shared_ptr<io::stream> connector::_open(
     std::shared_ptr<io::stream> stream) {
   std::unique_ptr<bbdo::stream> bbdo_stream;
   if (stream) {

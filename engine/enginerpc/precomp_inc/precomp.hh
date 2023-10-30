@@ -28,6 +28,8 @@
 #include <absl/strings/string_view.h>
 
 #include <boost/circular_buffer.hpp>
+#include <boost/container/flat_map.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 #include <boost/optional.hpp>
 
 #endif  // CCE_PRECOMP_HH

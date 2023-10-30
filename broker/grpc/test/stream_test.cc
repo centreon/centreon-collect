@@ -23,13 +23,18 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
 
+extern std::shared_ptr<asio::io_context> g_io_context;
+
 com::centreon::broker::grpc::grpc_config::pointer conf(
-    std::make_shared<com::centreon::broker::grpc::grpc_config>("127.0.0.1:4444",
-                                                               false,
-                                                               "",
-                                                               "",
-                                                               "",
-                                                               "my_aut"));
+    std::make_shared<com::centreon::broker::grpc::grpc_config>(
+        "127.0.0.1:4444",
+        false,
+        "",
+        "",
+        "",
+        "my_aut",
+        "",
+        com::centreon::broker::grpc::grpc_config::NO));
 
 static constexpr unsigned relay_listen_port = 5123u;
 static constexpr unsigned server_listen_port = 5124u;
@@ -67,7 +72,9 @@ class grpc_test_server : public ::testing::TestWithParam<test_param> {
   static void SetUpTestSuite() {
     // log_v2::grpc()->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf);
-    com::centreon::broker::pool::load(1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    g_io_context->restart();
+    com::centreon::broker::pool::load(g_io_context, 1);
   }
   static void TearDownTestSuite() { s.reset(); };
 
@@ -94,7 +101,7 @@ std::unique_ptr<com::centreon::broker::grpc::acceptor> grpc_test_server::s;
 
 TEST_P(grpc_test_server, ClientToServerSendReceive) {
   com::centreon::broker::grpc::stream client(conf);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -123,7 +130,7 @@ INSTANTIATE_TEST_SUITE_P(grpc_test_server,
 
 TEST_P(grpc_test_server, ServerToClientSendReceive) {
   com::centreon::broker::grpc::stream client(conf);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -158,7 +165,7 @@ class grpc_comm_failure : public ::testing::TestWithParam<test_param> {
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(conf_relay_out);
     relay = std::make_unique<test_util::tcp_relais>(
         "127.0.0.1", relay_listen_port, "127.0.0.1", server_listen_port);
-    com::centreon::broker::pool::load(1);
+    com::centreon::broker::pool::load(std::make_shared<asio::io_context>(), 1);
   }
   static void TearDownTestSuite() {
     s.reset();
@@ -180,7 +187,7 @@ INSTANTIATE_TEST_SUITE_P(grpc_comm_failure,
 
 TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -202,7 +209,7 @@ TEST_P(grpc_comm_failure, ClientToServerFailureBeforeWrite) {
 
 TEST_P(grpc_comm_failure, ClientToServerFailureAfterWrite) {
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(2000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -235,7 +242,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureBeforeWrite) {
   relay->shutdown_relays();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -277,7 +284,7 @@ TEST_P(grpc_comm_failure, ServerToClientFailureAfterWrite) {
   relay->shutdown_relays();
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   com::centreon::broker::grpc::stream client(conf_relay_in);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -335,7 +342,9 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_server1234(
         read_file("tests/grpc_test_keys/server_1234.crt"),
         read_file("tests/grpc_test_keys/server_1234.key"),
         read_file("tests/grpc_test_keys/ca_1234.crt"),
-        "my_auth"));
+        "my_auth",
+        "",
+        com::centreon::broker::grpc::grpc_config::NO));
 
 com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
     std::make_shared<com::centreon::broker::grpc::grpc_config>(
@@ -344,7 +353,9 @@ com::centreon::broker::grpc::grpc_config::pointer conf_crypted_client1234(
         read_file("tests/grpc_test_keys/client_1234.crt"),
         read_file("tests/grpc_test_keys/client_1234.key"),
         read_file("tests/grpc_test_keys/ca_1234.crt"),
-        "my_auth"));
+        "my_auth",
+        "",
+        com::centreon::broker::grpc::grpc_config::NO));
 
 class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
  protected:
@@ -355,7 +366,7 @@ class grpc_test_server_crypted : public ::testing::TestWithParam<test_param> {
     // log_v2::grpc()->set_level(spdlog::level::trace);
     s = std::make_unique<com::centreon::broker::grpc::acceptor>(
         conf_crypted_server1234);
-    com::centreon::broker::pool::load(1);
+    com::centreon::broker::pool::load(std::make_shared<asio::io_context>(), 1);
   }
   static void TearDownTestSuite() { s.reset(); };
 
@@ -374,7 +385,7 @@ INSTANTIATE_TEST_SUITE_P(grpc_test_server_crypted,
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeySendReceive) {
   com::centreon::broker::grpc::stream client(conf_crypted_client1234);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(1000));
   ASSERT_NE(accepted.get(), nullptr);
 
@@ -405,11 +416,13 @@ com::centreon::broker::grpc::grpc_config::pointer
             read_file("tests/grpc_test_keys/client_1234.crt"),
             read_file("tests/grpc_test_keys/client_1234.key"),
             read_file("tests/grpc_test_keys/ca_1234.crt"),
-            "my_auth_pasbon"));
+            "my_auth_pasbon",
+            "",
+            com::centreon::broker::grpc::grpc_config::NO));
 
 TEST_P(grpc_test_server_crypted, ServerToClientWithKeyAndBadAuthorization) {
   com::centreon::broker::grpc::stream client(conf_crypted_client1234_bad_auth);
-  std::unique_ptr<io::stream> accepted =
+  std::shared_ptr<io::stream> accepted =
       s->open(std::chrono::milliseconds(200));
 
   ASSERT_EQ(accepted.get(), nullptr);
