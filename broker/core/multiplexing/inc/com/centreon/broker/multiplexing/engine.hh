@@ -1,20 +1,20 @@
 /*
-** Copyright 2009-2012,2015,2019-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2009-2012,2015,2019-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_MULTIPLEXING_ENGINE_HH
 #define CCB_MULTIPLEXING_ENGINE_HH
@@ -63,7 +63,7 @@ class callback_caller;
  *
  *  @see muxer
  */
-class engine : public std::enable_shared_from_this<engine> {
+class engine {
   static std::mutex _load_m;
   static std::shared_ptr<engine> _instance;
 
@@ -82,8 +82,7 @@ class engine : public std::enable_shared_from_this<engine> {
   std::deque<std::shared_ptr<io::data>> _kiew;
 
   // Subscriber.
-  std::vector<std::shared_ptr<muxer>> _muxers;
-  std::mutex _muxers_m;
+  std::vector<std::weak_ptr<muxer>> _muxers;
 
   // Statistics.
   EngineStats* _stats;
@@ -112,7 +111,7 @@ class engine : public std::enable_shared_from_this<engine> {
   void start();
   void stop();
   void subscribe(const std::shared_ptr<muxer>& subscriber);
-  void unsubscribe(const muxer* subscriber);
+  void unsubscribe_muxer(const muxer* subscriber);
 };
 }  // namespace multiplexing
 

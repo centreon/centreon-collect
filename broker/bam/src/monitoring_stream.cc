@@ -581,6 +581,7 @@ int monitoring_stream::write(std::shared_ptr<io::data> const& data) {
       _write_external_command(cmd);
     } break;
     case extcmd::pb_ba_info::static_type(): {
+      log_v2::bam()->info("BAM: dump BA");
       extcmd::pb_ba_info const& e =
           *std::static_pointer_cast<const extcmd::pb_ba_info>(data);
       auto& obj = e.obj();

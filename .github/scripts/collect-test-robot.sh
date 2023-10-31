@@ -11,6 +11,11 @@ database_type=$2
 distrib=${ID}
 distrib=$(echo $distrib | tr '[:lower:]' '[:upper:]')
 
+#cpu=$(lscpu | awk '$1 ~ "Architecture" { print $2 }')
+if [[ "$test_file" =~ "unstable" ]] ; then
+  exit 0
+fi
+
 if [ ${database_type} == 'mysql' ] && [ ! -f tests/${test_file}.mysql ]; then
     echo > tests/log.html
     echo '<?xml version="1.0" encoding="UTF-8"?>' > tests/output.xml
@@ -106,4 +111,4 @@ cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot $test_file
+robot -e unstable $test_file

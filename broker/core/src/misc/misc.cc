@@ -18,6 +18,7 @@
 
 #include "com/centreon/broker/misc/misc.hh"
 
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -187,3 +188,20 @@ std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
       ret.append(", ").append(it->second);
   return ret;
 }
+
+#if DEBUG_ROBOT
+void misc::debug(const std::string& content) {
+  int p = getpid();
+  std::string filename{fmt::format("failed/{}.log", p)};
+  FILE* f = fopen(filename.c_str(), "a");
+  if (!f) {
+    if (mkdir("failed", 0755) != 0)
+      return;
+    f = fopen(filename.c_str(), "a");
+  }
+  if (f) {
+    fprintf(f, "%s\n", content.c_str());
+    fclose(f);
+  }
+}
+#endif

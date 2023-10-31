@@ -40,7 +40,7 @@ inline void char_to_hex(unsigned char c, std::string& output) noexcept {
  */
 std::string com::centreon::common::hex_dump(const unsigned char* buffer,
                                             size_t buff_len,
-                                            int nb_char_per_line) {
+                                            uint32_t nb_char_per_line) {
   std::string ret;
   if (nb_char_per_line > 0) {
     size_t address_len = 0;
@@ -75,7 +75,7 @@ std::string com::centreon::common::hex_dump(const unsigned char* buffer,
         }
       }
       ret.push_back(' ');
-      for (unsigned pad = char_part.length(); pad < nb_char_per_line; ++pad) {
+      for (uint32_t pad = char_part.length(); pad < nb_char_per_line; ++pad) {
         ret.push_back(' ');
         ret.push_back(' ');
       }

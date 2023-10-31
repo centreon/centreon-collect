@@ -14,7 +14,7 @@ Library             Telnet
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          BAM Setup
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -24,17 +24,18 @@ BAWORST
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    Create BA With Services    test    worst    ${svc}
+    ${ba__svc}    Create Ba With Services    test    worst    ${svc}
     Start Broker
     ${start}    Get Current Date
     Start Engine
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -44,13 +45,14 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to unknown
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    3    output unknown for 303
+    Process Service Result Hard    host_16    service_303    3    output unknown for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    3    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not UNKNOWN as expected
 
     # The BA should become unknown
     ${result}    Check Ba Status With Timeout    test    3    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
 
     ${result}    Check Ba Output With Timeout
@@ -60,13 +62,14 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to warning
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    1    output warning for 303
+    Process Service Result Hard    host_16    service_303    1    output warning for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     ${result}    Check Ba Output With Timeout
@@ -76,13 +79,14 @@ BAWORST
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     Connect To Database    pymysql    ${DBNameConf}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -104,7 +108,7 @@ BABEST_SERVICE_CRITICAL
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314"), ("host_16", "service_303")] }}
-    Create BA With Services    test    best    ${svc}
+    ${ba__svc}    Create Ba With Services    test    best    ${svc}
     # Command of service_314 is set to critical
     ${cmd_1}    Get Command Id    314
     Log To Console    service_314 has command id ${cmd_1}
@@ -114,10 +118,11 @@ BABEST_SERVICE_CRITICAL
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -127,7 +132,7 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
 
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
@@ -135,6 +140,7 @@ BABEST_SERVICE_CRITICAL
     # The BA should remain OK
     Sleep    2s
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -143,13 +149,14 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to unknown
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    3    output unknown for 303
+    Process Service Result Hard    host_16    service_303    3    output unknown for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    3    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not UNKNOWN as expected
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    3    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not UNKNOWN as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -158,13 +165,14 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to warning
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    1    output warning for 303
+    Process Service Result Hard    host_16    service_303    1    output warning for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
 
     # The BA should become warning
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -173,13 +181,14 @@ BABEST_SERVICE_CRITICAL
     Should Be True    ${result}    The BA test has not the expected output
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_303    2    output critical for 303
+    Process Service Result Hard    host_16    service_303    2    output critical for 303
 
     ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
 
     # The BA should become critical
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -195,6 +204,7 @@ BABEST_SERVICE_CRITICAL
 
     # The BA should become OK
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${ba__svc[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -213,20 +223,15 @@ BA_IMPACT_2KPI_SERVICES
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # service_302 critical service_303 warning => ba warning 30%
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_302
-    ...    2
-    ...    output critical for service_302
+    Process Service Result Hard    host_16    service_302    2    output critical for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -234,16 +239,11 @@ BA_IMPACT_2KPI_SERVICES
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
-    ...    host_16
-    ...    service_303
-    ...    1
-    ...    output warning for service_303
+    Process Service Result Hard    host_16    service_303    1    output warning for service_303
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -252,16 +252,12 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # service_302 critical service_303 critical => ba critical 80%
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -269,6 +265,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_303    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -281,6 +278,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_302    0    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA ba_1 is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -289,16 +287,12 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test has not the expected output
 
     # both warning => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    1
     ...    output warning for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    1
@@ -308,6 +302,7 @@ BA_IMPACT_2KPI_SERVICES
     ${result}    Check Service Status With Timeout    host_16    service_303    1    60    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not WARNING as expected
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -328,17 +323,18 @@ BA_RATIO_PERCENT_BA_SERVICE
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
     ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
-    add_ba_kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+    Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
 
     Start Broker
     ${start}    Get Current Date
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -347,17 +343,16 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # one serv critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
     ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
-    sleep    2s
+    Sleep    2s
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -366,16 +361,12 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # two serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -385,6 +376,7 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -393,23 +385,17 @@ BA_RATIO_PERCENT_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # two serv critical and child ba critical => mother ba critical
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -417,8 +403,10 @@ BA_RATIO_PERCENT_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test_child    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test_child is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -446,10 +434,11 @@ BA_RATIO_NUMBER_BA_SERVICE
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -458,9 +447,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # One service CRITICAL => The BA is still OK
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -469,6 +456,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
 
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     ${result}    Check Ba Output With Timeout
@@ -478,16 +466,12 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # Two services CRITICAL => The BA passes to WARNING
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -497,6 +481,7 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The test BA is not in WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -505,23 +490,17 @@ BA_RATIO_NUMBER_BA_SERVICE
     Should Be True    ${result}    The BA test has not the expected output
 
     # Two services CRITICAL and also the child BA => The mother BA passes to CRITICAL
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
     ...    output critical for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
     ...    output critical for service_303
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -533,8 +512,10 @@ BA_RATIO_NUMBER_BA_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_314    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test_child    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test_child is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
@@ -561,20 +542,16 @@ BA_BOOL_KPI
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # 302 warning and 303 critical    => ba critical
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    1
     ...    output warning for service_302
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -587,8 +564,9 @@ BA_BOOL_KPI
     ${result}    Check Service Status With Timeout    host_16    service_314    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not OK as expected
 
-#    schedule_forced_svc_check    _Module_BAM_1    ba_1
+#    Schedule Forced Svc Check    _Module_BAM_1    ba_1
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -598,7 +576,7 @@ BEPB_DIMENSION_BV_EVENT
     [Tags]    broker    engine    protobuf    bam    bbdo
     BAM Init
 
-    Create Ba    test    worst    100    100
+    ${id_ba__sid}    Create Ba    test    worst    100    100
 
     Remove File    /tmp/all_lua_event.log
 
@@ -632,7 +610,7 @@ BEPB_DIMENSION_BA_EVENT
     Remove File    /tmp/all_lua_event.log
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}
+    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -666,7 +644,7 @@ BEPB_DIMENSION_BA_BV_RELATION_EVENT
     Clear Db    mod_bam_reporting_relations_ba_bv
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
 
-    Create BA With Services    test    worst    ${svc}
+    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-log-all-event.lua
 
@@ -700,7 +678,7 @@ BEPB_DIMENSION_TIMEPERIOD
     BAM Init
 
     @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
-    Create BA With Services    test    worst    ${svc}
+    ${id_ba__sid}    Create Ba With Services    test    worst    ${svc}
 
     Remove File    /tmp/all_lua_event.log
 
@@ -772,7 +750,7 @@ BEPB_KPI_STATUS
     ${start}    Get Current Date    result_format=epoch
 
     # KPI set to critical
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
 
@@ -814,8 +792,8 @@ BEPB_BA_DURATION_EVENT
 
     # KPI set to critical
     # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
-    ${start_event}    get_round_current_date
-    Repeat Keyword    3 times    Process Service Check Result    host_16    service_314    2    output critical for 314
+    ${start_event}    Get Round Current Date
+    Process Service Result Hard    host_16    service_314    2    output critical for 314
     ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
     Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
     Sleep    2s
@@ -828,9 +806,8 @@ BEPB_BA_DURATION_EVENT
         ${output}    Query
         ...    SELECT start_time, end_time, duration, sla_duration, timeperiod_is_default FROM mod_bam_reporting_ba_events_durations WHERE ba_event_id = 1
         Sleep    1s
-        IF    ${output} and len(${output}) >= 1 and len(${output[0]}) >= 5
-            BREAK
-        END
+        Log To Console    ${output}
+        IF    "${output}" != "()"    BREAK
     END
 
     Should Be True    ${output[0][2]} == ${output[0][1]} - ${output[0][0]}
@@ -864,7 +841,7 @@ BEPB_DIMENSION_BA_TIMEPERIOD_RELATION
         ${output}    Query
         ...    SELECT ba_id FROM mod_bam_reporting_relations_ba_timeperiods WHERE ba_id=1 and timeperiod_id=732 and is_default=0
         Sleep    1s
-        IF    len("""${output}""") > 5    BREAK
+        IF    "${output}" != "()"    BREAK
     END
 
     Should Be True
@@ -921,17 +898,16 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # all serv ok => ba ok
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -939,12 +915,11 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -952,6 +927,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
@@ -962,6 +938,7 @@ BA_RATIO_NUMBER_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -982,17 +959,16 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # all serv ok => ba ok
     ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     # one serv critical => ba warning
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_302
     ...    2
@@ -1000,12 +976,11 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_302    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    1    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not WARNING as expected
 
     # two services critical => ba ok
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_303
     ...    2
@@ -1013,6 +988,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    2    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not CRITICAL as expected
     ${result}    Check Ba Status With Timeout    test    2    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not CRITICAL as expected
 
     # all serv ok => ba ok
@@ -1023,6 +999,7 @@ BA_RATIO_PERCENT_BA_4_SERVICE
     ${result}    Check Service Status With Timeout    host_16    service_303    0    30    HARD
     Should Be True    ${result}    The service (host_16,service_303) is not OK as expected
     ${result}    Check Ba Status With Timeout    test    0    30
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
     Should Be True    ${result}    The BA test is not OK as expected
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
