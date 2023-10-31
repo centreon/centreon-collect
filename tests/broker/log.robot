@@ -20,15 +20,15 @@ BLDIS1
     Config Broker    central
     Broker Config Log    central    core    disabled
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    [sql]
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg="No sql logs produced"
+    ${content}    Create List    [sql]
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    "No sql logs produced"
 
-    ${content}=    Create List    [core]
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be Equal    ${result}    ${False}    msg="We should not have core logs"
+    ${content}    Create List    [core]
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be Equal    ${result}    ${False}    "We should not have core logs"
     Kindly Stop Broker
 
 BLEC1
@@ -38,12 +38,12 @@ BLEC1
     Config Broker    central
     Broker Config Log    central    core    trace
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${result}=    Get Broker Log Level    51001    central    core
+    ${result}    Get Broker Log Level    51001    central    core
     Should Be Equal    ${result}    trace
     Set Broker Log Level    51001    central    core    debug
-    ${result}=    Get Broker Log Level    51001    central    core
+    ${result}    Get Broker Log Level    51001    central    core
     Should Be Equal    ${result}    debug
 
 BLEC2
@@ -53,11 +53,11 @@ BLEC2
     Config Broker    central
     Broker Config Log    central    core    trace
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${result}=    Get Broker Log Level    51001    central    core
+    ${result}    Get Broker Log Level    51001    central    core
     Should Be Equal    ${result}    trace
-    ${result}=    Set Broker Log Level    51001    central    core    foo
+    ${result}    Set Broker Log Level    51001    central    core    foo
     Should Be Equal    ${result}    Enum LogLevelEnum has no value defined for name 'FOO'
 
 BLEC3
@@ -67,7 +67,7 @@ BLEC3
     Config Broker    central
     Broker Config Log    central    core    trace
     Broker Config Log    central    sql    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${result}=    Set Broker Log Level    51001    central    foo    trace
+    ${result}    Set Broker Log Level    51001    central    foo    trace
     Should Be Equal    ${result}    The 'foo' logger does not exist

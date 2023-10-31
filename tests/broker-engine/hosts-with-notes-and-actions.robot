@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -30,21 +30,21 @@ EBSNU1
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    ${nu}=    Evaluate    2000*"X"
-    Engine Config set value in hosts    0    host_1    notes_url    ${nu}
+    ${nu}    Evaluate    2000*"X"
+    Engine Config Set Value In Hosts    0    host_1    notes_url    ${nu}
     Clear Retention
     Start Broker
     Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT notes_url FROM hosts WHERE name='host_1'
+        ${output}    Query    SELECT notes_url FROM hosts WHERE name='host_1'
         Sleep    1s
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${nu}',),)
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT notes_url FROM resources WHERE name='host_1'
+        ${output}    Query    SELECT notes_url FROM resources WHERE name='host_1'
         Sleep    1s
         IF    "${output}" == "(('${nu}',),)"    BREAK
     END
@@ -64,21 +64,21 @@ EBSAU2
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    ${au}=    Evaluate    2000*"Y"
-    Engine Config set value in hosts    0    host_2    action_url    ${au}
+    ${au}    Evaluate    2000*"Y"
+    Engine Config Set Value In Hosts    0    host_2    action_url    ${au}
     Clear Retention
     Start Broker
     Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT action_url FROM hosts WHERE name='host_2'
+        ${output}    Query    SELECT action_url FROM hosts WHERE name='host_2'
         Sleep    1s
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${au}',),)
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT action_url FROM resources WHERE name='host_2'
+        ${output}    Query    SELECT action_url FROM resources WHERE name='host_2'
         Sleep    1s
         IF    "${output}" == "(('${au}',),)"    BREAK
     END
@@ -98,21 +98,21 @@ EBSN3
     Broker Config Add Item    rrd    bbdo_version    3.0.0
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    ${n}=    Evaluate    500*"Z"
-    Engine Config set value in hosts    0    host_3    notes    ${n}
+    ${n}    Evaluate    500*"Z"
+    Engine Config Set Value In Hosts    0    host_3    notes    ${n}
     Clear Retention
     Start Broker
     Start Engine
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT notes FROM hosts WHERE name='host_3'
+        ${output}    Query    SELECT notes FROM hosts WHERE name='host_3'
         Sleep    1s
         IF    "${output}" == "(('${n}',),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('${n}',),)
     FOR    ${index}    IN RANGE    60
-        ${output}=    Query    SELECT notes FROM resources WHERE name='host_3'
+        ${output}    Query    SELECT notes FROM resources WHERE name='host_3'
         Sleep    1s
         IF    "${output}" == "(('${n}',),)"    BREAK
     END

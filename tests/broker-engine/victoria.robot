@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -38,10 +38,10 @@ VICT_ONE_CHECK_METRIC
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
 
@@ -97,10 +97,10 @@ VICT_ONE_CHECK_STATUS
     Start Server    127.0.0.1    8000
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     # service ok
     ${start}    Get Round Current Date
@@ -133,9 +133,7 @@ VICT_ONE_CHECK_STATUS
 
     # service warning
     ${start}    Get Round Current Date
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    1
@@ -169,9 +167,7 @@ VICT_ONE_CHECK_STATUS
     # service critical
 
     ${start}    Get Round Current Date
-    Repeat Keyword
-    ...    3 times
-    ...    Process Service Check Result
+    Process Service Result Hard
     ...    host_16
     ...    service_314
     ...    2
@@ -223,17 +219,17 @@ VICT_ONE_CHECK_METRIC_AFTER_FAILURE
     Start Engine
     # wait all is started
     ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     Process Service Check Result    host_16    service_314    0    taratata|metric_taratata=80%;50;75;5;99
     ${start}    Get Round Current Date
 
     ${content}    Create List    [victoria_metrics]    name: "metric_taratata"
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=victoria should add metric in a request
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    victoria should add metric in a request
 
     Start Server    127.0.0.1    8000
     ${timeout}    Get Current Date    result_format=epoch    increment=00:01:00

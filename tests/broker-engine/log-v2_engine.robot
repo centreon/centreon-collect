@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -31,28 +31,28 @@ LOGV2EB1
     Engine Config Set Value    ${0}    log_level_config    trace
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date    exclude_millis=yes
-    ${time_stamp}=    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}=    evaluate    int(${time_stamp})
+    ${start}    Get Current Date    exclude_millis=yes
+    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result1}    msg=No message telling configuration loaded.
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result1}    No message telling configuration loaded.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         Log To Console    ${output}
         Sleep    1s
@@ -78,28 +78,28 @@ LOGV2EBU1
     Engine Config Set Value    ${0}    log_level_config    trace
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date    exclude_millis=yes
-    ${time_stamp}=    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}=    evaluate    int(${time_stamp})
+    ${start}    Get Current Date    exclude_millis=yes
+    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result1}    msg=No message telling configuration loaded.
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
+    Should Be True    ${result1}    No message telling configuration loaded.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
         Log To Console    ${output}
         Sleep    1s
@@ -122,31 +122,31 @@ LOGV2DB1
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date    exclude_millis=yes
-    ${time_stamp}=    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}=    evaluate    int(${time_stamp})
+    ${start}    Get Current Date    exclude_millis=yes
+    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_old}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_old}    Create List    [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
+    ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_old}    15
     Should Not Be True    ${result1}
-    Should Be True    ${result2}    msg=Old logs should be enabled.
+    Should Be True    ${result2}    Old logs should be enabled.
 
     Log To Console    after connection
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
         Log To Console    ${output}
         Sleep    1s
@@ -168,21 +168,21 @@ LOGV2DB2
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date    exclude_millis=yes
-    ${time_stamp}=    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}=    evaluate    int(${time_stamp})
+    ${start}    Get Current Date    exclude_millis=yes
+    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
 
@@ -191,7 +191,7 @@ LOGV2DB2
     FOR    ${index}    IN RANGE    60
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
         Log To Console    ${output}
         Sleep    1s
@@ -213,22 +213,22 @@ LOGV2EB2
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date    exclude_millis=yes
-    ${time_stamp}=    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}=    evaluate    int(${time_stamp})
+    ${start}    Get Current Date    exclude_millis=yes
+    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
     Should Be True    ${result1}
     Should Be True    ${result2}
 
@@ -237,7 +237,7 @@ LOGV2EB2
     FOR    ${index}    IN RANGE    60
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
         Log To Console    ${output}
         Sleep    1s
@@ -261,22 +261,22 @@ LOGV2EBU2
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date    exclude_millis=yes
-    ${time_stamp}=    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}=    evaluate    int(${time_stamp})
+    ${start}    Get Current Date    exclude_millis=yes
+    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
+    ${time_stamp2}    Evaluate    int(${time_stamp})
     Sleep    1s
 
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
 
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
     Should Be True    ${result1}
     Should Be True    ${result2}
 
@@ -285,7 +285,7 @@ LOGV2EBU2
     FOR    ${index}    IN RANGE    60
         Log To Console
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}=    Query
+        ${output}    Query
         ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
         Log To Console    ${output}
         Sleep    1s
@@ -308,15 +308,15 @@ LOGV2EF1
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Stop Engine
     Kindly Stop Broker
@@ -333,17 +333,17 @@ LOGV2DF1
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-    ${pid}=    Get Process Id    e0
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+    ${pid}    Get Process Id    e0
+    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    30
+    ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
     Should Not Be True    ${result2}
     Stop Engine
@@ -361,17 +361,17 @@ LOGV2DF2
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
+    ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Not Be True    ${result1}
     Should Not Be True    ${result2}
     Stop Engine
@@ -389,17 +389,17 @@ LOGV2EF2
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
 
-    ${result1}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
-    ${result2}=    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
+    ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
+    ${result2}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_hold}    15
     Should Be True    ${result1}
     Should Be True    ${result2}
     Stop Engine
@@ -419,18 +419,18 @@ LOGV2FE2
 
     Clear Engine Logs
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    Check Connections
-    Should Be True    ${result}    msg=Engine and Broker not connected
-    ${pid}=    Get Process Id    e0
-    ${content_v2}=    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
-    ${content_hold}=    Create List    [${pid}] Configuration loaded, main loop starting.
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+    ${pid}    Get Process Id    e0
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content_hold}    Create List    [${pid}] Configuration loaded, main loop starting.
 
     Sleep    2m
 
-    ${res}=    check engine logs are duplicated    ${engineLog0}    ${start}
-    Should Be True    ${res}    msg=one or other log are not duplicate in logsfile
+    ${res}    Check Engine Logs Are Duplicated    ${engineLog0}    ${start}
+    Should Be True    ${res}    one or other log are not duplicate in logsfile
     Stop Engine
     Kindly Stop Broker
