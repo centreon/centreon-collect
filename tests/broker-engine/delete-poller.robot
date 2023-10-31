@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -33,8 +33,8 @@ EBDP1
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -54,8 +54,8 @@ EBDP1
 
     # Let's wait for the initial service states.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller3
     Sleep    6s
@@ -86,14 +86,14 @@ EBDP2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -108,9 +108,9 @@ EBDP2
 
     ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
-    Should Be True    ${result}    msg=connection closed not found.
+    Should Be True    ${result}    connection closed not found.
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -121,8 +121,8 @@ EBDP2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller2
 
@@ -132,7 +132,7 @@ EBDP2
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -158,14 +158,14 @@ EBDP_GRPC2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -181,9 +181,9 @@ EBDP_GRPC2
 
     ${content}    Create List    feeder 'central-broker-master-input-\d', connection closed
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start_remove}    ${content}    60
-    Should Be True    ${result}    msg=connection closed not found.
+    Should Be True    ${result}    connection closed not found.
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -194,8 +194,8 @@ EBDP_GRPC2
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller2
 
@@ -205,7 +205,7 @@ EBDP_GRPC2
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -225,14 +225,14 @@ EBDP3
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -245,7 +245,7 @@ EBDP3
     Terminate Process    e1
     Terminate Process    e2
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -254,8 +254,8 @@ EBDP3
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller2
 
@@ -265,7 +265,7 @@ EBDP3
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -281,15 +281,15 @@ EBDP4
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
-    Broker Config Flush log    central    0
+    Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -301,25 +301,25 @@ EBDP4
 
     # Let's brutally kill the poller
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
-    ${result}    Find In log with timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=We want the poller 4 event before stopping broker
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    We want the poller 4 event before stopping broker
     Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
     # Generation of many service status but kept in memory on poller3.
     FOR    ${i}    IN RANGE    200
-        Process Service Check result    host_40    service_781    2    service_781 should fail    config3
-        Process Service Check result    host_40    service_782    1    service_782 should fail    config3
+        Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
+        Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
     END
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
     ...    SERVICE ALERT: host_40;service_782;WARNING
-    ${result}    Find In log with timeout    ${engineLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=Service alerts about service 781 and 782 should be raised
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Find In log with timeout    ${moduleLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=pb service status on services (40, 781) and (40, 782) should be generated
+    ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Stop Engine
 
     # Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
@@ -335,8 +335,8 @@ EBDP4
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller3
     FOR    ${index}    IN RANGE    60
@@ -349,13 +349,13 @@ EBDP4
     Start Engine
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
-    log to console    date ${start}
-    ${result}    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should be True    ${result}    msg=No message about these two wrong service status.
+    Log To Console    date ${start}
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine
     Kindly Stop Broker
 
@@ -374,8 +374,8 @@ EBDP5
 
     # Let's wait until engine listens to external_commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -395,16 +395,16 @@ EBDP5
 
     # Let's wait until engine listens to external_commands
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller by id    51001    ${4}
+    Remove Poller By Id    51001    ${4}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
-    ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
-    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
+    ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
     Kindly Stop Broker
@@ -431,14 +431,14 @@ EBDP6
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -451,7 +451,7 @@ EBDP6
     Terminate Process    e1
     Terminate Process    e2
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -462,16 +462,16 @@ EBDP6
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller by id    51001    ${3}
+    Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
-    ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
-    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
+    ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
     Kindly Stop Broker
@@ -479,7 +479,7 @@ EBDP6
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -499,14 +499,14 @@ EBDP7
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog2}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog2}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" != "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((3,),)
@@ -519,7 +519,7 @@ EBDP7
     Terminate Process    e1
     Terminate Process    e2
 
-    log to console    Reconfiguration of 2 pollers
+    Log To Console    Reconfiguration of 2 pollers
     # Poller2 is removed from the engine configuration but still there in centreon_storage DB
     Config Engine    ${2}    ${50}    ${20}
     ${start}    Get Current Date
@@ -528,16 +528,16 @@ EBDP7
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     ${remove_time}    Get Current Date
-    Remove Poller by id    51001    ${3}
+    Remove Poller By Id    51001    ${3}
 
     # wait unified receive instance event
     ${content}    Create List    central-broker-unified-sql read neb:Instance
-    ${result}    Find In Log with Timeout    ${centralLog}    ${remove_time}    ${content}    60
-    Should Be True    ${result}    msg=central-broker-unified-sql read neb:Instance is missing
+    ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
+    Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
     Stop Engine
     Kindly Stop Broker
@@ -545,7 +545,7 @@ EBDP7
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
-        log to console    Output= ${output}
+        Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
@@ -561,15 +561,15 @@ EBDP8
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
-    Broker Config Flush log    central    0
+    Broker Config Flush Log    central    0
     ${start}    Get Current Date
     Start Broker
     Start Engine
 
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
@@ -581,25 +581,25 @@ EBDP8
 
     # Let's brutally kill the poller
     ${content}    Create List    processing poller event (id: 4, name: Poller3, running:
-    ${result}    Find In log with timeout    ${centralLog}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=We want the poller 4 event before stopping broker
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    We want the poller 4 event before stopping broker
     Kindly Stop Broker
     Remove Files    ${centralLog}    ${rrdLog}
 
     # Generation of many service status but kept in memory on poller3.
     FOR    ${i}    IN RANGE    200
-        Process Service Check result    host_40    service_781    2    service_781 should fail    config3
-        Process Service Check result    host_40    service_782    1    service_782 should fail    config3
+        Process Service Check Result    host_40    service_781    2    service_781 should fail    config3
+        Process Service Check Result    host_40    service_782    1    service_782 should fail    config3
     END
     ${content}    Create List
     ...    SERVICE ALERT: host_40;service_781;CRITICAL
     ...    SERVICE ALERT: host_40;service_782;WARNING
-    ${result}    Find In log with timeout    ${engineLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=Service alerts about service 781 and 782 should be raised
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Find In log with timeout    ${moduleLog3}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=pb service status on services (40, 781) and (40, 782) should be generated
+    ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Stop Engine
 
     # Because poller3 is going to be removed, we move its memory file to poller0, 1 and 2.
@@ -612,7 +612,7 @@ EBDP8
 
     # Restart Broker
     Start Broker
-    Remove Poller by id    51001    ${4}
+    Remove Poller By Id    51001    ${4}
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
@@ -623,12 +623,12 @@ EBDP8
     Start Engine
     # Let's wait until engine listens to external_commands.
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=check_for_external_commands is missing.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    check_for_external_commands is missing.
 
     ${content}    Create List    service status (40, 781) thrown away because host 40 is not known by any poller
-    log to console    date ${start}
-    ${result}    Find in Log With Timeout    ${centralLog}    ${start}    ${content}    60
-    Should be True    ${result}    msg=No message about these two wrong service status.
+    Log To Console    date ${start}
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine
     Kindly Stop Broker

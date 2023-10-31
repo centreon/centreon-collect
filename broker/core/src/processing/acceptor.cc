@@ -76,7 +76,8 @@ void acceptor::accept() {
         _read_filters.get_allowed_categories(),
         _write_filters.get_allowed_categories());
     std::shared_ptr<feeder> f =
-        feeder::create(name, u, _read_filters, _write_filters);
+        feeder::create(name, multiplexing::engine::instance_ptr(), u,
+                       _read_filters, _write_filters);
 
     std::lock_guard<std::mutex> lock(_stat_mutex);
     _feeders.push_back(f);

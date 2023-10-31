@@ -58,6 +58,7 @@ class feeder : public stat_visitable,
 
  protected:
   feeder(const std::string& name,
+         const std::shared_ptr<multiplexing::engine>& parent,
          std::shared_ptr<io::stream>& client,
          const multiplexing::muxer_filter& read_filters,
          const multiplexing::muxer_filter& write_filters);
@@ -84,6 +85,7 @@ class feeder : public stat_visitable,
  public:
   static std::shared_ptr<feeder> create(
       const std::string& name,
+      const std::shared_ptr<multiplexing::engine>& parent,
       std::shared_ptr<io::stream>& client,
       const multiplexing::muxer_filter& read_filters,
       const multiplexing::muxer_filter& write_filters);

@@ -144,6 +144,7 @@ class mysql_connection {
       std::list<std::unique_ptr<database::mysql_task>>& tasks_list);
 
   inline void set_need_to_commit() { _need_commit = true; }
+  void _finish();
 
  public:
   /**************************************************************************/
@@ -177,7 +178,6 @@ class mysql_connection {
         stmt, std::move(promise), type));
   }
 
-  void finish();
   bool fetch_row(database::mysql_result& result);
   mysql_bind_mapping get_stmt_mapping(int stmt_id) const;
   bool match_config(database_config const& db_cfg) const;
@@ -198,6 +198,7 @@ class mysql_connection {
     if (!_error.is_active())
       _error.set_message(fmt, args...);
   }
+  void stop();
 };
 
 CCB_END()
