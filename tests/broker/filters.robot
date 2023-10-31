@@ -26,14 +26,14 @@ BFC1
     ...    central-broker-master-sql
     ...    filters
     ...    {"category": ["neb", "foo", "bar"]}
-    ${start}=    Get Round Current Date
+    ${start}    Get Round Current Date
     Start Broker
-    ${content}=    Create List
+    ${content}    Create List
     ...    'foo' is not a known category: cannot find event category 'foo'
     ...    'bar' is not a known category: cannot find event category 'bar'
     ...    Filters applied on endpoint:neb
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg="Only neb filter should be applied on sql output"
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
     Kindly Stop Broker
 
@@ -50,13 +50,13 @@ BFC2
     ...    central-broker-master-sql
     ...    filters
     ...    {"category": ["doe", "foo", "bar"]}
-    ${start}=    Get Round Current Date
+    ${start}    Get Round Current Date
     Start Broker
-    ${content}=    Create List
+    ${content}    Create List
     ...    'doe' is not a known category: cannot find event category 'doe'
     ...    'bar' is not a known category: cannot find event category 'bar'
     ...    Filters applied on endpoint:all
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg="Only neb filter should be applied on sql output"
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    "Only neb filter should be applied on sql output"
 
     Kindly Stop Broker

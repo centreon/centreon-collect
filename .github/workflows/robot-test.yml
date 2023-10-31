@@ -88,19 +88,18 @@ jobs:
           AWS_BUCKET: centreon-collect-robot-report
 
       - name: Move reports
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         run: |
           mkdir reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
-          mv tests/log.html reports/$FILE_PREFIX-log.html
-          mv tests/output.xml reports/$FILE_PREFIX-output.xml
-          mv tests/report.html reports/$FILE_PREFIX-report.html
           if [ -d tests/failed ] ; then
+            mv tests/log.html reports/$FILE_PREFIX-log.html
+            mv tests/output.xml reports/$FILE_PREFIX-output.xml
             mv tests/failed reports/$FILE_PREFIX-failed
           fi
 
       - name: Upload Test Results
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
           name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
@@ -109,7 +108,7 @@ jobs:
 
   robot-test-report:
     needs: [robot-test]
-    if: ${{ !cancelled() }}
+    if: ${{ failure() }}
     runs-on: ubuntu-22.04
 
     steps:

@@ -284,7 +284,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
   auto typ = *it;
   ++it;
   auto lasts = *it;
-  lasts = StripLeadingAsciiWhitespace(lasts);
+  lasts = absl::StripLeadingAsciiWhitespace(lasts);
   auto args = absl::StrSplit(lasts, ';');
   auto ait = args.begin();
 

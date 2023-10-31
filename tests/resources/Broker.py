@@ -1,3 +1,5 @@
+import signal
+from os import setsid
 from os import makedirs
 from os.path import exists, dirname
 import pymysql.cursors
@@ -1323,10 +1325,10 @@ def create_metrics(count: int):
 
 
 def run_reverse_bam(duration, interval):
-    subp.Popen("broker/map_client.py {:f}".format(interval),
-               shell=True, stdout=subp.PIPE, stdin=subp.PIPE)
+    pro = subp.Popen("broker/map_client.py {:f}".format(interval),
+               shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)
-    getoutput("kill -9 $(ps aux | grep map_client.py | awk '{print $2}')")
+    os.killpg(os.getpgid(pro.pid), signal.SIGKILL)
 
 
 def start_map():
@@ -2065,3 +2067,16 @@ def check_victoria_metric(request_body: str, min_timestamp: int,  **to_check):
 
 def check_victoria_status(request_body: str, min_timestamp: int,  **to_check):
     return check_victoria_data(request_body, "status", min_timestamp, **to_check)
+
+
+def dump_ba(port, index: int, filename: str):
+    with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+        stub = broker_pb2_grpc.BrokerStub(channel)
+        info = broker_pb2.BaInfo()
+        info.id = index
+        info.output_file = filename
+        try:
+            stub.GetBa(info)
+            logger.console(f"BA {index} dump to {filename}")
+        except:
+            logger.console("gRPC server not ready")
