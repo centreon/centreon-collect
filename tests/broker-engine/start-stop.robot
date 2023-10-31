@@ -95,9 +95,8 @@ BESS5
     Start Broker
     Start Engine
     ${result}    Check Connections
-    Should Be True    ${result}
-    Kindly Stop Broker
-    Stop Engine
+    Should Be True    ${result}    Broker and Engine seem not connected
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BESS_GRPC1
     [Documentation]    Start-Stop grpc version Broker/Engine - Broker started first - Broker stopped first
@@ -106,10 +105,10 @@ BESS_GRPC1
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Start Broker
     Start Engine
     ${result}    Check Connections
@@ -124,10 +123,10 @@ BESS_GRPC2
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Start Broker
     Start Engine
     ${result}    Check Connections
@@ -146,10 +145,10 @@ BESS_GRPC3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Start Engine
     Start Broker
     ${result}    Check Connections
@@ -168,10 +167,10 @@ BESS_GRPC4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Start Engine
     Start Broker
     ${result}    Check Connections
@@ -187,10 +186,10 @@ BESS_GRPC5
     Config Broker    module
     Config Broker    rrd
     Engine Config Set Value    ${0}    debug_level    ${-1}
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Start Broker
     Start Engine
     ${result}    Check Connections
@@ -209,10 +208,10 @@ BESS_GRPC_COMPRESS1
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
     Change Broker Compression Output    module0    central-module-master-output    yes
     Change Broker Compression Input    central    centreon-broker-master-input    yes
     Start Broker
@@ -236,14 +235,14 @@ BESS_CRYPTED_GRPC1
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
-    Add Broker tcp output grpc crypto    module0    True    False
-    Add Broker tcp input grpc crypto    central    True    False
-    Remove Host from broker output    module0    central-module-master-output
-    Add Host to broker output    module0    central-module-master-output    localhost
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
+    Add Broker Tcp Output Grpc Crypto    module0    True    False
+    Add Broker Tcp Input Grpc Crypto    central    True    False
+    Remove Host From Broker Output    module0    central-module-master-output
+    Add Host To Broker Output    module0    central-module-master-output    localhost
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
@@ -267,11 +266,11 @@ BESS_CRYPTED_GRPC2
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
-    Add Broker tcp input grpc crypto    central    True    False
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
+    Add Broker Tcp Input Grpc Crypto    central    True    False
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
@@ -290,11 +289,11 @@ BESS_CRYPTED_GRPC3
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
-    Add Broker tcp output grpc crypto    module0    True    False
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
+    Add Broker Tcp Output Grpc Crypto    module0    True    False
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
@@ -313,14 +312,14 @@ BESS_CRYPTED_REVERSED_GRPC1
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
-    Add Broker tcp output grpc crypto    module0    True    True
-    Add Broker tcp input grpc crypto    central    True    True
-    Add Host to broker input    central    central-broker-master-input    localhost
-    Remove Host from broker output    module0    central-module-master-output
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
+    Add Broker Tcp Output Grpc Crypto    module0    True    True
+    Add Broker Tcp Input Grpc Crypto    central    True    True
+    Add Host To Broker Input    central    central-broker-master-input    localhost
+    Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
@@ -341,13 +340,13 @@ BESS_CRYPTED_REVERSED_GRPC2
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.key    /tmp/
     Copy File    ../broker/grpc/test/grpc_test_keys/server_1234.crt    /tmp/
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
-    Add Broker tcp output grpc crypto    module0    True    True
-    Add Host to broker input    central    central-broker-master-input    localhost
-    Remove Host from broker output    module0    central-module-master-output
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
+    Add Broker Tcp Output Grpc Crypto    module0    True    True
+    Add Host To Broker Input    central    central-broker-master-input    localhost
+    Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
@@ -364,13 +363,13 @@ BESS_CRYPTED_REVERSED_GRPC3
     Config Broker    module
     Config Broker    rrd
     Copy File    ../broker/grpc/test/grpc_test_keys/ca_1234.crt    /tmp/
-    Change Broker tcp output to grpc    central
-    Change Broker tcp output to grpc    module0
-    Change Broker tcp input to grpc    central
-    Change Broker tcp input to grpc    rrd
-    Add Broker tcp input grpc crypto    central    True    True
-    Add Host to broker input    central    central-broker-master-input    localhost
-    Remove Host from broker output    module0    central-module-master-output
+    Change Broker Tcp Output To Grpc    central
+    Change Broker Tcp Output To Grpc    module0
+    Change Broker Tcp Input To Grpc    central
+    Change Broker Tcp Input To Grpc    rrd
+    Add Broker Tcp Input Grpc Crypto    central    True    True
+    Add Host To Broker Input    central    central-broker-master-input    localhost
+    Remove Host From Broker Output    module0    central-module-master-output
     FOR    ${i}    IN RANGE    0    5
         Start Broker
         Start Engine
@@ -390,14 +389,14 @@ BESS_ENGINE_DELETE_HOST
     Start Broker    True
     Start Engine
     ${content}    Create List    check_for_external_commands
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
     Kindly Stop Broker    True
     Start Broker    True
-    engine_config_remove_service_host    ${0}    host_16
-    engine_config_remove_host    ${0}    host_16
+    Engine Config Remove Service Host    ${0}    host_16
+    Engine Config Remove Host    ${0}    host_16
     Reload Engine
     Sleep    2s
     Kindly Stop Broker    True
@@ -417,7 +416,7 @@ BESSBQ1
     Broker Config Log    central    core    debug
     Config Broker Sql Output    central    unified_sql
     Clear Retention
-    Create bad queue    central-broker-master.queue.central-broker-master-sql
+    Create Bad Queue    central-broker-master.queue.central-broker-master-sql
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -440,10 +439,10 @@ Start_Stop_Engine_Broker_${id}
     Broker Config Log    central    processing    info
     Config Broker Sql Output    central    unified_sql
     IF    ${grpc}
-        Change Broker tcp output to grpc    central
-        Change Broker tcp output to grpc    module0
-        Change Broker tcp input to grpc    central
-        Change Broker tcp input to grpc    rrd
+        Change Broker Tcp Output To Grpc    central
+        Change Broker Tcp Output To Grpc    module0
+        Change Broker Tcp Input To Grpc    central
+        Change Broker Tcp Input To Grpc    rrd
     END
     ${start}    Get Current Date
     Start Broker
@@ -457,7 +456,7 @@ Start_Stop_Engine_Broker_${id}
     ${start_stop}    Get Current Date
     Stop Engine
     ${content}    Create List    feeder 'central-broker-master-input-1', connection closed
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start_stop}    ${content}    60
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start_stop}    ${content}    60
     Should Be True    ${result}    connection closed not found
 
     Examples:    id    grpc    --
@@ -475,10 +474,10 @@ Start_Stop_Broker_Engine_${id}
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    debug
     IF    ${grpc}
-        Change Broker tcp output to grpc    central
-        Change Broker tcp output to grpc    module0
-        Change Broker tcp input to grpc    central
-        Change Broker tcp input to grpc    rrd
+        Change Broker Tcp Output To Grpc    central
+        Change Broker Tcp Output To Grpc    module0
+        Change Broker Tcp Input To Grpc    central
+        Change Broker Tcp Input To Grpc    rrd
     END
     ${start}    Get Current Date
 

@@ -47,7 +47,8 @@ static constexpr multiplexing::muxer_filter _monitoring_stream_filter = {
     neb::downtime::static_type(),        neb::pb_downtime::static_type(),
     bam::ba_status::static_type(),       bam::pb_ba_status::static_type(),
     bam::kpi_status::static_type(),      bam::pb_kpi_status::static_type(),
-    inherited_downtime::static_type(),   pb_inherited_downtime::static_type()};
+    inherited_downtime::static_type(),   pb_inherited_downtime::static_type(),
+    extcmd::pb_ba_info::static_type()};
 
 static constexpr multiplexing::muxer_filter _reporting_stream_filter = {
     bam::kpi_event::static_type(),

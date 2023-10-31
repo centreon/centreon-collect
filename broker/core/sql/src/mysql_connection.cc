@@ -19,6 +19,7 @@
 
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/log_v2.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -889,7 +890,7 @@ void mysql_connection::_run() {
             SPDLOG_LOGGER_ERROR(log_v2::sql(), "SQL: Reconnection failed.");
             reconnect_failed_logged = true;
           } else if (config::applier::mode == config::applier::finished) {
-            finish();
+            _finish();
             /* We avoid deadlocks in case of broker termination and database
              * error */
             _send_exceptions_to_task_futures(tasks_list);
@@ -909,6 +910,8 @@ void mysql_connection::_run() {
     }
   }
   _clear_connection();
+  _state = finished;
+  _start_condition.notify_all();
   mysql_thread_end();
   log_v2::core()->trace("mysql connection main loop finished.");
 }
@@ -1051,6 +1054,7 @@ void mysql_connection::_process_while_empty_task(
 
   if (_tasks_list.empty()) {
     _state = finished;
+    _start_condition.notify_all();
   } else {
     tasks_list.swap(_tasks_list);
     lock.unlock();
@@ -1087,6 +1091,8 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()),
       _category(db_cfg.get_category()) {
+  DEBUG(fmt::format("CONSTRUCTOR mysql_connection {:p}",
+                    static_cast<void*>(this)));
   std::unique_lock<std::mutex> lck(_start_m);
   SPDLOG_LOGGER_INFO(log_v2::sql(),
                      "mysql_connection: starting connection {:p} to {}",
@@ -1114,9 +1120,11 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
 mysql_connection::~mysql_connection() {
   SPDLOG_LOGGER_INFO(log_v2::sql(), "mysql_connection {:p}: finished",
                      static_cast<const void*>(this));
-  finish();
+  stop();
   stats::center::instance().remove_connection(_proto_stats);
   _thread->join();
+  DEBUG(fmt::format("DESTRUCTOR mysql_connection {:p}",
+                    static_cast<void*>(this)));
 }
 
 void mysql_connection::_push(std::unique_ptr<mysql_task>&& q) {
@@ -1186,10 +1194,27 @@ void mysql_connection::run_statement_and_get_result(
                                                    std::move(promise)));
 }
 
-void mysql_connection::finish() {
+/**
+ * @brief Asks the mysql_connection main thread to be stopped. It doesn't wait
+ * for it to happen. If you want to wait, call stop().
+ */
+void mysql_connection::_finish() {
   std::lock_guard<std::mutex> lock(_tasks_m);
   _finish_asked = true;
   _tasks_condition.notify_all();
+}
+
+/**
+ * @brief Stop the mysql_connection and waits for it to be completly stopped.
+ * This function mustn't be called from the mysql_connection main thread
+ * or we'll have a deadlock.
+ */
+void mysql_connection::stop() {
+  _finish();
+  {
+    std::unique_lock<std::mutex> lock(_start_m);
+    _start_condition.wait(lock, [this] { return _state == finished; });
+  }
 }
 
 bool mysql_connection::fetch_row(mysql_result& result) {

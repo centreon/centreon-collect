@@ -76,6 +76,31 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
     return False
 
 
+def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
+    port1 = int(port1)
+    port2 = int(port2)
+    rng = range(port1, port2 + 1)
+    limit = time.time() + timeout
+    r = re.compile(rf"^LISTEN [0-9]+\s+[0-9]+\s+\[::1\]:([0-9]+)\s+.*{prog}")
+    size = port2 - port1 + 1
+
+    def ok(l):
+        m = r.match(l)
+        if m:
+            value = int(m.group(1))
+            if int(m.group(1)) in rng:
+                return True
+        return False
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        listen_port = list(filter(ok, lst))
+        if len(listen_port) >= size:
+            return True
+    return False
+
+
 def get_date(d: str):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
@@ -345,9 +370,9 @@ def engine_log_table_duplicate(result: list):
 
 def check_engine_logs_are_duplicated(log: str, date):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
+
         idx = find_line_from(lines, date)
         count_true = 0
         count_false = 0
@@ -417,16 +442,15 @@ def find_line_from(lines, date):
     return idx
 
 
-def check_reschedule(log: str, date, content: str):
+def check_reschedule(log: str, date, content: str, retry: bool):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
+
         idx = find_line_from(lines, date)
 
-        retry_check = False
-        normal_check = False
-        r = re.compile(".* last check at (.*) and next check at (.*)$")
+        r = re.compile(r".* last check at (.*) and next check at (.*)$")
+        target = 60 if retry else 300
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
@@ -436,30 +460,26 @@ def check_reschedule(log: str, date, content: str):
                 if m:
                     delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
                         datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
-                    if delta == 60:
-                        retry_check = True
-                    elif delta == 300:
-                        normal_check = True
-                else:
-                    logger.console(
-                        f"Unable to find last check and next check in the line '{line}'")
-                    return False, False
-        logger.console(f"loop finished with {retry_check}, {normal_check}")
-        return retry_check, normal_check
+                    # delta is near target
+                    if abs(delta - target) < 2:
+                        return True
+        logger.console(
+            f"loop finished without finding a line '{content}' with a duration of {target}s")
+        return False
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
-        return False, False
+        return False
 
 
-def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
+def check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        v1, v2 = check_reschedule(log, date, content)
-        if v1 and v2:
-            return v1, v2
+        v = check_reschedule(log, date, content, retry)
+        if v:
+            return True
         time.sleep(5)
-    return False, False
+    return False
 
 
 def clear_commands_status():
@@ -747,7 +767,7 @@ def check_ba_status_with_timeout(ba_name: str, status: int, timeout: int):
                     f"SELECT * FROM mod_bam WHERE name='{ba_name}'")
                 result = cursor.fetchall()
                 logger.console(f"ba: {result[0]}")
-                if result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
+                if len(result) > 0 and result[0]['current_status'] is not None and int(result[0]['current_status']) == int(status):
                     return True
         time.sleep(5)
     return False
@@ -802,6 +822,40 @@ def check_downtimes_with_timeout(nb: int, timeout: int):
                             f"We should have {nb} downtimes but we have {result[0]['count(*)']}")
         time.sleep(2)
     return False
+
+
+# def check_host_downtime_with_timeout(hostname: str, enabled, timeout: int):
+#    limit = time.time() + timeout
+#    while time.time() < limit:
+#        connection = pymysql.connect(host=DB_HOST,
+#                                     user=DB_USER,
+#                                     password=DB_PASS,
+#                                     database=DB_NAME_STORAGE,
+#                                     charset='utf8mb4',
+#                                     cursorclass=pymysql.cursors.DictCursor)
+#
+#        with connection:
+#            with connection.cursor() as cursor:
+#                if enabled != '0':
+#                    cursor.execute(
+#                        f"SELECT h.scheduled_downtime_depth FROM downtimes d INNER JOIN hosts h ON d.host_id=h.host_id AND d.service_id=0 WHERE d.deletion_time is null AND h.name='{hostname}'")
+#                    result = cursor.fetchall()
+#                    if len(result) == int(enabled) and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == int(enabled):
+#                        return True
+#                    if (len(result) > 0):
+#                        logger.console(
+#                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth={result[0]['scheduled_downtime_depth']}")
+#                    else:
+#                        logger.console(
+#                            f"{len(result)} downtimes for host {hostname} scheduled_downtime_depth=None")
+#                else:
+#                    cursor.execute(
+#                        f"SELECT h.scheduled_downtime_depth, d.deletion_time, d.downtime_id FROM hosts h LEFT JOIN downtimes d ON h.host_id = d.host_id AND d.service_id=0 WHERE h.name='{hostname}'")
+#                    result = cursor.fetchall()
+#                    if len(result) > 0 and not result[0]['scheduled_downtime_depth'] is None and result[0]['scheduled_downtime_depth'] == 0 and (result[0]['downtime_id'] is None or not result[0]['deletion_time'] is None):
+#                        return True
+#        time.sleep(1)
+#    return False
 
 
 def check_service_downtime_with_timeout(hostname: str, service_desc: str, enabled, timeout: int):
@@ -877,12 +931,12 @@ def check_host_check_with_timeout(hostname: str, timeout: int, command_line: str
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT h.command_line FROM hosts h WHERE  h.name=\"{hostname}\"")
+                    f"SELECT command_line FROM hosts WHERE name='{hostname}'")
                 result = cursor.fetchall()
                 if len(result) > 0:
                     logger.console(
                         f"command_line={result[0]['command_line']} ")
-                    if result[0]['command_line'] is not None and result[0]['command_line'] == command_line:
+                    if result[0]['command_line'] is not None and command_line in result[0]['command_line']:
                         return True
         time.sleep(1)
     return False
@@ -1054,10 +1108,10 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
 
         with connection:
             with connection.cursor() as cursor:
-                logger.console("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
-                cursor.execute("select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={} and r.parent_id={} and t.type={}".format(
-                    mid, parent_id, t))
+                logger.console(
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
+                cursor.execute(
+                    f"select t.id from resources r inner join resources_tags rt on r.resource_id=rt.resource_id inner join tags t on rt.tag_id=t.tag_id WHERE r.id={mid} and r.parent_id={parent_id} and t.type={t}")
                 result = cursor.fetchall()
                 logger.console(result)
                 if not enabled:
@@ -1079,8 +1133,8 @@ def check_resources_tags_with_timeout(parent_id: int, mid: int, typ: str, tag_id
                                 break
                         return True
                     else:
-                        logger.console("different sizes: result:{} and tag_ids:{}".format(
-                            len(result), len(tag_ids)))
+                        logger.console(
+                            f"Result and tag_ids should have the same size, moreover 'id' in result should be values of tag_ids, result size = {len(result)} and tag_ids size = {len(tag_ids)} - their content are result: {result} and tag_ids: {tag_ids}")
                 else:
                     logger.console("result")
                     logger.console(result)

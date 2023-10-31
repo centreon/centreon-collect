@@ -27,6 +27,7 @@
 #include <grpc/impl/codegen/log.h>
 
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "com/centreon/broker/misc/misc.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -90,6 +91,7 @@ log_v2::log_v2(const std::shared_ptr<asio::io_context>& io_context)
       _flush_timer(*io_context),
       _flush_timer_active(true),
       _io_context(io_context) {
+  DEBUG(fmt::format("CONSTRUCTOR log_v2 {:p}", static_cast<void*>(this)));
   auto stdout_sink = std::make_shared<sinks::stdout_color_sink_mt>();
   auto create_logger = [&](const std::string& name) {
     std::shared_ptr<spdlog::logger> log =
@@ -128,6 +130,7 @@ log_v2::~log_v2() noexcept {
   _running = false;
   for (auto& l : _log)
     l.reset();
+  DEBUG(fmt::format("DESTRUCTOR log_v2 {:p}", static_cast<void*>(this)));
 }
 
 void log_v2::apply(const config::state& conf) {
