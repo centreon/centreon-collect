@@ -48,6 +48,8 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
       _read_filters_str(misc::dump_filters(_read_filters)),
       _write_filters(w_filter),
       _write_filters_str(misc::dump_filters(_write_filters)) {
+  DEBUG(fmt::format("PROCESSING::ACCEPTOR constructor {}",
+                    static_cast<void*>(this)));
   log_v2::instance().get(1)->trace(
       "processing::acceptor '{}': read filter <<{}>> ; write filter <<{}>>",
       name, _read_filters_str, _write_filters_str);
@@ -58,6 +60,8 @@ acceptor::acceptor(std::shared_ptr<io::endpoint> endp,
  */
 acceptor::~acceptor() {
   exit();
+  DEBUG(fmt::format("PROCESSING::ACCEPTOR destructor {}",
+                    static_cast<void*>(this)));
 }
 
 /**
@@ -114,6 +118,8 @@ void acceptor::exit() {
   }
 
   for (auto& feeder : _feeders) {
+    DEBUG(fmt::format("PROCESSING ACCEPTOR {} STOP feeder {}", _name,
+                      static_cast<void*>(feeder.get())));
     feeder->stop();
   }
   _feeders.clear();

@@ -25,6 +25,7 @@
 #include <system_error>
 
 #include "com/centreon/broker/io/raw.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/tcp/acceptor.hh"
 #include "com/centreon/broker/tcp/tcp_async.hh"
@@ -59,6 +60,9 @@ stream::stream(const tcp_config::pointer& conf)
   _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
   _logger->info("{} TCP streams are configured on a thread pool of {} threads",
                 _total_tcp_count, pool::instance().get_pool_size());
+  DEBUG(fmt::format("CONSTRUCTOR tcp stream {} with connection {}",
+                    static_cast<void*>(this),
+                    static_cast<void*>(_connection.get())));
 }
 
 /**
@@ -81,12 +85,18 @@ stream::stream(const tcp_connection::pointer& conn,
   _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());
   _logger->info("{} TCP streams are configured on a thread pool of {} threads",
                 _total_tcp_count, pool::instance().get_pool_size());
+  DEBUG(fmt::format("CONSTRUCTOR 2 tcp stream {} with connection {}",
+                    static_cast<void*>(this),
+                    static_cast<void*>(_connection.get())));
 }
 
 /**
  *  Destructor.
  */
 stream::~stream() noexcept {
+  DEBUG(fmt::format("DESTRUCTOR tcp stream {} with connection {}",
+                    static_cast<void*>(this),
+                    static_cast<void*>(_connection.get())));
   _total_tcp_count--;
   _logger->info(
       "TCP stream destroyed. Still {} configured on a thread pool of {} "
@@ -98,6 +108,9 @@ stream::~stream() noexcept {
 
   if (_parent)
     _parent->remove_child(peer());
+  DEBUG(fmt::format(
+      "DESTRUCTOR end of function tcp stream {} with connection {}",
+      static_cast<void*>(this), static_cast<void*>(_connection.get())));
 }
 
 /**
@@ -155,12 +168,14 @@ int32_t stream::flush() {
 }
 
 int32_t stream::stop() {
+  DEBUG(fmt::format("STOP tcp stream {}", static_cast<void*>(this)));
   int32_t retval = 0;
   try {
-    retval = flush();
+    retval = _connection->close();
   } catch (const std::exception& e) {
     _logger->error("tcp: error during stop: {}", e.what());
   }
+  DEBUG(fmt::format("STOP STOPPED tcp stream {}", static_cast<void*>(this)));
   return retval;
 }
 
