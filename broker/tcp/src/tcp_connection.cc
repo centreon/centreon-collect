@@ -1,23 +1,24 @@
 /**
-* Copyright 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2020-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 #include "com/centreon/broker/tcp/tcp_connection.hh"
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -54,7 +55,9 @@ tcp_connection::tcp_connection(asio::io_context& io_context,
       _address(host),
       _port(port),
       _logger_id{log_v2::instance().create_logger_or_get_id("tcp")},
-      _logger{log_v2::instance().get(_logger_id)} {}
+      _logger{log_v2::instance().get(_logger_id)} {
+  DEBUG(fmt::format("CONSTRUCTOR tcp_connection {}", static_cast<void*>(this)));
+}
 
 /**
  * @brief Destructor
@@ -62,6 +65,7 @@ tcp_connection::tcp_connection(asio::io_context& io_context,
 tcp_connection::~tcp_connection() noexcept {
   _logger->trace("Connection to {}:{} destroyed.", _address, _port);
   close();
+  DEBUG(fmt::format("DESTRUCTOR tcp_connection {}", static_cast<void*>(this)));
 }
 
 /**
@@ -211,8 +215,8 @@ void tcp_connection::handle_write(const boost::system::error_code& ec) {
     if (ec == _eof_error)
       _logger->debug("write: socket closed: {}", _address);
     else
-      _logger->error("Error while writing on tcp socket to {}: {}",
-                           _address, ec.message());
+      _logger->error("Error while writing on tcp socket to {}: {}", _address,
+                     ec.message());
     std::lock_guard<std::mutex> lck(_error_m);
     _current_error = ec;
     _writing = false;
@@ -263,8 +267,8 @@ void tcp_connection::handle_read(const boost::system::error_code& ec,
     if (ec == _eof_error)
       _logger->debug("read: socket closed: {}", _address);
     else
-      _logger->error("Error while reading on socket from {}: {}",
-                           _address, ec.message());
+      _logger->error("Error while reading on socket from {}: {}", _address,
+                     ec.message());
     std::lock_guard<std::mutex> lck(_read_queue_m);
     _closing = true;
     _read_queue_cv.notify_one();
@@ -275,8 +279,10 @@ void tcp_connection::handle_read(const boost::system::error_code& ec,
 /**
  * @brief Shutdown the socket. If there are data to write, they are written
  * before the socket to be closed.
+ *
+ * @return written data during the close.
  */
-void tcp_connection::close() {
+int32_t tcp_connection::close() {
   _logger->trace("closing tcp connection");
   if (!_closed) {
     std::chrono::system_clock::time_point timeout =
@@ -298,6 +304,13 @@ void tcp_connection::close() {
     _logger->trace("socket shutdown with message: {}", ec.message());
     _socket.close(ec);
     _logger->trace("socket closed with message: {}", ec.message());
+    int32_t retval = _acks;
+    if (_acks) {
+      /* Do not set it to zero directly, maybe it has already been incremented
+       * by another operation */
+      _acks -= retval;
+      return retval;
+    }
   }
 }
 

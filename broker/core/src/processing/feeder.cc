@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2012,2015,2017, 2020-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2012,2015,2017, 2020-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/processing/feeder.hh"
 
@@ -55,10 +55,15 @@ std::shared_ptr<feeder> feeder::create(
     const multiplexing::muxer_filter& write_filters) {
   std::shared_ptr<feeder> ret(
       new feeder(name, parent, client, read_filters, write_filters));
+  DEBUG(fmt::format("FEEDER CREATE1 => {}", ret.use_count()));
   ret->_start_stat_timer();
 
+  DEBUG(fmt::format("FEEDER CREATE2 => {}", ret.use_count()));
+
   ret->_read_from_muxer();
+  DEBUG(fmt::format("FEEDER CREATE3 => {}", ret.use_count()));
   ret->_start_read_from_stream_timer();
+  DEBUG(fmt::format("FEEDER CREATE4 => {}", ret.use_count()));
   return ret;
 }
 
@@ -105,8 +110,8 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy feeder {}, {:p}", get_name(),
-                      static_cast<const void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy feeder {}, {:p}",
+                      get_name(), static_cast<const void*>(this));
   stop();
   DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));
 }
@@ -272,6 +277,8 @@ void feeder::stop() {
  *
  */
 void feeder::_stop_no_lock() {
+  DEBUG(
+      fmt::format("STOP FEEDER use_count = {}", weak_from_this().use_count()));
   auto logger = log_v2::instance().get(_logger_id);
   SPDLOG_LOGGER_INFO(logger, "{} Stop without lock called", _name);
   state expected = state::running;
@@ -283,8 +290,15 @@ void feeder::_stop_no_lock() {
 
   // muxer should not receive events
   _muxer->unsubscribe();
+  _muxer->stop();
+  DEBUG(fmt::format("STOP FEEDER muxer cancel use_count = {}",
+                    weak_from_this().use_count()));
   _stat_timer.cancel();
+  DEBUG(fmt::format("STOP FEEDER stat cancel use_count = {}",
+                    weak_from_this().use_count()));
   _read_from_stream_timer.cancel();
+  DEBUG(fmt::format("STOP FEEDER stream cancel use_count = {}",
+                    weak_from_this().use_count()));
 
   /* We don't get back the return value of stop() because it has non sense,
    * the only interest in calling stop() is to send an acknowledgement to the
@@ -301,6 +315,8 @@ void feeder::_stop_no_lock() {
   SPDLOG_LOGGER_INFO(logger, "feeder: {} terminated", _name);
   // in order to avoid circular owning
   _muxer->clear_read_handler();
+  DEBUG(fmt::format("STOP FEEDER FINISHED use_count = {}",
+                    weak_from_this().use_count()));
 }
 
 /**
@@ -332,11 +348,13 @@ bool feeder::wait_for_all_events_written(unsigned ms_timeout) {
  */
 void feeder::_start_stat_timer() {
   std::unique_lock<std::timed_mutex> l(_protect);
-  _stat_timer.expires_from_now(std::chrono::seconds(5));
-  _stat_timer.async_wait(
-      [me = shared_from_this()](const boost::system::error_code& err) {
-        me->_stat_timer_handler(err);
-      });
+  if (_state == state::running) {
+    _stat_timer.expires_from_now(std::chrono::seconds(5));
+    _stat_timer.async_wait(
+        [me = shared_from_this()](const boost::system::error_code& err) {
+          me->_stat_timer_handler(err);
+        });
+  }
 }
 
 /**
@@ -363,12 +381,15 @@ void feeder::_stat_timer_handler(const boost::system::error_code& err) {
  */
 void feeder::_start_read_from_stream_timer() {
   std::unique_lock<std::timed_mutex> l(_protect);
-  _read_from_stream_timer.expires_from_now(
-      std::chrono::microseconds(idle_microsec_wait_idle_thread_delay));
-  _read_from_stream_timer.async_wait(
-      [me = shared_from_this()](const boost::system::error_code& err) {
-        me->_read_from_stream_timer_handler(err);
-      });
+  if (_state == state::running) {
+    _read_from_stream_timer.expires_from_now(
+        std::chrono::microseconds(idle_microsec_wait_idle_thread_delay));
+    _read_from_stream_timer.async_wait(
+        [me = shared_from_this()](const boost::system::error_code& err) {
+          me->_read_from_stream_timer_handler(err);
+        });
+  } else
+    DEBUG(fmt::format("FEEDER4 FINISHED => {}", weak_from_this().use_count()));
 }
 
 /**
@@ -419,6 +440,8 @@ void feeder::_read_from_stream_timer_handler(
     set_last_error("");
     SPDLOG_LOGGER_INFO(logger, "feeder '{}', connection closed", _name);
     _muxer->write(events_to_publish);
+    DEBUG(fmt::format("CONNECTION CLOSED => STOP exception feeder {} {:x}",
+                      _name, static_cast<void*>(this)));
     stop();
     return;
   } catch (const std::exception& e) {
@@ -426,6 +449,8 @@ void feeder::_read_from_stream_timer_handler(
     SPDLOG_LOGGER_ERROR(logger, "from client feeder '{}' error:{} ", _name,
                         e.what());
     _muxer->write(events_to_publish);
+    DEBUG(fmt::format("EXCEPTION => STOP exception feeder {} {:x}", _name,
+                      static_cast<void*>(this)));
     stop();
     return;
   } catch (...) {
@@ -434,6 +459,8 @@ void feeder::_read_from_stream_timer_handler(
                         "processing client '{}'",
                         _name);
     _muxer->write(events_to_publish);
+    DEBUG(fmt::format("OTHER EXCEPTION => STOP exception feeder {} {:x}", _name,
+                      static_cast<void*>(this)));
     stop();
     return;
   }

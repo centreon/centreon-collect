@@ -75,7 +75,7 @@ class tcp_connection : public std::enable_shared_from_this<tcp_connection> {
   void handle_read(const boost::system::error_code& ec, size_t read_bytes);
   std::vector<char> read(time_t timeout_time, bool* timeout);
 
-  void close();
+  int32_t close();
 
   bool is_closed() const;
   void update_peer(boost::system::error_code& ec);

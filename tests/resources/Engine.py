@@ -356,22 +356,21 @@ define command {
 
     @staticmethod
     def create_severities(poller: int, nb: int, offset: int):
-        config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
-        ff = open(config_file, "w+")
-        content = ""
-        typ = ["service", "host"]
-        for i in range(nb):
-            level = i % 5 + 1
-            content += """define severity {{
-    id                     {0}
-    severity_name          severity{3}
-    level                  {1}
-    icon_id                {2}
-    type                   {4}
-}}
-""".format(i + 1, level, 6 - level, i + offset, typ[i % 2])
-        ff.write(content)
-        ff.close()
+        config_file = f"{CONF_DIR}/config{poller}/severities.cfg"
+        with open(config_file, "w+") as ff:
+            content = ""
+            typ = ["service", "host"]
+            for i in range(nb):
+                level = i % 5 + 1
+                content += """define severity {{
+        id                     {0}
+        severity_name          severity{3}
+        level                  {1}
+        icon_id                {2}
+        type                   {4}
+    }}
+    """.format(i + 1, level, 6 - level, i + offset, typ[i % 2])
+            ff.write(content)
 
     @staticmethod
     def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):

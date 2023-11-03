@@ -1,5 +1,5 @@
 /**
-* Copyright 2009-2013,2015-2017,2019-2021 Centreon
+* Copyright 2009-2013,2015-2017,2019-2023 Centreon
 *
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
@@ -269,6 +269,8 @@ int32_t muxer::stop() {
                      "Stopping muxer {}: number of events in the queue: {}",
                      _name, _events_size);
   std::lock_guard<std::mutex> lck(_mutex);
+  if (_read_handler)
+    _read_handler = nullptr;
   _update_stats();
   DEBUG(fmt::format("STOP muxer {:p} {}", static_cast<void*>(this), _name));
   return 0;

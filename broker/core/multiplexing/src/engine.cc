@@ -202,12 +202,12 @@ void engine::stop() {
 
     do {
       // Make sure that no more data is available.
-      if (!_sending_to_subscribers) {
+      bool expected = false;
+      if (_sending_to_subscribers.compare_exchange_strong(expected, true)) {
         log_v2::instance().get(0)->info(
             "multiplexing: sending events to muxers for the last time {} "
             "events to send",
             _kiew.size());
-        _sending_to_subscribers = true;
         lock.unlock();
         std::promise<void> promise;
         if (_send_to_subscribers([&promise]() { promise.set_value(); })) {
@@ -367,9 +367,8 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
   {
     std::lock_guard<std::mutex> lck(_engine_m);
     if (_muxers.empty() || _kiew.empty()) {
-      // nothing to do true => _sending_to_subscribers
-      bool expected = true;
-      _sending_to_subscribers.compare_exchange_strong(expected, false);
+      // nothing to do
+      _sending_to_subscribers = false;
       return false;
     }
 
@@ -419,7 +418,7 @@ bool engine::_send_to_subscribers(std::function<void()>&& callback) {
 }
 
 /**
- *  Clear events stored in the multiplexing engine.
+ * @brief Clear events stored in the multiplexing engine.
  */
 void engine::clear() {
   std::lock_guard<std::mutex> lck(_engine_m);
