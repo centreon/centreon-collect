@@ -50,18 +50,6 @@ if(WITH_DEBUG_ASIO)
   )
 endif()
 
-# With libasan
-option(WITH_ASAN
-       "Add the libasan to check memory leaks and other memory issues." OFF)
-
-if(WITH_ASAN)
-  set(CMAKE_BUILD_TYPE Debug)
-  set(CMAKE_CXX_FLAGS_DEBUG
-      "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-  set(CMAKE_LINKER_FLAGS_DEBUG
-      "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-endif()
-
 # Default MySQL socket
 if(OS_DISTRIBUTOR STREQUAL "Debian" OR OS_DISTRIBUTOR STREQUAL "Ubuntu")
   message(STATUS "deb based os")
@@ -491,7 +479,8 @@ target_link_libraries(
   ${CONAN_LIBS_PROTOBUF}
   "-Wl,--no-whole-archive"
   CONAN_PKG::spdlog
-  CONAN_PKG::grpc)
+  CONAN_PKG::grpc
+  CONAN_PKG::abseil)
 
 # Centreon Broker Watchdog
 option(WITH_CBWD "Build centreon broker watchdog." ON)
