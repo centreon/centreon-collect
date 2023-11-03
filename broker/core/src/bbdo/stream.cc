@@ -1,20 +1,20 @@
 /*
-** Copyright 2013,2015,2017, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2013,2015,2017, 2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/bbdo/stream.hh"
 
@@ -580,6 +580,7 @@ stream::stream(bool is_input,
       _bbdo_version(config::applier::state::instance().get_bbdo_version()),
       _logger_id{log_v2::instance().create_logger_or_get_id("bbdo")},
       _logger{log_v2::instance().get(_logger_id)} {
+  DEBUG(fmt::format("CONSTRUCTOR bbdo stream {}", static_cast<void*>(this)));
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "create bbdo stream {:p}",
                       static_cast<const void*>(this));
 }
@@ -589,8 +590,11 @@ stream::stream(bool is_input,
  *
  */
 stream::~stream() {
+  DEBUG(fmt::format("DESTRUCTOR bbdo stream {}", static_cast<void*>(this)));
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy bbdo stream {:p}",
                       static_cast<const void*>(this));
+  DEBUG(fmt::format("DESTRUCTOR end of the function bbdo stream {}",
+                    static_cast<void*>(this)));
 }
 
 /**
@@ -600,6 +604,7 @@ stream::~stream() {
  * @return The number of events to acknowledge.
  */
 int32_t stream::stop() {
+  DEBUG(fmt::format("STOP bbdo stream {}", static_cast<void*>(this)));
   /* A concrete explanation:
    * I'm engine and my work is to send data to broker.
    * Here, the user wants to stop me/ I need to ask broker how many
@@ -628,6 +633,7 @@ int32_t stream::stop() {
   int32_t retval = _acknowledged_events;
   _acknowledged_events = 0;
   config::applier::state::instance().remove_poller(_poller_id);
+  DEBUG(fmt::format("STOP STOPPED bbdo stream {}", static_cast<void*>(this)));
   return retval;
 }
 
