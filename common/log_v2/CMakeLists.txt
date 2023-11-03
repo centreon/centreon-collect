@@ -27,4 +27,4 @@ add_library(
   log_v2.hh
   config.hh)
 
-target_link_libraries(log_v2 CONAN_PKG::spdlog CONAN_PKG::abseil stdc++fs)
+target_link_libraries(log_v2 CONAN_PKG::spdlog stdc++fs)

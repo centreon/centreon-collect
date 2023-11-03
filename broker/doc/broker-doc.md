@@ -19,6 +19,18 @@ This is essentially done using those calls:
 * `config::applier::init(conf);`
 * `config::applier::deinit();`
 
+When **cbd** starts, several static instances are started, they are destroyed in the exact reverse order they are started.
+The order of instanciations is:
+1. `log_v2`: the logger
+2. `g_io_context`: just an asio::context
+3. `pool`: the thread pool
+4. `stats::center`: the stats engine
+5. `mysql_manager`: the manager of all the sql connections.
+6. `config::applier::state`: the configuration applier
+7. `multiplexing::engine`: the multiplexing engine that manages muxers events distribution.
+8. `config::applier::endpoint`: The applier of failovers and feeders configurations.
+
+
 ### Shared pointers
 
 Broker works also with shared pointers. They are very useful during asynchronous

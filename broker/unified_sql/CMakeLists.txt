@@ -45,8 +45,7 @@ add_library(
   src/stream.cc
   src/stream_sql.cc
   src/stream_storage.cc
-#  ${proto_rebuild_message}
-#  ${proto_remove_graph_message})
+)
 
 set_target_properties("${UNIFIED_SQL}" PROPERTIES PREFIX "" COMPILE_FLAGS
                                                             "-fPIC")

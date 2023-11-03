@@ -826,7 +826,7 @@ static int l_broker_md5(lua_State* L) {
   md5_message(str, len, &md5, &md5_len);
   char result[2 * md5_len + 1];
   char* tmp = result;
-  for (int i = 0; i < md5_len; i++) {
+  for (uint32_t i = 0; i < md5_len; i++) {
     *tmp = digit(md5[i] >> 4);
     ++tmp;
     *tmp = digit(md5[i] & 0xf);
