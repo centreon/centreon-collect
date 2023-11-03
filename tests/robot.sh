@@ -6,8 +6,8 @@ sysctl -w kernel.core_pattern=/tmp/core-%e.%p.%h.%t
 
 export CENTENGINE_LEGACY=1
 
-#robot -L TRACE $*
-robot $*
+robot -L TRACE $*
+#robot $*
 rep=$(date +%s)
 mkdir $rep
 mv report.html log.html output.xml $rep
