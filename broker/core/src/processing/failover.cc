@@ -22,9 +22,9 @@
 
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
+#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
-#include "com/centreon/broker/misc/misc.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -53,7 +53,9 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
       _update(false),
       _logger_id{log_v2::instance().create_logger_or_get_id("processing")},
       _logger{log_v2::instance().get(_logger_id)} {
-  DEBUG(fmt::format("CONSTRUCTOR failover {:p} {} - muxer: {:p}", static_cast<void*>(this), name, static_cast<void*>(mux.get())));
+  DEBUG(fmt::format("CONSTRUCTOR failover {} {} - muxer: {}",
+                    static_cast<void*>(this), name,
+                    static_cast<void*>(mux.get())));
   SPDLOG_LOGGER_TRACE(log_v2::instance().get(0), "failover '{}' construction.",
                       _name);
 }
@@ -63,7 +65,7 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
  */
 failover::~failover() {
   exit();
-  DEBUG(fmt::format("DESTRUCTOR failover {:p}", static_cast<void*>(this)));
+  DEBUG(fmt::format("DESTRUCTOR failover {}", static_cast<void*>(this)));
 }
 
 /**

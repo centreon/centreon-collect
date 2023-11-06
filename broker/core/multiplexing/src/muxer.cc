@@ -88,8 +88,8 @@ muxer::muxer(std::string name,
       _events_size{0u},
       _last_stats{std::time(nullptr)} {
   // Load head queue file back in memory.
-  DEBUG(fmt::format("CONSTRUCTOR muxer {:p} {}", static_cast<void*>(this),
-                    _name));
+  DEBUG(
+      fmt::format("CONSTRUCTOR muxer {} {}", static_cast<void*>(this), _name));
   std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
@@ -272,7 +272,7 @@ int32_t muxer::stop() {
   if (_read_handler)
     _read_handler = nullptr;
   _update_stats();
-  DEBUG(fmt::format("STOP muxer {:p} {}", static_cast<void*>(this), _name));
+  DEBUG(fmt::format("STOP muxer {} {}", static_cast<void*>(this), _name));
   return 0;
 }
 

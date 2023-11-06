@@ -93,7 +93,7 @@ feeder::feeder(const std::string& name,
       _read_from_stream_timer(pool::io_context()),
       _io_context(pool::io_context_ptr()),
       _logger_id{log_v2::instance().create_logger_or_get_id("processing")} {
-  DEBUG(fmt::format("CONSTRUCTOR feeder {:p} {} - muxer: {:p}",
+  DEBUG(fmt::format("CONSTRUCTOR feeder {} {} - muxer: {}",
                     static_cast<void*>(this), name,
                     static_cast<void*>(_muxer.get())));
   if (!_client)
@@ -113,7 +113,7 @@ feeder::~feeder() {
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy feeder {}, {:p}",
                       get_name(), static_cast<const void*>(this));
   stop();
-  DEBUG(fmt::format("DESTRUCTOR feeder {:p}", static_cast<void*>(this)));
+  DEBUG(fmt::format("DESTRUCTOR feeder {}", static_cast<void*>(this)));
 }
 
 bool feeder::is_finished() const noexcept {
@@ -269,7 +269,7 @@ void feeder::_ack_event_to_muxer(unsigned count) noexcept {
 void feeder::stop() {
   std::unique_lock<std::timed_mutex> l(_protect);
   _stop_no_lock();
-  DEBUG(fmt::format("STOP feeder {:p}", static_cast<void*>(this)));
+  DEBUG(fmt::format("STOP feeder {}", static_cast<void*>(this)));
 }
 
 /**
@@ -440,8 +440,8 @@ void feeder::_read_from_stream_timer_handler(
     set_last_error("");
     SPDLOG_LOGGER_INFO(logger, "feeder '{}', connection closed", _name);
     _muxer->write(events_to_publish);
-    DEBUG(fmt::format("CONNECTION CLOSED => STOP exception feeder {} {:x}",
-                      _name, static_cast<void*>(this)));
+    DEBUG(fmt::format("CONNECTION CLOSED => STOP exception feeder {} {}", _name,
+                      static_cast<void*>(this)));
     stop();
     return;
   } catch (const std::exception& e) {
@@ -449,7 +449,7 @@ void feeder::_read_from_stream_timer_handler(
     SPDLOG_LOGGER_ERROR(logger, "from client feeder '{}' error:{} ", _name,
                         e.what());
     _muxer->write(events_to_publish);
-    DEBUG(fmt::format("EXCEPTION => STOP exception feeder {} {:x}", _name,
+    DEBUG(fmt::format("EXCEPTION => STOP exception feeder {} {}", _name,
                       static_cast<void*>(this)));
     stop();
     return;
@@ -459,7 +459,7 @@ void feeder::_read_from_stream_timer_handler(
                         "processing client '{}'",
                         _name);
     _muxer->write(events_to_publish);
-    DEBUG(fmt::format("OTHER EXCEPTION => STOP exception feeder {} {:x}", _name,
+    DEBUG(fmt::format("OTHER EXCEPTION => STOP exception feeder {} {}", _name,
                       static_cast<void*>(this)));
     stop();
     return;
