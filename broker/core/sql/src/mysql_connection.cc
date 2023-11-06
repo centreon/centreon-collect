@@ -1085,8 +1085,8 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _category(db_cfg.get_category()),
       _logger_id{log_v2::instance().create_logger_or_get_id("sql")},
       _logger{log_v2::instance().get(_logger_id)} {
-  DEBUG(fmt::format("CONSTRUCTOR mysql_connection {:p}",
-                    static_cast<void*>(this)));
+  DEBUG(
+      fmt::format("CONSTRUCTOR mysql_connection {}", static_cast<void*>(this)));
   std::unique_lock<std::mutex> lck(_start_m);
   SPDLOG_LOGGER_INFO(_logger,
                      "mysql_connection: starting connection {:p} to {}",
@@ -1116,8 +1116,8 @@ mysql_connection::~mysql_connection() {
   stop();
   stats::center::instance().remove_connection(_proto_stats);
   _thread->join();
-  DEBUG(fmt::format("DESTRUCTOR mysql_connection {:p}",
-                    static_cast<void*>(this)));
+  DEBUG(
+      fmt::format("DESTRUCTOR mysql_connection {}", static_cast<void*>(this)));
 }
 
 void mysql_connection::_push(std::unique_ptr<mysql_task>&& q) {

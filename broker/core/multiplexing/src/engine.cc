@@ -238,7 +238,7 @@ void engine::stop() {
                                      EngineStats::STOPPED);
   }
   log_v2::instance().get(0)->debug("multiplexing: engine stopped");
-  DEBUG(fmt::format("STOP engine {:p}", static_cast<void*>(this)));
+  DEBUG(fmt::format("STOP engine {}", static_cast<void*>(this)));
 }
 
 /**
@@ -285,7 +285,7 @@ engine::engine()
       _stats{stats::center::instance().register_engine()},
       _unprocessed_events{0u},
       _sending_to_subscribers{false} {
-  DEBUG(fmt::format("CONSTRUCTOR engine {:p}", static_cast<void*>(this)));
+  DEBUG(fmt::format("CONSTRUCTOR engine {}", static_cast<void*>(this)));
   stats::center::instance().update(&EngineStats::set_mode, _stats,
                                    EngineStats::NOT_STARTED);
 }
@@ -294,7 +294,7 @@ engine::~engine() noexcept {
   /* Muxers should be unsubscribed before arriving here. */
   assert(_muxers.empty());
   log_v2::instance().get(0)->debug("core: cbd engine destroyed.");
-  DEBUG(fmt::format("DESTRUCTOR engine {:p}", static_cast<void*>(this)));
+  DEBUG(fmt::format("DESTRUCTOR engine {}", static_cast<void*>(this)));
 }
 
 /**
