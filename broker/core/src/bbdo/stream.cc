@@ -596,8 +596,8 @@ stream::stream(bool is_input,
  */
 stream::~stream() {
   DEBUG(fmt::format("DESTRUCTOR bbdo stream {}", static_cast<void*>(this)));
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy bbdo stream {:p}",
-                      static_cast<const void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy bbdo stream {}",
+                      static_cast<void*>(this));
   DEBUG(fmt::format("DESTRUCTOR end of the function bbdo stream {}",
                     static_cast<void*>(this)));
 }

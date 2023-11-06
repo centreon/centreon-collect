@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2020-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -226,12 +226,16 @@ void tcp_connection::handle_write(const boost::system::error_code& ec) {
     _write_queue.pop();
     _write_queue_has_events = !_write_queue.empty();
     if (_write_queue_has_events) {
+      _logger->debug("handle_write: chunk of {} vectors - {} bytes to write",
+                     _write_queue.size(), _write_queue.front().size());
       // The strand is useful because of the flush() method.
       asio::async_write(_socket, asio::buffer(_write_queue.front()),
                         _strand.wrap(std::bind(&tcp_connection::handle_write,
                                                ptr(), std::placeholders::_1)));
-    } else
+    } else {
+      _logger->debug("handle_write: chunk of 0 vectors: attempt a new writing");
       writing();
+    }
   }
 }
 
@@ -290,7 +294,10 @@ int32_t tcp_connection::close() {
     while (!_closed &&
            (_writing || (_write_queue_has_events &&
                          std::chrono::system_clock::now() < timeout))) {
-      _logger->debug("Finishing to write data before closing the connection");
+      _logger->debug(
+          "Finishing to write data before closing the connection {} {}",
+          _writing ? "true" : "false",
+          _write_queue_has_events ? "true" : "false");
       if (!_writing) {
         _writing = true;
         // The strand is useful because of the flush() method.
@@ -312,6 +319,7 @@ int32_t tcp_connection::close() {
       return retval;
     }
   }
+  return 0;
 }
 
 /**
