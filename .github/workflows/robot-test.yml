@@ -104,7 +104,7 @@ jobs:
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
+    name: ${{ matrix.feature }} ${{inputs.test_group_name}}
 
     steps:
       - name: Checkout sources
