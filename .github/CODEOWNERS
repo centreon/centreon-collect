@@ -1,0 +1,20 @@
+*.cc                @centreon/owners-cpp
+*.hh                @centreon/owners-cpp
+*.hpp               @centreon/owners-cpp
+*.cmake             @centreon/owners-cpp
+CMakeLists.txt      @centreon/owners-cpp
+Makefile            @centreon/owners-cpp
+
+*.robot             @centreon/owners-robot-e2e
+
+*.sh                @centreon/owners-bash
+*.lua               @centreon/owners-lua
+
+.github/**/*.yml    @centreon/owners-pipelines
+*.Dockerfile        @centreon/owners-pipelines
+packaging/**        @centreon/owners-pipelines
+selinux/**          @centreon/owners-pipelines
+
+*.po                @centreon/owners-doc
+*.md                @centreon/owners-doc
+*.mdx               @centreon/owners-doc
