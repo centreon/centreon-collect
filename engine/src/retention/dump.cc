@@ -18,7 +18,9 @@
  */
 
 #include "com/centreon/engine/retention/dump.hh"
+
 #include <fstream>
+
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/comment.hh"

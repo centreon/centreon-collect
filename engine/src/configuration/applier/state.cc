@@ -1809,8 +1809,9 @@ void applier::state::_processing(configuration::State& new_cfg,
     if (!has_already_been_loaded && !verify_config && !test_scheduling) {
       // This must be logged after we read config data,
       // as user may have changed location of main log file.
-      process_logger->info("Centreon Engine {} starting ... (PID={})",
-                           CENTREON_ENGINE_VERSION_STRING, getpid());
+      process_logger->info(
+          "Centreon Engine {} starting ... (PID={}) (Protobuf configuration)",
+          CENTREON_ENGINE_VERSION_STRING, getpid());
 
       // Log the local time - may be different than clock
       // time due to timezone offset.
@@ -2292,8 +2293,9 @@ void applier::state::_processing(configuration::state& new_cfg,
       engine_logger(log_process_info, basic)
           << "Centreon Engine " << CENTREON_ENGINE_VERSION_STRING
           << " starting ... (PID=" << getpid() << ")";
-      process_logger->info("Centreon Engine {} starting ... (PID={})",
-                           CENTREON_ENGINE_VERSION_STRING, getpid());
+      process_logger->info(
+          "Centreon Engine {} starting ... (PID={}) (Legacy configuration)",
+          CENTREON_ENGINE_VERSION_STRING, getpid());
 
       // Log the local time - may be different than clock
       // time due to timezone offset.
