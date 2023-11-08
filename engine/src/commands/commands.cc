@@ -1,22 +1,22 @@
-/*
-** Copyright 1999-2008           Ethan Galstad
-** Copyright 2011-2013,2015-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 1999-2008           Ethan Galstad
+ * Copyright 2011-2013,2015-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/commands/processing.hh"
@@ -826,27 +826,31 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   std::string svc_description;
   std::string ack_author;
   std::string ack_data;
-  int type(AckType::NORMAL);
-  int notify(true);
-  int persistent(true);
+  int type = AckType::NORMAL;
+  bool notify = true;
+  bool persistent = true;
+  auto arg = absl::StrSplit(args, ';');
   service_map::const_iterator found;
 
-  string::c_strtok arg(args);
-
+  auto pos_it = arg.begin();
   /* get the host name */
-  if (!arg.extract(';', host_name))
+  if (pos_it == arg.end())
     return ERROR;
+  host_name = *pos_it;
+  ++pos_it;
 
   /* verify that the host is valid */
-  host_map::const_iterator it(host::hosts.find(host_name));
+  host_map::const_iterator it = host::hosts.find(host_name);
   if (it == host::hosts.end() || !it->second)
     return ERROR;
 
   /* this is a service acknowledgement */
   if (cmd == CMD_ACKNOWLEDGE_SVC_PROBLEM) {
     /* get the service name */
-    if (!arg.extract(';', svc_description))
+    if (pos_it == arg.end())
       return ERROR;
+    svc_description = *pos_it;
+    ++pos_it;
 
     /* verify that the service is valid */
     found = service::services.find({it->second->name(), svc_description});
@@ -856,30 +860,38 @@ int cmd_acknowledge_problem(int cmd, char* args) {
   }
 
   /* get the type */
-  if (!arg.extract(';', type))
+  if (pos_it == arg.end() || !absl::SimpleAtoi(*pos_it, &type))
     return ERROR;
+  ++pos_it;
+
   external_command_logger->trace("New acknowledgement with type {}", type);
 
   /* get the notification option */
   int ival;
-  if (!arg.extract(';', ival))
+  if (pos_it == arg.end() || !absl::SimpleAtoi(*pos_it, &ival))
     return ERROR;
+  ++pos_it;
 
-  notify = (ival > 0) ? true : false;
+  notify = ival > 0;
 
   /* get the persistent option */
-  if (!arg.extract(';', ival))
+  if (pos_it == arg.end() || !absl::SimpleAtoi(*pos_it, &ival))
     return ERROR;
-  persistent = (ival > 0) ? true : false;
+  ++pos_it;
+
+  persistent = ival > 0;
 
   /* get the acknowledgement author */
-  if (!arg.extract(';', ack_author))
+  if (pos_it == arg.end())
     return ERROR;
+  ack_author = *pos_it;
+  ++pos_it;
 
   /* get the acknowledgement data */
-  if (!arg.extract('\n', ack_data)) {
+  if (pos_it == arg.end())
     return ERROR;
-  }
+  ack_data = *pos_it;
+  ++pos_it;
 
   /* acknowledge the host problem */
   if (cmd == CMD_ACKNOWLEDGE_HOST_PROBLEM)
@@ -2635,8 +2647,8 @@ void acknowledge_host_problem(host* hst,
                               const std::string& ack_author,
                               const std::string& ack_data,
                               int type,
-                              int notify,
-                              int persistent) {
+                              bool notify,
+                              bool persistent) {
   /* cannot acknowledge a non-existent problem */
   if (hst->get_current_state() == host::state_up)
     return;
@@ -2676,8 +2688,8 @@ void acknowledge_service_problem(service* svc,
                                  const std::string& ack_author,
                                  const std::string& ack_data,
                                  int type,
-                                 int notify,
-                                 int persistent) {
+                                 bool notify,
+                                 bool persistent) {
   /* cannot acknowledge a non-existent problem */
   if (svc->get_current_state() == service::state_ok)
     return;
