@@ -19,11 +19,11 @@ from datetime import datetime
 def files_contain_same_json(file_e: str, file_b: str):
     new_inst = '{"_type": 4294901762, "category": 65535, "element": 2, "broker_id": 1, "broker_name": "", "enabled": True, "poller_id": 1, "poller_name": "Central"}'.upper()
 
-    f1 = open(file_e)
-    content1 = f1.readlines()
+    with open(file_e) as f1:
+        content1 = f1.readlines()
 
-    f2 = open(file_b)
-    content2 = f2.readlines()
+    with open(file_b) as f2:
+        content2 = f2.readlines()
 
     idx1 = 0
     idx2 = 0
@@ -36,8 +36,7 @@ def files_contain_same_json(file_e: str, file_b: str):
             if c1.upper() == new_inst:
                 continue
         else:
-            logger.console("content at line {} of '{}' is not JSON: {}".format(
-                idx1, file_e, content1[idx1]))
+            logger.console(f"content at line {idx1} of '{file_e}' is not JSON: {content1[idx1]}")
             idx1 += 1
             continue
         m2 = r.match(content2[idx2])
@@ -46,8 +45,7 @@ def files_contain_same_json(file_e: str, file_b: str):
             if c2.upper() == new_inst:
                 continue
         else:
-            logger.console("content at line {} of '{}' is not JSON: {}".format(
-                idx2, file_b, content2[idx2]))
+            logger.console(f"content at line {idx2} of '{file_b}' is not JSON: {content2[idx2]}")
             idx2 += 1
             continue
 
@@ -65,20 +63,28 @@ def files_contain_same_json(file_e: str, file_b: str):
                 continue
 
             if len(js1) != len(js2):
+                logger.console(f"content1: {c1}")
+                logger.console(f"content2: {c2}")
+                logger.console("Do not match")
                 return False
             for k in js1:
                 if isinstance(js1[k], float):
                     if abs(js1[k] - js2[k]) > 0.1:
+                        logger.console(f"content1: {c1}")
+                        logger.console(f"content2: {c2}")
+                        logger.console("Do not match")
                         return False
                 else:
                     if js1[k] != js2[k]:
+                        logger.console(f"content1: {c1}")
+                        logger.console(f"content2: {c2}")
+                        logger.console("Do not match")
                         return False
             idx1 += 1
             idx2 += 1
     retval = idx1 == len(content1) or idx2 == len(content2)
     if not retval:
-        logger.console("not at the end of files idx1 = {}/{} or idx2 = {}/{}".format(
-            idx1, len(content1), idx2, len(content2)))
+        logger.console("not at the end of files idx1 = {idx1}/{len(content1)} or idx2 = {idx2}/{len(content2)}")
         return False
     return True
 

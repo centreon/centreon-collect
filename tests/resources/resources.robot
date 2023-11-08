@@ -42,6 +42,7 @@ Clean Before Suite
     Stop Processes
     Clear Engine Logs
     Clear Broker Logs
+    Remove Files    /tmp/states
 
 Clean Before Suite With rrdcached
     Clean Before Suite
