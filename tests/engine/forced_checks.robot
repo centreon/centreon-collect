@@ -11,6 +11,7 @@ Library             ../resources/Engine.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -249,6 +250,7 @@ EMACROS_NOTIF
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    0    log_level_checks    trace    True
+    Engine Config Set Value    0    log_level_notifications    trace    True
     Engine Config Add Value    0    cfg_file    ${EtcRoot}/centreon-engine/config0/contacts.cfg
     Engine Config Add Command
     ...    0
@@ -266,15 +268,19 @@ EMACROS_NOTIF
     Start Engine
     Start Broker
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    A message about external commands checks should have been displayed
 
-    FOR    ${i}    IN RANGE    3
-        Process Service Check Result    host_1    service_1    2    critical
-    END
+    ${cmd_id}    Get Service Command    1    1
+    Set Command Status    ${cmd_id}    0
+    Process Service Result Hard    host_1    service_1    0    Service 1:1 ok HARD
+    ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
+    Should Be True    ${result}    Service (1;1) should be ok HARD
+    Set Command Status    ${cmd_id}    2
+    Process Service Result Hard    host_1    service_1    2    Service 1:1 critical HARD
 
     Wait Until Created    /tmp/notif_toto.txt    30s
 

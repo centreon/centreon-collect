@@ -674,8 +674,13 @@ std::string clean_macro_chars(std::string const& macro, int options) {
         continue;
 
       /* illegal user-specified characters */
-      if (config->illegal_output_chars().find(ch) == std::string::npos)
-        retval[y++] = retval[x];
+      if (legacy_conf) {
+        if (config->illegal_output_chars().find(ch) == std::string::npos)
+          retval[y++] = retval[x];
+      } else {
+        if (pb_config.illegal_output_chars().find(ch) == std::string::npos)
+          retval[y++] = retval[x];
+      }
     }
 
     retval.resize(y);
