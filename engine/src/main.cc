@@ -122,10 +122,11 @@ int main(int argc, char* argv[]) {
 
   // Load singletons and global variable.
   const char* legacy = getenv("CENTENGINE_LEGACY");
-  if (legacy && absl::SimpleAtob(legacy, &legacy_conf))
+  config_logger->set_level(spdlog::level::level_enum::info);
+  if (legacy && absl::SimpleAtob(legacy, &legacy_conf)) {
     config_logger->info("Configuration mechanism used: {}",
                         legacy_conf ? "legacy" : "protobuf");
-  else {
+  } else {
     config_logger->info("Legacy configuration mechanism used");
     legacy_conf = true;
   }

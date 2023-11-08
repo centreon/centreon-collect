@@ -179,8 +179,7 @@ void stream::_clean_tables(uint32_t instance_id) {
 
   query = fmt::format(
       "UPDATE comments SET deletion_time={} WHERE instance_id={} AND "
-      "persistent=0 AND "
-      "(deletion_time IS NULL OR deletion_time=0)",
+      "persistent=0 AND (deletion_time IS NULL OR deletion_time=0)",
       time(nullptr), instance_id);
 
   _mysql.run_query(query, database::mysql_error::clean_comments, conn);
