@@ -67,5 +67,5 @@ cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-export CENTENGINE_LEGACY=1
+export CENTENGINE_LEGACY=0
 robot -e unstable $test_file
