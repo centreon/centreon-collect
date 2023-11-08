@@ -590,7 +590,7 @@ def check_acknowledgement_with_timeout(hostname: str, service_desc: str, entry_t
         with connection:
             with connection.cursor() as cursor:
                 cursor.execute(
-                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' AND entry_time >= {entry_time}")
+                    f"SELECT a.acknowledgement_id, a.state, a.type, a.deletion_time FROM acknowledgements a LEFT JOIN services s ON a.host_id=s.host_id AND a.service_id=s.service_id LEFT join hosts h ON s.host_id=h.host_id WHERE s.description='{service_desc}' AND h.name='{hostname}' ORDER BY entry_time DESC")
                 result = cursor.fetchall()
                 if len(result) > 0 and result[0]['state'] is not None and int(result[0]['state']) == int(status) and result[0]['deletion_time'] is None:
                     logger.console(
@@ -1470,6 +1470,29 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
             time.sleep(5)
 
     logger.console(f"{path} not modified since {date}")
+    return False
+
+
+def wait_for_no_acknowledgement(timeout: int = 30):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     autocommit=True,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+
+        with connection:
+            with connection.cursor() as cursor:
+                cursor.execute(f"SELECT * FROM acknowledgements")
+                result = cursor.fetchall()
+                logger.console(f"type: {type(result)}")
+                logger.console(f"result: {result}")
+                if result == ():
+                    return True
+        time.sleep(1)
     return False
 
 
