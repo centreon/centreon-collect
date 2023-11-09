@@ -258,7 +258,6 @@ jobs:
         with:
           module_name: collect
           distrib: ${{ matrix.distrib }}
-          repository_name: standard
           version: ${{ env.version }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
