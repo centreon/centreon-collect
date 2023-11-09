@@ -90,7 +90,10 @@ void reader_v2::_load(state::kpis& kpis) {
         "g.average_impact),"
         "        COALESCE(COALESCE(k.drop_unknown, uu.impact), "
         "g.average_impact),"
-        "        k.last_state_change, k.in_downtime, k.last_impact"
+        "        k.last_state_change, k.in_downtime, k.last_impact,"
+        "        kpiba.name AS ba_name, mbb.name AS boolean_name, "
+        "        CONCAT(hst.host_name, '/', serv.service_description) AS "
+        "service_name"
         "  FROM mod_bam_kpi AS k"
         "  INNER JOIN mod_bam AS mb"
         "    ON k.id_ba = mb.ba_id"
@@ -107,6 +110,14 @@ void reader_v2::_load(state::kpis& kpis) {
         "               WHERE activate='1'"
         "               GROUP BY id_ba) AS g"
         "    ON k.id_ba=g.id_ba"
+        "  LEFT JOIN mod_bam as kpiba"
+        "  ON k.id_indicator_ba=kpiba.ba_id"
+        "  LEFT JOIN mod_bam_boolean AS mbb"
+        "  ON mbb.boolean_id= k.boolean_id"
+        "  LEFT JOIN service as serv"
+        "  ON k.service_id = serv.service_id"
+        "  LEFT JOIN host as hst"
+        "  ON k.host_id = hst.host_id"
         "  WHERE k.activate='1'"
         "    AND mb.activate='1'"
         "    AND pr.poller_id={}",
@@ -117,16 +128,28 @@ void reader_v2::_load(state::kpis& kpis) {
     try {
       database::mysql_result res(future.get());
       while (_mysql.fetch_row(res)) {
+        std::string kpi_name;
+        uint32_t service_id = res.value_as_u32(3);
+        uint32_t boolean_id = res.value_as_u32(7);
+        uint32_t id_indicator_ba = res.value_as_u32(5);
+
+        if (service_id > 0)
+          kpi_name = "Service " + res.value_as_str(21);
+        else if (boolean_id > 0)
+          kpi_name = "Boolean rule " + res.value_as_str(20);
+        else
+          kpi_name = "Business Activity " + res.value_as_str(19);
+
         // KPI object.
         uint32_t kpi_id(res.value_as_u32(0));
         kpis[kpi_id] = kpi(kpi_id,                 // ID.
                            res.value_as_i32(1),    // State type.
                            res.value_as_u32(2),    // Host ID.
-                           res.value_as_u32(3),    // Service ID.
+                           service_id,             // Service ID.
                            res.value_as_u32(4),    // BA ID.
-                           res.value_as_u32(5),    // BA indicator ID.
+                           id_indicator_ba,        // BA indicator ID.
                            res.value_as_u32(6),    // Meta-service ID.
-                           res.value_as_u32(7),    // Boolean expression ID.
+                           boolean_id,             // Boolean expression ID.
                            res.value_as_i32(8),    // Status.
                            res.value_as_f32(9),    // Downtimed.
                            res.value_as_f32(10),   // Acknowledged.
@@ -134,7 +157,8 @@ void reader_v2::_load(state::kpis& kpis) {
                            res.value_as_bool(12),  // Ignore acknowledgement.
                            res.value_as_f64(13),   // Warning.
                            res.value_as_f64(14),   // Critical.
-                           res.value_as_f64(15));  // Unknown.
+                           res.value_as_f64(15),   // Unknown.
+                           kpi_name);
 
         // KPI state.
         if (!res.value_is_null(16)) {

@@ -45,11 +45,12 @@ class kpi : public computable {
   const uint32_t _ba_id;
   absl::optional<KpiEvent> _event;
   std::vector<KpiEvent> _initial_events;
+  std::string _name;
 
   void _event_init();
 
  public:
-  kpi(uint32_t kpi_id, uint32_t ba_id);
+  kpi(uint32_t kpi_id, uint32_t ba_id, const std::string& name);
   virtual ~kpi() noexcept = default;
   kpi& operator=(const kpi&) = delete;
   kpi(const kpi&) = delete;
@@ -62,6 +63,7 @@ class kpi : public computable {
   virtual void visit(io::stream* visitor) = 0;
   virtual bool in_downtime() const;
   virtual bool ok_state() const = 0;
+  const std::string& get_name() const { return _name; };
 
   void commit_initial_events(io::stream* visitor);
 };

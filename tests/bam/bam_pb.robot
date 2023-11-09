@@ -57,7 +57,7 @@ BAWORST
 
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is UNKNOWN - At least one KPI is in an UNKNOWN state: KPI2 is in UNKNOWN state
+    ...    Status is UNKNOWN - At least one KPI is in an UNKNOWN state: KPI Service host_16/service_303 is in UNKNOWN state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -74,7 +74,7 @@ BAWORST
 
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - At least one KPI is in a WARNING state: KPI2 is in WARNING state
+    ...    Status is WARNING - At least one KPI is in a WARNING state: KPI Service host_16/service_303 is in WARNING state
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -96,8 +96,101 @@ BAWORST
 
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI2 is in WARNING state, KPI1 is in CRITICAL state
+    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Service host_16/service_303 is in WARNING state, KPI Service host_16/service_314 is in CRITICAL state
     ...    60
+    Should Be True    ${result}    The BA test has not the expected output
+
+    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+
+BAWORST2
+    [Documentation]    a worst ba with a boolean kpi and a ba kpi
+    [Tags]    broker    engine    bam
+    BAM Init
+
+    ${id_ba__sid}    Create Ba    test    worst    100    100
+    Add Boolean Kpi
+    ...    ${id_ba__sid[0]}
+    ...    {host_16 service_302} {IS} {OK}
+    ...    False
+    ...    100
+
+    # ba kpi
+    @{svc}    Set Variable    ${{ [("host_16", "service_314")] }}
+    ${id_ba__sid__child}    Create Ba With Services    test_child    worst    ${svc}
+    Add Ba Kpi    ${id_ba__sid__child[0]}    ${id_ba__sid[0]}    1    2    3
+
+    Start Broker
+    ${start}    Get Current Date
+    Start Engine
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    ${result}    Check Ba Status With Timeout    test    0    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The BA test is not OK as expected
+    ${result}    Check Ba Output With Timeout
+    ...    test
+    ...    Status is OK - All KPIs are in an OK state
+    ...    10
+    Should Be True    ${result}    The BA test has not the expected output
+
+    # boolean critical => ba test critical
+    Process Service Result Hard
+    ...    host_16
+    ...    service_302
+    ...    2
+    ...    output critical for service_302
+    ${result}    Check Service Status With Timeout    host_16    service_302    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_302) is not CRITICAL as expected
+    Sleep    2s
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The BA test is not CRITICAL as expected
+    ${result}    Check Ba Output With Timeout
+    ...    test
+    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Boolean rule bool test is in CRITICAL state
+    ...    10
+    Should Be True    ${result}    The BA test has not the expected output
+
+    # child ba critical
+    Process Service Result Hard
+    ...    host_16
+    ...    service_314
+    ...    2
+    ...    output critical for service_314
+    ${result}    Check Service Status With Timeout    host_16    service_314    2    60    HARD
+    Should Be True    ${result}    The service (host_16,service_314) is not CRITICAL as expected
+    Sleep    2s
+    ${result}    Check Ba Status With Timeout    test_child    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The BA test_child is not CRITICAL as expected
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The BA test is not CRITICAL as expected
+    ${result}    Check Ba Output With Timeout
+    ...    test
+    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state, KPI Boolean rule bool test is in CRITICAL state
+    ...    10
+    Should Be True    ${result}    The BA test has not the expected output
+
+    # boolean rule ok stay in critical
+    Process Service Result Hard
+    ...    host_16
+    ...    service_302
+    ...    0
+    ...    output OK
+    ${result}    Check Service Status With Timeout    host_16    service_302    0    60    HARD
+    Should Be True    ${result}    The service (host_16,service_302) is not OK as expected
+    Sleep    2s
+    ${result}    Check Ba Status With Timeout    test    2    60
+    Dump Ba On Error    ${result}    ${id_ba__sid[0]}
+    Should Be True    ${result}    The BA test is not CRITICAL as expected
+    ${result}    Check Ba Output With Timeout
+    ...    test
+    ...    Status is CRITICAL - At least one KPI is in a CRITICAL state: KPI Business Activity test_child is in CRITICAL state
+    ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
     [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
@@ -235,7 +328,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI1 (impact: 40)|BA_Level=60;35;20;0;100
+    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_302 (impact: 40)|BA_Level=60;35;20;0;100
     ...    60
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -247,7 +340,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not WARNING as expected
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is WARNING - Level = 30 - 2 KPIs out of 2 impact the BA for 70 points - KPI2 (impact: 30), KPI1 (impact: 40)|BA_Level=30;35;20;0;100
+    ...    Status is WARNING - Level = 30 - 2 KPIs out of 2 impact the BA for 70 points - KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 40)|BA_Level=30;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -269,7 +362,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not CRITICAL as expected
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is CRITICAL - Level = 20 - 2 KPIs out of 2 impact the BA for 80 points - KPI2 (impact: 40), KPI1 (impact: 40)|BA_Level=20;35;20;0;100
+    ...    Status is CRITICAL - Level = 20 - 2 KPIs out of 2 impact the BA for 80 points - KPI Service host_16/service_303 (impact: 40), KPI Service host_16/service_302 (impact: 40)|BA_Level=20;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -282,7 +375,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA ba_1 is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI2 (impact: 40)|BA_Level=60;35;20;0;100
+    ...    Status is OK - Level = 60 (warn: 35 - crit: 20) - 1 KPI out of 2 impacts the BA: KPI Service host_16/service_303 (impact: 40)|BA_Level=60;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
@@ -306,7 +399,7 @@ BA_IMPACT_2KPI_SERVICES
     Should Be True    ${result}    The BA test is not OK as expected
     ${result}    Check Ba Output With Timeout
     ...    test
-    ...    Status is OK - Level = 40 (warn: 35 - crit: 20) - 2 KPIs out of 2 impact the BA: KPI2 (impact: 30), KPI1 (impact: 30)|BA_Level=40;35;20;0;100
+    ...    Status is OK - Level = 40 (warn: 35 - crit: 20) - 2 KPIs out of 2 impact the BA: KPI Service host_16/service_303 (impact: 30), KPI Service host_16/service_302 (impact: 30)|BA_Level=40;35;20;0;100
     ...    10
     Should Be True    ${result}    The BA test has not the expected output
 
