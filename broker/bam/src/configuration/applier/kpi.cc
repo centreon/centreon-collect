@@ -267,11 +267,12 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
   std::shared_ptr<bam::kpi> my_kpi;
   if (cfg.is_service()) {
     log_v2::bam()->info(
-        "BAM: creating new KPI {} of service ({}, {}) impacting BA {}",
-        cfg.get_id(), cfg.get_host_id(), cfg.get_service_id(), cfg.get_ba_id());
-    auto obj{std::make_shared<bam::kpi_service>(cfg.get_id(), cfg.get_ba_id(),
-                                                cfg.get_host_id(),
-                                                cfg.get_service_id())};
+        "BAM: creating new KPI {} of service {} ({}, {}) impacting BA {}",
+        cfg.get_id(), cfg.get_name(), cfg.get_host_id(), cfg.get_service_id(),
+        cfg.get_ba_id());
+    auto obj{std::make_shared<bam::kpi_service>(
+        cfg.get_id(), cfg.get_ba_id(), cfg.get_host_id(), cfg.get_service_id(),
+        cfg.get_name())};
     obj->set_acknowledged(cfg.is_acknowledged());
     obj->set_downtimed(cfg.is_downtimed());
     obj->set_impact_critical(cfg.get_impact_critical());
@@ -282,21 +283,21 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
     _book->listen(cfg.get_host_id(), cfg.get_service_id(), obj.get());
     my_kpi = std::static_pointer_cast<bam::kpi>(obj);
   } else if (cfg.is_ba()) {
-    log_v2::bam()->info("BAM: creating new KPI {} of BA {} impacting BA {}",
-                        cfg.get_id(), cfg.get_indicator_ba_id(),
+    log_v2::bam()->info("BAM: creating new KPI {} of BA {}:{} impacting BA {}",
+                        cfg.get_id(), cfg.get_indicator_ba_id(), cfg.get_name(),
                         cfg.get_ba_id());
-    std::shared_ptr<bam::kpi_ba> obj(
-        std::make_shared<bam::kpi_ba>(cfg.get_id(), cfg.get_ba_id()));
+    std::shared_ptr<bam::kpi_ba> obj(std::make_shared<bam::kpi_ba>(
+        cfg.get_id(), cfg.get_ba_id(), cfg.get_name()));
     obj->set_impact_critical(cfg.get_impact_critical());
     obj->set_impact_unknown(cfg.get_impact_unknown());
     obj->set_impact_warning(cfg.get_impact_warning());
     my_kpi = std::static_pointer_cast<bam::kpi>(obj);
   } else if (cfg.is_boolexp()) {
     log_v2::bam()->info(
-        "BAM: creating new KPI {} of boolean expression {} impacting BA {}",
-        cfg.get_id(), cfg.get_boolexp_id(), cfg.get_ba_id());
-    std::shared_ptr<bam::kpi_boolexp> obj(
-        std::make_shared<bam::kpi_boolexp>(cfg.get_id(), cfg.get_ba_id()));
+        "BAM: creating new KPI {} of boolean expression {}:{} impacting BA {}",
+        cfg.get_id(), cfg.get_boolexp_id(), cfg.get_name(), cfg.get_ba_id());
+    std::shared_ptr<bam::kpi_boolexp> obj(std::make_shared<bam::kpi_boolexp>(
+        cfg.get_id(), cfg.get_ba_id(), cfg.get_name()));
     obj->set_impact(cfg.get_impact_critical());
     my_kpi = std::static_pointer_cast<bam::kpi>(obj);
   } else

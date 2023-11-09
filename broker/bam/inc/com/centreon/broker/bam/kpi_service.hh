@@ -61,7 +61,8 @@ class kpi_service : public service_listener, public kpi {
   kpi_service(uint32_t kpi_id,
               uint32_t ba_id,
               uint32_t host_id,
-              uint32_t service_id);
+              uint32_t service_id,
+              const std::string& host_serv);
   ~kpi_service() noexcept = default;
   kpi_service(const kpi_service&) = delete;
   kpi_service& operator=(const kpi_service&) = delete;

@@ -95,7 +95,7 @@ Kindly Stop Broker
     ELSE
         IF    ${result.rc} != 0
             Save Logs
-            Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
+            # Copy Coredump In Failed Dir    b1    /usr/sbin/cbd    broker_central
             Coredump Info    b1    /usr/sbin/cbd    broker_central
             Should Be Equal As Integers    ${result.rc}    0    Central Broker not correctly stopped
         END
@@ -112,7 +112,7 @@ Kindly Stop Broker
         ELSE
             IF    ${result.rc} != 0
                 Save Logs
-                Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
+                # Copy Coredump In Failed Dir    b2    /usr/sbin/cbd    broker_rrd
                 Coredump Info    b2    /usr/sbin/cbd    broker_rrd
                 Should Be Equal As Integers    ${result.rc}    0    RRD Broker not correctly stopped
             END
@@ -181,7 +181,7 @@ Stop Engine
             Fail    ${name} not correctly stopped (coredump generated)
         ELSE
             IF    ${result.rc} != 0 and ${result.rc} != -15
-                Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
+                # Copy Coredump In Failed Dir    ${alias}    /usr/sbin/centengine    ${alias}
                 Coredump Info    ${alias}    /usr/sbin/centengine    ${alias}
             END
             Should Be True
@@ -296,7 +296,7 @@ Coredump Info
 Copy Coredump In Failed Dir
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${docker_env}    Get Environment Variable    RUN_ENV    ${None}
-    IF    ${docker_env} == ""
+    IF    "${docker_env}" == ""
         ${pid}    Get Process Id    ${process_name}
         ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
         Create Directory    ${failDir}
