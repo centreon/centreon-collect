@@ -629,8 +629,15 @@ int32_t stream::stop() {
   log_v2::instance().get(0)->info(
       "bbdo stream stopped with {} events acknowledged",
       _events_received_since_last_ack);
-  if (_events_received_since_last_ack)
-    send_event_acknowledgement();
+  if (_events_received_since_last_ack) {
+    try {
+      send_event_acknowledgement();
+    } catch (const std::exception& e) {
+      log_v2::instance().get(0)->info(
+          "bbdo stream: unable to send ack, peer already stopped: {}",
+          e.what());
+    }
+  }
 
   _substream->stop();
 
