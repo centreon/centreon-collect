@@ -374,8 +374,7 @@ std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
                 _address, _port);
           /* Timeout on wait */
         } else {
-          time_t now;
-          time(&now);
+          time_t now = time(nullptr);
           int delay = timeout_time - now;
           if (delay < 0)
             delay = 0;

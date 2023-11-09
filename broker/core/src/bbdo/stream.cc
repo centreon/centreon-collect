@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2013,2015,2017, 2021 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -626,8 +626,15 @@ int32_t stream::stop() {
   log_v2::instance().get(0)->info(
       "bbdo stream stopped with {} events acknowledged",
       _events_received_since_last_ack);
-  if (_events_received_since_last_ack)
-    send_event_acknowledgement();
+  if (_events_received_since_last_ack) {
+    try {
+      send_event_acknowledgement();
+    } catch (const std::exception& e) {
+      log_v2::instance().get(0)->info(
+          "bbdo stream: unable to send ack, peer already stopped: {}",
+          e.what());
+    }
+  }
 
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
