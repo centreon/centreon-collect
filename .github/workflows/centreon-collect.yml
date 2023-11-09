@@ -249,7 +249,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   delivery-debian:
-    needs: [rpm-packaging, create-version,get-version]
+    needs: [rpm-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
@@ -273,7 +273,7 @@ jobs:
           cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
   delivery-centos:
-    needs: [rpm-packaging, create-version,get-version]
+    needs: [rpm-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
@@ -292,8 +292,6 @@ jobs:
         with:
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
-          minor_version: ${{ needs.create-version.outputs.patch }}
-          release: ${{ needs.create-version.outputs.release }}
           module_name: collect
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
