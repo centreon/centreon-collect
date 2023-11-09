@@ -96,11 +96,24 @@ def wait_for_connections(port: int, nb: int, timeout: int = 60):
 
 
 def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
+    """Wait that an instance of the given program listens on each port in the
+       given range. On success, the function returns True, if the timeout is
+       reached with some missing instances, it returns False.
+
+    Args:
+        port1: The first port
+        port2: The second port (all the ports p such that port1 <= p <p port2
+               will be tested.
+        prog: The name of the program that should be listening.
+        timeout: A timeout in seconds.
+    Returns:
+        A boolean True on success.
+    """
     port1 = int(port1)
     port2 = int(port2)
     rng = range(port1, port2 + 1)
     limit = time.time() + timeout
-    r = re.compile(rf"^LISTEN [0-9]+\s+[0-9]+\s+\[::1\]:([0-9]+)\s+.*{prog}")
+    r = re.compile(rf"^LISTEN\s+[0-9]+\s+[0-9]+\s+\[::1\]:([0-9]+)\s+.*{prog}")
     size = port2 - port1 + 1
 
     def ok(l):
