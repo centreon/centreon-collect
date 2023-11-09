@@ -30,7 +30,7 @@ on:
         type: string
       test_group_name:
         required: true
-        type: string  
+        type: string
     secrets:
       registry_username:
         required: true
@@ -125,10 +125,10 @@ jobs:
           path: ${{ inputs.package_cache_path }}
           key: ${{ inputs.package_cache_key }}
           fail-on-cache-miss: true
-            
+
       - name: load image
         run: |
-          docker load --input /tmp/${{ inputs.image }}   
+          docker load --input /tmp/${{ inputs.image }}
 
       - name: Test ${{ matrix.feature }}
         run: |
@@ -141,7 +141,7 @@ jobs:
           ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
           ./.github/scripts/collect-test-robot.sh \
           ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
-        
+
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
