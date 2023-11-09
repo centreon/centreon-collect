@@ -239,7 +239,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   delivery-debian:
-    needs: [debian-packaging, create-version,get-version]
+    needs: [debian-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
@@ -266,7 +266,7 @@ jobs:
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
 
   delivery-centos:
-    needs: [rpm-packaging, create-version,get-version]
+    needs: [rpm-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}

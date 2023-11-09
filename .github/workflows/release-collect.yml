@@ -29,6 +29,4 @@ jobs:
         id: release
         uses: ./.github/actions/release
         with:
-          module_name: ${{ env.module }}
           jira_token: ${{ secrets.JIRA_TOKEN }}
-          jira_project_id: ${{ secrets.JIRA_PROJECT_ID }}
