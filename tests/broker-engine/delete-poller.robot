@@ -574,7 +574,7 @@ EBDP7
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE instance_id=3
         Sleep    1s
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
