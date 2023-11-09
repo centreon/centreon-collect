@@ -727,27 +727,33 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
       category_of_type(data->type()), element_of_type(data->type()));
 
   uint32_t type = data->type();
-  uint16_t cat = category_of_type(type);
-  uint16_t elem = element_of_type(type);
-  if (cat == io::neb) {
-    if (elem < neb_processing_table_size && neb_processing_table[elem]) {
-      (this->*(neb_processing_table[elem]))(data);
-    } else {
-      SPDLOG_LOGGER_ERROR(_logger_sql, "unknown neb event type: {}", elem);
+  switch (type) {
+    case make_type(io::bbdo, bbdo::de_rebuild_graphs):
+      _rebuilder.rebuild_graphs(data);
+      break;
+    case make_type(io::bbdo, bbdo::de_remove_graphs):
+      remove_graphs(data);
+      break;
+    case make_type(io::bbdo, bbdo::de_remove_poller):
+      remove_poller(data);
+      break;
+    default: {
+      uint16_t cat = category_of_type(type);
+      if (cat == io::neb) {
+        uint16_t elem = element_of_type(type);
+        if (elem < neb_processing_table_size && neb_processing_table[elem]) {
+          (this->*(neb_processing_table[elem]))(data);
+        } else {
+          SPDLOG_LOGGER_ERROR(_logger_sql, "unknown neb event type: {}", elem);
+        }
+      } else {
+        SPDLOG_LOGGER_TRACE(_logger_sql,
+                            "unified sql: event of type {} thrown away ; no "
+                            "need to store it in "
+                            "the database.",
+                            type);
+      }
     }
-  } else if (type == make_type(io::bbdo, bbdo::de_rebuild_graphs))
-    _rebuilder.rebuild_graphs(data);
-  else if (type == make_type(io::bbdo, bbdo::de_remove_graphs))
-    remove_graphs(data);
-  else if (type == make_type(io::bbdo, bbdo::de_remove_poller)) {
-    SPDLOG_LOGGER_INFO(_logger_sql, "remove poller...");
-    remove_poller(data);
-  } else {
-    SPDLOG_LOGGER_TRACE(
-        _logger_sql,
-        "unified sql: event of type {} thrown away ; no need to store it in "
-        "the database.",
-        type);
   }
   _processed++;
   _count++;
@@ -992,7 +998,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
     if (poller.obj().has_str()) {
       _mysql.run_query_and_get_result(
           fmt::format("SELECT instance_id from instances WHERE name='{}' AND "
-                      "(running=0 OR deleted=1)",
+                      "(running=0 OR deleted=1 OR outdated=1)",
                       poller.obj().str()),
           std::move(promise), conn);
       database::mysql_result res(future.get());
@@ -1004,8 +1010,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       if (count == 0) {
         SPDLOG_LOGGER_WARN(
             _logger_sql,
-            "Unable to remove poller '{}', {} not running found in the "
-            "database",
+            "Unable to remove poller '{}', {} running found in the database",
             poller.obj().str(), count == 0 ? "none" : "more than one");
         std::promise<database::mysql_result> promise;
         std::future<mysql_result> future = promise.get_future();
@@ -1044,7 +1049,7 @@ void stream::remove_poller(const std::shared_ptr<io::data>& d) {
       if (count == 0) {
         SPDLOG_LOGGER_WARN(
             _logger_sql,
-            "Unable to remove poller {}, {} not running found in the "
+            "Unable to remove poller {}, {} running found in the "
             "database",
             poller.obj().idx(), count == 0 ? "none" : "more than one");
         std::promise<database::mysql_result> promise;

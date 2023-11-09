@@ -28,6 +28,7 @@ EBDP1
     Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
     ${start}    Get Current Date
+    Clear Instances
     Start Broker
     Start Engine
 
@@ -58,17 +59,15 @@ EBDP1
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller3
-    Sleep    6s
-
-    Stop Engine
-    Kindly Stop Broker
-
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller3'
         Sleep    1s
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
+
+    Stop Engine
+    Kindly Stop Broker
 
 EBDP2
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
@@ -80,6 +79,7 @@ EBDP2
     Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
     Broker Config Log    central    processing    info
+    Clear Instances
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -125,10 +125,6 @@ EBDP2
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller2
-
-    Stop Engine
-    Kindly Stop Broker
-
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
@@ -136,6 +132,9 @@ EBDP2
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
+
+    Stop Engine
+    Kindly Stop Broker
 
 EBDP_GRPC2
     [Documentation]    Three new pollers are started, then they are killed. After a simple restart of broker, it is still possible to remove Poller2 if removed from the configuration.
@@ -152,6 +151,7 @@ EBDP_GRPC2
     Broker Config Log    central    sql    trace
     Broker Config Log    central    processing    info
     Broker Config Log    central    grpc    info
+    Clear Instances
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -198,10 +198,6 @@ EBDP_GRPC2
     Should Be True    ${result}    check_for_external_commands is missing.
 
     Remove Poller    51001    Poller2
-
-    Stop Engine
-    Kindly Stop Broker
-
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
@@ -209,6 +205,9 @@ EBDP_GRPC2
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
+
+    Stop Engine
+    Kindly Stop Broker
 
 EBDP3
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
@@ -219,6 +218,8 @@ EBDP3
     Config Broker    module    ${3}
     Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
+    Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    10
+    Clear Instances
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -257,18 +258,32 @@ EBDP3
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
+    ${result}    Wait For Listen On Range    51001    51001    cbd    60
+    Should Be True    ${result}    gRPC api not started on cbd
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT running, deleted, outdated FROM instances WHERE name='Poller2'
+        Sleep    1s
+        Log To Console    Output= ${output}
+        IF    "${output[0][0]}" == "0" or "${output[0][1]}" == "1" or "${output[0][2]}" == "1"
+            BREAK
+        END
+    END
+    Should Be True
+    ...    "${output[0][0]}" == "0" or "${output[0][1]}" == "1" or "${output[0][2]}" == "1"
+    ...    Poller2 should be not running or deleted or outdated.
+    ${remove_time}    Get Current Date
     Remove Poller    51001    Poller2
 
-    Stop Engine
-    Kindly Stop Broker
-
     FOR    ${index}    IN RANGE    60
-        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
+
+    Stop Engine
+    Kindly Stop Broker
 
 EBDP4
     [Documentation]    Four new pollers are started and then we remove Poller3 with its hosts and services. All service status/host status are then refused by broker.
@@ -282,6 +297,7 @@ EBDP4
     Broker Config Log    central    sql    trace
     Broker Config Log    module3    neb    trace
     Broker Config Flush Log    central    0
+    Clear Instances
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -368,6 +384,7 @@ EBDP5
     Config Broker    module    ${4}
     Config BBDO3    ${4}
     Broker Config Log    central    sql    trace
+    Clear Instances
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -425,6 +442,7 @@ EBDP6
     Config Broker    module    ${3}
     Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
+    Clear Instances
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -473,9 +491,6 @@ EBDP6
     ${result}    Find In Log With Timeout    ${centralLog}    ${remove_time}    ${content}    60
     Should Be True    ${result}    central-broker-unified-sql read neb:Instance is missing
 
-    Stop Engine
-    Kindly Stop Broker
-
     FOR    ${index}    IN RANGE    60
         ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
         Sleep    1s
@@ -483,6 +498,9 @@ EBDP6
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()
+
+    Stop Engine
+    Kindly Stop Broker
 
 EBDP7
     [Documentation]    Three new pollers are started, then they are killed. It is still possible to remove Poller2 if removed from the configuration.
@@ -493,6 +511,8 @@ EBDP7
     Config Broker    module    ${3}
     Config BBDO3    ${3}
     Broker Config Log    central    sql    trace
+    Broker Config Output Set    central    central-broker-unified-sql    instance_timeout    10
+    Clear Instances
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -531,6 +551,17 @@ EBDP7
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    check_for_external_commands is missing.
 
+    FOR    ${index}    IN RANGE    60
+        ${output}    Query    SELECT running, deleted, outdated FROM instances WHERE name='Poller2'
+        Sleep    1s
+        Log To Console    Output= ${output}
+        IF    "${output[0][0]}" == "0" or "${output[0][1]}" == "1" or "${output[0][2]}" == "1"
+            BREAK
+        END
+    END
+    Should Be True
+    ...    "${output[0][0]}" == "0" or "${output[0][1]}" == "1" or "${output[0][2]}" == "1"
+    ...    Poller2 should be not running or deleted or outdated.
     ${remove_time}    Get Current Date
     Remove Poller By Id    51001    ${3}
 
@@ -543,7 +574,7 @@ EBDP7
     Kindly Stop Broker
 
     FOR    ${index}    IN RANGE    60
-        ${output}    Query    SELECT instance_id FROM instances WHERE name='Poller2'
+        ${output}    Query    SELECT instance_id, running, deleted, outdated FROM instances WHERE name='Poller2'
         Sleep    1s
         Log To Console    Output= ${output}
         IF    "${output}" == "()"    BREAK
@@ -633,3 +664,9 @@ EBDP8
     Should Be True    ${result}    No message about these two wrong service status.
     Stop Engine
     Kindly Stop Broker
+
+
+*** Keywords ***
+Clear Instances
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    ${output}    Query    DELETE FROM instances
