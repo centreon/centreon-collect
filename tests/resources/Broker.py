@@ -869,9 +869,8 @@ def broker_config_output_set(name, output, key, value):
     output_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     output_dict[key] = value
-    f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
-    f.write(json.dumps(conf, indent=2))
-    f.close()
+    with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
+        f.write(json.dumps(conf, indent=2))
 
 
 def broker_config_output_set_json(name, output, key, value):
@@ -1325,7 +1324,7 @@ def create_metrics(count: int):
 
 def run_reverse_bam(duration, interval):
     pro = subp.Popen("broker/map_client.py {:f}".format(interval),
-               shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
+                     shell=True, stdout=subp.PIPE, stdin=subp.PIPE, preexec_fn=setsid)
     time.sleep(duration)
     os.killpg(os.getpgid(pro.pid), signal.SIGKILL)
 
