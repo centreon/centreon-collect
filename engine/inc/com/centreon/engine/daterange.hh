@@ -45,9 +45,36 @@ class daterange {
     week_day = 4
   };
 
-  daterange(type_range type, int syear, int smon, int smday, int swday,
-            int swday_offset, int eyear, int emon, int emday, int ewday,
-            int ewday_offset, int skip_interval);
+ private:
+  type_range _type;
+  int _syear;  // Start year.
+  int _smon;   // Start month.
+  // Start day of month (may 3rd, last day in feb).
+  int _smday;
+  int _swday;  // Start day of week (thursday).
+  // Start weekday offset (3rd thursday, last monday in jan).
+  int _swday_offset;
+  int _eyear;
+  int _emon;
+  int _emday;
+  int _ewday;
+  int _ewday_offset;
+  int _skip_interval;
+  timerange_list _timerange;
+
+ public:
+  daterange(type_range type,
+            int syear,
+            int smon,
+            int smday,
+            int swday,
+            int swday_offset,
+            int eyear,
+            int emon,
+            int emday,
+            int ewday,
+            int ewday_offset,
+            int skip_interval);
   daterange(type_range type);
 
   type_range get_type() const { return _type; }
@@ -87,23 +114,6 @@ class daterange {
 
   static std::string const& get_month_name(unsigned int index);
   static std::string const& get_weekday_name(unsigned int index);
-
- private:
-  type_range _type;
-  int _syear;  // Start year.
-  int _smon;   // Start month.
-  // Start day of month (may 3rd, last day in feb).
-  int _smday;
-  int _swday;  // Start day of week (thursday).
-  // Start weekday offset (3rd thursday, last monday in jan).
-  int _swday_offset;
-  int _eyear;
-  int _emon;
-  int _emday;
-  int _ewday;
-  int _ewday_offset;
-  int _skip_interval;
-  timerange_list _timerange;
 };
 
 std::ostream& operator<<(std::ostream& os,

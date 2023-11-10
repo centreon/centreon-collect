@@ -50,16 +50,16 @@ message KeyType {
 }
 
 message DaysArray {
-  repeated TimeRange sunday = 1;
-  repeated TimeRange monday = 2;
-  repeated TimeRange tuesday = 3;
-  repeated TimeRange wednesday = 4;
-  repeated TimeRange thursday = 5;
-  repeated TimeRange friday = 6;
-  repeated TimeRange saturday = 7;
+  repeated Timerange sunday = 1;
+  repeated Timerange monday = 2;
+  repeated Timerange tuesday = 3;
+  repeated Timerange wednesday = 4;
+  repeated Timerange thursday = 5;
+  repeated Timerange friday = 6;
+  repeated Timerange saturday = 7;
 }
 
-message TimeRange {
+message Timerange {
   uint64 range_start = 1;
   uint64 range_end = 2;
 }
@@ -87,7 +87,7 @@ message Daterange {
   int32 ewday = 10;
   int32 ewday_offset = 11;
   int32 skip_interval = 12;
-  repeated TimeRange timerange = 13;
+  repeated Timerange timerange = 13;
 }
 
 message ExceptionArray {

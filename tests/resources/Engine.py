@@ -1858,8 +1858,6 @@ def remove_severities_from_hosts(poller: int):
 # @param debug_file_path path of the debug log file
 # @param str_to_search string after which we will start connector::run search
 #
-
-
 def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     limit = time.time() + timeout
     while time.time() < limit:

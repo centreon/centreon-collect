@@ -210,7 +210,7 @@ message Value {
     int32 value_i32 = 2;
     uint32 value_u32 = 3;
     string value_str = 4;
-    TimeRange value_tr = 5;
+    Timerange value_tr = 5;
     Daterange value_dr = 6;
     Timeperiod value_tp = 7;
     Connector value_cn = 8;
