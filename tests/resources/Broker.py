@@ -1700,10 +1700,8 @@ def rebuild_rrd_graphs_from_db(indexes):
 #
 # @return A boolean.
 def compare_rrd_average_value(metric, value: float):
-    res = getoutput("rrdtool graph dummy --start=end-180d --end=now"
-                    " DEF:x=" + VAR_ROOT +
-                    "/lib/centreon/metrics/{}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf"
-                    .format(metric))
+    res = getoutput(f"rrdtool graph dummy --start=end-180d --end=now"
+                    " DEF:x={VAR_ROOT}/lib/centreon/metrics/{metric}.rrd:value:AVERAGE VDEF:xa=x,AVERAGE PRINT:xa:%lf")
     lst = res.split('\n')
     if len(lst) >= 2:
         res = float(lst[1].replace(',', '.'))

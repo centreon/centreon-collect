@@ -98,7 +98,7 @@ class ApplierPbContact : public ::testing::Test {
       configuration::timeperiod_helper tp_help(&tperiod);
       tperiod.set_timeperiod_name("24x7");
       tperiod.set_alias("24x7");
-      configuration::TimeRange* tr = tperiod.mutable_timeranges()->add_monday();
+      configuration::Timerange* tr = tperiod.mutable_timeranges()->add_monday();
       // monday: 00:00-24:00
       tr->set_range_start(0);
       tr->set_range_end(24 * 3600);
