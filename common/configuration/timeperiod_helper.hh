@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,6 +22,7 @@
 
 #include "common/configuration/message_helper.hh"
 #include "common/configuration/state-generated.pb.h"
+#include "common/configuration/state.pb.h"
 
 namespace com {
 namespace centreon {
@@ -30,6 +31,14 @@ namespace configuration {
 
 class timeperiod_helper : public message_helper {
   void _init();
+  bool _add_calendar_date(const std::string& line);
+  bool _add_other_date(const std::string& line);
+  bool _build_timeranges(
+      std::string const& line,
+      google::protobuf::RepeatedPtrField<Timerange>& timeranges);
+  bool _build_time_t(std::string_view time_str, time_t& ret);
+  bool _get_day_id(std::string_view name, uint32_t& id);
+  bool _get_month_id(std::string_view name, uint32_t& id);
 
  public:
   timeperiod_helper(Timeperiod* obj);
@@ -38,6 +47,9 @@ class timeperiod_helper : public message_helper {
 
   bool hook(absl::string_view key, const absl::string_view& value) override;
 };
+
+std::string daterange_to_str(const Daterange& dr);
+
 }  // namespace configuration
 }  // namespace engine
 }  // namespace centreon
