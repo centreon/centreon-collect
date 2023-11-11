@@ -284,7 +284,7 @@ BEACK6
     # This is for the check command in case of an active check
     Set Command Status    ${cmd_id}    1
     Process Service Result Hard    host_1    service_1    1    Service (1;1) is WARNING HARD
-    ${result}    Check Service Status With Timeout    host_1    service_1    ${1}    60    HARD
+    ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${1}    60    HARD
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
     # Acknowledgement is not deleted.

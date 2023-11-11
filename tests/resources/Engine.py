@@ -1986,17 +1986,25 @@ def process_service_check_result(hst: str, svc: str, state: int, output: str, co
         port = 50001 + int(config[6:])
         with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
             stub = engine_pb2_grpc.EngineStub(channel)
-            for i in range(nb_check):
-                indexed_output = f"{output}_{i}"
-                stub.ProcessServiceCheckResult(engine_pb2.Check(
-                    host_name=hst, svc_desc=svc, output=indexed_output, code=state))
+            if nb_check > 1:
+                for i in range(nb_check):
+                    indexed_output = f"{output}_{i}"
+                    stub.ProcessServiceCheckResult(engine_pb2.Check(
+                        host_name=hst, svc_desc=svc, output=indexed_output, code=state))
+            else:
+                    stub.ProcessServiceCheckResult(engine_pb2.Check(
+                        host_name=hst, svc_desc=svc, output=output, code=state))
 
     else:
         now = int(time.time())
         with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
-            for i in range(nb_check):
-                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
+            if nb_check == 1:
+                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
                 f.write(cmd)
+            else:
+                for i in range(nb_check):
+                    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
+                    f.write(cmd)
 
 
 @external_command
