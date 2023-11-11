@@ -1805,6 +1805,7 @@ def remove_severities_from_hosts(poller: int):
 #
 def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     limit = time.time() + timeout
+    r_query_execute = "none"
     while time.time() < limit:
         cmd_executed = False
         with open(debug_file_path, 'r') as f:
@@ -1816,14 +1817,13 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
                     for second_ind in range(first_ind, len(lines)):
                         # search cmd_id
                         m = re.search(
-                            r"^\[\d+\]\s+\[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
+                            r"\[trace\] \[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
                         if m is not None:
                             cmd_id = m.group(1)
-                            r_query_execute = r"^\[\d+\]\s+\[\d+\]\s+connector::_recv_query_execute:\s+id=" + \
-                                cmd_id + ",\s+(\S[\s\S]+)$"
+                            r_query_execute = rf".*\s+connector::_recv_query_execute:\s+id={cmd_id}, .*output=(.*)$"
                             for third_ind in range(second_ind, len(lines)):
-                                m = re.match(
-                                    r_query_execute, lines[third_ind])
+                                logger.console(lines[third_ind])
+                                m = re.match(r_query_execute, lines[third_ind])
                                 if m is not None:
                                     return m.group(1)
         time.sleep(1)
