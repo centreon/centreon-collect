@@ -374,6 +374,27 @@ define command {
         ff.close()
 
     @staticmethod
+    def create_meta_services_file(poller: int, name: int, SG: str, contactgroup: str):
+        config_file = f"{CONF_DIR}/config{poller}/meta_services.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define service {{
+    ;service_description            meta_1 
+    display_name                   Ntpd-Average 
+    host_name                      _Module_Meta  
+    max_check_attempts             1 
+    normal_check_interval          1 
+    retry_check_interval           1 
+    active_checks_enabled          1 
+    passive_checks_enabled         0  
+    notification_interval          0 
+    notification_period            24x7 
+    notification_options           w,c,r 
+    notifications_enabled          1 
+    }}
+    """.format(name, SG, contactgroup)
+            ff.write(content)
+
+    @staticmethod
     def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
@@ -693,6 +714,9 @@ define contact {
                 f.write("#contactgroups.cfg\n")
 
             f = open(config_dir + "/escalations.cfg", "w")
+            f.close()
+
+            f = open(config_dir + "/meta_services.cfg", "w")
             f.close()
 
             if not exists(ENGINE_HOME):
@@ -2321,7 +2345,6 @@ def send_bench(id: int, port: int):
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
 
-
 def config_host_command_status(idx: int, cmd_name: str, status: int):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
     with open(filename, "r") as f:
@@ -2335,4 +2358,24 @@ def config_host_command_status(idx: int, cmd_name: str, status: int):
             break
 
     with open(filename, "w") as f:
+        f.writelines(lines)
+
+def set_service_state(id: int, state: int):
+    # Read the contents of the file and split it into lines
+    with open('/tmp/states', 'a+') as f:
+        lines = f.readlines()
+
+    r = re.compile(rf"^{id}=>[0-9]+") 
+    found = False
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines[i] = f"{id}=>{state}\n"
+            found = True
+            break
+
+    if not found:
+        lines.append(f"{id}=>{state}\n")
+
+    with open('/tmp/states', 'w') as f:
         f.writelines(lines)
