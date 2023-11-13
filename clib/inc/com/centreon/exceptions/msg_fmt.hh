@@ -20,11 +20,7 @@
 
 #include <fmt/format.h>
 
-#include "com/centreon/namespace.hh"
-
-CC_BEGIN()
-
-namespace exceptions {
+namespace com::centreon::exceptions {
 /**
  *  @class msg_fmt msg_fmt.hh "com/centreon/exceptions/msg_fmt.hh"
  *  @brief Base exception class.
@@ -41,10 +37,10 @@ class msg_fmt : public std::exception {
       : _msg(fmt::format(str, args...)) {}
 
   msg_fmt() = delete;
+  virtual ~msg_fmt() noexcept = default;
   msg_fmt(const msg_fmt& e) : std::exception(e), _msg(e._msg) {}
   msg_fmt& operator=(const msg_fmt&) = delete;
   const char* what() const noexcept final { return _msg.c_str(); }
 };
-}  // namespace exceptions
-CC_END()
+}  // namespace com::centreon::exceptions
 #endif  // !CC_EXCEPTIONS_MSG_FMT_HH
