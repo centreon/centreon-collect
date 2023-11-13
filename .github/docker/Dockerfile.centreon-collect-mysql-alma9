@@ -48,6 +48,7 @@ dnf install -y cmake \
     nfpm \
     sudo
 
+dnf upgrade -y python3
 pip3 install conan==1.61.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
 
