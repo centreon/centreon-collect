@@ -41,7 +41,7 @@ EBBPS1
     Start Broker
     Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
