@@ -29,7 +29,6 @@
 #include "com/centreon/engine/configuration/applier/host.hh"
 #include "com/centreon/engine/configuration/applier/service.hh"
 #include "com/centreon/engine/configuration/host.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "common/configuration/anomalydetection_helper.hh"
 #include "common/configuration/command_helper.hh"
 #include "common/configuration/host_helper.hh"
