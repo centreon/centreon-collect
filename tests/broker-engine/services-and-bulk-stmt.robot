@@ -67,7 +67,7 @@ EBBPS1
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check result    host_1    service_${i+1}    2    warning${i}
+        Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
             ${result}    Find In Log With Timeout
