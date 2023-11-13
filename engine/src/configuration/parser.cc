@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011-2014,2017,2022-2023 Centreon
  *
  * This file is part of Centreon Engine.
