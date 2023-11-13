@@ -155,7 +155,7 @@ EBBPS2
         Process Service Check result    host_1    service_${i+1}    2    critical${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
-            ${result}    Find In Log with timeout
+            ${result}    Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
             ...    ${first_service_status_content}
@@ -164,7 +164,7 @@ EBBPS2
             Kindly Stop Broker
             Log to Console    Waiting for 5s
             Sleep    5s
-            Log to Console    Restarting Broker
+            Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
             Start Broker
         END
