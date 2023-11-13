@@ -48,7 +48,7 @@ dnf install -y cmake \
     nfpm \
     sudo
 
-pip3 install conan==1.57.0 --prefix=/usr --upgrade
+pip3 install conan==1.61.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
 
 EOF
