@@ -64,7 +64,6 @@ TEST_F(ApplierAnomalydetection,
 // Then the applier add_object throws an exception.
 TEST_F(ApplierAnomalydetection, NewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::applier::service ad_aply;
   configuration::anomalydetection ad;
   configuration::host hst;
   ASSERT_TRUE(hst.parse("host_name", "test_host"));
