@@ -46,7 +46,7 @@ EBBPS1
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
     FOR    ${i}    IN RANGE    ${1000}
-        Process Service Check result    host_1    service_${i+1}    1    warning${i}
+        Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
     ${content}    Create List
     ...    connected to 'MariaDB' Server
