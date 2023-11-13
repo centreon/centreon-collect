@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 1999-2009 Ethan Galstad
  * Copyright 2009-2010 Nagios Core Development Team and Community Contributors
  * Copyright 2011-2023 Centreon
@@ -23,10 +23,10 @@
 #include <getopt.h>
 #endif  // HAVE_GETOPT_H
 #include <unistd.h>
-#include <random>
-#include <string>
 
 #include <boost/asio.hpp>
+#include <random>
+#include <string>
 
 namespace asio = boost::asio;
 

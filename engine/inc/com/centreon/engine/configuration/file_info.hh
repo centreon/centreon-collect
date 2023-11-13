@@ -21,6 +21,7 @@
 #define CCE_CONFIGURATION_FILE_INFO_HH
 
 #include <fmt/ostream.h>
+
 #include "com/centreon/engine/exceptions/error.hh"
 
 namespace com::centreon::engine {
