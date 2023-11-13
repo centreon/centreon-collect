@@ -119,7 +119,9 @@ def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 3
 
     def ok(l):
         m = r.match(l)
+        logger.console(f"LISTEN ?? {l}")
         if m:
+            logger.console(f"=> OK")
             value = int(m.group(1))
             if int(m.group(1)) in rng:
                 return True

@@ -85,12 +85,6 @@ std::string options::usage() const {
   return help();
 }
 
-/**************************************
- *                                     *
- *           Private Methods           *
- *                                     *
- **************************************/
-
 /**
  *  Init argument table.
  */
