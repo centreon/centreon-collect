@@ -405,6 +405,27 @@ define command {
         ff.close()
 
     @staticmethod
+    def create_meta_services_file(poller: int, name: int, SG: str, contactgroup: str):
+        config_file = f"{CONF_DIR}/config{poller}/meta_services.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define service {{
+    ;service_description            meta_1 
+    display_name                   Ntpd-Average 
+    host_name                      _Module_Meta  
+    max_check_attempts             1 
+    normal_check_interval          1 
+    retry_check_interval           1 
+    active_checks_enabled          1 
+    passive_checks_enabled         0  
+    notification_interval          0 
+    notification_period            24x7 
+    notification_options           w,c,r 
+    notifications_enabled          1 
+    }}
+    """.format(name, SG, contactgroup)
+            ff.write(content)
+
+    @staticmethod
     def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
@@ -714,6 +735,9 @@ define contact {
 
             with open(f"{config_dir}/escalations.cfg", "w") as f:
                 pass
+
+            f = open(config_dir + "/meta_services.cfg", "w")
+            f.close()
 
             if not exists(ENGINE_HOME):
                 makedirs(ENGINE_HOME)
