@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/configuration/service.hh"
 #include <gtest/gtest.h>
-#include "com/centreon/engine/exceptions/error.hh"
 #include "common/configuration/service_helper.hh"
 
 using namespace com::centreon::engine;

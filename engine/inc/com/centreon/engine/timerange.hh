@@ -20,6 +20,9 @@
 #ifndef CCE_OBJECTS_TIMERANGE_HH
 #define CCE_OBJECTS_TIMERANGE_HH
 
+#include <array>
+#include <list>
+
 namespace com::centreon::engine {
 class timerange {
   uint64_t _range_start;

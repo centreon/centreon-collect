@@ -19,7 +19,6 @@
 
 #include "com/centreon/engine/broker/loader.hh"
 #include "com/centreon/engine/broker/handle.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/io/directory_entry.hh"

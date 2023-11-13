@@ -23,7 +23,6 @@
 #include "com/centreon/engine/configuration/applier/difference.hh"
 #include "com/centreon/engine/configuration/applier/pb_difference.hh"
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/exceptions/error.hh"
 #include "common/configuration/state-generated.pb.h"
 #include "common/configuration/state.pb.h"
 
