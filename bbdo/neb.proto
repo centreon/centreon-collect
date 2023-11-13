@@ -539,7 +539,6 @@ message HostCheck {
     string command_line = 4;
     uint64 host_id = 5;
     uint64 next_check = 6;
-    uint64 service_id = 7;
 }
 
 /*io::neb, neb::de_pb_service_check*/
