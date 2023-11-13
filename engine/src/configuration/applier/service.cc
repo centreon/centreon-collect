@@ -18,7 +18,9 @@
  */
 
 #include "com/centreon/engine/configuration/applier/service.hh"
+
 #include <absl/container/flat_hash_set.h>
+
 #include "absl/hash/hash.h"
 #include "com/centreon/engine/anomalydetection.hh"
 #include "com/centreon/engine/broker.hh"
@@ -335,8 +337,6 @@ void applier::service::expand_objects(configuration::State& s) {
       if (!s.enable_macros_filter() || cvs.contains(cv.name()))
         cv.set_is_sent(true);
     }
-
-    auto& h = service_cfg.host_name();
 
     // Expand membershipts.
     _expand_service_memberships(service_cfg, s);

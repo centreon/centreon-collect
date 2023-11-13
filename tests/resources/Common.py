@@ -1114,6 +1114,7 @@ def check_host_severity_with_timeout(host_id: int, severity_id, timeout: int = T
                     "select sv.id from resources r left join severities sv ON r.severity_id=sv.severity_id where r.parent_id = 0 and r.id={}".format(host_id))
                 result = cursor.fetchall()
                 if len(result) > 0:
+                    logger.console(result)
                     if severity_id == 'None':
                         if result[0]['id'] is None:
                             return True
