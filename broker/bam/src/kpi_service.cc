@@ -42,8 +42,9 @@ static bool time_is_undefined(uint64_t t) {
 kpi_service::kpi_service(uint32_t kpi_id,
                          uint32_t ba_id,
                          uint32_t host_id,
-                         uint32_t service_id)
-    : kpi(kpi_id, ba_id),
+                         uint32_t service_id,
+                         const std::string& host_serv)
+    : kpi(kpi_id, ba_id, host_serv),
       _host_id(host_id),
       _service_id(service_id),
       _acknowledged(false),

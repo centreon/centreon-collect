@@ -27,7 +27,8 @@ using namespace com::centreon::broker::bam;
 /**
  *  Default constructor.
  */
-kpi_ba::kpi_ba(uint32_t kpi_id, uint32_t ba_id) : kpi(kpi_id, ba_id) {}
+kpi_ba::kpi_ba(uint32_t kpi_id, uint32_t ba_id, const std::string& ba_name)
+    : kpi(kpi_id, ba_id, ba_name) {}
 
 /**
  *  Get the impact introduced by a CRITICAL state of the BA.
