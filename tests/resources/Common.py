@@ -113,14 +113,15 @@ def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 3
     port2 = int(port2)
     rng = range(port1, port2 + 1)
     limit = time.time() + timeout
-    r = re.compile(rf"^LISTEN\s+[0-9]+\s+[0-9]+\s+\[::1\]:([0-9]+)\s+.*{prog}")
+    r = re.compile(
+        rf"^LISTEN\s+[0-9]+\s+[0-9]+\s+[\[\]0-9\.:]+:([0-9]+)\s+.*{prog}")
     size = port2 - port1 + 1
 
     def ok(l):
         m = r.match(l)
         logger.console(f"LISTEN ?? {l}")
         if m:
-            logger.console(f"=> OK")
+            logger.console(f"{l} => OK")
             value = int(m.group(1))
             if int(m.group(1)) in rng:
                 return True
