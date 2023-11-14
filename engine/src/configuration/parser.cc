@@ -18,11 +18,15 @@
  */
 
 #include "com/centreon/engine/configuration/parser.hh"
+
 #include <absl/container/flat_hash_set.h>
 #include <absl/strings/ascii.h>
+
 #include <filesystem>
 #include <memory>
+
 #include "absl/strings/numbers.h"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/configuration/anomalydetection_helper.hh"
 #include "common/configuration/command_helper.hh"
@@ -47,6 +51,7 @@
 using namespace com::centreon;
 using namespace com::centreon::engine::configuration;
 using msg_fmt = com::centreon::exceptions::msg_fmt;
+using error = com::centreon::exceptions::error;
 using com::centreon::common::log_v2::log_v2;
 
 using Descriptor = ::google::protobuf::Descriptor;
@@ -1400,8 +1405,8 @@ void parser::_resolve_template() {
         _config_warnings += err.config_warnings;
         _config_errors += err.config_errors;
       } catch (std::exception const& e) {
-        throw engine_error() << "Configuration parsing failed "
-                             << _get_file_info(it->get()) << ": " << e.what();
+        throw error("Configuration parsing failed {}: {}",
+                    _get_file_info(it->get()), e.what());
       }
     }
   }
@@ -1418,9 +1423,8 @@ void parser::_resolve_template() {
         _config_warnings += err.config_warnings;
         _config_errors += err.config_errors;
       } catch (const std::exception& e) {
-        throw engine_error()
-            << "Configuration parsing failed "
-            << _get_file_info(it->second.get()) << ": " << e.what();
+        throw error("Configuration parsing failed {}: {}",
+                    _get_file_info(it->second.get()), e.what());
       }
     }
   }
@@ -1445,9 +1449,8 @@ void parser::_store_into_map(object_ptr obj) {
   std::shared_ptr<T> real(std::static_pointer_cast<T>(obj));
   map_object::iterator it(_map_objects[obj->type()].find((real.get()->*ptr)()));
   if (it != _map_objects[obj->type()].end())
-    throw engine_error() << "Parsing of " << obj->type_name() << " failed "
-                         << _get_file_info(obj.get()) << ": " << obj->name()
-                         << " already exists";
+    throw error("Parsing of {} failed {}: {} already exists", obj->type_name(),
+                _get_file_info(obj.get()), obj->name());
   _map_objects[obj->type()][(real.get()->*ptr)()] = real;
 }
 
