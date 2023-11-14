@@ -39,13 +39,16 @@ struct formatter<io::raw> : ostream_formatter {};
 }  // namespace fmt
 
 com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
-    : io::stream("GRPC"), _accept(false) {
+    : io::stream("GRPC"), _accept(false), _conf(conf) {
   _channel = client::create(conf);
 }
 
 com::centreon::broker::grpc::stream::stream(
     const std::shared_ptr<accepted_service>& accepted)
-    : io::stream("GRPC"), _accept(true), _channel(accepted) {}
+    : io::stream("GRPC"),
+      _accept(true),
+      _channel(accepted),
+      _conf(_channel->get_conf()) {}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
   if (_channel)
@@ -96,8 +99,8 @@ int32_t com::centreon::broker::grpc::stream::write(
 
   channel::event_with_data::pointer to_send;
 
-  if (!get_bbdo_encoding() && std::dynamic_pointer_cast<io::protobuf_base>(
-                                  d)) {  // no bbdo encoded object
+  if (_conf->get_grpc_serialized() &&
+      std::dynamic_pointer_cast<io::protobuf_base>(d)) {  // no bbdo serialize
     to_send = create_event_with_data(d);
   } else {
     to_send = std::make_shared<channel::event_with_data>();

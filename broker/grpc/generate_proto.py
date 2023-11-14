@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 """
-** Copyright 2019-2020 Centreon
+** Copyright 2023 Centreon
 **
 ** Licensed under the Apache License, Version 2.0(the "License");
 ** you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ file_begin_content = """syntax = "proto3";
 """
 
 file_message_centreon_event = """
-message centreon_event {
+message CentreonEvent {
     oneof content {
         bytes buffer = 1;
 
@@ -36,7 +36,7 @@ message centreon_event {
 
 cc_file_begin_content = """
 /*
- * Copyright 2022 Centreon (https://www.centreon.com/)
+ * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -112,11 +112,11 @@ class received_protobuf : public io::protobuf<T, Typ> {
     io::protobuf_base::set_message(((*_received).*_mutable_access)());
   }
 
-  virtual const T& obj() const { return ((*_received).*_const_access)(); }
+  const T& obj() const override{ return ((*_received).*_const_access)(); }
 
-  virtual T& mut_obj() { return *((*_received).*_mutable_access)(); }
+  T& mut_obj() override { return *((*_received).*_mutable_access)(); }
 
-  virtual void set_obj(T&& obj) {
+  void set_obj(T&& obj) override {
     throw com::centreon::exceptions::msg_fmt("unauthorized usage {}",
                                              typeid(*this).name());
   }
@@ -205,7 +205,7 @@ for directory in args.proto_directory:
                     one_of_index += 1
                     lower_mess = mess.lower()
                     # cc file
-                    cc_file_protobuf_to_event_function += f"""        case ::stream::centreon_event::k{mess}:
+                    cc_file_protobuf_to_event_function += f"""        case ::stream::CentreonEvent::k{mess}:
             return std::make_shared<detail::received_protobuf<
                 {mess}, make_type({id})>>(
                 stream_content, &grpc_event_type::{lower_mess}_,
@@ -236,7 +236,7 @@ package com.centreon.broker.stream;
 
 service centreon_bbdo {
     //emitter connect to receiver
-    rpc exchange(stream centreon_event) returns (stream centreon_event) {}
+    rpc exchange(stream CentreonEvent) returns (stream CentreonEvent) {}
 }
                           
 """)

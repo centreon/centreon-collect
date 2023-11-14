@@ -63,6 +63,8 @@ class factory {
       std::shared_ptr<stream> substream,
       bool is_acceptor,
       const std::unordered_map<std::string, std::string>& options);
+
+  static bool direct_grpc_serialized(const config::endpoint& cfg);
 };
 }  // namespace io
 

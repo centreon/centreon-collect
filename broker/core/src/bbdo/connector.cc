@@ -46,7 +46,7 @@ connector::connector(bool negotiate,
                      bool coarse,
                      uint32_t ack_limit,
                      std::list<std::shared_ptr<io::extension>>&& extensions,
-                     bool bbdo_encoding)
+                     bool grpc_serialized)
     : io::endpoint{false, {}},
       _is_input{connector_is_input},
       _coarse{coarse},
@@ -55,7 +55,7 @@ connector::connector(bool negotiate,
       _timeout(timeout == -1 || timeout == 0 ? 3 : timeout),
       _ack_limit{ack_limit},
       _extensions{std::move(extensions)},
-      _bbdo_encoding(bbdo_encoding) {}
+      _grpc_serialized(grpc_serialized) {}
 
 /**
  *  Open the connector.
@@ -70,8 +70,6 @@ std::shared_ptr<io::stream> connector::open() {
   if (_from)
     // Open lower layer connection and add our own layer.
     retval = _open(_from->open());
-  if (!_bbdo_encoding)
-    retval->set_bbdo_encoding(_bbdo_encoding);
   return retval;
 }
 
@@ -85,13 +83,12 @@ std::shared_ptr<io::stream> connector::_open(
   std::unique_ptr<bbdo::stream> bbdo_stream;
   if (stream) {
     // if _is_input, the stream is an input
-    bbdo_stream = std::make_unique<bbdo::stream>(_is_input, _extensions);
+    bbdo_stream = std::make_unique<bbdo::stream>(_is_input, _grpc_serialized,
+                                                 _extensions);
     bbdo_stream->set_substream(stream);
     bbdo_stream->set_coarse(_coarse);
     bbdo_stream->set_negotiate(_negotiate);
     bbdo_stream->set_timeout(_timeout);
-    if (!_bbdo_encoding)
-      bbdo_stream->set_bbdo_encoding(_bbdo_encoding);
     try {
       bbdo_stream->negotiate(bbdo::stream::negotiate_first);
     } catch (std::exception& e) {

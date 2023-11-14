@@ -47,7 +47,7 @@ class acceptor : public io::endpoint {
   time_t _timeout;
   uint32_t _ack_limit;
   std::list<std::shared_ptr<io::extension>> _extensions;
-  const bool _bbdo_encoding;
+  const bool _grpc_serialized;
 
  public:
   acceptor(std::string name,
@@ -57,7 +57,7 @@ class acceptor : public io::endpoint {
            bool coarse = false,
            uint32_t ack_limit = 1000,
            std::list<std::shared_ptr<io::extension>>&& extensions = {},
-           bool bbdo_encoding = true);
+           bool grpc_serialized = false);
   ~acceptor() noexcept;
   acceptor(const acceptor&) = delete;
   acceptor& operator=(const acceptor&) = delete;

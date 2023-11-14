@@ -29,7 +29,7 @@ struct detail_centreon_event;
 std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
 }  // namespace grpc
 namespace stream {
-std::ostream& operator<<(std::ostream&, const centreon_event&);
+std::ostream& operator<<(std::ostream&, const CentreonEvent&);
 }  // namespace stream
 }  // namespace broker
 }  // namespace centreon
@@ -37,7 +37,7 @@ std::ostream& operator<<(std::ostream&, const centreon_event&);
 
 namespace centreon_grpc = com::centreon::broker::grpc;
 namespace centreon_stream = com::centreon::broker::stream;
-using grpc_event_type = centreon_stream::centreon_event;
+using grpc_event_type = centreon_stream::CentreonEvent;
 using event_ptr = std::shared_ptr<grpc_event_type>;
 
 CCB_BEGIN()
@@ -48,9 +48,9 @@ using channel_ptr = std::shared_ptr<::grpc::Channel>;
 using uint64_vector = std::vector<uint64_t>;
 
 struct detail_centreon_event {
-  detail_centreon_event(const centreon_stream::centreon_event& todump)
+  detail_centreon_event(const centreon_stream::CentreonEvent& todump)
       : to_dump(todump) {}
-  const centreon_stream::centreon_event& to_dump;
+  const centreon_stream::CentreonEvent& to_dump;
 };
 
 const std::string authorization_header("authorization");
@@ -150,6 +150,7 @@ class channel : public std::enable_shared_from_this<channel> {
   virtual void shutdown() = 0;
   bool is_down() const { return _error || _thrown; };
   bool is_alive() const { return !_error && !_thrown; }
+  grpc_config::pointer get_conf() const { return _conf; }
 
   std::pair<event_ptr, bool> read(time_t deadline) {
     return read(system_clock::from_time_t(deadline));
@@ -172,7 +173,7 @@ CCB_END()
 namespace fmt {
 // formatter specializations for fmt
 template <>
-struct formatter<centreon_stream::centreon_event> : ostream_formatter {};
+struct formatter<centreon_stream::CentreonEvent> : ostream_formatter {};
 
 template <>
 struct formatter<centreon_grpc::detail_centreon_event> : ostream_formatter {};

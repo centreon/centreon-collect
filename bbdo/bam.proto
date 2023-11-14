@@ -29,7 +29,7 @@ enum State {
     UNKNOWN = 3;  
 }
 
-/*io::bam, io::bam, bam::de_pb_inherited_downtime*/
+/*io::bam, bam::de_pb_inherited_downtime*/
 message InheritedDowntime {
     BBDOHeader header = 1;
     uint32 ba_id = 2;

@@ -598,9 +598,14 @@ static io::raw* serialize(const io::data& e) {
 }
 
 /**
- *  Default constructor.
+ * @brief Construct a new stream::stream object
+ *
+ * @param is_input true if we receive bbdo events such as broker input
+ * @param grpc_serialized true if serialization is done by grpc stream only
+ * @param extensions
  */
 stream::stream(bool is_input,
+               bool grpc_serialized,
                const std::list<std::shared_ptr<io::extension>>& extensions)
     : io::stream("BBDO"),
       _skipped(0),
@@ -614,7 +619,8 @@ stream::stream(bool is_input,
       _events_received_since_last_ack(0),
       _last_sent_ack(time(nullptr)),
       _extensions{extensions},
-      _bbdo_version(config::applier::state::instance().get_bbdo_version()) {
+      _bbdo_version(config::applier::state::instance().get_bbdo_version()),
+      _grpc_serialized(grpc_serialized) {
   SPDLOG_LOGGER_DEBUG(log_v2::core(), "create bbdo stream {:p}",
                       static_cast<const void*>(this));
 }
@@ -946,7 +952,6 @@ void stream::negotiate(stream::negotiation_type neg) {
             std::shared_ptr<io::stream> s{
                 proto_it->second.endpntfactry->new_stream(
                     _substream, neg == negotiate_second, ext->options())};
-            s->set_bbdo_encoding(get_bbdo_encoding());
             set_substream(s);
             break;
           }
@@ -1133,14 +1138,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
   return !timed_out;
 }
 
-#define READ_FROM_QUEUE                                        \
-  if (!_read_queue.empty()) {                                  \
-    d = _read_queue.front();                                   \
-    SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "read event: {}", *d); \
-    _read_queue.pop_front();                                   \
-    return true;                                               \
-  }
-
 /**
  *  @brief Get the next available event.
  *
@@ -1153,7 +1150,6 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  *  @return Respect io::stream::read()'s return value.
  */
 bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
-  READ_FROM_QUEUE
   try {
     // Return value.
     std::unique_ptr<io::data> e;
@@ -1162,7 +1158,12 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
     for (;;) {
       /* Maybe we have to complete the header. */
       _read_packet(BBDO_HEADER_SIZE, deadline);
-      READ_FROM_QUEUE
+      if (!_grpc_serialized_queue.empty()) {
+        d = _grpc_serialized_queue.front();
+        SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "read event: {}", *d);
+        _grpc_serialized_queue.pop_front();
+        return true;
+      }
 
       // Packet size is now at least BBDO_HEADER_SIZE and maybe contains
       // already a full BBDO packet.
@@ -1206,7 +1207,6 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       // It is time to finish to read the packet.
 
       _read_packet(BBDO_HEADER_SIZE + packet_size, deadline);
-      READ_FROM_QUEUE
 
       // Now, _packet contains at least BBDO_HEADER_SIZE + packet_size bytes.
 
@@ -1337,7 +1337,8 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
  * just not finished, and so no data are lost. Received packets are BBDO packets
  * or maybe pieces of BBDO packets, so we keep vectors as is because usually a
  * vector should just represent a packet.
- * In case we receive not bbdo encoded packet, we store it in _read_queue
+ * In case of event serialized only by grpc stream, we store it in
+ * _grpc_serialized_queue
  *
  * @param size The wanted final size
  * @param deadline A time_t.
@@ -1360,7 +1361,7 @@ void stream::_read_packet(size_t size, time_t deadline) {
             _packet.insert(_packet.end(), new_v.begin(), new_v.end());
         }
       } else {
-        _read_queue.push_back(d);
+        _grpc_serialized_queue.push_back(d);
         return;
       }
     }
@@ -1427,7 +1428,7 @@ void stream::statistics(nlohmann::json& tree) const {
 void stream::_write(const std::shared_ptr<io::data>& d) {
   assert(d);
 
-  if (get_bbdo_encoding() || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
+  if (!_grpc_serialized || !std::dynamic_pointer_cast<io::protobuf_base>(d)) {
     // Check if data exists.
     std::shared_ptr<io::raw> serialized(serialize(*d));
     if (serialized) {

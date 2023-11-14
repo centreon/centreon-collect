@@ -45,6 +45,9 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   bool legacy;
 
   if (ext) {
+    if (direct_grpc_serialized(cfg)) {
+      return false;
+    }
     if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
       it = cfg.params.find("transport_protocol");
       if (it != cfg.params.end()) {

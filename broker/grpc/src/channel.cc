@@ -42,7 +42,7 @@ namespace centreon {
 namespace broker {
 namespace stream {
 std::ostream& operator<<(std::ostream& st,
-                         const centreon_stream::centreon_event& to_dump) {
+                         const centreon_stream::CentreonEvent& to_dump) {
   if (to_dump.IsInitialized()) {
     if (to_dump.has_buffer()) {
       st << "buff: "

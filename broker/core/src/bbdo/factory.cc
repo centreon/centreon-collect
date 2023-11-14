@@ -93,17 +93,9 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
-  // bbdo encoding?
-  bool bbdo_encoding = true;
-  if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
-    it = cfg.params.find("transport_protocol");
-    if (it != cfg.params.end()) {
-      bbdo_encoding = !(
-          absl::EqualsIgnoreCase(cfg.params["transport_protocol"], "grpc") &&
-          config::applier::state::instance().get_bbdo_version().total_version >=
-              bbdo::bbdo_version(3, 1, 0).total_version);
-    }
-  }
+  // only grpc serialization?
+  bool grpc_serialized = direct_grpc_serialized(cfg);
+
   // Negotiation allowed ?
   bool negotiate = false;
   std::list<std::shared_ptr<io::extension>> extensions;
@@ -174,7 +166,7 @@ io::endpoint* factory::new_endpoint(
 
     retval = std::make_unique<bbdo::acceptor>(
         cfg.name, negotiate, cfg.read_timeout, acceptor_is_output, coarse,
-        ack_limit, std::move(extensions), bbdo_encoding);
+        ack_limit, std::move(extensions), grpc_serialized);
     if (acceptor_is_output && keep_retention)
       is_acceptor = false;
     log_v2::bbdo()->debug("BBDO: new acceptor {}", cfg.name);
@@ -182,7 +174,7 @@ io::endpoint* factory::new_endpoint(
     bool connector_is_input = cfg.get_io_type() == config::endpoint::input;
     retval = std::make_unique<bbdo::connector>(
         negotiate, cfg.read_timeout, connector_is_input, coarse, ack_limit,
-        std::move(extensions), bbdo_encoding);
+        std::move(extensions), grpc_serialized);
     log_v2::bbdo()->debug("BBDO: new connector {}", cfg.name);
   }
   return retval.release();

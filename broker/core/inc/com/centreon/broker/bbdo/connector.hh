@@ -38,7 +38,7 @@ class connector : public io::endpoint {
   time_t _timeout;
   uint32_t _ack_limit;
   std::list<std::shared_ptr<io::extension>> _extensions;
-  bool _bbdo_encoding;
+  const bool _grpc_serialized;
 
   std::shared_ptr<io::stream> _open(std::shared_ptr<io::stream> stream);
 
@@ -49,7 +49,7 @@ class connector : public io::endpoint {
             bool coarse = false,
             uint32_t ack_limit = 1000,
             std::list<std::shared_ptr<io::extension>>&& extensions = {},
-            bool bbdo_encoding = true);
+            bool grpc_serialized = false);
   ~connector() noexcept = default;
   connector(const connector&) = delete;
   connector& operator=(const connector&) = delete;

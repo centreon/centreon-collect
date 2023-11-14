@@ -117,8 +117,8 @@ server::server(const grpc_config::pointer& conf) : _conf(conf) {
 void server::start() {
   ::grpc::Service::MarkMethodCallback(
       0, new ::grpc::internal::CallbackBidiHandler<
-             ::com::centreon::broker::stream::centreon_event,
-             ::com::centreon::broker::stream::centreon_event>(
+             ::com::centreon::broker::stream::CentreonEvent,
+             ::com::centreon::broker::stream::CentreonEvent>(
              [me = shared_from_this()](::grpc::CallbackServerContext* context) {
                return me->exchange(context);
              }));
