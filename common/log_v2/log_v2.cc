@@ -98,6 +98,7 @@ log_v2::log_v2(const std::string& name,
 }
 
 log_v2& log_v2::instance() {
+  assert(_instance);
   return *_instance;
 }
 
