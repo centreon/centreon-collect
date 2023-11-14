@@ -21,12 +21,13 @@
 #include "com/centreon/engine/broker/handle.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/logger.hh"
+#include "com/centreon/exceptions/error.hh"
 #include "com/centreon/io/directory_entry.hh"
 #include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::engine;
-using namespace com::centreon::engine::exceptions;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine::broker;
 using namespace com::centreon::engine::logging;
 
