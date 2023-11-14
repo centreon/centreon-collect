@@ -89,7 +89,7 @@ jobs:
           sudo $CMAKE \
                   -G "Ninja" \
                   -DNG=ON \
-                  -DDEBUG_ROBOT=OFF \
+                  -DDEBUG_ROBOT=ON \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \
