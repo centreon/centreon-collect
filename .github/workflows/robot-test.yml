@@ -58,7 +58,7 @@ jobs:
         shell: bash
 
       - name: Move reports
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         run: |
           mkdir reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
@@ -70,7 +70,7 @@ jobs:
           fi
 
       - name: Upload Test Results
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
           name: robot-test-reports
@@ -79,7 +79,7 @@ jobs:
 
   robot-test-report:
     needs: [robot-test-run]
-    if: ${{ !cancelled() }}
+    if: ${{ failure() }}
     runs-on: ubuntu-22.04
 
     steps:
