@@ -62,10 +62,10 @@ jobs:
         run: |
           mkdir reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
-          mv tests/log.html reports/$FILE_PREFIX-log.html
-          mv tests/output.xml reports/$FILE_PREFIX-output.xml
-          mv tests/report.html reports/$FILE_PREFIX-report.html
           if [ -d tests/failed ] ; then
+            mv tests/log.html reports/$FILE_PREFIX-log.html
+            mv tests/output.xml reports/$FILE_PREFIX-output.xml
+            mv tests/report.html reports/$FILE_PREFIX-report.html
             mv tests/failed reports/$FILE_PREFIX-failed
           fi
 

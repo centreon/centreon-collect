@@ -149,6 +149,20 @@ Stop Engine
 	 END
 	END
 
+Stop Engine Broker And Save Logs
+    [Arguments]    ${only_central}=False
+    TRY
+        Stop Engine
+    EXCEPT
+        Log    Can't kindly stop Engine
+    END
+    TRY
+        Kindly Stop Broker    only_central=${only_central}
+    EXCEPT
+        Log    Can't kindly stop Broker
+    END
+    Save Logs If Failed
+
 Get Engine Pid
 	[Arguments]  ${process_alias}
 	${pid}=  Get Process Id  ${process_alias} 
@@ -186,7 +200,7 @@ Reset Eth Connection
 	Run	iptables -F
 	Run	iptables -X
 
-Save Logs If failed
+Save Logs If Failed
 	Run Keyword If Test Failed	Save Logs
 
 Save Logs
