@@ -72,7 +72,7 @@ runs:
         echo "[DEBUG] - RELEASE: $RELEASE"
 
         # Obtain latest version.patch-release
-        PKG_DIR_VERSION=$(curl -Ls "https://yum.centreon.com/standard/23.04/el7/unstable/x86_64/centreon-collect/" | sed -En 's/.*([2-9][0-9]\.[0-9][0-9]\.[[:digit:]]+-[[:digit:]]+\.[[a-z0-9]{7}).*/\1/p')
+        PKG_DIR_VERSION=$(curl -Ls "https://yum.centreon.com/standard/22.10/el7/unstable/x86_64/centreon-collect/" | sed -En 's/.*([2-9][0-9]\.[0-9][0-9]\.[[:digit:]]+-[[:digit:]]+\.[[a-z0-9]{7}).*/\1/p')
 
         echo "[DEBUG] - PKG_DIR_VERSION: $PKG_DIR_VERSION"
 
