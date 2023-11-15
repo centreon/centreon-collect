@@ -55,6 +55,69 @@ def check_connection(port: int, pid1: int, pid2: int):
     return False
 
 
+def wait_for_connections(port: int, nb: int, timeout: int = 60):
+    """!  wait until nb connection are established on localhost and port
+    @param port connection port
+    @param nb number of connection expected
+    @param timeout  timeout in second
+    @return True if nb connection are established
+    """
+    limit = time.time() + timeout
+    r = re.compile(
+        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        estab_port = list(filter(r.match, lst))
+        if len(estab_port) >= nb:
+            return True
+        logger.console(f"Currently {estab_port} connections")
+        time.sleep(2)
+    return False
+
+
+def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
+    """Wait that an instance of the given program listens on each port in the
+       given range. On success, the function returns True, if the timeout is
+       reached with some missing instances, it returns False.
+
+    Args:
+        port1: The first port
+        port2: The second port (all the ports p such that port1 <= p <p port2
+               will be tested.
+        prog: The name of the program that should be listening.
+        timeout: A timeout in seconds.
+    Returns:
+        A boolean True on success.
+    """
+    port1 = int(port1)
+    port2 = int(port2)
+    rng = range(port1, port2 + 1)
+    limit = time.time() + timeout
+    r = re.compile(
+        rf"^LISTEN\s+[0-9]+\s+[0-9]+\s+[\[\]0-9\.:]+:([0-9]+)\s+.*{prog}")
+    size = port2 - port1 + 1
+
+    def ok(l):
+        m = r.match(l)
+        logger.console(f"LISTEN ?? {l}")
+        if m:
+            logger.console(f"{l} => OK")
+            value = int(m.group(1))
+            if int(m.group(1)) in rng:
+                return True
+        return False
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        listen_port = list(filter(ok, lst))
+        if len(listen_port) >= size:
+            return True
+    return False
+
+
 def get_date(d: str):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
