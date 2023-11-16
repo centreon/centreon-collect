@@ -33,11 +33,11 @@ echo "Installation..."
 /usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
 echo "########################### Install Robot Framework ###########################"
-cd /src/tests/
-pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
-
 yum groupinstall "Development Tools" -y
 yum install python3-devel -y
+
+cd /src/tests/
+pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
 
 # Get OS version id
 VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:digit:]])\.[[:digit:]]"/\1/p')
