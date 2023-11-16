@@ -1956,18 +1956,7 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
 
 
-def external_command(func):
-    def wrapper(*args):
-        now = int(time.time())
-        cmd = f"[{now}] {func(*args)}"
-        f = open(VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
-
-    return wrapper
-
-
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, metric_name='metric', config='config0'):
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):

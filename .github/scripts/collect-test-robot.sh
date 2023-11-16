@@ -43,31 +43,6 @@ else
 
 fi
 
-mysql -e "GRANT SELECT,UPDATE,DELETE,INSERT,CREATE,DROP,INDEX,ALTER,LOCK TABLES,CREATE TEMPORARY TABLES, EVENT,CREATE VIEW ON *.* TO  'centreon'@'localhost';"
-mysql -e "GRANT ALL PRIVILEGES ON *.* TO 'root_centreon'@'localhost'"
-
-cat resources/centreon.sql | sed "s/DBNameConf/centreon/g" > /tmp/centreon.sql
-
-mysql -u root_centreon -pcentreon < resources/centreon_storage.sql
-mysql -u root_centreon -pcentreon < /tmp/centreon.sql
-
-#remove git dubious ownership
-git config --global --add safe.directory $PWD
-
-echo "########################### Install Robot Framework ###########################"
-cd tests
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl RobotFramework-Examples pymysql python-dateutil psutil
-
-if [ "$distrib" = "ALMALINUX" ]; then
-  dnf groupinstall -y "Development Tools"
-  dnf install -y python3-devel
-else
-  apt-get update
-  apt-get install -y build-essential
-  apt-get install -y python3-dev
-fi
-
-pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3
 
 echo "########################## Install centreon collect ###########################"
 echo "Installation..."

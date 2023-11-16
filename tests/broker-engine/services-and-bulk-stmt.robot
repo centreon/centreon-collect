@@ -393,7 +393,7 @@ metric_mapping
     Should Not Be Empty    ${grep_res}    metric name "metric1" not found
 
 Services_and_bulks_${id}
-    [Documentation]    One service are configured with one metrics with a name as long as 1021 characteres.
+    [Documentation]    One service is configured with one metric with a name of 150 to 1021 characters.
     [Tags]    broker    engine    services    unified_sql    benchmark
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1}
@@ -409,8 +409,12 @@ Services_and_bulks_${id}
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
+    Broker Config Source Log    central    1
+
     Config Broker Remove Rrd Output    central
     Clear Retention
+    Clear Db    metrics
+
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -423,22 +427,26 @@ Services_and_bulks_${id}
 
     ${start_1}    Get Round Current Date
 
-    Process Service Check result with metrics    host_1    service_${1}    ${1}    warning${0}    1    ${random_string}
+    Process Service Check result with metrics
+    ...    host_1
+    ...    service_${1}
+    ...    ${1}
+    ...    warning${0}
+    ...    1
+    ...    config0
+    ...    ${random_string}
 
-    ${content}    Create List    ${result_message}
+    ${content}    Create List    new perfdata inserted
     ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
     ${result}    Find In Log With Timeout    ${log}    ${start_1}    ${content}    60
     Should Be True    ${result}    A message fail to handle a metric with ${metric_num_char} characters.
 
-    # Data too long for column 'metric_name' at row 1
-    # ${content}    Create List    metric name too long
-    # ${log}    Catenate    SEPARATOR=    ${BROKER_LOG}    /central-broker-master.log
-    # ${result}    Find In Log With Timeout    ${log}    ${start_1}    ${content}    60
-    # Should Be True    ${result}    A message fail to handle a metric as long as 1021 characters should be available.
+    ${metrics}    Get Metrics For Service    1    ${random_string}0
+    Should Not Be Equal    ${metrics}    ${None}    no metric found for service
 
-    Examples:    id    metric_num_char    result_message    --
-    ...    1    1021    Data too long for column 'metric_name' at row 1
-    ...    2    150    1 new perfdata inserted
+    Examples:    id    metric_num_char    --
+    ...    1    1020
+    ...    2    150
 
 
 *** Keywords ***
