@@ -15,6 +15,4 @@ Makefile            @centreon/owners-cpp
 packaging/**        @centreon/owners-pipelines
 selinux/**          @centreon/owners-pipelines
 
-*.po                @centreon/owners-doc
-*.md                @centreon/owners-doc
-*.mdx               @centreon/owners-doc
+*.py                @centreon/owners-python
