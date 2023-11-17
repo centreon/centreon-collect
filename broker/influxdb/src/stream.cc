@@ -91,8 +91,9 @@ int32_t stream::flush() {
  */
 int32_t stream::stop() {
   int32_t retval = flush();
-  log_v2::instance().get(0)->info(
-      "influxdb stream stopped with {} acknowledged events", retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("influxdb stream stopped with {} acknowledged events", retval);
   return retval;
 }
 

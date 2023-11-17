@@ -867,7 +867,6 @@ void mysql_connection::_run() {
       /* inactive loop concerning queries/statements */
       sql::stats::loop_span stats(&_stats);
       if (tasks_list.empty()) {
-        _logger = log_v2::instance().get(_logger_id);
         std::unique_lock<std::mutex> lock(_tasks_m);
         _tasks_list.swap(tasks_list);
 
@@ -906,7 +905,9 @@ void mysql_connection::_run() {
   _state = finished;
   _start_condition.notify_all();
   mysql_thread_end();
-  log_v2::instance().get(0)->trace("mysql connection main loop finished.");
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->trace("mysql connection main loop finished.");
 }
 
 /**
@@ -1083,8 +1084,7 @@ mysql_connection::mysql_connection(const database_config& db_cfg,
       _last_stats{std::time(nullptr)},
       _qps(db_cfg.get_queries_per_transaction()),
       _category(db_cfg.get_category()),
-      _logger_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::SQL)} {
   DEBUG(
       fmt::format("CONSTRUCTOR mysql_connection {}", static_cast<void*>(this)));
   std::unique_lock<std::mutex> lck(_start_m);

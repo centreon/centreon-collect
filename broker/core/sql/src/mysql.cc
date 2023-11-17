@@ -36,8 +36,7 @@ mysql::mysql(database_config const& db_cfg)
     : _db_cfg(db_cfg),
       _pending_queries(0),
       _current_connection(0),
-      _logger_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::SQL)} {
   mysql_manager& mgr(mysql_manager::instance());
   _connection = mgr.get_connections(db_cfg);
   _logger->info("mysql connector configured with {} connection(s)",
@@ -71,7 +70,6 @@ mysql::~mysql() {
  *  If an error occures, an exception is thrown.
  */
 void mysql::commit(int thread_id) {
-  _logger = log_v2::instance().get(_logger_id);
   std::string error;
   if (thread_id < 0) {
     std::vector<std::future<void>> futures;

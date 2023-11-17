@@ -111,10 +111,10 @@ int main(int argc, char* argv[]) {
 #endif  // HAVE_GETOPT_H
 
   // Hack to instanciate the logger.
-  log_v2::load("centengine", {"core", "config", "process", "configuration",
-                              "functions", "events", "checks", "notifications",
-                              "eventbroker", "external_command", "commands",
-                              "downtimes", "comments", "macros", "runtime"});
+  log_v2::load("centengine",
+               {"core", "config", "process", "functions", "events", "checks",
+                "notifications", "eventbroker", "external_command", "commands",
+                "downtimes", "comments", "macros", "runtime"});
   auto config_logger = log_v2::instance().get(3);
   auto process_logger = log_v2::instance().get(2);
   init_loggers();

@@ -107,10 +107,13 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("write_metrics"));
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &write_metrics)) {
-        log_v2::instance().get(0)->error(
-            "factory: cannot parse the 'write_metrics' boolean: the content is "
-            "'{}'",
-            it->second);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "factory: cannot parse the 'write_metrics' boolean: the "
+                "content is "
+                "'{}'",
+                it->second);
         write_metrics = true;
       }
     } else
@@ -124,10 +127,13 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("write_status")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &write_status)) {
-        log_v2::instance().get(0)->error(
-            "factory: cannot parse the 'write_status' boolean: the content is "
-            "'{}'",
-            it->second);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "factory: cannot parse the 'write_status' boolean: the content "
+                "is "
+                "'{}'",
+                it->second);
         write_status = true;
       }
     } else
@@ -148,10 +154,12 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("ignore_update_errors")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &ignore_update_errors)) {
-        log_v2::instance().get(0)->error(
-            "factory: cannot parse the 'ignore_update_errors' boolean: the "
-            "content is '{}'",
-            it->second);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "factory: cannot parse the 'ignore_update_errors' boolean: the "
+                "content is '{}'",
+                it->second);
         ignore_update_errors = true;
       }
     } else

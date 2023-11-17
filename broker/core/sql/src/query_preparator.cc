@@ -43,8 +43,7 @@ query_preparator::query_preparator(
     : _event_id(event_id),
       _excluded(excluded),
       _unique(unique),
-      _logger{log_v2::instance().get(
-          log_v2::instance().create_logger_or_get_id("sql"))} {}
+      _logger{log_v2::instance().get(log_v2::SQL)} {}
 
 /**
  *  Constructor.
@@ -57,8 +56,7 @@ query_preparator::query_preparator(
     const query_preparator::event_pb_unique& pb_unique)
     : _event_id(event_id),
       _pb_unique(pb_unique),
-      _logger{log_v2::instance().get(
-          log_v2::instance().create_logger_or_get_id("sql"))} {}
+      _logger{log_v2::instance().get(log_v2::SQL)} {}
 
 /**
  * @brief Prepare an INSERT query. The function waits for the table to insert

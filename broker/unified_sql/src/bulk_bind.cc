@@ -53,7 +53,7 @@ bulk_bind::bulk_bind(const size_t connections_count,
  */
 bool bulk_bind::ready(int32_t conn) {
   std::lock_guard<std::mutex> lck(_queue_m);
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::SQL);
   auto* b = _bind[conn].get();
   if (!b)
     return false;

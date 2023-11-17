@@ -135,8 +135,9 @@ int32_t stream::flush() {
  */
 int32_t stream::stop() {
   int32_t retval = flush();
-  log_v2::instance().get(0)->info(
-      "graphite stopped with {} events acknowledged", retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("graphite stopped with {} events acknowledged", retval);
   return retval;
 }
 

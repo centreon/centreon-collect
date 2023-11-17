@@ -67,8 +67,9 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TCP module.
-    log_v2::instance().get(0)->info("TCP: module for Centreon Broker {}",
-                                    CENTREON_BROKER_VERSION);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("TCP: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
 
     // Register TCP protocol.
     auto f = std::make_shared<tcp::factory>();

@@ -206,12 +206,15 @@ std::shared_ptr<asio::ip::tcp::acceptor> tcp_async::create_acceptor(
  */
 void tcp_async::_clear_available_con(boost::system::error_code ec) {
   if (ec)
-    log_v2::instance().get(0)->info("Available connections cleaning: {}",
-                                    ec.message());
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("Available connections cleaning: {}", ec.message());
   else {
     std::lock_guard<std::mutex> l(_acceptor_available_con_m);
     if (_clear_available_con_running) {
-      log_v2::instance().get(0)->debug("Available connections cleaning");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->debug("Available connections cleaning");
       std::time_t now = std::time(nullptr);
       for (auto it = _acceptor_available_con.begin();
            it != _acceptor_available_con.end();) {
@@ -231,8 +234,9 @@ void tcp_async::_clear_available_con(boost::system::error_code ec) {
       } else
         _clear_available_con_running = false;
     } else
-      log_v2::instance().get(0)->debug(
-          "Available connections cleaner already stopped");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->debug("Available connections cleaner already stopped");
   }
 }
 

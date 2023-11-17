@@ -259,7 +259,9 @@ std::string const& state::command_protocol() const noexcept {
  * @param out The endpoint is moved to the configuration.
  */
 void state::add_endpoint(endpoint&& out) noexcept {
-  log_v2::instance().get(0)->trace("endpoint {} added to state", out.name);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->trace("endpoint {} added to state", out.name);
   _endpoints.emplace_back(std::move(out));
 }
 

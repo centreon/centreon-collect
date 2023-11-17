@@ -35,16 +35,9 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] cache_file  Path to the cache file.
  */
 persistent_cache::persistent_cache(const std::string& cache_file)
-    : _cache_file(cache_file),
-      _logger_id{0},
-      _logger{log_v2::instance().get(_logger_id)} {
+    : _cache_file(cache_file), _logger{log_v2::instance().get(log_v2::CORE)} {
   _open();
 }
-
-/**
- *  Destructor.
- */
-persistent_cache::~persistent_cache() {}
 
 /**
  *  @brief Add an event to the persistent cache.
@@ -181,11 +174,6 @@ void persistent_cache::_open() {
   _read_file = std::static_pointer_cast<io::stream>(bs);
 }
 
-void persistent_cache::set_logger_id(const uint32_t logger_id) {
-  _logger_id = logger_id;
-  _logger = log_v2::instance().get(_logger_id);
-}
-
 /**
  * @brief Accessor to the logger.
  *
@@ -199,5 +187,5 @@ std::shared_ptr<spdlog::logger> persistent_cache::logger() const {
  * @brief Reload the logger shared pointer from its ID.
  */
 void persistent_cache::update_logger() {
-  _logger = log_v2::instance().get(_logger_id);
+  _logger = log_v2::instance().get(log_v2::CORE);
 }

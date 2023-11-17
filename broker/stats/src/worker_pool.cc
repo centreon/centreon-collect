@@ -18,8 +18,11 @@
  */
 
 #include "com/centreon/broker/stats/worker_pool.hh"
+
 #include <sys/stat.h>
+
 #include <cerrno>
+
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -37,9 +40,9 @@ void worker_pool::add_worker(std::string const& fifo) {
   // Stat failed, probably because of inexistant file.
   if (stat(fifo_path.c_str(), &s) != 0) {
     char const* msg(strerror(errno));
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("stats");
-    log_v2::instance().get(logger_id)->info("stats: cannot stat() '{}': {}",
-                                            fifo_path, msg);
+    log_v2::instance()
+        .get(log_v2::STATS)
+        ->info("stats: cannot stat() '{}': {}", fifo_path, msg);
 
     // Create FIFO.
     if (mkfifo(fifo_path.c_str(),

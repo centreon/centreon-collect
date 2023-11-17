@@ -64,13 +64,13 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
         if (dirty && !*dirty) {
           // dirty will be erased by destructor
           *dirty = true;
-          SPDLOG_LOGGER_INFO(log_v2::instance().get(0),
+          SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                              "global_cache open file {}", _file_path);
           this->managed_map(false);
           return;
         } else {
           SPDLOG_LOGGER_ERROR(
-              log_v2::instance().get(0),
+              log_v2::instance().get(log_v2::CORE),
               "global_cache dirty flag not reset => erase file and recreate");
         }
       }
@@ -79,7 +79,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
           fmt::format("corrupted cache file {} => recreate {}", _file_path,
                       boost::diagnostic_information(e));
 
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0), err_detail);
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
       _file.reset();
       _file_size = 0;
       ::remove(_file_path.c_str());
@@ -87,14 +87,14 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
       std::string err_detail = fmt::format(
           "corrupted cache file {} => recreate {}", _file_path, e.what());
 
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0), err_detail);
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
       _file.reset();
       _file_size = 0;
       ::remove(_file_path.c_str());
     }
 
-    SPDLOG_LOGGER_INFO(log_v2::instance().get(0), "global_cache create file {}",
-                       _file_path);
+    SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
+                       "global_cache create file {}", _file_path);
 
     ::remove(_file_path.c_str());
     _grow(initial_size_on_create);
@@ -102,7 +102,7 @@ void global_cache::_open(size_t initial_size_on_create, const void* address) {
     try {
       this->managed_map(true);
     } catch (const boost::interprocess::bad_alloc& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                           "allocation error: {}, too small initial file size?",
                           boost::diagnostic_information(e));
       throw;
@@ -124,8 +124,9 @@ void global_cache::_grow(size_t new_size, void* address) {
   if (new_size <= _file_size) {
     return;
   }
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "resize file {} from {} to {}",
-                      _file_path, _file_size, new_size);
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                      "resize file {} from {} to {}", _file_path, _file_size,
+                      new_size);
   size_t old_size = 0;
   if (_file) {
     _file->flush();
@@ -141,7 +142,7 @@ void global_cache::_grow(size_t new_size, void* address) {
     // file doesn't exist
     if (stat(_file_path.c_str(), &exist) || !S_ISREG(exist.st_mode)) {
       ::remove(_file_path.c_str());
-      SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0),
+      SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
                           "file {} removed or not a file => remove and create",
                           _file_path);
       _file = std::make_unique<managed_mapped_file>(
@@ -156,7 +157,7 @@ void global_cache::_grow(size_t new_size, void* address) {
   } catch (const std::exception& e) {
     std::string err_msg = fmt::format("fail to map file {} to size {} : {}",
                                       _file_path, new_size, e.what());
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(0), err_msg);
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_msg);
     _file.reset();
     _file_size = 0;
     throw msg_fmt(err_msg);

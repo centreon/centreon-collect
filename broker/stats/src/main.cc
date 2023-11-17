@@ -52,7 +52,7 @@ bool broker_module_deinit() {
  *  @param[in] arg Configuration argument.
  */
 void broker_module_init(void const* arg) {
-  auto logger = log_v2::instance().get(0);
+  auto logger = log_v2::instance().get(log_v2::CORE);
   // Increment instance number.
   if (!instances++) {
     // Stats module.

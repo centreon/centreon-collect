@@ -83,28 +83,29 @@ void config::applier::init(size_t n_thread,
  */
 void config::applier::deinit() {
   mode = finished;
-  log_v2::instance().get(0)->info("unloading applier::endpoint");
+  auto logger = log_v2::instance().get(log_v2::CORE);
+  logger->info("unloading applier::endpoint");
   config::applier::endpoint::unload();
   {
     std::weak_ptr<multiplexing::engine> eng =
         multiplexing::engine::instance_ptr();
     if (!eng.expired()) {
-      log_v2::instance().get(0)->info("unloading multiplexing::engine");
+      logger->info("unloading multiplexing::engine");
       multiplexing::engine::unload();
     }
     assert(eng.expired());
   }
-  log_v2::instance().get(0)->info("unloading state");
+  logger->info("unloading state");
   config::applier::state::unload();
-  log_v2::instance().get(0)->info("unloading io::events");
+  logger->info("unloading io::events");
   io::events::unload();
-  log_v2::instance().get(0)->info("unloading io::protocols");
+  logger->info("unloading io::protocols");
   io::protocols::unload();
-  log_v2::instance().get(0)->info("unloading io::mysql_manager");
+  logger->info("unloading io::mysql_manager");
   mysql_manager::unload();
-  log_v2::instance().get(0)->info("unloading stats::center");
+  logger->info("unloading stats::center");
   stats::center::unload();
-  log_v2::instance().get(0)->info("unloading file::disk_accessor");
+  logger->info("unloading file::disk_accessor");
   file::disk_accessor::unload();
 
   pool::unload();

@@ -289,9 +289,12 @@ state parser::parse(std::string const& file) {
                 retval.add_module(std::move(module));
                 retval.add_endpoint(std::move(out));
               } catch (const deprecated& e) {
-                log_v2::instance().get(1)->warn(
-                    "Deprecated endpoint found in the output configuration: {}",
-                    e.what());
+                log_v2::instance()
+                    .get(log_v2::CONFIG)
+                    ->warn(
+                        "Deprecated endpoint found in the output "
+                        "configuration: {}",
+                        e.what());
               }
             }
           } else if (it.value().is_object()) {
@@ -303,9 +306,12 @@ state parser::parse(std::string const& file) {
               retval.add_module(std::move(module));
               retval.add_endpoint(std::move(out));
             } catch (const deprecated& e) {
-              log_v2::instance().get(1)->warn(
-                  "Deprecated endpoint found in the output configuration: {}",
-                  e.what());
+              log_v2::instance()
+                  .get(log_v2::CONFIG)
+                  ->warn(
+                      "Deprecated endpoint found in the output configuration: "
+                      "{}",
+                      e.what());
             }
           } else
             throw msg_fmt(
@@ -323,9 +329,12 @@ state parser::parse(std::string const& file) {
                 retval.add_module(std::move(module));
                 retval.add_endpoint(std::move(in));
               } catch (const deprecated& e) {
-                log_v2::instance().get(1)->warn(
-                    "Deprecated endpoint found in the input configuration: {}",
-                    e.what());
+                log_v2::instance()
+                    .get(log_v2::CONFIG)
+                    ->warn(
+                        "Deprecated endpoint found in the input configuration: "
+                        "{}",
+                        e.what());
               }
             }
           } else if (it.value().is_object()) {
@@ -336,9 +345,12 @@ state parser::parse(std::string const& file) {
               retval.add_module(std::move(module));
               retval.add_endpoint(std::move(in));
             } catch (const deprecated& e) {
-              log_v2::instance().get(1)->warn(
-                  "Deprecated endpoint found in the input configuration: {}",
-                  e.what());
+              log_v2::instance()
+                  .get(log_v2::CONFIG)
+                  ->warn(
+                      "Deprecated endpoint found in the input configuration: "
+                      "{}",
+                      e.what());
             }
           } else
             throw msg_fmt(
@@ -481,9 +493,11 @@ state parser::parse(std::string const& file) {
             }
             retval.add_module("15-stats_exporter.so");
           } else
-            log_v2::instance().get(1)->warn(
-                "config parser: no exporters defined in the stats_exporter "
-                "configuration");
+            log_v2::instance()
+                .get(log_v2::CONFIG)
+                ->warn(
+                    "config parser: no exporters defined in the stats_exporter "
+                    "configuration");
         } else if (it.key() == "poller_config") {
           std::string path("/etc/centreon-engine");
           if (!it.value().is_object())
@@ -501,8 +515,9 @@ state parser::parse(std::string const& file) {
           }
           retval.mut_poller_conf().path = std::move(path);
         } else if (it.key() == "logger") {
-          log_v2::instance().get(1)->warn(
-              "logger object is deprecated on 21.10");
+          log_v2::instance()
+              .get(log_v2::CONFIG)
+              ->warn("logger object is deprecated on 21.10");
         } else {
           if (it.key() == "stats")
             retval.add_module("15-stats.so");
@@ -632,9 +647,11 @@ void parser::_parse_endpoint(const json& elem,
     if (it.value().is_string())
       e.params[it.key()] = it.value().get<std::string>();
     else
-      log_v2::instance().get(1)->debug(
-          "config parser (while reading configuration file): "
-          "for key: '{}' value is not a string.",
-          it.key());
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->debug(
+              "config parser (while reading configuration file): "
+              "for key: '{}' value is not a string.",
+              it.key());
   }
 }

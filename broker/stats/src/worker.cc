@@ -152,13 +152,11 @@ void worker::_run() {
       }
     }
   } catch (std::exception const& e) {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("stats");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::STATS);
     logger->error("stats: FIFO thread will exit due to the following error: {}",
                   e.what());
   } catch (...) {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("stats");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::STATS);
     logger->error("stats: FIFO thread will exit due to an unknown error");
   }
   ::unlink(_fifo.c_str());

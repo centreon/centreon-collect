@@ -130,7 +130,6 @@ void lib::remove(std::string const& filename) {
  *  @param[in] value Associated value.
  */
 void lib::update(time_t t, std::string const& value) {
-  _logger = log_v2::instance().get(_logger_id);
   // Build argument string.
   if (value == "") {
     _logger->error("RRD: ignored update non-float value '{}' in file '{}'",
@@ -164,7 +163,6 @@ void lib::update(time_t t, std::string const& value) {
 }
 
 void lib::update(const std::deque<std::string>& pts) {
-  _logger = log_v2::instance().get(_logger_id);
   const char* argv[pts.size() + 1];
   argv[pts.size()] = nullptr;
   auto it = pts.begin();

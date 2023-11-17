@@ -270,7 +270,7 @@ class cached : public backend {
    *  @param[in] value Associated value.
    */
   void update(time_t t, std::string const& value) {
-    _logger = log_v2::instance().get(_logger_id);
+    _logger = log_v2::instance().get(log_v2::RRD);
     // Build rrdcached command.
     std::string cmd(fmt::format("UPDATE {} {}:{}\n", _filename, t, value));
 

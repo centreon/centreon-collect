@@ -70,8 +70,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // Storage module.
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("influxdb");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::INFLUXDB);
     logger->info("influxdb: module for Centreon Broker {}",
                  CENTREON_BROKER_VERSION);
 

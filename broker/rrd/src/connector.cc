@@ -48,8 +48,7 @@ connector::connector()
       _cached_port(0),
       _ignore_update_errors(true),
       _write_metrics(true),
-      _write_status(true),
-      _logger_id{log_v2::instance().create_logger_or_get_id("rrd")} {}
+      _write_status(true) {}
 
 /**
  *  Connect.
@@ -163,7 +162,7 @@ std::string connector::_real_path_of(std::string const& path) {
   // Variables.
   std::string retval;
   char* real_path{realpath(path.c_str(), nullptr)};
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::RRD);
 
   // Resolution success.
   if (real_path) {
