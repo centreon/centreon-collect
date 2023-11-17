@@ -35,7 +35,6 @@
 #include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
@@ -578,10 +577,11 @@ stream::stream(bool is_input,
       _last_sent_ack(time(nullptr)),
       _extensions{extensions},
       _bbdo_version(config::applier::state::instance().get_bbdo_version()),
-      _logger_id{log_v2::instance().create_logger_or_get_id("bbdo")},
+      _logger_id{log_v2::BBDO},
       _logger{log_v2::instance().get(_logger_id)} {
   DEBUG(fmt::format("CONSTRUCTOR bbdo stream {}", static_cast<void*>(this)));
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "create bbdo stream {:p}",
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                      "create bbdo stream {:p}",
                       static_cast<const void*>(this));
 }
 
@@ -591,8 +591,8 @@ stream::stream(bool is_input,
  */
 stream::~stream() {
   DEBUG(fmt::format("DESTRUCTOR bbdo stream {}", static_cast<void*>(this)));
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "destroy bbdo stream {}",
-                      static_cast<void*>(this));
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                      "destroy bbdo stream {}", static_cast<void*>(this));
   DEBUG(fmt::format("DESTRUCTOR end of the function bbdo stream {}",
                     static_cast<void*>(this)));
 }
@@ -613,26 +613,31 @@ int32_t stream::stop() {
     try {
       _send_event_stop_and_wait_for_ack();
     } catch (const std::exception& e) {
-      log_v2::instance().get(0)->info(
-          "BBDO: unable to send stop message to peer, it is already stopped: "
-          "{}",
-          e.what());
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->info(
+              "BBDO: unable to send stop message to peer, it is already "
+              "stopped: "
+              "{}",
+              e.what());
     }
   }
 
   _substream->stop();
 
   /* We acknowledge peer about received events. */
-  log_v2::instance().get(0)->info(
-      "bbdo stream stopped with {} events acknowledged",
-      _events_received_since_last_ack);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("bbdo stream stopped with {} events acknowledged",
+             _events_received_since_last_ack);
   if (_events_received_since_last_ack) {
     try {
       send_event_acknowledgement();
     } catch (const std::exception& e) {
-      log_v2::instance().get(0)->info(
-          "bbdo stream: unable to send ack, peer already stopped: {}",
-          e.what());
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->info("bbdo stream: unable to send ack, peer already stopped: {}",
+                 e.what());
     }
   }
 

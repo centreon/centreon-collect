@@ -139,8 +139,9 @@ std::vector<directory_event> directory_watcher::get_events() {
     throw msg_fmt("directory_watcher: couldn't read events: '{}'",
                   ::strerror(err));
   }
-  log_v2::instance().get(0)->debug(
-      "file: directory watcher getting events of size {}", buf_size);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->debug("file: directory watcher getting events of size {}", buf_size);
   char* buf = (char*)alloca(buf_size);
   int len = ::read(_inotify_instance_id, buf, buf_size);
   if (len == -1) {
@@ -191,9 +192,12 @@ std::vector<directory_event> directory_watcher::get_events() {
     }
 
     ret.push_back(directory_event(name, event_type, ft));
-    log_v2::instance().get(0)->debug(
-        "file: directory watcher getting an event for path '{}' and type {}",
-        name, event_type);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug(
+            "file: directory watcher getting an event for path '{}' and type "
+            "{}",
+            name, event_type);
   }
 
   return ret;

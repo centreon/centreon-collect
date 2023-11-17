@@ -68,13 +68,15 @@ void broker_module_init(const void* arg) {
     const auto& conf = s->get_stats_exporter();
     const auto& exporters = conf.exporters;
     // Stats module.
-    log_v2::instance().get(1)->info(
-        "stats_exporter: module for Centreon Broker {}",
-        CENTREON_BROKER_VERSION);
+    log_v2::instance()
+        .get(log_v2::CONFIG)
+        ->info("stats_exporter: module for Centreon Broker {}",
+               CENTREON_BROKER_VERSION);
 
     for (const auto& e : exporters) {
-      log_v2::instance().get(1)->info("stats_exporter: with exporter '{}'",
-                                      e.protocol);
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->info("stats_exporter: with exporter '{}'", e.protocol);
       switch (e.protocol) {
         case config::state::stats_exporter::HTTP:
           expt = std::make_unique<stats_exporter::exporter_http>(e.url, *s);

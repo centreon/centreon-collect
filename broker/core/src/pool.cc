@@ -43,7 +43,7 @@ void pool::load(const std::shared_ptr<asio::io_context>& io_context,
   if (_instance == nullptr)
     _instance = new pool(io_context, size);
   else
-    log_v2::instance().get(0)->error("pool already started.");
+    log_v2::instance().get(log_v2::CORE)->error("pool already started.");
 }
 
 void pool::unload() {
@@ -93,18 +93,21 @@ pool::pool(const std::shared_ptr<asio::io_context>& io_context, size_t size)
       _stats_running{false} {
   std::lock_guard<std::mutex> lock(_closed_m);
   if (_closed) {
-    log_v2::instance().get(0)->info(
-        "Starting the TCP thread pool of {} threads", _pool_size);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("Starting the TCP thread pool of {} threads", _pool_size);
     for (uint32_t i = 0; i < _pool_size; ++i) {
       _pool.emplace_back([ctx = _io_context] {
         try {
-          log_v2::instance().get(0)->info("start of asio thread {:x}",
-                                          pthread_self());
+          log_v2::instance()
+              .get(log_v2::CORE)
+              ->info("start of asio thread {:x}", pthread_self());
           ctx->run();
         } catch (const std::exception& e) {
-          log_v2::instance().get(0)->critical(
-              "catch in io_context run: {} {} thread {:x}", e.what(),
-              typeid(e).name(), pthread_self());
+          log_v2::instance()
+              .get(log_v2::CORE)
+              ->critical("catch in io_context run: {} {} thread {:x}", e.what(),
+                         typeid(e).name(), pthread_self());
         }
       });
       char str[16];
@@ -158,7 +161,7 @@ pool::~pool() noexcept {
  * @brief Stop the thread pool.
  */
 void pool::_stop() {
-  log_v2::instance().get(0)->debug("Stopping the thread pool");
+  log_v2::instance().get(log_v2::CORE)->debug("Stopping the thread pool");
   std::lock_guard<std::mutex> lock(_closed_m);
   if (!_closed) {
     _closed = true;
@@ -167,7 +170,9 @@ void pool::_stop() {
       if (t.joinable())
         t.join();
   }
-  log_v2::instance().get(0)->debug("No remaining thread in the pool");
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->debug("No remaining thread in the pool");
 }
 
 /**
@@ -177,8 +182,10 @@ void pool::_stop() {
  */
 void pool::_check_latency(const boost::system::error_code& ec) {
   if (ec)
-    log_v2::instance().get(0)->info(
-        "pool: the latency check encountered an error: {}", ec.message());
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("pool: the latency check encountered an error: {}",
+               ec.message());
   else {
     auto start = std::chrono::system_clock::now();
     asio::post(*_io_context, [start, this] {
@@ -186,7 +193,9 @@ void pool::_check_latency(const boost::system::error_code& ec) {
       auto duration = std::chrono::duration<double, std::milli>(end - start);
       float d = duration.count() / 1000.0f;
       stats::center::instance().update(&ThreadPool::set_latency, _stats, d);
-      log_v2::instance().get(0)->trace("Thread pool latency {:.5f}s", d);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->trace("Thread pool latency {:.5f}s", d);
     });
     if (_stats_running) {
       _timer.expires_after(std::chrono::seconds(10));

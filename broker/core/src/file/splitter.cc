@@ -28,13 +28,10 @@
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/misc/filesystem.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::file;
-
-using log_v2 = com::centreon::common::log_v2::log_v2;
 
 /**
  *  Build a new splitter.
@@ -58,7 +55,7 @@ splitter::splitter(std::string const& path,
       _write_m{},
       _wfile{},
       _woffset{0},
-      _logger_id{log_v2::instance().create_logger_or_get_id("bbdo")} {
+      _logger_id{log_v2::BBDO} {
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
   // parts named /var/lib/foo, /var/lib/foo1, /var/lib/foo2, ...

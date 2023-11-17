@@ -57,9 +57,12 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
       if (it == cfg.params.end())
         has_compression = false;
       else if (!absl::SimpleAtob(it->second, &has_compression)) {
-        log_v2::instance().get(0)->error(
-            "TLS: the field 'compression' in endpoint '{}' should be a boolean",
-            cfg.name);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "TLS: the field 'compression' in endpoint '{}' should be a "
+                "boolean",
+                cfg.name);
         has_compression = false;
       }
 
@@ -80,10 +83,12 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
         if (absl::EqualsIgnoreCase(it->second, "auto"))
           has_compression = true;
         else {
-          log_v2::instance().get(0)->error(
-              "TLS: the field 'compression' in endpoint '{}' should be a "
-              "boolean",
-              cfg.name);
+          log_v2::instance()
+              .get(log_v2::CORE)
+              ->error(
+                  "TLS: the field 'compression' in endpoint '{}' should be a "
+                  "boolean",
+                  cfg.name);
           has_compression = false;
         }
       }
@@ -121,10 +126,13 @@ io::endpoint* factory::new_endpoint(
       cfg.params.find("compression_level")};
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &level)) {
-      log_v2::instance().get(0)->error(
-          "compression: the 'compression_level' should be an integer and not "
-          "'{}'",
-          it->second);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "compression: the 'compression_level' should be an integer and "
+              "not "
+              "'{}'",
+              it->second);
       level = -1;
     }
   }
@@ -134,10 +142,12 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("compression_buffer");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &size)) {
-      log_v2::instance().get(0)->error(
-          "compression: compression_buffer is the size of the compression "
-          "buffer represented by an integer and not '{}'",
-          it->second);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "compression: compression_buffer is the size of the compression "
+              "buffer represented by an integer and not '{}'",
+              it->second);
       size = 0;
     }
   }

@@ -98,10 +98,12 @@ io::endpoint* factory::new_endpoint(
     host = it->second;
   if (!host.empty() &&
       (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
-    log_v2::instance().get(0)->error(
-        "GRPC: 'host' must be a string matching a host, not beginning or "
-        "ending with spaces for endpoint {}, it contains '{}'",
-        cfg.name, host);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error(
+            "GRPC: 'host' must be a string matching a host, not beginning or "
+            "ending with spaces for endpoint {}, it contains '{}'",
+            cfg.name, host);
     throw msg_fmt(
         "GRPC: invalid host value '{}' defined for endpoint '{}"
         "', it must not begin or end with spaces.",
@@ -112,16 +114,19 @@ io::endpoint* factory::new_endpoint(
   uint16_t port;
   it = cfg.params.find("port");
   if (it == cfg.params.end()) {
-    log_v2::instance().get(0)->error(
-        "GRPC: no 'port' defined for endpoint '{}'", cfg.name);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
     throw msg_fmt("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
   }
   {
     uint32_t port32;
     if (!absl::SimpleAtoi(it->second, &port32)) {
-      log_v2::instance().get(0)->error(
-          "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
-          it->second, cfg.name);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
+              it->second, cfg.name);
       throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
                     it->second, cfg.name);
     }
@@ -147,7 +152,7 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate = read_file(it->second);
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                           "Failed to open cert file '{}': {}", it->second,
                           e.what());
       throw msg_fmt("Failed to open cert file '{}': {}", it->second, e.what());
@@ -161,7 +166,7 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate_key = read_file(it->second);
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                           "Failed to open certificate key file '{}': {}",
                           it->second, e.what());
       throw msg_fmt("Failed to open certificate key file '{}': {}", it->second,
@@ -176,7 +181,7 @@ io::endpoint* factory::new_endpoint(
     try {
       certificate_authority = read_file(it->second);
     } catch (const std::exception& e) {
-      SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+      SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                           "Failed to open authority certificate file '{}': {}",
                           it->second, e.what());
       throw msg_fmt("Failed to open authority certificate file '{}': {}",
@@ -213,9 +218,12 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("keepalive_interval");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
-      log_v2::instance().get(0)->error(
-          "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
-          it->second);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "GRPC: 'keepalive_interval' field should be an integer and not "
+              "'{}'",
+              it->second);
       throw msg_fmt(
           "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
           it->second);
@@ -234,17 +242,19 @@ io::endpoint* factory::new_endpoint(
 
   // Acceptor.
   if (is_acceptor) {
-    log_v2::instance().get(0)->debug(
-        "GRPC: encryption {} on gRPC server port {}",
-        encrypted ? "enabled" : "disabled", port);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("GRPC: encryption {} on gRPC server port {}",
+                encrypted ? "enabled" : "disabled", port);
     conf->_hostport = fmt::format("0.0.0.0:{}", port);
     endp = std::make_unique<grpc::acceptor>(conf);
   }
   // Connector.
   else {
-    log_v2::instance().get(0)->debug(
-        "GRPC: encryption {} on gRPC client port {}",
-        encrypted ? "enabled" : "disabled", port);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("GRPC: encryption {} on gRPC client port {}",
+                encrypted ? "enabled" : "disabled", port);
     conf->_hostport = fmt::format("{}:{}", host, port);
     endp = std::make_unique<grpc::connector>(conf);
   }
@@ -273,10 +283,12 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     host = it->second;
   if (!host.empty() &&
       (std::isspace(host[0]) || std::isspace(host[host.size() - 1]))) {
-    log_v2::instance().get(0)->error(
-        "GRPC: 'host' must be a string matching a host, not beginning or "
-        "ending with spaces for endpoint {}, it contains '{}'",
-        cfg.name, host);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error(
+            "GRPC: 'host' must be a string matching a host, not beginning or "
+            "ending with spaces for endpoint {}, it contains '{}'",
+            cfg.name, host);
     throw msg_fmt(
         "GRPC: invalid host value '{}' defined for endpoint '{}"
         "', it must not begin or end with spaces.",
@@ -293,16 +305,19 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   uint16_t port;
   it = cfg.params.find("port");
   if (it == cfg.params.end()) {
-    log_v2::instance().get(0)->error(
-        "GRPC: no 'port' defined for endpoint '{}'", cfg.name);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
     throw msg_fmt("GRPC: no 'port' defined for endpoint '{}'", cfg.name);
   }
   {
     uint32_t port32;
     if (!absl::SimpleAtoi(it->second, &port32)) {
-      log_v2::instance().get(0)->error(
-          "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
-          it->second, cfg.name);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "GRPC: 'port' must be an integer and not '{}' for endpoint '{}'",
+              it->second, cfg.name);
       throw msg_fmt("GRPC: invalid port value '{}' defined for endpoint '{}'",
                     it->second, cfg.name);
     }
@@ -318,8 +333,9 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   it = cfg.params.find("authorization");
   if (it != cfg.params.end())
     authorization = it->second;
-  log_v2::instance().get(0)->debug("GRPC: 'authorization' field contains '{}'",
-                                   authorization);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->debug("GRPC: 'authorization' field contains '{}'", authorization);
 
   // Find ca_name token (if exists).
   std::string ca_name;
@@ -329,16 +345,18 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   if (it != cfg.params.end())
     ca_name = it->second;
 
-  log_v2::instance().get(0)->debug("GRPC: 'ca_name' field contains '{}'",
-                                   ca_name);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->debug("GRPC: 'ca_name' field contains '{}'", ca_name);
 
   bool encryption = false;
   it = cfg.params.find("encryption");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtob(it->second, &encryption)) {
-      log_v2::instance().get(0)->error(
-          "GRPC: 'encryption' field should be a boolean and not '{}'",
-          it->second);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("GRPC: 'encryption' field should be a boolean and not '{}'",
+                  it->second);
       throw msg_fmt("GRPC: 'encryption' field should be a boolean and not '{}'",
                     it->second);
     }
@@ -352,15 +370,16 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         private_key = read_file(it->second);
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+        SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                             "Failed to open private key file '{}': {}",
                             it->second, e.what());
         throw msg_fmt("Failed to open private key file '{}': {}", it->second,
                       e.what());
       }
     } else
-      log_v2::instance().get(0)->warn(
-          "GRPC: 'private_key' ignored since 'encryption' is disabled");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->warn("GRPC: 'private_key' ignored since 'encryption' is disabled");
   }
 
   // Certificate.
@@ -371,15 +390,16 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
       try {
         certificate = read_file(it->second);
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+        SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                             "Failed to open certificate file '{}': {}",
                             it->second, e.what());
         throw msg_fmt("Failed to open certificate file '{}': {}", it->second,
                       e.what());
       }
     } else
-      log_v2::instance().get(0)->warn(
-          "GRPC: 'certificate' ignored since 'encryption' is disabled");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->warn("GRPC: 'certificate' ignored since 'encryption' is disabled");
   }
 
   // CA Certificate.
@@ -391,15 +411,17 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
         ca_certificate = read_file(it->second);
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_ERROR(
-            log_v2::instance().get(0),
+            log_v2::instance().get(log_v2::CORE),
             "Failed to open authority certificate file '{}': {}", it->second,
             e.what());
         throw msg_fmt("Failed to open authority certificate file '{}': {}",
                       it->second, e.what());
       }
     } else
-      log_v2::instance().get(0)->warn(
-          "GRPC: 'ca_certificate' ignored since 'encryption' is disabled");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->warn(
+              "GRPC: 'ca_certificate' ignored since 'encryption' is disabled");
   }
 
   bool compression = false;
@@ -430,9 +452,12 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   it = cfg.params.find("keepalive_interval");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtoi(it->second, &keepalive_interval)) {
-      log_v2::instance().get(0)->error(
-          "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
-          it->second);
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "GRPC: 'keepalive_interval' field should be an integer and not "
+              "'{}'",
+              it->second);
       throw msg_fmt(
           "GRPC: 'keepalive_interval' field should be an integer and not '{}'",
           it->second);
@@ -451,18 +476,20 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     is_acceptor = false;
 
   if (is_acceptor) {
-    log_v2::instance().get(0)->debug(
-        "GRPC: encryption {} on gRPC server port {}",
-        encryption ? "enabled" : "disabled", port);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("GRPC: encryption {} on gRPC server port {}",
+                encryption ? "enabled" : "disabled", port);
     conf->_hostport = fmt::format("{}:{}", host, port);
     endp = std::make_unique<grpc::acceptor>(conf);
   }
 
   // Connector.
   else {
-    log_v2::instance().get(0)->debug(
-        "GRPC: encryption {} on gRPC client port {}",
-        encryption ? "enabled" : "disabled", port);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("GRPC: encryption {} on gRPC client port {}",
+                encryption ? "enabled" : "disabled", port);
     conf->_hostport = fmt::format("{}:{}", host, port);
     endp = std::make_unique<grpc::connector>(conf);
   }

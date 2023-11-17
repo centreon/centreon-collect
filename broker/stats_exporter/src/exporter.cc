@@ -46,10 +46,13 @@ void exporter::init_metrics(
   double timeout = s.get_stats_exporter().export_timeout;
 
   // Initialize and set the periodic metrics reader
-  log_v2::instance().get(1)->info(
-      "stats_exporter: export configured with an interval of {}s and a timeout "
-      "of {}s",
-      interval, timeout);
+  log_v2::instance()
+      .get(log_v2::CONFIG)
+      ->info(
+          "stats_exporter: export configured with an interval of {}s and a "
+          "timeout "
+          "of {}s",
+          interval, timeout);
   metric_sdk::PeriodicExportingMetricReaderOptions options;
   options.export_interval_millis =
       std::chrono::milliseconds(static_cast<int32_t>(1000. * interval));
@@ -166,8 +169,7 @@ void exporter::_check_connections(
     std::shared_ptr<metrics_api::MeterProvider> provider,
     const boost::system::error_code& ec) {
   if (ec) {
-    int32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::SQL);
     logger->error(
         "stats_exporter: Sql connections checker has been interrupted: {}",
         ec.message());

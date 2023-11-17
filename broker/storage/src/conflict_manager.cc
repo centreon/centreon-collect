@@ -102,10 +102,8 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _ref_count{0},
       _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()},
-      _logger_sql_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger_sql{log_v2::instance().get(_logger_sql_id)},
-      _logger_storage_id{log_v2::instance().create_logger_or_get_id("storage")},
-      _logger_storage{log_v2::instance().get(_logger_storage_id)} {
+      _logger_sql{log_v2::instance().get(log_v2::SQL)},
+      _logger_storage{log_v2::instance().get(log_v2::STORAGE)} {
   _logger_sql->debug("conflict_manager: class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
                                    _stats, _loop_timeout);
@@ -137,8 +135,9 @@ bool conflict_manager::init_storage(bool store_in_db,
                                     uint32_t rrd_len,
                                     uint32_t interval_length,
                                     const database_config& dbcfg) {
-  log_v2::instance().get(0)->debug(
-      "conflict_manager: storage stream initialization");
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->debug("conflict_manager: storage stream initialization");
   int count;
 
   std::unique_lock<std::mutex> lk(_init_m);
@@ -151,14 +150,18 @@ bool conflict_manager::init_storage(bool store_in_db,
         })) {
       if (_state == finished ||
           config::applier::mode == config::applier::finished) {
-        log_v2::instance().get(0)->info(
-            "Conflict manager not started because cbd stopped");
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->info("Conflict manager not started because cbd stopped");
         return false;
       }
       if (_singleton->_mysql.get_config() != dbcfg) {
-        log_v2::instance().get(0)->error(
-            "Conflict manager: storage and sql streams do not have the same "
-            "database configuration");
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "Conflict manager: storage and sql streams do not have the "
+                "same "
+                "database configuration");
         return false;
       }
       std::lock_guard<std::mutex> lck(_singleton->_loop_m);
@@ -176,17 +179,22 @@ bool conflict_manager::init_storage(bool store_in_db,
       _singleton->_thread =
           std::thread(&conflict_manager::_callback, _singleton);
       pthread_setname_np(_singleton->_thread.native_handle(), "conflict_mngr");
-      log_v2::instance().get(0)->info("Conflict manager running");
+      log_v2::instance().get(log_v2::CORE)->info("Conflict manager running");
       return true;
     }
-    log_v2::instance().get(0)->info(
-        "conflict_manager: Waiting for the sql stream initialization for {} "
-        "seconds",
-        count);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info(
+            "conflict_manager: Waiting for the sql stream initialization for "
+            "{} "
+            "seconds",
+            count);
   }
-  log_v2::instance().get(0)->error(
-      "conflict_manager: not initialized after 60s. Probably "
-      "an issue in the sql output configuration.");
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->error(
+          "conflict_manager: not initialized after 60s. Probably "
+          "an issue in the sql output configuration.");
   return false;
 }
 
@@ -208,8 +216,9 @@ bool conflict_manager::init_storage(bool store_in_db,
 bool conflict_manager::init_sql(database_config const& dbcfg,
                                 uint32_t loop_timeout,
                                 uint32_t instance_timeout) {
-  log_v2::instance().get(0)->debug(
-      "conflict_manager: sql stream initialization");
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->debug("conflict_manager: sql stream initialization");
   std::lock_guard<std::mutex> lk(_init_m);
   _singleton = new conflict_manager(dbcfg, loop_timeout, instance_timeout);
   if (!_singleton) {

@@ -49,8 +49,7 @@ rebuilder::rebuilder(const database_config& db_cfg,
     : _db_cfg(db_cfg),
       _interval_length(interval_length),
       _rrd_len(rrd_length),
-      _logger{log_v2::instance().get(
-          log_v2::instance().create_logger_or_get_id("sql"))} {
+      _logger{log_v2::instance().get(log_v2::SQL)} {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
 }

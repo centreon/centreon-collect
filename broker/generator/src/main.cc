@@ -63,8 +63,10 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // generator module.
-    log_v2::instance().get(0)->info("generator: module for Centreon Broker {}",
-                                    CENTREON_BROKER_VERSION);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("generator: module for Centreon Broker {}",
+               CENTREON_BROKER_VERSION);
 
     // Register storage layer.
     io::protocols::instance().reg(generator_module,

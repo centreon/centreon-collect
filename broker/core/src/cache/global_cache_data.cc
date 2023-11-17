@@ -94,7 +94,8 @@ void global_cache_data::set_metric_info(uint64_t metric_id,
       _metric_info->emplace(metric_id, to_add);
     }
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     set_metric_info(metric_id, index_id, name, unit, min, max);
   }
@@ -124,7 +125,8 @@ void global_cache_data::store_instance(uint64_t instance_id,
       exist->second.assign(instance_name.data(), instance_name.length());
     }
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     store_instance(instance_id, instance_name);
   }
@@ -161,7 +163,8 @@ void global_cache_data::store_host(uint64_t host_id,
       exist->second.severity_id = severity_id;
     }
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     store_host(host_id, host_name, resource_id, severity_id);
   }
@@ -205,7 +208,8 @@ void global_cache_data::store_service(
     }
 
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     store_service(host_id, service_id, service_description, resource_id,
                   severity_id);
@@ -230,7 +234,8 @@ void global_cache_data::set_index_mapping(uint64_t index_id,
     }
     _index_id_mapping->emplace(index_id, host_serv_pair(host_id, service_id));
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     set_index_mapping(index_id, host_id, service_id);
   }
@@ -247,7 +252,8 @@ void global_cache_data::add_host_group(uint64_t group, uint64_t host) {
     absl::WriterMutexLock l(&_protect);
     _host_group->emplace(host_group_element{host, group});
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     add_host_group(group, host);
   }
@@ -288,7 +294,8 @@ void global_cache_data::add_service_group(uint64_t group,
     absl::WriterMutexLock l(&_protect);
     _service_group->emplace(service_group_element{{host, service}, group});
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     add_service_group(group, host, service);
   }
@@ -349,7 +356,8 @@ void global_cache_data::add_tag(uint64_t tag_id,
       }
     }
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     add_tag(tag_id, tag_name, tag_type, poller_id);
   }
@@ -382,7 +390,8 @@ void global_cache_data::set_host_tag(uint64_t host,
       _host_tag->insert({host, tag_id});
     }
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     set_host_tag(host, std::move(tag_filler));
   }
@@ -404,7 +413,8 @@ void global_cache_data::set_serv_tag(uint64_t host,
       _serv_tag->insert({{host, serv}, tag_id});
     }
   } catch (const interprocess::bad_alloc& e) {
-    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(0), "file full => grow");
+    SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
+                        "file full => grow");
     allocation_exception_handler();
     set_serv_tag(host, serv, std::move(tag_filler));
   }

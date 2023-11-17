@@ -217,7 +217,9 @@ int32_t stream::write(std::shared_ptr<io::data> const& d) {
  * @return false timeout expired
  */
 bool stream::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v2::instance().get(0)->info("tcp::stream::wait_for_all_events_written");
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("tcp::stream::wait_for_all_events_written");
   if (_connection->is_closed()) {
     return true;
   }
