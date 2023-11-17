@@ -125,7 +125,7 @@ EBBPS2
     ${start_broker}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
