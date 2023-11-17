@@ -33,11 +33,11 @@ echo "Installation..."
 /usr/bin/rpm -Uvvh --force --nodeps *.rpm
 
 echo "########################### Install Robot Framework ###########################"
-cd /src/tests/
-pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
-
 yum groupinstall "Development Tools" -y
 yum install python3-devel -y
+
+cd /src/tests/
+pip3 install -U robotframework robotframework-databaselibrary pymysql python-dateutil psutil
 
 # Get OS version id
 VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:digit:]])\.[[:digit:]]"/\1/p')
@@ -45,14 +45,11 @@ VERSION_ID=$(grep '^VERSION_ID' /etc/os-release | sed -En 's/^VERSION_ID="([[:di
 # Force version for el7 only
 if [ -f /etc/os-release ]; then
     case "$VERSION_ID" in
-        7)
-            pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
-            ;;
         8)
             pip3 install grpcio grpcio_tools
             ;;
         *)
-            echo "OS Version is neither 7 or 8"
+            pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
             ;;
     esac
 fi
