@@ -288,8 +288,7 @@ bool neb::set_pb_log_data(neb::pb_log_entry& le, const std::string& output) {
   lasts = absl::StripLeadingAsciiWhitespace(lasts);
   auto args = absl::StrSplit(lasts, ';');
   auto ait = args.begin();
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("neb");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::NEB);
 
   if (typ == "SERVICE ALERT") {
     le_obj.set_msg_type(LogEntry_MsgType_SERVICE_ALERT);

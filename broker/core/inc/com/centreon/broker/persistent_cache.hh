@@ -39,7 +39,6 @@ class persistent_cache {
 
  protected:
   /* Logger */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  private:
@@ -49,14 +48,13 @@ class persistent_cache {
 
  public:
   persistent_cache(const std::string& cache_file);
-  ~persistent_cache();
+  ~persistent_cache() noexcept = default;
   persistent_cache(const persistent_cache&) = delete;
   persistent_cache& operator=(const persistent_cache&) = delete;
   void add(std::shared_ptr<io::data> const& d);
   void commit();
   void get(std::shared_ptr<io::data>& d);
   void transaction();
-  void set_logger_id(const uint32_t logger_id);
   std::shared_ptr<spdlog::logger> logger() const;
   void update_logger();
 

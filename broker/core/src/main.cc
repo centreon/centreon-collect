@@ -16,8 +16,11 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/container/flat_hash_set.h>
+#include <absl/strings/numbers.h>
 #include <getopt.h>
 
+#include <boost/asio.hpp>
 #include <cerrno>
 #include <chrono>
 #include <clocale>
@@ -30,20 +33,15 @@
 #include <future>
 #include <thread>
 
-#include <absl/container/flat_hash_set.h>
-#include <absl/strings/numbers.h>
-
-#include <boost/asio.hpp>
-
 namespace asio = boost::asio;
 
 // with this define boost::interprocess doesn't need Boost.DataTime
 #define BOOST_DATE_TIME_NO_LIB 1
-#include <boost/interprocess/containers/string.hpp>
-#include <boost/interprocess/managed_mapped_file.hpp>
-
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
+
+#include <boost/interprocess/containers/string.hpp>
+#include <boost/interprocess/managed_mapped_file.hpp>
 
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
@@ -52,9 +50,8 @@ namespace asio = boost::asio;
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
 #include "com/centreon/broker/misc/diagnostic.hh"
-#include "common/log_v2/log_v2.hh"
-
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
 using namespace com::centreon::exceptions;
@@ -88,7 +85,7 @@ static void hup_handler(int signum [[maybe_unused]]) {
   signal(SIGHUP, SIG_IGN);
 
   // Log message.
-  auto core_logger = log_v2::instance().get(0);
+  auto core_logger = log_v2::instance().get(log_v2::CORE);
   core_logger->info("main: configuration update requested");
 
   try {
@@ -99,10 +96,11 @@ static void hup_handler(int signum [[maybe_unused]]) {
     try {
       log_v2::instance().apply(log_conf);
       /* We update the logger, since the conf has been applied */
-      core_logger = log_v2::instance().get(0);
+      core_logger = log_v2::instance().get(log_v2::CORE);
     } catch (const std::exception& e) {
-      log_v2::instance().get(0)->error("problem while reloading cbd: {}",
-                                       e.what());
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("problem while reloading cbd: {}", e.what());
       core_logger->error("problem while reloading cbd: {}", e.what());
     }
 
@@ -124,8 +122,9 @@ static void hup_handler(int signum [[maybe_unused]]) {
       config::applier::state::instance().apply(gl_state);
     }
   } catch (const std::exception& e) {
-    log_v2::instance().get(0)->info("main: configuration update failed: {}",
-                                    e.what());
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("main: configuration update failed: {}", e.what());
     core_logger->info("main: configuration update failed: {}", e.what());
   } catch (...) {
     core_logger->info("main: configuration update failed: unknown exception");
@@ -166,8 +165,9 @@ int main(int argc, char* argv[]) {
   uint16_t default_port{51000};
   std::string default_listen_address{"localhost"};
 
-  log_v2::load("cbd", {"core", "config"});
-  auto core_logger = log_v2::instance().get(0);
+  log_v2::load("cbd", {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESSING,
+                       log_v2::SQL, log_v2::STATS});
+  auto core_logger = log_v2::instance().get(log_v2::CORE);
 
   // Set configuration update handler.
   if (signal(SIGHUP, hup_handler) == SIG_ERR) {
@@ -275,7 +275,7 @@ int main(int argc, char* argv[]) {
           log_v2::instance().apply(log_conf);
           /* The core_logger is reloaded just after the configuration is applied
            */
-          core_logger = log_v2::instance().get(0);
+          core_logger = log_v2::instance().get(log_v2::CORE);
         } catch (const std::exception& e) {
           core_logger->error("{}", e.what());
         }

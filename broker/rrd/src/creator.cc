@@ -45,11 +45,9 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  @param[in] cache_size The maximum number of cache element.
  */
 creator::creator(std::string const& tmpl_path, uint32_t cache_size)
-    : _cache_size(cache_size),
-      _tmpl_path(tmpl_path),
-      _logger_id{log_v2::instance().create_logger_or_get_id("rrd")} {
+    : _cache_size(cache_size), _tmpl_path(tmpl_path) {
   log_v2::instance()
-      .get(_logger_id)
+      .get(log_v2::RRD)
       ->debug("RRD: file creator will maintain at most {} templates in '{}'",
               _cache_size, _tmpl_path);
 }
@@ -110,7 +108,7 @@ void creator::create(std::string const& filename,
         it->first.from <= from) {
       _duplicate(filename, it->second);
       log_v2::instance()
-          .get(_logger_id)
+          .get(log_v2::RRD)
           ->debug("reuse {} for {}", it->second.path, filename);
     }
     // Not in the cache, but we have enough space in the cache.
@@ -270,7 +268,7 @@ void creator::_open(std::string const& filename,
   // Debug message.
   argv[argc] = nullptr;
   log_v2::instance()
-      .get(_logger_id)
+      .get(log_v2::RRD)
       ->debug("RRD: opening file '{}' ({}, {}, {}, step 1, from  {})", filename,
               argv[0], argv[1], (argv[2] ? argv[2] : "(null)"), from);
 

@@ -88,9 +88,11 @@ io::endpoint* factory::new_endpoint(
   uint32_t rrd_length;
   if (!absl::SimpleAtoi(find_param(cfg, "length"), &rrd_length)) {
     rrd_length = 15552000;
-    log_v2::instance().get(0)->error(
-        "storage: the length field should contain a string containing a "
-        "number. We use the default value in replacement 15552000.");
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error(
+            "storage: the length field should contain a string containing a "
+            "number. We use the default value in replacement 15552000.");
   }
 
   // Find interval length if set.
@@ -101,9 +103,12 @@ io::endpoint* factory::new_endpoint(
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtoi(it->second, &interval_length)) {
         interval_length = 60;
-        log_v2::instance().get(0)->error(
-            "storage: the interval field should contain a string containing a "
-            "number. We use the default value in replacement 60.");
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "storage: the interval field should contain a string "
+                "containing a "
+                "number. We use the default value in replacement 60.");
       }
     }
     if (!interval_length)
@@ -120,10 +125,12 @@ io::endpoint* factory::new_endpoint(
         cfg.params.find("store_in_data_bin")};
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &store_in_data_bin)) {
-        log_v2::instance().get(0)->error(
-            "factory: cannot parse the 'store_in_data_bin' boolean: the "
-            "content is '{}'",
-            it->second);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "factory: cannot parse the 'store_in_data_bin' boolean: the "
+                "content is '{}'",
+                it->second);
         store_in_data_bin = true;
       }
     }

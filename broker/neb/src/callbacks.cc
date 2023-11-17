@@ -2648,7 +2648,8 @@ int neb::callback_pb_log(int callback_type [[maybe_unused]], void* data) {
  *  @return 0 on success.
  */
 int neb::callback_process(int, void* data) {
-  neb_logger = log_v2::instance().get(neb_logger_id);
+  // FIXME DBO
+  // neb_logger = log_v2::instance().get(neb_logger_id);
 
   // Log message.
   SPDLOG_LOGGER_DEBUG(neb_logger, "callbacks: process event callback");

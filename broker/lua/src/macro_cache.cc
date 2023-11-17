@@ -17,6 +17,7 @@
  */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
+
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
 #include "bbdo/bam/dimension_ba_event.hh"
 #include "bbdo/bam/dimension_bv_event.hh"

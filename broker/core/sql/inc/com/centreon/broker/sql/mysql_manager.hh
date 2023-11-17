@@ -71,7 +71,7 @@ class mysql_manager {
   std::vector<int> _stats_counts;
 
   /* Logger */
-  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
 
   mysql_manager();
 

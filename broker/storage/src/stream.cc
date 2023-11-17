@@ -62,10 +62,8 @@ stream::stream(database_config const& dbcfg,
     : io::stream("storage"),
       _pending_events(0),
       _stopped(false),
-      _logger_sql_id{log_v2::instance().create_logger_or_get_id("storage")},
-      _logger_sql{log_v2::instance().get(_logger_sql_id)},
-      _logger_storage_id{log_v2::instance().create_logger_or_get_id("storage")},
-      _logger_storage{log_v2::instance().get(_logger_storage_id)} {
+      _logger_sql{log_v2::instance().get(log_v2::SQL)},
+      _logger_storage{log_v2::instance().get(log_v2::STORAGE)} {
   _logger_sql->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;
@@ -81,8 +79,9 @@ stream::stream(database_config const& dbcfg,
 int32_t stream::stop() {
   // Stop cleanup thread.
   int32_t retval = conflict_manager::unload(conflict_manager::storage);
-  log_v2::instance().get(0)->info(
-      "storage stream stopped with {} acknowledged events", retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("storage stream stopped with {} acknowledged events", retval);
   _stopped = true;
   return retval;
 }

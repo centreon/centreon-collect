@@ -38,13 +38,10 @@ namespace rrd {
  */
 class backend {
  protected:
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  backend()
-      : _logger_id{log_v2::instance().create_logger_or_get_id("rrd")},
-        _logger{log_v2::instance().get(_logger_id)} {}
+  backend() { log_v2::instance().create_logger(log_v2::RRD); }
   backend(backend const& b) = delete;
   virtual ~backend() noexcept = default;
   backend& operator=(backend const& b) = delete;

@@ -19,11 +19,13 @@
 #define CCC_LOG_V2_HH
 
 #include <spdlog/spdlog.h>
+
+#include <array>
 #include <chrono>
 #include <memory>
 #include <shared_mutex>
 #include <string>
-#include <vector>
+
 #include "config.hh"
 
 namespace com::centreon::common::log_v2 {
@@ -54,36 +56,73 @@ constexpr uint32_t log_v2_configuration = 3;
  * important not to store forever the logger's shared_ptr.
  */
 class log_v2 {
+ public:
+  enum logger_id {
+    CORE = 0,
+    CONFIG = 1,
+    BAM = 2,
+    BBDO = 3,
+    LUA = 4,
+    INFLUXDB = 5,
+    GRAPHITE = 6,
+    NOTIFICATION = 7,
+    RRD = 8,
+    STATS = 9,
+    PERFDATA = 10,
+    PROCESSING = 11,
+    SQL = 12,
+    NEB = 13,
+    TCP = 14,
+    TLS = 15,
+    GRPC = 16,
+    VICTORIA_METRICS = 17,
+    PROCESS = 18,
+    FUNCTIONS = 19,
+    EVENTS = 20,
+    CHECKS = 21,
+    NOTIFICATIONS = 22,
+    EVENTBROKER = 23,
+    EXTERNAL_COMMAND = 24,
+    COMMANDS = 25,
+    DOWNTIMES = 26,
+    COMMENTS = 27,
+    MACROS = 28,
+    RUNTIME = 29,
+    LOGGER_SIZE
+  };
+
+ private:
   static log_v2* _instance;
   std::string _log_name;
   std::chrono::seconds _flush_interval;
   std::string _file_path;
   mutable std::shared_mutex _loggers_m;
-  std::vector<std::shared_ptr<spdlog::logger>> _loggers;
+  const static std::array<std::string, LOGGER_SIZE> _logger_name;
+  std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
 
  public:
   static void load(const std::string& name,
-                   std::initializer_list<std::string> ilist);
+                   std::initializer_list<logger_id> ilist);
   static void unload();
   static log_v2& instance();
-  log_v2(const std::string& name, std::initializer_list<std::string> ilist);
+  log_v2(const std::string& name, std::initializer_list<logger_id> ilist);
   log_v2(const log_v2&) = delete;
   log_v2& operator=(const log_v2&) = delete;
   ~log_v2() noexcept = default;
+  logger_id get_id(const std::string& name) const;
 
   std::chrono::seconds flush_interval();
   void set_flush_interval(uint32_t second_flush_interval);
-  uint32_t create_logger_or_get_id(const std::string& name,
-                                   bool activate = false);
-  std::shared_ptr<spdlog::logger> get(const std::string& name);
-  std::shared_ptr<spdlog::logger> get(const uint32_t idx);
-  void apply(const config& conf, bool cleanup = true);
-  bool contains_logger(const std::string& logger) const;
+  void create_logger(const logger_id id);
+  // std::shared_ptr<spdlog::logger> get(const std::string& name);
+  std::shared_ptr<spdlog::logger> get(const logger_id idx);
+  void apply(const config& conf);
+  bool contains_logger(std::string_view logger) const;
   bool contains_level(const std::string& level) const;
   const std::string& filename() const { return _file_path; }
   std::vector<std::pair<std::string, spdlog::level::level_enum>> levels() const;
   const std::string& log_name() const;
-  void disable();
+  // void disable();
 };
 }  // namespace com::centreon::common::log_v2
 #endif /* !CCC_LOG_V2_HH */

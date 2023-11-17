@@ -1,23 +1,24 @@
 /**
-* Copyright 2009-2016, 2018-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2016, 2018-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <clocale>
 #include <csignal>
+
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
@@ -37,9 +38,8 @@ NEB_API_VERSION(CURRENT_NEB_API_VERSION)
 extern std::shared_ptr<asio::io_context> g_io_context;
 
 namespace com::centreon::broker {
-uint32_t neb_logger_id = 0;
 std::shared_ptr<spdlog::logger> neb_logger =
-    log_v2::instance().get(neb_logger_id);
+    log_v2::instance().get(log_v2::NEB);
 }  // namespace com::centreon::broker
 
 extern "C" {
@@ -88,7 +88,7 @@ int nebmodule_deinit(int flags, int reason) {
  *  @return 0 on success, any other value on failure.
  */
 int nebmodule_init(int flags, char const* args, void* handle) {
-  neb_logger_id = log_v2::instance().create_logger_or_get_id("neb");
+  log_v2::instance().create_logger(log_v2::NEB);
 
   try {
     // Save module handle and flags for future use.
@@ -137,10 +137,11 @@ int nebmodule_init(int flags, char const* args, void* handle) {
       // Initialization.
       com::centreon::broker::config::applier::init(s);
       try {
-        log_v2::instance().apply(s.log_conf(), false);
-        neb_logger = log_v2::instance().get(neb_logger_id);
+        // FIXME DBO
+        log_v2::instance().apply(s.log_conf());
+        // neb_logger = log_v2::instance().get(log_v2::NEB);
       } catch (const std::exception& e) {
-        log_v2::instance().get(0)->error("main: {}", e.what());
+        log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
       }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
@@ -165,22 +166,25 @@ int nebmodule_init(int flags, char const* args, void* handle) {
                 NEBCALLBACK_LOG_DATA, neb::gl_mod_handle, &neb::callback_log));
       }
     } catch (std::exception const& e) {
-      log_v2::instance().get(0)->error("main: {}", e.what());
+      log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
       return -1;
     } catch (...) {
-      log_v2::instance().get(0)->error(
-          "main: configuration file parsing failed");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error("main: configuration file parsing failed");
       return -1;
     }
 
   } catch (std::exception const& e) {
-    log_v2::instance().get(0)->error("main: cbmod loading failed: {}",
-                                     e.what());
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error("main: cbmod loading failed: {}", e.what());
     nebmodule_deinit(0, 0);
     return -1;
   } catch (...) {
-    log_v2::instance().get(0)->error(
-        "main: cbmod loading failed due to an unknown exception");
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error("main: cbmod loading failed due to an unknown exception");
     nebmodule_deinit(0, 0);
     return -1;
   }

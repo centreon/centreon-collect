@@ -48,7 +48,7 @@ bulk_queries::bulk_queries(const uint32_t max_interval,
  * @return a string.
  */
 std::string bulk_queries::get_query() {
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::SQL);
   std::deque<std::string> queue;
   {
     std::lock_guard<std::mutex> lck(_queue_m);

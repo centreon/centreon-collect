@@ -73,8 +73,9 @@ std::list<std::string> filesystem::dir_content(std::string const& path,
     }
     closedir(dir);
   } else
-    log_v2::instance().get(0)->error(
-        "directory_dumper: unable to read directory '{}'", path);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error("directory_dumper: unable to read directory '{}'", path);
   return retval;
 }
 

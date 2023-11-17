@@ -86,8 +86,7 @@ output<lib>::output(std::string const& metrics_path,
       _write_metrics(write_metrics),
       _write_status(write_status),
       _backend(!metrics_path.empty() ? metrics_path : status_path, cache_size),
-      _logger_id{log_v2::instance().create_logger_or_get_id("rrd")},
-      _logger{log_v2::instance().get(_logger_id)} {}
+      _logger{log_v2::instance().get(log_v2::RRD)} {}
 
 /**
  *  Local socket constructor.
@@ -187,7 +186,7 @@ void output<T>::update() {
  */
 template <typename T>
 int output<T>::write(std::shared_ptr<io::data> const& d) {
-  _logger = log_v2::instance().get(_logger_id);
+  _logger = log_v2::instance().get(log_v2::RRD);
   SPDLOG_LOGGER_TRACE(_logger, "RRD: output::write.");
   // Check that data exists.
   if (!validate(d, "RRD"))

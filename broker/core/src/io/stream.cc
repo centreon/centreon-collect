@@ -88,11 +88,13 @@ void stream::update() {}
 bool stream::validate(std::shared_ptr<io::data> const& d,
                       std::string const& error) {
   if (!d) {
-    log_v2::instance().get(0)->error(
-        "{}: received a null event. This should never happen. "
-        "This is likely a software bug that you should report "
-        "to Centreon Broker developers.",
-        error);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->error(
+            "{}: received a null event. This should never happen. "
+            "This is likely a software bug that you should report "
+            "to Centreon Broker developers.",
+            error);
     return false;
   }
   return true;
@@ -107,9 +109,10 @@ bool stream::validate(std::shared_ptr<io::data> const& d,
  * @return false timeout expires
  */
 bool stream::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v2::instance().get(0)->info("io::stream::wait_for_all_events_written");
-  if (_substream) {
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("io::stream::wait_for_all_events_written");
+  if (_substream)
     return _substream->wait_for_all_events_written(ms_timeout);
-  }
   return true;
 }

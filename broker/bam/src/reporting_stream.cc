@@ -138,8 +138,9 @@ int32_t reporting_stream::flush() {
  */
 int32_t reporting_stream::stop() {
   int32_t retval = flush();
-  log_v2::instance().get(0)->info(
-      "reporting stream stopped with {} events acknowledged", retval);
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("reporting stream stopped with {} events acknowledged", retval);
   return retval;
 }
 

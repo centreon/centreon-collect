@@ -65,7 +65,7 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TCP module.
-    SPDLOG_LOGGER_INFO(log_v2::instance().get(0),
+    SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                        "Module for Centreon Broker {}",
                        CENTREON_BROKER_VERSION);
 

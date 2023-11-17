@@ -85,8 +85,9 @@ std::vector<char> zlib::compress(std::vector<char> const& data,
  */
 std::vector<char> zlib::uncompress(unsigned char const* data, uLong nbytes) {
   if (!data) {
-    log_v2::instance().get(0)->debug(
-        "compression: attempting to uncompress null buffer");
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("compression: attempting to uncompress null buffer");
     return std::vector<char>();
   }
   if (nbytes <= 4) {

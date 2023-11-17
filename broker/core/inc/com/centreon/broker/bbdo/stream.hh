@@ -24,6 +24,9 @@
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/mapping/entry.hh"
+#include "common/log_v2/log_v2.hh"
+
+using log_v2 = com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::bbdo {
 /**
@@ -155,7 +158,7 @@ class stream : public io::stream {
   bbdo::bbdo_version _bbdo_version;
 
   /* bbdo logger */
-  uint32_t _logger_id;
+  log_v2::logger_id _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   void _write(std::shared_ptr<io::data> const& d);

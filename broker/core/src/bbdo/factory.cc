@@ -87,7 +87,7 @@ io::endpoint* factory::new_endpoint(
   it = cfg.params.find("coarse");
   if (it != cfg.params.end()) {
     if (!absl::SimpleAtob(it->second, &coarse)) {
-      log_v2::instance().get(0)->error(
+      log_v2::instance().get(log_v2::CORE)->error(
           "factory: cannot parse the 'coarse' boolean: the content is '{}'",
           it->second);
       coarse = false;
@@ -111,7 +111,7 @@ io::endpoint* factory::new_endpoint(
   uint32_t ack_limit{1000};
   it = cfg.params.find("ack_limit");
   if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &ack_limit)) {
-    log_v2::instance().get(0)->error(
+    log_v2::instance().get(log_v2::CORE)->error(
         "BBDO: Bad value for ack_limit, it must be an integer.");
     ack_limit = 1000;
   }
@@ -133,15 +133,20 @@ io::endpoint* factory::new_endpoint(
     if (it != cfg.params.end()) {
       if (cfg.type == "bbdo_server") {
         if (!absl::SimpleAtob(it->second, &keep_retention)) {
-          log_v2::instance().get(0)->error(
-              "BBDO: cannot parse the 'retention' boolean: its content is '{}'",
-              it->second);
+          log_v2::instance()
+              .get(log_v2::CORE)
+              ->error(
+                  "BBDO: cannot parse the 'retention' boolean: its content is "
+                  "'{}'",
+                  it->second);
           keep_retention = false;
         }
       } else {
-        log_v2::instance().get(0)->error(
-            "BBDO: Configuration error, the 'retention' mode should be "
-            "set only on a bbdo_server");
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "BBDO: Configuration error, the 'retention' mode should be "
+                "set only on a bbdo_server");
         keep_retention = false;
       }
     }
@@ -149,10 +154,12 @@ io::endpoint* factory::new_endpoint(
     it = cfg.params.find("one_peer_retention_mode");
     if (it != cfg.params.end()) {
       if (!absl::SimpleAtob(it->second, &keep_retention)) {
-        log_v2::instance().get(0)->error(
-            "BBDO: cannot parse the 'one_peer_retention_mode' boolean: the "
-            "content is '{}'",
-            it->second);
+        log_v2::instance()
+            .get(log_v2::CORE)
+            ->error(
+                "BBDO: cannot parse the 'one_peer_retention_mode' boolean: the "
+                "content is '{}'",
+                it->second);
         keep_retention = false;
       }
     }
@@ -160,22 +167,29 @@ io::endpoint* factory::new_endpoint(
     // One peer retention mode? (i.e. keep_retention + acceptor_is_output)
     bool acceptor_is_output = cfg.get_io_type() == config::endpoint::output;
     if (!acceptor_is_output && keep_retention)
-      log_v2::instance().get(0)->error(
-          "BBDO: Configuration error, the one peer retention mode should be "
-          "set only when the connection is reversed");
+      log_v2::instance()
+          .get(log_v2::CORE)
+          ->error(
+              "BBDO: Configuration error, the one peer retention mode should "
+              "be "
+              "set only when the connection is reversed");
 
     retval = std::make_unique<bbdo::acceptor>(
         cfg.name, negotiate, cfg.read_timeout, acceptor_is_output, coarse,
         ack_limit, std::move(extensions), grpc_serialized);
     if (acceptor_is_output && keep_retention)
       is_acceptor = false;
-    log_v2::instance().get(0)->debug("BBDO: new acceptor {}", cfg.name);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("BBDO: new acceptor {}", cfg.name);
   } else {
     bool connector_is_input = cfg.get_io_type() == config::endpoint::input;
     retval = std::make_unique<bbdo::connector>(
         negotiate, cfg.read_timeout, connector_is_input, coarse, ack_limit,
         std::move(extensions), grpc_serialized);
-    log_v2::instance().get(0)->debug("BBDO: new connector {}", cfg.name);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->debug("BBDO: new connector {}", cfg.name);
   }
   return retval.release();
 }

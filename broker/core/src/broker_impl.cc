@@ -300,7 +300,7 @@ grpc::Status broker_impl::RemovePoller(grpc::ServerContext* context
                                        [[maybe_unused]],
                                        const GenericNameOrIndex* request,
                                        ::google::protobuf::Empty*) {
-  log_v2::instance().get(0)->info("Remove poller...");
+  log_v2::instance().get(log_v2::CORE)->info("Remove poller...");
   multiplexing::publisher pblshr;
   auto e{std::make_shared<bbdo::pb_remove_poller>(*request)};
   pblshr.write(e);
@@ -347,7 +347,7 @@ grpc::Status broker_impl::SetLogLevel(grpc::ServerContext* context
   if (!logger) {
     std::string err_detail =
         fmt::format("The '{}' logger does not exist", logger_name);
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(0), err_detail);
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE), err_detail);
     return grpc::Status(::grpc::StatusCode::INVALID_ARGUMENT, err_detail);
   } else {
     logger->set_level(spdlog::level::level_enum(request->level()));
@@ -379,7 +379,7 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
     com::centreon::common::process_stat stat(getpid());
     stat.to_protobuff(*response);
   } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::instance().get(0),
+    SPDLOG_LOGGER_ERROR(log_v2::instance().get(log_v2::CORE),
                         "fail to get process info: {}",
                         boost::diagnostic_information(e));
 

@@ -196,7 +196,7 @@ static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   const char* begin_str = time_str.data();
   char* endptr;
   char* endptr1;
-  auto logger = log_v2::instance().get(0);
+  auto logger = log_v2::instance().get(log_v2::CORE);
 
   // move cursor while we meet blanks
   while (std::isspace(*begin_str)) {

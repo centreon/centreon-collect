@@ -264,7 +264,9 @@ int channel::flush() {
  * @return false if timeout expires
  */
 bool channel::wait_for_all_events_written(unsigned ms_timeout) {
-  log_v2::instance().get(0)->info("grpc::channel::wait_for_all_events_written");
+  log_v2::instance()
+      .get(log_v2::CORE)
+      ->info("grpc::channel::wait_for_all_events_written");
   unique_lock l(_protect);
   _logger->trace("wait_for_all_events_written _write_queue.size()={}",
                  _write_queue.size());

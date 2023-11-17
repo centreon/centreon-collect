@@ -50,16 +50,13 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 rebuilder::rebuilder(const database_config& db_cfg,
                      uint32_t rrd_length,
                      uint32_t interval_length)
-    : _db_cfg(db_cfg),
-      _interval_length(interval_length),
-      _rrd_len(rrd_length),
-      _logger_id{log_v2::instance().create_logger_or_get_id("sql")} {
+    : _db_cfg(db_cfg), _interval_length(interval_length), _rrd_len(rrd_length) {
   _db_cfg.set_connections_count(1);
   _db_cfg.set_queries_per_transaction(1);
 }
 
 rebuilder::~rebuilder() noexcept {
-  log_v2::instance().get(_logger_id)->debug("SQL: stopping rebuilder");
+  log_v2::instance().get(log_v2::SQL)->debug("SQL: stopping rebuilder");
   std::unique_lock<std::mutex> lck(_rebuilding_m);
   _rebuilding_cv.wait_for(lck, std::chrono::seconds(20),
                           [this] { return _rebuilding == 0; });
@@ -77,7 +74,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
       _rebuilding++;
       _rebuilding_cv.notify_all();
     }
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::SQL);
     const bbdo::pb_rebuild_graphs& ids =
         *static_cast<const bbdo::pb_rebuild_graphs*>(data.get());
 

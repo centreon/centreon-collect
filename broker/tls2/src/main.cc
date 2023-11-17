@@ -61,8 +61,9 @@ void broker_module_init(void const* arg) {
   // Increment instance number.
   if (!instances++) {
     // TLS module.
-    log_v2::instance().get(0)->info("TLS: module for Centreon Broker {}",
-                                    CENTREON_BROKER_VERSION);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("TLS: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
 
     // Initialization.
     tls2::initialize();

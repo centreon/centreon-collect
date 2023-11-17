@@ -36,9 +36,7 @@ using com::centreon::common::log_v2::log_v2;
  * @brief Default constructor.
  */
 mysql_stmt_base::mysql_stmt_base(bool bulk)
-    : _bulk(bulk),
-      _logger_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger{log_v2::instance().get(_logger_id)} {}
+    : _bulk(bulk), _logger{log_v2::instance().get(log_v2::SQL)} {}
 
 /**
  * @brief Constructor of a mysql_stmt_base from a SQL query template. This
@@ -53,9 +51,7 @@ mysql_stmt_base::mysql_stmt_base(bool bulk)
 mysql_stmt_base::mysql_stmt_base(const std::string& query,
                                  bool named,
                                  bool bulk)
-    : _bulk(bulk),
-      _logger_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger{log_v2::instance().get(_logger_id)} {
+    : _bulk(bulk), _logger{log_v2::instance().get(log_v2::SQL)} {
   mysql_bind_mapping bind_mapping;
   std::hash<std::string> hash_fn;
   if (named) {
@@ -137,8 +133,7 @@ mysql_stmt_base::mysql_stmt_base(const std::string& query,
       _id(std::hash<std::string>{}(query)),
       _query(query),
       _bind_mapping(bind_mapping),
-      _logger_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::SQL)} {
   if (bind_mapping.empty())
     _param_count = _compute_param_count(query);
   else
@@ -155,8 +150,7 @@ mysql_stmt_base::mysql_stmt_base(mysql_stmt_base&& other)
       _query(std::move(other._query)),
       _bind_mapping(std::move(other._bind_mapping)),
       _pb_mapping(std::move(other._pb_mapping)),
-      _logger_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger{log_v2::instance().get(_logger_id)} {}
+      _logger{log_v2::instance().get(log_v2::SQL)} {}
 
 /**
  * @brief Move copy

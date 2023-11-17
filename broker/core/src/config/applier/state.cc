@@ -63,9 +63,11 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
     bool found_storage =
         std::find(lst.begin(), lst.end(), "20-storage.so") != lst.end();
     if (found_sql || found_storage) {
-      log_v2::instance().get(1)->error(
-          "Configuration check error: bbdo versions >= 3.0.0 need the "
-          "unified_sql module to be configured.");
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->error(
+              "Configuration check error: bbdo versions >= 3.0.0 need the "
+              "unified_sql module to be configured.");
       throw msg_fmt(
           "Configuration check error: bbdo versions >= 3.0.0 need the "
           "unified_sql module to be configured.");
@@ -122,12 +124,15 @@ void state::apply(const com::centreon::broker::config::state& s, bool run_mux) {
   else {
     uint32_t module_count = _modules.size();
     if (module_count)
-      log_v2::instance().get(1)->info("applier: {} modules loaded",
-                                      module_count);
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->info("applier: {} modules loaded", module_count);
     else
-      log_v2::instance().get(1)->info(
-          "applier: no module loaded, you might want to check the "
-          "'module_directory' directory");
+      log_v2::instance()
+          .get(log_v2::CONFIG)
+          ->info(
+              "applier: no module loaded, you might want to check the "
+              "'module_directory' directory");
   }
 
   // Event queue max size (used to limit memory consumption).
@@ -255,14 +260,18 @@ void state::add_poller(uint64_t poller_id, const std::string& poller_name) {
   std::lock_guard<std::mutex> lck(_connected_pollers_m);
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end()) {
-    log_v2::instance().get(0)->info("Poller '{}' with id {} connected",
-                                    poller_name, poller_id);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("Poller '{}' with id {} connected", poller_name, poller_id);
     _connected_pollers[poller_id] = poller_name;
   } else {
-    log_v2::instance().get(0)->warn(
-        "Poller '{}' with id {} already known as connected. Replacing it with "
-        "'{}'",
-        _connected_pollers[poller_id], poller_id, poller_name);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->warn(
+            "Poller '{}' with id {} already known as connected. Replacing it "
+            "with "
+            "'{}'",
+            _connected_pollers[poller_id], poller_id, poller_name);
     found->second = poller_name;
   }
 }
@@ -276,11 +285,14 @@ void state::remove_poller(uint64_t poller_id) {
   std::lock_guard<std::mutex> lck(_connected_pollers_m);
   auto found = _connected_pollers.find(poller_id);
   if (found == _connected_pollers.end())
-    log_v2::instance().get(0)->warn("There is currently no poller {} connected",
-                                    poller_id);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->warn("There is currently no poller {} connected", poller_id);
   else {
-    log_v2::instance().get(0)->info("Poller '{}' with id {} just disconnected",
-                                    _connected_pollers[poller_id], poller_id);
+    log_v2::instance()
+        .get(log_v2::CORE)
+        ->info("Poller '{}' with id {} just disconnected",
+               _connected_pollers[poller_id], poller_id);
     _connected_pollers.erase(found);
   }
 }
