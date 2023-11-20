@@ -34,9 +34,7 @@ BENCH_${nb_check}STATUS
     Broker Config Log    central    sql    trace
     Broker Config Log    central    core    info
     Broker Config Log    central    processing    error
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker

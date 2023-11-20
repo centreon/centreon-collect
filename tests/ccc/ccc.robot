@@ -48,9 +48,7 @@ BECCC2
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -83,9 +81,7 @@ BECCC3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -117,9 +113,7 @@ BECCC4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -150,9 +144,7 @@ BECCC5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -183,9 +175,7 @@ BECCC6
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -230,9 +220,7 @@ BECCC7
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -265,9 +253,7 @@ BECCC8
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes

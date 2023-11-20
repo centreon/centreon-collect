@@ -12,6 +12,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
+Test Teardown       Save Logs If failed
 
 
 *** Test Cases ***

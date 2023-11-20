@@ -31,8 +31,8 @@ namespace grpc {
  */
 class client : public channel,
                public ::grpc::ClientBidiReactor<
-                   ::com::centreon::broker::stream::centreon_event,
-                   ::com::centreon::broker::stream::centreon_event> {
+                   ::com::centreon::broker::stream::CentreonEvent,
+                   ::com::centreon::broker::stream::CentreonEvent> {
   channel_ptr _channel;
   std::unique_ptr<com::centreon::broker::stream::centreon_bbdo::Stub> _stub;
   std::unique_ptr<::grpc::ClientContext> _context;
@@ -48,7 +48,7 @@ class client : public channel,
   client(const grpc_config::pointer& conf);
 
   void start_read(event_ptr& to_read, bool first_read) override;
-  void start_write(const event_ptr& to_send) override;
+  void start_write(const event_with_data::pointer& to_send) override;
 
   void remove_hold();
 

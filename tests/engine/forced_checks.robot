@@ -117,12 +117,10 @@ EFHCU1
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
 
     Clear Retention
     Clear Db    resources
@@ -169,12 +167,10 @@ EFHCU2
     Config Broker    module    ${1}
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
     Broker Config Log    module0    neb    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Log    central    sql    debug
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
 
     Clear Retention
     ${start}    Get Current Date
@@ -253,7 +249,7 @@ EMACROS_NOTIF
     Engine Config Set Value    ${0}    log_legacy_enabled    ${0}
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    0    log_level_checks    trace    True
-    Engine Config Add Value    0    cfg_file   ${EtcRoot}/centreon-engine/config0/contacts.cfg
+    Engine Config Add Value    0    cfg_file    ${EtcRoot}/centreon-engine/config0/contacts.cfg
     Engine Config Add Command
     ...    0
     ...    command_notif

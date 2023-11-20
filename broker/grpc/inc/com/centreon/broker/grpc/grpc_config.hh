@@ -27,23 +27,31 @@ class grpc_config {
   enum compression_active { NO = 0, AUTO = 1, YES = 2 };
 
  private:
-  std::string _hostport;
-  bool _crypted = false;
-  std::string _certificate, _cert_key, _ca_cert, _authorization;
-  // grpc_compression_level _compress_level;
-  std::string _ca_name;
-  compression_active _compress;
-  int _second_keepalive_interval;
+  const std::string _hostport;
+  const bool _crypted = false;
+  const std::string _certificate, _cert_key, _ca_cert, _authorization;
+  const std::string _ca_name;
+  const compression_active _compress;
+  const int _second_keepalive_interval;
+  /**
+   * @brief when _grpc_serialized is set, bbdo events are sent on the wire
+   * without bbdo stream serialization
+   *
+   */
+  const bool _grpc_serialized;
 
  public:
   using pointer = std::shared_ptr<grpc_config>;
 
-  grpc_config() : _compress(NO), _second_keepalive_interval(30) {}
+  grpc_config()
+      : _compress(NO),
+        _second_keepalive_interval(30),
+        _grpc_serialized(false) {}
   grpc_config(const std::string& hostp)
       : _hostport(hostp),
-        _crypted(false),
         _compress(NO),
-        _second_keepalive_interval(30) {}
+        _second_keepalive_interval(30),
+        _grpc_serialized(false) {}
   grpc_config(const std::string& hostp,
               bool crypted,
               const std::string& certificate,
@@ -52,7 +60,8 @@ class grpc_config {
               const std::string& authorization,
               const std::string& ca_name,
               compression_active compression,
-              int second_keepalive_interval = 30)
+              int second_keepalive_interval,
+              bool grpc_serialized)
       : _hostport(hostp),
         _crypted(crypted),
         _certificate(certificate),
@@ -61,7 +70,8 @@ class grpc_config {
         _authorization(authorization),
         _ca_name(ca_name),
         _compress(compression),
-        _second_keepalive_interval(second_keepalive_interval) {}
+        _second_keepalive_interval(second_keepalive_interval),
+        _grpc_serialized(grpc_serialized) {}
 
   constexpr const std::string& get_hostport() const { return _hostport; }
   constexpr bool is_crypted() const { return _crypted; }
@@ -73,12 +83,11 @@ class grpc_config {
   }
   const std::string& get_ca_name() const { return _ca_name; }
   constexpr compression_active get_compression() const { return _compress; }
+  constexpr bool get_grpc_serialized() const { return _grpc_serialized; }
 
   int get_second_keepalive_interval() const {
     return _second_keepalive_interval;
   }
-
-  friend class factory;
 };
 };  // namespace grpc
 CCB_END()

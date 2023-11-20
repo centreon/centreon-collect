@@ -137,6 +137,14 @@ class stream : public io::stream {
   uint32_t _ack_limit;
   uint32_t _events_received_since_last_ack;
   time_t _last_sent_ack;
+  const bool _grpc_serialized;
+
+  /**
+   * @brief when we bypass bbdo serialization, we store object received by grpc
+   * layer in this queue
+   *
+   */
+  std::deque<std::shared_ptr<io::data>> _grpc_serialized_queue;
 
   /**
    * It is possible to mix bbdo stream with others like tls or compression.
@@ -157,6 +165,7 @@ class stream : public io::stream {
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };
 
   stream(bool is_input,
+         bool grpc_serialized = false,
          const std::list<std::shared_ptr<io::extension>>& extensions = {});
   ~stream();
   stream(const stream&) = delete;

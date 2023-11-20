@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
+Test Teardown       Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -162,9 +162,7 @@ BRRDRBUDB1
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Create Metrics    3
 
     ${start}    Get Current Date    exclude_millis=True
@@ -211,7 +209,6 @@ BRRDUPLICATE
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
-    Clear Db    data_bin
     Create Metrics    3
 
     ${start}    Get Current Date

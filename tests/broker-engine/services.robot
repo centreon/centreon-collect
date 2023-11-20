@@ -25,9 +25,7 @@ SDER
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
     Config Broker Sql Output    central    unified_sql

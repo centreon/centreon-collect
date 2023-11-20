@@ -23,18 +23,9 @@ import broker_pb2_grpc
 from google.protobuf import empty_pb2
 from google.protobuf.json_format import MessageToJson
 from robot.libraries.BuiltIn import BuiltIn
+from Common import DB_NAME_STORAGE, DB_NAME_CONF, DB_USER, DB_PASS, DB_HOST, DB_PORT, VAR_ROOT, ETC_ROOT, TESTS_PARAMS
 
 TIMEOUT = 30
-
-BuiltIn().import_resource('db_variables.robot')
-DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
-DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
-DB_USER = BuiltIn().get_variable_value("${DBUser}")
-DB_PASS = BuiltIn().get_variable_value("${DBPass}")
-DB_HOST = BuiltIn().get_variable_value("${DBHost}")
-DB_PORT = BuiltIn().get_variable_value("${DBPort}")
-VAR_ROOT = BuiltIn().get_variable_value("${VarRoot}")
-ETC_ROOT = BuiltIn().get_variable_value("${EtcRoot}")
 
 
 config = {
@@ -421,7 +412,7 @@ def _apply_conf(name, callback):
     f.close()
 
 
-def config_broker(name, poller_inst: int = 1):
+def config_broker(name: str, poller_inst: int = 1):
     makedirs(ETC_ROOT, mode=0o777, exist_ok=True)
     makedirs(VAR_ROOT, mode=0o777, exist_ok=True)
     makedirs(ETC_ROOT + "/centreon-broker", mode=0o777, exist_ok=True)
@@ -452,6 +443,8 @@ def config_broker(name, poller_inst: int = 1):
         broker_name = "central-rrd-master"
         filename = "central-rrd.json"
 
+    default_bbdo_version = TESTS_PARAMS.get("default_bbdo_version")
+    default_transport = TESTS_PARAMS.get("default_transport")
     if name == 'module':
         for i in range(poller_inst):
             broker_name = f"{ETC_ROOT}/centreon-broker/central-module{i}.json"
@@ -464,11 +457,32 @@ def config_broker(name, poller_inst: int = 1):
             f = open(broker_name, "w")
             f.write(json.dumps(conf, indent=2))
             f.close()
+            if default_bbdo_version is not None:
+                broker_config_add_item(
+                    f"{name}{i}", "bbdo_version", default_bbdo_version)
+            if default_transport == "grpc":
+                config_broker_bbdo_output(
+                    f"{name}{i}", "bbdo_client", "5669", "grpc", "localhost")
+
     else:
         f = open(f"{ETC_ROOT}/centreon-broker/{filename}", "w")
         f.write(config[name].format(broker_id, broker_name,
                 DB_HOST, DB_PORT, DB_USER, DB_PASS, DB_NAME_STORAGE, VAR_ROOT))
         f.close()
+        if default_bbdo_version is not None:
+            if default_bbdo_version >= "3.0.0" and (name == "central" or name == "central_map"):
+                config_broker_sql_output(name, 'unified_sql')
+            broker_config_add_item(
+                name, "bbdo_version", default_bbdo_version)
+        if default_transport == "grpc":
+            if name == "central" or name == "central_map":
+                config_broker_bbdo_input(
+                    name, "bbdo_server", "5669", "grpc")
+                config_broker_bbdo_output(
+                    name, "bbdo_client", "5670", "grpc", "localhost")
+            else:
+                config_broker_bbdo_input(
+                    name, "bbdo_server", "5670", "grpc")
 
 
 def change_broker_tcp_output_to_grpc(name: str):
@@ -477,6 +491,8 @@ def change_broker_tcp_output_to_grpc(name: str):
         for i, v in enumerate(output_dict):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
+            if "transport_protocol" in v:
+                v["transport_protocol"] = "grpc"
     _apply_conf(name, output_to_grpc)
 
 
@@ -495,6 +511,8 @@ def change_broker_tcp_input_to_grpc(name: str):
         for i, v in enumerate(input_dict):
             if v["type"] == "ipv4":
                 v["type"] = "grpc"
+            if "transport_protocol" in v:
+                v["transport_protocol"] = "grpc"
     _apply_conf(name, input_to_grpc)
 
 
@@ -607,12 +625,14 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
     if stream == "bbdo_client" and host is None:
         raise Exception("A bbdo_client must specify a host to connect to")
 
+    input_name = f"{name}-broker-master-input"
     if name == 'central':
         filename = "central-broker.json"
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
     else:
         filename = "central-rrd.json"
+        input_name = "central-rrd-master-input"
     f = open(ETC_ROOT + "/centreon-broker/{}".format(filename), "r")
     buf = f.read()
     f.close()
@@ -620,10 +640,10 @@ def config_broker_bbdo_input(name, stream, port, proto, host=None):
     io_dict = conf["centreonBroker"]["input"]
     # Cleanup
     for i, v in enumerate(io_dict):
-        if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
+        if (v["type"] == "ipv4" or v["type"] == "grpc" or v["type"] == "bbdo_client" or v["type"] == "bbdo_server") and v["port"] == port:
             io_dict.pop(i)
     stream = {
-        "name": f"{name}-broker-master-input",
+        "name": input_name,
         "port": f"{port}",
         "transport_protocol": proto,
         "type": stream,
@@ -646,6 +666,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     output_name = f"{name}-broker-master-output"
     if name == 'central':
         filename = "central-broker.json"
+        output_name = 'centreon-broker-master-rrd'
     elif name.startswith('module'):
         filename = "central-{}.json".format(name)
         output_name = 'central-module-master-output'
@@ -658,7 +679,7 @@ def config_broker_bbdo_output(name, stream, port, proto, host=None):
     io_dict = conf["centreonBroker"]["output"]
     # Cleanup
     for i, v in enumerate(io_dict):
-        if (v["type"] == "ipv4" or v["type"] == "grpc") and v["port"] == port:
+        if (v["type"] == "ipv4" or v["type"] == "grpc" or v["type"] == "bbdo_client" or v["type"] == "bbdo_server") and v["port"] == port:
             io_dict.pop(i)
     stream = {
         "name": f"{output_name}",
@@ -908,6 +929,9 @@ def broker_config_output_remove(name, output, key):
         conf["centreonBroker"]["output"]) if elem["name"] == output][0]
     if key in output_dict:
         output_dict.pop(key)
+        if key == "host":
+            if output_dict["type"] == "bbdo_client":
+                output_dict["type"] = "bbdo_server"
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 
@@ -926,6 +950,8 @@ def broker_config_input_set(name, inp, key, value):
     input_dict = [elem for i, elem in enumerate(
         conf["centreonBroker"]["input"]) if elem["name"] == inp][0]
     input_dict[key] = value
+    if key == "host" and input_dict["type"] == "bbdo_server":
+        input_dict["type"] = "bbdo_client"
     with open(f"{ETC_ROOT}/centreon-broker/{filename}", "w") as f:
         f.write(json.dumps(conf, indent=2))
 

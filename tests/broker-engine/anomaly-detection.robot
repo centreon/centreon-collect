@@ -168,9 +168,7 @@ AOUTLU1
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -203,9 +201,7 @@ ANO_DT1
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -220,7 +216,7 @@ ANO_DT1
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    service_1    1    60
@@ -240,9 +236,7 @@ ANO_DT2
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -257,7 +251,7 @@ ANO_DT2
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
@@ -281,9 +275,7 @@ ANO_DT3
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -298,7 +290,7 @@ ANO_DT3
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     Schedule Service Fixed Downtime    host_1    service_1    3600
 
     ${result}    Check Service Downtime With Timeout    host_1    anomaly_${serv_id}    1    60
@@ -323,9 +315,7 @@ ANO_DT4
     Config Broker    module    ${1}
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     ${serv_id}    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
     ${predict_data}    Evaluate    [[0,50,52],[2648812678,50,63]]
     Create Anomaly Threshold File    /tmp/anomaly_threshold.json    ${1}    ${serv_id}    metric    ${predict_data}
@@ -340,7 +330,7 @@ ANO_DT4
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    #create dependent service downtime
+    # create dependent service downtime
     Schedule Service Fixed Downtime    host_1    service_1    3600
     Schedule Service Fixed Downtime    host_1    anomaly_${serv_id}    3600
 

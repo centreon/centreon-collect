@@ -41,6 +41,7 @@ enum TagType {
   HOSTCATEGORY = 3;
 }
 
+/*io::neb, neb::de_pb_tag*/
 message Tag {
   uint64 id = 1;
   enum Action {

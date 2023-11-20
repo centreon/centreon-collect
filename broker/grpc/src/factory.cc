@@ -219,28 +219,32 @@ io::endpoint* factory::new_endpoint(
     }
   }
 
+  std::string hostport;
+  if (host.empty()) {
+    is_acceptor = true;
+    hostport = fmt::format("0.0.0.0:{}", port);
+  } else {
+    is_acceptor = false;
+    hostport = fmt::format("{}:{}", host, port);
+  }
+
   grpc_config::pointer conf(std::make_shared<grpc_config>(
-      "", encrypted, certificate, certificate_key, certificate_authority,
-      authorization, ca_name, enable_compression, keepalive_interval));
+      hostport, encrypted, certificate, certificate_key, certificate_authority,
+      authorization, ca_name, enable_compression, keepalive_interval,
+      direct_grpc_serialized(cfg)));
 
   std::unique_ptr<io::endpoint> endp;
-  if (host.empty())
-    is_acceptor = true;
-  else
-    is_acceptor = false;
 
   // Acceptor.
   if (is_acceptor) {
     log_v2::grpc()->debug("GRPC: encryption {} on gRPC server port {}",
                           encrypted ? "enabled" : "disabled", port);
-    conf->_hostport = fmt::format("0.0.0.0:{}", port);
     endp = std::make_unique<grpc::acceptor>(conf);
   }
   // Connector.
   else {
     log_v2::grpc()->debug("GRPC: encryption {} on gRPC client port {}",
                           encrypted ? "enabled" : "disabled", port);
-    conf->_hostport = fmt::format("{}:{}", host, port);
     endp = std::make_unique<grpc::connector>(conf);
   }
 
@@ -433,21 +437,25 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
     }
   }
 
+  std::string hostport;
+  if (cfg.type == "bbdo_server") {
+    is_acceptor = true;
+    hostport = fmt::format("0.0.0.0:{}", port);
+  } else {
+    is_acceptor = false;
+    hostport = fmt::format("{}:{}", host, port);
+  }
+
   grpc_config::pointer conf(std::make_shared<grpc_config>(
-      "", encryption, certificate, private_key, ca_certificate, authorization,
-      ca_name, enable_compression, keepalive_interval));
+      hostport, encryption, certificate, private_key, ca_certificate,
+      authorization, ca_name, enable_compression, keepalive_interval,
+      direct_grpc_serialized(cfg)));
 
   // Acceptor.
   std::unique_ptr<io::endpoint> endp;
-  if (cfg.type == "bbdo_server")
-    is_acceptor = true;
-  else if (cfg.type == "bbdo_client")
-    is_acceptor = false;
-
   if (is_acceptor) {
     log_v2::grpc()->debug("GRPC: encryption {} on gRPC server port {}",
                           encryption ? "enabled" : "disabled", port);
-    conf->_hostport = fmt::format("{}:{}", host, port);
     endp = std::make_unique<grpc::acceptor>(conf);
   }
 
@@ -455,7 +463,6 @@ io::endpoint* factory::_new_endpoint_bbdo_cs(
   else {
     log_v2::grpc()->debug("GRPC: encryption {} on gRPC client port {}",
                           encryption ? "enabled" : "disabled", port);
-    conf->_hostport = fmt::format("{}:{}", host, port);
     endp = std::make_unique<grpc::connector>(conf);
   }
 

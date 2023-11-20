@@ -54,6 +54,8 @@ class protobuf_base : public data {
   protobuf_base(uint32_t typ, google::protobuf::Message* msg)
       : data(typ), _msg{msg} {}
 
+  void set_message(google::protobuf::Message* msg) { _msg = msg; }
+
  public:
   enum attribute {
     always_valid = 0,
@@ -106,6 +108,18 @@ class protobuf : public protobuf_base {
    * @param o The protobuf object (it is copied).
    */
   protobuf(const T& o) : protobuf_base(Typ, &_obj), _obj(o) {}
+
+  /**
+   * @brief Construct a new protobuf object
+   * same as previous constructor except that it accepts two more parameters
+   * @param o
+   * @param src_id source_id
+   * @param dest_id destination_id
+   */
+  protobuf(const T& o, uint32_t src_id, uint32_t dest_id) : protobuf(o) {
+    source_id = src_id;
+    destination_id = dest_id;
+  }
 
   protobuf(const protobuf& to_clone) : protobuf_base(Typ, &_obj) {
     _obj.CopyFrom(to_clone._obj);
@@ -168,11 +182,11 @@ class protobuf : public protobuf_base {
     return retval.release();
   }
 
-  const T& obj() const { return _obj; }
+  virtual const T& obj() const { return _obj; }
 
-  T& mut_obj() { return _obj; }
+  virtual T& mut_obj() { return _obj; }
 
-  void set_obj(T&& obj) { _obj = std::move(obj); }
+  virtual void set_obj(T&& obj) { _obj = std::move(obj); }
 
   void dump(std::ostream& s) const override;
   void dump_more_detail(std::ostream& s) const override;
@@ -191,13 +205,14 @@ const io::event_info::event_operations protobuf<T, Typ>::operations{
 
 template <typename T, uint32_t Typ>
 bool protobuf<T, Typ>::operator==(const protobuf<T, Typ>& to_cmp) const {
-  return google::protobuf::util::MessageDifferencer::Equals(_obj, to_cmp._obj);
+  return google::protobuf::util::MessageDifferencer::Equals(this->obj(),
+                                                            (&to_cmp)->obj());
 }
 
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump(std::ostream& s) const {
   data::dump(s);
-  std::string dump{_obj.ShortDebugString()};
+  std::string dump{this->obj().ShortDebugString()};
   if (dump.size() > 200) {
     dump.resize(200);
     s << fmt::format(" content:'{}...'", dump);
@@ -208,13 +223,13 @@ void protobuf<T, Typ>::dump(std::ostream& s) const {
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump_more_detail(std::ostream& s) const {
   data::dump(s);
-  s << " content:'" << _obj.ShortDebugString() << '\'';
+  s << " content:'" << this->obj().ShortDebugString() << '\'';
 }
 
 template <typename T, uint32_t Typ>
 void protobuf<T, Typ>::dump_to_json(std::ostream& s) const {
   std::string json_dump;
-  google::protobuf::util::MessageToJsonString(_obj, &json_dump);
+  google::protobuf::util::MessageToJsonString(this->obj(), &json_dump);
   s << " content:'" << json_dump << '\'';
 }
 

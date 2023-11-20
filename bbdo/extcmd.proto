@@ -36,6 +36,7 @@ message TimePoint {
   * from engine to dest with several timepoints (one per muxer)
   *
   */
+/*io::extcmd, extcmd::de_pb_bench*/
 message Bench {
   uint32 id = 1;
   repeated TimePoint points = 2;

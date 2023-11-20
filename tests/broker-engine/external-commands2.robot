@@ -74,9 +74,7 @@ BEEXTCMD31
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -242,9 +240,7 @@ BEEXTCMD33
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -349,9 +345,7 @@ BEEXTCMD35
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -466,9 +460,7 @@ BEEXTCMD37
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -591,9 +583,7 @@ BEEXTCMD39
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -690,9 +680,7 @@ BEEXTCMD41
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -797,11 +785,9 @@ BEEXTCMD_GRPC1
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Change Broker Tcp Output To Grpc    module0
-    Change Broker Tcp Input To Grpc    central
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Change Broker tcp output to grpc    module0
+    Change Broker tcp input to grpc    central
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -881,9 +867,7 @@ BEEXTCMD_GRPC3
     Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
@@ -966,9 +950,7 @@ BEEXTCMD_REVERSE_GRPC1
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
     Broker Config Input Set    rrd    central-rrd-master-input    host    127.0.0.1
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -1053,9 +1035,7 @@ BEEXTCMD_REVERSE_GRPC3
     Config Broker    module    ${1}
     Change Broker Tcp Output To Grpc    module0
     Change Broker Tcp Input To Grpc    central
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Output Remove    module0    central-module-master-output    host
     Broker Config Output Remove    central    centreon-broker-master-rrd    host
     Broker Config Input Set    central    central-broker-master-input    host    127.0.0.1
@@ -1145,9 +1125,7 @@ BEEXTCMD_COMPRESS_GRPC1
     Change Broker Tcp Input To Grpc    central
     Change Broker Compression Output    module0    central-module-master-output    yes
     Change Broker Compression Input    central    centreon-broker-master-input    yes
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
@@ -1334,8 +1312,7 @@ BECUSTOMHOSTVAR
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
@@ -1369,8 +1346,7 @@ BECUSTOMSVCVAR
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
@@ -1404,8 +1380,7 @@ BESERVCHECK
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
@@ -1431,8 +1406,7 @@ BEHOSTCHECK
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker

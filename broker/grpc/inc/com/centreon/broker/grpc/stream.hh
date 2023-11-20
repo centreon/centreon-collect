@@ -33,6 +33,8 @@ class stream : public io::stream {
 
   std::shared_ptr<channel> _channel;
 
+  grpc_config::pointer _conf;
+
  public:
   stream(const grpc_config::pointer& conf);
   stream(const std::shared_ptr<accepted_service>&);

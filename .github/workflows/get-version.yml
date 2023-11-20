@@ -85,4 +85,3 @@ jobs:
           echo "env=$VERSION-$ENV" >> $GITHUB_OUTPUT
           echo "GH_ENV: $VERSION-$ENV"
         shell: bash
-      

@@ -26,9 +26,7 @@ BERES1
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    yes
@@ -60,9 +58,7 @@ BEHS1
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    store_in_resources    no
@@ -107,8 +103,7 @@ BEINSTANCESTATUS
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     ${start}    Get Current Date
     Start Broker
@@ -160,13 +155,12 @@ BEINSTANCE
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Config Broker Sql Output    central    unified_sql
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    DELETE FROM instances
 
-    #as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
+    # as GetCurrent Date floor milliseconds to upper or lower integer, we substract 1s
     ${start}    Get Round Current Date
     Start Broker
     Start Engine
@@ -282,7 +276,7 @@ BE_DEFAULT_NOTIFCATION_INTERVAL_IS_ZERO_SERVICE_RESOURCE
         ...    SELECT s.notification_interval, h.notification_interval FROM services s, hosts h WHERE h.host_id=1 AND s.service_id=1
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "((0.0, 0.0),)"            BREAK
+        IF    "${output}" == "((0.0, 0.0),)"    BREAK
     END
     Should Be Equal As Strings    ${output}    ((0.0, 0.0),)
     Stop Engine

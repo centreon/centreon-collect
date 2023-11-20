@@ -69,9 +69,7 @@ BEPBBEE3
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservicestatus.lua
@@ -91,9 +89,7 @@ BEPBBEE4
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbhoststatus.lua
@@ -113,9 +109,7 @@ BEPBBEE5
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
     Broker Config Add Lua Output    central    test-protobuf    ${SCRIPTS}test-pbservice.lua
@@ -134,8 +128,7 @@ BEPBRI1
     Config Engine    ${1}
     Config Broker    central
     Config Broker    module
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    sql    trace
     Config Broker Sql Output    central    unified_sql
     Broker Config Output Set    central    central-broker-unified-sql    read_timeout    2
@@ -157,7 +150,7 @@ BEPBRI1
         Sleep    1s
         ${grep_res}    Grep File    /tmp/pbresponsiveinstance.log    "_type":65582, "category":1, "element":46,
         ${grep_res}    Get Lines Containing String    ${grep_res}    "poller_id":1, "responsive":false
-        IF    len('${grep_res}') > 0            BREAK
+        IF    len('${grep_res}') > 0    BREAK
     END
 
     Should Not Be Empty    ${grep_res}    "responsive":false not found
@@ -185,7 +178,7 @@ BEPBCVS
         ...    SELECT c.value FROM customvariables c LEFT JOIN hosts h ON c.host_id=h.host_id WHERE h.name='host_1' && c.name in ('KEY1','KEY_SERV1_1') ORDER BY service_id
         Log To Console    ${output}
         Sleep    1s
-        IF    "${output}" == "(('VAL1',), ('VAL_SERV1',))"            BREAK
+        IF    "${output}" == "(('VAL1',), ('VAL_SERV1',))"    BREAK
     END
     Should Be Equal As Strings    ${output}    (('VAL1',), ('VAL_SERV1',))
 
