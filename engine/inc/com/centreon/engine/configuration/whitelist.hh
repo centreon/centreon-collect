@@ -74,6 +74,7 @@ class whitelist_file {
 
   const std::vector<std::string> get_wildcards() const { return _wildcards; }
   const std::string& get_path() const { return _path; }
+  bool empty() const { return _wildcards.empty() && _regex.empty(); }
 };
 
 /**
@@ -98,10 +99,40 @@ class whitelist_directory {
 
   bool test(const std::string& cmdline) const;
 
+  bool empty() const { return _files.empty(); }
+
   const std::vector<std::unique_ptr<whitelist_file>>& get_files() const {
     return _files;
   }
 };
+
+/**
+ * @brief scan several whitelist directories
+ *
+ */
+class whitelist_directories {
+  std::list<whitelist_directory> _directories;
+
+ public:
+  template <class dir_const_iter>
+  whitelist_directories(dir_const_iter begin, dir_const_iter end);
+
+  bool test(const std::string& cmdline) const;
+
+  void refresh();
+
+  const std::list<whitelist_directory>& get_directories() const {
+    return _directories;
+  }
+};
+
+template <class dir_const_iter>
+whitelist_directories::whitelist_directories(dir_const_iter begin,
+                                             dir_const_iter end) {
+  for (; begin != end; ++begin) {
+    _directories.emplace_back(*begin);
+  }
+}
 
 };  // namespace configuration
 

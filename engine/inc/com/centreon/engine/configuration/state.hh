@@ -41,7 +41,7 @@
 CCE_BEGIN()
 
 namespace configuration {
-class whitelist_directory;
+class whitelist_directories;
 
 extern const std::string command_blacklist_output;
 
@@ -668,7 +668,7 @@ class state {
   std::string _use_timezone;
   bool _use_true_regexp_matching;
 
-  std::shared_ptr<whitelist_directory> _whitelist;
+  std::shared_ptr<whitelist_directories> _whitelist;
 };
 }  // namespace configuration
 

@@ -343,7 +343,7 @@ void whitelist_directory::refresh() {
     if (cmp < 0) {  // new file
       std::unique_ptr<whitelist_file> to_add =
           whitelist_file::create(*child_iter);
-      if (to_add) {  // file correct
+      if (to_add && !to_add->empty()) {  // file correct
         whitelist_iter = _files.emplace(whitelist_iter, std::move(to_add));
         ++whitelist_iter;
       }
@@ -356,7 +356,7 @@ void whitelist_directory::refresh() {
       if (file_infos.st_mtime != (*whitelist_iter)->get_last_file_write()) {
         std::unique_ptr<whitelist_file> update =
             whitelist_file::create(*child_iter);
-        if (update) {  // file correct
+        if (update && !update->empty()) {  // file correct
           *whitelist_iter = std::move(update);
           ++whitelist_iter;
         } else
@@ -400,4 +400,33 @@ bool whitelist_directory::test(const std::string& cmdline) const {
   SPDLOG_LOGGER_INFO(log_v2::checks(), "command rejected by whitelist: {}",
                      cmdline);
   return false;
+}
+
+/**
+ * @brief test cmdline with each whitelist file
+ *
+ * @param cmdline
+ * @return true match to at least one regex or wildcard
+ * @return false
+ */
+bool whitelist_directories::test(const std::string& cmdline) const {
+  if (_directories.empty()) {
+    return true;
+  }
+  for (const whitelist_directory& dir : _directories) {
+    if (dir.test(cmdline)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @brief scan whitelist directories and refresh whitelist_file list
+ *
+ */
+void whitelist_directories::refresh() {
+  for (whitelist_directory& dir : _directories) {
+    dir.refresh();
+  }
 }

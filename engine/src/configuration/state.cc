@@ -4772,9 +4772,11 @@ void state::enable_macros_filter(bool value) {
  *
  */
 void state::refresh_whitelist() {
+  static const char* directories[] = {"/etc/centreon-engine-whitelist",
+                                      "/usr/share/centreon-engine-whitelist"};
   if (!_whitelist)
     _whitelist =
-        std::make_shared<whitelist_directory>("/etc/centreon-engine-whitelist");
+        std::make_shared<whitelist_directories>(directories, directories + 2);
   _whitelist->refresh();
 }
 
