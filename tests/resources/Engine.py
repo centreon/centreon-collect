@@ -2112,3 +2112,19 @@ def modify_retention_dat_host(poller, host, key, value):
             f"{VAR_ROOT}/log/centreon-engine/config{poller}/retention.dat", "w")
         ff.writelines(lines)
         ff.close()
+
+
+def config_host_command_status(idx: int, cmd_name: str, status: int):
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
+
+    r = re.compile(rf"^\s*command_name\s+{cmd_name}\s*$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines[i +
+                  1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
+            break
+
+    with open(filename, "w") as f:
+        f.writelines(lines)

@@ -58,19 +58,19 @@ jobs:
         shell: bash
 
       - name: Move reports
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         run: |
           mkdir reports
           FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`
-          mv tests/log.html reports/$FILE_PREFIX-log.html
-          mv tests/output.xml reports/$FILE_PREFIX-output.xml
-          mv tests/report.html reports/$FILE_PREFIX-report.html
           if [ -d tests/failed ] ; then
+            mv tests/log.html reports/$FILE_PREFIX-log.html
+            mv tests/output.xml reports/$FILE_PREFIX-output.xml
+            mv tests/report.html reports/$FILE_PREFIX-report.html
             mv tests/failed reports/$FILE_PREFIX-failed
           fi
 
       - name: Upload Test Results
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
           name: robot-test-reports
@@ -79,7 +79,7 @@ jobs:
 
   robot-test-report:
     needs: [robot-test-run]
-    if: ${{ !cancelled() }}
+    if: ${{ failure() }}
     runs-on: ubuntu-22.04
 
     steps:

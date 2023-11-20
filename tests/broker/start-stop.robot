@@ -13,10 +13,6 @@ Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
 
-Suite Setup         Clean Before Suite
-Suite Teardown      Clean After Suite
-Test Setup          Stop Processes
-
 
 *** Test Cases ***
 BSS1

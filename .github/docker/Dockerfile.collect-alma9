@@ -40,6 +40,9 @@ dnf install -y cmake \
     zstd \
     sudo
 
+# TEMPORARY PYTHON UPGRADE TO 3.18 TO HELP WITH DATA_FILTER ISSUE
+dnf upgrade -y python3
+
 pip3 install conan==1.57.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default
 
