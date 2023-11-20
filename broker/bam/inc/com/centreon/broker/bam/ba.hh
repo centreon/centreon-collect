@@ -1,20 +1,20 @@
-/*
-** Copyright 2014-2015, 2021-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2014-2015, 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_BA_HH
 #define CCB_BAM_BA_HH
@@ -103,7 +103,7 @@ class ba : public computable, public service_listener {
   int _recompute_count{0};
 
   static double _normalize(double d);
-  virtual void _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
+  virtual bool _apply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _unapply_impact(kpi* kpi_ptr, impact_info& impact) = 0;
   virtual void _recompute();
   std::shared_ptr<pb_ba_status> _generate_ba_status(bool state_changed) const;
@@ -119,8 +119,6 @@ class ba : public computable, public service_listener {
   virtual ~ba() noexcept = default;
   ba& operator=(ba const& other) = delete;
   void add_impact(std::shared_ptr<kpi> const& impact);
-  bool child_has_update(computable* child,
-                        io::stream* visitor = nullptr) override;
   virtual double get_downtime_impact_hard() { return 0.0; }
   virtual double get_downtime_impact_soft() { return 0.0; }
   virtual double get_ack_impact_hard() { return 0.0; }
@@ -153,6 +151,10 @@ class ba : public computable, public service_listener {
   void set_inherited_downtime(pb_inherited_downtime const& dwn);
   void set_level_critical(double level);
   void set_level_warning(double level);
+  void update_from(computable* child, io::stream* visitor) override;
+  std::string object_info() const override;
+  void dump(const std::string& filename) const;
+  void dump(std::ofstream& output) const override;
 };
 }  // namespace bam
 

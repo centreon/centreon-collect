@@ -1,20 +1,20 @@
 /*
-** Copyright 2021-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CC_BROKER_EVENTS_HH
 #define CC_BROKER_EVENTS_HH
@@ -100,10 +100,10 @@ enum data_element {
   de_custom_variable,
   de_custom_variable_status,
   de_downtime,
-  de_event_handler,
-  de_flapping_status,
-  de_host_check,
-  de_host_dependency,
+  de_event_handler = 6,
+  de_flapping_status = 7,  // unused
+  de_host_check = 8,
+  de_host_dependency = 9,
   de_host_group,
   de_host_group_member,
   de_host,
@@ -137,7 +137,7 @@ enum data_element {
   de_pb_service_check = 40,
   de_pb_log_entry = 41,
   de_pb_instance_status = 42,
-  de_pb_module = 43,
+  // de_pb_module = 43,    Not used
   de_pb_instance = 44,
   de_pb_acknowledgement = 45,
   de_pb_responsive_instance = 46,
@@ -193,6 +193,11 @@ enum data_element {
   de_pb_dimension_truncate_table_signal = 30
 };
 }
+
+namespace extcmd {
+enum data_element { de_ba_info = 2 };
+}
+
 constexpr uint32_t make_type(io::data_category cat, uint32_t elem) {
   return (cat << 16) | elem;
 }

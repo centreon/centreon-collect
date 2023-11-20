@@ -55,6 +55,69 @@ def check_connection(port: int, pid1: int, pid2: int):
     return False
 
 
+def wait_for_connections(port: int, nb: int, timeout: int = 60):
+    """!  wait until nb connection are established on localhost and port
+    @param port connection port
+    @param nb number of connection expected
+    @param timeout  timeout in second
+    @return True if nb connection are established
+    """
+    limit = time.time() + timeout
+    r = re.compile(
+        fr"^ESTAB.*127\.0\.0\.1:{port}\s|^ESTAB.*\[::1\]*:{port}\s")
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        estab_port = list(filter(r.match, lst))
+        if len(estab_port) >= nb:
+            return True
+        logger.console(f"Currently {estab_port} connections")
+        time.sleep(2)
+    return False
+
+
+def wait_for_listen_on_range(port1: int, port2: int, prog: str, timeout: int = 30):
+    """Wait that an instance of the given program listens on each port in the
+       given range. On success, the function returns True, if the timeout is
+       reached with some missing instances, it returns False.
+
+    Args:
+        port1: The first port
+        port2: The second port (all the ports p such that port1 <= p <p port2
+               will be tested.
+        prog: The name of the program that should be listening.
+        timeout: A timeout in seconds.
+    Returns:
+        A boolean True on success.
+    """
+    port1 = int(port1)
+    port2 = int(port2)
+    rng = range(port1, port2 + 1)
+    limit = time.time() + timeout
+    r = re.compile(
+        rf"^LISTEN\s+[0-9]+\s+[0-9]+\s+[\[\]0-9\.:]+:([0-9]+)\s+.*{prog}")
+    size = port2 - port1 + 1
+
+    def ok(l):
+        m = r.match(l)
+        logger.console(f"LISTEN ?? {l}")
+        if m:
+            logger.console(f"{l} => OK")
+            value = int(m.group(1))
+            if int(m.group(1)) in rng:
+                return True
+        return False
+
+    while time.time() < limit:
+        out = getoutput("ss -plant")
+        lst = out.split('\n')
+        listen_port = list(filter(ok, lst))
+        if len(listen_port) >= size:
+            return True
+    return False
+
+
 def get_date(d: str):
     """Generates a date from a string. This string can be just a timestamp or a date in iso format
 
@@ -355,16 +418,15 @@ def find_line_from(lines, date):
     return idx
 
 
-def check_reschedule(log: str, date, content: str):
+def check_reschedule(log: str, date, content: str, retry: bool):
     try:
-        f = open(log, "r")
-        lines = f.readlines()
-        f.close()
+        with open(log, "r") as f:
+            lines = f.readlines()
+
         idx = find_line_from(lines, date)
 
-        retry_check = False
-        normal_check = False
-        r = re.compile(".* last check at (.*) and next check at (.*)$")
+        r = re.compile(r".* last check at (.*) and next check at (.*)$")
+        target = 60 if retry else 300
         for i in range(idx, len(lines)):
             line = lines[i]
             if content in line:
@@ -374,29 +436,26 @@ def check_reschedule(log: str, date, content: str):
                 if m:
                     delta = int(datetime.strptime(m[2], "%Y-%m-%dT%H:%M:%S").timestamp()) - int(
                         datetime.strptime(m[1], "%Y-%m-%dT%H:%M:%S").timestamp())
-                    if delta == 60:
-                        retry_check = True
-                    elif delta == 300:
-                        normal_check = True
-                else:
-                    logger.console(f"Unable to find last check and next check in the line '{line}'")
-                    return False, False
-        logger.console(f"loop finished with {retry_check}, {normal_check}")
-        return retry_check, normal_check
+                    # delta is near target
+                    if abs(delta - target) < 2:
+                        return True
+        logger.console(
+            f"loop finished without finding a line '{content}' with a duration of {target}s")
+        return False
     except IOError:
         logger.console("The file '{}' does not exist".format(log))
-        return False, False
+        return False
 
 
-def check_reschedule_with_timeout(log: str, date, content: str, timeout: int):
+def check_reschedule_with_timeout(log: str, date, content: str, retry: bool, timeout: int):
     limit = time.time() + timeout
     c = ""
     while time.time() < limit:
-        v1, v2 = check_reschedule(log, date, content)
-        if v1 and v2:
-            return v1, v2
+        v = check_reschedule(log, date, content, retry)
+        if v:
+            return True
         time.sleep(5)
-    return False, False
+    return False
 
 
 def clear_commands_status():

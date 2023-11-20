@@ -1,20 +1,20 @@
 /*
-** Copyright 2014, 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+ * Copyright 2014, 202122023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BAM_KPI_BOOLEXP_HH
 #define CCB_BAM_KPI_BOOLEXP_HH
@@ -41,9 +41,10 @@ class computable;
  */
 class kpi_boolexp : public kpi {
   std::shared_ptr<bool_expression> _boolexp;
-  double _impact;
+  double _impact = 0;
+  state _current_state = state_unknown;
 
-  state _get_state() const;
+  void _update_state();
   void _fill_impact(impact_values& impact);
   void _open_new_event(io::stream* visitor, int impact, state state);
 
@@ -52,16 +53,18 @@ class kpi_boolexp : public kpi {
   ~kpi_boolexp() noexcept = default;
   kpi_boolexp(const kpi_boolexp&) = delete;
   kpi_boolexp& operator=(const kpi_boolexp&) = delete;
-  bool child_has_update(computable* child, io::stream* visitor = nullptr);
-  bool in_downtime() const;
+  bool in_downtime() const override;
   double get_impact() const;
-  void impact_hard(impact_values& hard_impact);
-  void impact_soft(impact_values& soft_impact);
+  void impact_hard(impact_values& hard_impact) override;
+  void impact_soft(impact_values& soft_impact) override;
   void link_boolexp(std::shared_ptr<bool_expression>& my_boolexp);
   void set_impact(double impact);
   void unlink_boolexp();
-  void visit(io::stream* visitor);
-  bool ok_state() const;
+  void visit(io::stream* visitor) override;
+  bool ok_state() const override;
+  void update_from(computable* child, io::stream* visitor) override;
+  std::string object_info() const override;
+  void dump(std::ofstream& output) const override;
 };
 }  // namespace bam
 

@@ -24,7 +24,6 @@ dnf install -y cmake \
     mariadb \
     gnutls-devel \
     libgcrypt-devel \
-    libssh2-devel \
     lua-devel \
     make \
     perl-ExtUtils-Embed.noarch \
@@ -33,12 +32,16 @@ dnf install -y cmake \
     perl-Thread-Queue \
     rpm-build \
     rrdtool-devel \
+    selinux-policy-devel \
     yum-utils \
     perl \
     rpm-build \
     procps-ng \
     zstd \
     sudo
+
+# TEMPORARY PYTHON UPGRADE TO 3.18 TO HELP WITH DATA_FILTER ISSUE
+dnf upgrade -y python3
 
 pip3 install conan==1.57.0 --prefix=/usr --upgrade
 rm -rf ~/.conan/profiles/default

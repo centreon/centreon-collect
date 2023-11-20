@@ -275,6 +275,28 @@ Requires: centreon-engine = %{version}-%{release}
 This software is a gRPC client designed to easily send commands to cbd or
 centengine.
 
+%package -n centreon-engine-selinux
+Summary: SELinux context for centreon-engine
+Group: Applications/Communications
+License: Apache-2.0
+Requires: policycoreutils
+Requires: centreon-common-selinux
+
+%description -n centreon-engine-selinux
+%{COMMIT_HASH}
+SELinux context for centreon-engine
+
+%package -n centreon-broker-selinux
+Summary: SELinux context for centreon-broker
+Group: Applications/Communications
+License: Apache-2.0
+Requires: policycoreutils
+Requires: centreon-common-selinux
+
+%description -n centreon-broker-selinux
+%{COMMIT_HASH}
+SELinux context for centreon-broker
+
 
 %prep
 %setup -q -n %{name}-%{version}
@@ -321,6 +343,10 @@ ninja -j 8
 touch $RPM_BUILD_ROOT%{_localstatedir}/log/centreon-engine/centengine.debug
 %{__install} -d $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra
 %{__cp} %SOURCE1 $RPM_BUILD_ROOT%{_datadir}/centreon-engine/extra/integrate_centreon_engine2centreon.sh
+
+%{__mkdir} -p %buildroot%{_datadir}/selinux/packages/centreon
+%{__install} -m 655 selinux/centreon-engine/centreon-engine.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-engine.pp
+%{__install} -m 655 selinux/centreon-broker/centreon-broker.pp %buildroot%{_datadir}/selinux/packages/centreon/centreon-broker.pp
 
 DESTDIR="$RPM_BUILD_ROOT" ninja -j 8 install
 
@@ -517,6 +543,29 @@ fi
 %{_localstatedir}/log/centreon-engine/retention.dat
 %{_localstatedir}/log/centreon-engine/status.dat
 
+%files -n centreon-engine-selinux
+%defattr(-,root,root,-)
+%{_datadir}/selinux/packages/centreon/centreon-engine.pp
+
+%post -n centreon-engine-selinux
+semodule -i %{_datadir}/selinux/packages/centreon/centreon-engine.pp > /dev/null 2>&1 || :
+
+%preun -n centreon-engine-selinux
+if [ "$1" -lt "1" ]; then # Final removal
+  semodule -r centreon-engine > /dev/null 2>&1 || :
+fi
+
+%files -n centreon-broker-selinux
+%defattr(-,root,root,-)
+%{_datadir}/selinux/packages/centreon/centreon-broker.pp
+
+%post -n centreon-broker-selinux
+semodule -i %{_datadir}/selinux/packages/centreon/centreon-broker.pp > /dev/null 2>&1 || :
+
+%preun -n centreon-broker-selinux
+if [ "$1" -lt "1" ]; then # Final removal
+  semodule -r centreon-broker > /dev/null 2>&1 || :
+fi
 
 %changelog
 * Fri Dec 3 2021 David Boucher <dboucher@centreon.com> 22.04.0-1
