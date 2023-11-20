@@ -1,34 +1,50 @@
 name: Centreon collect
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
   pull_request:
+    paths:
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - engine/**
+      - grpc/**
+      - packaging/**
+      - cmake.sh
+      - CMakeLists.txt
+      - conanfile.txt
+      - selinux/**
+      - "!.veracode-exclusions"
   push:
     branches:
       - develop
       - dev-[2-9][0-9].[0-9][0-9].x
       - master
       - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - engine/**
+      - grpc/**
+      - packaging/**
+      - cmake.sh
+      - CMakeLists.txt
+      - conanfile.txt
+      - selinux/**
+      - "!.veracode-exclusions"
 
 jobs:
   get-version:
     uses: ./.github/workflows/get-version.yml
-
-#  veracode-analysis:
-#    needs: [get-version]
-#    uses: ./.github/workflows/veracode-analysis.yml
-#    with:
-#      module_name: centreon-collect
-#      major_version: ${{ needs.get-version.outputs.version }}
-#      minor_version: ${{ needs.get-version.outputs.patch }}
-#      stability: ${{ needs.get-version.outputs.stability }}
-#      img_version: ${{ needs.get-version.outputs.img_version }}
-#    secrets:
-#      veracode_api_id: ${{ secrets.VERACODE_API_ID_COLL }}
-#      veracode_api_key: ${{ secrets.VERACODE_API_KEY_COLL }}
-#      veracode_srcclr_token: ${{ secrets.VERACODE_SRCCLR_TOKEN }}
-#      docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
-#      docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
   create-version:
     runs-on: ubuntu-latest
@@ -80,13 +96,14 @@ jobs:
       release: ${{ needs.create-version.outputs.release }}
 
     strategy:
+      fail-fast: false
       matrix:
         image: [centos7, alma8, debian-bullseye]
     name: unit test ${{ matrix.image }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to Registry
         uses: docker/login-action@v2
@@ -207,7 +224,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: centreon-collect
 
@@ -222,7 +239,7 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   delivery-debian:
-    needs: [debian-packaging, create-version,get-version]
+    needs: [debian-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
@@ -234,21 +251,19 @@ jobs:
         distrib: [bullseye]
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
+          module_name: collect
           distrib: ${{ matrix.distrib }}
-          repository_name: standard
           version: ${{ env.version }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}-debbuild-centreon-collect-${{ matrix.distrib }}
 
   delivery-centos:
-    needs: [rpm-packaging, create-version,get-version]
+    needs: [rpm-packaging, create-version, get-version]
     if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
@@ -260,25 +275,16 @@ jobs:
         distrib: [el7, el8]
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
         with:
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
-          minor_version: ${{ needs.create-version.outputs.patch }}
-          release: ${{ needs.create-version.outputs.release }}
-          module_name: centreon-collect
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          module_name: collect
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-${{ github.run_id }}-rpmbuild-collect-${{ matrix.distrib }}
-          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
-          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
-          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
-          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
-          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
 
   promote:
     needs: [get-version]
@@ -290,22 +296,15 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Promote ${{ matrix.distrib }} to stable
         uses: ./.github/actions/promote-to-stable
         with:
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          module_name: centreon-collect
+          module_name: collect
           distrib: ${{ matrix.distrib }}
           major_version: ${{ needs.get-version.outputs.version }}
           minor_version: ${{ needs.get-version.outputs.patch }}
           stability: ${{ needs.get-version.outputs.stability }}
           repository_name: standard
-          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
-          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
-          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
-          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
-          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}

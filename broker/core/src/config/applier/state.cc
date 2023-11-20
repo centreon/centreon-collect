@@ -34,6 +34,14 @@ using namespace com::centreon::broker::config::applier;
 static state* gl_state = nullptr;
 
 /**
+ * @brief this conf info may be used by late thread like database connection
+ * after state::unload
+ * So it's static
+ *
+ */
+state::stats state::_stats_conf;
+
+/**
  *  Default constructor.
  */
 state::state() : _poller_id(0), _rpc_port(0), _bbdo_version{2u, 0u, 0u} {}
@@ -232,7 +240,7 @@ config::applier::state::stats& state::mut_stats_conf() {
   return _stats_conf;
 }
 
-const config::applier::state::stats& state::stats_conf() const {
+const config::applier::state::stats& state::stats_conf() {
   return _stats_conf;
 }
 

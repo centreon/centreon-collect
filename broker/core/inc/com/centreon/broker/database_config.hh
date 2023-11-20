@@ -50,9 +50,7 @@ class database_config {
                   int connections_count = 1,
                   unsigned max_commit_delay = 5);
   database_config(config::endpoint const& cfg);
-  database_config(database_config const& other);
   ~database_config();
-  database_config& operator=(database_config const& other);
   bool operator==(database_config const& other) const;
   bool operator!=(const database_config& other) const;
 
@@ -80,8 +78,6 @@ class database_config {
   void set_check_replication(bool check_replication);
 
  private:
-  void _internal_copy(database_config const& other);
-
   std::string _type;
   std::string _host;
   std::string _socket;

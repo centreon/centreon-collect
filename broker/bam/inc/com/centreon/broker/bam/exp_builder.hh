@@ -58,7 +58,6 @@ class exp_builder {
               hst_svc_mapping const& mapping);
   exp_builder(const exp_builder&) = delete;
   exp_builder& operator=(const exp_builder&);
-  exp_builder(exp_parser::notation const& postfix);
   ~exp_builder() noexcept = default;
   list_call const& get_calls() const;
   list_service const& get_services() const;

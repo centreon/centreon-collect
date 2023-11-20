@@ -209,31 +209,9 @@ database_config::database_config(config::endpoint const& cfg) {
 }
 
 /**
- *  Copy constructor.
- *
- *  @param[in] other  Object to copy.
- */
-database_config::database_config(database_config const& other) {
-  _internal_copy(other);
-}
-
-/**
  *  Destructor.
  */
 database_config::~database_config() {}
-
-/**
- *  Assignment operator.
- *
- *  @param[in] other  Object to copy.
- *
- *  @return This object.
- */
-database_config& database_config::operator=(database_config const& other) {
-  if (this != &other)
-    _internal_copy(other);
-  return *this;
-}
 
 /**
  *  Comparaison operator.
@@ -506,22 +484,4 @@ void database_config::set_connections_count(int count) {
  */
 void database_config::set_check_replication(bool check_replication) {
   _check_replication = check_replication;
-}
-
-/**
- *  Copy internal data members.
- *
- *  @param[in] other  Object to copy.
- */
-void database_config::_internal_copy(database_config const& other) {
-  _type = other._type;
-  _host = other._host;
-  _socket = other._socket;
-  _port = other._port;
-  _user = other._user;
-  _password = other._password;
-  _name = other._name;
-  _queries_per_transaction = other._queries_per_transaction;
-  _check_replication = other._check_replication;
-  _connections_count = other._connections_count;
 }

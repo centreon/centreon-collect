@@ -1767,11 +1767,9 @@ def process_service_check_result_with_metrics(hst: str, svc: str, state: int, ou
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
     now = int(time.time())
-    cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-    f = open(
-        f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w")
-    f.write(cmd)
-    f.close()
+    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+            cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
+            f.write(cmd)
 
 
 @external_command

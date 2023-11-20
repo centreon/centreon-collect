@@ -29,6 +29,10 @@
 
 CCB_BEGIN()
 
+namespace extcmd {
+using pb_ba_info =
+    io::protobuf<BaInfo, make_type(io::extcmd, extcmd::de_ba_info)>;
+}
 namespace bam {
 /**
  *  @class monitoring_stream monitoring_stream.hh

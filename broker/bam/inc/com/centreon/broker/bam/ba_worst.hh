@@ -46,7 +46,7 @@ class ba_worst : public ba {
   std::vector<std::shared_ptr<ba_event> > _initial_events;
 
  protected:
-  void _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
+  bool _apply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _unapply_impact(kpi* kpi_ptr, impact_info& impact) override;
   void _recompute() override;
 

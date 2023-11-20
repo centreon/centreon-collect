@@ -7,7 +7,7 @@ def complete_doc(dico, ff):
     f = open(ff, 'r')
     content = f.readlines()
     f.close()
-    r = re.compile(r"\s+\[Documentation\]\s+([^\s].*)$")
+    r = re.compile(r"\s+\[Documentation]\s+(\S.*)$")
 
     in_test = False
     test_name = ""
@@ -48,7 +48,8 @@ out.write("""# Centreon Tests
 
 This sub-project contains functional tests for Centreon Broker, Engine and Connectors.
 It is based on the [Robot Framework](https://robotframework.org/) with Python functions
-we can find in the resources directory. The Python code is formatted using autopep8.
+we can find in the resources directory. The Python code is formatted using autopep8 and
+robot files are formatted using `robottidy --overwrite tests`.
 
 ## Getting Started
 
@@ -61,7 +62,7 @@ From a Centreon host, you need to install Robot Framework
 On CentOS 7, the following commands should work to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-examples pymysql
 
 yum install "Development Tools" python3-devel -y
 
@@ -74,7 +75,7 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 On other rpm based distributions, you can try the following commands to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl pymysql
 
 yum install python3-devel -y
 
@@ -95,6 +96,10 @@ And it is also possible to execute a specific test, for example:
 ```
 robot broker/sql.robot
 ```
+In order to execute bench tests (broker-engine/bench.robot), you need also to
+install py-cpuinfo, cython, unqlite and boto3
+
+pip3 install py-cpuinfo cython unqlite gitpython boto3
 
 ## Implemented tests
 
@@ -106,20 +111,24 @@ keys = list(dico.keys())
 keys.sort()
 count = 0
 
+idx = 1
 for k in keys:
     name = k[2:]
     name = name.replace('-', '/')
     name = name.replace('_', ' ').capitalize()
-    out.write("### {}\n".format(name))
+    out.write(f"### {name}\n")
     if isinstance(dico[k], str):
-        out.write("- [x] **{}**: {}\n".format(k, dico[k]))
+        out.write(f"{idx}. [x] **{k}**: {dico[k]}\n")
+        idx += 1
         count += 1
     else:
         tests = list(dico[k].keys())
         tests.sort()
+        idx = 1
         for kk in tests:
             if isinstance(dico[k][kk], str):
-                out.write("- [x] **{}**: {}\n".format(kk, dico[k][kk]))
+                out.write(f"{idx}. [x] **{kk}**: {dico[k][kk]}\n")
+                idx += 1
                 count += 1
             else:
                 print("This tree is too deep")
