@@ -1,14 +1,46 @@
 name: Centreon collect
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
 on:
   workflow_dispatch:
   pull_request:
+    paths:
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - engine/**
+      - grpc/**
+      - packaging/**
+      - cmake.sh
+      - CMakeLists.txt
+      - conanfile.txt
+      - selinux/**
+      - "!.veracode-exclusions"
   push:
     branches:
       - develop
       - dev-[2-9][0-9].[0-9][0-9].x
       - master
       - "[2-9][0-9].[0-9][0-9].x"
+    paths:
+      - bbdo/**
+      - broker/**
+      - ccc/**
+      - clib/**
+      - connectors/**
+      - engine/**
+      - grpc/**
+      - packaging/**
+      - cmake.sh
+      - CMakeLists.txt
+      - conanfile.txt
+      - selinux/**
+      - "!.veracode-exclusions"
 
 jobs:
   get-version:
@@ -55,7 +87,8 @@ jobs:
       release: ${{ steps.version.outputs.release }}
 
   centreon-collect-test:
-    needs: create-version
+    needs: [create-version, get-version]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ needs.create-version.outputs.imgversion }}
@@ -63,13 +96,14 @@ jobs:
       release: ${{ needs.create-version.outputs.release }}
 
     strategy:
+      fail-fast: false
       matrix:
         image: [centos7, alma8, debian-bullseye]
     name: unit test ${{ matrix.image }}
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Login to Registry
         uses: docker/login-action@v2
@@ -87,7 +121,8 @@ jobs:
           image_version: ${{ env.imgversion }}
 
   rpm-packaging:
-    needs: create-version
+    needs: [create-version, get-version]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       version: ${{ needs.create-version.outputs.version }}.${{ needs.create-version.outputs.patch }}
@@ -152,7 +187,8 @@ jobs:
           retention-days: 1
 
   debian-packaging:
-    needs: create-version
+    needs: [create-version, get-version]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     runs-on: [self-hosted, collect]
     env:
       imgversion: ${{ needs.create-version.outputs.imgversion }}
@@ -198,7 +234,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: centreon-collect
 
@@ -213,7 +249,8 @@ jobs:
           token_download_centreon_com: ${{ secrets.TOKEN_DOWNLOAD_CENTREON_COM }}
 
   delivery-debian:
-    needs: [debian-packaging, create-version]
+    needs: [rpm-packaging, create-version, get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
     environment: ${{ needs.get-version.outputs.environment }}
@@ -224,21 +261,20 @@ jobs:
         distrib: [bullseye]
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Publish DEB packages
         uses: ./.github/actions/delivery
         with:
+          module_name: collect
           distrib: ${{ matrix.distrib }}
-          repository_name: standard
           version: ${{ env.version }}
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
 
   delivery-centos:
-    needs: [rpm-packaging, create-version]
+    needs: [rpm-packaging, create-version, get-version]
+    if: ${{ contains(fromJson('["testing", "unstable"]'), needs.get-version.outputs.stability) }}
     env:
       version: ${{ needs.create-version.outputs.version }}
     environment: ${{ needs.get-version.outputs.environment }}
@@ -249,22 +285,36 @@ jobs:
         distrib: [el7, el8]
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Publish RPM packages
         uses: ./.github/actions/delivery
         with:
           distrib: ${{ matrix.distrib }}
           version: ${{ env.version }}
-          minor_version: ${{ needs.create-version.outputs.patch }}
-          release: ${{ needs.create-version.outputs.release }}
-          module_name: centreon-collect
-          nexus_username: ${{ secrets.NEXUS_USERNAME }}
-          nexus_password: ${{ secrets.NEXUS_PASSWORD }}
+          module_name: collect
           artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
           cache_key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-          update_repo_path: ${{ secrets.UPDATE_REPO_PATH }}
-          cloudfront_id: ${{ secrets.CLOUDFRONT_ID }}
-          yum_repo_address: ${{ secrets.YUM_REPO_ADDRESS }}
-          yum_repo_key: ${{ secrets.YUM_REPO_KEY }}
-          yum_repo_url: ${{ secrets.YUM_REPO_URL }}
+
+  promote:
+    needs: [get-version]
+    if: ${{ contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
+    runs-on: [self-hosted, common]
+    strategy:
+      matrix:
+        distrib: [el8, bullseye]
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Promote ${{ matrix.distrib }} to stable
+        uses: ./.github/actions/promote-to-stable
+        with:
+          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+          module_name: collect
+          distrib: ${{ matrix.distrib }}
+          major_version: ${{ needs.get-version.outputs.version }}
+          minor_version: ${{ needs.get-version.outputs.patch }}
+          stability: ${{ needs.get-version.outputs.stability }}
+          repository_name: standard
