@@ -193,8 +193,7 @@ void hostdependency::check_validity(error_info* err) const {
     std::string dependend_host_name(!_dependent_hosts->empty()
                                         ? *_dependent_hosts->begin()
                                         : *_dependent_hostgroups->begin());
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::CONFIG);
     logger->warn(
         "Warning: Ignoring lame host dependency of '{}' on host/hostgroups "
         "'{}'.",

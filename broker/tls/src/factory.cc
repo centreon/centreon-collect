@@ -45,8 +45,7 @@ bool factory::has_endpoint(config::endpoint& cfg, io::extension* ext) {
   std::map<std::string, std::string>::iterator it;
   bool legacy;
 
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tls");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::TLS);
 
   if (ext) {
     if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
@@ -131,8 +130,7 @@ io::endpoint* factory::new_endpoint(
     std::shared_ptr<persistent_cache> cache) const {
   (void)cache;
 
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tls");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::TLS);
 
   // Find TLS parameters (optional).
   bool tls{false};

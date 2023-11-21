@@ -19,6 +19,7 @@
  */
 
 #include <thread>
+
 #include "common/log_v2/log_v2.hh"
 #include "grpc_test_include.hh"
 
@@ -55,9 +56,7 @@ class channel_test : public channel {
   }
 
   channel_test(const grpc_config::pointer& conf)
-      : channel("channel_test",
-                conf,
-                log_v2::instance().create_logger_or_get_id("grpc")) {}
+      : channel("channel_test", conf) {}
 
   void start_write(const event_ptr& to_send [[maybe_unused]]) override {
     pool::io_context().post(

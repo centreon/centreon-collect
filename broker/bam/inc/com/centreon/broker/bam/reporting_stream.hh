@@ -86,7 +86,6 @@ class reporting_stream : public io::stream {
   id_start_to_event_id _kpi_event_cache;
 
   /* loggers */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:

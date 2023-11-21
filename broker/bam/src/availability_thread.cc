@@ -42,8 +42,7 @@ availability_thread::availability_thread(database_config const& db_cfg,
       _mutex{},
       _should_exit(false),
       _should_rebuild_all(false),
-      _logger_id{log_v2::instance().create_logger_or_get_id("bam")},
-      _logger{log_v2::instance().get(_logger_id)} {}
+      _logger{log_v2::instance().get(log_v2::BAM)} {}
 
 /**
  *  Destructor.
@@ -64,7 +63,6 @@ void availability_thread::run() {
     return;
 
   for (;;) {
-    _logger = log_v2::instance().get(_logger_id);
     try {
       // Calculate the duration until next midnight.
       time_t midnight = _compute_next_midnight();

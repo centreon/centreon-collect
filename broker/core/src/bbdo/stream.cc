@@ -577,8 +577,7 @@ stream::stream(bool is_input,
       _last_sent_ack(time(nullptr)),
       _extensions{extensions},
       _bbdo_version(config::applier::state::instance().get_bbdo_version()),
-      _logger_id{log_v2::BBDO},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::BBDO)} {
   DEBUG(fmt::format("CONSTRUCTOR bbdo stream {}", static_cast<void*>(this)));
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
                       "create bbdo stream {:p}",
@@ -1401,7 +1400,6 @@ void stream::_write(const std::shared_ptr<io::data>& d) {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& d) {
-  _logger = log_v2::instance().get(_logger_id);
   _write(d);
 
   int32_t retval = _acknowledged_events;

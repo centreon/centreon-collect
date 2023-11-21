@@ -43,8 +43,7 @@ class SimpleCommand : public ::testing::Test {
 
  public:
   void SetUp() override {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("commands");
-    logger = log_v2::instance().get(logger_id);
+    logger = log_v2::instance().get(log_v2::COMMANDS);
     set_time(-1);
     init_config_state(LEGACY);
     config->interval_length(1);

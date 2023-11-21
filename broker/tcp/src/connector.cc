@@ -46,8 +46,7 @@ connector::connector(const tcp_config::pointer& conf)
  * @return The TCP connection object.
  */
 std::shared_ptr<io::stream> connector::open() {
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::TCP);
 
   // Launch connection process.
   logger->info("TCP: connecting to {}:{}", _conf->get_host(),

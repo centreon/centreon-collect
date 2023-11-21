@@ -54,8 +54,7 @@ splitter::splitter(std::string const& path,
       _roffset{0},
       _write_m{},
       _wfile{},
-      _woffset{0},
-      _logger_id{log_v2::BBDO} {
+      _woffset{0} {
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
   // parts named /var/lib/foo, /var/lib/foo1, /var/lib/foo2, ...
@@ -161,7 +160,7 @@ long splitter::read(void* buffer, long max_size) {
   long rb = disk_accessor::instance().fread(buffer, 1, max_size, _rfile.get());
   std::string file_path(get_file_path(_rid));
   log_v2::instance()
-      .get(_logger_id)
+      .get(log_v2::BBDO)
       ->debug("splitter: read {} bytes at offset {} from '{}'", rb, _roffset,
               file_path);
   _roffset += rb;
@@ -169,7 +168,7 @@ long splitter::read(void* buffer, long max_size) {
     if (feof(_rfile.get())) {
       if (_auto_delete) {
         log_v2::instance()
-            .get(_logger_id)
+            .get(log_v2::BBDO)
             ->info("file: end of file '{}' reached, erasing it", file_path);
         /* Here we have to really verify that _wfile and _rfile are the same,
          * and then we close files before removing them. */
@@ -242,7 +241,7 @@ long splitter::write(void const* buffer, long size) {
   if ((_woffset + size) > _max_file_size) {
     if (fflush(_wfile.get())) {
       log_v2::instance()
-          .get(_logger_id)
+          .get(log_v2::BBDO)
           ->error("splitter: cannot flush file '{}'", get_file_path(_wid));
       char msg[1024];
       throw msg_fmt("cannot flush file '{}': {}", get_file_path(_wid),
@@ -258,7 +257,7 @@ long splitter::write(void const* buffer, long size) {
 
   // Debug message.
   log_v2::instance()
-      .get(_logger_id)
+      .get(log_v2::BBDO)
       ->debug("file: write request of {} bytes for '{}'", size,
               get_file_path(_wid));
 
@@ -268,7 +267,7 @@ long splitter::write(void const* buffer, long size) {
     std::string wfile(get_file_path(_wid));
     char msg[1024];
     log_v2::instance()
-        .get(_logger_id)
+        .get(log_v2::BBDO)
         ->critical("splitter: cannot write to file '{}': {}", wfile,
                    strerror_r(errno, msg, sizeof(msg)));
     return 0;
@@ -396,11 +395,11 @@ void splitter::_open_read_file() {
     FILE* f = disk_accessor::instance().fopen(fname, "r+b");
     if (f)
       log_v2::instance()
-          .get(_logger_id)
+          .get(log_v2::BBDO)
           ->debug("splitter: read open '{}'", fname);
     else
       log_v2::instance()
-          .get(_logger_id)
+          .get(log_v2::BBDO)
           ->error("splitter: read fail open '{}'", fname);
 
     _rfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
@@ -430,11 +429,11 @@ bool splitter::_open_write_file() {
   FILE* f = disk_accessor::instance().fopen(fname, "a+b");
   if (f)
     log_v2::instance()
-        .get(_logger_id)
+        .get(log_v2::BBDO)
         ->debug("splitter: write open '{}'", fname);
   else
     log_v2::instance()
-        .get(_logger_id)
+        .get(log_v2::BBDO)
         ->error("splitter: write fail open '{}'", fname);
 
   _wfile = f ? std::shared_ptr<FILE>(f, fclose) : std::shared_ptr<FILE>();
@@ -463,7 +462,7 @@ bool splitter::_open_write_file() {
       std::string wfile(get_file_path(_wid));
       char msg[1024];
       log_v2::instance()
-          .get(_logger_id)
+          .get(log_v2::BBDO)
           ->critical("splitter: cannot write to file '{}': {}", wfile,
                      strerror_r(errno, msg, sizeof(msg)));
       _wfile.reset();

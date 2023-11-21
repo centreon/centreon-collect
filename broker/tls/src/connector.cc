@@ -44,8 +44,7 @@ connector::connector(std::string const& cert,
       _ca(ca),
       _cert(cert),
       _key(key),
-      _tls_hostname(tls_hostname),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tls")} {}
+      _tls_hostname(tls_hostname) {}
 
 /**
  *  Connect to the remote TLS peer.
@@ -69,7 +68,7 @@ std::shared_ptr<io::stream> connector::open() {
  */
 std::shared_ptr<io::stream> connector::open(std::shared_ptr<io::stream> lower) {
   std::shared_ptr<io::stream> u;
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::TLS);
   if (lower) {
     int ret;
     // Load parameters.

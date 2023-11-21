@@ -318,7 +318,7 @@ anomalydetection& anomalydetection::operator=(anomalydetection const& other) {
  */
 bool anomalydetection::operator==(
     anomalydetection const& other) const noexcept {
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   if (!object::operator==(other)) {
     logger->debug(
         "configuration::anomalydetection::equality => object don't match");
@@ -1619,7 +1619,7 @@ bool anomalydetection::_set_event_handler_enabled(bool value) {
  */
 bool anomalydetection::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->warn(
       "Warning: anomalydetection failure_prediction_enabled is deprecated. "
       "This option will not be supported in 20.04.");
@@ -1636,7 +1636,7 @@ bool anomalydetection::_set_failure_prediction_enabled(bool value) {
 bool anomalydetection::_set_failure_prediction_options(
     std::string const& value) {
   (void)value;
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->warn(
       "Warning: anomalydetection failure_prediction_options is deprecated. "
       "This option will not be supported in 20.04.");
@@ -1935,7 +1935,7 @@ bool anomalydetection::_set_obsess_over_service(bool value) {
  */
 bool anomalydetection::_set_parallelize_check(bool value) {
   (void)value;
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->warn(
       "Warning: anomalydetection parallelize_check is deprecated This option "
       "will not be supported in 20.04.");
@@ -2133,8 +2133,7 @@ bool anomalydetection::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::servicecategory);
     } else {
-      auto logger =
-          log_v2::instance().get(common::log_v2::log_v2_configuration);
+      auto logger = log_v2::instance().get(log_v2::CONFIG);
       logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",
           _host_id, _service_id, value);
@@ -2170,8 +2169,7 @@ bool anomalydetection::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::servicegroup);
     } else {
-      auto logger =
-          log_v2::instance().get(common::log_v2::log_v2_configuration);
+      auto logger = log_v2::instance().get(log_v2::CONFIG);
       logger->warn(
           "Warning: anomalydetection ({}, {}) error for parsing tag {}",
           _host_id, _service_id, value);

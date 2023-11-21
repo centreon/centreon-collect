@@ -37,8 +37,7 @@ TEST(BamAvailabilityBuilder, Simple) {
   bam::availability_builder builder(end_time, start_time);
   ASSERT_EQ(builder.get_available(), 0);
 
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("bam");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::BAM);
   builder.add_event(0, start_time, end_time, false, period, logger);
 
   /* The availability here is the duration from start_time to end_time: 3300 */

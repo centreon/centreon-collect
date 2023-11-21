@@ -37,15 +37,13 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  * @param read_timeout A duration in seconds.
  */
 acceptor::acceptor(const tcp_config::pointer& conf)
-    : io::endpoint(true, {}),
-      _conf(conf),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")} {}
+    : io::endpoint(true, {}), _conf(conf) {}
 
 /**
  *  Destructor.
  */
 acceptor::~acceptor() noexcept {
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::TCP);
   logger->trace("acceptor destroyed");
   if (_acceptor) {
     tcp_async::instance().stop_acceptor(_acceptor);
@@ -77,7 +75,7 @@ std::shared_ptr<io::stream> acceptor::open() {
   auto conn = tcp_async::instance().get_connection(_acceptor, timeout_s);
   if (conn) {
     assert(conn->port());
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     logger->info("acceptor gets a new connection from {}", conn->peer());
     return std::make_shared<stream>(conn, _conf);
   }

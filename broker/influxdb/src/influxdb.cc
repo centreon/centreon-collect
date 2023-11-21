@@ -42,13 +42,9 @@ influxdb::influxdb(std::string const& user,
                    std::string const& metric_ts,
                    std::vector<column> const& metric_cols,
                    macro_cache const& cache)
-    : _socket{_io_context},
-      _host(addr),
-      _port(port),
-      _cache(cache),
-      _logger_id{log_v2::instance().create_logger_or_get_id("influxdb")} {
+    : _socket{_io_context}, _host(addr), _port(port), _cache(cache) {
   // Try to connect to the server.
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
   logger->debug("influxdb: connecting using 1.2 Line Protocol");
   _connect_socket();
   _create_queries(user, passwd, db, status_ts, status_cols, metric_ts,
@@ -226,7 +222,7 @@ bool influxdb::_check_answer_string(std::string const& ans,
     return false;
   std::string first_line_str = ans.substr(0, first_line);
 
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::INFLUXDB);
   logger->debug("influxdb: received an anwser from {}:{}: {}", addr, port, ans);
 
   // Split the first line using the power of std.

@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011-2013, 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,9 @@
  * For more information : contact@centreon.com
  */
 
+#include <absl/container/flat_hash_set.h>
+
+#include <boost/asio.hpp>
 #include <condition_variable>
 #include <deque>
 #include <future>
@@ -24,18 +27,13 @@
 #include <thread>
 #include <vector>
 
-#include <absl/container/flat_hash_set.h>
-
-#include <boost/asio.hpp>
-
 namespace asio = boost::asio;
 
 #include <spdlog/fmt/ostr.h>
 #include <spdlog/spdlog.h>
 
-#include "com/centreon/broker/config/applier/init.hh"
-
 #include "com/centreon/broker/config/applier/endpoint.hh"
+#include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/file/disk_accessor.hh"
 #include "com/centreon/broker/io/events.hh"
@@ -117,5 +115,6 @@ void config::applier::deinit() {
  * @param conf The configuration used to initialize the all.
  */
 void config::applier::init(const config::state& conf) {
+  log_v2::instance().apply(conf.log_conf());
   init(conf.pool_size(), conf.broker_name(), conf.event_queues_total_size());
 }

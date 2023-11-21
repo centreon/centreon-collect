@@ -41,7 +41,6 @@ namespace applier {
  *  Take the configuration of the BAM engine and apply it.
  */
 class state {
-  const uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   struct circular_check_node {
@@ -63,7 +62,7 @@ class state {
   std::unordered_map<std::string, circular_check_node> _nodes;
 
  public:
-  state(const uint32_t logger_id);
+  state();
   ~state();
   state(const state&) = delete;
   state& operator=(state const& other) = delete;

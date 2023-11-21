@@ -2060,12 +2060,12 @@ void applier::state::apply_log_config(configuration::State& new_cfg) {
     broker_sink->set_level(spdlog::level::info);
     log_cfg.add_custom_sink(broker_sink);
 
-    log_cfg.apply_custom_sinks({"functions", "configuration", "events",
-                                "checks", "notifications", "eventbroker",
+    log_cfg.apply_custom_sinks({"functions", "config", "events", "checks",
+                                "notifications", "eventbroker",
                                 "external_command", "commands", "downtimes",
                                 "comments", "macros", "process", "runtime"});
     log_cfg.set_level("functions", new_cfg.log_level_functions());
-    log_cfg.set_level("configuration", new_cfg.log_level_config());
+    log_cfg.set_level("config", new_cfg.log_level_config());
     log_cfg.set_level("events", new_cfg.log_level_events());
     log_cfg.set_level("checks", new_cfg.log_level_checks());
     log_cfg.set_level("notifications", new_cfg.log_level_notifications());
@@ -2105,12 +2105,12 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     broker_sink->set_level(spdlog::level::info);
     log_cfg.add_custom_sink(broker_sink);
 
-    log_cfg.apply_custom_sinks({"functions", "configuration", "events",
-                                "checks", "notifications", "eventbroker",
+    log_cfg.apply_custom_sinks({"functions", "config", "events", "checks",
+                                "notifications", "eventbroker",
                                 "external_command", "commands", "downtimes",
                                 "comments", "macros", "process", "runtime"});
     log_cfg.set_level("functions", new_cfg.log_level_functions());
-    log_cfg.set_level("configuration", new_cfg.log_level_config());
+    log_cfg.set_level("config", new_cfg.log_level_config());
     log_cfg.set_level("events", new_cfg.log_level_events());
     log_cfg.set_level("checks", new_cfg.log_level_checks());
     log_cfg.set_level("notifications", new_cfg.log_level_notifications());

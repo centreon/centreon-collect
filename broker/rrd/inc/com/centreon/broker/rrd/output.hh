@@ -54,7 +54,6 @@ class output : public io::stream {
   T _backend;
 
   /* Loggers */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   void _rebuild_data(const RebuildMessage& rm);

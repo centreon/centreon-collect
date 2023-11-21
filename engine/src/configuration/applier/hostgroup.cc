@@ -37,7 +37,7 @@ using com::centreon::common::log_v2::log_v2;
  */
 void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
   // Add host group to the global configuration state.
@@ -67,7 +67,7 @@ void applier::hostgroup::add_object(const configuration::Hostgroup& obj) {
  */
 void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new hostgroup '{}'.", obj.hostgroup_name());
 
   // Add host group to the global configuration state.
@@ -97,7 +97,7 @@ void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
  *  @param[in,out] s  State being applied.
  */
 void applier::hostgroup::expand_objects(configuration::State& s
-                                        [[may_be_unused]]) {}
+                                        [[maybe_unused]]) {}
 
 /**
  *  Expand all host groups.
@@ -129,7 +129,7 @@ void applier::hostgroup::modify_object(
     configuration::Hostgroup* old_obj,
     const configuration::Hostgroup& new_obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying hostgroup '{}'", old_obj->hostgroup_name());
 
   // Find host group object.
@@ -176,7 +176,7 @@ void applier::hostgroup::modify_object(
  */
 void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying hostgroup '{}'", obj.hostgroup_name());
 
   // Find old configuration.
@@ -233,7 +233,7 @@ void applier::hostgroup::modify_object(configuration::hostgroup const& obj) {
 void applier::hostgroup::remove_object(ssize_t idx) {
   const Hostgroup& obj = pb_config.hostgroups(idx);
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing host group '{}'", obj.hostgroup_name());
 
   // Find host group.
@@ -261,7 +261,7 @@ void applier::hostgroup::remove_object(ssize_t idx) {
  */
 void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing host group '{}'", obj.hostgroup_name());
 
   // Find host group.
@@ -287,7 +287,7 @@ void applier::hostgroup::remove_object(configuration::hostgroup const& obj) {
  */
 void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving host group '{}'", obj.hostgroup_name());
 
   // Find host group.
@@ -308,7 +308,7 @@ void applier::hostgroup::resolve_object(const configuration::Hostgroup& obj) {
  */
 void applier::hostgroup::resolve_object(configuration::hostgroup const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving host group '{}'", obj.hostgroup_name());
 
   // Find host group.
@@ -333,7 +333,7 @@ void applier::hostgroup::_resolve_members(configuration::state& s
   // Only process if hostgroup has not been resolved already.
   if (_resolved.find(obj.key()) == _resolved.end()) {
     // Logging.
-    auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+    auto logger = log_v2::instance().get(log_v2::CONFIG);
     logger->debug("Resolving members of host group '{}'", obj.hostgroup_name());
 
     // Mark object as resolved.

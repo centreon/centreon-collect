@@ -27,6 +27,8 @@
 #include <spdlog/sinks/stdout_sinks.h>
 #include <spdlog/sinks/syslog_sink.h>
 
+#include <atomic>
+
 using namespace com::centreon::common::log_v2;
 using namespace spdlog;
 
@@ -40,7 +42,6 @@ const std::array<std::string, log_v2::LOGGER_SIZE> log_v2::_logger_name = {
     "lua",
     "influxdb",
     "graphite",
-    "notification",
     "rrd",
     "stats",
     "perfdata",
@@ -185,6 +186,8 @@ log_v2::logger_id log_v2::get_id(const std::string& name) const {
 void log_v2::create_logger(const logger_id id) {
   std::lock_guard<std::shared_mutex> lck(_loggers_m);
 
+  if (_loggers[id])
+    return;
   std::shared_ptr<spdlog::logger> logger;
   auto stdout_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
   logger = std::make_shared<spdlog::logger>(_logger_name[id], stdout_sink);
@@ -233,37 +236,36 @@ std::shared_ptr<spdlog::logger> log_v2::get(log_v2::logger_id idx) {
 void log_v2::apply(const config& log_conf) {
   //  std::lock_guard<std::shared_mutex> lck(_loggers_m);
   //  auto null_sink = std::make_shared<spdlog::sinks::null_sink_mt>();
-  //  sink_ptr my_sink;
-  //
-  //  bool update_sinks = false;
-  //  if (log_conf.log_type() != _current_log_type) {
-  //    update_sinks = true;
-  //    switch (log_conf.log_type()) {
-  //      case config::logger_type::LOGGER_FILE: {
-  //        _file_path = log_conf.log_path();
-  //        if (log_conf.max_size())
-  //          my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
-  //              _file_path, log_conf.max_size(), 99);
-  //        else
-  //          my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
-  //      } break;
-  //      case config::logger_type::LOGGER_SYSLOG:
-  //        my_sink =
-  //        std::make_shared<sinks::syslog_sink_mt>(log_conf.filename(),
-  //                                                          0, 0, true);
-  //        break;
-  //      case config::logger_type::LOGGER_STDOUT:
-  //        my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
-  //        break;
-  //    }
-  //
-  //    std::vector<spdlog::sink_ptr> sinks;
-  //    if (!log_conf.custom_sinks().empty()) {
-  //      sinks = log_conf.custom_sinks();
-  //      sinks.push_back(my_sink);
-  //    }
-  //  }
-  //
+  sink_ptr my_sink;
+  std::vector<spdlog::sink_ptr> sinks;
+
+  bool update_sinks = false;
+  if (log_conf.log_type() != _current_log_type) {
+    update_sinks = true;
+    switch (log_conf.log_type()) {
+      case config::logger_type::LOGGER_FILE: {
+        _file_path = log_conf.log_path();
+        if (log_conf.max_size())
+          my_sink = std::make_shared<sinks::rotating_file_sink_mt>(
+              _file_path, log_conf.max_size(), 99);
+        else
+          my_sink = std::make_shared<sinks::basic_file_sink_mt>(_file_path);
+      } break;
+      case config::logger_type::LOGGER_SYSLOG:
+        my_sink = std::make_shared<sinks::syslog_sink_mt>(log_conf.filename(),
+                                                          0, 0, true);
+        break;
+      case config::logger_type::LOGGER_STDOUT:
+        my_sink = std::make_shared<sinks::stdout_color_sink_mt>();
+        break;
+    }
+
+    if (!log_conf.custom_sinks().empty()) {
+      sinks = log_conf.custom_sinks();
+      sinks.push_back(my_sink);
+    }
+  }
+
   //  auto update_logger = [&](const std::string& name, level::level_enum lvl) {
   //    std::shared_ptr<spdlog::logger> logger;
   //    if (!sinks.empty() &&
@@ -331,21 +333,19 @@ void log_v2::apply(const config& log_conf) {
   //    return logger;
   //  };
   //
-  //  _log_name = log_conf.name();
-  //  absl::flat_hash_set<std::string> logger_names;
+  //_log_name = log_conf.name();
+  // absl::flat_hash_set<std::string> logger_names;
   //
   //  /* We get all the loggers to work with */
   //  for (auto& l : _loggers) logger_names.insert(l->name());
   //
   //  /* For each one, in the conf, it is updated. Then its name is removed from
   //   * the logger_names set. */
-  //  for (auto it = log_conf.loggers().begin(), end = log_conf.loggers().end();
-  //       it != end; ++it) {
+
   //    uint32_t idx =
   //        _logger_name.f update_logger(it->first,
   //        level::from_str(it->second));
   //    if (logger_names.contains(it->first)) logger_names.erase(it->first);
-  //  }
   //
   //  if (cleanup) {
   //    /* If logger_names is not empty, the remaining loggers have just their
@@ -358,6 +358,22 @@ void log_v2::apply(const config& log_conf) {
   //      log_conf.flush_interval() > 0 ? log_conf.flush_interval() : 0);
   //  /* if _flush_interval is 0, the flush worker is stopped. */
   //  spdlog::flush_every(_flush_interval);
+  if (update_sinks) {
+    for (auto it = log_conf.loggers().begin(), end = log_conf.loggers().end();
+         it != end; ++it) {
+      logger_id idx = get_id(it->first);
+      std::shared_ptr<spdlog::logger> logger;
+      if (!sinks.empty() &&
+          log_conf.loggers_with_custom_sinks().contains(it->first))
+        logger = std::make_shared<spdlog::logger>(it->first, sinks.begin(),
+                                                  sinks.end());
+      else
+        logger = std::make_shared<spdlog::logger>(it->first, my_sink);
+      _loggers[idx] = logger;
+
+      _current_log_type = log_conf.log_type();
+    }
+  }
 }
 
 /**
@@ -368,13 +384,9 @@ void log_v2::apply(const config& log_conf) {
  * @return a boolean.
  */
 bool log_v2::contains_logger(std::string_view logger) const {
-  const absl::flat_hash_set<std::string> loggers{
-      "bam",      "bbdo",         "config",
-      "core",     "lua",          "influxdb",
-      "graphite", "notification", "rrd",
-      "stats",    "perfdata",     "processing",
-      "sql",      "neb",          "tcp",
-      "tls",      "grpc",         "victoria_metrics"};
+  absl::flat_hash_set<std::string> loggers;
+  for (auto& n : _logger_name)
+    loggers.insert(n);
   return loggers.contains(logger);
 }
 
@@ -412,7 +424,7 @@ const std::string& log_v2::log_name() const {
   return _log_name;
 }
 
-// void log_v2::disable() {
-//   std::lock_guard<std::shared_mutex> lck(_loggers_m);
-//   for (auto& l : _loggers) l->set_level(spdlog::level::level_enum::off);
-// }
+void log_v2::disable() {
+  for (auto& l : _loggers)
+    l->set_level(spdlog::level::level_enum::off);
+}

@@ -55,9 +55,6 @@ class stream : public io::stream {
   std::string _status;
   mutable std::mutex _statusm;
 
-  /* Logger */
-  uint32_t _logger_id;
-
   // Cache
   macro_cache _cache;
 

@@ -89,7 +89,6 @@ class availability_thread final {
   std::condition_variable _wait;
 
   /* Logger */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 };
 }  // namespace bam

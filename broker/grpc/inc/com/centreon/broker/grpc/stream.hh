@@ -34,7 +34,6 @@ class stream : public io::stream {
   std::shared_ptr<channel> _channel;
 
   /* Logger */
-  const uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:

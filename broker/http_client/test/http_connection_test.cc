@@ -204,8 +204,7 @@ class dummy_connection : public connection_base {
 };
 
 TEST(http_keepalive_test, ConnectionClose) {
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::TCP);
   dummy_connection conn(
       g_io_context, logger,
       std::make_shared<http_config>(test_endpoint, "localhost"));
@@ -217,8 +216,7 @@ TEST(http_keepalive_test, ConnectionClose) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::TCP);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -235,8 +233,7 @@ TEST(http_keepalive_test, KeepAliveWithoutTimeout) {
 }
 
 TEST(http_keepalive_test, KeepAliveWithTimeout) {
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::TCP);
   auto conf = std::make_shared<http_config>(test_endpoint, "localhost");
   dummy_connection conn(g_io_context, logger, conf);
   response_ptr resp(std::make_shared<response_type>());
@@ -261,8 +258,7 @@ class session_base : public std::enable_shared_from_this<session_base> {
  public:
   using pointer = std::shared_ptr<session_base>;
   virtual ~session_base() {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     SPDLOG_LOGGER_TRACE(logger, "end session");
   }
 
@@ -290,9 +286,7 @@ class http_session : public session_base {
         _stream, _buffer, *request,
         [me = shared_from_this(), request](const beast::error_code& err,
                                            std::size_t bytes_received) {
-          uint32_t logger_id =
-              log_v2::instance().create_logger_or_get_id("tcp");
-          auto logger = log_v2::instance().get(logger_id);
+          auto logger = log_v2::instance().get(log_v2::TCP);
           if (err) {
             SPDLOG_LOGGER_ERROR(logger, "fail recv {}", err.message());
             me->shutdown();
@@ -315,15 +309,13 @@ class http_session : public session_base {
   }
 
   void start() override {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     SPDLOG_LOGGER_TRACE(logger, "start a session");
     start_recv();
   }
 
   void send_response(const response_ptr& resp) override {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     SPDLOG_LOGGER_TRACE(logger, "send response");
     beast::http::async_write(
         _stream, *resp,
@@ -352,9 +344,7 @@ class https_session : public session_base {
         _stream, _buffer, *request,
         [me = shared_from_this(), request](const beast::error_code& err,
                                            std::size_t bytes_received) {
-          uint32_t logger_id =
-              log_v2::instance().create_logger_or_get_id("tcp");
-          auto logger = log_v2::instance().get(logger_id);
+          auto logger = log_v2::instance().get(log_v2::TCP);
           if (err) {
             SPDLOG_LOGGER_ERROR(logger, "fail recv {}", err.message());
             me->shutdown();
@@ -377,8 +367,7 @@ class https_session : public session_base {
   }
 
   void start() override {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     SPDLOG_LOGGER_TRACE(logger, "start a session");
     _stream.async_handshake(
         asio::ssl::stream_base::server,
@@ -388,8 +377,7 @@ class https_session : public session_base {
   }
 
   void on_handshake(const beast::error_code& err) {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     if (err) {
       SPDLOG_LOGGER_TRACE(logger, "{} fail handshake {}", __FUNCTION__,
                           err.message());
@@ -401,8 +389,7 @@ class https_session : public session_base {
   }
 
   void send_response(const response_ptr& resp) override {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     SPDLOG_LOGGER_TRACE(logger, "send response");
     beast::http::async_write(
         _stream, *resp,
@@ -434,8 +421,7 @@ class listener : public std::enable_shared_from_this<listener> {
   }
 
   void on_accept(const beast::error_code& ec, asio::ip::tcp::socket socket) {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::TCP);
     if (ec) {
       SPDLOG_LOGGER_ERROR(logger, "fail accept");
       return;
@@ -475,8 +461,7 @@ class http_test : public ::testing::TestWithParam<bool> {
  public:
   static void SetUpTestSuite() {
     create_client_certificate(client_cert_path);
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    _logger = log_v2::instance().get(logger_id);
+    _logger = log_v2::instance().get(log_v2::TCP);
     _logger->set_level(spdlog::level::debug);
     _listener = std::make_shared<listener>(port);
     _listener->start();

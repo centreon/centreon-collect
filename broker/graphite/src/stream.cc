@@ -60,8 +60,8 @@ stream::stream(std::string const& metric_naming,
       _metric_query{_metric_naming, escape_string, query::metric, _cache},
       _status_query{_status_naming, escape_string, query::status, _cache},
       _socket{_io_context},
-      _logger_id{log_v2::instance().create_logger_or_get_id("graphite")},
-      _cache{cache, _logger_id} {
+      _logger{log_v2::instance().get(log_v2::GRAPHITE)},
+      _cache{cache, _logger} {
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
     std::string auth{_db_user};
@@ -117,8 +117,7 @@ stream::~stream() {}
  *  @return Number of events acknowledged.
  */
 int32_t stream::flush() {
-  auto logger = log_v2::instance().get(_logger_id);
-  logger->debug("graphite: commiting {} queries", _actual_query);
+  _logger->debug("graphite: commiting {} queries", _actual_query);
   int32_t ret(_pending_queries);
   if (_actual_query != 0)
     _commit();

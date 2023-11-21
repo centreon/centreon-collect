@@ -32,7 +32,7 @@ using com::centreon::common::log_v2::log_v2;
 void diff_state::_build_path(
     const std::vector<MessageDifferencer::SpecificField>& field_path,
     Path* path) {
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->error("Build path");
   for (size_t i = 0; i < field_path.size(); ++i) {
     const SpecificField& specific_field = field_path[i];
@@ -89,7 +89,7 @@ void diff_state::_set_value(
     Value* value) {
   const SpecificField& specific_field = field_path.back();
   const FieldDescriptor* field = specific_field.field;
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   if (field != nullptr) {
     int index = left_side ? specific_field.index : specific_field.new_index;
     switch (field->cpp_type()) {
@@ -155,7 +155,7 @@ void diff_state::ReportAdded(
     const Message&,
     const Message& new_message,
     const std::vector<MessageDifferencer::SpecificField>& field_path) {
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->error("Added message");
   PathWithValue* path = _dstate.add_to_add();
   _build_path(field_path, path->mutable_path());
@@ -174,7 +174,7 @@ void diff_state::ReportDeleted(
     const google::protobuf::Message& old_message,
     const google::protobuf::Message&,
     const std::vector<MessageDifferencer::SpecificField>& field_path) {
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->error("Removed message");
   _build_path(field_path, _dstate.add_to_remove());
   const Descriptor* desc = old_message.GetDescriptor();
@@ -187,7 +187,7 @@ void diff_state::ReportModified(
     const std::vector<MessageDifferencer::SpecificField>& field_path) {
   const MessageDifferencer::SpecificField& specific_field = field_path.back();
   const FieldDescriptor* field = specific_field.field;
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
 
   // Any changes to the subfields have already been handled.
   if (field == nullptr && specific_field.unknown_field_type ==

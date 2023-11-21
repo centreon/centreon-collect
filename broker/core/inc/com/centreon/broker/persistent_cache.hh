@@ -59,6 +59,7 @@ class persistent_cache {
   void update_logger();
 
   const std::string& get_cache_file() const;
+  void set_logger(const std::shared_ptr<spdlog::logger>& logger);
 };
 
 }  // namespace com::centreon::broker

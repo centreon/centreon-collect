@@ -1268,8 +1268,7 @@ bool host::_set_event_handler_enabled(bool value) {
  */
 bool host::_set_failure_prediction_enabled(bool value) {
   (void)value;
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->warn(
       "Warning: host failure_prediction_enabled is deprecated This option will "
       "not be supported in 20.04.");
@@ -1285,8 +1284,7 @@ bool host::_set_failure_prediction_enabled(bool value) {
  */
 bool host::_set_failure_prediction_options(std::string const& value) {
   (void)value;
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->warn(
       "Warning: service failure_prediction_options is deprecated This option "
       "will not be supported in 20.04.");
@@ -1733,8 +1731,7 @@ bool host::_set_category_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostcategory);
     } else {
-      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
-      auto logger = log_v2::instance().get(logger_id);
+      auto logger = log_v2::instance().get(log_v2::CONFIG);
       logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
                    value);
       ret = false;
@@ -1769,8 +1766,7 @@ bool host::_set_group_tags(const std::string& value) {
     if (parse_ok) {
       _tags.emplace(id, tag::hostgroup);
     } else {
-      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
-      auto logger = log_v2::instance().get(logger_id);
+      auto logger = log_v2::instance().get(log_v2::CONFIG);
       logger->warn("Warning: host ({}) error for parsing tag {}", _host_id,
                    value);
       ret = false;

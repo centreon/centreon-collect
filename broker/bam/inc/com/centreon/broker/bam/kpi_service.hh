@@ -111,7 +111,7 @@ class kpi_service : public service_listener, public kpi {
                    io::stream* visitor,
                    const std::shared_ptr<spdlog::logger>& logger) override;
   std::string object_info() const override;
-  void dump(std::ofstream& output) const;
+  void dump(std::ofstream& output) const override;
 };
 }  // namespace com::centreon::broker::bam
 
