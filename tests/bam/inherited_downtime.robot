@@ -8,6 +8,7 @@ Library             DateTime
 Library             OperatingSystem
 Library             ../resources/Broker.py
 Library             ../resources/Engine.py
+Library             ../resources/Common.py
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
@@ -460,6 +461,7 @@ BEBAMIGNDTU1
 *** Keywords ***
 BAM Setup
     Stop Processes
+    Clear Retention
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}=    Get Current Date    result_format=epoch
     log to console    date=${date}
