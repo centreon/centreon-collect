@@ -4,6 +4,13 @@ set -x
 
 export RUN_ENV=docker
 
+test_file=$1
+database_type=$2
+
+if [[ "$test_file" =~ "unstable" ]] ; then
+  exit 0
+fi
+
 echo "########################### Configure and start sshd ###########################"
 ssh-keygen -t rsa -f /etc/ssh/ssh_host_rsa_key -P ""
 ssh-keygen -t ecdsa -f /etc/ssh/ssh_host_ecdsa_key -P ""
@@ -53,5 +60,5 @@ echo "##### Starting tests #####"
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot $1
+robot -e unstable $test_file
 

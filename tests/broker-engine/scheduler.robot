@@ -1,19 +1,21 @@
 *** Settings ***
-Resource	../resources/resources.robot
-Suite Setup	Clean Before Suite
-Suite Teardown	Clean After Suite
-Test Setup	Stop Processes
-Test Teardown	Save logs If Failed
+Documentation       Centreon Broker and Engine log_v2
 
-Documentation	Centreon Broker and Engine log_v2
-Library	DatabaseLibrary
-Library	Process
-Library	OperatingSystem
-Library	DateTime
-Library	Collections
-Library	../resources/Engine.py
-Library	../resources/Broker.py
-Library	../resources/Common.py
+Resource            ../resources/resources.robot
+Library             DatabaseLibrary
+Library             Process
+Library             OperatingSystem
+Library             DateTime
+Library             Collections
+Library             ../resources/Engine.py
+Library             ../resources/Broker.py
+Library             ../resources/Common.py
+
+Suite Setup         Clean Before Suite
+Suite Teardown      Clean After Suite
+Test Setup          Stop Processes
+Test Teardown       Save Logs If Failed
+
 
 *** Test Cases ***
 ENRSCHE1
@@ -37,8 +39,15 @@ ENRSCHE1
 
     ${content}    Set Variable    Rescheduling next check of host: host_14
 
-    ${result1}    ${result2}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    240
-    Should Be True    ${result1}    The delta of last_check and next_check is not equal to 60.
-    Should Be True    ${result2}    The delta of last_check and next_check is not equal to 300.
+    # We check a retry check rescheduling
+    Process Host Check Result    host_14    1    host_14 is down
 
-    [Teardown]    Run Keywords    Stop Engine    AND    Kindly Stop Broker
+    ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    True    240
+    Should Be True    ${result}    The delta between last_check and next_check is not equal to 60 as expected for a retry check
+
+    # We check a normal check rescheduling
+    ${start}    Get Current Date
+    ${result}    Check Reschedule With Timeout    ${engineLog0}    ${start}    ${content}    False    240
+    Should Be True    ${result}    The delta between last_check and next_check is not equal to 300 as expected for a normal check
+
+    [Teardown]    Stop Engine Broker And Save Logs
