@@ -53,8 +53,7 @@ stream::stream(const tcp_config::pointer& conf)
       _conf(conf),
       _connection(tcp_async::instance().create_connection(_conf)),
       _parent(nullptr),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::TCP)} {
   assert(_connection->port());
   _total_tcp_count++;
   _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
@@ -78,8 +77,7 @@ stream::stream(const tcp_connection::pointer& conn,
       _conf(conf),
       _connection(conn),
       _parent(nullptr),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::TCP)} {
   assert(_connection->port());
   _total_tcp_count++;
   _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());

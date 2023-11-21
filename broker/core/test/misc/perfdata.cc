@@ -204,8 +204,7 @@ class MiscParserParsePerfdata : public testing::Test {
   void SetUp() override {
     g_io_context->restart();
     config::applier::init(0, "test_broker", 0);
-    uint32_t id = log_v2::instance().create_logger_or_get_id("perfdata");
-    _logger = log_v2::instance().get(id);
+    _logger = log_v2::instance().get(log_v2::PERFDATA);
   }
   void TearDown() override { config::applier::deinit(); };
 };

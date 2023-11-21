@@ -41,7 +41,6 @@ class connector : public io::endpoint {
   std::string _status_path;
   bool _write_metrics;
   bool _write_status;
-  uint32_t _logger_id;
 
  public:
   connector();

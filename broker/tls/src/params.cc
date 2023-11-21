@@ -37,10 +37,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *                  construction.
  */
 params::params(params::connection_type type)
-    : _compress(false),
-      _init(false),
-      _type(type),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tls")} {}
+    : _compress(false), _init(false), _type(type) {}
 
 /**
  *  Destructor.
@@ -67,7 +64,7 @@ void params::apply(gnutls_session_t session) {
                    "DEFLATE:%COMPAT"),
       nullptr);
 
-  auto logger = log_v2::instance().get(_logger_id);
+  auto logger = log_v2::instance().get(log_v2::TLS);
   if (ret != GNUTLS_E_SUCCESS) {
     logger->error("TLS: encryption parameter application failed: {}",
                   gnutls_strerror(ret));
@@ -104,7 +101,7 @@ void params::apply(gnutls_session_t session) {
 void params::load() {
   // Certificate-based.
   if (!_cert.empty() && !_key.empty()) {
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::TLS);
     // Initialize credentials.
     int ret;
     ret = gnutls_certificate_allocate_credentials(&_cred.cert);
@@ -228,7 +225,7 @@ void params::set_trusted_ca(std::string const& ca_cert) {
  */
 void params::validate_cert(gnutls_session_t session) {
   if (!_ca.empty()) {
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::TLS);
     int ret;
     uint32_t status;
     if (!_tls_hostname.empty()) {
@@ -301,7 +298,7 @@ void params::_init_anonymous() {
     ret = gnutls_anon_allocate_server_credentials(&_cred.server);
   if (ret != GNUTLS_E_SUCCESS) {
     log_v2::instance()
-        .get(_logger_id)
+        .get(log_v2::TLS)
         ->error("TLS: anonymous credentials initialization failed: {}",
                 gnutls_strerror(ret));
     throw msg_fmt("TLS: anonymous credentials initialization failed: {}",

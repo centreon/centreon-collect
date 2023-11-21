@@ -41,9 +41,8 @@ stream::stream(const std::string& lua_script,
                const std::shared_ptr<persistent_cache>& cache)
     : io::stream("lua"),
       _luabinding(lua_script, conf_params, _cache),
-      _logger_id{log_v2::instance().create_logger_or_get_id("lua")},
-      _logger{log_v2::instance().get(_logger_id)},
-      _cache{cache, _logger_id} {}
+      _logger{log_v2::instance().get(log_v2::LUA)},
+      _cache{cache, _logger} {}
 
 stream::~stream() noexcept {
   _logger->debug("lua: Stream destruction");
@@ -71,7 +70,7 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  */
 int stream::write(std::shared_ptr<io::data> const& data) {
   assert(data);
-  _logger = log_v2::instance().get(_logger_id);
+  _logger = log_v2::instance().get(log_v2::LUA);
 
   // Give data to cache.
   _cache.write(data);

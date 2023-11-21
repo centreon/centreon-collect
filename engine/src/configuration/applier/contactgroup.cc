@@ -41,7 +41,7 @@ void applier::contactgroup::add_object(configuration::contactgroup const& obj) {
   std::string const& name(obj.contactgroup_name());
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new contactgroup '{}'.", name);
 
   if (engine::contactgroup::contactgroups.find(name) !=
@@ -83,7 +83,7 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
   const std::string& name(obj.contactgroup_name());
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new contactgroup '{}'.", name);
 
   if (engine::contactgroup::contactgroups.find(name) !=
@@ -157,7 +157,7 @@ void applier::contactgroup::modify_object(
     configuration::Contactgroup* to_modify,
     const configuration::Contactgroup& new_object) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying contactgroup '{}'", to_modify->contactgroup_name());
 
   // Find contact group object.
@@ -211,7 +211,7 @@ void applier::contactgroup::modify_object(
 void applier::contactgroup::modify_object(
     const configuration::contactgroup& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying contactgroup '{}'", obj.contactgroup_name());
 
   // Find old configuration.
@@ -275,7 +275,7 @@ void applier::contactgroup::remove_object(ssize_t idx) {
   const configuration::Contactgroup& obj = pb_config.contactgroups()[idx];
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing contactgroup '{}'", obj.contactgroup_name());
 
   // Find contact group.
@@ -305,7 +305,7 @@ void applier::contactgroup::remove_object(ssize_t idx) {
 void applier::contactgroup::remove_object(
     const configuration::contactgroup& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing contactgroup '{}'", obj.contactgroup_name());
 
   // Find contact group.
@@ -334,7 +334,7 @@ void applier::contactgroup::remove_object(
 void applier::contactgroup::resolve_object(
     const configuration::Contactgroup& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving contact group '{}'", obj.contactgroup_name());
 
   // Find contact group.
@@ -357,7 +357,7 @@ void applier::contactgroup::resolve_object(
 void applier::contactgroup::resolve_object(
     configuration::contactgroup const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving contact group '{}'", obj.contactgroup_name());
 
   // Find contact group.
@@ -392,7 +392,7 @@ void applier::contactgroup::_resolve_members(
   resolved.emplace(obj.contactgroup_name());
   if (!obj.contactgroup_members().data().empty()) {
     // Logging.
-    auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+    auto logger = log_v2::instance().get(log_v2::CONFIG);
     logger->debug("Resolving members of contact group '{}'",
                   obj.contactgroup_name());
     for (auto& cg_name : obj.contactgroup_members().data()) {
@@ -429,7 +429,7 @@ void applier::contactgroup::_resolve_members(
   // Only process if contactgroup has not been already resolved.
   if (_resolved.find(obj.contactgroup_name()) == _resolved.end()) {
     // Logging.
-    auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+    auto logger = log_v2::instance().get(log_v2::CONFIG);
     logger->debug("Resolving members of contact group '{}'",
                   obj.contactgroup_name());
 

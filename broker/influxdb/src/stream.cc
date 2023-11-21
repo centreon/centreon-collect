@@ -54,8 +54,7 @@ stream::stream(std::string const& user,
       _pending_queries(0),
       _actual_query(0),
       _commit(false),
-      _logger_id{log_v2::instance().create_logger_or_get_id("influxdb")},
-      _cache(cache, _logger_id),
+      _cache(cache, log_v2::instance().get(log_v2::INFLUXDB)),
       _influx_db{std::make_unique<influxdb>(user,
                                             passwd,
                                             addr,
@@ -74,7 +73,7 @@ stream::stream(std::string const& user,
  */
 int32_t stream::flush() {
   log_v2::instance()
-      .get(_logger_id)
+      .get(log_v2::INFLUXDB)
       ->debug("influxdb: commiting {} queries", _actual_query);
   int ret(_pending_queries);
   _actual_query = 0;

@@ -41,7 +41,7 @@ using com::centreon::common::log_v2::log_v2;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
-class http_tsdb_stream_test : public ::testing::Test {
+class HttpTsdbStreamTest : public ::testing::Test {
  protected:
   static std::shared_ptr<spdlog::logger> _logger;
 
@@ -49,15 +49,14 @@ class http_tsdb_stream_test : public ::testing::Test {
   static void SetUpTestSuite() {
     srand(time(nullptr));
 
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    _logger = log_v2::instance().get(logger_id);
+    _logger = log_v2::instance().get(log_v2::TCP);
     _logger->set_level(spdlog::level::debug);
     file::disk_accessor::load(1000);
     pool::load(g_io_context, 1);
   }
 };
 
-std::shared_ptr<spdlog::logger> http_tsdb_stream_test::_logger;
+std::shared_ptr<spdlog::logger> HttpTsdbStreamTest::_logger;
 
 class request_test : public http_tsdb::request {
   uint _request_id;
@@ -67,8 +66,7 @@ class request_test : public http_tsdb::request {
   static std::atomic_uint id_gen;
 
   request_test() : _request_id(id_gen.fetch_add(1)) {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    _logger = log_v2::instance().get(logger_id);
+    _logger = log_v2::instance().get(log_v2::TCP);
     SPDLOG_LOGGER_TRACE(_logger, "create request {}", _request_id);
   }
 
@@ -95,13 +93,13 @@ class stream_test : public http_tsdb::stream {
   stream_test(const std::shared_ptr<http_tsdb::http_tsdb_config>& conf,
               http_client::client::connection_creator conn_creator =
                   http_client::http_connection::load)
-      : http_tsdb::stream("stream_test", g_io_context, conf, conn_creator) {}
+      : http_tsdb::stream("tcp", g_io_context, conf, conn_creator) {}
   http_tsdb::request::pointer create_request() const override {
     return std::make_shared<request_test>();
   }
 };
 
-TEST_F(http_tsdb_stream_test, NotRead) {
+TEST_F(HttpTsdbStreamTest, NotRead) {
   stream_test test(std::make_shared<http_tsdb::http_tsdb_config>());
 
   std::shared_ptr<io::data> d(std::make_shared<io::data>(1));
@@ -167,7 +165,7 @@ class connection_send_bagot : public http_client::connection_base {
 std::atomic_uint connection_send_bagot::success(0);
 std::condition_variable connection_send_bagot::success_cond;
 
-TEST_F(http_tsdb_stream_test, all_event_sent) {
+TEST_F(HttpTsdbStreamTest, all_event_sent) {
   http_client::http_config conf(
       asio::ip::tcp::endpoint(asio::ip::address_v4::loopback(), 80),
       "localhost", false, std::chrono::seconds(10), std::chrono::seconds(10),

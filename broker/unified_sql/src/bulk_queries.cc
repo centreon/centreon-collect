@@ -1,22 +1,23 @@
-/*
-** Copyright 2022-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2022-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"
+
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::unified_sql;
@@ -34,12 +35,12 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 bulk_queries::bulk_queries(const uint32_t max_interval,
                            const uint32_t max_queries,
                            const std::string& query,
-                           uint32_t logger_id)
+                           const std::shared_ptr<spdlog::logger>& logger)
     : _interval{max_interval},
       _max_size{max_queries},
       _query(query),
       _next_time{std::time(nullptr) + max_interval},
-      _logger_id{logger_id} {}
+      _logger{logger} {}
 
 /**
  * @brief Compute the query to execute as a string and return it. The container

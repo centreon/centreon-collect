@@ -100,7 +100,7 @@ void applier::servicedependency::add_object(
         << obj.hosts().data()[0] << "'";
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug(
       "Creating new service dependency of service '{}' of host '{}' on service "
       "'{}' of host '{}'.",
@@ -192,7 +192,7 @@ void applier::servicedependency::add_object(
         << obj.hosts().front() << "'";
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug(
       "Creating new service dependency of service '{}' of host '{}' on service "
       "'{}' of host '{}'.",
@@ -453,7 +453,7 @@ void applier::servicedependency::modify_object(
  */
 void applier::servicedependency::remove_object(ssize_t idx) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing a service dependency.");
 
   // Find service dependency.
@@ -487,7 +487,7 @@ void applier::servicedependency::remove_object(ssize_t idx) {
 void applier::servicedependency::remove_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing a service dependency.");
 
   // Find service dependency.
@@ -515,7 +515,7 @@ void applier::servicedependency::remove_object(
 void applier::servicedependency::resolve_object(
     const configuration::Servicedependency& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving a service dependency.");
 
   // Find service dependency.
@@ -539,7 +539,7 @@ void applier::servicedependency::resolve_object(
 void applier::servicedependency::resolve_object(
     configuration::servicedependency const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving a service dependency.");
 
   // Find service dependency.

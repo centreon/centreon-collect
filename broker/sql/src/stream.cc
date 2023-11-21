@@ -72,7 +72,7 @@ stream::stream(database_config const& dbcfg,
       _pending_events{0},
       _stopped(false),
       _logger_sql{log_v2::instance().get(log_v2::SQL)},
-      _logger_storage{log_v2::instance().get(log_v2::STORAGE)} {
+      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)} {
   // FIXME DBR
   (void)cleanup_check_interval;
   //  // Get oudated instances.

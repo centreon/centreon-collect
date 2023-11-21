@@ -64,9 +64,8 @@ monitoring_stream::monitoring_stream(const std::string& ext_cmd_file,
                                      std::shared_ptr<persistent_cache> cache)
     : io::stream("BAM"),
       _ext_cmd_file(ext_cmd_file),
-      _logger_id{log_v2::instance().create_logger_or_get_id("bam")},
-      _logger{log_v2::instance().get(_logger_id)},
-      _applier(_logger_id),
+      _logger{log_v2::instance().get(log_v2::BAM)},
+      _applier(),
       _mysql(db_cfg.auto_commit_conf()),
       _conf_queries_per_transaction(db_cfg.get_queries_per_transaction()),
       _pending_events(0),
@@ -359,7 +358,6 @@ struct kpi_binder {
  *  @return Number of events acknowledged.
  */
 int monitoring_stream::write(const std::shared_ptr<io::data>& data) {
-  _logger = log_v2::instance().get(_logger_id);
   SPDLOG_LOGGER_TRACE(_logger, "BAM: monitoring_stream write {}", *data);
   // Take this event into account.
   ++_pending_events;

@@ -63,7 +63,7 @@ stream::stream(database_config const& dbcfg,
       _pending_events(0),
       _stopped(false),
       _logger_sql{log_v2::instance().get(log_v2::SQL)},
-      _logger_storage{log_v2::instance().get(log_v2::STORAGE)} {
+      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)} {
   _logger_sql->debug("storage stream instanciation");
   if (!rrd_len)
     rrd_len = 15552000;
@@ -146,8 +146,6 @@ void stream::statistics(nlohmann::json& tree) const {
  *  @return Number of events acknowledged.
  */
 int32_t stream::write(std::shared_ptr<io::data> const& data) {
-  _logger_storage = log_v2::instance().get(_logger_storage_id);
-  _logger_sql = log_v2::instance().get(_logger_sql_id);
   ++_pending_events;
 
   assert(data);

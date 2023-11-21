@@ -79,16 +79,14 @@ std::ostream& operator<<(std::ostream& st,
 }  // namespace com::centreon::broker
 
 channel::channel(const std::string& class_name,
-                 const grpc_config::pointer& conf,
-                 const uint32_t logger_id)
+                 const grpc_config::pointer& conf)
     : _class_name(class_name),
       _read_pending(false),
       _write_pending(false),
       _error(false),
       _thrown(false),
       _conf(conf),
-      _logger_id{logger_id},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
   SPDLOG_LOGGER_TRACE(_logger, "channel::channel this={:p}",
                       static_cast<void*>(this));
 }
@@ -144,7 +142,6 @@ std::pair<event_ptr, bool> channel::read(
 }
 
 void channel::start_read(bool first_read) {
-  _logger = log_v2::instance().get(_logger_id);
   event_ptr to_read;
   {
     lock_guard l(_protect);

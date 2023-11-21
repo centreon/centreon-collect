@@ -36,9 +36,7 @@ using com::centreon::common::log_v2::log_v2;
 /**
  *  Default constructor.
  */
-applier::ba::ba()
-    : _logger{log_v2::instance().get(
-          log_v2::instance().create_logger_or_get_id("bam"))} {}
+applier::ba::ba() : _logger{log_v2::instance().get(log_v2::BAM)} {}
 
 /**
  *  Copy constructor.

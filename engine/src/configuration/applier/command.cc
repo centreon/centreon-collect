@@ -1,23 +1,24 @@
-/*
-** Copyright 2011-2013,2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2011-2013,2017 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/configuration/applier/command.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/commands/connector.hh"
@@ -40,7 +41,7 @@ using com::centreon::common::log_v2::log_v2;
  */
 void applier::command::add_object(const configuration::Command& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
@@ -74,7 +75,7 @@ void applier::command::add_object(const configuration::Command& obj) {
  */
 void applier::command::add_object(configuration::command const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new command '{}'.", obj.command_name());
 
   // Add command to the global configuration set.
@@ -130,7 +131,7 @@ void applier::command::expand_objects(configuration::state& s
 void applier::command::modify_object(configuration::Command* to_modify,
                                      const configuration::Command& new_obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying command '{}'.", new_obj.command_name());
 
   // Find command object.
@@ -183,7 +184,7 @@ void applier::command::modify_object(configuration::Command* to_modify,
  */
 void applier::command::modify_object(const configuration::command& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying command '{}'.", obj.command_name());
 
   // Find old configuration.
@@ -244,7 +245,7 @@ void applier::command::modify_object(const configuration::command& obj) {
 void applier::command::remove_object(ssize_t idx) {
   const configuration::Command& obj = pb_config.commands()[idx];
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing command '{}'.", obj.command_name());
 
   // Find command.
@@ -275,7 +276,7 @@ void applier::command::remove_object(ssize_t idx) {
  */
 void applier::command::remove_object(configuration::command const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing command '{}'.", obj.command_name());
 
   // Find command.

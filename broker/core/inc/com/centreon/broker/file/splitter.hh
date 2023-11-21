@@ -81,9 +81,6 @@ class splitter : public fs_file {
   void _open_read_file();
   bool _open_write_file();
 
-  /* logger */
-  log_v2::logger_id _logger_id;
-
  public:
   splitter(const std::string& path,
            uint32_t max_file_size = 100000000u,

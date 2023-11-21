@@ -76,8 +76,7 @@ void tls::initialize() {
                               sizeof(dh_params_2048)};
   int ret;
 
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tls");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::TLS);
 
   // Eventually initialize libgcrypt.
 #if GNUTLS_VERSION_NUMBER < 0x030000

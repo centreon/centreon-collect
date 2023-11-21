@@ -127,8 +127,7 @@ stream::stream(const std::string& name,
       _failed_request_stat{{0, 0}, {0, 0}},
       _metric_stat{{0, 0}, {0, 0}},
       _status_stat{{0, 0}, {0, 0}},
-      _logger_id{log_v2::instance().create_logger_or_get_id(name)},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::instance().get_id(name))} {
   _http_client =
       http_client::client::load(io_context, _logger, conf, conn_creator);
 }
@@ -228,8 +227,6 @@ int stream::write(std::shared_ptr<io::data> const& data) {
     ++_acknowledged;
     return 0;
   }
-
-  _logger = log_v2::instance().get(_logger_id);
 
   request::pointer to_send;
   {

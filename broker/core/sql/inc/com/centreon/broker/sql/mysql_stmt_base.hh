@@ -45,7 +45,6 @@ class mysql_stmt_base {
 
  protected:
   /* Logger */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  private:

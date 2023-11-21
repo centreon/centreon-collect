@@ -43,8 +43,7 @@ using com::centreon::common::log_v2::log_v2;
  *  @param[in] storage_cfg  Storage database configuration.
  */
 reader_v2::reader_v2(mysql& centreon_db, const database_config& storage_cfg)
-    : _logger{log_v2::instance().get(
-          log_v2::instance().create_logger_or_get_id("bam"))},
+    : _logger{log_v2::instance().get(log_v2::BAM)},
       _mysql(centreon_db),
       _storage_cfg(storage_cfg) {}
 

@@ -34,13 +34,11 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  * accepted_service
  ****************************************************************************/
 accepted_service::accepted_service(const grpc_config::pointer& conf,
-                                   const shared_bool& server_finished,
-                                   uint32_t logger_id)
-    : channel("accepted_service", conf, logger_id),
+                                   const shared_bool& server_finished)
+    : channel("accepted_service", conf),
       _server_finished(server_finished),
       _finished_called(false),
-      _logger_id{logger_id},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
   SPDLOG_LOGGER_TRACE(_logger, "accepted_service construction this={:p}",
                       static_cast<void*>(this));
 }
@@ -114,10 +112,8 @@ void accepted_service::shutdown() {
 /****************************************************************************
  *                              server
  ****************************************************************************/
-server::server(const grpc_config::pointer& conf, uint32_t logger_id)
-    : _conf(conf),
-      _logger_id{logger_id},
-      _logger{log_v2::instance().get(_logger_id)} {
+server::server(const grpc_config::pointer& conf)
+    : _conf(conf), _logger{log_v2::instance().get(log_v2::GRPC)} {
   _server_finished = std::make_shared<bool>(false);
 }
 
@@ -195,8 +191,7 @@ void server::start() {
 }
 
 server::pointer server::create(const grpc_config::pointer& conf) {
-  server::pointer ret(
-      new server(conf, log_v2::instance().create_logger_or_get_id("grpc")));
+  server::pointer ret(new server(conf));
   ret->start();
   return ret;
 }
@@ -224,8 +219,7 @@ server::pointer server::create(const grpc_config::pointer& conf) {
   accepted_service::pointer serv;
   {
     unique_lock l(_protect);
-    serv =
-        std::make_shared<accepted_service>(_conf, _server_finished, _logger_id);
+    serv = std::make_shared<accepted_service>(_conf, _server_finished);
     _accepted.push(serv);
     _accept_cond.notify_one();
   }

@@ -41,7 +41,10 @@ class backend {
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
-  backend() { log_v2::instance().create_logger(log_v2::RRD); }
+  backend() {
+    log_v2::instance().create_logger(log_v2::RRD);
+    _logger = log_v2::instance().get(log_v2::RRD);
+  }
   backend(backend const& b) = delete;
   virtual ~backend() noexcept = default;
   backend& operator=(backend const& b) = delete;
