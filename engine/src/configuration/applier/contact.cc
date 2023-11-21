@@ -66,7 +66,7 @@ void applier::contact::add_object(const configuration::Contact& obj) {
     throw engine_error() << "Could not register contact with an empty name";
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
@@ -128,7 +128,7 @@ void applier::contact::add_object(configuration::contact const& obj) {
     throw engine_error() << "Could not register contact with an empty name";
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Creating new contact '{}'.", obj.contact_name());
 
   // Add contact to the global configuration set.
@@ -279,7 +279,7 @@ void applier::contact::expand_objects(configuration::state& s) {
 void applier::contact::modify_object(configuration::Contact* to_modify,
                                      const configuration::Contact& new_object) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying contact '{}'.", new_object.contact_name());
 
   // Find contact object.
@@ -471,7 +471,7 @@ void applier::contact::modify_object(configuration::Contact* to_modify,
  */
 void applier::contact::modify_object(configuration::contact const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Modifying contact '{}'.", obj.contact_name());
 
   // Find old configuration.
@@ -636,7 +636,7 @@ void applier::contact::remove_object(ssize_t idx) {
   const configuration::Contact& obj = pb_config.contacts()[idx];
 
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing contact '{}'.", obj.contact_name());
 
   // Find contact.
@@ -669,7 +669,7 @@ void applier::contact::remove_object(ssize_t idx) {
  */
 void applier::contact::remove_object(configuration::contact const& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Removing contact '{}'.", obj.contact_name());
 
   // Find contact.
@@ -702,7 +702,7 @@ void applier::contact::remove_object(configuration::contact const& obj) {
  */
 void applier::contact::resolve_object(const configuration::contact& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving contact '{}'.", obj.contact_name());
 
   // Find contact.
@@ -761,7 +761,7 @@ void applier::contact::resolve_object(const configuration::contact& obj) {
  */
 void applier::contact::resolve_object(const configuration::Contact& obj) {
   // Logging.
-  auto logger = log_v2::instance().get(common::log_v2::log_v2_configuration);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   logger->debug("Resolving contact '{}'.", obj.contact_name());
 
   // Find contact.

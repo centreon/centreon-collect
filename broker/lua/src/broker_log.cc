@@ -62,8 +62,7 @@ int _log_func(int log_level, lua_State* L, const char* header) {
   const char* text = lua_tostring(L, 3);
   if (level <= bl->get_level()) {
     if (bl->get_file().empty()) {
-      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("lua");
-      auto logger = log_v2::instance().get(logger_id);
+      auto logger = log_v2::instance().get(log_v2::LUA);
       switch (log_level) {
         case 0:
           logger->info(text);
@@ -79,8 +78,7 @@ int _log_func(int log_level, lua_State* L, const char* header) {
       std::ofstream of;
       of.open(bl->get_file().c_str(), std::ios_base::app);
       if (of.fail()) {
-        uint32_t logger_id = log_v2::instance().create_logger_or_get_id("lua");
-        auto logger = log_v2::instance().get(logger_id);
+        auto logger = log_v2::instance().get(log_v2::LUA);
         logger->error("Unable to open the log file '{}'", bl->get_file());
       } else {
         time_t now(time(nullptr));

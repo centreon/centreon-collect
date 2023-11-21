@@ -43,8 +43,7 @@ stream::stream(gnutls_session_t* sess)
     : io::stream("TLS"),
       _deadline((time_t)-1),
       _session(sess),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tls")},
-      _logger{log_v2::instance().get(_logger_id)} {}
+      _logger{log_v2::instance().get(log_v2::TLS)} {}
 
 /**
  *  @brief Destructor.
@@ -163,7 +162,6 @@ long long stream::read_encrypted(void* buffer, long long size) {
 int stream::write(std::shared_ptr<io::data> const& d) {
   if (!validate(d, get_name()))
     return 1;
-  _logger = log_v2::instance().get(_logger_id);
 
   // Send data.
   if (d->type() == io::raw::static_type()) {

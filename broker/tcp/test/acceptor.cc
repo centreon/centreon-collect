@@ -50,8 +50,7 @@ class TcpAcceptor : public ::testing::Test {
 
  public:
   void SetUp() override {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("tcp");
-    logger = log_v2::instance().get(logger_id);
+    logger = log_v2::instance().get(log_v2::TCP);
     logger->set_level(spdlog::level::debug);
     g_io_context->restart();
     pool::load(g_io_context, 0);

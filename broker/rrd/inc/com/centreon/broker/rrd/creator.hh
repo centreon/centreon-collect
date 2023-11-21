@@ -31,7 +31,6 @@ namespace rrd {
  *  Create RRD objects.
  */
 class creator {
-  uint32_t _logger_id;
   struct tmpl_info {
     bool operator<(tmpl_info const& right) const {
       if (length != right.length)

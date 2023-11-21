@@ -75,9 +75,6 @@ class influxdb {
 
   macro_cache const& _cache;
 
-  /* Logger */
-  uint32_t _logger_id;
-
   void _connect_socket();
   bool _check_answer_string(std::string const& ans,
                             const std::string& addr,

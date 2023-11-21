@@ -49,8 +49,7 @@ class BamExpBuilder : public ::testing::Test {
     g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);
-      uint32_t logger_id = log_v2::instance().create_logger_or_get_id("bam");
-      logger = log_v2::instance().get(logger_id);
+      logger = log_v2::instance().get(log_v2::BAM);
       logger->set_level(spdlog::level::debug);
       logger->flush_on(spdlog::level::debug);
     } catch (std::exception const& e) {

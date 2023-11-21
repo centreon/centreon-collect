@@ -170,10 +170,8 @@ stream::stream(const database_config& dbcfg,
       _stats{stats::center::instance().register_conflict_manager()},
       _group_clean_timer{pool::io_context()},
       _loop_timer{pool::io_context()},
-      _logger_sql_id{log_v2::instance().create_logger_or_get_id("sql")},
-      _logger_sto_id{log_v2::instance().create_logger_or_get_id("storage")},
-      _logger_sql{log_v2::instance().get(_logger_sql_id)},
-      _logger_sto{log_v2::instance().get(_logger_sto_id)},
+      _logger_sql{log_v2::instance().get(log_v2::SQL)},
+      _logger_sto{log_v2::instance().get(log_v2::PERFDATA)},
       _cv(queue_timer_duration,
           _max_pending_queries,
           "INSERT INTO customvariables "
@@ -182,7 +180,7 @@ stream::stream(const database_config& dbcfg,
           " ON DUPLICATE KEY UPDATE "
           "default_value=VALUES(default_VALUE),modified=VALUES(modified),type="
           "VALUES(type),update_time=VALUES(update_time),value=VALUES(value)",
-          _logger_sql_id),
+          _logger_sql),
       _cvs(queue_timer_duration,
            _max_pending_queries,
            "INSERT INTO customvariables "
@@ -190,7 +188,7 @@ stream::stream(const database_config& dbcfg,
            " ON DUPLICATE KEY UPDATE "
            "modified=VALUES(modified),update_time=VALUES(update_time),value="
            "VALUES(value)",
-           _logger_sql_id),
+           _logger_sql),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
@@ -269,7 +267,7 @@ stream::~stream() noexcept {
   /* Let's wait a little if one of the timers is working during the cancellation
    */
   std::lock_guard<std::shared_mutex> lck(_barrier_timer_m);
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(_logger_sql_id),
+  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::SQL),
                       "unified sql: stream destruction");
 }
 
@@ -285,7 +283,7 @@ void stream::_load_deleted_instances() {
       int32_t instance_id = res.value_as_i32(0);
       if (instance_id <= 0)
         SPDLOG_LOGGER_ERROR(
-            log_v2::instance().get(_logger_sql_id),
+            log_v2::instance().get(log_v2::SQL),
             "unified_sql: The 'instances' table contains rows with instance_id "
             "<= 0 ; you should remove them.");
       else
@@ -719,8 +717,6 @@ void stream::statistics(nlohmann::json& tree) const {
 int32_t stream::write(const std::shared_ptr<io::data>& data) {
   ++_pending_events;
   assert(data);
-  _logger_sql = log_v2::instance().get(_logger_sql_id);
-  _logger_sto = log_v2::instance().get(_logger_sto_id);
 
   SPDLOG_LOGGER_TRACE(
       _logger_sql, "unified sql: write event category:{}, element:{}",
@@ -1143,7 +1139,7 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
 }
 
 void stream::update() {
-  SPDLOG_LOGGER_INFO(log_v2::instance().get(_logger_sql_id),
+  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::SQL),
                      "unified_sql stream update");
   _check_deleted_index();
   _check_rebuild_index();
@@ -1350,14 +1346,14 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*hu);
       _hscr_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *hu, _logger_sql_id);
+          _max_pending_queries, *hu, _logger_sql);
       _hscr_update = std::move(hu);
 
       auto su = std::make_unique<database::mysql_bulk_stmt>(sscr_query);
       _mysql.prepare_statement(*su);
       _sscr_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *su, _logger_sql_id);
+          _max_pending_queries, *su, _logger_sql);
       _sscr_update = std::move(su);
     } else {
       _hscr_update = std::make_unique<database::mysql_stmt>(hscr_query);
@@ -1374,7 +1370,7 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*hu);
       _hscr_resources_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *hu, _logger_sql_id);
+          _max_pending_queries, *hu, _logger_sql);
       _hscr_resources_update = std::move(hu);
 
       auto su =
@@ -1382,7 +1378,7 @@ void stream::_init_statements() {
       _mysql.prepare_statement(*su);
       _sscr_resources_bind = std::make_unique<bulk_bind>(
           _dbcfg.get_connections_count(), dt_queue_timer_duration,
-          _max_pending_queries, *su, _logger_sql_id);
+          _max_pending_queries, *su, _logger_sql);
       _sscr_resources_update = std::move(su);
     } else {
       _hscr_resources_update =

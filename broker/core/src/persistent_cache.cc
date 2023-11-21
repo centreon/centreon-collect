@@ -1,24 +1,27 @@
 /**
  * Copyright 2020-2021 Centreon (https://www.centreon.com/)
- **
- ** Licensed under the Apache License, Version 2.0 (the "License");
- ** you may not use this file except in compliance with the License.
- ** You may obtain a copy of the License at
- **
- **     http://www.apache.org/licenses/LICENSE-2.0
- **
- ** Unless required by applicable law or agreed to in writing, software
- ** distributed under the License is distributed on an "AS IS" BASIS,
- ** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- ** See the License for the specific language governing permissions and
- ** limitations under the License.
- **
- ** For more information : contact@centreon.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
  */
 
 #include "com/centreon/broker/persistent_cache.hh"
+
 #include <unistd.h>
+
 #include <cerrno>
+
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/file/opener.hh"
@@ -188,4 +191,14 @@ std::shared_ptr<spdlog::logger> persistent_cache::logger() const {
  */
 void persistent_cache::update_logger() {
   _logger = log_v2::instance().get(log_v2::CORE);
+}
+
+/**
+ * @brief Logger setter.
+ *
+ * @param logger The logger to use with this persistent cache.
+ */
+void persistent_cache::set_logger(
+    const std::shared_ptr<spdlog::logger>& logger) {
+  _logger = logger;
 }

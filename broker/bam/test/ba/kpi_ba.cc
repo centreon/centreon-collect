@@ -48,10 +48,8 @@ class KpiBA : public ::testing::Test {
     g_io_context->restart();
     config::applier::init(0, "test_broker", 0);
 
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("bam");
-    logger = log_v2::instance().get(logger_id);
-    _aply_state =
-        std::make_unique<bam::configuration::applier::state>(logger_id);
+    logger = log_v2::instance().get(log_v2::BAM);
+    _aply_state = std::make_unique<bam::configuration::applier::state>();
     _state = std::make_unique<bam::configuration::state>();
     _visitor = std::make_unique<test_visitor>("test-visitor");
   }

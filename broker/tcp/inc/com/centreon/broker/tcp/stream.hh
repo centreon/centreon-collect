@@ -41,7 +41,6 @@ class stream : public io::stream {
   tcp_config::pointer _conf;
   tcp_connection::pointer _connection;
   acceptor* _parent;
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:

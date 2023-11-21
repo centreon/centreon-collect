@@ -47,7 +47,6 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 
 class victoria_request_test : public ::testing::Test {
  protected:
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:
@@ -67,8 +66,7 @@ class victoria_request_test : public ::testing::Test {
                      &storage::pb_status::operations);
   }
   void SetUp() override {
-    _logger_id = log_v2::instance().create_logger_or_get_id("victoria_metrics");
-    _logger = log_v2::instance().get(_logger_id);
+    _logger = log_v2::instance().get(log_v2::VICTORIA_METRICS);
     _logger->set_level(spdlog::level::debug);
   }
 };

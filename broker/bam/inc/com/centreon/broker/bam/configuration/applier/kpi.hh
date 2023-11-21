@@ -74,7 +74,6 @@ class kpi {
   service_book* _book;
   bool_expression* _boolexps;
   hst_svc_mapping const* _mapping;
-  uint32_t _logger_id;
 };
 }  // namespace applier
 }  // namespace configuration

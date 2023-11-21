@@ -124,8 +124,7 @@ std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj) {
 void contactgroup::resolve(int& w __attribute__((unused)), int& e) {
   int errors{0};
 
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   for (contact_map_unsafe::iterator it{_members.begin()}, end{_members.end()};
        it != end; ++it) {
     /* Check members */

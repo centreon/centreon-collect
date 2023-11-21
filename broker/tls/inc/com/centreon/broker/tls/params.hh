@@ -49,7 +49,6 @@ class params {
   bool _init;
   std::string _key;
   connection_type _type;
-  uint32_t _logger_id;
 
   void _clean();
   void _init_anonymous();

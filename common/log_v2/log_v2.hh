@@ -65,29 +65,28 @@ class log_v2 {
     LUA = 4,
     INFLUXDB = 5,
     GRAPHITE = 6,
-    NOTIFICATION = 7,
-    RRD = 8,
-    STATS = 9,
-    PERFDATA = 10,
-    PROCESSING = 11,
-    SQL = 12,
-    NEB = 13,
-    TCP = 14,
-    TLS = 15,
-    GRPC = 16,
-    VICTORIA_METRICS = 17,
-    PROCESS = 18,
-    FUNCTIONS = 19,
-    EVENTS = 20,
-    CHECKS = 21,
-    NOTIFICATIONS = 22,
-    EVENTBROKER = 23,
-    EXTERNAL_COMMAND = 24,
-    COMMANDS = 25,
-    DOWNTIMES = 26,
-    COMMENTS = 27,
-    MACROS = 28,
-    RUNTIME = 29,
+    RRD = 7,
+    STATS = 8,
+    PERFDATA = 9,
+    PROCESSING = 10,
+    SQL = 11,
+    NEB = 12,
+    TCP = 13,
+    TLS = 14,
+    GRPC = 15,
+    VICTORIA_METRICS = 16,
+    PROCESS = 17,
+    FUNCTIONS = 18,
+    EVENTS = 19,
+    CHECKS = 20,
+    NOTIFICATIONS = 21,
+    EVENTBROKER = 22,
+    EXTERNAL_COMMAND = 23,
+    COMMANDS = 24,
+    DOWNTIMES = 25,
+    COMMENTS = 26,
+    MACROS = 27,
+    RUNTIME = 28,
     LOGGER_SIZE
   };
 
@@ -99,6 +98,8 @@ class log_v2 {
   mutable std::shared_mutex _loggers_m;
   const static std::array<std::string, LOGGER_SIZE> _logger_name;
   std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
+  std::atomic<config::logger_type> _current_log_type =
+      config::logger_type::LOGGER_STDOUT;
 
  public:
   static void load(const std::string& name,
@@ -122,7 +123,7 @@ class log_v2 {
   const std::string& filename() const { return _file_path; }
   std::vector<std::pair<std::string, spdlog::level::level_enum>> levels() const;
   const std::string& log_name() const;
-  // void disable();
+  void disable();
 };
 }  // namespace com::centreon::common::log_v2
 #endif /* !CCC_LOG_V2_HH */

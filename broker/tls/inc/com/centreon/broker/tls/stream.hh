@@ -41,7 +41,6 @@ class stream : public io::stream {
   std::vector<char> _buffer;
   time_t _deadline;
   gnutls_session_t* _session;
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:

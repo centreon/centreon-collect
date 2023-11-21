@@ -1,22 +1,23 @@
 /**
-* Copyright 2015-2017 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2015-2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/influxdb/line_protocol_query.hh"
+
 #include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -30,9 +31,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
  *  Create an empty query.
  */
 line_protocol_query::line_protocol_query()
-    : _type(line_protocol_query::unknown),
-      _cache(nullptr),
-      _logger_id{log_v2::instance().create_logger_or_get_id("influxdb")} {}
+    : _type(line_protocol_query::unknown), _cache(nullptr) {}
 
 /**
  *  Constructor.
@@ -46,10 +45,7 @@ line_protocol_query::line_protocol_query(std::string const& timeseries,
                                          std::vector<column> const& columns,
                                          data_type type,
                                          macro_cache const& cache)
-    : _string_index{0},
-      _type{type},
-      _cache{&cache},
-      _logger_id{log_v2::instance().create_logger_or_get_id("influxdb")} {
+    : _string_index{0}, _type{type}, _cache{&cache} {
   // Following implementation is based on
   // https://docs.influxdata.com/influxdb/v1.2/write_protocols/line_protocol_tutorial/
   // The base format is <measurement>,<tag_set> <field_set> <timestamp>.
@@ -199,7 +195,7 @@ std::string line_protocol_query::generate_metric(const storage::pb_metric& me) {
       }
     }
   } catch (std::exception const& e) {
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::INFLUXDB);
     logger->error("influxdb: could not generate query for metric {}: {}",
                   me.obj().metric_id(), e.what());
     return "";
@@ -235,7 +231,7 @@ std::string line_protocol_query::generate_status(const storage::pb_status& st) {
       }
     }
   } catch (std::exception const& e) {
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::INFLUXDB);
     logger->error("influxdb: could not generate query for status {}: {}",
                   st.obj().index_id(), e.what());
     return "";
@@ -335,7 +331,7 @@ void line_protocol_query::_compile_scheme(
         _append_compiled_getter(&line_protocol_query::_get_status_time,
                                 escaper);
     } else {
-      auto logger = log_v2::instance().get(_logger_id);
+      auto logger = log_v2::instance().get(log_v2::INFLUXDB);
       logger->info("influxdb: unknown macro '{}': ignoring it", macro);
     }
 

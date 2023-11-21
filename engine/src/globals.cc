@@ -143,28 +143,16 @@ unsigned long next_notification_id(1);
 unsigned long next_problem_id(1);
 
 void init_loggers() {
-  checks_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("checks"));
-  commands_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("commands"));
-  config_logger = log_v2::instance().get(
-      com::centreon::common::log_v2::log_v2_configuration);
-  downtimes_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("downtimes"));
-  eventbroker_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("eventbroker"));
-  events_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("events"));
-  external_command_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("external_command"));
-  functions_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("functions"));
-  macros_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("macros"));
-  notifications_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("notifications"));
-  process_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("process"));
-  runtime_logger = log_v2::instance().get(
-      log_v2::instance().create_logger_or_get_id("runtime"));
+  checks_logger = log_v2::instance().get(log_v2::CHECKS);
+  commands_logger = log_v2::instance().get(log_v2::COMMANDS);
+  config_logger = log_v2::instance().get(log_v2::CONFIG);
+  downtimes_logger = log_v2::instance().get(log_v2::DOWNTIMES);
+  eventbroker_logger = log_v2::instance().get(log_v2::EVENTBROKER);
+  events_logger = log_v2::instance().get(log_v2::EVENTS);
+  external_command_logger = log_v2::instance().get(log_v2::EXTERNAL_COMMAND);
+  functions_logger = log_v2::instance().get(log_v2::FUNCTIONS);
+  macros_logger = log_v2::instance().get(log_v2::MACROS);
+  notifications_logger = log_v2::instance().get(log_v2::NOTIFICATIONS);
+  process_logger = log_v2::instance().get(log_v2::PROCESS);
+  runtime_logger = log_v2::instance().get(log_v2::RUNTIME);
 }

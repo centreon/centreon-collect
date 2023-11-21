@@ -65,7 +65,7 @@ class stream : public io::stream {
   asio::ip::tcp::socket _socket;
 
   // Logger
-  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
 
   // Cache
   macro_cache _cache;

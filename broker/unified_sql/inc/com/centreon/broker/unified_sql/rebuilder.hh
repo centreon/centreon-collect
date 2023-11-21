@@ -63,7 +63,6 @@ class rebuilder {
   std::mutex _rebuilding_m;
   std::condition_variable _rebuilding_cv;
   int32_t _rebuilding = 0;
-  uint32_t _logger_id;
 
  public:
   rebuilder(database_config const& db_cfg,

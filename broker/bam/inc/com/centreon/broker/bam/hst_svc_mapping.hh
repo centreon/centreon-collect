@@ -43,9 +43,7 @@ class hst_svc_mapping {
   absl::flat_hash_map<std::pair<uint32_t, uint32_t>, bool> _activated_mapping;
 
  public:
-  hst_svc_mapping()
-      : _logger{log_v2::instance().get(
-            log_v2::instance().create_logger_or_get_id("bam"))} {}
+  hst_svc_mapping() : _logger{log_v2::instance().get(log_v2::BAM)} {}
   ~hst_svc_mapping() noexcept = default;
   hst_svc_mapping(const hst_svc_mapping&) = delete;
   hst_svc_mapping& operator=(const hst_svc_mapping&) = delete;

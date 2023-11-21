@@ -17,6 +17,7 @@
  *
  */
 #include <gtest/gtest.h>
+
 #include "com/centreon/broker/config/applier/state.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -52,7 +53,11 @@ int main(int argc, char* argv[]) {
   // Set specific environment.
   testing::AddGlobalTestEnvironment(new CentreonBrokerEnvironment());
 
-  log_v2::load("test", {"core", "config"});
+  log_v2::load("test", {log_v2::CORE, log_v2::CONFIG, log_v2::SQL, log_v2::BBDO,
+                        log_v2::PERFDATA, log_v2::PROCESSING, log_v2::STATS,
+                        log_v2::NEB, log_v2::INFLUXDB, log_v2::GRAPHITE,
+                        log_v2::BAM, log_v2::TCP, log_v2::TLS, log_v2::GRPC,
+                        log_v2::VICTORIA_METRICS, log_v2::LUA});
   // Run all tests.
   int ret = RUN_ALL_TESTS();
   spdlog::shutdown();

@@ -57,9 +57,7 @@ class LuaTest : public ::testing::Test {
  public:
   void SetUp() override {
     // log_v2::load({"core", "config", "lua"});
-    const uint32_t logger_id =
-        log_v2::instance().create_logger_or_get_id("lua");
-    _logger = log_v2::instance().get(logger_id);
+    _logger = log_v2::instance().get(log_v2::LUA);
 
     g_io_context->restart();
     try {
@@ -69,7 +67,7 @@ class LuaTest : public ::testing::Test {
     }
     std::shared_ptr<persistent_cache> pcache(
         std::make_shared<persistent_cache>("/tmp/broker_test_cache"));
-    _cache.reset(new macro_cache(pcache, logger_id));
+    _cache.reset(new macro_cache(pcache, log_v2::instance().get(log_v2::LUA)));
   }
   void TearDown() override {
     // The cache must be destroyed before the applier deinit() call.

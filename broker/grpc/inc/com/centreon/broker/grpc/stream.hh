@@ -36,7 +36,6 @@ class stream : public io::stream {
   grpc_config::pointer _conf;
 
   /* Logger */
-  const uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:

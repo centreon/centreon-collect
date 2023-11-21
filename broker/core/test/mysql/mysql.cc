@@ -57,8 +57,7 @@ class DatabaseStorageTest : public ::testing::Test {
 
  public:
   void SetUp() override {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("sql");
-    _logger = log_v2::instance().get(logger_id);
+    _logger = log_v2::instance().get(log_v2::SQL);
     g_io_context->restart();
     try {
       config::applier::init(0, "test_broker", 0);

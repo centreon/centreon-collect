@@ -58,13 +58,13 @@ class bulk_queries {
   mutable std::mutex _queue_m;
   std::time_t _next_time;
   std::deque<std::string> _queue;
-  uint32_t _logger_id;
+  std::shared_ptr<spdlog::logger> _logger;
 
  public:
   bulk_queries(const uint32_t max_interval,
                const uint32_t max_queries,
                const std::string& query,
-               uint32_t logger_id);
+               const std::shared_ptr<spdlog::logger>& logger);
   std::string get_query();
   void push_query(const std::string& query);
   void push_query(std::string&& query);

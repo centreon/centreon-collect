@@ -42,8 +42,7 @@ query::query(std::string const& naming_scheme,
     : _escape_string(escape_string),
       _naming_scheme_index(0),
       _type(type),
-      _cache(&cache),
-      _logger_id{log_v2::instance().create_logger_or_get_id("graphite")} {
+      _cache(&cache) {
   _compile_naming_scheme(naming_scheme, type);
 }
 
@@ -75,7 +74,7 @@ std::string query::generate_metric(storage::pb_metric const& me) {
       tmp.str("");
     }
   } catch (const std::exception& e) {
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::GRAPHITE);
     logger->error("graphite: couldn't generate query for metric {}: {}",
                   me.obj().metric_id(), e.what());
     return "";
@@ -114,7 +113,7 @@ std::string query::generate_status(storage::pb_status const& st) {
       tmp.str("");
     }
   } catch (std::exception const& e) {
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::GRAPHITE);
     logger->error("graphite: couldn't generate query for status {}: {}",
                   st.obj().index_id(), e.what());
     return "";
@@ -178,7 +177,7 @@ void query::_compile_naming_scheme(std::string const& naming_scheme,
     } else if (macro == "$INDEXID$") {
       _compiled_getters.push_back(&query::_get_index_id);
     } else {
-      auto logger = log_v2::instance().get(_logger_id);
+      auto logger = log_v2::instance().get(log_v2::GRAPHITE);
       logger->info("graphite: unknown macro '{}': ignoring it", macro);
     }
     found_macro = end_macro = end_macro + 1;

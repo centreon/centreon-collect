@@ -54,8 +54,7 @@ tcp_connection::tcp_connection(asio::io_context& io_context,
       _closed(false),
       _address(host),
       _port(port),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tcp")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::TCP)} {
   DEBUG(fmt::format("CONSTRUCTOR tcp_connection {}", static_cast<void*>(this)));
 }
 
@@ -132,7 +131,6 @@ int32_t tcp_connection::flush() {
  * side.
  */
 int32_t tcp_connection::write(const std::vector<char>& v) {
-  _logger = log_v2::instance().get(_logger_id);
   {
     std::lock_guard<std::mutex> lck(_error_m);
     if (_current_error) {
@@ -333,7 +331,6 @@ int32_t tcp_connection::close() {
  * with a timeout.
  */
 std::vector<char> tcp_connection::read(time_t timeout_time, bool* timeout) {
-  _logger = log_v2::instance().get(_logger_id);
   {
     std::lock_guard<std::mutex> lck(_error_m);
     if (_current_error) {

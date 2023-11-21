@@ -387,8 +387,7 @@ static const std::string default_rpc_listen_address("localhost");
  *  Default constructor.
  */
 state::state()
-    : _config_logger{log_v2::instance().get(
-          com::centreon::common::log_v2::log_v2_configuration)},
+    : _config_logger{log_v2::instance().get(log_v2::CONFIG)},
       _accept_passive_host_checks(default_accept_passive_host_checks),
       _accept_passive_service_checks(default_accept_passive_service_checks),
       _additional_freshness_latency(default_additional_freshness_latency),

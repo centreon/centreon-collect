@@ -220,9 +220,7 @@ bool servicedependency::operator<(servicedependency const& right) const {
  *  If the object is not valid, an exception is thrown.
  */
 void servicedependency::check_validity(error_info* err) const {
-  uint32_t logger_id =
-      log_v2::instance().create_logger_or_get_id("configuration");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   // Check base service(s).
   if (_servicegroups->empty()) {
     if (_service_description->empty())

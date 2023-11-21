@@ -40,8 +40,7 @@ luabinding::luabinding(std::string const& lua_script,
                        std::map<std::string, misc::variant> const& conf_params)
     : _lua_script(lua_script),
       _total(0),
-      _logger_id{log_v2::instance().create_logger_or_get_id("lua")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::LUA)} {
   size_t pos(lua_script.find_last_of('/'));
   std::string path(lua_script.substr(0, pos));
   _L = _load_interpreter();
@@ -180,7 +179,7 @@ void luabinding::_init_script(
  *  @return The number of events written.
  */
 bool luabinding::read(std::shared_ptr<io::data>& data) {
-  _logger = log_v2::instance().get(_logger_id);
+  _logger = log_v2::instance().get(log_v2::LUA);
   bool retval = false;
   _logger->trace("simu: luabinding::read call");
 

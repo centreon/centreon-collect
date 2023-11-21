@@ -46,8 +46,7 @@ acceptor::acceptor(std::string const& cert,
       _ca(ca),
       _cert(cert),
       _key(key),
-      _tls_hostname(tls_hostname),
-      _logger_id{log_v2::instance().create_logger_or_get_id("tls")} {}
+      _tls_hostname(tls_hostname) {}
 
 /**
  *  @brief Try to accept a new connection.
@@ -86,7 +85,7 @@ std::shared_ptr<io::stream> acceptor::open(
   std::shared_ptr<io::stream> u;
   if (lower) {
     int ret;
-    auto logger = log_v2::instance().get(_logger_id);
+    auto logger = log_v2::instance().get(log_v2::TLS);
 
     // Load parameters.
     params p(params::SERVER);

@@ -43,7 +43,6 @@ std::mutex engine::_load_m;
  *  @return Class instance.
  */
 std::shared_ptr<engine>& engine::instance_ptr() {
-  assert(_instance);
   return _instance;
 }
 

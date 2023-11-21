@@ -42,7 +42,6 @@ class mysql {
   bool _support_bulk_statement;
 
   /* Logger */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
  public:

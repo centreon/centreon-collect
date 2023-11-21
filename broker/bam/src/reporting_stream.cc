@@ -58,8 +58,7 @@ reporting_stream::reporting_stream(database_config const& db_cfg)
       _pending_events(0),
       _mysql(db_cfg),
       _processing_dimensions(false),
-      _logger_id{log_v2::instance().create_logger_or_get_id("bam")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::BAM)} {
   SPDLOG_LOGGER_TRACE(_logger, "BAM: reporting stream constructor");
   // Prepare queries.
   _prepare();
@@ -155,7 +154,6 @@ int reporting_stream::write(std::shared_ptr<io::data> const& data) {
   // Take this event into account.
   ++_pending_events;
   assert(data);
-  _logger = log_v2::instance().get(_logger_id);
 
   if (_logger->level() == spdlog::level::trace) {
     SPDLOG_LOGGER_TRACE(

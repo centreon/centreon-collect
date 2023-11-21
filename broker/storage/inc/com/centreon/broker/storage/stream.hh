@@ -74,7 +74,6 @@ class stream : public io::stream {
   std::string _status;
   mutable std::mutex _statusm;
   bool _stopped;
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   void _update_status(std::string const& status);

@@ -106,7 +106,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
   stat _status_stat;
 
   /* Logger */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   /**

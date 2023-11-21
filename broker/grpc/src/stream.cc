@@ -44,8 +44,7 @@ com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
     : io::stream("GRPC"),
       _accept(false),
       _conf(conf),
-      _logger_id{log_v2::instance().create_logger_or_get_id("grpc")},
-      _logger{log_v2::instance().get(_logger_id)} {
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
   _channel = client::create(conf);
 }
 
@@ -55,8 +54,7 @@ com::centreon::broker::grpc::stream::stream(
       _accept(true),
       _channel(accepted),
       _conf(_channel->get_conf()),
-      _logger_id{log_v2::instance().create_logger_or_get_id("grpc")},
-      _logger{log_v2::instance().get(_logger_id)} {}
+      _logger{log_v2::instance().get(log_v2::GRPC)} {}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
   if (_channel)
@@ -64,7 +62,7 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
 }
 
 #define READ_IMPL                                                             \
-  _logger = log_v2::instance().get(_logger_id);                               \
+  _logger = log_v2::instance().get(log_v2::GRPC);                             \
   std::pair<event_ptr, bool> read_res = _channel->read(duration_or_deadline); \
   if (read_res.second) {                                                      \
     const grpc_event_type& to_convert = *read_res.first;                      \
@@ -103,7 +101,7 @@ bool com::centreon::broker::grpc::stream::read(
 
 int32_t com::centreon::broker::grpc::stream::write(
     std::shared_ptr<io::data> const& d) {
-  _logger = log_v2::instance().get(_logger_id);
+  _logger = log_v2::instance().get(log_v2::GRPC);
   if (_channel->is_down())
     throw msg_fmt("Connection lost");
 

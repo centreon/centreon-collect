@@ -58,7 +58,7 @@ class macro_cache {
 
  public:
   macro_cache(std::shared_ptr<persistent_cache> const& cache,
-              const uint32_t logger_id);
+              const std::shared_ptr<spdlog::logger>& logger);
   macro_cache(macro_cache const& f) = delete;
   macro_cache& operator=(macro_cache const& f) = delete;
   ~macro_cache();

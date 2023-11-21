@@ -89,8 +89,7 @@ hostgroup& hostgroup::operator=(hostgroup const& right) {
  *  @return True if is the same hostgroup, otherwise false.
  */
 bool hostgroup::operator==(hostgroup const& right) const throw() {
-  uint32_t logger_id = log_v2::instance().create_logger_or_get_id("config");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
   if (!object::operator==(right)) {
     logger->debug("configuration::hostgroup::equality => object don't match");
     return false;

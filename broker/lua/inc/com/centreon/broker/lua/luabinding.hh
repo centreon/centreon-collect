@@ -102,7 +102,6 @@ class luabinding {
   uint32_t _broker_api_version;
 
   // logger ID.
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   lua_State* _load_interpreter();

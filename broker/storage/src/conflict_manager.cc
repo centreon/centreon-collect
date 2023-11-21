@@ -103,7 +103,7 @@ conflict_manager::conflict_manager(database_config const& dbcfg,
       _group_clean_timer{pool::io_context()},
       _oldest_timestamp{std::numeric_limits<time_t>::max()},
       _logger_sql{log_v2::instance().get(log_v2::SQL)},
-      _logger_storage{log_v2::instance().get(log_v2::STORAGE)} {
+      _logger_storage{log_v2::instance().get(log_v2::PERFDATA)} {
   _logger_sql->debug("conflict_manager: class instanciation");
   stats::center::instance().update(&ConflictManagerStats::set_loop_timeout,
                                    _stats, _loop_timeout);
@@ -908,7 +908,7 @@ nlohmann::json conflict_manager::get_statistics() {
  * @brief Delete the conflict_manager singleton.
  */
 int32_t conflict_manager::unload(stream_type type) {
-  auto logger = log_v2::instance().get(_singleton->_logger_sql_id);
+  auto logger = log_v2::instance().get(log_v2::SQL);
   if (!_singleton) {
     logger->info("conflict_manager: already unloaded.");
     return 0;

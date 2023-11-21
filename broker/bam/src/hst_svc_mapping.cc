@@ -47,8 +47,7 @@ std::pair<uint32_t, uint32_t> hst_svc_mapping::get_service_id(
     std::string const& svc) const {
   auto it{_mapping.find(std::make_pair(hst, svc))};
   if (it == _mapping.end()) {
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("bam");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::BAM);
     logger->debug(
         "hst_svc_mapping: service id for host: {} ; service: {} not found", hst,
         svc);

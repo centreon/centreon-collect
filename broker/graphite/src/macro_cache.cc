@@ -31,10 +31,10 @@ using namespace com::centreon::exceptions;
  *  @param[in] cache  Persistent cache used by the macro cache.
  */
 macro_cache::macro_cache(const std::shared_ptr<persistent_cache>& cache,
-                         const uint32_t logger_id)
+                         const std::shared_ptr<spdlog::logger>& logger)
     : _cache(cache) {
   if (_cache != nullptr) {
-    _cache->set_logger_id(logger_id);
+    _cache->set_logger(logger);
     std::shared_ptr<io::data> d;
     do {
       _cache->get(d);

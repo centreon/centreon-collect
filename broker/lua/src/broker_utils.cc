@@ -471,9 +471,7 @@ static int l_broker_json_encode(lua_State* L) noexcept {
     lua_pushlstring(L, s.c_str(), s.size());
     return 1;
   } catch (const std::exception& e) {
-    const uint32_t logger_id =
-        log_v2::instance().create_logger_or_get_id("lua");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::LUA);
     logger->error("lua: json_encode encountered an error: {}", e.what());
   }
   return 0;
@@ -628,8 +626,7 @@ static auto l_stacktrace = [](lua_State* L) -> void {
 static int l_broker_parse_perfdata(lua_State* L) {
   char const* perf_data(lua_tostring(L, 1));
   int full(lua_toboolean(L, 2));
-  const uint32_t logger_id = log_v2::instance().create_logger_or_get_id("lua");
-  auto logger = log_v2::instance().get(logger_id);
+  auto logger = log_v2::instance().get(log_v2::LUA);
   std::list<misc::perfdata> pds{misc::parse_perfdata(0, 0, perf_data, logger)};
   lua_createtable(L, 0, pds.size());
   for (auto const& pd : pds) {
@@ -787,9 +784,7 @@ static void md5_message(const unsigned char* message,
                         unsigned int* digest_len) {
   EVP_MD_CTX* mdctx;
   auto handle_error = [](const std::string& msg) {
-    const uint32_t logger_id =
-        log_v2::instance().create_logger_or_get_id("lua");
-    auto logger = log_v2::instance().get(logger_id);
+    auto logger = log_v2::instance().get(log_v2::LUA);
     logger->error(msg);
   };
   if ((mdctx = EVP_MD_CTX_new()) == nullptr) {

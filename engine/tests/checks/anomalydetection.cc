@@ -54,11 +54,9 @@ class AnomalydetectionCheck : public TestEngine {
   void SetUp() override {
     init_config_state(LEGACY);
 
-    uint32_t logger_id = log_v2::instance().create_logger_or_get_id("checks");
-    _checks_logger = log_v2::instance().get(logger_id);
+    _checks_logger = log_v2::instance().get(log_v2::CHECKS);
     _checks_logger->set_level(spdlog::level::trace);
-    logger_id = log_v2::instance().create_logger_or_get_id("commands");
-    _commands_logger = log_v2::instance().get(logger_id);
+    _commands_logger = log_v2::instance().get(log_v2::COMMANDS);
     _commands_logger->set_level(spdlog::level::trace);
 
     configuration::applier::contact ct_aply;

@@ -158,7 +158,6 @@ class stream : public io::stream {
   bbdo::bbdo_version _bbdo_version;
 
   /* bbdo logger */
-  log_v2::logger_id _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   void _write(std::shared_ptr<io::data> const& d);

@@ -110,7 +110,6 @@ class mysql_connection {
   database::mysql_error _error;
 
   /* Logger */
-  uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   /**************************************************************************/

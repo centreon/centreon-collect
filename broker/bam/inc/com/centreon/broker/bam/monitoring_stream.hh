@@ -69,7 +69,6 @@ class monitoring_stream : public io::stream {
   const std::string _ext_cmd_file;
 
   /* Loggers */
-  const uint32_t _logger_id;
   std::shared_ptr<spdlog::logger> _logger;
 
   configuration::applier::state _applier;
