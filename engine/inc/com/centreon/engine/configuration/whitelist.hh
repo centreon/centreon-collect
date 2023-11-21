@@ -93,7 +93,10 @@ class whitelist_directory {
 
   whitelist_directory(const std::string& path) : _path(path) {}
 
-  void refresh();
+  // don't reorder values
+  enum e_refresh_result { no_directory, empty_directory, no_rule, rules };
+
+  e_refresh_result refresh();
 
   const std::string& get_path() const { return _path; }
 

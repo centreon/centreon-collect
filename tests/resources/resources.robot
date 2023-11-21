@@ -259,23 +259,24 @@ Save Logs
 Dump Process
     [Arguments]    ${process_name}    ${binary_path}    ${name}
     ${pid}    Get Process Id    ${process_name}
-    IF    ${pid} is None    RETURN
-    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
-    Create Directory    ${failDir}
-    ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
-    ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
-    # Log To Console    Creation of core ${output}.${pid} to debug
-    # Run Process    gcore    -o    ${output}    ${pid}
-    Run Process
-    ...    gdb
-    ...    -batch
-    ...    -ex
-    ...    thread apply all bt 30
-    ...    ${binary_path}
-    ...    ${output}.${pid}
-    ...    stdout=${gdb_output}
-    ...    stderr=${gdb_output}
-    Log To Console    Done...
+    IF    ${pid} is not ${None}
+        ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
+        Create Directory    ${failDir}
+        ${output}    Catenate    SEPARATOR=    /tmp/core-    ${name}
+        ${gdb_output}    Catenate    SEPARATOR=    ${failDir}    /core-    ${name}    .txt
+        # Log To Console    Creation of core ${output}.${pid} to debug
+        # Run Process    gcore    -o    ${output}    ${pid}
+        Run Process
+        ...    gdb
+        ...    -batch
+        ...    -ex
+        ...    thread apply all bt 30
+        ...    ${binary_path}
+        ...    ${output}.${pid}
+        ...    stdout=${gdb_output}
+        ...    stderr=${gdb_output}
+        Log To Console    Done...
+    END
 
 Coredump Info
     [Arguments]    ${process_name}    ${binary_path}    ${name}

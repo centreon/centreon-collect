@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-if ($#ARGV < 0) {
+if ($#ARGV < 1) {
     die "The script must be used with one integer argument\n";
 }
 

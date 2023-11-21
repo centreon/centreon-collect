@@ -282,19 +282,16 @@ std::unique_ptr<whitelist_file> whitelist_file::create(const str& path) {
  * @brief scan whitelist directory and refresh whitelist_file list
  *
  */
-void whitelist_directory::refresh() {
+whitelist_directory::e_refresh_result whitelist_directory::refresh() {
   // check permissions
   struct stat dir_infos;
   if (::stat(_path.c_str(), &dir_infos)) {
-    SPDLOG_LOGGER_INFO(
-        log_v2::config(),
-        "{}: no whitelist directory found, all commands are accepted", _path);
-    return;
+    return e_refresh_result::no_directory;
   }
   if ((dir_infos.st_mode & S_IFMT) != S_IFDIR) {
     SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a directory: {}", _path,
                         dir_infos.st_mode);
-    return;
+    return e_refresh_result::no_directory;
   }
 
   struct ::group* centengine_group = getgrnam("centreon-engine");
@@ -325,11 +322,7 @@ void whitelist_directory::refresh() {
 
   if (files_in_directory.empty()) {
     _files.clear();
-    SPDLOG_LOGGER_INFO(log_v2::config(),
-                       "{}: whitelist directory found, but no restrictions, "
-                       "all commands are accepted",
-                       _path);
-    return;
+    return e_refresh_result::empty_directory;
   }
 
   std::set<std::string>::const_iterator child_iter = files_in_directory.begin();
@@ -375,9 +368,10 @@ void whitelist_directory::refresh() {
   for (; child_iter != child_end; ++child_iter) {
     std::unique_ptr<whitelist_file> to_add =
         whitelist_file::create(*child_iter);
-    if (to_add)
+    if (to_add && !to_add->empty())
       _files.emplace_back(std::move(to_add));
   }
+  return _files.empty() ? e_refresh_result::no_rule : e_refresh_result::rules;
 }
 
 /**
@@ -397,8 +391,8 @@ bool whitelist_directory::test(const std::string& cmdline) const {
       return true;
     }
   }
-  SPDLOG_LOGGER_INFO(log_v2::checks(), "command rejected by whitelist: {}",
-                     cmdline);
+  SPDLOG_LOGGER_DEBUG(log_v2::checks(), "command rejected by whitelist: {}",
+                      cmdline);
   return false;
 }
 
@@ -413,12 +407,19 @@ bool whitelist_directories::test(const std::string& cmdline) const {
   if (_directories.empty()) {
     return true;
   }
+  bool all_empty = true;
   for (const whitelist_directory& dir : _directories) {
+    if (dir.empty()) {
+      continue;
+    }
+    all_empty = false;
     if (dir.test(cmdline)) {
       return true;
     }
   }
-  return false;
+  // if all_empty == true, no whitelist expression => return always true
+  // if false, no not empty file match => test failed
+  return all_empty;
 }
 
 /**
@@ -426,7 +427,25 @@ bool whitelist_directories::test(const std::string& cmdline) const {
  *
  */
 void whitelist_directories::refresh() {
+  whitelist_directory::e_refresh_result res =
+      whitelist_directory::e_refresh_result::no_directory;
   for (whitelist_directory& dir : _directories) {
-    dir.refresh();
+    whitelist_directory::e_refresh_result new_res = dir.refresh();
+    if (new_res > res) {
+      res = new_res;
+    }
+  }
+  switch (res) {
+    case whitelist_directory::e_refresh_result::no_directory:
+      SPDLOG_LOGGER_INFO(
+          log_v2::config(),
+          "no whitelist directory found, all commands are accepted");
+      break;
+    case whitelist_directory::e_refresh_result::empty_directory:
+    case whitelist_directory::e_refresh_result::no_rule:
+      SPDLOG_LOGGER_INFO(log_v2::config(),
+                         "{}: whitelist directory found, but no restrictions, "
+                         "all commands are accepted");
+      break;
   }
 }

@@ -10,7 +10,7 @@ Library             DateTime
 Library             OperatingSystem
 
 Suite Setup         Prepare ssh
-Suite Teardown      Clean After Suite
+Suite Teardown      Clean Whitelist
 Test Setup          Stop Processes
 Test Teardown       Save SSH Logs If Failed
 
@@ -46,7 +46,7 @@ TestBadUser
     Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
     ${content}    Create List    fail to connect to toto@127.0.0.10
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message fail to connect to toto@127.0.0.10 should be available.
     Stop Engine
 
@@ -120,7 +120,7 @@ Test6Hosts
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -183,7 +183,7 @@ TestWhiteList
 
     ${start}    Get Current Date
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
     ...    An Initial host state on host_1 should be raised before we can start our external commands.
@@ -192,8 +192,9 @@ TestWhiteList
     ${start}    Get Current Date
     Schedule Forced Host Check    host_1
 
-    ${content}    Create List    command rejected by whitelist: /usr/lib64/nagios/plugins/check_by_ssh
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List
+    ...    host_1: this command cannot be executed because of security restrictions on the poller. A whitelist has been defined, and it does not include this command.
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message 'command rejected by whitelis' should be available.
 
     # ssh_linuw allowed
@@ -205,15 +206,15 @@ TestWhiteList
     Schedule Forced Host Check    host_1
 
     ${content}    Create List    'toto=127.0.0.1'
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
 
     IF    "${run_env}" == "docker"
         ${content}    Create List    'toto=127.0.0.1'
-        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=127.0.0.1' should be available.
     ELSE
         ${content}    Create List    'toto=::1'
-        ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True    ${result}    A message 'toto=::1' should be available.
     END
 
@@ -241,3 +242,7 @@ Save SSH Logs
     Save Logs
     ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Copy File    ${ENGINE_LOG}/config0/connector_ssh.log    ${failDir}
+
+Clean Whitelist
+    Clean After Suite
+    Remove File    /etc/centreon-engine-whitelist/test
