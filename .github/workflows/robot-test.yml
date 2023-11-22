@@ -146,7 +146,6 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
 
-
       - name: Move reports
         if: ${{ failure() }}
         run: |

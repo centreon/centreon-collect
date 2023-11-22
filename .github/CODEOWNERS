@@ -1,0 +1,7 @@
+**                  @centreon/owners-cpp
+
+.github/**          @centreon/owners-pipelines
+packaging/**        @centreon/owners-pipelines
+selinux/**          @centreon/owners-pipelines
+
+tests/**            @centreon/owners-robot-e2e
