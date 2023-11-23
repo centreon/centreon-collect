@@ -21,7 +21,7 @@
 
 #include <QVariant>
 #include <ctime>
-#include "com/centreon/broker/misc/stringifier.hh"
+#include "broker/core/misc/stringifier.hh"
 
 namespace com::centreon::broker {
 

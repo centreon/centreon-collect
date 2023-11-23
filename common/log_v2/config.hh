@@ -20,6 +20,7 @@
 #include <absl/container/flat_hash_map.h>
 #include <absl/container/flat_hash_set.h>
 #include <fmt/format.h>
+
 #include <filesystem>
 #include <string>
 
@@ -34,6 +35,7 @@ class config {
 
  private:
   const std::string _name;
+  bool _is_slave = false;
   logger_type _log_type;
   std::string _dirname;
   std::string _filename;
@@ -123,6 +125,8 @@ class config {
     return _loggers_with_custom_sinks;
   }
   const std::string& name() const { return _name; }
+  void set_slave(bool slave) { _is_slave = slave; }
+  bool is_slave() const { return _is_slave; }
 };
 }  // namespace com::centreon::common::log_v2
 #endif

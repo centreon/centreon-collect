@@ -22,8 +22,8 @@
 
 #include <cmath>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;

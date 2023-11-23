@@ -22,6 +22,8 @@
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/stream.hh"
 
+#include <spdlog/spdlog.h>
+
 namespace com::centreon::broker {
 
 /**

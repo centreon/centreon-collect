@@ -18,6 +18,8 @@
 
 #ifndef CCB_MISC_VARIANT_HH_
 #define CCB_MISC_VARIANT_HH_
+#include <cstdint>
+#include <string>
 
 namespace com::centreon::broker {
 

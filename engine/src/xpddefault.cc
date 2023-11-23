@@ -1,27 +1,29 @@
-/*
-** Copyright 2000-2008 Ethan Galstad
-** Copyright 2011-2013 Merethis
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2000-2008 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #include "com/centreon/engine/xpddefault.hh"
+
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include "com/centreon/engine/common.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/globals.hh"
@@ -40,158 +42,12 @@ static commands::command* xpddefault_service_perfdata_command_ptr(nullptr);
 
 static char* xpddefault_service_perfdata_file_template(nullptr);
 
-static commands::command* xpddefault_host_perfdata_file_processing_command_ptr(
-    nullptr);
-static commands::command*
-    xpddefault_service_perfdata_file_processing_command_ptr(nullptr);
-
 static FILE* xpddefault_host_perfdata_fp(nullptr);
 static FILE* xpddefault_service_perfdata_fp(nullptr);
 static int xpddefault_host_perfdata_fd(-1);
 static int xpddefault_service_perfdata_fd(-1);
 
-static pthread_mutex_t xpddefault_host_perfdata_fp_lock;
 static pthread_mutex_t xpddefault_service_perfdata_fp_lock;
-
-/******************************************************************/
-/************** INITIALIZATION & CLEANUP FUNCTIONS ****************/
-/******************************************************************/
-
-// initializes performance data.
-// int xpddefault_initialize_performance_data() {
-//  char* temp_command_name(nullptr);
-//
-//  // reset vars.
-//  xpddefault_host_perfdata_command_ptr = nullptr;
-//  xpddefault_service_perfdata_command_ptr = nullptr;
-//  xpddefault_host_perfdata_file_processing_command_ptr = nullptr;
-//  xpddefault_service_perfdata_file_processing_command_ptr = nullptr;
-//
-//  // grab config info from main config file.
-//  xpddefault_service_perfdata_file_template =
-//      string::dup(config->service_perfdata_file_template());
-//
-//  // process special chars in templates.
-//  xpddefault_preprocess_file_templates(
-//      xpddefault_service_perfdata_file_template);
-//
-//  // open the performance data files.
-//  xpddefault_open_service_perfdata_file();
-//
-//  // verify that performance data commands are valid.
-//  if (!config->host_perfdata_command().empty()) {
-//    char* temp_buffer(string::dup(config->host_perfdata_command()));
-//
-//    // get the command name, leave any arguments behind.
-//    temp_command_name = my_strtok(temp_buffer, "!");
-//
-//    command_map::iterator cmd_found =
-//        commands::command::commands.find(temp_command_name);
-//
-//    if (cmd_found == commands::command::commands.end() || !cmd_found->second)
-//    {
-//      engine_logger(log_runtime_warning, basic)
-//          << "Warning: Host performance command '" << temp_command_name
-//          << "' was not found - host performance data will not "
-//             "be processed!";
-//      runtime_logger->warn(
-//          "Warning: Host performance command '{}' was not found - host "
-//          "performance data will not "
-//          "be processed!",
-//          temp_command_name);
-//    } else
-//      xpddefault_host_perfdata_command_ptr =
-//          cmd_found->second.get();  // save the command pointer for later.
-//
-//    delete[] temp_buffer;
-//  }
-//
-//  if (!config->service_perfdata_command().empty()) {
-//    char* temp_buffer(string::dup(config->service_perfdata_command()));
-//
-//    // get the command name, leave any arguments behind.
-//    temp_command_name = my_strtok(temp_buffer, "!");
-//
-//    command_map::iterator cmd_found =
-//        commands::command::commands.find(temp_command_name);
-//
-//    if (cmd_found == commands::command::commands.end() || !cmd_found->second)
-//    {
-//      engine_logger(log_runtime_warning, basic)
-//          << "Warning: Service performance command '" << temp_command_name
-//          << "' was not found - service performance data will not "
-//             "be processed!";
-//      runtime_logger->warn(
-//          "Warning: Service performance command '{}' was not found - service "
-//          "performance data will not "
-//          "be processed!",
-//          temp_command_name);
-//    } else
-//      xpddefault_service_perfdata_command_ptr = cmd_found->second.get();
-//
-//    // free memory.
-//    delete[] temp_buffer;
-//  }
-//
-//  if (!config->host_perfdata_file_processing_command().empty()) {
-//    char* temp_buffer =
-//        string::dup(config->host_perfdata_file_processing_command());
-//
-//    // get the command name, leave any arguments behind.
-//    temp_command_name = my_strtok(temp_buffer, "!");
-//    command_map::iterator cmd_found =
-//        commands::command::commands.find(temp_command_name);
-//
-//    if (cmd_found == commands::command::commands.end() || !cmd_found->second)
-//    {
-//      engine_logger(log_runtime_warning, basic)
-//          << "Warning: Host performance file processing command '"
-//          << temp_command_name
-//          << "' was not found - host performance "
-//             "data file will not be processed!";
-//      runtime_logger->warn(
-//          "Warning: Host performance file processing command '{}' was not "
-//          "found - host performance "
-//          "data file will not be processed!",
-//          temp_command_name);
-//    } else
-//      xpddefault_host_perfdata_file_processing_command_ptr =
-//          cmd_found->second.get();
-//
-//    // free memory.
-//    delete[] temp_buffer;
-//  }
-//
-//  if (!config->service_perfdata_file_processing_command().empty()) {
-//    char* temp_buffer =
-//        string::dup(config->service_perfdata_file_processing_command());
-//
-//    // get the command name, leave any arguments behind.
-//    temp_command_name = my_strtok(temp_buffer, "!");
-//    command_map::iterator cmd_found =
-//        commands::command::commands.find(temp_command_name);
-//
-//    if (cmd_found == commands::command::commands.end() || !cmd_found->second)
-//    {
-//      engine_logger(log_runtime_warning, basic)
-//          << "Warning: Service performance file processing command '"
-//          << temp_command_name
-//          << "' was not found - service performance "
-//             "data file will not be processed!";
-//      runtime_logger->warn(
-//          "Warning: Service performance file processing command '{}' was not "
-//          "found - service performance "
-//          "data file will not be processed!",
-//          temp_command_name);
-//    } else
-//      xpddefault_service_perfdata_file_processing_command_ptr =
-//          cmd_found->second.get();
-//    // free memory.
-//    delete[] temp_buffer;
-//  }
-//
-//  return OK;
-//}
 
 // cleans up performance data.
 int xpddefault_cleanup_performance_data() {

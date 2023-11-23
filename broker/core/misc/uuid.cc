@@ -16,7 +16,8 @@
 ** For more information : contact@centreon.com
 */
 
-#include <com/centreon/broker/misc/uuid.hh>
+#include <broker/core/misc/uuid.hh>
+#include <cstring>
 #include <random>
 
 using namespace com::centreon::broker;

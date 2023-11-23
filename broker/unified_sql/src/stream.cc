@@ -18,16 +18,17 @@
 #include "com/centreon/broker/unified_sql/stream.hh"
 
 #include <absl/strings/str_split.h>
+
 #include <cassert>
 #include <cstring>
 #include <thread>
 
 #include "bbdo/remove_graph_message.pb.h"
 #include "bbdo/storage/index_mapping.hh"
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/mysql_bulk_stmt.hh"
@@ -262,8 +263,7 @@ stream::~stream() noexcept {
   /* Let's wait a little if one of the timers is working during the cancellation
    */
   std::lock_guard<std::shared_mutex> lck(_barrier_timer_m);
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::SQL),
-                      "unified sql: stream destruction");
+  SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
 }
 
 void stream::_load_deleted_instances() {
@@ -278,7 +278,7 @@ void stream::_load_deleted_instances() {
       int32_t instance_id = res.value_as_i32(0);
       if (instance_id <= 0)
         SPDLOG_LOGGER_ERROR(
-            log_v2::instance().get(log_v2::SQL),
+            _logger_sql,
             "unified_sql: The 'instances' table contains rows with instance_id "
             "<= 0 ; you should remove them.");
       else
@@ -1134,8 +1134,7 @@ void stream::_clear_instances_cache(const std::list<uint64_t>& ids) {
 }
 
 void stream::update() {
-  SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::SQL),
-                     "unified_sql stream update");
+  SPDLOG_LOGGER_INFO(_logger_sql, "unified_sql stream update");
   _check_deleted_index();
   _check_rebuild_index();
 }

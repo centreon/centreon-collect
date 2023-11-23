@@ -24,10 +24,10 @@
 
 #include <nlohmann/json.hpp>
 
+#include "broker/core/misc/buffer.hh"
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/grpc/connector.hh"
-#include "com/centreon/broker/misc/buffer.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "grpc_test_include.hh"
 
 using namespace com::centreon::broker;

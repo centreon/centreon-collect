@@ -87,6 +87,8 @@ if(WITH_ASAN)
       "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
 endif()
 
+message(STATUS ${TESTS_SOURCES})
+
 add_executable(
   ut_broker
   # Core sources.
@@ -108,13 +110,6 @@ add_executable(
   ${TESTS_DIR}/file/splitter/resume.cc
   ${TESTS_DIR}/file/splitter/split.cc
   ${TESTS_DIR}/file/splitter/split_limited.cc
-  ${TESTS_DIR}/misc/buffer.cc
-  ${TESTS_DIR}/misc/exec.cc
-  ${TESTS_DIR}/misc/filesystem.cc
-  ${TESTS_DIR}/misc/math.cc
-  ${TESTS_DIR}/misc/misc.cc
-  ${TESTS_DIR}/misc/perfdata.cc
-  ${TESTS_DIR}/misc/string.cc
   ${TESTS_DIR}/modules/module.cc
   ${TESTS_DIR}/processing/acceptor.cc
   ${TESTS_DIR}/processing/feeder.cc

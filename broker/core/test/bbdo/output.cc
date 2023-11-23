@@ -20,13 +20,13 @@
 #include <arpa/inet.h>
 #include <gtest/gtest.h>
 
+#include "broker/core/misc/string.hh"
+#include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/bbdo/stream.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/io/raw.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/variant.hh"
 #include "com/centreon/broker/neb/instance.hh"
 #include "com/centreon/broker/persistent_file.hh"
 

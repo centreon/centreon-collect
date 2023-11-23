@@ -334,7 +334,7 @@ EBDP4
     Should Be True    ${result}    Service alerts about service 781 and 782 should be raised
 
     ${content}    Create List    callbacks: service (40, 781) has no perfdata    service (40, 782) has no perfdata
-    ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Stop Engine
 
@@ -631,7 +631,7 @@ EBDP8
     ${content}    Create List
     ...    callbacks: service (40, 781) has no perfdata
     ...    callbacks: service (40, 782) has no perfdata
-    ${result}    Find In Log With Timeout    ${moduleLog3}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog3}    ${start}    ${content}    60
     Should Be True    ${result}    pb service status on services (40, 781) and (40, 782) should be generated
     Stop Engine
 

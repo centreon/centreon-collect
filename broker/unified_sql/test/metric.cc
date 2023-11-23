@@ -20,8 +20,8 @@
 #include "bbdo/storage/metric.hh"
 #include <gtest/gtest.h>
 #include <cmath>
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/unified_sql/internal.hh"
 
 using namespace com::centreon::broker;

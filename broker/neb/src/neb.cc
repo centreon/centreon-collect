@@ -88,7 +88,12 @@ int nebmodule_deinit(int flags, int reason) {
  *  @return 0 on success, any other value on failure.
  */
 int nebmodule_init(int flags, char const* args, void* handle) {
-  log_v2::instance().create_logger(log_v2::NEB);
+  neb_logger = log_v2::instance().create_logger(log_v2::NEB);
+
+  // Needed by cbmod core
+  log_v2::instance().create_logger(log_v2::SQL);
+  log_v2::instance().create_logger(log_v2::BBDO);
+  log_v2::instance().create_logger(log_v2::PROCESSING);
 
   try {
     // Save module handle and flags for future use.
@@ -135,14 +140,16 @@ int nebmodule_init(int flags, char const* args, void* handle) {
           p.parse(neb::gl_configuration_file)};
 
       // Initialization.
+      /* This is a little hack to avoid to replace the log file set by
+       * centengine */
+      s.mut_log_conf().set_slave(true);
       com::centreon::broker::config::applier::init(s);
-      try {
-        // FIXME DBO
-        log_v2::instance().apply(s.log_conf());
-        // neb_logger = log_v2::instance().get(log_v2::NEB);
-      } catch (const std::exception& e) {
-        log_v2::instance().get(log_v2::CORE)->error("main: {}", e.what());
-      }
+      //      try {
+      //        log_v2::instance().apply(s.log_conf());
+      //      } catch (const std::exception& e) {
+      //        log_v2::instance().get(log_v2::CORE)->error("main: {}",
+      //        e.what());
+      //      }
 
       com::centreon::broker::config::applier::state::instance().apply(s);
 

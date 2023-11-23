@@ -21,8 +21,8 @@
 
 #include "bbdo/events.hh"
 #include "bbdo/storage/index_mapping.hh"
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/mysql_result.hh"

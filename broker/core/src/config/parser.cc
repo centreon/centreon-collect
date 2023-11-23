@@ -24,8 +24,8 @@
 #include <absl/strings/str_split.h>
 #include <streambuf>
 
+#include "broker/core/misc/filesystem.hh"
 #include "com/centreon/broker/exceptions/deprecated.hh"
-#include "com/centreon/broker/misc/filesystem.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;

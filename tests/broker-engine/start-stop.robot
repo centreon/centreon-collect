@@ -481,7 +481,6 @@ Start_Stop_Broker_Engine_${id}
     END
     ${start}    Get Current Date
 
-
     Start Broker
     Start Engine
     ${content}    Create List    create feeder central-broker-master-input
@@ -493,7 +492,7 @@ Start_Stop_Broker_Engine_${id}
     ${stop_broker}    Get Current Date
     Kindly Stop Broker
     ${content}    Create List    failover central-module-master-output: connection closed
-    ${result}    Find In Log With Timeout    ${moduleLog0}    ${stop_broker}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${stop_broker}    ${content}    60
     Should Be True    ${result}    connection closed not found
     Examples:    id    grpc    --
     ...    1    False

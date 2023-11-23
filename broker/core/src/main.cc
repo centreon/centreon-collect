@@ -33,6 +33,8 @@
 #include <future>
 #include <thread>
 
+#include "broker/core/misc/misc.hh"
+
 namespace asio = boost::asio;
 
 // with this define boost::interprocess doesn't need Boost.DataTime
@@ -43,13 +45,13 @@ namespace asio = boost::asio;
 #include <boost/interprocess/containers/string.hpp>
 #include <boost/interprocess/managed_mapped_file.hpp>
 
+#include "broker/core/misc/diagnostic.hh"
 #include "com/centreon/broker/brokerrpc.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/init.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/misc/diagnostic.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 
@@ -167,6 +169,7 @@ int main(int argc, char* argv[]) {
 
   log_v2::load("cbd", {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESSING,
                        log_v2::SQL, log_v2::STATS});
+  ADD_DEBUG(misc::LOG_V2);
   auto core_logger = log_v2::instance().get(log_v2::CORE);
 
   // Set configuration update handler.
@@ -339,6 +342,8 @@ int main(int argc, char* argv[]) {
   core_logger->info("main: process {} pid:{} end exit_code:{}", argv[0],
                     getpid(), retval);
 
+  CHECK_DEBUG(misc::LOG_V2);
   log_v2::unload();
+  SUB_DEBUG(misc::LOG_V2);
   return retval;
 }

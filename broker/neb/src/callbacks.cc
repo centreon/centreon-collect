@@ -21,11 +21,11 @@
 #include <absl/strings/str_split.h>
 #include <unistd.h>
 
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/config/state.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/callback.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/initial.hh"
@@ -303,10 +303,15 @@ int neb::callback_comment(int callback_type, void* data) {
       comment->data =
           misc::string::check_string_utf8(comment_data->comment_data);
     comment->comment_type = comment_data->comment_type;
-    if (NEBTYPE_COMMENT_DELETE == comment_data->type)
+    if (NEBTYPE_COMMENT_DELETE == comment_data->type) {
       comment->deletion_time = time(nullptr);
+      neb_logger->debug("callbacks: comment with deletion time {}",
+                        comment->deletion_time);
+    }
     comment->entry_time = comment_data->entry_time;
     comment->entry_type = comment_data->entry_type;
+    if (comment->entry_type == 4)
+      neb_logger->debug("callbacks: comment about acknowledgement");
     comment->expire_time = comment_data->expire_time;
     comment->expires = comment_data->expires;
     if (comment_data->service_id) {
@@ -372,22 +377,29 @@ int neb::callback_pb_comment(int, void* data) {
       (comment_data->comment_type == com::centreon::engine::comment::type::host)
           ? com::centreon::broker::Comment_Type_HOST
           : com::centreon::broker::Comment_Type_SERVICE);
-  if (NEBTYPE_COMMENT_DELETE == comment_data->type)
+  if (NEBTYPE_COMMENT_DELETE == comment_data->type) {
     comment.set_deletion_time(time(nullptr));
+    neb_logger->debug("callbacks: comment with deletion time {}",
+                      comment.deletion_time());
+  }
   comment.set_entry_time(comment_data->entry_time);
   switch (comment_data->entry_type) {
     case com::centreon::engine::comment::e_type::user:
       comment.set_entry_type(com::centreon::broker::Comment_EntryType_USER);
+      neb_logger->debug("callbacks: comment from a user");
       break;
     case com::centreon::engine::comment::e_type::downtime:
       comment.set_entry_type(com::centreon::broker::Comment_EntryType_DOWNTIME);
+      neb_logger->debug("callbacks: comment about downtime");
       break;
     case com::centreon::engine::comment::e_type::flapping:
       comment.set_entry_type(com::centreon::broker::Comment_EntryType_FLAPPING);
+      neb_logger->debug("callbacks: comment about flapping");
       break;
     case com::centreon::engine::comment::e_type::acknowledgment:
       comment.set_entry_type(
           com::centreon::broker::Comment_EntryType_ACKNOWLEDGMENT);
+      neb_logger->debug("callbacks: comment about acknowledgement");
       break;
     default:
       break;
@@ -2011,41 +2023,26 @@ int neb::callback_host_status(int callback_type, void* data) {
     // Acknowledgement event.
     auto it =
         gl_acknowledgements.find(std::make_pair(host_status->host_id, 0u));
-    bool ack_to_remove = false;
     if (it != gl_acknowledgements.end() && !host_status->acknowledged) {
-      neb_logger->debug("acknowledgement found on host {}",
-                        host_status->host_id);
       if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
         neb::pb_acknowledgement* a =
             static_cast<neb::pb_acknowledgement*>(it->second.get());
-        // UP or (normal ack and changed state)
-        if (host_status->current_state == 0 ||
-            (!a->obj().sticky() && host_status->current_state !=
-                                       static_cast<short>(a->obj().state()))) {
-          neb_logger->debug(
-              "acknowledgement: state: {} previous state: {} - sticky: {}",
-              host_status->current_state, a->obj().state(), a->obj().sticky());
+        if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
+              || (!a->obj().sticky() &&
+                  host_status->current_state !=
+                      static_cast<short>(a->obj().state())))) {
           a->mut_obj().set_deletion_time(time(nullptr));
           gl_publisher.write(std::move(it->second));
-          ack_to_remove = true;
         }
       } else {
         neb::acknowledgement* a =
             static_cast<neb::acknowledgement*>(it->second.get());
-        // UP or (normal ack and changed state)
-        if (host_status->current_state == 0 ||
-            (!a->is_sticky && host_status->current_state != a->state)) {
-          neb_logger->debug(
-              "acknowledgement: state: {} previous state: {} - sticky: {}",
-              host_status->current_state, a->state, a->is_sticky);
+        if (!(!host_status->current_state  // !(OK or (normal ack and NOK))
+              || (!a->is_sticky && host_status->current_state != a->state))) {
           a->deletion_time = time(nullptr);
           gl_publisher.write(std::move(it->second));
-          ack_to_remove = true;
         }
       }
-    }
-    if (ack_to_remove) {
-      neb_logger->debug("acknowledgement removed");
       gl_acknowledgements.erase(it);
     }
     neb_logger->debug("Still {} running acknowledgements",
@@ -2138,40 +2135,27 @@ int neb::callback_pb_host_status(int callback_type, void* data) noexcept {
 
   // Acknowledgement event.
   auto it = gl_acknowledgements.find(std::make_pair(hscr.host_id(), 0u));
-  bool ack_to_remove = false;
   if (it != gl_acknowledgements.end() &&
       hscr.acknowledgement_type() == AckType::NONE) {
     if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
       neb_logger->debug("acknowledgement found on host {}", hscr.host_id());
       neb::pb_acknowledgement* a =
           static_cast<neb::pb_acknowledgement*>(it->second.get());
-      // UP or (normal ack and changed state)
-      if (hscr.state() == 0 ||
-          (!a->obj().sticky() &&
-           hscr.state() != static_cast<short>(a->obj().state()))) {
-        neb_logger->debug(
-            "acknowledgement: state: {} previous state: {} - sticky: {}",
-            hscr.state(), a->obj().state(), a->obj().sticky());
+      if (!(!hscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->obj().sticky() &&
+                hscr.state() != static_cast<short>(a->obj().state())))) {
         a->mut_obj().set_deletion_time(time(nullptr));
         gl_publisher.write(std::move(it->second));
-        ack_to_remove = true;
       }
     } else {
       neb::acknowledgement* a =
           static_cast<neb::acknowledgement*>(it->second.get());
-      // UP or (normal ack and changed state)
-      if (hscr.state() == 0 || (!a->is_sticky && hscr.state() != a->state)) {
-        neb_logger->debug(
-            "acknowledgement: state: {} previous state: {} - sticky: {}",
-            hscr.state(), a->state, a->is_sticky);
+      if (!(!hscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->is_sticky && hscr.state() != a->state))) {
         a->deletion_time = time(nullptr);
         gl_publisher.write(std::move(it->second));
-        ack_to_remove = true;
       }
     }
-  }
-  if (ack_to_remove) {
-    neb_logger->debug("acknowledgement removed");
     gl_acknowledgements.erase(it);
   }
   neb_logger->debug("Still {} running acknowledgements",
@@ -3412,47 +3396,32 @@ int32_t neb::callback_pb_service_status(int callback_type [[maybe_unused]],
   // Send event(s).
   gl_publisher.write(s);
 
-  neb_logger->error("Looking for acknowledgement on service ({}:{})",
+  neb_logger->debug("Looking for acknowledgement on service ({}:{})",
                     sscr.host_id(), sscr.service_id());
   // Acknowledgement event.
   auto it = gl_acknowledgements.find(
       std::make_pair(sscr.host_id(), sscr.service_id()));
-  bool ack_to_remove = false;
   if (it != gl_acknowledgements.end() &&
       sscr.acknowledgement_type() == AckType::NONE) {
     neb_logger->info("acknowledgement found on service ({}:{})", sscr.host_id(),
                      sscr.service_id());
     if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
-      neb_logger->info("=> pb acknowledgement");
       neb::pb_acknowledgement* a =
           static_cast<neb::pb_acknowledgement*>(it->second.get());
-      // OK or (normal ack and changed state)
-      if (sscr.state() == 0 ||
-          (!a->obj().sticky() &&
-           static_cast<int32_t>(sscr.state()) != a->obj().state())) {
-        neb_logger->info(
-            "acknowledgement: state: {} previous state: {} - sticky: {}",
-            sscr.state(), a->obj().state(), a->obj().sticky());
+      if (!(!sscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->obj().sticky() && sscr.state() != a->obj().state()))) {
         a->mut_obj().set_deletion_time(time(nullptr));
         gl_publisher.write(std::move(it->second));
-        ack_to_remove = true;
       }
     } else {
       neb::acknowledgement* a =
           static_cast<neb::acknowledgement*>(it->second.get());
-      // OK or (normal ack and changed state)
-      if (sscr.state() == 0 || (!a->is_sticky && sscr.state() != a->state)) {
-        neb_logger->info(
-            "acknowledgment: state: {} previous state: {} - sticky: {}",
-            sscr.state(), a->state, a->is_sticky);
+      if (!(!sscr.state()  // !(OK or (normal ack and NOK))
+            || (!a->is_sticky && sscr.state() != a->state))) {
         a->deletion_time = time(nullptr);
         gl_publisher.write(std::move(it->second));
-        ack_to_remove = true;
       }
     }
-  }
-  if (ack_to_remove) {
-    neb_logger->info("acknowledgement removed");
     gl_acknowledgements.erase(it);
   }
   neb_logger->debug("Still {} running acknowledgements",
@@ -3568,42 +3537,30 @@ int neb::callback_service_status(int callback_type, void* data) {
     // Acknowledgement event.
     auto it = gl_acknowledgements.find(
         std::make_pair(service_status->host_id, service_status->service_id));
-    bool ack_to_remove = false;
     if (it != gl_acknowledgements.end() && !service_status->acknowledged) {
       neb_logger->debug("acknowledgement found on service ({}:{})",
                         service_status->host_id, service_status->service_id);
       if (it->second->type() == make_type(io::neb, de_pb_acknowledgement)) {
         neb::pb_acknowledgement* a =
             static_cast<neb::pb_acknowledgement*>(it->second.get());
-        // OK or (normal ack and changed state)
-        if (service_status->current_state == 0 ||
-            (!a->obj().sticky() && service_status->current_state !=
-                                       static_cast<short>(a->obj().state()))) {
-          neb_logger->debug(
-              "acknowledgement: state: {} previous state: {} - sticky: {}",
-              service_status->current_state, a->obj().state(),
-              a->obj().sticky());
+        // !(OK or (normal ack and CHANGED))
+        if (!(service_status->current_state == 0 ||
+              (!a->obj().sticky() &&
+               service_status->current_state !=
+                   static_cast<short>(a->obj().state())))) {
           a->mut_obj().set_deletion_time(time(nullptr));
           gl_publisher.write(std::move(it->second));
-          ack_to_remove = true;
         }
       } else {
         neb::acknowledgement* a =
             static_cast<neb::acknowledgement*>(it->second.get());
-        // (OK or (normal ack and changed state)
-        if (service_status->current_state == 0 ||
-            (!a->is_sticky && service_status->current_state != a->state)) {
-          neb_logger->debug(
-              "acknowledgement: state: {} previous state: {} - sticky: {}",
-              service_status->current_state, a->state, a->is_sticky);
+        if (!(!service_status->current_state  // !(OK or (normal ack and NOK))
+              ||
+              (!a->is_sticky && service_status->current_state != a->state))) {
           a->deletion_time = time(nullptr);
           gl_publisher.write(std::move(it->second));
-          ack_to_remove = true;
         }
       }
-    }
-    if (ack_to_remove) {
-      neb_logger->debug("acknowledgement removed");
       gl_acknowledgements.erase(it);
     }
     neb_logger->debug("Still {} running acknowledgements",

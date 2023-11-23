@@ -618,15 +618,17 @@ def check_acknowledgement_is_deleted_with_timeout(ack_id: int, timeout: int, whi
                 cursor.execute(
                     f"SELECT c.deletion_time, a.entry_time, a.deletion_time FROM comments c LEFT JOIN acknowledgements a ON c.host_id=a.host_id AND c.service_id=a.service_id AND c.entry_time=a.entry_time WHERE c.entry_type=4 AND a.acknowledgement_id={ack_id}")
                 result = cursor.fetchall()
-                logger.console(result)
-                if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) > int(result[0]['entry_time']):
-                    if which == 'BOTH' and not result[0]['a.deletion_time']:
+                logger.console(f"### {result}")
+                if len(result) > 0 and result[0]['deletion_time'] is not None and int(result[0]['deletion_time']) >= int(result[0]['entry_time']):
+                    if which == 'BOTH':
+                        if result[0]['a.deletion_time']:
+                            return True
                         logger.console(
                             f"Acknowledgement {ack_id} is only deleted in comments")
                     else:
                         logger.console(
                             f"Acknowledgement {ack_id} is deleted at {result[0]['deletion_time']}")
-                    return True
+                        return True
         time.sleep(1)
     return False
 
