@@ -18,7 +18,7 @@
  */
 #include "com/centreon/broker/config/parser.hh"
 #include <gtest/gtest.h>
-#include "com/centreon/broker/misc/misc.hh"
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

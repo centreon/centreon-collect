@@ -18,9 +18,9 @@
 #include <fmt/format.h>
 
 #include "bbdo/storage/index_mapping.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/config/applier/state.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/sql/mysql_result.hh"
 #include "com/centreon/broker/sql/query_preparator.hh"
@@ -3857,21 +3857,17 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
   auto s{static_cast<const neb::pb_service_status*>(d.get())};
   auto& sscr = s->obj();
 
-  SPDLOG_LOGGER_DEBUG(_logger_sql,
-                      "unified_sql: processing pb service status of ({}, {}) - "
-                      "state {} - type {} check result output: <<{}>>",
-                      sscr.host_id(), sscr.service_id(), sscr.state(),
-                      sscr.state_type(), sscr.output());
   SPDLOG_LOGGER_DEBUG(
       _logger_sql,
-      "unified_sql: service ({}, {}) status check result perfdata: <<{}>>",
-      sscr.host_id(), sscr.service_id(), sscr.perfdata());
+      "unified_sql: processing pb service status of ({}, {}) - "
+      "state {} - type {} check result output: <<{}>> perfdata: <<{}>>",
+      sscr.host_id(), sscr.service_id(), sscr.state(), sscr.state_type(),
+      sscr.output(), sscr.perfdata());
 
   if (!_host_instance_known(sscr.host_id())) {
     SPDLOG_LOGGER_WARN(_logger_sql,
                        "unified_sql: pb service status ({}, {}) thrown away "
-                       "because host {} is not "
-                       "known by any poller",
+                       "because host {} is not known by any poller",
                        sscr.host_id(), sscr.service_id(), sscr.host_id());
     return;
   }
@@ -4002,7 +3998,13 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
           _cache_host_instance[static_cast<uint32_t>(sscr.host_id())]);
       size_t output_size = misc::string::adjust_size_utf8(
           sscr.output(), get_resources_col_size(resources_output));
+      _logger_sql->debug(
+          "unified_sql: pb service status ({}, {}) {} in resources",
+          sscr.host_id(), sscr.service_id(), sscr.state());
       if (_bulk_prepared_statement) {
+        _logger_sql->debug(
+            "unified_sql: BULK pb service status ({}, {}) {} in resources",
+            sscr.host_id(), sscr.service_id(), sscr.state());
         std::lock_guard<bulk_bind> lck(*_sscr_resources_bind);
         if (!_sscr_resources_bind->bind(conn))
           _sscr_resources_bind->init_from_stmt(conn);
@@ -4031,6 +4033,9 @@ void stream::_process_pb_service_status(const std::shared_ptr<io::data>& d) {
             _logger_sql, "{} waiting updates for service status in resources",
             b->current_row());
       } else {
+        _logger_sql->debug(
+            "unified_sql: NOT BULK pb service status ({}, {}) {} in resources",
+            sscr.host_id(), sscr.service_id(), sscr.state());
         _sscr_resources_update->bind_value_as_i32(0, sscr.state());
         _sscr_resources_update->bind_value_as_i32(
             1, svc_ordered_status[sscr.state()]);

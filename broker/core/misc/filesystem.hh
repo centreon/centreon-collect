@@ -16,30 +16,26 @@
 ** For more information : contact@centreon.com
 */
 
-#ifndef CCB_MISC_DIAGNOSTIC_HH
-#define CCB_MISC_DIAGNOSTIC_HH
+#ifndef CCB_MISC_FILESYSTEM_HH
+#define CCB_MISC_FILESYSTEM_HH
+#include <list>
+#include <string>
 
 namespace com::centreon::broker {
 
 namespace misc {
-/**
- *  @class diagnostic diagnostic.hh "com/centreon/broker/misc/diagnostic.hh"
- *  @brief Generate diagnostic files.
- *
- *  Generate diagnostic files to resolve Centreon Broker issues.
- */
-class diagnostic {
- public:
-  diagnostic();
-  diagnostic(diagnostic const& right);
-  ~diagnostic() throw();
-  diagnostic& operator=(diagnostic const& right);
-  void generate(std::vector<std::string> const& cfg_files,
-                std::string const& out_file = "");
-  static int exec_process(char const** argv, bool wait_for_completion);
-};
+namespace filesystem {
+std::list<std::string> dir_content(std::string const& path, bool recursive);
+std::list<std::string> dir_content_with_filter(std::string const& path,
+                                               std::string const& filter);
+bool file_exists(std::string const& path);
+bool dir_exists(std::string const& path);
+bool mkpath(std::string const& path);
+int64_t file_size(const std::string& path) noexcept;
+bool writable(const std::string& name);
+bool readable(const std::string& name);
+}  // namespace filesystem
 }  // namespace misc
 
 }  // namespace com::centreon::broker
-
-#endif  // !CCB_MISC_DIAGNOSTIC_HH
+#endif /* CCB_MISC_FILESYSTEM_HH */

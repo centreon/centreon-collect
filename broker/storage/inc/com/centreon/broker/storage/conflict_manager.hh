@@ -19,10 +19,10 @@
 #define CCB_SQL_CONFLICT_MANAGER_HH
 
 #include <absl/hash/hash.h>
+#include "broker/core/misc/mfifo.hh"
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/mfifo.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 #include "com/centreon/broker/storage/rebuilder.hh"
 #include "com/centreon/broker/storage/stored_timestamp.hh"

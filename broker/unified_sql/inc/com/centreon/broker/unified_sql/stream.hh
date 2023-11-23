@@ -29,10 +29,10 @@
 #include <unordered_map>
 
 #include "bbdo/neb.pb.h"
+#include "broker/core/misc/perfdata.hh"
+#include "broker/core/misc/shared_mutex.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
-#include "com/centreon/broker/misc/shared_mutex.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/unified_sql/bulk_bind.hh"
 #include "com/centreon/broker/unified_sql/bulk_queries.hh"

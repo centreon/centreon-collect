@@ -20,8 +20,8 @@
 #include <sys/stat.h>
 #include <csignal>
 #include <sstream>
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "test/centengine_config.hh"
 #include "test/misc.hh"
 #include "test/vars.hh"

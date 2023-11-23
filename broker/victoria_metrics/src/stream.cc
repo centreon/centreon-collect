@@ -19,7 +19,7 @@
 #include "com/centreon/broker/victoria_metrics/stream.hh"
 #include "bbdo/storage/metric.hh"
 #include "bbdo/storage/status.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/victoria_metrics/request.hh"
 #include "common/log_v2/log_v2.hh"

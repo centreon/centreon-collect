@@ -149,7 +149,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   void allocation_exception_handler();
 
-  virtual void managed_map(bool create) {}
+  virtual void managed_map(bool create [[maybe_unused]]) {}
 
  public:
   using pointer = std::shared_ptr<global_cache>;

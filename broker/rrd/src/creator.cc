@@ -29,7 +29,7 @@
 #include <unistd.h>
 
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/misc/perfdata.hh"
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/rrd/creator.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "common/log_v2/log_v2.hh"

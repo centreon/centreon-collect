@@ -25,7 +25,7 @@
 #include <cstring>
 #include <ctime>
 
-#include "com/centreon/broker/misc/time.hh"
+#include "broker/core/misc/time.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/broker/sql/mysql_error.hh"
 #include "com/centreon/broker/sql/mysql_result.hh"

@@ -19,9 +19,9 @@
 
 #include "grpc_stream.grpc.pb.h"
 
+#include "broker/core/misc/trash.hh"
 #include "com/centreon/broker/grpc/server.hh"
 #include "com/centreon/broker/grpc/stream.hh"
-#include "com/centreon/broker/misc/trash.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

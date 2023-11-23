@@ -21,9 +21,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "broker/core/misc/variant.hh"
 #include "com/centreon/broker/lua/luabinding.hh"
 #include "com/centreon/broker/lua/macro_cache.hh"
-#include "com/centreon/broker/misc/variant.hh"
 
 namespace com::centreon::broker {
 

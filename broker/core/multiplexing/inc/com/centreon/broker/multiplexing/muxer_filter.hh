@@ -19,6 +19,7 @@
 #ifndef CCB_MULTIPLEXING_MUXER_FILTER_HH
 #define CCB_MULTIPLEXING_MUXER_FILTER_HH
 
+#include <cassert>
 #include "bbdo/events.hh"
 
 namespace com::centreon::broker {

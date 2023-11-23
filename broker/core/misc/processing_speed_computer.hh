@@ -18,6 +18,9 @@
 
 #ifndef CCB_MISC_PROCESSING_SPEED_COMPUTER_HH
 #define CCB_MISC_PROCESSING_SPEED_COMPUTER_HH
+#include <array>
+#include <cstdint>
+#include <ctime>
 
 namespace com::centreon::broker {
 

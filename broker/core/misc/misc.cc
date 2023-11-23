@@ -16,21 +16,26 @@
  * For more information : contact@centreon.com
  */
 
-#include "com/centreon/broker/misc/misc.hh"
+#include "broker/core/misc/misc.hh"
 
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <atomic>
 #include <cerrno>
 #include <random>
 #include <stdexcept>
 
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
+
+using com::centreon::common::log_v2::log_v2;
 
 /**
  *  Get a temporary file path.
@@ -202,6 +207,32 @@ void misc::debug(const std::string& content) {
   if (f) {
     fprintf(f, "%s\n", content.c_str());
     fclose(f);
+  }
+}
+
+static std::array<std::atomic_int, misc::DEBUG_OBJECT_SIZE> debug_object;
+
+void misc::add_debug(misc::debug_object_instance idx) {
+  debug_object[idx]++;
+}
+
+void misc::sub_debug(misc::debug_object_instance idx) {
+  debug_object[idx]--;
+}
+
+void misc::check_debug(misc::debug_object_instance idx) {
+  switch (idx) {
+    case com::centreon::broker::misc::LOG_V2:
+      for (int i = 0; i < static_cast<int>(misc::DEBUG_OBJECT_SIZE); i++) {
+        if (i != static_cast<int>(misc::LOG_V2)) {
+          if (debug_object[i] > 0)
+            log_v2::instance()
+                .get(log_v2::CORE)
+                ->error("object at range {} should be stopped", i);
+          assert(debug_object[i] == 0);
+        }
+      }
+      break;
   }
 }
 #endif

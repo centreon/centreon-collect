@@ -23,7 +23,6 @@
 #include <array>
 #include <chrono>
 #include <memory>
-#include <shared_mutex>
 #include <string>
 
 #include "config.hh"
@@ -95,11 +94,13 @@ class log_v2 {
   std::string _log_name;
   std::chrono::seconds _flush_interval;
   std::string _file_path;
-  mutable std::shared_mutex _loggers_m;
   const static std::array<std::string, LOGGER_SIZE> _logger_name;
   std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
   std::atomic<config::logger_type> _current_log_type =
       config::logger_type::LOGGER_STDOUT;
+  size_t _current_max_size = 0U;
+  bool _log_pid = false;
+  bool _log_source = false;
 
  public:
   static void load(const std::string& name,
@@ -110,12 +111,11 @@ class log_v2 {
   log_v2(const log_v2&) = delete;
   log_v2& operator=(const log_v2&) = delete;
   ~log_v2() noexcept = default;
-  logger_id get_id(const std::string& name) const;
+  logger_id get_id(const std::string& name) const noexcept;
 
   std::chrono::seconds flush_interval();
   void set_flush_interval(uint32_t second_flush_interval);
-  void create_logger(const logger_id id);
-  // std::shared_ptr<spdlog::logger> get(const std::string& name);
+  std::shared_ptr<spdlog::logger> create_logger(const logger_id id);
   std::shared_ptr<spdlog::logger> get(const logger_id idx);
   void apply(const config& conf);
   bool contains_logger(std::string_view logger) const;

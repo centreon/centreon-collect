@@ -61,12 +61,12 @@ bool broker_module_deinit() {
  */
 void broker_module_init(void const* arg) {
   (void)arg;
+  auto logger = log_v2::instance().create_logger(log_v2::GRPC);
 
   // Increment instance number.
   if (!instances++) {
     // TCP module.
-    SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
-                       "Module for Centreon Broker {}",
+    SPDLOG_LOGGER_INFO(logger, "Module for Centreon Broker {}",
                        CENTREON_BROKER_VERSION);
 
     // Register TCP protocol.

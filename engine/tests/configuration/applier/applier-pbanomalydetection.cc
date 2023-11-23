@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -64,7 +64,6 @@ TEST_F(ApplierPbAnomalydetection,
 // Then the applier add_object throws an exception.
 TEST_F(ApplierPbAnomalydetection, PbNewHostWithoutHostId) {
   configuration::applier::host hst_aply;
-  configuration::applier::service ad_aply;
   configuration::Anomalydetection ad;
   configuration::anomalydetection_helper hlp(&ad);
   configuration::Host hst;
