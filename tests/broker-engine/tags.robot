@@ -13,7 +13,7 @@ Library             ../resources/specific-duplication.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Init Test
-Test Teardown       Save Logs If Failed
+Test Teardown       Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -42,8 +42,6 @@ BETAG1
     Should Be True    ${result}    tag20 should be of type 3
     ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
-    Stop Engine
-    Kindly Stop Broker
 
 BETAG2
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
@@ -71,8 +69,6 @@ BETAG2
     Should Be True    ${result}    tag20 should be of type 3
     ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG1
     [Documentation]    Engine is configured with some tags. When broker receives them through unified_sql stream, it stores them in the centreon_storage.tags table. Broker is started before.
@@ -101,8 +97,6 @@ BEUTAG1
     Should Be True    ${result}    tag20 should be of type 3
     ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG2
     [Documentation]    Engine is configured with some tags. A new service is added with a tag. Broker should make the relations.
@@ -146,8 +140,6 @@ BEUTAG2
 
     ${result}    Check Resources Tags With Timeout    1    ${svc}    servicegroup    [4]    60
     Should Be True    ${result}    New service should have a service group tag of id 4.
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG3
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.tags table. Engine is started before.
@@ -177,8 +169,6 @@ BEUTAG3
     Should Be True    ${result}    tag20 should be of type 3
     ${result}    Check Tag With Timeout    tag1    0    30
     Should Be True    ${result}    tag1 should be of type 0
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG4
     [Documentation]    Engine is configured with some tags. Group tags tag9, tag13 are set to services 1 and 3. Category tags tag3 and tag11 are added to services 1, 3, 5 and 6. The centreon_storage.resources and resources_tags tables are well filled.
@@ -215,8 +205,6 @@ BEUTAG4
     Should Be True    ${result}    Service (1, 3) should have servicecategory tag ids 2, 4
     ${result}    Check Resources Tags With Timeout    1    5    servicecategory    [2, 4]    60
     Should Be True    ${result}    Service (1, 5) should have servicecategory tag ids 2, 4
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG5
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled.
@@ -253,8 +241,6 @@ BEUTAG5
     Should Be True    ${result}    Host 2 should have hostcategory tags 2 and 3
     ${result}    Check Resources Tags With Timeout    0    3    hostcategory    [2, 3]    60
     Should Be True    ${result}    Host 3 should have hostcategory tags 2 and 3
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG6
     [Documentation]    Engine is configured with some tags. When broker receives them, it stores them in the centreon_storage.resources_tags table. Engine is started before.
@@ -293,8 +279,6 @@ BEUTAG6
     Should Be True    ${result}    Service (1, 1) should have servicegroup tag_id 2 and 4.
     ${result}    Check Resources Tags With Timeout    1    1    servicecategory    [3,5]    60
     Should Be True    ${result}    Service (1, 1) should have servicecategory tag_id 3 and 5.
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG7
     [Documentation]    Some services are configured with tags on two pollers. Then tags configuration is modified.
@@ -358,8 +342,6 @@ BEUTAG7
     ${result}    Check Resources Tags With Timeout    26    508    servicegroup    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 508) should have servicegroup tags 3 and 5
 
-    [Teardown]    Stop Engine Broker And Save Logs
-
 BEUTAG8
     [Documentation]    Services have tags provided by templates.
     [Tags]    broker    engine    protobuf    bbdo    tags
@@ -415,9 +397,6 @@ BEUTAG8
 
     ${result}    Check Resources Tags With Timeout    26    503    servicegroup    [7]    60
     Should Be True    ${result}    First step: Service (26, 503) should have servicegroup tag 7
-
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG9
     [Documentation]    hosts have tags provided by templates.
@@ -481,9 +460,6 @@ BEUTAG9
 
     ${result}    Check Resources Tags With Timeout    0    33    hostgroup    [9]    60
     Should Be True    ${result}    First step: host 33 should have hostgroup tag with id=14
-
-    Stop Engine
-    Kindly Stop Broker
 
 BEUTAG10
     [Documentation]    some services are configured with tags on two pollers. Then tags are removed from some of them and in centreon_storage, we can observe resources_tags table updated.
@@ -551,9 +527,6 @@ BEUTAG10
     ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60    False
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
 
-    Stop Engine
-    Kindly Stop Broker
-
 BEUTAG11
     [Documentation]    some services are configured with tags on two pollers. Then several tags are removed, and we can observe resources_tags table updated.
     [Tags]    broker    engine    protobuf    bbdo    tags
@@ -620,9 +593,6 @@ BEUTAG11
     ${result}    Check Resources Tags With Timeout    26    503    servicecategory    [3,5]    60
     Should Be True    ${result}    Second step: Service (26, 503) should not have servicecategory tags 3 and 5
 
-    Stop Engine
-    Kindly Stop Broker
-
 BEUTAG12
     [Documentation]    Engine is configured with some tags. Group tags tag2, tag6 are set to hosts 1 and 2. Category tags tag4 and tag8 are added to hosts 2, 3, 4. The resources and resources_tags tables are well filled. The tag6 and tag8 are removed and resources_tags is also well updated.
     [Tags]    broker    engine    protobuf    bbdo    tags
@@ -678,8 +648,65 @@ BEUTAG12
     ${result}    Check Resources Tags With Timeout    0    4    hostcategory    [2,3]    60    False
     Should Be True    ${result}    Host 4 should not have hostgroup tags 2 nor 3
 
-    Stop Engine
-    Kindly Stop Broker
+BEUTAG_REMOVE_HOST_FROM_HOSTGROUP
+    [Documentation]    remove a host from hostgroup, reload, insert 2 host in the hostgroup must not make sql error
+    [Tags]    broker    engine    tags
+    Clear Db    tags
+    Config Engine    ${1}
+    Create Tags File    ${0}    ${3}    ${0}    hostgroup
+    Config Engine Add Cfg File    ${0}    tags.cfg
+    Add Tags To Hosts    ${0}    group_tags    2    1
+    Add Tags To Hosts    ${0}    group_tags    1    4
+    Config Broker    central
+    Config Broker    rrd
+    Config Broker    module
+    Config Broker Sql Output    central    unified_sql
+    Config BBDO3    1
+    Broker Config Log    module0    neb    debug
+    Broker Config Log    central    sql    trace
+    Clear Retention
+    Sleep    1s
+    ${start}    Get Current Date
+    Start Engine
+    Start Broker
+
+    # Let's wait for the external command check start
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message telling check_for_external_commands() should be available.
+
+    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    True
+    Should Be True    ${result}    Host 1 should not have hostgroup tags 2
+
+    ${content}    Create List    unified_sql:_check_queues
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message unified_sql:_check_queues should be available.
+
+    Engine Config Remove Service Host    ${0}    host_1
+    Engine Config Remove Host    0    host_1
+    Engine Config Remove Tag    0    2
+    Reload Engine
+
+    ${result}    Check Resources Tags With Timeout    0    1    hostgroup    [2]    60    False
+    Should Be True    ${result}    Host 1 should not have hostgroup tags 2
+
+    # wait for commits
+    ${start}    Get Current Date
+    ${content}    Create List    unified_sql:_check_queues
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
+    Should Be True    ${result}    A message unified_sql:_check_queues should be available.
+
+    Sleep    5
+
+    Create Tags File    ${0}    ${3}    ${0}    hostgroup
+    Add Tags To Hosts    ${0}    group_tags    2    [2,3]
+    Reload Engine
+
+    ${result}    Check Resources Tags With Timeout    0    2    hostgroup    [2]    60    True
+    Should Be True    ${result}    Host 2 should have hostgroup tags 2
+
+    ${result}    Check Resources Tags With Timeout    0    3    hostgroup    [2]    60    True
+    Should Be True    ${result}    Host 3 should have hostgroup tags 2
 
 
 *** Keywords ***
