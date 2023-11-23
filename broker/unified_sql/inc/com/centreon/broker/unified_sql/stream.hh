@@ -435,11 +435,11 @@ class stream : public io::stream {
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);
-  uint64_t _process_pb_host_in_resources(const Host h, int32_t conn);
+  uint64_t _process_pb_host_in_resources(const Host& h, int32_t conn);
   void _process_pb_host_status(const std::shared_ptr<io::data>& d);
   void _process_pb_adaptive_host(const std::shared_ptr<io::data>& d);
   void _process_pb_service(const std::shared_ptr<io::data>& d);
-  uint64_t _process_pb_service_in_resources(const Service s, int32_t conn);
+  uint64_t _process_pb_service_in_resources(const Service& s, int32_t conn);
   void _process_pb_adaptive_service(const std::shared_ptr<io::data>& d);
   void _process_pb_service_status(const std::shared_ptr<io::data>& d);
   void _process_severity(const std::shared_ptr<io::data>& d);

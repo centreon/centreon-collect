@@ -1725,9 +1725,11 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
       if (_store_in_resources) {
         res_id = _process_pb_host_in_resources(h, conn);
       }
-      if (cache_ptr && res_id) {
+      if (cache_ptr) {
         auto tag_iter = h.tags().begin();
-        cache_ptr->store_host(h.host_id(), h.name(), res_id, h.severity_id());
+        if (res_id) {
+          cache_ptr->store_host(h.host_id(), h.name(), res_id, h.severity_id());
+        }
         cache_ptr->set_host_tag(h.host_id(), [&tag_iter, &h]() -> uint64_t {
           return tag_iter == h.tags().end() ? 0 : (tag_iter++)->id();
         });
@@ -1741,7 +1743,7 @@ void stream::_process_pb_host(const std::shared_ptr<io::data>& d) {
   }
 }
 
-uint64_t stream::_process_pb_host_in_resources(const Host h, int32_t conn) {
+uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
   auto found = _resource_cache.find({h.host_id(), 0});
 
   uint64_t res_id = 0;
@@ -3273,9 +3275,10 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
     }
     if (cache_ptr) {
       auto tag_iter = s.tags().begin();
-      cache_ptr->store_service(s.host_id(), s.service_id(), s.description(),
-                               res_id, s.severity_id());
-
+      if (res_id) {
+        cache_ptr->store_service(s.host_id(), s.service_id(), s.description(),
+                                 res_id, s.severity_id());
+      }
       cache_ptr->set_serv_tag(
           s.host_id(), s.service_id(), [&tag_iter, &s]() -> uint64_t {
             return tag_iter == s.tags().end() ? 0 : (tag_iter++)->id();
@@ -3289,7 +3292,7 @@ void stream::_process_pb_service(const std::shared_ptr<io::data>& d) {
         s.description());
 }
 
-uint64_t stream::_process_pb_service_in_resources(const Service s,
+uint64_t stream::_process_pb_service_in_resources(const Service& s,
                                                   int32_t conn) {
   uint64_t res_id = 0;
 

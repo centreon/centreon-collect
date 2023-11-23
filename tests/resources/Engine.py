@@ -954,10 +954,9 @@ def engine_config_remove_service_host(idx: int, host: str):
 
 
 def engine_config_remove_host(idx: int, host: str):
-    filename = ETC_ROOT + "/centreon-engine/config{}/hosts.cfg".format(idx)
-    f = open(filename, "r")
-    lines = f.readlines()
-    f.close()
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/hosts.cfg"
+    with open(filename, "r") as f:
+        lines = f.readlines()
 
     host_name = re.compile(r"^\s*host_name\s+" + host + "\s*$")
     host_begin = re.compile(r"^define host {$")
@@ -1678,16 +1677,14 @@ def engine_config_remove_tag(poller: int, tag_id: int):
     @param tag_id  id of the tag to remove
     """
     filename = f"{CONF_DIR}/config{poller}/tags.cfg"
-    ff = open(filename, "r")
-    lines = ff.readlines()
-    ff.close()
+    with open(filename, "r") as ff:
+        lines = ff.readlines()
+
     tag_name = re.compile(f"^\s*id\s+{tag_id}\s*$")
     tag_begin = re.compile(r"^define tag {$")
     tag_end = re.compile(r"^}$")
     tag_begin_idx = 0
-    while True:
-        if (tag_begin_idx >= len(lines)):
-            break
+    while tag_begin_idx < len(lines):
         if (tag_begin.match(lines[tag_begin_idx])):
             for tag_line_idx in range(tag_begin_idx, len(lines)):
                 if (tag_name.match(lines[tag_line_idx])):

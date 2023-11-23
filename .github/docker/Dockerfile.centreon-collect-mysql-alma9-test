@@ -15,7 +15,7 @@ dnf config-manager --set-enabled crb
 
 dnf install -y epel-release
 
-dnf install -y gcc \
+dnf --best install -y gcc \
     gcc-c++ \
     gdb \
     git \
