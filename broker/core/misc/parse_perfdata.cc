@@ -21,8 +21,8 @@
 #include <cmath>
 
 #include "bbdo/storage/metric.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/sql/table_max_size.hh"
 #include "common/log_v2/log_v2.hh"
 

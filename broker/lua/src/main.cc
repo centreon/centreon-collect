@@ -70,12 +70,11 @@ bool broker_module_deinit() {
 void broker_module_init(void const* arg) {
   (void)arg;
 
+  auto logger = log_v2::instance().create_logger(log_v2::LUA);
   // Increment instance number.
   if (!instances++) {
     // generic lua module.
-    log_v2::instance()
-        .get(log_v2::CORE)
-        ->info("lua: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
+    logger->info("lua: module for Centreon Broker {}", CENTREON_BROKER_VERSION);
 
     io::events& e(io::events::instance());
 

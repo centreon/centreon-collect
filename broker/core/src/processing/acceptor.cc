@@ -20,8 +20,8 @@
 
 #include <unistd.h>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/broker/processing/feeder.hh"
 #include "common/log_v2/log_v2.hh"

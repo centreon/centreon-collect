@@ -17,8 +17,8 @@
  */
 #include <errmsg.h>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/config/applier/init.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
@@ -453,7 +453,8 @@ void mysql_connection::_statement(mysql_task* t) {
         std::chrono::system_clock::now();
     for (;;) {
       SPDLOG_LOGGER_TRACE(
-          _logger, "mysql_connection {:p}: execute statement {} attempt {}: {}",
+          _logger,
+          "mysql_connection {:p}: execute statement {:x} attempt {}: {}",
           static_cast<const void*>(this), task->statement_id, attempts, query);
       if (mysql_stmt_execute(stmt)) {
         std::string err_msg(
@@ -490,7 +491,7 @@ void mysql_connection::_statement(mysql_task* t) {
       } else {
         SPDLOG_LOGGER_TRACE(_logger,
                             "mysql_connection {:p}: success execute statement "
-                            "{} attempt {}",
+                            "{:x} attempt {}",
                             static_cast<const void*>(this), task->statement_id,
                             _stmt_query[task->statement_id]);
         _last_access = time(nullptr);
@@ -501,7 +502,7 @@ void mysql_connection::_statement(mysql_task* t) {
     }
     SPDLOG_LOGGER_TRACE(_logger,
                         "mysql_connection {:p}: end execute statement "
-                        "{} attempt {} duration {}s: {}",
+                        "{:x} attempt {} duration {}s: {}",
                         static_cast<const void*>(this), task->statement_id,
                         attempts,
                         std::chrono::duration_cast<std::chrono::seconds>(
@@ -515,7 +516,7 @@ void mysql_connection::_statement_res(mysql_task* t) {
   mysql_task_statement_res* task(static_cast<mysql_task_statement_res*>(t));
   const std::string& query = _stmt_query[task->statement_id];
   sql::stats::stmt_span stats(&_stats, task->statement_id, query);
-  SPDLOG_LOGGER_DEBUG(_logger, "mysql_connection: execute statement {}: {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "mysql_connection: execute statement {:x}: {}",
                       task->statement_id, query);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {
@@ -636,7 +637,7 @@ void mysql_connection::_statement_int(mysql_task* t) {
       static_cast<mysql_task_statement_int<T>*>(t));
   const std::string& query = _stmt_query[task->statement_id];
   sql::stats::stmt_span stats(&_stats, task->statement_id, query);
-  SPDLOG_LOGGER_DEBUG(_logger, "mysql_connection: execute statement {}: {}",
+  SPDLOG_LOGGER_DEBUG(_logger, "mysql_connection: execute statement {:x}: {}",
                       task->statement_id, query);
   MYSQL_STMT* stmt(_stmt[task->statement_id]);
   if (!stmt) {

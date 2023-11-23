@@ -284,6 +284,7 @@ endif()
 configure_file("${INC_DIR}/vars.hh.in" "${INC_DIR}/vars.hh" "@ONLY")
 
 add_subdirectory(core/multiplexing)
+add_subdirectory(core/misc)
 
 # Core library.
 set(LIBROKER_SOURCES
@@ -327,16 +328,6 @@ set(LIBROKER_SOURCES
     ${SRC_DIR}/io/raw.cc
     ${SRC_DIR}/io/stream.cc
     ${SRC_DIR}/mapping/entry.cc
-    ${SRC_DIR}/misc/diagnostic.cc
-    ${SRC_DIR}/misc/filesystem.cc
-    ${SRC_DIR}/misc/misc.cc
-    ${SRC_DIR}/misc/parse_perfdata.cc
-    ${SRC_DIR}/misc/perfdata.cc
-    ${SRC_DIR}/misc/processing_speed_computer.cc
-    ${SRC_DIR}/misc/string.cc
-    ${SRC_DIR}/misc/time.cc
-    ${SRC_DIR}/misc/uuid.cc
-    ${SRC_DIR}/misc/variant.cc
     ${SRC_DIR}/modules/handle.cc
     ${SRC_DIR}/pool.cc
     ${SRC_DIR}/persistent_cache.cc
@@ -397,16 +388,6 @@ set(LIBROKER_SOURCES
     ${INC_DIR}/mapping/entry.hh
     ${INC_DIR}/mapping/property.hh
     ${INC_DIR}/mapping/source.hh
-    ${INC_DIR}/misc/diagnostic.hh
-    ${INC_DIR}/misc/filesystem.hh
-    ${INC_DIR}/misc/misc.hh
-    ${INC_DIR}/misc/perfdata.hh
-    ${INC_DIR}/misc/processing_speed_computer.hh
-    ${INC_DIR}/misc/shared_mutex.hh
-    ${INC_DIR}/misc/string.hh
-    ${INC_DIR}/misc/time.hh
-    ${INC_DIR}/misc/trash.hh
-    ${INC_DIR}/misc/variant.hh
     ${INC_DIR}/modules/handle.hh
     ${INC_DIR}/pool.hh
     ${INC_DIR}/persistent_cache.hh
@@ -455,7 +436,7 @@ target_link_libraries(roker rokerbase dl CONAN_PKG::openssl CONAN_PKG::grpc
 
 # Standalone binary.
 add_executable(cbd ${SRC_DIR}/main.cc)
-add_dependencies(cbd multiplexing centreon_common)
+add_dependencies(cbd multiplexing centreon_common misc)
 
 # Flags needed to include all symbols in binary.
 target_link_libraries(
@@ -464,6 +445,7 @@ target_link_libraries(
   # rokerlog
   "-Wl,--whole-archive"
   log_v2
+  misc
   sql
   rokerbase
   roker

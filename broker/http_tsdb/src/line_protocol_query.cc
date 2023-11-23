@@ -17,9 +17,9 @@
 */
 
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/cache/global_cache.hh"
 #include "com/centreon/broker/http_tsdb/internal.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::broker;

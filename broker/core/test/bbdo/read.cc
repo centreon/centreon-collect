@@ -16,80 +16,80 @@
 //** For more information : contact@centreon.com
 //*/
 //
-//#include <arpa/inet.h>
-//#include <gtest/gtest.h>
-//#include <bitset>
-//#include <iostream>
-//#include "com/centreon/broker/bbdo/internal.hh"
-//#include "com/centreon/broker/bbdo/stream.hh"
-//#include "com/centreon/broker/config/applier/init.hh"
-//#include "com/centreon/broker/exceptions/msg.hh"
-//#include "com/centreon/broker/extcmd/command_request.hh"
-//#include "com/centreon/broker/extcmd/internal.hh"
-//#include "com/centreon/broker/file/stream.hh"
-//#include "com/centreon/broker/io/events.hh"
-//#include "com/centreon/broker/io/raw.hh"
-//#include "com/centreon/broker/misc/misc.hh"
-//#include "com/centreon/broker/neb/service.hh"
-//#include "com/centreon/broker/modules/loader.hh"
+// #include <arpa/inet.h>
+// #include <gtest/gtest.h>
+// #include <bitset>
+// #include <iostream>
+// #include "com/centreon/broker/bbdo/internal.hh"
+// #include "com/centreon/broker/bbdo/stream.hh"
+// #include "com/centreon/broker/config/applier/init.hh"
+// #include "com/centreon/broker/exceptions/msg.hh"
+// #include "com/centreon/broker/extcmd/command_request.hh"
+// #include "com/centreon/broker/extcmd/internal.hh"
+// #include "com/centreon/broker/file/stream.hh"
+// #include "com/centreon/broker/io/events.hh"
+// #include "com/centreon/broker/io/raw.hh"
+// #include "broker/core/misc/misc.hh"
+// #include "com/centreon/broker/neb/service.hh"
+// #include "com/centreon/broker/modules/loader.hh"
 //
 // using namespace com::centreon::broker;
 //
 //// Valid empty event (a command_request).
-//#define EMPTY_EVENT "000E000800020000000000000000000000000000"
+// #define EMPTY_EVENT "000E000800020000000000000000000000000000"
 //// This event does not have enough data for its payload.
-//#define NOT_ENOUGH_DATA_EVENT "0009000800020000000000000000000000000000"
+// #define NOT_ENOUGH_DATA_EVENT "0009000800020000000000000000000000000000"
 //// This event is of invalid type.
-//#define INVALID_EVENT_TYPE "000000420042"
+// #define INVALID_EVENT_TYPE "000000420042"
 //
-// class from_memory : public io::stream {
-// public:
-//  from_memory() : sent_data(false), _memory() {}
-//  from_memory(std::vector<char> const& memory)
-//      : sent_data{false}, _memory{memory} {}
-//  ~from_memory() {}
+//  class from_memory : public io::stream {
+//  public:
+//   from_memory() : sent_data(false), _memory() {}
+//   from_memory(std::vector<char> const& memory)
+//       : sent_data{false}, _memory{memory} {}
+//   ~from_memory() {}
 //
-//  bool read(std::shared_ptr<io::data>& d, time_t deadline = (time_t)-1) {
-//    (void)deadline;
-//    std::cout << "from memory read...\n";
-//    if (sent_data)
-//      throw exceptions::msg() << "shutdown";
-//    std::shared_ptr<io::raw> raw(new io::raw);
-//    raw->get_buffer() = _memory;
-//    d = raw;
-//    sent_data = true;
-//    return true;
-//  }
+//   bool read(std::shared_ptr<io::data>& d, time_t deadline = (time_t)-1) {
+//     (void)deadline;
+//     std::cout << "from memory read...\n";
+//     if (sent_data)
+//       throw exceptions::msg() << "shutdown";
+//     std::shared_ptr<io::raw> raw(new io::raw);
+//     raw->get_buffer() = _memory;
+//     d = raw;
+//     sent_data = true;
+//     return true;
+//   }
 //
-//  int write(std::shared_ptr<io::data> const& d) {
-//    _memory = std::static_pointer_cast<io::raw>(d)->get_buffer();
-//    return 1;
-//  }
+//   int write(std::shared_ptr<io::data> const& d) {
+//     _memory = std::static_pointer_cast<io::raw>(d)->get_buffer();
+//     return 1;
+//   }
 //
-//  std::vector<char> const& get_memory() const { return _memory; }
+//   std::vector<char> const& get_memory() const { return _memory; }
 //
-// private:
-//  bool sent_data;
-//  std::vector<char> _memory;
-//};
+//  private:
+//   bool sent_data;
+//   std::vector<char> _memory;
+// };
 //
-// class ReadTest : public ::testing::Test {
-// public:
-//  void SetUp() {
-//    // Initialization
-//    try {
-//      config::applier::init();
-//    } catch (std::exception const& e) {
-//      (void)e;
-//    }
-//    extcmd::load();
-//  }
+//  class ReadTest : public ::testing::Test {
+//  public:
+//   void SetUp() {
+//     // Initialization
+//     try {
+//       config::applier::init();
+//     } catch (std::exception const& e) {
+//       (void)e;
+//     }
+//     extcmd::load();
+//   }
 //
-//  void TearDown() {
-//    // Cleanup.
-//    config::applier::deinit();
-//  }
-//};
+//   void TearDown() {
+//     // Cleanup.
+//     config::applier::deinit();
+//   }
+// };
 //
 ///**
 // *  Compute and prepend the checksum to a packet.

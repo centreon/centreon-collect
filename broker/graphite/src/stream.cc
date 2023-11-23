@@ -18,9 +18,9 @@
 
 #include "com/centreon/broker/graphite/stream.hh"
 #include "bbdo/storage/metric.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"

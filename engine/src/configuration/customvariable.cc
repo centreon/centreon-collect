@@ -24,8 +24,8 @@ using namespace com::centreon::engine::configuration;
 customvariable::customvariable(const std::string& value, bool is_sent)
     : _value{value}, _is_sent{is_sent} {}
 
-customvariable::customvariable(customvariable const& other)
-    : _value{other._value}, _is_sent{other._is_sent} {}
+// customvariable::customvariable(customvariable const& other)
+//     : _value{other._value}, _is_sent{other._is_sent} {}
 
 // customvariable& customvariable::operator=(const customvariable& other) {
 //   if (this != &other) {

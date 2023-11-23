@@ -20,12 +20,12 @@
 
 #include <cassert>
 
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/shutdown.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/common/time.hh"
 #include "common/log_v2/log_v2.hh"

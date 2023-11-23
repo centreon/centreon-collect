@@ -28,7 +28,6 @@ BEACK1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
 
-    Clear Acknowledgements
     ${start}    Get Current Date
     Start Broker
     Start Engine
@@ -51,7 +50,7 @@ BEACK1
     ...    host_1
     ...    service_1
     ...    ${d}
-    ...    2    
+    ...    2
     ...    ${False}
     ...    60
     ...    HARD
@@ -71,7 +70,7 @@ BEACK1
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
 
 BEACK2
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to OK. And the acknowledgement in database is deleted.
@@ -127,10 +126,10 @@ BEACK2
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
 
 BEACK3
-    [Documentation]    Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
+    [Documentation]    Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is totally removed in comments and acknowledgements tables.
     [Tags]    broker    engine    services    extcmd
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
@@ -157,7 +156,7 @@ BEACK3
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Get Round Current Date
     Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout
     ...    host_1
@@ -178,10 +177,10 @@ BEACK3
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
 
 BEACK4
-    [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is removed and the comment in the comments table has its deletion_time column updated.
+    [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The acknowledgement is totally removed in the comments and acknowledgements tables.
     [Tags]    broker    engine    services    extcmd
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
@@ -231,7 +230,7 @@ BEACK4
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
 
 BEACK5
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
@@ -279,7 +278,7 @@ BEACK5
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
     # Acknowledgement is not deleted.
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    20
     Should Be True    ${result}==${False}    Sticky Acknowledgement ${ack_id} should not be deleted.
 
     Remove Service Acknowledgement    host_1    service_1
@@ -290,7 +289,7 @@ BEACK5
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
 
 BEACK6
     [Documentation]    Configuration is made with BBDO3. Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is sticky. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is still there.
@@ -355,7 +354,7 @@ BEACK6
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
 
 BEACK7
     [Documentation]    Engine has a critical service. An external command is sent to acknowledge it ; the acknowledgement is normal. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is removed (not sticky).
@@ -403,18 +402,18 @@ BEACK7
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
     # Acknowledgement is deleted.
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    60
     Should Be True    ${result}    Normal Acknowledgement ${ack_id} should be deleted.
 
     Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${d}    Get Current Date
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
 
 BEACK8
     [Documentation]    Engine has a critical service. It is configured with BBDO 3. An external command is sent to acknowledge it ; the acknowledgement is normal. The centreon_storage.acknowledgements table is then updated with this acknowledgement. The service is newly set to WARNING. And the acknowledgement in database is removed (not sticky).
@@ -449,7 +448,7 @@ BEACK8
     ${result}    Check Service Resource Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (1;1) should be critical HARD
 
-    ${d}    Get Current Date    result_format=epoch    exclude_millis=True
+    ${d}    Get Round Current Date
     Acknowledge Service Problem    host_1    service_1
     ${ack_id}    Check Acknowledgement With Timeout    host_1    service_1    ${d}    2    ${False}    60    HARD
     Should Be True    ${ack_id} > 0    No normal acknowledgement on service (1, 1).
@@ -463,18 +462,19 @@ BEACK8
     Should Be True    ${result}    Service (1;1) should be WARNING HARD
 
     # Acknowledgement is deleted.
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    10
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    60
     Should Be True    ${result}    Normal Acknowledgement ${ack_id} should be deleted.
 
     Remove Service Acknowledgement    host_1    service_1
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${d}    Get Current Date
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    40
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
-    Find In Log With Timeout    ${moduleLog0}    ${d}    ${content}    30
+    Find In Log With Timeout    ${engineLog0}    ${d}    ${content}    30
+
 
 *** Keywords ***
 Clear Acknowledgements

@@ -38,7 +38,7 @@ inline std::string& replace(std::string& str,
 std::string& trim(std::string& str) throw();
 std::string base64_encode(std::string const& str);
 bool is_number(const std::string& s);
-std::string check_string_utf8(const absl::string_view& str) noexcept;
+std::string check_string_utf8(const std::string_view& str) noexcept;
 
 /**
  * @brief This function works almost like the resize method but takes care

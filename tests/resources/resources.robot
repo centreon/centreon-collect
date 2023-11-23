@@ -11,10 +11,6 @@ ${BROKER_LIB}       ${VarRoot}/lib/centreon-broker
 ${ENGINE_LOG}       ${VarRoot}/log/centreon-engine
 ${SCRIPTS}          ${CURDIR}${/}scripts${/}
 ${centralLog}       ${BROKER_LOG}/central-broker-master.log
-${moduleLog0}       ${BROKER_LOG}/central-module-master0.log
-${moduleLog1}       ${BROKER_LOG}/central-module-master1.log
-${moduleLog2}       ${BROKER_LOG}/central-module-master2.log
-${moduleLog3}       ${BROKER_LOG}/central-module-master3.log
 ${rrdLog}           ${BROKER_LOG}/central-rrd-master.log
 
 ${engineLog0}       ${ENGINE_LOG}/config0/centengine.log
@@ -251,7 +247,6 @@ Save Logs
     Create Directory    ${failDir}
     Copy Files    ${centralLog}    ${failDir}
     Copy Files    ${rrdLog}    ${failDir}
-    Copy Files    ${moduleLog0}    ${failDir}
     Copy Files    ${engineLog0}    ${failDir}
     Copy Files    ${EtcRoot}/centreon-engine/config0/*.cfg    ${failDir}/etc/centreon-engine/config0
     Copy Files    ${EtcRoot}/centreon-broker/*.json    ${failDir}/etc/centreon-broker

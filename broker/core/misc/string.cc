@@ -16,10 +16,11 @@
 * For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/misc/string.hh"
+#include "broker/core/misc/string.hh"
 
 #include <fmt/format.h>
 
+#include <algorithm>
 #include <cassert>
 
 using namespace com::centreon::broker::misc;
@@ -84,8 +85,8 @@ bool string::is_number(const std::string& s) {
  * @return The string itself or a new string converted to UTF-8. The output
  * string should always be an UTF-8 string.
  */
-std::string string::check_string_utf8(const absl::string_view& str) noexcept {
-  absl::string_view::const_iterator it;
+std::string string::check_string_utf8(const std::string_view& str) noexcept {
+  std::string_view::const_iterator it;
   for (it = str.begin(); it != str.end();) {
     uint32_t val = (*it & 0xff);
     if ((val & 0x80) == 0) {

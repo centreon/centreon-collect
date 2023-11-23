@@ -21,10 +21,10 @@
 #include <cfloat>
 #include <cmath>
 
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/misc/string.hh"
 
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;

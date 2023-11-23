@@ -19,7 +19,11 @@
 #ifndef CCB_MISC_MISC_HH
 #define CCB_MISC_MISC_HH
 
-#include "com/centreon/broker/misc/perfdata.hh"
+#include <spdlog/spdlog.h>
+
+#include <list>
+
+#include "broker/core/misc/perfdata.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
 
 namespace com::centreon::broker::misc {
@@ -35,13 +39,28 @@ std::list<perfdata> parse_perfdata(uint32_t host_id,
                                    const char* str,
                                    std::shared_ptr<spdlog::logger> logger);
 #if DEBUG_ROBOT
+enum debug_object_instance {
+  LOG_V2,
+  STREAM_TCP_INPUT,
+  STREAM_UNIFIED_SQL,
+  DEBUG_OBJECT_SIZE,
+};
 void debug(const std::string& content);
+void add_debug(debug_object_instance idx);
+void sub_debug(debug_object_instance idx);
+void check_debug(debug_object_instance idx);
 #endif
 
 #if DEBUG_ROBOT
 #define DEBUG(content) misc::debug(content)
+#define ADD_DEBUG(idx) misc::add_debug(idx)
+#define SUB_DEBUG(idx) misc::sub_debug(idx)
+#define CHECK_DEBUG(idx) misc::check_debug(idx)
 #else
 #define DEBUG(content)
+#define ADD_DEBUG(idx)
+#define SUB_DEBUG(idx)
+#define CHECK_DEBUG(idx)
 #endif
 }  // namespace com::centreon::broker::misc
 

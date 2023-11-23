@@ -18,6 +18,8 @@
 
 #ifndef CCB_MISC_FILESYSTEM_HH
 #define CCB_MISC_FILESYSTEM_HH
+#include <list>
+#include <string>
 
 namespace com::centreon::broker::misc::filesystem {
 std::list<std::string> dir_content(std::string const& path, bool recursive);

@@ -17,7 +17,7 @@
  *
  */
 
-#include "com/centreon/broker/misc/buffer.hh"
+#include "broker/core/misc/buffer.hh"
 #include <gtest/gtest.h>
 
 using namespace com::centreon::broker::misc;

@@ -16,7 +16,7 @@
  * For more information : contact@centreon.com
  *
  */
-#include "com/centreon/broker/misc/math.hh"
+#include "broker/core/misc/math.hh"
 #include <gtest/gtest.h>
 
 using namespace com::centreon::broker::misc;

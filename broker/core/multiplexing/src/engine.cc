@@ -22,9 +22,9 @@
 
 #include <cassert>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/pool.hh"
 #include "common/log_v2/log_v2.hh"

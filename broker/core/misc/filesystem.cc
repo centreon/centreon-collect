@@ -16,7 +16,7 @@
 * For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/misc/filesystem.hh"
+#include "broker/core/misc/filesystem.hh"
 #include <dirent.h>
 #include <fnmatch.h>
 #include <sys/stat.h>

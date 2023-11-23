@@ -27,13 +27,13 @@
 #include "bbdo/bbdo/ack.hh"
 #include "bbdo/bbdo/stop.hh"
 #include "bbdo/bbdo/version_response.hh"
+#include "broker/core/misc/misc.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/bbdo/internal.hh"
 #include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/exceptions/timeout.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/misc/misc.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
 using namespace com::centreon::exceptions;

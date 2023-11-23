@@ -18,6 +18,7 @@
 
 #ifndef CCB_MISC_PERFDATA_HH
 #define CCB_MISC_PERFDATA_HH
+#include <string>
 
 namespace com::centreon::broker::misc {
 /**

@@ -16,13 +16,13 @@
 * For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/misc/diagnostic.hh"
+#include "broker/core/misc/diagnostic.hh"
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include "broker/core/misc/filesystem.hh"
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/config/parser.hh"
-#include "com/centreon/broker/misc/filesystem.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

@@ -19,10 +19,10 @@
 
 #include "grpc_stream.pb.h"
 
+#include "broker/core/misc/string.hh"
+#include "broker/core/misc/trash.hh"
 #include "com/centreon/broker/exceptions/connection_closed.hh"
 #include "com/centreon/broker/grpc/channel.hh"
-#include "com/centreon/broker/misc/string.hh"
-#include "com/centreon/broker/misc/trash.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker::grpc;

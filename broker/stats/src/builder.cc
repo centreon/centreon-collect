@@ -22,11 +22,11 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "broker/core/misc/filesystem.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/config/applier/endpoint.hh"
 #include "com/centreon/broker/config/applier/modules.hh"
 #include "com/centreon/broker/config/endpoint.hh"
-#include "com/centreon/broker/misc/filesystem.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/multiplexing/muxer.hh"
 #include "com/centreon/broker/sql/mysql_manager.hh"
 #include "com/centreon/broker/stats/helper.hh"

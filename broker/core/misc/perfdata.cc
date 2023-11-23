@@ -16,7 +16,7 @@
 * For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/misc/perfdata.hh"
+#include "broker/core/misc/perfdata.hh"
 
 #include <cmath>
 

@@ -21,7 +21,7 @@
 
 #include <nlohmann/json.hpp>
 
-#include "com/centreon/broker/misc/processing_speed_computer.hh"
+#include "broker/core/misc/processing_speed_computer.hh"
 #include "com/centreon/broker/timestamp.hh"
 
 namespace com::centreon::broker {

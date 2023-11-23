@@ -23,8 +23,8 @@
 #include <openssl/ssl.h>
 #include <string>
 
+#include "broker/core/misc/buffer.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/misc/buffer.hh"
 
 namespace com::centreon::broker {
 

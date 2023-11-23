@@ -21,9 +21,9 @@
 #include <fmt/chrono.h>
 
 #include "broker.pb.h"
+#include "broker/core/misc/math.hh"
+#include "broker/core/misc/string.hh"
 #include "com/centreon/broker/io/raw.hh"
-#include "com/centreon/broker/misc/math.hh"
-#include "com/centreon/broker/misc/string.hh"
 #include "com/centreon/broker/stats/center.hh"
 #include "common/log_v2/log_v2.hh"
 

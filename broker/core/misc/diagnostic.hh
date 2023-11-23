@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Centreon
+ * Copyright 2013 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,32 @@
  * For more information : contact@centreon.com
  */
 
-#ifndef CCB_MISC_UUID_HH_
-#define CCB_MISC_UUID_HH_
-
-#include <stdint.h>
+#ifndef CCB_MISC_DIAGNOSTIC_HH
+#define CCB_MISC_DIAGNOSTIC_HH
+#include <string>
+#include <vector>
 
 namespace com::centreon::broker {
 
 namespace misc {
-
-class Uuid {
+/**
+ *  @class diagnostic diagnostic.hh "com/centreon/broker/misc/diagnostic.hh"
+ *  @brief Generate diagnostic files.
+ *
+ *  Generate diagnostic files to resolve Centreon Broker issues.
+ */
+class diagnostic {
  public:
-  Uuid();
-  Uuid(Uuid const& uuid);
-  Uuid const& operator=(Uuid const& uuid);
-
-  bool operator==(Uuid const& uuid) const;
-
-  std::string to_string() const;
-
- private:
-  uint32_t _time_low;
-  uint16_t _time_mid;
-  uint16_t _time_hi_and_version;
-  uint8_t _clock_seq_hi_and_reserved;
-  uint8_t _clock_seq_low;
-  uint8_t _node[6];
+  diagnostic();
+  diagnostic(diagnostic const& right);
+  ~diagnostic() throw();
+  diagnostic& operator=(diagnostic const& right);
+  void generate(std::vector<std::string> const& cfg_files,
+                std::string const& out_file = "");
+  static int exec_process(char const** argv, bool wait_for_completion);
 };
 }  // namespace misc
 
 }  // namespace com::centreon::broker
 
-#endif  // CCB_MISC_UUID_HH_
+#endif  // !CCB_MISC_DIAGNOSTIC_HH

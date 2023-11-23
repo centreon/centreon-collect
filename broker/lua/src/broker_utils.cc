@@ -31,11 +31,11 @@
 #include <nlohmann/json.hpp>
 #include <sstream>
 
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 #include "common/log_v2/log_v2.hh"
 

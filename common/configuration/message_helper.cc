@@ -18,7 +18,9 @@
  */
 
 #include "common/configuration/message_helper.hh"
+
 #include <absl/strings/str_split.h>
+
 #include "com/centreon/engine/configuration/host.hh"
 #include "com/centreon/engine/configuration/service.hh"
 
@@ -224,8 +226,10 @@ absl::string_view message_helper::validate_key(
   return retval;
 }
 
-bool message_helper::insert_customvariable(absl::string_view key,
-                                           absl::string_view value) {
+bool message_helper::insert_customvariable(absl::string_view key
+                                           [[maybe_unused]],
+                                           absl::string_view value
+                                           [[maybe_unused]]) {
   return false;
 }
 

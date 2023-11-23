@@ -22,8 +22,8 @@
 #include <QSqlQuery>
 #include <cstdlib>
 #include <iostream>
+#include "broker/core/misc/misc.hh"
 #include "com/centreon/broker/exceptions/msg.hh"
-#include "com/centreon/broker/misc/misc.hh"
 #include "test/cbd.hh"
 #include "test/centengine.hh"
 #include "test/centengine_config.hh"
