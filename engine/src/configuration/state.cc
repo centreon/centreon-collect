@@ -18,7 +18,6 @@
 */
 
 #include "com/centreon/engine/configuration/state.hh"
-#include "com/centreon/engine/configuration/whitelist.hh"
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/exceptions/error.hh"
@@ -395,8 +394,6 @@ static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
 static const std::string default_rpc_listen_address("localhost");
 
-constexpr std::string_view whitelist_directory =
-    "/etc/centreon-engine-whitelist";
 
 /**
  *  Default constructor.
@@ -4765,29 +4762,4 @@ bool state::enable_macros_filter() const noexcept {
  */
 void state::enable_macros_filter(bool value) {
   _enable_macros_filter = value;
-}
-
-/**
- * @brief refresh whitelist files
- *
- */
-void state::refresh_whitelist() {
-  static const char* directories[] = {"/etc/centreon-engine-whitelist",
-                                      "/usr/share/centreon-engine-whitelist"};
-  if (!_whitelist)
-    _whitelist =
-        std::make_shared<whitelist_directories>(directories, directories + 2);
-  _whitelist->refresh();
-}
-
-/**
- * @brief test if a command line (macros calculated) is allowed by whitelist
- *
- * @param process_cmd entire final command line
- * @return true  allowed
- * @return false
- */
-bool state::cmd_allowed_by_whitelist(const std::string& process_cmd) const {
-  //_whitelist may be null in some TUs
-  return _whitelist ? _whitelist->test(process_cmd) : true;
 }

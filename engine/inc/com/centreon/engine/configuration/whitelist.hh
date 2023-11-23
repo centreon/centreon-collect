@@ -41,99 +41,69 @@ commands are executed only if they match to at least one wildcard or regex
 string
  *
  */
-class whitelist_file {
-  std::string _path;
-  time_t _last_file_write;
+class whitelist {
+  using host_serv_id = std::pair<uint64_t, uint64_t>;
+  using cmd_success = std::pair<std::string, bool>;
+
+  using cache = std::map<host_serv_id, cmd_success>;
+  // don't reorder values
+  enum e_refresh_result { no_directory, empty_directory, no_rule, rules };
 
   std::vector<std::string> _wildcards;
   std::vector<std::unique_ptr<re2::RE2>> _regex;
 
+  cache _cache;
+
+  static std::unique_ptr<whitelist> _instance;
+
   template <class ryml_tree>
-  void _read_file_content(const ryml_tree& file_content);
+  bool _read_file_content(const ryml_tree& file_content);
+
+  bool _parse_file(const std::string_view& file_path);
 
   static void init_ryml_error_handler();
 
+  e_refresh_result parse_dir(const std::string_view directory);
+
  public:
-  struct open_file_exception : public virtual boost::exception,
-                               public virtual std::exception {};
+  template <typename string_iter>
+  whitelist(string_iter dir_path_begin, string_iter dir_path_end);
 
-  struct yaml_structure_exception : public virtual boost::exception,
-                                    public virtual std::exception {};
+  whitelist(const std::string_view& file_path);
 
-  template <typename str>
-  whitelist_file(const str& path) : _path(path) {}
+  static whitelist& instance();
+  static void reload();
 
-  void parse();
+  bool empty() const { return _wildcards.empty() && _regex.empty(); }
 
-  bool test(const std::string& cmdline) const;
-
-  template <typename str>
-  static std::unique_ptr<whitelist_file> create(const str& path);
-
-  time_t get_last_file_write() const { return _last_file_write; }
+  bool is_allowed(uint64_t host_id,
+                  uint64_t service_id,
+                  const std::string& cmdline);
 
   const std::vector<std::string> get_wildcards() const { return _wildcards; }
-  const std::string& get_path() const { return _path; }
-  bool empty() const { return _wildcards.empty() && _regex.empty(); }
 };
 
-/**
- * @brief contains one whitelist_file instance by file found in _path directory
- * beware: search isn't recursive
- *
- */
-class whitelist_directory {
-  std::string _path;
-
-  std::vector<std::unique_ptr<whitelist_file>> _files;
-
- public:
-  struct bad_directory_exception : public virtual boost::exception,
-                                   public virtual std::exception {};
-
-  whitelist_directory(const std::string& path) : _path(path) {}
-
-  // don't reorder values
-  enum e_refresh_result { no_directory, empty_directory, no_rule, rules };
-
-  e_refresh_result refresh();
-
-  const std::string& get_path() const { return _path; }
-
-  bool test(const std::string& cmdline) const;
-
-  bool empty() const { return _files.empty(); }
-
-  const std::vector<std::unique_ptr<whitelist_file>>& get_files() const {
-    return _files;
+template <typename string_iter>
+whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end) {
+  init_ryml_error_handler();
+  e_refresh_result res = e_refresh_result::no_directory;
+  for (; dir_path_begin != dir_path_end; ++dir_path_begin) {
+    e_refresh_result new_res = parse_dir(*dir_path_begin);
+    if (new_res > res)
+      res = new_res;
   }
-};
-
-/**
- * @brief scan several whitelist directories
- *
- */
-class whitelist_directories {
-  std::list<whitelist_directory> _directories;
-
- public:
-  template <class dir_const_iter>
-  whitelist_directories(dir_const_iter begin, dir_const_iter end);
-
-  bool test(const std::string& cmdline) const;
-
-  void refresh();
-
-  const std::list<whitelist_directory>& get_directories() const {
-    return _directories;
-  }
-};
-
-template <class dir_const_iter>
-whitelist_directories::whitelist_directories(dir_const_iter begin,
-                                             dir_const_iter end) {
-  for (; begin != end; ++begin) {
-    _directories.emplace_back(*begin);
+  switch (res) {
+    case e_refresh_result::no_directory:
+      SPDLOG_LOGGER_INFO(
+          log_v2::config(),
+          "no whitelist directory found, all commands are accepted");
+      break;
+    case e_refresh_result::empty_directory:
+    case e_refresh_result::no_rule:
+      SPDLOG_LOGGER_INFO(log_v2::config(),
+                         "whitelist directory found, but no restrictions, "
+                         "all commands are accepted");
+      break;
   }
 }
 

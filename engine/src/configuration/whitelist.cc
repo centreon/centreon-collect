@@ -23,18 +23,20 @@
 #include <grp.h>
 #include <sys/types.h>
 
-#include <experimental/filesystem>
+#include <filesystem>
 #include <iostream>
 
 #include "absl/base/call_once.h"
 
-#include <boost/exception/all.hpp>
 #include <ryml.hpp>
 
-#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/log_v2.hh"
+#include "com/centreon/exceptions/msg_fmt.hh"
+
+#include "com/centreon/engine/configuration/whitelist.hh"
 
 using namespace com::centreon;
+using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
@@ -50,35 +52,28 @@ const std::string command_blacklist_output(
 /**
  * @brief rapidyaml call abort on error
  * the goal of these structs and local function is to throw a
- * rapid_yaml_exception instead
- *
+ * exception instead
+ * by default on error rapidyaml call abort so this handler
  */
-using err_info_rapidyaml =
-    boost::error_info<struct err_info_rapidyaml_, std::string>;
-
-struct rapid_yaml_exception : public virtual boost::exception,
-                              public virtual std::exception {};
-
-// by default on error rapidyaml call abort so this handler
 void on_rapidyaml_error(const char* buff,
                         size_t length,
                         ryml::Location loc,
                         void*) {
-  rapid_yaml_exception ex;
-  ex << boost::throw_file(loc.name.data()) << boost::throw_line(loc.line);
-  ex << err_info_rapidyaml(std::string(buff, length));
-  throw ex;
+  throw msg_fmt("fail to parse {} at line {}: {}", loc.name.data(), loc.line,
+                buff);
 }
 
 }  // namespace configuration
 
 CCE_END();
 
+std::unique_ptr<whitelist> whitelist::_instance;
+
 /**
  * @brief before using rapidyaml, we change error handler
  *
  */
-void whitelist_file::init_ryml_error_handler() {
+void whitelist::init_ryml_error_handler() {
   static absl::once_flag _initialized;
   absl::call_once(_initialized, []() {
     ryml::set_callbacks(
@@ -87,93 +82,81 @@ void whitelist_file::init_ryml_error_handler() {
 }
 
 /**
+ * @brief Construct a new whitelist::whitelist object
+ * used only by UT tests
+ *
+ * @param file_path
+ */
+whitelist::whitelist(const std::string_view& file_path) {
+  init_ryml_error_handler();
+  _parse_file(file_path);
+}
+
+/**
  * @brief read and parse a json or yaml file
+ * @return true  if file contains at least one regex or wildcard
  *
  */
-void whitelist_file::parse() {
-  size_t file_size = 0;
-  try {
-    // check file
-    struct stat infos;
-    if (::stat(_path.c_str(), &infos)) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{} doesn't exist", _path);
-      BOOST_THROW_EXCEPTION(open_file_exception()
-                            << boost::errinfo_file_name(_path));
-    }
-    if ((infos.st_mode & S_IFMT) != S_IFREG) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a regular file", _path);
-      BOOST_THROW_EXCEPTION(open_file_exception()
-                            << boost::errinfo_file_name(_path));
-    }
-    _last_file_write = infos.st_mtime;
-    if (!infos.st_size) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is an empty file", _path);
-      BOOST_THROW_EXCEPTION(open_file_exception()
-                            << boost::errinfo_file_name(_path));
-    }
-
-    struct ::group* centengine_group = getgrnam("centreon-engine");
-
-    if (centengine_group) {
-      if (infos.st_uid || infos.st_gid != centengine_group->gr_gid) {
-        SPDLOG_LOGGER_ERROR(log_v2::config(),
-                            "file {} must be owned by root@centreon-engine",
-                            _path);
-      }
-    }
-    if (infos.st_mode & S_IRWXO || (infos.st_mode & S_IRWXG) != S_IRGRP) {
-      SPDLOG_LOGGER_ERROR(log_v2::config(),
-                          "file {} must have x40 right access", _path);
-    }
-
-    file_size = infos.st_size;
-  } catch (boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to open {}: {}", _path,
-                        boost::diagnostic_information(e));
-    throw;
-  } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to open {}: {}", _path,
-                        boost::diagnostic_information(e));
-    throw;
+bool whitelist::_parse_file(const std::string_view& file_path) {
+  // check file
+  struct stat infos;
+  if (::stat(file_path.data(), &infos)) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} doesn't exist", file_path);
+    return false;
   }
+  if ((infos.st_mode & S_IFMT) != S_IFREG) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a regular file",
+                        file_path);
+    return false;
+  }
+  if (!infos.st_size) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is an empty file", file_path);
+    return false;
+  }
+
+  struct ::group* centengine_group = getgrnam("centreon-engine");
+
+  if (centengine_group) {
+    if (infos.st_uid || infos.st_gid != centengine_group->gr_gid) {
+      SPDLOG_LOGGER_ERROR(log_v2::config(),
+                          "file {} must be owned by root@centreon-engine",
+                          file_path);
+    }
+  }
+  if (infos.st_mode & S_IRWXO || (infos.st_mode & S_IRWXG) != S_IRGRP) {
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "file {} must have x40 right access",
+                        file_path);
+  }
+
+  size_t file_size = infos.st_size;
   // read file
   std::unique_ptr<char[]> buff(new char[file_size]);
   try {
-    std::ifstream f(_path);
+    std::ifstream f(file_path.data());
     size_t read = 0;
     while (read != file_size) {
       std::streamsize some_read =
           f.readsome(buff.get() + read, file_size - read);
       if (some_read < 0) {
-        BOOST_THROW_EXCEPTION(open_file_exception()
-                              << boost::errinfo_file_name(_path));
+        SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to read {}: {}");
+        return false;
       }
       read += some_read;
     }
-  } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to read {}: {}", _path,
-                        boost::diagnostic_information(e));
-    throw;
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to read {}: {}", _path,
-                        boost::diagnostic_information(e));
-    throw;
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to read {}: {}", file_path,
+                        e.what());
+    return false;
   }
-  // init rapidyaml error handler
-  init_ryml_error_handler();
   // parse file content
   try {
     // parse in place more efficient so we copy read only mapping
     ryml::Tree tree = ryml::parse_in_place(ryml::substr(buff.get(), file_size));
-    _read_file_content(tree);
-  } catch (const boost::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse {}: {}", _path,
-                        boost::diagnostic_information(e));
-    throw;
+    return _read_file_content(tree);
   } catch (const std::exception& e) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse {}: {}", _path,
-                        boost::diagnostic_information(e));
-    throw;
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "fail to parse {}: {}", file_path,
+                        e.what());
+    return false;
   }
 }
 
@@ -184,49 +167,49 @@ void whitelist_file::parse() {
  * @param file_content
  */
 template <class ryml_tree>
-void whitelist_file::_read_file_content(const ryml_tree& file_content) {
+bool whitelist::_read_file_content(const ryml_tree& file_content) {
   ryml::ConstNodeRef root = file_content["whitelist"];
   ryml::ConstNodeRef wildcards = root.find_child("wildcard");
   ryml::ConstNodeRef regexps = root.find_child("regex");
+  bool ret = false;
   if (wildcards.valid() && !wildcards.empty()) {
-    if (!wildcards.is_seq()) {  // not an array => throw
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: wildcards is not a sequence");
-      BOOST_THROW_EXCEPTION(yaml_structure_exception() << err_info_rapidyaml(
-                                "wildcards is not a sequence"));
-    }
-    for (auto wildcard : wildcards) {
-      auto value = wildcard.val();
-      std::string_view str_value(value.data(), value.size());
-      SPDLOG_LOGGER_INFO(log_v2::config(),
-                         "{} wildcard '{}' added to whitelist", _path,
-                         str_value);
-      _wildcards.emplace_back(str_value);
-    }
-  }
-  if (regexps.valid() && !regexps.empty()) {
-    if (!regexps.is_seq()) {  // not an array => throw
-      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: regexps is not a sequence");
-      BOOST_THROW_EXCEPTION(yaml_structure_exception()
-                            << err_info_rapidyaml("regexps is not a sequence"));
-    }
-    for (auto re : regexps) {
-      auto value = re.val();
-      std::string_view str_value(value.data(), value.size());
-      std::unique_ptr<re2::RE2> to_push_back =
-          std::make_unique<re2::RE2>(str_value);
-      if (to_push_back->error_code() ==
-          re2::RE2::ErrorCode::NoError) {  // success compile regex
-        SPDLOG_LOGGER_INFO(log_v2::config(),
-                           "{} regexp '{}' added to whitelist", _path,
+    if (!wildcards.is_seq()) {  // not an array => error
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: wildcard is not a sequence");
+    } else {
+      for (auto wildcard : wildcards) {
+        auto value = wildcard.val();
+        std::string_view str_value(value.data(), value.size());
+        SPDLOG_LOGGER_INFO(log_v2::config(), "wildcard '{}' added to whitelist",
                            str_value);
-        _regex.push_back(std::move(to_push_back));
-      } else {  // bad regex
-        SPDLOG_LOGGER_ERROR(
-            log_v2::config(), "fail to parse regex {}: error: {} at {} ",
-            str_value, to_push_back->error(), to_push_back->error_arg());
+        _wildcards.emplace_back(str_value);
+        ret = true;
       }
     }
   }
+  if (regexps.valid() && !regexps.empty()) {
+    if (!regexps.is_seq()) {  // not an array => error
+      SPDLOG_LOGGER_ERROR(log_v2::config(), "{}: regex is not a sequence");
+    } else {
+      for (auto re : regexps) {
+        auto value = re.val();
+        std::string_view str_value(value.data(), value.size());
+        std::unique_ptr<re2::RE2> to_push_back =
+            std::make_unique<re2::RE2>(str_value);
+        if (to_push_back->error_code() ==
+            re2::RE2::ErrorCode::NoError) {  // success compile regex
+          SPDLOG_LOGGER_INFO(log_v2::config(), "regexp '{}' added to whitelist",
+                             str_value);
+          _regex.push_back(std::move(to_push_back));
+          ret = true;
+        } else {  // bad regex
+          SPDLOG_LOGGER_ERROR(
+              log_v2::config(), "fail to parse regex {}: error: {} at {} ",
+              str_value, to_push_back->error(), to_push_back->error_arg());
+        }
+      }
+    }
+  }
+  return ret;
 }
 
 /**
@@ -236,61 +219,61 @@ void whitelist_file::_read_file_content(const ryml_tree& file_content) {
  * @return true  cmdline matches to at least one regex or wildcard
  * @return false  cmdline don't match
  */
-bool whitelist_file::test(const std::string& cmdline) const {
-  // remove double /
-  if (cmdline.find("//") != std::string::npos) {
-    std::string copy = boost::algorithm::replace_all_copy(cmdline, "//", "/");
-    for (const std::string& wildcard : _wildcards) {
-      if (!fnmatch(wildcard.c_str(), copy.c_str(), FNM_PATHNAME | FNM_PERIOD))
-        return true;
+bool whitelist::is_allowed(uint64_t host_id,
+                           uint64_t service_id,
+                           const std::string& cmdline) {
+  if (_wildcards.empty() && _regex.empty()) {
+    return true;
+  }
+  auto check_cmd_line = [&](const std::string& cmdline) -> bool {
+    cmd_success& cache_content = _cache[{host_id, service_id}];
+    if (cache_content.first == cmdline) {
+      return cache_content.second;
     }
-  } else {
+    cache_content.first = cmdline;
     for (const std::string& wildcard : _wildcards) {
       if (!fnmatch(wildcard.c_str(), cmdline.c_str(),
-                   FNM_PATHNAME | FNM_PERIOD))
+                   FNM_PATHNAME | FNM_PERIOD)) {
+        cache_content.second = true;
         return true;
+      }
     }
-  }
 
-  for (const auto& regex : _regex) {
-    if (RE2::FullMatch(cmdline, *regex))
-      return true;
-  }
-  return false;
-}
+    for (const auto& regex : _regex) {
+      if (RE2::FullMatch(cmdline, *regex)) {
+        cache_content.second = true;
+        return true;
+      }
+    }
+    cache_content.second = false;
+    return false;
+  };
 
-/**
- * @brief create a whitelist_file
- *
- * @tparam str
- * @param path  file path
- * @return std::unique_ptr<whitelist_file>  null if parse throw
- */
-template <typename str>
-std::unique_ptr<whitelist_file> whitelist_file::create(const str& path) {
-  try {
-    std::unique_ptr<whitelist_file> ret =
-        std::make_unique<whitelist_file>(path);
-    ret->parse();
-    return ret;
-  } catch (const std::exception&) {
-    return std::unique_ptr<whitelist_file>();
+  // remove double /
+  if (cmdline.find("//") != std::string::npos) {
+    return check_cmd_line(
+        boost::algorithm::replace_all_copy(cmdline, "//", "/"));
+  } else {
+    return check_cmd_line(cmdline);
   }
 }
 
 /**
- * @brief scan whitelist directory and refresh whitelist_file list
+ * @brief parse all whitelist files in a directory
  *
+ * @param directory
+ * @return whitelist::e_refresh_result
  */
-whitelist_directory::e_refresh_result whitelist_directory::refresh() {
+whitelist::e_refresh_result whitelist::parse_dir(
+    const std::string_view directory) {
   // check permissions
   struct stat dir_infos;
-  if (::stat(_path.c_str(), &dir_infos)) {
+  if (::stat(directory.data(), &dir_infos)) {
     return e_refresh_result::no_directory;
   }
   if ((dir_infos.st_mode & S_IFMT) != S_IFDIR) {
-    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a directory: {}", _path,
-                        dir_infos.st_mode);
+    SPDLOG_LOGGER_ERROR(log_v2::config(), "{} is not a directory: {}",
+                        directory, dir_infos.st_mode);
     return e_refresh_result::no_directory;
   }
 
@@ -300,152 +283,40 @@ whitelist_directory::e_refresh_result whitelist_directory::refresh() {
     if (dir_infos.st_uid || dir_infos.st_gid != centengine_group->gr_gid) {
       SPDLOG_LOGGER_ERROR(log_v2::config(),
                           "directory {} must be owned by root@centreon-engine",
-                          _path);
+                          directory);
     }
   }
 
   if (dir_infos.st_mode & S_IRWXO ||
       (dir_infos.st_mode & S_IRWXG) != S_IRGRP + S_IXGRP) {
     SPDLOG_LOGGER_ERROR(log_v2::config(),
-                        "directory {} must have 750 right access", _path);
+                        "directory {} must have 750 right access", directory);
   }
 
+  e_refresh_result res = e_refresh_result::empty_directory;
   // all must be sorted in order to perform an incremental comparaison
-  std::set<std::string> files_in_directory;
-  for (const auto& dir_entry :
-       std::experimental::filesystem::directory_iterator{_path}) {
-    if (dir_entry.status().type() ==
-        std::experimental::filesystem::file_type::regular) {
-      files_in_directory.insert(dir_entry.path().generic_string());
-    }
-  }
-
-  if (files_in_directory.empty()) {
-    _files.clear();
-    return e_refresh_result::empty_directory;
-  }
-
-  std::set<std::string>::const_iterator child_iter = files_in_directory.begin();
-  std::set<std::string>::const_iterator child_end = files_in_directory.end();
-
-  std::vector<std::unique_ptr<whitelist_file>>::iterator whitelist_iter =
-      _files.begin();
-
-  while (child_iter != child_end && whitelist_iter != _files.end()) {
-    int cmp = child_iter->compare((*whitelist_iter)->get_path());
-    if (cmp < 0) {  // new file
-      std::unique_ptr<whitelist_file> to_add =
-          whitelist_file::create(*child_iter);
-      if (to_add && !to_add->empty()) {  // file correct
-        whitelist_iter = _files.emplace(whitelist_iter, std::move(to_add));
-        ++whitelist_iter;
+  for (const auto& dir_entry : std::filesystem::directory_iterator{directory}) {
+    if (dir_entry.status().type() == std::filesystem::file_type::regular) {
+      if (res < e_refresh_result::no_rule) {
+        res = e_refresh_result::no_rule;
       }
-      ++child_iter;
-    } else if (cmp > 0) {  // deleted file
-      whitelist_iter = _files.erase(whitelist_iter);
-    } else {  // file has changed?
-      struct stat file_infos;
-      ::stat(child_iter->c_str(), &file_infos);
-      if (file_infos.st_mtime != (*whitelist_iter)->get_last_file_write()) {
-        std::unique_ptr<whitelist_file> update =
-            whitelist_file::create(*child_iter);
-        if (update && !update->empty()) {  // file correct
-          *whitelist_iter = std::move(update);
-          ++whitelist_iter;
-        } else
-          whitelist_iter = _files.erase(whitelist_iter);
-      } else {
-        ++whitelist_iter;
+      if (_parse_file(dir_entry.path().generic_string())) {
+        res = e_refresh_result::rules;
       }
-      ++child_iter;
     }
   }
-  // some files to delete?
-  while (whitelist_iter != _files.end()) {
-    whitelist_iter = _files.erase(whitelist_iter);
-  }
-  // some new files
-  for (; child_iter != child_end; ++child_iter) {
-    std::unique_ptr<whitelist_file> to_add =
-        whitelist_file::create(*child_iter);
-    if (to_add && !to_add->empty())
-      _files.emplace_back(std::move(to_add));
-  }
-  return _files.empty() ? e_refresh_result::no_rule : e_refresh_result::rules;
+  return res;
 }
 
-/**
- * @brief test cmdline with each whitelist file
- * beware, if file list is empty, return always true
- *
- * @param cmdline
- * @return true match to at least one regex or wildcard
- * @return false
- */
-bool whitelist_directory::test(const std::string& cmdline) const {
-  if (_files.empty()) {
-    return true;
+whitelist& whitelist::instance() {
+  if (!_instance) {
+    reload();
   }
-  for (const auto& file : _files) {
-    if (file->test(cmdline)) {
-      return true;
-    }
-  }
-  SPDLOG_LOGGER_DEBUG(log_v2::checks(), "command rejected by whitelist: {}",
-                      cmdline);
-  return false;
+  return *_instance;
 }
 
-/**
- * @brief test cmdline with each whitelist file
- *
- * @param cmdline
- * @return true match to at least one regex or wildcard
- * @return false
- */
-bool whitelist_directories::test(const std::string& cmdline) const {
-  if (_directories.empty()) {
-    return true;
-  }
-  bool all_empty = true;
-  for (const whitelist_directory& dir : _directories) {
-    if (dir.empty()) {
-      continue;
-    }
-    all_empty = false;
-    if (dir.test(cmdline)) {
-      return true;
-    }
-  }
-  // if all_empty == true, no whitelist expression => return always true
-  // if false, no not empty file match => test failed
-  return all_empty;
-}
-
-/**
- * @brief scan whitelist directories and refresh whitelist_file list
- *
- */
-void whitelist_directories::refresh() {
-  whitelist_directory::e_refresh_result res =
-      whitelist_directory::e_refresh_result::no_directory;
-  for (whitelist_directory& dir : _directories) {
-    whitelist_directory::e_refresh_result new_res = dir.refresh();
-    if (new_res > res) {
-      res = new_res;
-    }
-  }
-  switch (res) {
-    case whitelist_directory::e_refresh_result::no_directory:
-      SPDLOG_LOGGER_INFO(
-          log_v2::config(),
-          "no whitelist directory found, all commands are accepted");
-      break;
-    case whitelist_directory::e_refresh_result::empty_directory:
-    case whitelist_directory::e_refresh_result::no_rule:
-      SPDLOG_LOGGER_INFO(log_v2::config(),
-                         "{}: whitelist directory found, but no restrictions, "
-                         "all commands are accepted");
-      break;
-  }
+void whitelist::reload() {
+  static constexpr std::string_view directories[] = {
+      "/etc/centreon-engine-whitelist", "/usr/share/centreon-engine-whitelist"};
+  _instance = std::make_unique<whitelist>(directories, directories + 2);
 }

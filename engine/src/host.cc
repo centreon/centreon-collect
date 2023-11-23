@@ -21,15 +21,18 @@
 #include <cassert>
 
 #include <fmt/chrono.h>
+
+#include "com/centreon/engine/log_v2.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/downtimes/downtime_manager.hh"
 #include "com/centreon/engine/events/loop.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/macros.hh"
@@ -1820,7 +1823,7 @@ int host::run_async_check(int check_options,
   };
 
   // allowed by whitelist?
-  if (!config->cmd_allowed_by_whitelist(processed_cmd)) {
+  if (!configuration::whitelist::instance().is_allowed(_id, 0, processed_cmd)) {
     SPDLOG_LOGGER_ERROR(log_v2::commands(),
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "

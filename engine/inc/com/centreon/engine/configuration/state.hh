@@ -41,9 +41,6 @@
 CCE_BEGIN()
 
 namespace configuration {
-class whitelist_directories;
-
-extern const std::string command_blacklist_output;
 
 /**
  *  @class state state.hh
@@ -439,8 +436,6 @@ class state {
   void use_timezone(std::string const& value);
   bool use_true_regexp_matching() const noexcept;
   void use_true_regexp_matching(bool value);
-  void refresh_whitelist();
-  bool cmd_allowed_by_whitelist(const std::string& process_cmd) const;
 
  private:
   typedef bool (*setter_func)(state&, char const*);
@@ -668,7 +663,6 @@ class state {
   std::string _use_timezone;
   bool _use_true_regexp_matching;
 
-  std::shared_ptr<whitelist_directories> _whitelist;
 };
 }  // namespace configuration
 

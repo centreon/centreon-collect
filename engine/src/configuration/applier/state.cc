@@ -19,6 +19,8 @@
 
 #include "com/centreon/engine/configuration/applier/state.hh"
 
+#include "com/centreon/engine/log_v2.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/config.hh"
@@ -43,9 +45,9 @@
 #include "com/centreon/engine/configuration/applier/tag.hh"
 #include "com/centreon/engine/configuration/applier/timeperiod.hh"
 #include "com/centreon/engine/configuration/command.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/logging.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/objects.hh"
@@ -66,7 +68,7 @@ static bool has_already_been_loaded(false);
  *  Apply new configuration.
  *
  *  @param[in] new_cfg        The new configuration.
- *  @param[in] waiting_thread True to wait thread after calculate differences.
+ *  @param[in] waiting_thread True to wait thread after calulate differencies.
  */
 void applier::state::apply(configuration::state& new_cfg) {
   configuration::state save(*config);
@@ -1460,9 +1462,10 @@ void applier::state::_processing(configuration::state& new_cfg,
                                            diff_anomalydetections);
 
     // Apply new global on the current state.
-    if (!verify_config)
+    if (!verify_config) {
       _apply(new_cfg);
-    else {
+      whitelist::reload();
+    } else {
       try {
         _apply(new_cfg);
       } catch (std::exception const& e) {
@@ -1541,7 +1544,6 @@ void applier::state::_processing(configuration::state& new_cfg,
           << (runtimes[3] * 100.0 / runtimes[4]) << "%) estimated savings\n";
     }
 
-    config->refresh_whitelist();
   } catch (...) {
     _processing_state = state_error;
     throw;

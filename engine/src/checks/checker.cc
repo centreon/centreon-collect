@@ -20,10 +20,12 @@
 
 #include "com/centreon/engine/checks/checker.hh"
 
+#include "com/centreon/engine/log_v2.hh"
+
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
@@ -536,9 +538,15 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     res.start_time = res.end_time;
   };
 
-  if (!config->cmd_allowed_by_whitelist(processed_cmd)) {
+  if (!configuration::whitelist::instance().is_allowed(hst->host_id(), 0,
+                                                       processed_cmd)) {
     SPDLOG_LOGGER_ERROR(log_v2::commands(),
-                        "host {}: command forbidden by whitelist {}",
+                        "host {}: this command cannot be executed because of "
+                        "security restrictions on the poller. A whitelist has "
+                        "been defined, and it does not include this command.",
+                        hst->name());
+    SPDLOG_LOGGER_DEBUG(log_v2::commands(),
+                        "host {}: command not allowed by whitelist {}",
                         hst->name(), processed_cmd);
     run_failure(configuration::command_blacklist_output);
   } else {
