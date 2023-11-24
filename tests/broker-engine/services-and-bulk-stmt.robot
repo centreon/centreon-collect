@@ -61,12 +61,17 @@ EBBPS1
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
         Sleep    1s
+	log to console    STEP1
         IF    "${output}" == "((0,),)"    BREAK
+	log to console    STEP2
     END
+	log to console    STEP3
     Should Be Equal As Strings    ${output}    ((0,),)
+	log to console    STEP4
 
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    2    warning${i}
+	log to console    STEP5
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Find In Log With Timeout
