@@ -46,6 +46,7 @@ enum debug_object_instance {
   DEBUG_OBJECT_SIZE,
 };
 void debug(const std::string& content);
+void log_debug();
 void add_debug(debug_object_instance idx);
 void sub_debug(debug_object_instance idx);
 void check_debug(debug_object_instance idx);

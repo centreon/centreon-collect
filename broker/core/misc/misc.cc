@@ -35,7 +35,9 @@
 using namespace com::centreon::exceptions;
 using namespace com::centreon::broker;
 
+#if DEBUG_ROBOT
 using com::centreon::common::log_v2::log_v2;
+#endif
 
 /**
  *  Get a temporary file path.
@@ -83,8 +85,7 @@ std::string misc::exec(std::string const& cmd) {
   std::string result;
   std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd.c_str(), "r"),
                                                 pclose);
-  if (!pipe)
-    throw std::runtime_error("popen() failed!");
+  if (!pipe) throw std::runtime_error("popen() failed!");
 
   while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
     result += buffer.data();
@@ -132,8 +133,7 @@ int32_t misc::exec_process(char const** argv, bool wait_for_completion) {
 std::vector<char> misc::from_hex(std::string const& str) {
   std::vector<char> retval;
   size_t len{str.size()};
-  if (len & 1)
-    throw msg_fmt("from_hex: '{}' length should be even", str);
+  if (len & 1) throw msg_fmt("from_hex: '{}' length should be even", str);
   retval.reserve(len >> 1);
   bool valid{false};
   uint8_t value;
@@ -182,8 +182,7 @@ std::string misc::dump_filters(const multiplexing::muxer_filter& filters) {
       name_by_id[it->first] = it->second.get_name();
   }
 
-  if (all_event_container.size() == name_by_id.size())
-    return "all";
+  if (all_event_container.size() == name_by_id.size()) return "all";
 
   std::string ret;
   for (auto it = name_by_id.cbegin(), end = name_by_id.cend(); it != end; ++it)
@@ -200,8 +199,7 @@ void misc::debug(const std::string& content) {
   std::string filename{fmt::format("failed/{}.log", p)};
   FILE* f = fopen(filename.c_str(), "a");
   if (!f) {
-    if (mkdir("failed", 0755) != 0)
-      return;
+    if (mkdir("failed", 0755) != 0) return;
     f = fopen(filename.c_str(), "a");
   }
   if (f) {
@@ -212,27 +210,46 @@ void misc::debug(const std::string& content) {
 
 static std::array<std::atomic_int, misc::DEBUG_OBJECT_SIZE> debug_object;
 
-void misc::add_debug(misc::debug_object_instance idx) {
-  debug_object[idx]++;
-}
+void misc::add_debug(misc::debug_object_instance idx) { debug_object[idx]++; }
 
-void misc::sub_debug(misc::debug_object_instance idx) {
-  debug_object[idx]--;
+void misc::sub_debug(misc::debug_object_instance idx) { debug_object[idx]--; }
+
+void misc::log_debug() {
+  auto logger = log_v2::instance().get(log_v2::CORE);
+  for (uint32_t i = LOG_V2; i < DEBUG_OBJECT_SIZE; i++) {
+    debug_object_instance obj_inst = static_cast<debug_object_instance>(i);
+    switch (obj_inst) {
+      case LOG_V2:
+        logger->error("LOG_V2 => {}", debug_object[i]);
+        break;
+      case STREAM_TCP_INPUT:
+        logger->error("STREAM_TCP_INPUT => {}", debug_object[i]);
+        break;
+      case STREAM_UNIFIED_SQL:
+        logger->error("STREAM_UNIFIED_SQL => {}", debug_object[i]);
+        break;
+      default:
+        logger->error("should not be displayed");
+        break;
+    }
+  }
 }
 
 void misc::check_debug(misc::debug_object_instance idx) {
+  auto logger = log_v2::instance().get(log_v2::CORE);
+  log_debug();
   switch (idx) {
     case com::centreon::broker::misc::LOG_V2:
       for (int i = 0; i < static_cast<int>(misc::DEBUG_OBJECT_SIZE); i++) {
         if (i != static_cast<int>(misc::LOG_V2)) {
           if (debug_object[i] > 0)
-            log_v2::instance()
-                .get(log_v2::CORE)
-                ->error("object at range {} should be stopped", i);
+            logger->error("object at range {} should be stopped", i);
           assert(debug_object[i] == 0);
         }
       }
       break;
+    default:
+      logger->error("not handled");
   }
 }
 #endif
