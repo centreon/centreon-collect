@@ -38,6 +38,7 @@ set(SOURCES
 
 # Static libraries.
 add_library(misc STATIC ${SOURCES})
+add_dependencies(misc table_max_size)
 set_target_properties(misc PROPERTIES COMPILE_FLAGS "-fPIC")
 
 if(WITH_TESTING)
