@@ -285,7 +285,7 @@ BEACK5
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${d}    Get Current Date
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
@@ -350,7 +350,7 @@ BEACK6
 
     # Acknowledgement is deleted but this time, both of comments and acknowledgements tables have the deletion_time column filled
     ${d}    Get Current Date
-    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30    BOTH
+    ${result}    Check Acknowledgement Is Deleted With Timeout    ${ack_id}    30
     Should Be True    ${result}    Acknowledgement ${ack_id} should be deleted.
 
     ${content}    Create List    Still 0 running acknowledgements
