@@ -40,11 +40,11 @@ EBBPS1
     ${start_broker}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
-    ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
+    ...    A message telling check_for_external_commands() is ready should be available.
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    1    warning${i}
     END
@@ -55,12 +55,11 @@ EBBPS1
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${date}    Get Current Date    result_format=epoch
+    ${date}    Get Round Current Date
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    60
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
-        Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
     END
@@ -138,12 +137,11 @@ EBBPS2
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    ${date}    Get Current Date    result_format=epoch
+    ${date}    Get Round Current Date
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    120
         ${output}    Query
         ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%%' AND s.state <> 1
-        Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
     END
