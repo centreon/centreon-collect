@@ -159,7 +159,7 @@ EBNHG4
     Broker Config Log    central    sql    info
     Broker Config Output Set    central    central-broker-master-sql    connections_count    5
     Broker Config Output Set    central    central-broker-master-perfdata    connections_count    5
-    ${start}    Get Current Date
+    ${start}    Get Round Current Date
     Start Broker
     Start Engine
     Sleep    3s
