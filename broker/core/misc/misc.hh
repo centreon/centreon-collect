@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Centreon
+ * Copyright 2015, 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,6 +48,7 @@ enum debug_object_instance {
   DEBUG_OBJECT_SIZE,
 };
 void debug(const std::string& content);
+void log_debug();
 void add_debug(debug_object_instance idx);
 void sub_debug(debug_object_instance idx);
 void check_debug(debug_object_instance idx);
