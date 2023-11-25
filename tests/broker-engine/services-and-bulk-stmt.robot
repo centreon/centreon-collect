@@ -62,7 +62,6 @@ EBBPS1
     FOR    ${index}    IN RANGE    60
     Log To Console    STEP5
         ${output}    Query
-    Log To Console    STEP6
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
     Log To Console    STEP7
         Sleep    1s
