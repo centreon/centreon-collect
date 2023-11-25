@@ -420,7 +420,7 @@ BESSBQ1
     ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${content}    Create List    execute statement 306524174
+    ${content}    Create List    execute statement 1245300e
 
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    120
     Should Be True    ${result}    Services should be updated after the ingestion of the queue file
