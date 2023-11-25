@@ -54,19 +54,29 @@ EBBPS1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
+    Log To Console    STEP1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Log To Console    STEP2
     ${date}    Get Round Current Date
+    Log To Console    STEP3
     Log To Console    date=${date}
+    Log To Console    STEP4
     FOR    ${index}    IN RANGE    60
+    Log To Console    STEP5
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
         Sleep    1s
+    Log To Console    STEP8
         IF    "${output}" == "((0,),)"    BREAK
+    Log To Console    STEP9
     END
+    Log To Console    STEP10
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
+    Log To Console    STEP11
         Process Service Check Result    host_1    service_${i+1}    2    warning${i}
+    Log To Console    STEP12
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Find In Log With Timeout
@@ -84,6 +94,7 @@ EBBPS1
             Start Broker
         END
     END
+    Log To Console    STEP13
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    it supports column-wise binding in prepared statements
