@@ -77,17 +77,18 @@ mysql -u root_centreon -pcentreon < /tmp/centreon.sql
 git config --global --add safe.directory $PWD
 
 echo "########################### Install Robot Framework ###########################"
-cd tests
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
-
 if [ "$distrib" = "ALMALINUX" ]; then
   dnf groupinstall -y "Development Tools"
+  dnf update -y
   dnf install -y python3-devel
 else
   apt-get update
   apt-get install -y build-essential
   apt-get install -y python3-dev
 fi
+
+cd tests
+pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql python-dateutil psutil
 
 pip3 install grpcio grpcio_tools py-cpuinfo cython unqlite gitpython boto3
 
