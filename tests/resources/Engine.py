@@ -1817,7 +1817,7 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
                     for second_ind in range(first_ind, len(lines)):
                         # search cmd_id
                         m = re.search(
-                            r"\[trace\] \[\d+\]\s+connector::run:\s+id=(\d+)", lines[second_ind])
+                            r"connector::run:\s+id=(\d+)", lines[second_ind])
                         if m is not None:
                             cmd_id = m.group(1)
                             r_query_execute = rf".*\s+connector::_recv_query_execute:\s+id={cmd_id}, .*output=(.*)$"
@@ -1831,7 +1831,7 @@ def check_search(debug_file_path: str, str_to_search, timeout=TIMEOUT):
     if not cmd_executed:
         return f"_recv_query_execute not found on '{r_query_execute}'"
     else:
-        return f"check_search doesn't find '{str_to_search}'"
+        return f"check_search doesn't find <<{str_to_search}>>"
 
 
 def add_tags_to_hosts(poller: int, type: str, tag_id: str, hst_lst):
