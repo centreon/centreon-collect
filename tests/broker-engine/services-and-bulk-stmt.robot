@@ -54,30 +54,21 @@ EBBPS1
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
-    Log To Console    STEP1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    STEP2
     ${date}    Get Round Current Date
-    Log To Console    STEP3
     Log To Console    date=${date}
-    Log To Console    STEP4
     FOR    ${index}    IN RANGE    60
-    Log To Console    STEP5
+        Log To Console
+        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
         ${output}    Query
         ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
-    Log To Console    STEP7
         Sleep    1s
-    Log To Console    STEP8
         IF    "${output}" == "((0,),)"    BREAK
-    Log To Console    STEP9
     END
-    Log To Console    STEP10
     Should Be Equal As Strings    ${output}    ((0,),)
 
     FOR    ${i}    IN RANGE    ${1000}
-    Log To Console    STEP11
         Process Service Check Result    host_1    service_${i+1}    2    warning${i}
-    Log To Console    STEP12
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql: processing pb service status
             ${result}    Find In Log With Timeout
@@ -95,7 +86,6 @@ EBBPS1
             Start Broker
         END
     END
-    Log To Console    STEP13
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    it supports column-wise binding in prepared statements
@@ -226,34 +216,25 @@ EBMSSM
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${start}    Get Round Current Date
-    Log To Console    STEP1
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
-    Log To Console    STEP2
     FOR    ${i}    IN RANGE    ${1000}
-    Log To Console    STEP3
         Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    ${100}
-    Log To Console    STEP4
     END
 
-    Log To Console    STEP5
     ${duration}    Broker Get Sql Manager Stats    51001    INSERT INTO data_bin    300
     Should Be True    ${duration} > 0
 
     # Let's wait for all force checks to be in the storage database.
-    Log To Console    STEP6
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    STEP7
     FOR    ${i}    IN RANGE    ${500}
-    Log To Console    STEP8
+        Log To Console
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
         ${output}    Query
         ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
-    Log To Console    STEP9
         IF    ${output[0][0]} >= 100000    BREAK
         Sleep    1s
-    Log To Console    STEP10
     END
     Should Be True    ${output[0][0]} >= 100000
-    Log To Console    STEP11
 
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
