@@ -1074,7 +1074,6 @@ int service::handle_async_check_result(
       legacy_conf ? config->cached_service_check_horizon()
                   : pb_config.cached_service_check_horizon();
 
-  engine_logger(dbg_functions, basic) << "handle_async_service_check_result()";
   SPDLOG_LOGGER_TRACE(functions_logger, "handle_async_service_check_result()");
 
   /* get the current time */

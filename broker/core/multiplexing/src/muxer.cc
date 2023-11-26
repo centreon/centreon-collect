@@ -87,9 +87,11 @@ muxer::muxer(std::string name,
       _persistent(persistent),
       _events_size{0u},
       _last_stats{std::time(nullptr)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("muxer::muxer constructor {} {}", static_cast<void*>(this),
+              _name);
   // Load head queue file back in memory.
-  DEBUG(
-      fmt::format("CONSTRUCTOR muxer {} {}", static_cast<void*>(this), _name));
   std::lock_guard<std::mutex> lck(_mutex);
   if (_persistent) {
     try {
@@ -202,6 +204,9 @@ muxer::~muxer() noexcept {
   stats::center::instance().unregister_muxer(_name);
   unsubscribe();
   std::lock_guard<std::mutex> lock(_mutex);
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("muxer::muxer destructor {} {}", static_cast<void*>(this), _name);
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                      "Destroying muxer {}: number of events in the queue: {}",
                      _name, _events_size);
@@ -269,6 +274,9 @@ void muxer::ack_events(int count) {
  * @return The number of acknowledged events.
  */
 int32_t muxer::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("muxer::muxer stop {} {}", static_cast<void*>(this), _name);
   SPDLOG_LOGGER_INFO(log_v2::instance().get(log_v2::CORE),
                      "Stopping muxer {}: number of events in the queue: {}",
                      _name, _events_size);

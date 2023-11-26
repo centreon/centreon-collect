@@ -239,8 +239,9 @@ UNIFIED_SQL_FILTER
     # de_pb_service de_pb_service_status de_pb_host de_pb_custom_variable de_pb_log_entry de_pb_host_check
     FOR    ${event}    IN    1001b    1001d    1001e    10025    10029    10027
         ${to_search}    Catenate    central-broker-unified-sql event of type    ${event}    written
+	Log To Console    ${to_search}
         ${grep_res}    Grep File    ${centralLog}    ${to_search}
-        Should Not Be Empty    ${grep_res}
+        Should Not Be Empty    ${grep_res}    ${event} event does not seem to be written by unified_sql
     END
 
     Stop Engine

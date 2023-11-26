@@ -244,6 +244,7 @@ BEACK5
     Broker Config Log    central    sql    debug
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_level_external_command    trace
+    Engine Config Set Value    ${0}    log_level_commands    trace
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
     Clear Acknowledgements

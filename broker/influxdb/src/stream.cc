@@ -64,7 +64,11 @@ stream::stream(std::string const& user,
                                             status_cols,
                                             metric_ts,
                                             metric_cols,
-                                            _cache)} {}
+                                            _cache)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("influxdb::stream constructor {}", static_cast<void*>(this));
+}
 
 /**
  *  Flush the stream.
@@ -89,6 +93,9 @@ int32_t stream::flush() {
  * @return Number of acknowledged events.
  */
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("influxdb::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
   log_v2::instance()
       .get(log_v2::CORE)

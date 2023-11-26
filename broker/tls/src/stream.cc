@@ -43,7 +43,11 @@ stream::stream(gnutls_session_t* sess)
     : io::stream("TLS"),
       _deadline((time_t)-1),
       _session(sess),
-      _logger{log_v2::instance().get(log_v2::TLS)} {}
+      _logger{log_v2::instance().get(log_v2::TLS)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tls::stream constructor {}", static_cast<void*>(this));
+}
 
 /**
  *  @brief Destructor.
@@ -64,6 +68,9 @@ stream::~stream() {
     catch (...) {
     }
   }
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tls::stream destructor {}", static_cast<void*>(this));
 }
 
 /**

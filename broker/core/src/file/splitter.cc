@@ -55,6 +55,10 @@ splitter::splitter(std::string const& path,
       _write_m{},
       _wfile{},
       _woffset{0} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("splitter::splitter constructor {} {}", static_cast<void*>(this),
+              path);
   // Get IDs of already existing file parts. File parts are suffixed
   // with their order number. A file named /var/lib/foo would have
   // parts named /var/lib/foo, /var/lib/foo1, /var/lib/foo2, ...
@@ -112,6 +116,10 @@ splitter::splitter(std::string const& path,
  *  Destructor.
  */
 splitter::~splitter() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("splitter::splitter destructor {} {}", static_cast<void*>(this),
+              _base_path);
   close();
 }
 

@@ -49,6 +49,10 @@ stream::stream(const std::shared_ptr<asio::io_context>& io_context,
                         http_tsdb::line_protocol_query::data_type::status,
                         _logger),
       _account_id(account_id) {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("victoria_metrics::stream constructor {}",
+              static_cast<void*>(this));
   // in order to avoid reallocation of request body
   _body_size_to_reserve = conf->get_max_queries_per_transaction() *
                           (128 + std::max(conf->get_metric_columns().size(),
