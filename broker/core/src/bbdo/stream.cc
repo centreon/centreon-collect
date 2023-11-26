@@ -578,7 +578,9 @@ stream::stream(bool is_input,
       _extensions{extensions},
       _bbdo_version(config::applier::state::instance().get_bbdo_version()),
       _logger{log_v2::instance().get(log_v2::BBDO)} {
-  DEBUG(fmt::format("CONSTRUCTOR bbdo stream {}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("bbdo::stream constructor {}", static_cast<void*>(this));
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
                       "create bbdo stream {:p}",
                       static_cast<const void*>(this));
@@ -589,7 +591,9 @@ stream::stream(bool is_input,
  *
  */
 stream::~stream() {
-  DEBUG(fmt::format("DESTRUCTOR bbdo stream {}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("bbdo::stream destructor {}", static_cast<void*>(this));
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
                       "destroy bbdo stream {}", static_cast<void*>(this));
   DEBUG(fmt::format("DESTRUCTOR end of the function bbdo stream {}",
@@ -603,7 +607,9 @@ stream::~stream() {
  * @return The number of events to acknowledge.
  */
 int32_t stream::stop() {
-  DEBUG(fmt::format("STOP bbdo stream {}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("bbdo::stream stop {}", static_cast<void*>(this));
   /* A concrete explanation:
    * I'm engine and my work is to send data to broker.
    * Here, the user wants to stop me/ I need to ask broker how many

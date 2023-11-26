@@ -62,6 +62,9 @@ stream::stream(std::string const& metric_naming,
       _socket{_io_context},
       _logger{log_v2::instance().get(log_v2::GRAPHITE)},
       _cache{cache, _logger} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("graphite::stream constructor {}", static_cast<void*>(this));
   // Create the basic HTTP authentification header.
   if (!_db_user.empty() && !_db_password.empty()) {
     std::string auth{_db_user};
@@ -109,7 +112,11 @@ stream::stream(std::string const& metric_naming,
 /**
  *  Destructor.
  */
-stream::~stream() {}
+stream::~stream() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("graphite::stream destructor {}", static_cast<void*>(this));
+}
 
 /**
  *  Flush the stream.
@@ -133,6 +140,9 @@ int32_t stream::flush() {
  * @return the number of acknowledged events.
  */
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("graphite::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
   log_v2::instance()
       .get(log_v2::CORE)

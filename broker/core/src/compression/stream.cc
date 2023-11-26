@@ -1,20 +1,20 @@
-/*
-** Copyright 2011-2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2017 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/compression/stream.hh"
 
@@ -42,7 +42,11 @@ const size_t stream::max_data_size = 100000000u;
  *  @param[in] size  Compression buffer size.
  */
 stream::stream(int level, size_t size)
-    : io::stream("compression"), _level(level), _shutdown(false), _size(size) {}
+    : io::stream("compression"), _level(level), _shutdown(false), _size(size) {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("compression::stream constructor {}", static_cast<void*>(this));
+}
 
 /**
  *  Destructor.
@@ -54,6 +58,9 @@ stream::~stream() noexcept {
   // Ignore exception whatever the error might be.
   catch (...) {
   }
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("compression::stream destructor {}", static_cast<void*>(this));
 }
 
 /**
@@ -224,6 +231,9 @@ int stream::flush() {
  * @return The number of acknowledged events.
  */
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("compression::stream stop {}", static_cast<void*>(this));
   _flush();
   return 0;
 }

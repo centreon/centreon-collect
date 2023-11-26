@@ -128,11 +128,18 @@ stream::stream(const std::string& name,
       _metric_stat{{0, 0}, {0, 0}},
       _status_stat{{0, 0}, {0, 0}},
       _logger{log_v2::instance().get(log_v2::instance().get_id(name))} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("http_tsdb::stream constructor {}", static_cast<void*>(this));
   _http_client =
       http_client::client::load(io_context, _logger, conf, conn_creator);
 }
 
-stream::~stream() {}
+stream::~stream() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("http_tsdb::stream destructor {}", static_cast<void*>(this));
+}
 
 /**
  * @brief this method is the only one blocking method
@@ -305,6 +312,9 @@ int stream::write(std::shared_ptr<io::data> const& data) {
 }
 
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("http_tsdb::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
   _http_client->shutdown();
   SPDLOG_LOGGER_INFO(_logger, "{} stream stopped with {} acknowledged events",

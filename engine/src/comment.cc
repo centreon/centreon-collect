@@ -89,7 +89,7 @@ comment::comment(comment::type comment_type,
 bool comment::delete_comment(uint64_t comment_id) {
   comment_map::iterator found = comment::comments.find(comment_id);
 
-  // check that comment exist
+  // check that comment exists
   if (found != comment::comments.end() && found->second) {
     broker_comment_data(
         NEBTYPE_COMMENT_DELETE, found->second->get_comment_type(),

@@ -311,7 +311,11 @@ int neb::callback_comment(int callback_type, void* data) {
     comment->entry_time = comment_data->entry_time;
     comment->entry_type = comment_data->entry_type;
     if (comment->entry_type == 4)
-      neb_logger->debug("callbacks: comment about acknowledgement");
+      neb_logger->debug(
+          "callbacks: comment about acknowledgement entry_time:{} - "
+          "deletion_time:{} - host_id:{} - service_id:{}",
+          comment->entry_time, comment->deletion_time, comment->host_id,
+          comment->service_id);
     comment->expire_time = comment_data->expire_time;
     comment->expires = comment_data->expires;
     if (comment_data->service_id) {
