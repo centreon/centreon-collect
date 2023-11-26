@@ -56,7 +56,6 @@ class LuaTest : public ::testing::Test {
 
  public:
   void SetUp() override {
-    // log_v2::load({"core", "config", "lua"});
     _logger = log_v2::instance().get(log_v2::LUA);
 
     g_io_context->restart();

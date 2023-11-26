@@ -92,9 +92,10 @@ feeder::feeder(const std::string& name,
       _stat_timer(pool::io_context()),
       _read_from_stream_timer(pool::io_context()),
       _io_context(pool::io_context_ptr()) {
-  DEBUG(fmt::format("CONSTRUCTOR feeder {} {} - muxer: {}",
-                    static_cast<void*>(this), name,
-                    static_cast<void*>(_muxer.get())));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("feeder::feeder constructor {} {}", static_cast<void*>(this),
+              _name);
   if (!_client)
     throw msg_fmt("could not process '{}' with no client stream", _name);
 
@@ -110,6 +111,10 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("feeder::feeder destructor {} {}", static_cast<void*>(this),
+              _name);
   SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
                       "destroy feeder {}, {:p}", get_name(),
                       static_cast<const void*>(this));
@@ -268,6 +273,9 @@ void feeder::_ack_event_to_muxer(unsigned count) noexcept {
  *
  */
 void feeder::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("feeder::feeder stop {} {}", static_cast<void*>(this), _name);
   std::unique_lock<std::timed_mutex> l(_protect);
   _stop_no_lock();
   DEBUG(fmt::format("STOP feeder {}", static_cast<void*>(this)));

@@ -54,6 +54,9 @@ stream::stream(const tcp_config::pointer& conf)
       _connection(tcp_async::instance().create_connection(_conf)),
       _parent(nullptr),
       _logger{log_v2::instance().get(log_v2::TCP)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream constructor {}", static_cast<void*>(this));
   assert(_connection->port());
   _total_tcp_count++;
   _logger->trace("New stream to {}:{}", _conf->get_host(), _conf->get_port());
@@ -78,6 +81,9 @@ stream::stream(const tcp_connection::pointer& conn,
       _connection(conn),
       _parent(nullptr),
       _logger{log_v2::instance().get(log_v2::TCP)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream constructor {}", static_cast<void*>(this));
   assert(_connection->port());
   _total_tcp_count++;
   _logger->info("New stream to {}:{}", _conf->get_host(), _conf->get_port());
@@ -92,9 +98,9 @@ stream::stream(const tcp_connection::pointer& conn,
  *  Destructor.
  */
 stream::~stream() noexcept {
-  DEBUG(fmt::format("DESTRUCTOR tcp stream {} with connection {}",
-                    static_cast<void*>(this),
-                    static_cast<void*>(_connection.get())));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream destructor {}", static_cast<void*>(this));
   _total_tcp_count--;
   _logger->info(
       "TCP stream destroyed. Still {} configured on a thread pool of {} "
@@ -166,7 +172,9 @@ int32_t stream::flush() {
 }
 
 int32_t stream::stop() {
-  DEBUG(fmt::format("STOP tcp stream {}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::stream stop {}", static_cast<void*>(this));
   int32_t retval = 0;
   try {
     retval = _connection->close();

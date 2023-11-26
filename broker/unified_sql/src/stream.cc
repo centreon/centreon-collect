@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2021-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -186,6 +186,9 @@ stream::stream(const database_config& dbcfg,
            "VALUES(value)",
            _logger_sql),
       _oldest_timestamp{std::numeric_limits<time_t>::max()} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("unified_sql::stream constructor {}", static_cast<void*>(this));
   SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream class instanciation");
 
   // dedicated connections for data_bin and logs?
@@ -263,7 +266,9 @@ stream::~stream() noexcept {
   /* Let's wait a little if one of the timers is working during the cancellation
    */
   std::lock_guard<std::shared_mutex> lck(_barrier_timer_m);
-  SPDLOG_LOGGER_DEBUG(_logger_sql, "unified sql: stream destruction");
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("unified_sql::stream destructor {}", static_cast<void*>(this));
 }
 
 void stream::_load_deleted_instances() {
@@ -827,6 +832,9 @@ bool stream::read(std::shared_ptr<io::data>& d, time_t deadline) {
  * @return the number of events to ack.
  */
 int32_t stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("unified_sql::stream stop {}", static_cast<void*>(this));
   int32_t retval = flush();
   /* We give the order to stop the check_queues */
   _stop_check_queues = true;

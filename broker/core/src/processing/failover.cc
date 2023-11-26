@@ -44,27 +44,29 @@ failover::failover(std::shared_ptr<io::endpoint> endp,
     : endpoint(false, name),
       _should_exit(false),
       _state(not_started),
+      _logger{log_v2::instance().get(log_v2::PROCESSING)},
       _buffering_timeout(0),
       _endpoint(endp),
       _failover_launched(false),
       _initialized(false),
       _next_timeout(0),
       _muxer(mux),
-      _update(false),
-      _logger{log_v2::instance().get(log_v2::PROCESSING)} {
-  DEBUG(fmt::format("CONSTRUCTOR failover {} {} - muxer: {}",
-                    static_cast<void*>(this), name,
-                    static_cast<void*>(mux.get())));
-  SPDLOG_LOGGER_TRACE(log_v2::instance().get(log_v2::CORE),
-                      "failover '{}' construction.", _name);
+      _update(false) {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("failover::failover constructor {} {}", static_cast<void*>(this),
+              name);
 }
 
 /**
  *  Destructor.
  */
 failover::~failover() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("failover::failover destructor {} {}", static_cast<void*>(this),
+              _name);
   exit();
-  DEBUG(fmt::format("DESTRUCTOR failover {}", static_cast<void*>(this)));
 }
 
 /**

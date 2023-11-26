@@ -45,6 +45,9 @@ com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
       _accept(false),
       _conf(conf),
       _logger{log_v2::instance().get(log_v2::GRPC)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream constructor {}", static_cast<void*>(this));
   _channel = client::create(conf);
 }
 
@@ -54,9 +57,16 @@ com::centreon::broker::grpc::stream::stream(
       _accept(true),
       _channel(accepted),
       _conf(_channel->get_conf()),
-      _logger{log_v2::instance().get(log_v2::GRPC)} {}
+      _logger{log_v2::instance().get(log_v2::GRPC)} {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream constructor {}", static_cast<void*>(this));
+}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream destructor {}", static_cast<void*>(this));
   if (_channel)
     _channel->to_trash();
 }
@@ -124,6 +134,9 @@ int32_t com::centreon::broker::grpc::stream::flush() {
 }
 
 int32_t com::centreon::broker::grpc::stream::stop() {
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("grpc::stream stop {}", static_cast<void*>(this));
   return _channel->stop();
 }
 

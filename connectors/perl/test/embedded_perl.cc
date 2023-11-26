@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,9 +19,10 @@
 
 /* Be careful! gtest.h must be included before embedded_perl.hh */
 
+#include "com/centreon/connector/perl/embedded_perl.hh"
+
 #include <gtest/gtest.h>
 
-#include "com/centreon/connector/perl/embedded_perl.hh"
 #include "com/centreon/io/file_stream.hh"
 
 using namespace com::centreon;
@@ -45,7 +46,7 @@ TEST(EmbeddedPerl, RunSimple1) {
       rb = fs.write(data, size);
       size -= rb;
       data += rb;
-    } while ((rb > 0) && (size > 0));
+    } while (rb > 0 && size > 0);
 
     // Compile and execute script.
     int fds[3];
@@ -54,7 +55,7 @@ TEST(EmbeddedPerl, RunSimple1) {
     // Wait for child termination.
     int status;
     if (waitpid(child, &status, 0) == child)
-      retval = !(WIFEXITED(status) && (WEXITSTATUS(status) == 42));
+      retval = !(WIFEXITED(status) && WEXITSTATUS(status) == 42);
 
     ASSERT_EQ(retval, 0);
 
