@@ -2078,8 +2078,24 @@ void applier::state::apply_log_config(configuration::State& new_cfg) {
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
     log_v2::instance().apply(log_cfg);
-  } else
-    log_v2::instance().disable();
+  } else {
+    if (!new_cfg.log_file().empty())
+      log_type = log_v2_config::logger_type::LOGGER_FILE;
+    else
+      log_type = log_v2_config::logger_type::LOGGER_STDOUT;
+    log_v2_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                          new_cfg.log_pid(), new_cfg.log_file_line());
+    if (!new_cfg.log_file().empty()) {
+      log_cfg.set_log_path(new_cfg.log_file());
+      log_cfg.set_max_size(new_cfg.max_log_file_size());
+    }
+    log_v2::instance().apply(log_cfg);
+    log_v2::instance().disable(
+        {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESS, log_v2::FUNCTIONS,
+         log_v2::EVENTS, log_v2::CHECKS, log_v2::NOTIFICATIONS,
+         log_v2::EVENTBROKER, log_v2::EXTERNAL_COMMAND, log_v2::COMMANDS,
+         log_v2::DOWNTIMES, log_v2::COMMENTS, log_v2::MACROS, log_v2::RUNTIME});
+  }
   init_loggers();
 }
 
@@ -2123,8 +2139,24 @@ void applier::state::apply_log_config(configuration::state& new_cfg) {
     log_cfg.set_level("process", new_cfg.log_level_process());
     log_cfg.set_level("runtime", new_cfg.log_level_runtime());
     log_v2::instance().apply(log_cfg);
-  } else
-    log_v2::instance().disable();
+  } else {
+    if (!new_cfg.log_file().empty())
+      log_type = log_v2_config::logger_type::LOGGER_FILE;
+    else
+      log_type = log_v2_config::logger_type::LOGGER_STDOUT;
+    log_v2_config log_cfg("centengine", log_type, new_cfg.log_flush_period(),
+                          new_cfg.log_pid(), new_cfg.log_file_line());
+    if (!new_cfg.log_file().empty()) {
+      log_cfg.set_log_path(new_cfg.log_file());
+      log_cfg.set_max_size(new_cfg.max_log_file_size());
+    }
+    log_v2::instance().apply(log_cfg);
+    log_v2::instance().disable(
+        {log_v2::CORE, log_v2::CONFIG, log_v2::PROCESS, log_v2::FUNCTIONS,
+         log_v2::EVENTS, log_v2::CHECKS, log_v2::NOTIFICATIONS,
+         log_v2::EVENTBROKER, log_v2::EXTERNAL_COMMAND, log_v2::COMMANDS,
+         log_v2::DOWNTIMES, log_v2::COMMENTS, log_v2::MACROS, log_v2::RUNTIME});
+  }
   init_loggers();
 }
 

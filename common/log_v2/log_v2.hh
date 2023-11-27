@@ -96,6 +96,7 @@ class log_v2 {
   std::string _file_path;
   const static std::array<std::string, LOGGER_SIZE> _logger_name;
   std::array<std::shared_ptr<spdlog::logger>, LOGGER_SIZE> _loggers;
+  std::array<bool, LOGGER_SIZE> _slaves;
   std::atomic<config::logger_type> _current_log_type =
       config::logger_type::LOGGER_STDOUT;
   size_t _current_max_size = 0U;
@@ -124,6 +125,7 @@ class log_v2 {
   std::vector<std::pair<std::string, spdlog::level::level_enum>> levels() const;
   const std::string& log_name() const;
   void disable();
+  void disable(std::initializer_list<logger_id> ilist);
 };
 }  // namespace com::centreon::common::log_v2
 #endif /* !CCC_LOG_V2_HH */
