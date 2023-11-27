@@ -2667,8 +2667,7 @@ int service::run_async_check_local(int check_options,
   };
 
   // allowed by whitelist?
-  if (!configuration::whitelist::instance().is_allowed(_host_id, _service_id,
-                                                       processed_cmd)) {
+  if (!is_whitelist_allowed(processed_cmd)) {
     SPDLOG_LOGGER_ERROR(
         log_v2::commands(),
         "service {}: this command cannot be executed because of "

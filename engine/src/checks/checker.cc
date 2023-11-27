@@ -538,8 +538,7 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
     res.start_time = res.end_time;
   };
 
-  if (!configuration::whitelist::instance().is_allowed(hst->host_id(), 0,
-                                                       processed_cmd)) {
+  if (!hst->is_whitelist_allowed(processed_cmd)) {
     SPDLOG_LOGGER_ERROR(log_v2::commands(),
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "

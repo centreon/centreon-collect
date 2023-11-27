@@ -1823,7 +1823,7 @@ int host::run_async_check(int check_options,
   };
 
   // allowed by whitelist?
-  if (!configuration::whitelist::instance().is_allowed(_id, 0, processed_cmd)) {
+  if (!is_whitelist_allowed(processed_cmd)) {
     SPDLOG_LOGGER_ERROR(log_v2::commands(),
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "

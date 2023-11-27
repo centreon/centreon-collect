@@ -81,13 +81,16 @@ void whitelist::init_ryml_error_handler() {
   });
 }
 
+static std::atomic_uint _instance_gen(1);
+
 /**
  * @brief Construct a new whitelist::whitelist object
  * used only by UT tests
  *
  * @param file_path
  */
-whitelist::whitelist(const std::string_view& file_path) {
+whitelist::whitelist(const std::string_view& file_path)
+    : _instance_id(_instance_gen.fetch_add(1)) {
   init_ryml_error_handler();
   _parse_file(file_path);
 }
@@ -219,33 +222,23 @@ bool whitelist::_read_file_content(const ryml_tree& file_content) {
  * @return true  cmdline matches to at least one regex or wildcard
  * @return false  cmdline don't match
  */
-bool whitelist::is_allowed(uint64_t host_id,
-                           uint64_t service_id,
-                           const std::string& cmdline) {
+bool whitelist::is_allowed(const std::string& cmdline) {
   if (_wildcards.empty() && _regex.empty()) {
     return true;
   }
-  auto check_cmd_line = [&](const std::string& cmdline) -> bool {
-    cmd_success& cache_content = _cache[{host_id, service_id}];
-    if (cache_content.first == cmdline) {
-      return cache_content.second;
-    }
-    cache_content.first = cmdline;
+  auto check_cmd_line = [&](const std::string& clean_cmdline) -> bool {
     for (const std::string& wildcard : _wildcards) {
-      if (!fnmatch(wildcard.c_str(), cmdline.c_str(),
+      if (!fnmatch(wildcard.c_str(), clean_cmdline.c_str(),
                    FNM_PATHNAME | FNM_PERIOD)) {
-        cache_content.second = true;
         return true;
       }
     }
 
     for (const auto& regex : _regex) {
-      if (RE2::FullMatch(cmdline, *regex)) {
-        cache_content.second = true;
+      if (RE2::FullMatch(clean_cmdline, *regex)) {
         return true;
       }
     }
-    cache_content.second = false;
     return false;
   };
 

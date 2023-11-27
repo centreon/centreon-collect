@@ -42,17 +42,17 @@ string
  *
  */
 class whitelist {
-  using host_serv_id = std::pair<uint64_t, uint64_t>;
-  using cmd_success = std::pair<std::string, bool>;
-
-  using cache = std::map<host_serv_id, cmd_success>;
   // don't reorder values
   enum e_refresh_result { no_directory, empty_directory, no_rule, rules };
 
+  /**
+   * @brief this id is used by checkable in oder to know is whitelist has been
+   * reloaded
+   *
+   */
+  uint _instance_id;
   std::vector<std::string> _wildcards;
   std::vector<std::unique_ptr<re2::RE2>> _regex;
-
-  cache _cache;
 
   static std::unique_ptr<whitelist> _instance;
 
@@ -76,9 +76,9 @@ class whitelist {
 
   bool empty() const { return _wildcards.empty() && _regex.empty(); }
 
-  bool is_allowed(uint64_t host_id,
-                  uint64_t service_id,
-                  const std::string& cmdline);
+  bool is_allowed(const std::string& cmdline);
+
+  uint instance_id() const { return _instance_id; }
 
   const std::vector<std::string> get_wildcards() const { return _wildcards; }
 };

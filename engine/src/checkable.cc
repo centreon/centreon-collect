@@ -21,6 +21,8 @@
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/log_v2.hh"
 
+#include "com/centreon/engine/configuration/whitelist.hh"
+
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::logging;
 
@@ -531,4 +533,28 @@ const std::string& checkable::name() const {
 
 void checkable::set_name(const std::string& name) {
   _name = name;
+}
+
+/**
+ * @brief check if a command is allowed by whitelist
+ * it tries to use last whitelist check result
+ *
+ * @param process_cmd final command line (macros replaced)
+ * @return true allowed
+ * @return false
+ */
+bool checkable::is_whitelist_allowed(const std::string process_cmd) {
+  if (process_cmd == _whitelist_last_result.process_cmd &&
+      configuration::whitelist::instance().instance_id() ==
+          _whitelist_last_result.whitelist_instance_id) {
+    return _whitelist_last_result.allowed;
+  }
+
+  // something has changed => call whitelist
+  _whitelist_last_result.process_cmd = process_cmd;
+  _whitelist_last_result.allowed =
+      configuration::whitelist::instance().is_allowed(process_cmd);
+  _whitelist_last_result.whitelist_instance_id =
+      configuration::whitelist::instance().instance_id();
+  return _whitelist_last_result.allowed;
 }
