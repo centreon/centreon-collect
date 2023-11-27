@@ -18,11 +18,11 @@
 
 #include "com/centreon/connector/perl/embedded_perl.hh"
 
-#include <perl.h>
-
 #include "com/centreon/connector/log.hh"
 #include "com/centreon/connector/perl/checks/check.hh"
 #include "com/centreon/exceptions/basic.hh"
+
+#include <perl.h>
 
 using namespace com::centreon;
 using namespace com::centreon::connector::perl;
