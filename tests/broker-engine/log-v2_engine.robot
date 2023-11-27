@@ -31,10 +31,7 @@ LOGV2EB1
     Engine Config Set Value    ${0}    log_level_config    trace
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
-    Sleep    1s
+    ${start}    Get Round Current Date
 
     Start Broker
     Start Engine
@@ -48,12 +45,11 @@ LOGV2EB1
     Should Be True    ${result1}    No message telling configuration loaded in logs file.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
@@ -78,10 +74,7 @@ LOGV2EBU1
     Engine Config Set Value    ${0}    log_level_config    trace
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
-    Sleep    1s
+    ${start}    Get Round Current Date
 
     Start Broker
     Start Engine
@@ -89,18 +82,17 @@ LOGV2EBU1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [info] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
-    Should Be True    ${result1}    No message telling configuration loaded.
+    Should Be True    ${result1}    No message telling configuration loaded in logs file.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
@@ -122,9 +114,7 @@ LOGV2DB1
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
+    ${start}    Get Round Current Date
     Sleep    1s
 
     Start Broker
@@ -145,9 +135,9 @@ LOGV2DB1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((1,),)"    BREAK
@@ -168,9 +158,7 @@ LOGV2DB2
     Engine Config Set Value    ${0}    log_v2_enabled    ${0}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
+    ${start}    Get Round Current Date
     Sleep    1s
     Start Broker
     Start Engine
@@ -187,16 +175,11 @@ LOGV2DB2
     Should Not Be True    ${result2[0]}    Legacy logs should be disabled
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Log To Console    after connection
-    FOR    ${index}    IN RANGE    60
-        Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
-        ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
+    Log To Console
+    ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
+    ${output}    Query
+    ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
+    Log To Console    ${output}
     Should Be Equal As Strings    ${output}    ((0,),)
     Stop Engine
     Kindly Stop Broker
@@ -213,10 +196,7 @@ LOGV2EB2
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
-    Sleep    1s
+    ${start}    Get Round Current Date
 
     Start Broker
     Start Engine
@@ -236,9 +216,9 @@ LOGV2EB2
     Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((2,),)"    BREAK
@@ -261,9 +241,7 @@ LOGV2EBU2
     Engine Config Set Value    ${0}    log_v2_enabled    ${1}
     Engine Config Set Value    ${0}    log_flush_period    0    True
 
-    ${start}    Get Current Date    exclude_millis=yes
-    ${time_stamp}    Convert Date    ${start}    epoch    exclude_millis=yes
-    ${time_stamp2}    Evaluate    int(${time_stamp})
+    ${start}    Get Round Current Date
     Sleep    1s
 
     Start Broker
@@ -284,9 +262,9 @@ LOGV2EBU2
     Log To Console    after connection
     FOR    ${index}    IN RANGE    60
         Log To Console
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2}
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start}
         ${output}    Query
-        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${time_stamp2};
+        ...    SELECT COUNT(*) FROM logs WHERE output="Configuration loaded, main loop starting." AND ctime>=${start};
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((2,),)"    BREAK
