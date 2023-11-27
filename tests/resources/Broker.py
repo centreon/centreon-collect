@@ -2103,3 +2103,49 @@ def dump_ba(port, index: int, filename: str):
             logger.console(f"BA {index} dump to {filename}")
         except:
             logger.console("gRPC server not ready")
+
+def check_all_services_with_status(host: str, service_like:str, status: int, legacy:bool=False, timeout:int=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                # Read a single record
+                if legacy:
+                    sql = f"SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='{host}' AND s.description LIKE '{service_like}' AND s.state <> {status}"
+                else:
+                    sql = f"SELECT count(*) FROM resources WHERE name like '{service_like}' AND parent_name='{host}' AND status <> {status}"
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                logger.console(result[0]['count(*)'])
+                if result and result[0] and 'count(*)' in result[0] and int(result[0]['count(*)']) == 0:
+                    return True
+                time.sleep(1)
+    return False
+
+def check_last_checked_services_with_given_metric_more_than(metric_like: str, now: int, goal: int, timeout:int=TIMEOUT):
+    limit = time.time() + timeout
+    while time.time() < limit:
+        connection = pymysql.connect(host=DB_HOST,
+                                     user=DB_USER,
+                                     password=DB_PASS,
+                                     database=DB_NAME_STORAGE,
+                                     charset='utf8mb4',
+                                     cursorclass=pymysql.cursors.DictCursor)
+        with connection:
+            with connection.cursor() as cursor:
+                # Read a single record
+                sql = f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}"
+                logger.console(f"SELECT count(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE '{metric_like}' AND s.last_check >= {now}")
+                cursor.execute(sql)
+                result = cursor.fetchall()
+                logger.console(result[0])
+                if result and result[0] and 'count(s.last_check)' in result[0] and int(result[0]['count(s.last_check)']) >= int(goal):
+                    return True
+                time.sleep(1)
+    return False
