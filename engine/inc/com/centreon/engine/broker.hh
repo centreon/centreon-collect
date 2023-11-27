@@ -1,23 +1,23 @@
-/*
-** Copyright 2002-2006 Ethan Galstad
-** Copyright 2011-2013 Merethis
-** Copyright 2018-2022 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
-*/
+/**
+ * Copyright 2002-2006 Ethan Galstad
+ * Copyright 2011-2013 Merethis
+ * Copyright 2018-2022 Centreon
+ *
+ * This file is part of Centreon Engine.
+ *
+ * Centreon Engine is free software: you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License version 2
+ * as published by the Free Software Foundation.
+ *
+ * Centreon Engine is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with Centreon Engine. If not, see
+ * <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef CCE_BROKER_HH
 #define CCE_BROKER_HH
@@ -455,6 +455,7 @@ int broker_host_check(int type,
                       const char* cmdline,
                       char* output);
 void broker_host_status(int type, com::centreon::engine::host* hst);
+void broker_log_data_v2(char* data, time_t entry_time);
 void broker_log_data(char* data, time_t entry_time);
 int broker_notification_data(int type,
                              int flags,

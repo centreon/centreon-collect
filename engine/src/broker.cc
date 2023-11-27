@@ -20,8 +20,10 @@
  */
 
 #include "com/centreon/engine/broker.hh"
+
 #include <absl/strings/str_split.h>
 #include <unistd.h>
+
 #include "com/centreon/engine/flapping.hh"
 #include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/nebstructs.hh"
@@ -770,10 +772,12 @@ void broker_host_status(int type, host* hst) {
 void broker_log_data(char* data, time_t entry_time) {
   // Config check.
   if (legacy_conf) {
-    if (!(config->event_broker_options() & BROKER_LOGGED_DATA))
+    if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
+        !config->log_legacy_enabled())
       return;
   } else {
-    if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA))
+    if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
+        !pb_config.log_legacy_enabled())
       return;
   }
 

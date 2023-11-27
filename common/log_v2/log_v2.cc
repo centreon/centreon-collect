@@ -29,6 +29,7 @@
 #include <spdlog/sinks/syslog_sink.h>
 
 #include <atomic>
+#include <initializer_list>
 
 using namespace com::centreon::common::log_v2;
 using namespace spdlog;
@@ -252,6 +253,7 @@ std::shared_ptr<spdlog::logger> log_v2::create_logger(const logger_id id) {
   logger->set_level(level::level_enum::info);
   spdlog::register_logger(logger);
   _loggers[id] = logger;
+  _slaves[id] = false;
 
   /* Hook for gRPC, not beautiful, but no idea how to do better. */
   if (id == GRPC)
@@ -315,18 +317,26 @@ void log_v2::apply(const config& log_conf) {
     logger_id id = get_id(name);
     std::shared_ptr<spdlog::logger> logger = _loggers[id];
     if (logger) {
-      if (!sinks.empty() && log_conf.loggers_with_custom_sinks().contains(name))
-        logger->sinks() = sinks;
-      else {
-        logger->sinks().clear();
-        logger->sinks().push_back(my_sink);
+      if (!log_conf.is_slave()) {
+        if (!sinks.empty() &&
+            log_conf.loggers_with_custom_sinks().contains(name))
+          logger->sinks() = sinks;
+        else {
+          logger->sinks().clear();
+          logger->sinks().push_back(my_sink);
+        }
       }
     } else {
-      if (!sinks.empty() && log_conf.loggers_with_custom_sinks().contains(name))
-        logger =
-            std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
-      else
+      if (log_conf.is_slave())
         logger = std::make_shared<spdlog::logger>(name, my_sink);
+      else {
+        if (!sinks.empty() &&
+            log_conf.loggers_with_custom_sinks().contains(name))
+          logger =
+              std::make_shared<spdlog::logger>(name, begin(sinks), end(sinks));
+        else
+          logger = std::make_shared<spdlog::logger>(name, my_sink);
+      }
     }
     logger->set_level(lvl);
     if (lvl != level::off) {
@@ -366,6 +376,7 @@ void log_v2::apply(const config& log_conf) {
 
     if (!_loggers[id]) {
       _loggers[id] = logger;
+      _slaves[id] = log_conf.is_slave();
 
       /* Hook for gRPC, not beautiful, but no idea how to do better. */
       if (name == "grpc")
@@ -450,5 +461,15 @@ const std::string& log_v2::log_name() const {
 
 void log_v2::disable() {
   for (auto& l : _loggers)
-    l->set_level(spdlog::level::level_enum::off);
+    /* Loggers can be not defined in case of legacy logger enabled. */
+    if (l)
+      l->set_level(spdlog::level::level_enum::off);
+}
+
+void log_v2::disable(std::initializer_list<logger_id> ilist) {
+  for (logger_id id : ilist) {
+    /* Loggers can be not defined in case of legacy logger enabled. */
+    if (_loggers[id])
+      _loggers[id]->set_level(spdlog::level::level_enum::off);
+  }
 }
