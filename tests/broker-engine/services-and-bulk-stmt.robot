@@ -57,15 +57,10 @@ EBBPS1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Round Current Date
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    60
-        Log To Console
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
-        ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    Log To Console    Before
+    ${result}    Check All Services With Status    host_1    service\_%    1    ${False}    60
+    Log To Console    After
+    Should Be True    ${result}    All the services of the form service_* should have a status of 1.
 
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    2    warning${i}
@@ -95,14 +90,8 @@ EBBPS1
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    120
-        ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 2
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    ${result}    Check All Services With Status    host_1    service\_%    2    ${False}    120
+    Should Be True    ${result}    All the services of the form service_* should have a critical status.
 
 EBBPS2
     [Documentation]    1000 service check results are sent to the poller. The test is done with the unified_sql stream, no service status is lost, we find the 1000 results in the database: table services.
@@ -143,13 +132,8 @@ EBBPS2
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Round Current Date
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    120
-        ${output}    Query
-        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 1
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    ${result}    Check All Services With Status    host_1    service\_%    1    ${True}    120
+    Should Be True    ${result}    All the services of the form service_* should be in Warning status.
 
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result    host_1    service_${i+1}    2    critical${i}
@@ -178,14 +162,8 @@ EBBPS2
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     ${date}    Get Current Date    result_format=epoch
     Log To Console    date=${date}
-    FOR    ${index}    IN RANGE    60
-        ${output}    Query
-        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 2
-        Log To Console    ${output}
-        Sleep    1s
-        IF    "${output}" == "((0,),)"    BREAK
-    END
-    Should Be Equal As Strings    ${output}    ((0,),)
+    ${result}    Check All Services With Status    host_1    service\_%    2    ${True}    60
+    Should Be True    ${result}    All the services of the form service_* should be in Critical status.
 
 EBMSSM
     [Documentation]    1000 services are configured with 100 metrics each. The rrd output is removed from the broker configuration. GetSqlManagerStats is called to measure writes into data_bin.
@@ -226,15 +204,8 @@ EBMSSM
 
     # Let's wait for all force checks to be in the storage database.
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    FOR    ${i}    IN RANGE    ${500}
-        Log To Console
-        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
-        ${output}    Query
-        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
-        IF    ${output[0][0]} >= 100000    BREAK
-        Sleep    1s
-    END
-    Should Be True    ${output[0][0]} >= 100000
+    ${result}    Check Last Checked Services With Given Metric More Than    metric_%    ${start}    ${100000}    500
+    Should Be True    ${result}    Checked Service since ${start} with metrics 'metric_*' should be more than 100000.
 
 EBPS2
     [Documentation]    1000 services are configured with 20 metrics each. The rrd output is removed from the broker configuration to avoid to write too many rrd files. While metrics are written in bulk, the database is stopped. This must not crash broker.
