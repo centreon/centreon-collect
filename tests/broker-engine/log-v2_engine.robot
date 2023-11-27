@@ -42,7 +42,7 @@ LOGV2EB1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [info] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded in logs file.
@@ -89,7 +89,7 @@ LOGV2EBU1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True    ${result1}    No message telling configuration loaded.
@@ -133,7 +133,7 @@ LOGV2DB1
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    15
@@ -178,7 +178,7 @@ LOGV2DB2
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
@@ -224,7 +224,7 @@ LOGV2EB2
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
@@ -272,7 +272,7 @@ LOGV2EBU2
     Should Be True    ${result}    Engine and Broker not connected
 
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
@@ -314,7 +314,7 @@ LOGV2EF1
     ${result}    Check Connections
     Should Be True    ${result}    msg=Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
 
     ${result1}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content_v2}    30
     Should Be True    ${result1}
@@ -425,7 +425,7 @@ LOGV2FE2
     ${result}    Check Connections
     Should Be True    ${result}    Engine and Broker not connected
     ${pid}    Get Process Id    e0
-    ${content_v2}    Create List    [process] [info] [:] [${pid}] Configuration loaded, main loop starting.
+    ${content_v2}    Create List    [process] [info] [${pid}] Configuration loaded, main loop starting.
     ${content_old}    Create List    \\[\\d*\\] \\[${pid}\\] Configuration loaded, main loop starting.
 
     Sleep    2m

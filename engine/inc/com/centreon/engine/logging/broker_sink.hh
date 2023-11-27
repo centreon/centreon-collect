@@ -22,6 +22,7 @@
 #include <spdlog/sinks/base_sink.h>
 
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/globals.hh"
 #include "com/centreon/engine/logging/broker.hh"
 #include "com/centreon/engine/logging/logger.hh"
 #include "com/centreon/engine/nebstructs.hh"
@@ -38,6 +39,15 @@ class broker_sink : public spdlog::sinks::base_sink<Mutex> {
 
     // If needed (very likely but not mandatory), the sink formats the message
     // before sending it to its final destination:
+    if (legacy_conf) {
+      if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
+          !config->log_v2_enabled())
+        return;
+    } else {
+      if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
+          !pb_config.log_v2_enabled())
+        return;
+    }
     if (this->should_log(msg.level)) {
       std::string message{fmt::to_string(msg.payload)};
       nebstruct_log_data ds{.entry_time = time(nullptr),
