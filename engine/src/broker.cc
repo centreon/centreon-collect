@@ -1,7 +1,7 @@
 /**
  * Copyright 2002-2010          Ethan Galstad
  * Copyright 2010               Nagios Core Development Team
- * Copyright 2011-2013,20202023 Centreon
+ * Copyright 2011-2013,2020-2023 Centreon
  *
  * This file is part of Centreon Engine.
  *
@@ -770,12 +770,10 @@ void broker_host_status(int type, host* hst) {
 void broker_log_data(char* data, time_t entry_time) {
   // Config check.
   if (legacy_conf) {
-    if (!(config->event_broker_options() & BROKER_LOGGED_DATA) ||
-        !config->log_legacy_enabled())
+    if (!(config->event_broker_options() & BROKER_LOGGED_DATA))
       return;
   } else {
-    if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA) ||
-        !pb_config.log_legacy_enabled())
+    if (!(pb_config.event_broker_options() & BROKER_LOGGED_DATA))
       return;
   }
 
