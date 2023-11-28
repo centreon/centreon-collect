@@ -149,8 +149,6 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-        #   XRAY_CLIENT_ID : ${{ secrets.xray_client_id }}
-        #   XRAY_CLIENT_SECRET : ${{ secrets.xray_client_secret }}
 
       - name: Get Xray Cloud API token
         env:
@@ -162,7 +160,7 @@ jobs:
 
       - name: Send report to xrays
         run: |
-          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer ${{ steps.xray_token.outputs.XRAY_TOKEN }}"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
+          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer ${{ steps.xray_token.outputs.XRAY_TOKEN }}"  --data @"/test_collect/tests/log.html" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
 
       - name: Move reports
         if: ${{ failure() }}
