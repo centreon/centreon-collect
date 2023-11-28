@@ -34,7 +34,7 @@ BESS1
 
 BESS2
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Engine stopped first
-    [Tags]    MON-25069
+    [Tags]    MON-25069    TEST
     Config Engine    ${1}
     Config Broker    central
     Config Broker    module
