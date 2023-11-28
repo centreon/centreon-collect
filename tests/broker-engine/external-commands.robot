@@ -332,22 +332,23 @@ BEEXTCMD9
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    ${1}
     Broker Config Log    central    sql    debug
-    Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_MAX_SVC_CHECK_ATTEMPTS on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
         ${start}    Get Current Date
         Start Broker
         Start Engine
-        ${content}    Create List    INITIAL SERVICE STATE: host_50;service_1000;    check_for_external_commands()
+        ${content}    Create List    check_for_external_commands()
         ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
         Should Be True
         ...    ${result}
-        ...    An Initial host state on host_1 should be raised before we can start our external commands.
+        ...    A message telling engine is ready to receive external commands should be available.
+
+	${result}    Wait For Listen On Range    50001    50001    centengine    60
+	Should Be True    ${result}    Centengine is not listening on port 50001 for grpc api.
+
         Change Max Svc Check Attempts    ${use_grpc}    host_1    service_1    15
 
         Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
