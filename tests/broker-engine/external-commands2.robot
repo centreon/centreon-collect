@@ -1431,18 +1431,16 @@ BEHOSTCHECK
     Config Broker    central
     Config Broker    module    ${1}
     Broker Config Log    central    sql    trace
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Config Broker Sql Output    central    unified_sql
+    Config BBDO3    ${1}
     ${start}    Get Current Date
     Start Broker
     Start Engine
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+    Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
     ${content}    Create List    check_for_external_commands
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    No check for external commands executed for 1mn.
 
-    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
-    Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
     Schedule Forced Host Check    host_1
     ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
     Should Be True    ${result}    hosts table not updated

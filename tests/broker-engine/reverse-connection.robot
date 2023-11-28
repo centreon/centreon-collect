@@ -50,7 +50,7 @@ BRGC1
     Should Be True    ${result}    Connection to map has failed.
     File Should Not Exist
     ...    ${VarRoot}/lib/centreon-broker/central-broker-master.queue.centreon-broker-master-map*
-    ...    There should not exist que map files.
+    ...    There should not exist queue map files.
 
 BRCTS1
     [Documentation]    Broker reverse connection too slow
