@@ -156,7 +156,7 @@ jobs:
           XRAY_CLIENT_SECRET: ${{ secrets.xray_client_secret }}
         id: xray_token
         run: |
-          name=XRAY_JIRA_TOKEN::$(curl -X POST -H "Content-Type: application/json" -d '{"client_id": "$XRAY_CLIENT_ID", "client_secret": "$XRAY_CLIENT_SECRET"}' https://xray.cloud.getxray.app/api/v1/authenticate > xray_token.json | tr -d '"')
+          name=XRAY_JIRA_TOKEN::$(curl -X POST -H "Content-Type: application/json" -d '{"client_id": "$XRAY_CLIENT_ID", "client_secret": "$XRAY_CLIENT_SECRET"}' https://xray.cloud.getxray.app/api/v1/authenticate | tr -d '"')
 
       - name: Send report to xrays
         run: |
