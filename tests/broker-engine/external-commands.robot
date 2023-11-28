@@ -246,17 +246,16 @@ BEEXTCMD6
     END
 
 BEEXTCMD7
-    [Documentation]    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0
+    [Documentation]    external command CHANGE_RETRY_HOST_CHECK_INTERVAL with bbdo3
     [Tags]    broker    engine    host    extcmd
     Config Engine    ${1}    ${50}    ${20}
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Config BBDO3    1
+    Config BBDO3    ${1}
     Broker Config Log    central    core    error
     Broker Config Log    central    sql    debug
     Broker Config Log    module0    neb    trace
-    Config Broker Sql Output    central    unified_sql
     FOR    ${use_grpc}    IN RANGE    0    2
         Log To Console    external command CHANGE_RETRY_HOST_CHECK_INTERVAL on bbdo3.0 use_grpc=${use_grpc}
         Clear Retention
