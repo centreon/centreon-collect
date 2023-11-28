@@ -1202,10 +1202,9 @@ def change_retry_host_check_interval(use_grpc: int, hst: str, retry_interval: in
                 host_name=hst, mode=engine_pb2.ChangeObjectInt.Mode.RETRY_CHECK_INTERVAL, dval=retry_interval))
     else:
         now = int(time.time())
-        cmd = "[{now}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}\n"
-        f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_RETRY_HOST_CHECK_INTERVAL;{hst};{retry_interval}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_attempts: int):

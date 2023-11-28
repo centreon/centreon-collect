@@ -37,9 +37,9 @@ BSCSSRR1
     Broker Config Log    central    config    debug
     ${start}    Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
-    ${content}    Create List    failover 'central-broker-master-output' construction.
+    ${content}    Create List    creating new failover 'central-broker-master-output'
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No information about TLS activation.
+    Should Be True    ${result}    No information about 'central-broker-master-output' failover creation.
 
 BSCSSPRR1
     [Documentation]    Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. central-broker-master-output is then a failover.
@@ -76,9 +76,12 @@ BSCSSGRR1
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List
     ...    endpoint applier: creating new failover 'central-broker-master-output'
-    ...    failover 'central-broker-master-output' construction.
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No information about TLS activation.
+    Should Be True    ${result}    No information about 'central-broker-master-output' failover construction
+    ${content}    Create List
+    ...    failover::failover constructor 0x[a-f0-9]* central-broker-master-output
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result[0]}    No information about 'central-broker-master-output' failover construction
 
 BSCSSTRR1
     [Documentation]    Start-Stop two instances of broker and no coredump. Encryption is enabled. transport protocol is tcp, reversed and retention.
