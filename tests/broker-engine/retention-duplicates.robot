@@ -32,9 +32,7 @@ BERD1
     Broker Config Add Lua Output    module0    test-doubles    ${SCRIPTS}test-doubles.lua
     Broker Config Log    module0    lua    debug
     Config Broker    rrd
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    ${1}
     Clear Retention
     ${start}    Get Current Date
     Start Broker
