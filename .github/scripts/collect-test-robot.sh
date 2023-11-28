@@ -55,7 +55,7 @@ else
   apt-get install -y ./*.deb
 fi
 
-token=$(curl -H "Content-Type: application/json" -X POST --data '{ "client_id": "$XRAY_CLIENT_ID","client_secret": "$XRAY_CLIENT_SECRET" }'  https://xray.cloud.getxray.app/api/v2/authenticate| tr -d '"')
+token=$(curl -H "Content-Type: application/json" -X POST --data '{ "client_id": "$XRAY_CLIENT_ID","client_secret": "$XRAY_CLIENT_SECRET" }'  https://xray.cloud.getxray.app/api/v1/authenticate| tr -d '"')
 
 
 ulimit -c unlimited
