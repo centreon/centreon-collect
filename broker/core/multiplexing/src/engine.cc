@@ -208,6 +208,9 @@ void engine::start() {
  */
 void engine::stop() {
   std::unique_lock<std::mutex> lock(_engine_m);
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("engine::engine stop {}", static_cast<void*>(this));
   if (_state != stopped) {
     // Notify hooks of multiplexing loop end.
     log_v2::instance().get(log_v2::CORE)->info("multiplexing: stopping engine");
@@ -253,7 +256,6 @@ void engine::stop() {
                                      EngineStats::STOPPED);
   }
   log_v2::instance().get(log_v2::CORE)->debug("multiplexing: engine stopped");
-  DEBUG(fmt::format("STOP engine {}", static_cast<void*>(this)));
 }
 
 /**
@@ -304,7 +306,9 @@ engine::engine()
       _stats{stats::center::instance().register_engine()},
       _unprocessed_events{0u},
       _sending_to_subscribers{false} {
-  DEBUG(fmt::format("CONSTRUCTOR engine {}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("engine::engine constructor {}", static_cast<void*>(this));
   stats::center::instance().update(&EngineStats::set_mode, _stats,
                                    EngineStats::NOT_STARTED);
 }
@@ -313,7 +317,9 @@ engine::~engine() noexcept {
   /* Muxers should be unsubscribed before arriving here. */
   assert(_muxers.empty());
   log_v2::instance().get(log_v2::CORE)->debug("core: cbd engine destroyed.");
-  DEBUG(fmt::format("DESTRUCTOR engine {}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("engine::engine destructor {}", static_cast<void*>(this));
 }
 
 /**
