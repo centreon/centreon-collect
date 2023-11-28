@@ -20,7 +20,7 @@ Test Teardown       Save logs If Failed
 *** Test Cases ***
 BESS1
     [Documentation]    Start-Stop Broker/Engine - Broker started first - Broker stopped first
-    [Tags]    broker    engine    start-stop    MON-24549
+    [Tags]    MON-24549
     Config Engine    ${1}
     Config Broker    central
     Config Broker    module
