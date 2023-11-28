@@ -157,7 +157,7 @@ jobs:
         id: xray_token
         run: |
           XRAY_JIRA_TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"client_id": "$XRAY_CLIENT_ID", "client_secret": "$XRAY_CLIENT_SECRET"}' https://xray.cloud.getxray.app/api/v1/authenticate | tr -d '"')
-          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer $XRAY_JIRA_TOKEN"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
+          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer XRAY_JIRA_TOKEN"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
 
     #   - name: Send report to xrays
     #     run: |
