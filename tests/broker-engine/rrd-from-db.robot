@@ -211,7 +211,6 @@ BRRDUPLICATE
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
-    Clear Db    data_bin
     Create Metrics    3
 
     ${start}    Get Current Date
