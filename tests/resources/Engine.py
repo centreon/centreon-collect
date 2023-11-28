@@ -1215,10 +1215,9 @@ def change_max_svc_check_attempts(use_grpc: int, hst: str, svc: str, max_check_a
                 host_name=hst, service_desc=svc, mode=engine_pb2.ChangeObjectInt.Mode.MAX_ATTEMPTS, intval=max_check_attempts))
     else:
         now = int(time.time())
-        cmd = "[{now}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}\n"
-        f = open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w")
-        f.write(cmd)
-        f.close()
+        cmd = f"[{now}] CHANGE_MAX_SVC_CHECK_ATTEMPTS;{hst};{svc};{max_check_attempts}\n"
+        with open(f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd", "w") as f:
+            f.write(cmd)
 
 
 def change_max_host_check_attempts(use_grpc: int, hst: str, max_check_attempts: int):
