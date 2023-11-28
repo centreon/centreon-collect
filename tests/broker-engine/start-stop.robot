@@ -52,7 +52,7 @@ BESS2
 
 BESS3
     [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
-    [Tags]    broker    engine    start-stop
+    [Tags]    MON-26862
     Config Engine    ${1}
     Config Broker    central
     Config Broker    module
