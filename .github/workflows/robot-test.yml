@@ -150,18 +150,26 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
 
-      - name: Get Xray Cloud API token
-        env:
-          XRAY_CLIENT_ID: ${{ secrets.xray_client_id }}
-          XRAY_CLIENT_SECRET: ${{ secrets.xray_client_secret }}
-        id: xray_token
-        run: |
-          XRAY_JIRA_TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"client_id": "$XRAY_CLIENT_ID", "client_secret": "$XRAY_CLIENT_SECRET"}' https://xray.cloud.getxray.app/api/v1/authenticate | tr -d '"')
-          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer XRAY_JIRA_TOKEN"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
-
-    #   - name: Send report to xrays
+    #   - name: Get Xray Cloud API token
+    #     env:
+    #       XRAY_CLIENT_ID: ${{ secrets.xray_client_id }}
+    #       XRAY_CLIENT_SECRET: ${{ secrets.xray_client_secret }}
+    #     id: xray_token
     #     run: |
-    #       curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer ${{ steps.xray_token.outputs.XRAY_TOKEN }}"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
+    #       XRAY_JIRA_TOKEN=$(curl -X POST -H "Content-Type: application/json" -d '{"client_id": "$XRAY_CLIENT_ID", "client_secret": "$XRAY_CLIENT_SECRET"}' https://xray.cloud.getxray.app/api/v1/authenticate | tr -d '"')
+    #       curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer XRAY_JIRA_TOKEN"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
+
+      - name: Generate Xray Token
+        id: generate-xray-token
+        run: |
+          token_response=$(curl -H "Content-Type: application/json" -X POST --data "{\"client_id\": \"${{ secrets.XRAY_CLIENT_ID }}\", \"client_secret\": \"${{ secrets.XRAY_CLIENT_SECRET }}\"}" "https://xray.cloud.getxray.app/api/v1/authenticate")
+          xray_token=$(echo "$token_response" | sed -n 's/.*"\(.*\)".*/\1/p')
+          echo "xray_token=$xray_token" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Send report to xrays
+        run: |
+          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer ${{ steps.generate-xray-token.outputs.xray_token }}"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
 
       - name: Move reports
         if: ${{ failure() }}
