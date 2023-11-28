@@ -111,15 +111,11 @@ feeder::feeder(const std::string& name,
  *  Destructor.
  */
 feeder::~feeder() {
+  stop();
   log_v2::instance()
       .get(log_v2::FUNCTIONS)
       ->trace("feeder::feeder destructor {} {}", static_cast<void*>(this),
               _name);
-  SPDLOG_LOGGER_DEBUG(log_v2::instance().get(log_v2::CORE),
-                      "destroy feeder {}, {:p}", get_name(),
-                      static_cast<const void*>(this));
-  stop();
-  DEBUG(fmt::format("DESTRUCTOR feeder {}", static_cast<void*>(this)));
 }
 
 bool feeder::is_finished() const noexcept {
@@ -278,7 +274,6 @@ void feeder::stop() {
       ->trace("feeder::feeder stop {} {}", static_cast<void*>(this), _name);
   std::unique_lock<std::timed_mutex> l(_protect);
   _stop_no_lock();
-  DEBUG(fmt::format("STOP feeder {}", static_cast<void*>(this)));
 }
 
 /**

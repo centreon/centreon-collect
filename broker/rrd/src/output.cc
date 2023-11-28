@@ -1,26 +1,26 @@
-/*
-** Copyright 2011-2015,2017, 2020-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2015,2017, 2020-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/rrd/output.hh"
-#include "com/centreon/broker/rrd/internal.hh"
 
 #include <absl/strings/str_join.h>
 #include <fmt/format.h>
+
 #include <cassert>
 #include <cstdlib>
 #include <iomanip>
@@ -33,6 +33,7 @@
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/rrd/exceptions/open.hh"
 #include "com/centreon/broker/rrd/exceptions/update.hh"
+#include "com/centreon/broker/rrd/internal.hh"
 #include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
@@ -74,10 +75,8 @@ std::set<typename map_type::mapped_type> values_of_map(const map_type& data) {
  */
 template <>
 output<lib>::output(std::string const& metrics_path,
-                    std::string const& status_path,
-                    uint32_t cache_size,
-                    bool ignore_update_errors,
-                    bool write_metrics,
+                    std::string const& status_path, uint32_t cache_size,
+                    bool ignore_update_errors, bool write_metrics,
                     bool write_status)
     : io::stream("RRD"),
       _ignore_update_errors(ignore_update_errors),
@@ -103,13 +102,9 @@ output<lib>::output(std::string const& metrics_path,
  */
 template <>
 output<cached<asio::local::stream_protocol::socket>>::output(
-    std::string const& metrics_path,
-    std::string const& status_path,
-    uint32_t cache_size,
-    bool ignore_update_errors,
-    std::string const& local,
-    bool write_metrics,
-    bool write_status)
+    std::string const& metrics_path, std::string const& status_path,
+    uint32_t cache_size, bool ignore_update_errors, std::string const& local,
+    bool write_metrics, bool write_status)
     : io::stream("RRD"),
       _ignore_update_errors(ignore_update_errors),
       _metrics_path(metrics_path),
@@ -134,13 +129,10 @@ output<cached<asio::local::stream_protocol::socket>>::output(
  *                                  written.
  */
 template <>
-output<cached<asio::ip::tcp::socket>>::output(std::string const& metrics_path,
-                                              std::string const& status_path,
-                                              uint32_t cache_size,
-                                              bool ignore_update_errors,
-                                              unsigned short port,
-                                              bool write_metrics,
-                                              bool write_status)
+output<cached<asio::ip::tcp::socket>>::output(
+    std::string const& metrics_path, std::string const& status_path,
+    uint32_t cache_size, bool ignore_update_errors, unsigned short port,
+    bool write_metrics, bool write_status)
     : io::stream("RRD"),
       _ignore_update_errors(ignore_update_errors),
       _metrics_path(metrics_path),
@@ -186,11 +178,9 @@ void output<T>::update() {
  */
 template <typename T>
 int output<T>::write(std::shared_ptr<io::data> const& d) {
-  _logger = log_v2::instance().get(log_v2::RRD);
   SPDLOG_LOGGER_TRACE(_logger, "RRD: output::write.");
   // Check that data exists.
-  if (!validate(d, "RRD"))
-    return 1;
+  if (!validate(d, "RRD")) return 1;
 
   switch (d->type()) {
     case storage::pb_metric::static_type():
@@ -515,8 +505,7 @@ int output<T>::write(std::shared_ptr<io::data> const& d) {
       // Remove data from cache.
       rebuild_cache& cache(e->is_index ? _status_rebuild : _metrics_rebuild);
       rebuild_cache::iterator it(cache.find(path));
-      if (it != cache.end())
-        cache.erase(it);
+      if (it != cache.end()) cache.erase(it);
 
       // Remove file.
       _backend.remove(path);
@@ -553,8 +542,7 @@ void output<T>::_rebuild_data(const RebuildMessage& rm) {
   auto fill_status_request = [&](uint64_t index_id, uint32_t check_interval,
                                  uint32_t rrd_retention,
                                  const com::centreon::broker::Point& pt) {
-    if (!index_id)
-      return;
+    if (!index_id) return;
     status_data& to_update = status_values[index_id];
     if (to_update.check_interval < check_interval)
       to_update.check_interval = check_interval;
