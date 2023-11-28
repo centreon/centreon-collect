@@ -40,6 +40,10 @@ on:
         required: true
       collect_s3_secret_key:
         required: true
+      xray_client_id:
+        required: true
+      xray_client_secret:
+        required: true
 
 
 jobs:
@@ -145,6 +149,20 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
+        #   XRAY_CLIENT_ID : ${{ secrets.xray_client_id }}
+        #   XRAY_CLIENT_SECRET : ${{ secrets.xray_client_secret }}
+
+      - name: Get Xray Cloud API token
+        env:
+          XRAY_CLIENT_ID: ${{ secrets.xray_client_id }}
+          XRAY_CLIENT_SECRET: ${{ secrets.xray_client_secret }}
+        id: xray_token
+        run: |
+          name=XRAY_JIRA_TOKEN::$(curl -X POST -H "Content-Type: application/json" -d '{"client_id": "$XRAY_CLIENT_ID", "client_secret": "$XRAY_CLIENT_SECRET"}' https://xray.cloud.getxray.app/api/v1/authenticate > xray_token.json | tr -d '"')
+
+      - name: Send report to xrays
+        run: |
+          curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer ${{ steps.xray_token.outputs.XRAY_TOKEN }}"  --data @"tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
 
       - name: Move reports
         if: ${{ failure() }}

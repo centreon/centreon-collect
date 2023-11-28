@@ -55,7 +55,6 @@ else
   apt-get install -y ./*.deb
 fi
 
-token=$(curl -H "Content-Type: application/json" -X POST --data '{ "client_id": "${XRAY_CLIENT_ID}","client_secret": "${XRAY_CLIENT_SECRET}" }'  https://xray.cloud.getxray.app/api/v1/authenticate| tr -d '"')
 
 
 ulimit -c unlimited
@@ -70,5 +69,4 @@ cd tests
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
 robot -e unstable $test_file
-curl -H "Content-Type: text/xml" -X POST -H "Authorization: Bearer $token"  --data @"/test_collect/tests/output.xml" https://xray.cloud.getxray.app/api/v2/import/execution/robot?projectKey=MON
 
