@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2009-2013,2015-2017,2019-2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -284,7 +284,6 @@ int32_t muxer::stop() {
   if (_read_handler)
     _read_handler = nullptr;
   _update_stats();
-  DEBUG(fmt::format("STOP muxer {} {}", static_cast<void*>(this), _name));
   return 0;
 }
 
