@@ -543,7 +543,7 @@ void checkable::set_name(const std::string& name) {
  * @return true allowed
  * @return false
  */
-bool checkable::is_whitelist_allowed(const std::string process_cmd) {
+bool checkable::is_whitelist_allowed(const std::string& process_cmd) {
   if (process_cmd == _whitelist_last_result.process_cmd &&
       configuration::whitelist::instance().instance_id() ==
           _whitelist_last_result.whitelist_instance_id) {

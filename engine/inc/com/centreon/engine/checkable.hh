@@ -173,7 +173,7 @@ class checkable {
   std::forward_list<std::shared_ptr<tag>>& mut_tags();
   const std::forward_list<std::shared_ptr<tag>>& tags() const;
 
-  bool is_whitelist_allowed(const std::string process_cmd);
+  bool is_whitelist_allowed(const std::string& process_cmd);
 
   timeperiod* check_period_ptr;
 

@@ -656,13 +656,13 @@ int32_t stream::stop() {
     }
   }
 
-  _substream->stop();
-
   /* We acknowledge peer about received events. */
   log_v2::core()->info("bbdo stream stopped with {} events acknowledged",
                        _events_received_since_last_ack);
   if (_events_received_since_last_ack)
     send_event_acknowledgement();
+
+  _substream->stop();
 
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;
