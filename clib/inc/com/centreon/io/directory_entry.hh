@@ -21,11 +21,11 @@
 
 #include <list>
 #include <string>
+
 #include "com/centreon/handle.hh"
 #include "com/centreon/io/file_entry.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace io {
 /**
@@ -57,6 +57,6 @@ class directory_entry {
 };
 }  // namespace io
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_IO_DIRECTORY_ENTRY_HH

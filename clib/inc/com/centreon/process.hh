@@ -20,15 +20,17 @@
 #define CC_PROCESS_POSIX_HH
 
 #include <sys/types.h>
+
 #include <array>
 #include <atomic>
 #include <condition_variable>
 #include <csignal>
 #include <mutex>
 #include <string>
+
 #include "com/centreon/timestamp.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 class process_listener;
 class process_manager;
@@ -129,6 +131,6 @@ class process {
   void set_timeout(bool timeout);
 };
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_PROCESS_POSIX_HH

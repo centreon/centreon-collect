@@ -20,12 +20,11 @@
 #define CC_LOGGING_TEMP_LOGGER_HH
 
 #include <string>
+
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/misc/stringifier.hh"
 
-CC_BEGIN()
-
-namespace logging {
+namespace com::centreon::logging {
 struct setprecision {
   setprecision(int val = -1) : precision(val) {}
   int precision;
@@ -58,8 +57,6 @@ class temp_logger {
   unsigned long long _type;
   unsigned int _verbose;
 };
-}  // namespace logging
-
-CC_END()
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_TEMP_LOGGER_HH

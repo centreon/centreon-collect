@@ -23,11 +23,7 @@
 #include <mutex>
 #include <vector>
 
-#include "com/centreon/namespace.hh"
-
-CC_BEGIN()
-
-namespace logging {
+namespace com::centreon::logging {
 class backend;
 
 /**
@@ -90,8 +86,6 @@ class engine {
   unsigned long long _list_types[sizeof(unsigned int) * CHAR_BIT];
   mutable std::recursive_mutex _mtx;
 };
-}  // namespace logging
-
-CC_END()
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_ENGINE_HH

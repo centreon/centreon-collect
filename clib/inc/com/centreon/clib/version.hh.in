@@ -1,50 +1,44 @@
-/*
-** Copyright 2011-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CC_CLIB_VERSION_HH
-# define CC_CLIB_VERSION_HH
+#define CC_CLIB_VERSION_HH
 
 // Compile-time values.
-# define CENTREON_CLIB_VERSION_MAJOR  @COLLECT_MAJOR@
-# define CENTREON_CLIB_VERSION_MINOR  @COLLECT_MINOR@
-# define CENTREON_CLIB_VERSION_PATCH  @COLLECT_PATCH@
-# define CENTREON_CLIB_VERSION_STRING "@CLIB_VERSION@"
+#define CENTREON_CLIB_VERSION_MAJOR @COLLECT_MAJOR @
+#define CENTREON_CLIB_VERSION_MINOR @COLLECT_MINOR @
+#define CENTREON_CLIB_VERSION_PATCH @COLLECT_PATCH @
+#define CENTREON_CLIB_VERSION_STRING "@CLIB_VERSION@"
 
-# include "com/centreon/namespace.hh"
+namespace com::centreon::clib::version {
 
-CC_BEGIN()
+// Compile-time values.
+unsigned int const major = @COLLECT_MAJOR @;
+unsigned int const minor = @COLLECT_MINOR @;
+unsigned int const patch = @COLLECT_PATCH @;
+char const* const string = "@CLIB_VERSION@";
 
-namespace              clib {
-  namespace            version {
-    // Compile-time values.
-    unsigned int const major = @COLLECT_MAJOR@;
-    unsigned int const minor = @COLLECT_MINOR@;
-    unsigned int const patch = @COLLECT_PATCH@;
-    char const* const  string = "@CLIB_VERSION@";
+// Run-time values.
+unsigned int get_major() noexcept;
+unsigned int get_minor() noexcept;
+unsigned int get_patch() noexcept;
+char const* get_string() noexcept;
 
-    // Run-time values.
-    unsigned int       get_major() noexcept;
-    unsigned int       get_minor() noexcept;
-    unsigned int       get_patch() noexcept;
-    char const*        get_string() noexcept;
-  }
-}
+}  // namespace com::centreon::clib::version
 
-CC_END()
-
-#endif // !CC_HANDLE_HH
+#endif  // !CC_HANDLE_HH

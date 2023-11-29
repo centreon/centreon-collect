@@ -25,12 +25,7 @@
 #define CENTREON_CLIB_VERSION_PATCH 2
 #define CENTREON_CLIB_VERSION_STRING "21.04.2"
 
-#include "com/centreon/namespace.hh"
-
-CC_BEGIN()
-
-namespace clib {
-namespace version {
+namespace com::centreon::clib::version {
 // Compile-time values.
 unsigned int const major = 21;
 unsigned int const minor = 04;
@@ -42,9 +37,6 @@ unsigned int get_major() throw();
 unsigned int get_minor() throw();
 unsigned int get_patch() throw();
 char const* get_string() throw();
-}  // namespace version
-}  // namespace clib
-
-CC_END()
+}  // namespace com::centreon::clib::version
 
 #endif  // !CC_HANDLE_HH

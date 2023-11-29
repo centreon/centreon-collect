@@ -21,7 +21,7 @@
 
 #include "com/centreon/handle.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 /**
  *  @class handle_listener handle_listener.hh "com/centreon/handle_listener.hh"
@@ -47,6 +47,6 @@ class handle_listener {
   virtual void write(handle&) {}
 };
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_HANDLE_LISTENER_HH

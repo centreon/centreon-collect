@@ -21,11 +21,8 @@
 
 #include <string>
 #include <thread>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace misc {
+namespace com::centreon::misc {
 /**
  *  @class stringifier stringifier.hh "com/centreon/misc/stringifier.hh"
  *  @brief Provide method to converting data to string.
@@ -75,8 +72,6 @@ class stringifier {
   static unsigned int const _static_buffer_size = 1024;
   char _static_buffer[_static_buffer_size];
 };
-}  // namespace misc
-
-CC_END()
+}  // namespace com::centreon::misc
 
 #endif  // !CC_MISC_STRINGIFIER_HH

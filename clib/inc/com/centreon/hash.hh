@@ -29,13 +29,11 @@
 #define TR1_UNORDERED 1
 #endif  // C++0x, tr1
 
-#include "com/centreon/namespace.hh"
-
 // Used c++0x implementation.
 #ifdef CXX0X_UNORDERED
 #include <functional>
 
-CC_BEGIN()
+namespace com::centreon {
 
 template <typename T>
 std::size_t hash(T const& data) {
@@ -43,13 +41,13 @@ std::size_t hash(T const& data) {
   return (h(data));
 }
 
-CC_END()
+}  // namespace com::centreon
 
 // Used tr1 implementation.
 #elif defined(TR1_UNORDERED)
 #include <tr1/functional>
 
-CC_BEGIN()
+namespace com::centreon {
 
 template <typename T>
 std::size_t hash(T const& data) {
@@ -57,12 +55,12 @@ std::size_t hash(T const& data) {
   return (h(data));
 }
 
-CC_END()
+}  // namespace com::centreon
 
 // Used own implementation.
 #else
 
-CC_BEGIN()
+namespace com::centreon {
 
 template <typename T>
 std::size_t hash(T const& data) {
@@ -130,11 +128,11 @@ inline std::size_t hash<unsigned short>(unsigned short val) {
   return (static_cast<std::size_t>(val));
 }
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // C++0X, tr1 or std
 
-CC_BEGIN()
+namespace com::centreon {
 
 template <typename T, typename U>
 std::size_t hash(std::pair<T, U> const& data) {
@@ -164,6 +162,6 @@ std::size_t hash_combine(std::size_t& seed, T begin, T end) {
   return (seed);
 }
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_HASH_HH

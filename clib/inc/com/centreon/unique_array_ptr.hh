@@ -20,9 +20,8 @@
 #define CC_UNIQUE_ARRAY_PTR_HH
 
 #include <cstddef>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 /**
  *  @class unique_array_ptr unique_array_ptr.hh
@@ -116,6 +115,6 @@ class unique_array_ptr {
   }
 };
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_UNIQUE_ARRAY_PTR_HH

@@ -21,11 +21,8 @@
 
 #include "com/centreon/handle.hh"
 #include "com/centreon/io/file_entry.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace io {
+namespace com::centreon::io {
 /**
  *  @class directory_entry directory_entry.hh
  *"com/centreon/io/directory_entry.hh"
@@ -53,8 +50,6 @@ class directory_entry {
   file_entry _entry;
   std::list<file_entry> _entry_lst;
 };
-}  // namespace io
-
-CC_END()
+}  // namespace com::centreon::io
 
 #endif  // !CC_IO_DIRECTORY_ENTRY_HH
