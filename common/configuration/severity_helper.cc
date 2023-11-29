@@ -52,8 +52,8 @@ severity_helper::severity_helper(Severity* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool severity_helper::hook(absl::string_view key,
-                           const absl::string_view& value) {
+bool severity_helper::hook(std::string_view key,
+                           const std::string_view& value) {
   Severity* obj = static_cast<Severity*>(mut_obj());
   key = validate_key(key);
 

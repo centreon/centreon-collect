@@ -59,7 +59,7 @@ std::ostream& pb_program(std::ostream& os);
 std::ostream& program(std::ostream& os);
 bool save(std::string const& path);
 std::ostream& service(std::ostream& os,
-                      const absl::string_view& class_name,
+                      const std::string_view& class_name,
                       com::centreon::engine::service const& obj);
 
 std::ostream& service(std::ostream& os,

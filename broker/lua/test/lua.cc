@@ -215,7 +215,7 @@ TEST_F(LuaTest, SimpleScript) {
   bnd->write(svc);
 
   std::string result(ReadFile("/tmp/test.log"));
-  std::list<absl::string_view> lst{absl::StrSplit(result, '\n')};
+  std::list<std::string_view> lst{absl::StrSplit(result, '\n')};
   // 85 lines and one empty line.
   ASSERT_EQ(lst.size(), 86u);
   size_t pos1 = result.find("INFO: init: address => 127.0.0.1");
@@ -256,7 +256,7 @@ TEST_F(LuaTest, WriteAcknowledgement) {
 
   std::string result{ReadFile("/tmp/test.log")};
   {
-    std::list<absl::string_view> lst{absl::StrSplit(result, '\n')};
+    std::list<std::string_view> lst{absl::StrSplit(result, '\n')};
     // 20 = 19 lines + 1 empty line
     std::cout << result << std::endl;
     ASSERT_EQ(lst.size(), 20u);
@@ -4294,15 +4294,15 @@ TEST_F(LuaTest, ServiceObjectMatchBetweenBbdoVersions) {
   binding->write(svc);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 
@@ -4376,15 +4376,15 @@ TEST_F(LuaTest, HostObjectMatchBetweenBbdoVersions) {
   binding->write(hst);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 
@@ -4455,15 +4455,15 @@ TEST_F(LuaTest, ServiceStatusObjectMatchBetweenBbdoVersions) {
   binding->write(svc);
   binding->write(svc1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 
@@ -4532,15 +4532,15 @@ TEST_F(LuaTest, HostStatusObjectMatchBetweenBbdoVersions) {
   binding->write(hst);
   binding->write(hst1);
   std::string ret(ReadFile("/tmp/log"));
-  std::vector<absl::string_view> lst1 = absl::StrSplit(ret, '\n');
-  std::vector<absl::string_view> lst2 = lst1;
-  std::list<absl::string_view> l1, l2;
+  std::vector<std::string_view> lst1 = absl::StrSplit(ret, '\n');
+  std::vector<std::string_view> lst2 = lst1;
+  std::list<std::string_view> l1, l2;
   for (auto& s : lst1) {
-    if (s.find(" * ") != absl::string_view::npos)
+    if (s.find(" * ") != std::string_view::npos)
       l1.emplace_back(s.substr(34));
   }
   for (auto& s : lst2) {
-    if (s.find(" - ") != absl::string_view::npos)
+    if (s.find(" - ") != std::string_view::npos)
       l2.emplace_back(s.substr(34));
   }
 

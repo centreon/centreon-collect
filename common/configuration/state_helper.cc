@@ -61,7 +61,7 @@ state_helper::state_helper(State* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool state_helper::hook(absl::string_view key, const absl::string_view& value) {
+bool state_helper::hook(std::string_view key, const std::string_view& value) {
   State* obj = static_cast<State*>(mut_obj());
   key = validate_key(key);
 
@@ -125,7 +125,7 @@ bool state_helper::hook(absl::string_view key, const absl::string_view& value) {
     }
     return true;
   } else if (key == "command_check_interval") {
-    absl::string_view v;
+    std::string_view v;
     if (value[value.size() - 1] == 's') {
       obj->set_command_check_interval_is_seconds(true);
       v = value.substr(0, value.size() - 1);

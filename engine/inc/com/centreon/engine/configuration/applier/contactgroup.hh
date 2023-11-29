@@ -43,7 +43,7 @@ class contactgroup {
                         configuration::contactgroup const& obj);
   void _resolve_members(configuration::State& s,
                         configuration::Contactgroup& obj,
-                        absl::flat_hash_set<absl::string_view>& resolved);
+                        absl::flat_hash_set<std::string_view>& resolved);
 
  public:
   /**

@@ -17,8 +17,8 @@
 ** <http://www.gnu.org/licenses/>.
 */
 
-#include <absl/strings/numbers.h>
 #include "com/centreon/engine/configuration/applier/macros.hh"
+#include <absl/strings/numbers.h>
 #include "com/centreon/engine/configuration/applier/state.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
@@ -40,10 +40,10 @@ using namespace com::centreon::engine::configuration;
  *  @return  True if the key is old-style and has been parsed succesfully.
  */
 static bool is_old_style_user_macro(std::string const& key, unsigned int& val) {
-  if (absl::string_view(key.data(), 4) != "USER")
+  if (std::string_view(key.data(), 4) != "USER")
     return false;
 
-  absl::string_view rest(key.data() + 4, key.size() - 4);
+  std::string_view rest(key.data() + 4, key.size() - 4);
   // Super strict validation.
   for (auto c : rest)
     if (c < '0' || c > '9')

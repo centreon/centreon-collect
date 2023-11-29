@@ -26,7 +26,7 @@
 
 using namespace com::centreon::engine;
 
-enginerpc::enginerpc(absl::string_view address, uint16_t port) {
+enginerpc::enginerpc(std::string_view address, uint16_t port) {
   std::string server_address{fmt::format(
       "{}:{}", fmt::string_view(address.data(), address.size()), port)};
   grpc::ServerBuilder builder;

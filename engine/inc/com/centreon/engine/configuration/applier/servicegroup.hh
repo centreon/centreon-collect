@@ -60,9 +60,9 @@ class servicegroup {
   void _resolve_members(
       configuration::State& s,
       configuration::Servicegroup* sg_conf,
-      absl::flat_hash_set<absl::string_view>& resolved,
-      const absl::flat_hash_map<absl::string_view,
-                                configuration::Servicegroup*>& sg_by_name);
+      absl::flat_hash_set<std::string_view>& resolved,
+      const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
+          sg_by_name);
 
   resolved_set _resolved;
 };

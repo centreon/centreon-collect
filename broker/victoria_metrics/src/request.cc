@@ -67,15 +67,15 @@ request::request(boost::beast::http::verb method,
   set(boost::beast::http::field::authorization, authorization);
 }
 
-static constexpr absl::string_view _sz_metric = "metric,id=";
-static constexpr absl::string_view _sz_status = "status,id=";
-static constexpr absl::string_view _sz_space = " ";
-static constexpr absl::string_view _sz_name = ",name=";
-static constexpr absl::string_view _sz_unit = ",unit=";
-static constexpr absl::string_view _sz_host_id = ",host_id=";
-static constexpr absl::string_view _sz_serv_id = ",serv_id=";
-static constexpr absl::string_view _sz_severity_id = ",severity_id=";
-static constexpr absl::string_view _sz_val = " val=";
+static constexpr std::string_view _sz_metric = "metric,id=";
+static constexpr std::string_view _sz_status = "status,id=";
+static constexpr std::string_view _sz_space = " ";
+static constexpr std::string_view _sz_name = ",name=";
+static constexpr std::string_view _sz_unit = ",unit=";
+static constexpr std::string_view _sz_host_id = ",host_id=";
+static constexpr std::string_view _sz_serv_id = ",serv_id=";
+static constexpr std::string_view _sz_severity_id = ",severity_id=";
+static constexpr std::string_view _sz_val = " val=";
 
 void request::add_metric(const storage::pb_metric& metric) {
   absl::StrAppend(&body(), _sz_metric, metric.obj().metric_id());

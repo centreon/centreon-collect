@@ -202,10 +202,10 @@ int32_t macro_cache::get_severity(uint64_t host_id, uint64_t service_id) const {
  *
  * @return A string view pointing to the check command.
  */
-absl::string_view macro_cache::get_check_command(uint64_t host_id,
-                                                 uint64_t service_id) const {
+std::string_view macro_cache::get_check_command(uint64_t host_id,
+                                                uint64_t service_id) const {
   /* Case of services */
-  absl::string_view retval;
+  std::string_view retval;
   if (service_id) {
     auto found = _services.find({host_id, service_id});
     if (found == _services.end())

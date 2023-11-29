@@ -169,7 +169,7 @@ void applier::serviceescalation::expand_objects(configuration::State& s) {
 
   for (auto& se : *s.mutable_serviceescalations()) {
     if (se.hostgroups().data().size() > 0) {
-      absl::flat_hash_set<absl::string_view> host_names;
+      absl::flat_hash_set<std::string_view> host_names;
       for (auto& hname : se.hosts().data())
         host_names.emplace(hname);
       for (auto& hg_name : se.hostgroups().data()) {
@@ -186,7 +186,7 @@ void applier::serviceescalation::expand_objects(configuration::State& s) {
               "Could not expand non-existing host group '{}'", hg_name);
       }
 
-      absl::flat_hash_set<std::pair<absl::string_view, absl::string_view>>
+      absl::flat_hash_set<std::pair<std::string_view, std::string_view>>
           expanded;
       for (auto& hn : host_names) {
         for (auto& sn : se.service_description().data())

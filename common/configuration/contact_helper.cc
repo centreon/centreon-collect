@@ -49,8 +49,7 @@ contact_helper::contact_helper(Contact* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool contact_helper::hook(absl::string_view key,
-                          const absl::string_view& value) {
+bool contact_helper::hook(std::string_view key, const std::string_view& value) {
   Contact* obj = static_cast<Contact*>(mut_obj());
   key = validate_key(key);
 
@@ -118,8 +117,8 @@ void contact_helper::_init() {
  *
  * @return True if the customvariable has been well stored.
  */
-bool contact_helper::insert_customvariable(absl::string_view key,
-                                           absl::string_view value) {
+bool contact_helper::insert_customvariable(std::string_view key,
+                                           std::string_view value) {
   if (key[0] != '_')
     return false;
 

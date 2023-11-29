@@ -254,13 +254,13 @@ std::string& string::remove_thresholds(std::string& perfdata) noexcept {
  * @return true extracted is valid
  * @return false current pos is yet beyond string end
  */
-bool string::c_strtok::extract(char sep, absl::string_view& extracted) {
-  if (_pos == absl::string_view::npos) {
+bool string::c_strtok::extract(char sep, std::string_view& extracted) {
+  if (_pos == std::string_view::npos) {
     return false;
   }
   size_type old_pos = _pos;
   _pos = _src.find(sep, old_pos);
-  if (_pos != absl::string_view::npos) {
+  if (_pos != std::string_view::npos) {
     extracted = _src.substr(old_pos, (_pos++) - old_pos);
   } else {
     extracted = _src.substr(old_pos);
@@ -275,10 +275,10 @@ bool string::c_strtok::extract(char sep, absl::string_view& extracted) {
  * if current pos is yet beyond string end, it returns boost::none
  *
  * @param sep separator
- * @return absl::string_view field extracted
+ * @return std::string_view field extracted
  */
-absl::optional<absl::string_view> string::c_strtok::extract(char sep) {
-  absl::string_view ret;
+absl::optional<std::string_view> string::c_strtok::extract(char sep) {
+  std::string_view ret;
   if (!extract(sep, ret)) {
     return absl::nullopt;
   }
@@ -295,7 +295,7 @@ absl::optional<absl::string_view> string::c_strtok::extract(char sep) {
  * @return false current pos is yet beyond string end
  */
 bool string::c_strtok::extract(char sep, std::string& extracted) {
-  absl::string_view ret;
+  std::string_view ret;
   if (!extract(sep, ret)) {
     return false;
   }
@@ -304,14 +304,14 @@ bool string::c_strtok::extract(char sep, std::string& extracted) {
 }
 
 bool string::c_strtok::extract(char sep, int& extracted) {
-  absl::string_view ret;
+  std::string_view ret;
   if (!extract(sep, ret)) {
     return false;
   }
   if (absl::SimpleAtoi(ret, &extracted)) {
     return true;
   }
-  _pos = absl::string_view::npos;
+  _pos = std::string_view::npos;
   return false;
 }
 

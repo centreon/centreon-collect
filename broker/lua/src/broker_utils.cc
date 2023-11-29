@@ -632,10 +632,10 @@ static int l_broker_parse_perfdata(lua_State* L) {
   for (auto const& pd : pds) {
     lua_pushlstring(L, pd.name().c_str(), pd.name().size());
     if (full) {
-      absl::string_view name{pd.name()};
-      absl::string_view metric;
-      absl::string_view fullinstance;
-      std::list<absl::string_view> subinstance;
+      std::string_view name{pd.name()};
+      std::string_view metric;
+      std::string_view fullinstance;
+      std::list<std::string_view> subinstance;
       lua_createtable(L, 0, 15);
       int find_sharp = name.find("#");
       int find_tilde = name.find("~");
@@ -646,7 +646,7 @@ static int l_broker_parse_perfdata(lua_State* L) {
         fullinstance = name.substr(0, find_sharp);
         subinstance = absl::StrSplit(fullinstance, '~');
       }
-      std::list<absl::string_view> metric_fields{absl::StrSplit(metric, '.')};
+      std::list<std::string_view> metric_fields{absl::StrSplit(metric, '.')};
 
       lua_pushnumber(L, pd.value());
       lua_setfield(L, -2, "value");
@@ -680,7 +680,7 @@ static int l_broker_parse_perfdata(lua_State* L) {
       lua_pushlstring(L, "subinstance", sizeof("subinstance") - 1);
       lua_createtable(L, 0, 1);
       i = 0;
-      for (std::list<absl::string_view>::const_iterator
+      for (std::list<std::string_view>::const_iterator
                it(std::next(subinstance.begin())),
            end(subinstance.end());
            it != end; ++it) {

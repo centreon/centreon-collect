@@ -92,7 +92,7 @@ TEST_F(ApplierTag, ModifyTagFromConfig) {
 
   ASSERT_EQ(engine::tag::tags.size(), 1u);
   ASSERT_EQ(engine::tag::tags.begin()->second->name(),
-            absl::string_view("tag1"));
+            std::string_view("tag1"));
 }
 
 // Given a tag applier
@@ -119,12 +119,12 @@ TEST_F(ApplierTag, PbModifyTagFromConfig) {
 
   ASSERT_EQ(engine::tag::tags.size(), 1u);
   ASSERT_EQ(engine::tag::tags.begin()->second->name(),
-            absl::string_view("tag1"));
+            std::string_view("tag1"));
 
   // No change here
   aply.modify_object(&pb_config.mutable_tags()->at(0), tg);
   ASSERT_EQ(engine::tag::tags.begin()->second->name(),
-            absl::string_view("tag1"));
+            std::string_view("tag1"));
 }
 
 // Given a tag applier
