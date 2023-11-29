@@ -20,17 +20,17 @@
 #define CC_CLIB_VERSION_HH
 
 // Compile-time values.
-#define CENTREON_CLIB_VERSION_MAJOR @COLLECT_MAJOR @
-#define CENTREON_CLIB_VERSION_MINOR @COLLECT_MINOR @
-#define CENTREON_CLIB_VERSION_PATCH @COLLECT_PATCH @
+#define CENTREON_CLIB_VERSION_MAJOR @COLLECT_MAJOR@
+#define CENTREON_CLIB_VERSION_MINOR @COLLECT_MINOR@
+#define CENTREON_CLIB_VERSION_PATCH @COLLECT_PATCH@
 #define CENTREON_CLIB_VERSION_STRING "@CLIB_VERSION@"
 
 namespace com::centreon::clib::version {
 
 // Compile-time values.
-unsigned int const major = @COLLECT_MAJOR @;
-unsigned int const minor = @COLLECT_MINOR @;
-unsigned int const patch = @COLLECT_PATCH @;
+unsigned int const major = @COLLECT_MAJOR@;
+unsigned int const minor = @COLLECT_MINOR@;
+unsigned int const patch = @COLLECT_PATCH@;
 char const* const string = "@CLIB_VERSION@";
 
 // Run-time values.
