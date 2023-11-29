@@ -580,6 +580,7 @@ stream::stream(bool is_input,
       _ack_limit(1000),
       _events_received_since_last_ack(0),
       _last_sent_ack(time(nullptr)),
+      _grpc_serialized(grpc_serialized),
       _extensions{extensions},
       _bbdo_version(config::applier::state::instance().get_bbdo_version()),
       _logger{log_v2::instance().get(log_v2::BBDO)} {
@@ -1141,7 +1142,7 @@ bool stream::_read_any(std::shared_ptr<io::data>& d, time_t deadline) {
       _read_packet(BBDO_HEADER_SIZE, deadline);
       if (!_grpc_serialized_queue.empty()) {
         d = _grpc_serialized_queue.front();
-        SPDLOG_LOGGER_TRACE(log_v2::bbdo(), "read event: {}", *d);
+        SPDLOG_LOGGER_TRACE(_logger, "read event: {}", *d);
         _grpc_serialized_queue.pop_front();
         return true;
       }

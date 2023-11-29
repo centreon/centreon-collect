@@ -17,8 +17,10 @@
 */
 
 #include "com/centreon/broker/bam/kpi_ba.hh"
+
 #include <fmt/format.h>
 #include <gtest/gtest.h>
+
 #include "com/centreon/broker/bam/ba_impact.hh"
 #include "com/centreon/broker/bam/ba_worst.hh"
 #include "com/centreon/broker/bam/configuration/applier/state.hh"
@@ -84,8 +86,8 @@ TEST_F(KpiBA, KpiBa) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -192,8 +194,8 @@ TEST_F(KpiBA, KpiBaPb) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -295,8 +297,8 @@ TEST_F(KpiBA, KpiBaDt) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -406,8 +408,8 @@ TEST_F(KpiBA, KpiBaDtPb) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -518,8 +520,8 @@ TEST_F(KpiBA, KpiBaDtOff) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -639,8 +641,8 @@ TEST_F(KpiBA, KpiBaDtOffPb) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -766,8 +768,8 @@ TEST_F(KpiBA, KpiBaOkDtOff) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -871,8 +873,8 @@ TEST_F(KpiBA, KpiBaOkDtOffPb) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i,
-                                                fmt::format("service {}", i), logger);
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -986,9 +988,8 @@ TEST_F(KpiBA, KpiBaWorstImpact) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-==== BASE ====
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i);
-==== BASE ====
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);
@@ -1084,9 +1085,8 @@ TEST_F(KpiBA, KpiBaWorstImpactPb) {
 
   /* Construction of kpi_services */
   for (int i = 0; i < 2; i++) {
-==== BASE ====
-    auto s = std::make_shared<bam::kpi_service>(i + 1, 2, 3, 1 + i);
-==== BASE ====
+    auto s = std::make_shared<bam::kpi_service>(
+        i + 1, 2, 3, 1 + i, fmt::format("service {}", i), logger);
     s->set_downtimed(false);
     s->set_impact_critical(100);
     s->set_impact_unknown(0);

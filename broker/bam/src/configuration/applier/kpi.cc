@@ -276,7 +276,7 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
         cfg.get_ba_id());
     auto obj{std::make_shared<bam::kpi_service>(
         cfg.get_id(), cfg.get_ba_id(), cfg.get_host_id(), cfg.get_service_id(),
-        cfg.get_name())};
+        cfg.get_name(), logger)};
     obj->set_acknowledged(cfg.is_acknowledged());
     obj->set_downtimed(cfg.is_downtimed());
     obj->set_impact_critical(cfg.get_impact_critical());
@@ -288,8 +288,8 @@ std::shared_ptr<bam::kpi> applier::kpi::_new_kpi(
     my_kpi = std::static_pointer_cast<bam::kpi>(obj);
   } else if (cfg.is_ba()) {
     logger->info("BAM: creating new KPI {} of BA {}:{} impacting BA {}",
-                        cfg.get_id(), cfg.get_indicator_ba_id(), cfg.get_name(),
-                        cfg.get_ba_id());
+                 cfg.get_id(), cfg.get_indicator_ba_id(), cfg.get_name(),
+                 cfg.get_ba_id());
     std::shared_ptr<bam::kpi_ba> obj(std::make_shared<bam::kpi_ba>(
         cfg.get_id(), cfg.get_ba_id(), cfg.get_name(), logger));
     obj->set_impact_critical(cfg.get_impact_critical());

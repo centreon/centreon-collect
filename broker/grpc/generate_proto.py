@@ -63,10 +63,13 @@ cc_file_begin_content = """
 #include "com/centreon/broker/io/protobuf.hh"
 
 #include "com/centreon/broker/grpc/channel.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::broker;
+using com::centreon::common::log_v2::log_v2;
 
 namespace com::centreon::broker::grpc {
+
 namespace detail {
 
 /**
@@ -151,7 +154,10 @@ std::shared_ptr<channel::event_with_data> create_event_with_data(const std::shar
 """
 cc_file_create_event_with_data_function_end = """
     default:
-        SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown event type: {}", *event);
+      {
+        auto logger = log_v2::instance().get(log_v2::GRPC);
+        SPDLOG_LOGGER_ERROR(logger, "unknown event type: {}", *event);
+      }
     }
     if (ret) {
         ret->grpc_event.set_destination_id(event->destination_id);
@@ -241,9 +247,12 @@ with open(args.cc_file, 'w') as fp:
     fp.write(cc_file_begin_content)
     fp.write(cc_file_protobuf_to_event_function)
     fp.write("""        default:
-      SPDLOG_LOGGER_ERROR(log_v2::grpc(), "unknown content type: {} => ignored",
-                          stream_content->content_case());
-      return std::shared_ptr<io::data>();
+      {
+        auto logger = log_v2::instance().get(log_v2::GRPC);
+        SPDLOG_LOGGER_ERROR(logger, "unknown content type: {} => ignored",
+                            stream_content->content_case());
+        return std::shared_ptr<io::data>();
+      }
     }
 }
 

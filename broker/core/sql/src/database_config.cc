@@ -33,10 +33,10 @@ std::ostream& operator<<(std::ostream& s, const database_config cfg) {
   } else {
     s << cfg.get_socket();
   }
-  s << "queries per transaction:" << cfg.get_queries_per_transaction()
+  s << " queries per transaction:" << cfg.get_queries_per_transaction()
     << " check replication:" << cfg.get_check_replication()
-    << " connnexion count:" << cfg.get_connections_count()
-    << " max comit delay:" << cfg.get_max_commit_delay() << 's';
+    << " connection count:" << cfg.get_connections_count()
+    << " max commit delay:" << cfg.get_max_commit_delay() << 's';
   return s;
 }
 
