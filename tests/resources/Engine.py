@@ -374,27 +374,6 @@ define command {
         ff.close()
 
     @staticmethod
-    def create_meta_services_file(poller: int, name: int, SG: str, contactgroup: str):
-        config_file = f"{CONF_DIR}/config{poller}/meta_services.cfg"
-        with open(config_file, "a+") as ff:
-            content = """define service {{
-    ;service_description            meta_1 
-    display_name                   Ntpd-Average 
-    host_name                      _Module_Meta  
-    max_check_attempts             1 
-    normal_check_interval          1 
-    retry_check_interval           1 
-    active_checks_enabled          1 
-    passive_checks_enabled         0  
-    notification_interval          0 
-    notification_period            24x7 
-    notification_options           w,c,r 
-    notifications_enabled          1 
-    }}
-    """.format(name, SG, contactgroup)
-            ff.write(content)
-
-    @staticmethod
     def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
@@ -1008,7 +987,7 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
         m = r.match(lines[i])
         if m is not None:
             lines.insert(i + 1, f"    {key}                     {value}\n")
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/d.cfg", "w") as ff:
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
         ff.writelines(lines)
 
 def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
@@ -1759,7 +1738,6 @@ def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-
 def create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
-
 def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
@@ -1814,7 +1792,6 @@ def engine_config_remove_tag(poller: int, tag_id: int):
     f = open(filename, "w")
     f.writelines(lines)
     f.close()
-
 
 
 def config_engine_add_cfg_file(poller: int, cfg: str):
