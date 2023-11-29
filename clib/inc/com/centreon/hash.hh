@@ -128,11 +128,7 @@ inline std::size_t hash<unsigned short>(unsigned short val) {
   return (static_cast<std::size_t>(val));
 }
 
-<<<<<<< HEAD
-}
-=======
 }  // namespace com::centreon
->>>>>>> a1bbdae6e4 (fix(broker): construction of end from start in rebuild)
 
 #endif  // C++0X, tr1 or std
 
@@ -166,10 +162,6 @@ std::size_t hash_combine(std::size_t& seed, T begin, T end) {
   return (seed);
 }
 
-<<<<<<< HEAD
-}
-=======
 }  // namespace com::centreon
->>>>>>> a1bbdae6e4 (fix(broker): construction of end from start in rebuild)
 
 #endif  // !CC_HASH_HH
