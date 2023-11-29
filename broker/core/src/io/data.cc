@@ -89,4 +89,4 @@ void data::dump_more_detail(std::ostream& s) const {
  *
  * @param s
  */
-void data::dump_to_json(std::ostream& s) const {}
+void data::dump_to_json(std::ostream& s [[maybe_unused]]) const {}

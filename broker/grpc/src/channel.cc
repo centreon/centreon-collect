@@ -209,10 +209,9 @@ void channel::start_write() {
     write_current = _write_current = _write_queue.front();
   }
   if (write_current->bbdo_event)
-    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}",
-                        *write_current->bbdo_event);
+    SPDLOG_LOGGER_TRACE(_logger, "write: {}", *write_current->bbdo_event);
   else
-    SPDLOG_LOGGER_TRACE(log_v2::grpc(), "write: {}", write_current->grpc_event);
+    SPDLOG_LOGGER_TRACE(_logger, "write: {}", write_current->grpc_event);
 
   start_write(write_current);
 }

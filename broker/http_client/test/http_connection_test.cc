@@ -434,7 +434,7 @@ class listener : public std::enable_shared_from_this<listener> {
       : _ssl_context(std::make_shared<asio::ssl::context>(
             asio::ssl::context::sslv23_server)),
         _acceptor(*g_io_context, test_endpoint, true),
-        _logger(log_v2::tcp()) {
+        _logger(log_v2::instance().get(log_v2::TCP)) {
     load_server_certificate(*_ssl_context);
   }
 
