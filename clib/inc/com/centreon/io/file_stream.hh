@@ -21,12 +21,10 @@
 
 #include <cstdio>
 #include <string>
+
 #include "com/centreon/handle.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace io {
+namespace com::centreon::io {
 /**
  *  @class file_stream file_stream.hh "com/centreon/io/file_stream.hh"
  *  @brief Wrapper of libc's FILE streams.
@@ -63,8 +61,7 @@ class file_stream : public handle {
   bool _auto_close;
   FILE* _stream;
 };
-}  // namespace io
 
-CC_END()
+}  // namespace com::centreon::io
 
 #endif  // !CC_IO_FILE_STREAM_HH

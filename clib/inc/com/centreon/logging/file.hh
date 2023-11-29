@@ -21,12 +21,10 @@
 
 #include <cstdio>
 #include <string>
+
 #include "com/centreon/logging/backend.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace logging {
+namespace com::centreon::logging {
 /**
  *  @class file file.hh "com/centreon/logging/file.hh"
  *  @brief Log messages to file.
@@ -68,8 +66,6 @@ class file : public backend {
   FILE* _out;
   uint64_t _size;
 };
-}  // namespace logging
-
-CC_END()
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_FILE_HH

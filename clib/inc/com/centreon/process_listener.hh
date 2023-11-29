@@ -19,10 +19,9 @@
 #ifndef CC_PROCESS_LISTENER_HH
 #define CC_PROCESS_LISTENER_HH
 
-#include "com/centreon/namespace.hh"
 #include "com/centreon/process.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 /**
  *  @class process process_listener.hh "com/centreon/process_listener.hh"
@@ -38,6 +37,6 @@ class process_listener {
   virtual void finished(process& p) noexcept = 0;
 };
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_PROCESS_LISTENER_HH

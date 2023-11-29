@@ -20,11 +20,8 @@
 #define CC_MISC_GET_OPTIONS_HH
 
 #include "com/centreon/misc/argument.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace misc {
+namespace com::centreon::misc {
 /**
  *  @class get_options get_options.hh "com/centreon/misc/get_options.hh"
  *  @brief Parse command line arguments.
@@ -71,8 +68,6 @@ class get_options {
                            std::string& key,
                            std::string& value);
 };
-}  // namespace misc
-
-CC_END()
+}  // namespace com::centreon::misc
 
 #endif  // !CC_MISC_GET_OPTIONS_HH

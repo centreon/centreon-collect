@@ -20,10 +20,10 @@
 #define CC_LIBRARY_POSIX_HH
 
 #include <dlfcn.h>
-#include <string>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+#include <string>
+
+namespace com::centreon {
 
 /**
  *  @class library library.hh "com/centreon/library.hh"
@@ -52,6 +52,6 @@ class library {
   void* _handle;
 };
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_LIBRARY_POSIX_HH

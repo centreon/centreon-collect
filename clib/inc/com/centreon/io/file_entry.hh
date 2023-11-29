@@ -21,15 +21,16 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include <string>
+
 #include "com/centreon/handle.hh"
-#include "com/centreon/namespace.hh"
 
 #ifdef _WIN32
 #define stat _stat
 #endif  // _WIN32
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace io {
 /**
@@ -67,6 +68,6 @@ class file_entry {
 };
 }  // namespace io
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_IO_FILE_ENTRY_HH

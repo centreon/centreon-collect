@@ -19,9 +19,7 @@
 #ifndef CC_TASK_HH
 #define CC_TASK_HH
 
-#include "com/centreon/namespace.hh"
-
-CC_BEGIN()
+namespace com::centreon {
 
 /**
  *  @class task task.hh "com/centreon/task.hh"
@@ -39,6 +37,6 @@ class task {
   virtual void run() = 0;
 };
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_TASK_HH

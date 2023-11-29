@@ -17,34 +17,27 @@
 */
 
 #ifndef CC_CLIB_VERSION_HH
-# define CC_CLIB_VERSION_HH
+#define CC_CLIB_VERSION_HH
 
 // Compile-time values.
-# define CENTREON_CLIB_VERSION_MAJOR  @COLLECT_MAJOR@
-# define CENTREON_CLIB_VERSION_MINOR  @COLLECT_MINOR@
-# define CENTREON_CLIB_VERSION_PATCH  @COLLECT_PATCH@
-# define CENTREON_CLIB_VERSION_STRING "@CLIB_VERSION@"
+#define CENTREON_CLIB_VERSION_MAJOR @COLLECT_MAJOR @
+#define CENTREON_CLIB_VERSION_MINOR @COLLECT_MINOR @
+#define CENTREON_CLIB_VERSION_PATCH @COLLECT_PATCH @
+#define CENTREON_CLIB_VERSION_STRING "@CLIB_VERSION@"
 
-# include "com/centreon/namespace.hh"
+namespace com::centreon::clib::version {
 
-CC_BEGIN()
+// Compile-time values.
+unsigned int const major = @COLLECT_MAJOR @;
+unsigned int const minor = @COLLECT_MINOR @;
+unsigned int const patch = @COLLECT_PATCH @;
+char const* const string = "@CLIB_VERSION@";
 
-namespace              clib {
-  namespace            version {
-    // Compile-time values.
-    unsigned int const major = @COLLECT_MAJOR@;
-    unsigned int const minor = @COLLECT_MINOR@;
-    unsigned int const patch = @COLLECT_PATCH@;
-    char const* const  string = "@CLIB_VERSION@";
+// Run-time values.
+unsigned int get_major() noexcept;
+unsigned int get_minor() noexcept;
+unsigned int get_patch() noexcept;
+char const* get_string() noexcept;
+}  // namespace com::centreon::clib::version
 
-    // Run-time values.
-    unsigned int       get_major() noexcept;
-    unsigned int       get_minor() noexcept;
-    unsigned int       get_patch() noexcept;
-    char const*        get_string() noexcept;
-  }
-}
-
-CC_END()
-
-#endif // !CC_HANDLE_HH
+#endif  // !CC_HANDLE_HH

@@ -20,11 +20,8 @@
 #define CC_MISC_ARGUMENT_HH
 
 #include <string>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace misc {
+namespace com::centreon::misc {
 /**
  *  @class argument argument.hh "com/centreon/misc/argument.hh"
  *  @brief Define class argument for get options.
@@ -67,8 +64,6 @@ class argument {
   char _name;
   std::string _value;
 };
-}  // namespace misc
-
-CC_END()
+}  // namespace com::centreon::misc
 
 #endif  // !CC_MISC_ARGUMENT_HH

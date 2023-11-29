@@ -21,9 +21,7 @@
 
 #include "com/centreon/logging/temp_logger.hh"
 
-CC_BEGIN()
-
-namespace logging {
+namespace com::centreon::logging {
 enum type_value {
   type_info = (1ull << 61),
   type_debug = (1ull << 62),
@@ -31,9 +29,7 @@ enum type_value {
 };
 
 enum verbosity_level { low = 0, medium = 1, high = 2 };
-}  // namespace logging
-
-CC_END()
+}  // namespace com::centreon::logging
 
 #define log_info(verbose)                                                \
   for (unsigned int __com_centreon_logging_define_ui(0);                 \

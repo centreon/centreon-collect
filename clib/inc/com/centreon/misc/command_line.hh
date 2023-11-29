@@ -21,11 +21,8 @@
 
 #include <string>
 #include <vector>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
-
-namespace misc {
+namespace com::centreon::misc {
 /**
  *  @class command_line command_line.hh "com/centreon/misc/command_line.hh"
  *  @brief Provide method to split command line arguments into array.
@@ -56,8 +53,6 @@ class command_line {
   std::vector<char*> _argv;
   size_t _size;
 };
-}  // namespace misc
-
-CC_END()
+}  // namespace com::centreon::misc
 
 #endif  // !CC_MISC_COMMAND_LINE_HH

@@ -19,9 +19,7 @@
 #ifndef CC_LOGGING_BACKEND_HH
 #define CC_LOGGING_BACKEND_HH
 
-#include "com/centreon/namespace.hh"
-
-CC_BEGIN()
+namespace com::centreon {
 
 namespace misc {
 class stringifier;
@@ -77,6 +75,6 @@ class backend {
 };
 }  // namespace logging
 
-CC_END()
+}  // namespace com::centreon
 
 #endif  // !CC_LOGGING_BACKEND_HH

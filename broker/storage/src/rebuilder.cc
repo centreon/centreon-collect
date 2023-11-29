@@ -193,7 +193,7 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
                      e.what());
     }
     auto end_rebuild = std::make_shared<storage::pb_rebuild_message>();
-    end_rebuild->set_obj(std::move(start_rebuild->mut_obj()));
+    end_rebuild->mut_obj().CopyFrom(start_rebuild->obj());
     end_rebuild->mut_obj().set_state(RebuildMessage_State_END);
     multiplexing::publisher().write(end_rebuild);
     ms.run_query(
