@@ -25,6 +25,8 @@ engine_pb2.py
 engine_pb2.pyc
 engine_pb2_grpc.py
 engine_pb2_grpc.pyc
+grpc_stream.proto
+grpc_bridge.cc
 libgtest*.a
 libnebbase.a
 libroker.a
