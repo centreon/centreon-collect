@@ -28,24 +28,29 @@ def files_contain_same_json(file_e: str, file_b: str):
     idx1 = 0
     idx2 = 0
 
-    r = re.compile(r"^[^{]* (\{.*\})$")
+    r = re.compile(
+        r".* [0-9][0-9][0-9][0-9]: [A-Z]+: ([0-9]+) ([0-9a-f]+) (\{.*\})$")
     while idx1 < len(content1) and idx2 < len(content2):
         m1 = r.match(content1[idx1])
-        if m1 is not None:
-            c1 = m1.group(1)
+        if m1:
+            type1 = m1.group(1)
+            c1 = m1.group(3)
             if c1.upper() == new_inst:
                 continue
         else:
-            logger.console(f"content at line {idx1} of '{file_e}' is not JSON: {content1[idx1]}")
+            logger.console(
+                f"content at line {idx1} of '{file_e}' is not JSON: {content1[idx1]}")
             idx1 += 1
             continue
         m2 = r.match(content2[idx2])
-        if m2 is not None:
-            c2 = m2.group(1)
+        if m2:
+            type2 = m2.group(1)
+            c2 = m2.group(3)
             if c2.upper() == new_inst:
                 continue
         else:
-            logger.console(f"content at line {idx2} of '{file_b}' is not JSON: {content2[idx2]}")
+            logger.console(
+                f"content at line {idx2} of '{file_b}' is not JSON: {content2[idx2]}")
             idx2 += 1
             continue
 
@@ -53,38 +58,40 @@ def files_contain_same_json(file_e: str, file_b: str):
             idx1 += 1
             idx2 += 1
         else:
-            js1 = json.loads(c1)
-            js2 = json.loads(c2)
-            if js2['_type'] == 4294901762:
-                idx2 += 1
-                continue
-            if js1['_type'] == 4294901762:
+            if type1 in ["4294901762", "196617", "196618", "196619", "196620", "65582"]:
                 idx1 += 1
                 continue
+            if type2 in ["4294901762", "196617", "196618", "196619", "196620", "65582"]:
+                idx2 += 1
+                continue
+            js1 = json.loads(c1)
+            js2 = json.loads(c2)
 
             if len(js1) != len(js2):
-                logger.console(f"content1: {c1}")
-                logger.console(f"content2: {c2}")
-                logger.console("Do not match")
+                logger.console(f"content1 (line {idx1}): {c1}")
+                logger.console(f"content2 (line {idx2}): {c2}")
+                logger.console("Do not match (different lengths)")
                 return False
             for k in js1:
                 if isinstance(js1[k], float):
                     if abs(js1[k] - js2[k]) > 0.1:
-                        logger.console(f"content1: {c1}")
-                        logger.console(f"content2: {c2}")
-                        logger.console("Do not match")
+                        logger.console(f"content1 (line {idx1}): {c1}")
+                        logger.console(f"content2 (line {idx2}): {c2}")
+                        logger.console(
+                            f"Do not match (different as float {k} value)")
                         return False
                 else:
                     if js1[k] != js2[k]:
-                        logger.console(f"content1: {c1}")
-                        logger.console(f"content2: {c2}")
-                        logger.console("Do not match")
+                        logger.console(f"content1 (line {idx1}): {c1}")
+                        logger.console(f"content2 (line {idx2}): {c2}")
+                        logger.console(f"Do not match (different {k} value)")
                         return False
             idx1 += 1
             idx2 += 1
     retval = idx1 == len(content1) or idx2 == len(content2)
     if not retval:
-        logger.console("not at the end of files idx1 = {idx1}/{len(content1)} or idx2 = {idx2}/{len(content2)}")
+        logger.console(
+            "not at the end of files idx1 = {idx1}/{len(content1)} or idx2 = {idx2}/{len(content2)}")
         return False
     return True
 

@@ -55,16 +55,19 @@ tcp_connection::tcp_connection(asio::io_context& io_context,
       _address(host),
       _port(port),
       _logger{log_v2::instance().get(log_v2::TCP)} {
-  DEBUG(fmt::format("CONSTRUCTOR tcp_connection {}", static_cast<void*>(this)));
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::tcp_connection constructor {}", static_cast<void*>(this));
 }
 
 /**
  * @brief Destructor
  */
 tcp_connection::~tcp_connection() noexcept {
-  _logger->trace("Connection to {}:{} destroyed.", _address, _port);
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::tcp_connection destructor {}", static_cast<void*>(this));
   close();
-  DEBUG(fmt::format("DESTRUCTOR tcp_connection {}", static_cast<void*>(this)));
 }
 
 /**
@@ -285,7 +288,9 @@ void tcp_connection::handle_read(const boost::system::error_code& ec,
  * @return written data during the close.
  */
 int32_t tcp_connection::close() {
-  _logger->trace("closing tcp connection");
+  log_v2::instance()
+      .get(log_v2::FUNCTIONS)
+      ->trace("tcp::tcp_connection close {}", static_cast<void*>(this));
   if (!_closed) {
     std::chrono::system_clock::time_point timeout =
         std::chrono::system_clock::now() + std::chrono::seconds(10);

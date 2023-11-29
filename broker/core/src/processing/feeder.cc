@@ -281,8 +281,6 @@ void feeder::stop() {
  *
  */
 void feeder::_stop_no_lock() {
-  DEBUG(
-      fmt::format("STOP FEEDER use_count = {}", weak_from_this().use_count()));
   auto logger = log_v2::instance().get(log_v2::PROCESSING);
   SPDLOG_LOGGER_INFO(logger, "{} Stop without lock called", _name);
   state expected = state::running;
@@ -291,18 +289,6 @@ void feeder::_stop_no_lock() {
   }
 
   set_state("disconnected");
-
-  // muxer should not receive events
-  _muxer->unsubscribe();
-  _muxer->stop();
-  DEBUG(fmt::format("STOP FEEDER muxer cancel use_count = {}",
-                    weak_from_this().use_count()));
-  _stat_timer.cancel();
-  DEBUG(fmt::format("STOP FEEDER stat cancel use_count = {}",
-                    weak_from_this().use_count()));
-  _read_from_stream_timer.cancel();
-  DEBUG(fmt::format("STOP FEEDER stream cancel use_count = {}",
-                    weak_from_this().use_count()));
 
   /* We don't get back the return value of stop() because it has non sense,
    * the only interest in calling stop() is to send an acknowledgement to the
@@ -313,6 +299,12 @@ void feeder::_stop_no_lock() {
     SPDLOG_LOGGER_ERROR(logger, "{} Failed to send stop event to client: {}",
                         _name, e.what());
   }
+  // muxer should not receive events
+  _muxer->unsubscribe();
+  _muxer->stop();
+  _stat_timer.cancel();
+  _read_from_stream_timer.cancel();
+
   SPDLOG_LOGGER_INFO(logger, "feeder: queue files of client '{}' removed",
                      _name);
   _muxer->remove_queue_files();
@@ -393,8 +385,7 @@ void feeder::_start_read_from_stream_timer() {
         [me = shared_from_this()](const boost::system::error_code& err) {
           me->_read_from_stream_timer_handler(err);
         });
-  } else
-    DEBUG(fmt::format("FEEDER4 FINISHED => {}", weak_from_this().use_count()));
+  }
 }
 
 /**
@@ -445,8 +436,6 @@ void feeder::_read_from_stream_timer_handler(
     set_last_error("");
     SPDLOG_LOGGER_INFO(logger, "feeder '{}', connection closed", _name);
     _muxer->write(events_to_publish);
-    DEBUG(fmt::format("CONNECTION CLOSED => STOP exception feeder {} {}", _name,
-                      static_cast<void*>(this)));
     stop();
     return;
   } catch (const std::exception& e) {
@@ -454,8 +443,6 @@ void feeder::_read_from_stream_timer_handler(
     SPDLOG_LOGGER_ERROR(logger, "from client feeder '{}' error:{} ", _name,
                         e.what());
     _muxer->write(events_to_publish);
-    DEBUG(fmt::format("EXCEPTION => STOP exception feeder {} {}", _name,
-                      static_cast<void*>(this)));
     stop();
     return;
   } catch (...) {
@@ -464,8 +451,6 @@ void feeder::_read_from_stream_timer_handler(
                         "processing client '{}'",
                         _name);
     _muxer->write(events_to_publish);
-    DEBUG(fmt::format("OTHER EXCEPTION => STOP exception feeder {} {}", _name,
-                      static_cast<void*>(this)));
     stop();
     return;
   }
