@@ -628,8 +628,6 @@ int32_t stream::stop() {
     }
   }
 
-  _substream->stop();
-
   /* We acknowledge peer about received events. */
   log_v2::instance()
       .get(log_v2::CORE)
@@ -645,6 +643,8 @@ int32_t stream::stop() {
                  e.what());
     }
   }
+
+  _substream->stop();
 
   /* We return the number of events handled by our stream. */
   int32_t retval = _acknowledged_events;

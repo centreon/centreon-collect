@@ -181,7 +181,6 @@ int32_t stream::stop() {
   } catch (const std::exception& e) {
     _logger->error("tcp: error during stop: {}", e.what());
   }
-  DEBUG(fmt::format("STOP STOPPED tcp stream {}", static_cast<void*>(this)));
   return retval;
 }
 
