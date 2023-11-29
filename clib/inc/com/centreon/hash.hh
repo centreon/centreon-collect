@@ -1,20 +1,20 @@
-/*
-** Copyright 2012-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2012-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CC_HASH_HH
 #define CC_HASH_HH
@@ -29,7 +29,6 @@
 #define TR1_UNORDERED 1
 #endif  // C++0x, tr1
 
-
 // Used c++0x implementation.
 #ifdef CXX0X_UNORDERED
 #include <functional>
@@ -42,7 +41,7 @@ std::size_t hash(T const& data) {
   return (h(data));
 }
 
-}
+}  // namespace com::centreon
 
 // Used tr1 implementation.
 #elif defined(TR1_UNORDERED)
@@ -56,7 +55,7 @@ std::size_t hash(T const& data) {
   return (h(data));
 }
 
-}
+}  // namespace com::centreon
 
 // Used own implementation.
 #else
@@ -129,7 +128,11 @@ inline std::size_t hash<unsigned short>(unsigned short val) {
   return (static_cast<std::size_t>(val));
 }
 
+<<<<<<< HEAD
 }
+=======
+}  // namespace com::centreon
+>>>>>>> a1bbdae6e4 (fix(broker): construction of end from start in rebuild)
 
 #endif  // C++0X, tr1 or std
 
@@ -163,6 +166,10 @@ std::size_t hash_combine(std::size_t& seed, T begin, T end) {
   return (seed);
 }
 
+<<<<<<< HEAD
 }
+=======
+}  // namespace com::centreon
+>>>>>>> a1bbdae6e4 (fix(broker): construction of end from start in rebuild)
 
 #endif  // !CC_HASH_HH

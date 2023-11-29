@@ -21,7 +21,9 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+
 #include <string>
+
 #include "com/centreon/handle.hh"
 
 #ifdef _WIN32
@@ -66,6 +68,6 @@ class file_entry {
 };
 }  // namespace io
 
-}
+}  // namespace com::centreon
 
 #endif  // !CC_IO_FILE_ENTRY_HH

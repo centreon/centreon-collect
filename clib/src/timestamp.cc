@@ -322,4 +322,5 @@ std::ostream& operator<<(std::ostream& s, const timestamp& to_dump) {
 
   return s;
 }
+
 }  // namespace com::centreon

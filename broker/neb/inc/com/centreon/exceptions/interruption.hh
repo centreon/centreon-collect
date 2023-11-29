@@ -21,9 +21,7 @@
 
 #include "com/centreon/exceptions/basic.hh"
 
-namespace com::centreon {
-
-namespace exceptions {
+namespace com::centreon::exceptions {
 /**
  *  @class interruption interruption.hh
  *"com/centreon/exceptions/interruption.hh"
@@ -46,9 +44,7 @@ class interruption : public basic {
     return (*this);
   }
 };
-}  // namespace exceptions
-
-}
+}  // namespace com::centreon::exceptions
 
 #if defined(__GNUC__)
 #define FUNCTION __PRETTY_FUNCTION__

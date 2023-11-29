@@ -23,9 +23,7 @@
 #include <mutex>
 #include <vector>
 
-namespace com::centreon {
-
-namespace logging {
+namespace com::centreon::logging {
 class backend;
 
 /**
@@ -37,8 +35,7 @@ class backend;
  */
 class engine {
  public:
-  unsigned long add(backend* obj,
-                    unsigned long long types,
+  unsigned long add(backend* obj, unsigned long long types,
                     unsigned int verbose);
   /**
    *  Get the logger engine singleton.
@@ -57,13 +54,10 @@ class engine {
    *          parameter, otherwise false.
    */
   bool is_log(unsigned long long types, unsigned int verbose) const throw() {
-    if (verbose >= sizeof(unsigned int) * CHAR_BIT)
-      return (false);
+    if (verbose >= sizeof(unsigned int) * CHAR_BIT) return (false);
     return (_list_types[verbose] & types);
   }
-  void log(unsigned long long types,
-           unsigned int verbose,
-           char const* msg,
+  void log(unsigned long long types, unsigned int verbose, char const* msg,
            unsigned int size);
   bool remove(unsigned long id);
   unsigned int remove(backend* obj);
@@ -88,8 +82,6 @@ class engine {
   unsigned long long _list_types[sizeof(unsigned int) * CHAR_BIT];
   mutable std::recursive_mutex _mtx;
 };
-}  // namespace logging
-
-}
+}  // namespace com::centreon::logging
 
 #endif  // !CC_LOGGING_ENGINE_HH
