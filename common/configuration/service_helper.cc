@@ -59,8 +59,7 @@ service_helper::service_helper(Service* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool service_helper::hook(absl::string_view key,
-                          const absl::string_view& value) {
+bool service_helper::hook(std::string_view key, const std::string_view& value) {
   Service* obj = static_cast<Service*>(mut_obj());
   key = validate_key(key);
   if (key == "contactgroups") {
@@ -73,7 +72,7 @@ bool service_helper::hook(absl::string_view key,
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
-      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      std::string_view v = absl::StripAsciiWhitespace(*it);
       if (v == "o" || v == "ok")
         options |= action_svc_ok;
       else if (v == "w" || v == "warning")
@@ -110,7 +109,7 @@ bool service_helper::hook(absl::string_view key,
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
-      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      std::string_view v = absl::StripAsciiWhitespace(*it);
       if (v == "u" || v == "unknown")
         options |= action_svc_unknown;
       else if (v == "w" || v == "warning")
@@ -141,7 +140,7 @@ bool service_helper::hook(absl::string_view key,
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
-      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      std::string_view v = absl::StripAsciiWhitespace(*it);
       if (v == "u" || v == "unknown")
         options |= action_svc_unknown;
       else if (v == "o" || v == "ok")
@@ -277,8 +276,8 @@ void service_helper::_init() {
  *
  * @return True if the customvariable has been well stored.
  */
-bool service_helper::insert_customvariable(absl::string_view key,
-                                           absl::string_view value) {
+bool service_helper::insert_customvariable(std::string_view key,
+                                           std::string_view value) {
   if (key[0] != '_')
     return false;
 

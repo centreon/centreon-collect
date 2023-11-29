@@ -65,7 +65,7 @@ class parser {
         return {ret};
       else if (ret.is_string()) {
         T tmp;
-        if (!absl::SimpleAtoi(ret.get<absl::string_view>(), &tmp))
+        if (!absl::SimpleAtoi(ret.get<std::string_view>(), &tmp))
           throw exceptions::msg_fmt(
               "config parser: cannot parse key '{}': "
               "the string value must contain an integer",

@@ -149,7 +149,7 @@ TEST_F(ApplierTimeperiod, ModifyTimeperiodFromConfig) {
 
   ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
   ASSERT_EQ(engine::timeperiod::timeperiods.begin()->second->get_alias(),
-            absl::string_view("timeperiod_alias1"));
+            std::string_view("timeperiod_alias1"));
 }
 
 // Given a timeperiod applier
@@ -175,12 +175,12 @@ TEST_F(ApplierTimeperiod, PbModifyTimeperiodFromConfig) {
 
   ASSERT_EQ(engine::timeperiod::timeperiods.size(), 1u);
   ASSERT_EQ(engine::timeperiod::timeperiods.begin()->second->get_alias(),
-            absl::string_view("timeperiod_alias1"));
+            std::string_view("timeperiod_alias1"));
 
   // No change here
   aply.modify_object(&pb_config.mutable_timeperiods()->at(0), tp);
   ASSERT_EQ(engine::timeperiod::timeperiods.begin()->second->get_alias(),
-            absl::string_view("timeperiod_alias1"));
+            std::string_view("timeperiod_alias1"));
 }
 
 // Given a timeperiod applier

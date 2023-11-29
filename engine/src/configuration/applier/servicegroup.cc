@@ -111,12 +111,12 @@ void applier::servicegroup::add_object(const configuration::Servicegroup& obj) {
 void applier::servicegroup::_resolve_members(
     configuration::State& s,
     configuration::Servicegroup* sg_conf,
-    absl::flat_hash_set<absl::string_view>& resolved,
-    const absl::flat_hash_map<absl::string_view, configuration::Servicegroup*>&
+    absl::flat_hash_set<std::string_view>& resolved,
+    const absl::flat_hash_map<std::string_view, configuration::Servicegroup*>&
         sg_by_name) {
   for (auto& sgm : sg_conf->servicegroup_members().data()) {
     configuration::Servicegroup* sgm_conf =
-        sg_by_name.at(absl::string_view(sgm));
+        sg_by_name.at(std::string_view(sgm));
     if (sgm_conf == nullptr)
       throw engine_error() << fmt::format(
           "Could not add non-existing service group member '{}' to service "
@@ -141,10 +141,10 @@ void applier::servicegroup::_resolve_members(
  */
 void applier::servicegroup::expand_objects(configuration::State& s) {
   // This set stores resolved service groups.
-  absl::flat_hash_set<absl::string_view> resolved;
+  absl::flat_hash_set<std::string_view> resolved;
 
   // Here, we store each Servicegroup pointer by its name.
-  absl::flat_hash_map<absl::string_view, configuration::Servicegroup*>
+  absl::flat_hash_map<std::string_view, configuration::Servicegroup*>
       sg_by_name;
   for (auto& sg_conf : *s.mutable_servicegroups())
     sg_by_name[sg_conf.servicegroup_name()] = &sg_conf;

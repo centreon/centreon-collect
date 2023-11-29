@@ -1369,7 +1369,7 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
                          "centreon", "centreon_storage", 5, true, 5);
   auto ms{std::make_unique<mysql>(db_cfg)};
   std::string version = ms->get_server_version();
-  std::vector<absl::string_view> arr =
+  std::vector<std::string_view> arr =
       absl::StrSplit(version, absl::ByAnyChar(".-"));
   ASSERT_TRUE(arr.size() >= 4u);
   uint32_t major;
@@ -1378,7 +1378,7 @@ TEST_F(DatabaseStorageTest, CheckBulkStatement) {
   EXPECT_TRUE(absl::SimpleAtoi(arr[0], &major));
   EXPECT_TRUE(absl::SimpleAtoi(arr[1], &minor));
   EXPECT_TRUE(absl::SimpleAtoi(arr[2], &patch));
-  absl::string_view server_name(arr[3]);
+  std::string_view server_name(arr[3]);
   if (ms->support_bulk_statement()) {
     std::string query1{"DROP TABLE IF EXISTS ut_test"};
     std::string query2{

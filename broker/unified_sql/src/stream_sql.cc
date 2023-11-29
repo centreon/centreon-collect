@@ -2002,7 +2002,7 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
   int32_t conn = _mysql.choose_connection_by_instance(
       _cache_host_instance[static_cast<uint32_t>(ah.host_id())]);
 
-  constexpr absl::string_view buf("UPDATE hosts SET");
+  constexpr std::string_view buf("UPDATE hosts SET");
   std::string query{buf.data(), buf.size()};
   if (ah.has_notify())
     query += fmt::format(" notify='{}',", ah.notify() ? 1 : 0);
@@ -2061,7 +2061,7 @@ void stream::_process_pb_adaptive_host(const std::shared_ptr<io::data>& d) {
     _add_action(conn, actions::hosts);
 
     if (_store_in_resources) {
-      constexpr absl::string_view res_buf("UPDATE resources SET");
+      constexpr std::string_view res_buf("UPDATE resources SET");
       std::string res_query{res_buf.data(), res_buf.size()};
       if (ah.has_notify())
         res_query +=
@@ -3562,7 +3562,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
   int32_t conn = _mysql.choose_connection_by_instance(
       _cache_host_instance[static_cast<uint32_t>(as.host_id())]);
 
-  constexpr absl::string_view buf("UPDATE services SET");
+  constexpr std::string_view buf("UPDATE services SET");
   std::string query{buf.data(), buf.size()};
   if (as.has_notify())
     query += fmt::format(" notify='{}',", as.notify() ? 1 : 0);
@@ -3623,7 +3623,7 @@ void stream::_process_pb_adaptive_service(const std::shared_ptr<io::data>& d) {
     _add_action(conn, actions::services);
 
     if (_store_in_resources) {
-      constexpr absl::string_view res_buf("UPDATE resources SET");
+      constexpr std::string_view res_buf("UPDATE resources SET");
       std::string res_query{res_buf.data(), res_buf.size()};
       if (as.has_notify())
         res_query +=

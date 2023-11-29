@@ -144,7 +144,7 @@ void applier::hostescalation::expand_objects(configuration::State& s) {
   std::list<std::unique_ptr<Hostescalation>> resolved;
   for (auto& he : *s.mutable_hostescalations()) {
     if (he.hostgroups().data().size() > 0) {
-      absl::flat_hash_set<absl::string_view> host_names;
+      absl::flat_hash_set<std::string_view> host_names;
       for (auto& hname : he.hosts().data())
         host_names.emplace(hname);
       for (auto& hg_name : he.hostgroups().data()) {

@@ -57,7 +57,7 @@ host_helper::host_helper(Host* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool host_helper::hook(absl::string_view key, const absl::string_view& value) {
+bool host_helper::hook(std::string_view key, const std::string_view& value) {
   Host* obj = static_cast<Host*>(mut_obj());
   key = validate_key(key);
   if (key == "contactgroups") {
@@ -73,7 +73,7 @@ bool host_helper::hook(absl::string_view key, const absl::string_view& value) {
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
-      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      std::string_view v = absl::StripAsciiWhitespace(*it);
       if (v == "d" || v == "down")
         options |= action_hst_down;
       else if (v == "u" || v == "unreachable")
@@ -208,8 +208,8 @@ void host_helper::_init() {
  *
  * @return True if the customvariable has been well stored.
  */
-bool host_helper::insert_customvariable(absl::string_view key,
-                                        absl::string_view value) {
+bool host_helper::insert_customvariable(std::string_view key,
+                                        std::string_view value) {
   if (key[0] != '_')
     return false;
 

@@ -33,6 +33,6 @@ enum config_type {
 void init_config_state(const config_type type);
 void deinit_config_state(void);
 
-com::centreon::engine::configuration::Path build_path(absl::string_view path);
+com::centreon::engine::configuration::Path build_path(std::string_view path);
 
 #endif  // CENTREON_ENGINE_TESTS_HELPER_HH_

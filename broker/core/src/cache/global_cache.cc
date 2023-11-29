@@ -29,7 +29,7 @@ using log_v2 = com::centreon::common::log_v2::log_v2;
 global_cache::lock::lock() : _lock(&global_cache::_instance->_protect) {}
 
 inline std::string operator+(const std::string& left,
-                             const absl::string_view& to_append) {
+                             const std::string_view& to_append) {
   std::string ret(left);
   ret.append(to_append.data(), to_append.length());
   return ret;

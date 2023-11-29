@@ -101,7 +101,7 @@ absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,
       return {ret};
     else if (ret.is_string()) {
       bool tmp;
-      if (!absl::SimpleAtob(ret.get<absl::string_view>(), &tmp))
+      if (!absl::SimpleAtob(ret.get<std::string_view>(), &tmp))
         throw msg_fmt(
             "config parser: cannot parse key '{}': the string value must "
             "contain a boolean (1/0, yes/no, true/false)",
@@ -213,7 +213,7 @@ state parser::parse(std::string const& file) {
         } else if (it.key() == "bbdo_version" && it.value().is_string()) {
           std::string version = json_document["centreonBroker"]["bbdo_version"]
                                     .get<std::string>();
-          std::list<absl::string_view> v = absl::StrSplit(version, '.');
+          std::list<std::string_view> v = absl::StrSplit(version, '.');
           if (v.size() != 3)
             throw msg_fmt("config parser: cannot parse bbdo_version '{}'",
                           version);

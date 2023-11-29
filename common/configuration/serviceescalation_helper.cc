@@ -56,8 +56,8 @@ serviceescalation_helper::serviceescalation_helper(Serviceescalation* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool serviceescalation_helper::hook(absl::string_view key,
-                                    const absl::string_view& value) {
+bool serviceescalation_helper::hook(std::string_view key,
+                                    const std::string_view& value) {
   Serviceescalation* obj = static_cast<Serviceescalation*>(mut_obj());
   key = validate_key(key);
 
@@ -65,7 +65,7 @@ bool serviceescalation_helper::hook(absl::string_view key,
     uint32_t options = action_he_none;
     auto arr = absl::StrSplit(value, ',');
     for (auto& v : arr) {
-      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      std::string_view vv = absl::StripAsciiWhitespace(v);
       if (vv == "w" || vv == "warning")
         options |= action_se_warning;
       else if (vv == "u" || "unknown")

@@ -51,16 +51,16 @@ class state_helper;
 
 using Message = ::google::protobuf::Message;
 
-bool fill_pair_string_group(PairStringSet* grp, const absl::string_view& value);
+bool fill_pair_string_group(PairStringSet* grp, const std::string_view& value);
 bool fill_pair_string_group(PairStringSet* grp,
-                            const absl::string_view& key,
-                            const absl::string_view& value);
-void fill_string_group(StringList* grp, const absl::string_view& value);
-void fill_string_group(StringSet* grp, const absl::string_view& value);
+                            const std::string_view& key,
+                            const std::string_view& value);
+void fill_string_group(StringList* grp, const std::string_view& value);
+void fill_string_group(StringSet* grp, const std::string_view& value);
 bool fill_host_notification_options(uint32_t* options,
-                                    const absl::string_view& value);
+                                    const std::string_view& value);
 bool fill_service_notification_options(uint32_t* options,
-                                       const absl::string_view& value);
+                                       const std::string_view& value);
 
 class message_helper {
  public:
@@ -120,14 +120,14 @@ class message_helper {
   bool resolved() const { return _resolved; }
   void resolve() { _resolved = true; }
 
-  virtual bool hook(absl::string_view key [[maybe_unused]],
-                    const absl::string_view& value [[maybe_unused]]) {
+  virtual bool hook(std::string_view key [[maybe_unused]],
+                    const std::string_view& value [[maybe_unused]]) {
     return false;
   }
   virtual void check_validity() const = 0;
-  absl::string_view validate_key(const absl::string_view& key) const;
-  virtual bool insert_customvariable(absl::string_view key,
-                                     absl::string_view value);
+  std::string_view validate_key(const std::string_view& key) const;
+  virtual bool insert_customvariable(std::string_view key,
+                                     std::string_view value);
   template <typename T>
   static std::unique_ptr<T> clone(const T& other, Message* obj) {
     std::unique_ptr<T> retval;

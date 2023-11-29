@@ -36,8 +36,7 @@ message_helper::message_helper(const message_helper& other)
       _modified_field(other._modified_field),
       _resolved(other._resolved) {}
 
-bool fill_pair_string_group(PairStringSet* grp,
-                            const absl::string_view& value) {
+bool fill_pair_string_group(PairStringSet* grp, const std::string_view& value) {
   auto arr = absl::StrSplit(value, ',');
 
   bool first = true;
@@ -50,8 +49,8 @@ bool fill_pair_string_group(PairStringSet* grp,
     ++itsecond;
     if (itsecond == arr.end())
       return false;
-    absl::string_view v1 = absl::StripAsciiWhitespace(*itfirst);
-    absl::string_view v2 = absl::StripAsciiWhitespace(*itsecond);
+    std::string_view v1 = absl::StripAsciiWhitespace(*itfirst);
+    std::string_view v2 = absl::StripAsciiWhitespace(*itsecond);
     if (first) {
       if (v1[0] == '+') {
         grp->set_additive(true);
@@ -78,10 +77,10 @@ bool fill_pair_string_group(PairStringSet* grp,
 }
 
 bool fill_pair_string_group(PairStringSet* grp,
-                            const absl::string_view& key,
-                            const absl::string_view& value) {
-  absl::string_view v1 = absl::StripAsciiWhitespace(key);
-  absl::string_view v2 = absl::StripAsciiWhitespace(value);
+                            const std::string_view& key,
+                            const std::string_view& value) {
+  std::string_view v1 = absl::StripAsciiWhitespace(key);
+  std::string_view v2 = absl::StripAsciiWhitespace(value);
   bool found = false;
   for (auto& m : grp->data()) {
     if (v1 == m.first() && v2 == m.second()) {
@@ -97,10 +96,10 @@ bool fill_pair_string_group(PairStringSet* grp,
   return true;
 }
 
-void fill_string_group(StringSet* grp, const absl::string_view& value) {
+void fill_string_group(StringSet* grp, const std::string_view& value) {
   auto arr = absl::StrSplit(value, ',');
   bool first = true;
-  for (absl::string_view d : arr) {
+  for (std::string_view d : arr) {
     d = absl::StripAsciiWhitespace(d);
     if (first) {
       if (d[0] == '+') {
@@ -121,10 +120,10 @@ void fill_string_group(StringSet* grp, const absl::string_view& value) {
   }
 }
 
-void fill_string_group(StringList* grp, const absl::string_view& value) {
+void fill_string_group(StringList* grp, const std::string_view& value) {
   auto arr = absl::StrSplit(value, ',');
   bool first = true;
-  for (absl::string_view d : arr) {
+  for (std::string_view d : arr) {
     d = absl::StripAsciiWhitespace(d);
     if (first) {
       if (d[0] == '+') {
@@ -147,11 +146,11 @@ void fill_string_group(StringList* grp, const absl::string_view& value) {
  * @return True on success.
  */
 bool fill_host_notification_options(uint32_t* options,
-                                    const absl::string_view& value) {
+                                    const std::string_view& value) {
   uint32_t tmp_options = host::none;
   auto arr = absl::StrSplit(value, ',');
   for (auto& v : arr) {
-    absl::string_view value = absl::StripAsciiWhitespace(v);
+    std::string_view value = absl::StripAsciiWhitespace(v);
     if (value == "d" || value == "down")
       tmp_options |= configuration::host::down;
     else if (value == "u" || value == "unreachable")
@@ -186,11 +185,11 @@ bool fill_host_notification_options(uint32_t* options,
  * @return True on success.
  */
 bool fill_service_notification_options(uint32_t* options,
-                                       const absl::string_view& value) {
+                                       const std::string_view& value) {
   uint32_t tmp_options = service::none;
   auto arr = absl::StrSplit(value, ',');
   for (auto& v : arr) {
-    absl::string_view value = absl::StripAsciiWhitespace(v);
+    std::string_view value = absl::StripAsciiWhitespace(v);
     if (value == "u" || value == "unknown")
       tmp_options |= service::unknown;
     else if (value == "w" || value == "warning")
@@ -215,9 +214,9 @@ bool fill_service_notification_options(uint32_t* options,
   return true;
 }
 
-absl::string_view message_helper::validate_key(
-    const absl::string_view& key) const {
-  absl::string_view retval;
+std::string_view message_helper::validate_key(
+    const std::string_view& key) const {
+  std::string_view retval;
   auto it = _correspondence.find(key);
   if (it != _correspondence.end())
     retval = it->second;
@@ -226,9 +225,9 @@ absl::string_view message_helper::validate_key(
   return retval;
 }
 
-bool message_helper::insert_customvariable(absl::string_view key
+bool message_helper::insert_customvariable(std::string_view key
                                            [[maybe_unused]],
-                                           absl::string_view value
+                                           std::string_view value
                                            [[maybe_unused]]) {
   return false;
 }

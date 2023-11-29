@@ -61,8 +61,8 @@ hostdependency_helper::hostdependency_helper(Hostdependency* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool hostdependency_helper::hook(absl::string_view key,
-                                 const absl::string_view& value) {
+bool hostdependency_helper::hook(std::string_view key,
+                                 const std::string_view& value) {
   Hostdependency* obj = static_cast<Hostdependency*>(mut_obj());
   key = validate_key(key);
 
@@ -72,7 +72,7 @@ bool hostdependency_helper::hook(absl::string_view key,
     uint16_t options = action_hd_none;
 
     for (auto& o : opts) {
-      absl::string_view ov = absl::StripAsciiWhitespace(o);
+      std::string_view ov = absl::StripAsciiWhitespace(o);
       if (ov == "o" || ov == "up")
         options |= action_hd_up;
       else if (ov == "d" || ov == "down")

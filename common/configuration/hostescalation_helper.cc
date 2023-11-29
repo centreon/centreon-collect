@@ -50,8 +50,8 @@ hostescalation_helper::hostescalation_helper(Hostescalation* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool hostescalation_helper::hook(absl::string_view key,
-                                 const absl::string_view& value) {
+bool hostescalation_helper::hook(std::string_view key,
+                                 const std::string_view& value) {
   Hostescalation* obj = static_cast<Hostescalation*>(mut_obj());
   key = validate_key(key);
 
@@ -59,7 +59,7 @@ bool hostescalation_helper::hook(absl::string_view key,
     uint32_t options = action_he_none;
     auto arr = absl::StrSplit(value, ',');
     for (auto& v : arr) {
-      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      std::string_view vv = absl::StripAsciiWhitespace(v);
       if (vv == "d" || vv == "down")
         options |= action_he_down;
       else if (vv == "u" || "unreachable")

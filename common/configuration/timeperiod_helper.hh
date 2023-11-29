@@ -45,7 +45,7 @@ class timeperiod_helper : public message_helper {
   ~timeperiod_helper() noexcept = default;
   void check_validity() const override;
 
-  bool hook(absl::string_view key, const absl::string_view& value) override;
+  bool hook(std::string_view key, const std::string_view& value) override;
 };
 
 std::string daterange_to_str(const Daterange& dr);

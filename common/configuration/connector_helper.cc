@@ -44,8 +44,8 @@ connector_helper::connector_helper(Connector* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool connector_helper::hook(absl::string_view key,
-                            const absl::string_view& value) {
+bool connector_helper::hook(std::string_view key,
+                            const std::string_view& value) {
   Connector* obj = static_cast<Connector*>(mut_obj());
   key = validate_key(key);
   return false;

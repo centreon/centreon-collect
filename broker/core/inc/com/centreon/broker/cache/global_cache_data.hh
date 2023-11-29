@@ -42,22 +42,22 @@ namespace multi_index = boost::multi_index;
  *
  */
 struct string_string_view_equal {
-  bool operator()(const string& left, const absl::string_view& right) const {
+  bool operator()(const string& left, const std::string_view& right) const {
     return left.compare(0, right.length(), right.data()) == 0;
   }
-  bool operator()(const absl::string_view& left, const string& right) const {
+  bool operator()(const std::string_view& left, const string& right) const {
     return right.compare(0, left.length(), left.data()) == 0;
   }
 };
 
 struct string_string_view_hash {
   size_t operator()(const string& left) const {
-    return absl::Hash<absl::string_view>()(
-        absl::string_view(left.c_str(), left.length()));
+    return absl::Hash<std::string_view>()(
+        std::string_view(left.c_str(), left.length()));
   }
 
-  size_t operator()(const absl::string_view& left) const {
-    return absl::Hash<absl::string_view>()(left);
+  size_t operator()(const std::string_view& left) const {
+    return absl::Hash<std::string_view>()(left);
   }
 };
 
@@ -229,22 +229,22 @@ class global_cache_data : public global_cache {
 
   void set_metric_info(uint64_t metric_id,
                        uint64_t index_id,
-                       const absl::string_view& name,
-                       const absl::string_view& unit,
+                       const std::string_view& name,
+                       const std::string_view& unit,
                        double min,
                        double max) override;
 
   void store_instance(uint64_t instance_id,
-                      const absl::string_view& instance_name) override;
+                      const std::string_view& instance_name) override;
 
   void store_host(uint64_t host_id,
-                  const absl::string_view& host_name,
+                  const std::string_view& host_name,
                   uint64_t resource_id,
                   uint64_t severity_id) override;
 
   void store_service(uint64_t host_id,
                      uint64_t service_id,
-                     const absl::string_view& service_description,
+                     const std::string_view& service_description,
                      uint64_t resource_id,
                      uint64_t severity_id) override;
 
@@ -283,7 +283,7 @@ class global_cache_data : public global_cache {
                                  std::ostream& request_body) override;
 
   void add_tag(uint64_t tag_id,
-               const absl::string_view& tag_name,
+               const std::string_view& tag_name,
                TagType tag_type,
                uint64_t poller_id) override;
 

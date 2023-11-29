@@ -51,23 +51,25 @@ static constexpr const char result[] =
     "Centreon is wonderful\n"
     "\x00\x00\x00\x00";
 
-static constexpr absl::string_view result_warning(
+static constexpr std::string_view result_warning(
     "3\x00"
     "4242\x00"
     "1\x00"
     "1\x00"
     " \x00"
     "Centreon is wonderful\n"
-    "\x00\x00\x00\x00", 39);
+    "\x00\x00\x00\x00",
+    39);
 
-static constexpr absl::string_view result_critical(
+static constexpr std::string_view result_critical(
     "3\x00"
     "4242\x00"
     "1\x00"
     "2\x00"
     " \x00"
     "Centreon is wonderful\n"
-    "\x00\x00\x00\x00", 39);
+    "\x00\x00\x00\x00",
+    39);
 
 static constexpr std::size_t count = 300;
 
@@ -108,13 +110,14 @@ static constexpr const char scripts[] =
   " time out time out\0"  \
   " \0\0\0\0"
 
-constexpr absl::string_view TimeoutKillTermRESULT(
+constexpr std::string_view TimeoutKillTermRESULT(
     "3\0"
     "4242\0"
     "1\0"
     "15\0"
     " time out\0"
-    " \0\0\0\0", 27);
+    " \0\0\0\0",
+    27);
 
 #define TimeoutTermCMD \
   "2\0"                \
@@ -725,7 +728,7 @@ TEST_F(TestConnector, TimeoutKill) {
   int retval{wait_for_termination(*p)};
 
   ASSERT_EQ(retval, 0);
-  absl::string_view expected(TimeoutKillRESULT, sizeof(TimeoutKillRESULT) - 1);
+  std::string_view expected(TimeoutKillRESULT, sizeof(TimeoutKillRESULT) - 1);
   ASSERT_EQ(output, expected);
 }
 
