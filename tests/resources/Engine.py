@@ -387,24 +387,25 @@ define command {
 
     @staticmethod
     def create_severities(poller: int, nb: int, offset: int):
-        config_file = f"{CONF_DIR}/config{poller}/severities.cfg"
-        with open(config_file, "w+") as ff:
-            content = ""
-            typ = ["service", "host"]
-            for i in range(nb):
-                level = i % 5 + 1
-                content += """define severity {{
-        id                     {0}
-        severity_name          severity{3}
-        level                  {1}
-        icon_id                {2}
-        type                   {4}
-    }}
-    """.format(i + 1, level, 6 - level, i + offset, typ[i % 2])
-            ff.write(content)
+        config_file = "{}/config{}/severities.cfg".format(CONF_DIR, poller)
+        ff = open(config_file, "w+")
+        content = ""
+        typ = ["service", "host"]
+        for i in range(nb):
+            level = i % 5 + 1
+            content += """define severity {{
+    id                     {0}
+    name                   severity{3}
+    level                  {1}
+    icon_id                {2}
+    type                   {4}
+}}
+""".format(i + 1, level, 6 - level, i + offset, typ[i % 2])
+        ff.write(content)
+        ff.close()
 
     @staticmethod
-    def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
+    def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
         config_file = f"{CONF_DIR}/config{poller}/escalations.cfg"
         with open(config_file, "a+") as ff:
             content = """define serviceescalation {{
@@ -418,18 +419,6 @@ define command {
             ff.write(content)
 
     @staticmethod
-<<<<<<< HEAD
-<<<<<<< HEAD
-    def ctn_create_template_file(poller: int, typ: str, what: str, ids):
-        config_file = f"{CONF_DIR}/config{poller}/{typ}Templates.cfg"
-        with open(config_file, "w+") as ff:
-            content = ""
-            idx = 1
-            for i in ids:
-                content += """define {} {{
-=======
-=======
->>>>>>> e93ab82f9e (just to save my work)
     def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
         config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
         with open(config_file, "a+") as ff:
@@ -456,15 +445,14 @@ define command {
         idx = 1
         for i in ids:
             content += """define {} {{
->>>>>>> e93ab82f9e (just to save my work)
-name                   {}_template_{}
-{}               {}
-register               0
-active_checks_enabled  1
-passive_checks_enabled 1
-}}
-""".format(typ, typ, idx, what, i)
-                idx += 1
+    name                   {}_template_{}
+    {}               {}
+    register               0
+    active_checks_enabled  1
+    passive_checks_enabled 1
+    }}
+    """.format(typ, typ, idx, what, i)
+            idx += 1
             ff.write(content)
 
     @staticmethod
@@ -981,7 +969,7 @@ def ctn_engine_config_set_value_in_escalations(idx: int, desc: str, key: str, va
         m = r.match(lines[i])
         if m is not None:
             lines.insert(i + 1, f"    {key}                     {value}\n")
-    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/d.cfg", "w") as ff:
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
         ff.writelines(lines)
 
 def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
@@ -2199,7 +2187,6 @@ def ctn_create_severities_file(poller: int, nb: int, offset: int = 1):
     """
     engine.create_severities(poller, nb, offset)
 
-
 def ctn_create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     """
     Create an escalations.cfg file for a given poller.
@@ -2279,16 +2266,10 @@ def ctn_engine_config_remove_tag(poller: int, tag_id: int):
         f.writelines(lines)
 
 
-def ctn_config_engine_add_cfg_file(poller: int, cfg: str):
-    """
-    Add a reference to a cfg file in the centengine.cfg file at index _poller_.
-
-    Args:
-        poller (int): Poller ID.
-        cfg (str): Configuration file name to add.
-    """
-    with open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r") as ff:
-        lines = ff.readlines()
+def config_engine_add_cfg_file(poller: int, cfg: str):
+    ff = open("{}/config{}/centengine.cfg".format(CONF_DIR, poller), "r")
+    lines = ff.readlines()
+    ff.close()
     r = re.compile(r"^\s*cfg_file=")
     for i in range(len(lines)):
         if r.match(lines[i]):
