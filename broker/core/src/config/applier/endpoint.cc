@@ -205,8 +205,9 @@ void endpoint::apply(std::list<config::endpoint> const& endpoints) {
               "endpoint applier: filters {} for endpoint '{}' applied.",
               w_filter.get_allowed_categories(), ep.name);
 
-        auto mux =
-            multiplexing::muxer::create(ep.name, r_filter, w_filter, true);
+        auto mux = multiplexing::muxer::create(
+            ep.name, multiplexing::engine::instance_ptr(), r_filter, w_filter,
+            true);
         endp.reset(_create_failover(ep, mux, e, endp_to_create));
       }
       {

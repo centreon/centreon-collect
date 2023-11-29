@@ -102,16 +102,16 @@ BSCSST1
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    central    tls    debug
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Repeat Keyword    5 times    Start Stop Service    0
-    ${content}=    Create List    TLS: successful handshake
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No information about TLS activation.
+    ${content}    Create List    TLS: successful handshake
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No information about TLS activation.
 
 BSCSST2
     [Documentation]    Start-Stop two instances of broker and no coredump. Encryption is enabled on client side.
@@ -121,33 +121,33 @@ BSCSST2
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    central    tls    debug
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
-    ${start}=    Get Current Date
+    Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
+    Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    ${start}    Get Current Date
     Repeat Keyword    5 times    Start Stop Service    0
-    ${content}=    Create List    TLS: successful handshake
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No information about TLS activation.
+    ${content}    Create List    TLS: successful handshake
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No information about TLS activation.
 
 BSCSSTG1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. This is not sufficient, then an error is raised.
@@ -157,8 +157,8 @@ BSCSSTG1
     Config Broker BBDO Input    central    bbdo_server    5669    gRPC
     Config Broker BBDO Output    central    bbdo_client    5670    gRPC    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    gRPC
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    off
@@ -169,11 +169,11 @@ BSCSSTG1
     Broker Config Source Log    central    1
     Broker Config Flush Log    rrd    0
     Broker Config Source Log    rrd    1
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    Handshake failed
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No information about TLS activation.
+    ${content}    Create List    Handshake failed
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No information about TLS activation.
 
 BSCSSTG2
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with encryption enabled. It works with good certificates and keys.
@@ -183,14 +183,14 @@ BSCSSTG2
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    off
     Broker Config Log    central    tls    debug
-    Broker Config Log    rrd    grpc    debug
-    Broker Config Log    central    grpc    debug
+    Broker Config Log    rrd    grpc    trace
+    Broker Config Log    central    grpc    trace
     Create Key And Certificate
     ...    localhost
     ...    ${EtcRoot}/centreon-broker/server.key
@@ -200,28 +200,28 @@ BSCSSTG2
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input set    rrd    rrd-broker-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
-    Broker Config Input set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
-    ${start}=    Get Current Date
+    Broker Config Input Set    rrd    central-rrd-master-input    private_key    ${EtcRoot}/centreon-broker/client.key
+    Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    encrypted connection    write: buff:    write done: buff:
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No information about TLS activation.
+    ${content}    Create List    encrypted connection    write: buff:    write done: buff:
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No information about TLS activation.
     Kindly Stop Broker
 
 BSCSSTG3
@@ -232,8 +232,8 @@ BSCSSTG3
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Output set    central    central-broker-master-output    encryption    yes
-    Broker Config Input set    rrd    rrd-broker-master-input    encryption    yes
+    Broker Config Output Set    central    centreon-broker-master-rrd    encryption    yes
+    Broker Config Input Set    rrd    central-rrd-master-input    encryption    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    off
@@ -249,33 +249,33 @@ BSCSSTG3
     ...    ${EtcRoot}/centreon-broker/client.key
     ...    ${EtcRoot}/centreon-broker/client.crt
 
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/server.key
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    certificate
     ...    ${EtcRoot}/centreon-broker/server.crt
-    Broker Config Output set
+    Broker Config Output Set
     ...    central
-    ...    central-broker-master-output
+    ...    centreon-broker-master-rrd
     ...    ca_certificate
     ...    ${EtcRoot}/centreon-broker/client.crt
-    Broker Config Input set
+    Broker Config Input Set
     ...    rrd
-    ...    rrd-broker-master-input
+    ...    central-rrd-master-input
     ...    private_key
     ...    ${EtcRoot}/centreon-broker/missing-client.key
-    Broker Config Input set    rrd    rrd-broker-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
-    ${start}=    Get Current Date
+    Broker Config Input Set    rrd    central-rrd-master-input    certificate    ${EtcRoot}/centreon-broker/client.crt
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List
+    ${content}    Create List
     ...    Cannot open file '/tmp/etc/centreon-broker/missing-client.key': No such file or directory
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No information about the missing private key on server.
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No information about the missing private key on server.
 
 BSCSSC1
     [Documentation]    Start-Stop two instances of broker. The connection is made by bbdo_client/bbdo_server with tcp transport protocol. Compression is enabled on client side.
@@ -285,16 +285,16 @@ BSCSSC1
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output set    central    central-broker-master-output    compression    yes
+    Broker Config Output Set    central    centreon-broker-master-rrd    compression    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    trace
     Broker Config Log    rrd    core    trace
     Broker Config Flush Log    central    0
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    compression: writing
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No compression enabled
+    ${content}    Create List    compression: writing
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No compression enabled
     Kindly Stop Broker
 
 BSCSSC2
@@ -305,17 +305,17 @@ BSCSSC2
     Config Broker BBDO Input    central    bbdo_server    5669    tcp
     Config Broker BBDO Output    central    bbdo_client    5670    tcp    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    tcp
-    Broker Config Output set    central    central-broker-master-output    compression    no
+    Broker Config Output Set    central    centreon-broker-master-rrd    compression    no
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    trace
     Broker Config Log    central    bbdo    trace
     Broker Config Flush Log    central    0
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=Compression enabled but should not.
+    ${content}    Create List    BBDO: we have extensions '' and peer has 'COMPRESSION'
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Compression enabled but should not.
     Kindly Stop Broker
 
 BSCSSCG1
@@ -326,7 +326,7 @@ BSCSSCG1
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config Output set    central    central-broker-master-output    compression    yes
+    Broker Config Output Set    central    centreon-broker-master-rrd    compression    yes
     Broker Config Log    central    config    off
     Broker Config Log    central    core    trace
     Broker Config Log    rrd    core    off
@@ -334,11 +334,11 @@ BSCSSCG1
     Broker Config Log    rrd    grpc    debug
     Broker Config Log    central    grpc    debug
     Broker Config Flush Log    central    0
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    activate compression deflate
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No compression enabled
+    ${content}    Create List    activate compression deflate
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No compression enabled
     Kindly Stop Broker
 
 BSCSSGA1
@@ -349,7 +349,7 @@ BSCSSGA1
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config input set    rrd    rrd-broker-master-input    authorization    titus
+    Broker Config Input Set    rrd    central-rrd-master-input    authorization    titus
     Broker Config Log    central    config    off
     Broker Config Log    central    core    off
     Broker Config Log    rrd    core    off
@@ -357,11 +357,11 @@ BSCSSGA1
     Broker Config Log    rrd    grpc    trace
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    Wrong client authorization token
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=An error message about the authorization token should be raised.
+    ${content}    Create List    Wrong client authorization token
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    Should Be True    ${result}    An error message about the authorization token should be raised.
     Kindly Stop Broker
 
 BSCSSGA2
@@ -372,8 +372,8 @@ BSCSSGA2
     Config Broker BBDO Input    central    bbdo_server    5669    grpc
     Config Broker BBDO Output    central    bbdo_client    5670    grpc    localhost
     Config Broker BBDO Input    rrd    bbdo_server    5670    grpc
-    Broker Config input set    rrd    rrd-broker-master-input    authorization    titus
-    Broker Config output set    central    central-broker-master-output    authorization    titus
+    Broker Config Input Set    rrd    central-rrd-master-input    authorization    titus
+    Broker Config Output Set    central    centreon-broker-master-rrd    authorization    titus
     Broker Config Log    central    config    trace
     Broker Config Log    central    core    trace
     Broker Config Log    rrd    core    off
@@ -383,11 +383,11 @@ BSCSSGA2
     Broker Config Flush Log    central    0
     Broker Config Flush Log    rrd    0
     Broker Config Source Log    rrd    1
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
-    ${content}=    Create List    receive: buff
-    ${result}=    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=If the authorization token is the same on both side, no issue
+    ${content}    Create List    receive: buff
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content}    30
+    Should Be True    ${result}    If the authorization token is the same on both side, no issue
     Kindly Stop Broker
 
 
@@ -397,25 +397,25 @@ Start Stop Service
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
     Sleep    ${interval}
-    ${pid1}=    Get Process Id    b1
-    ${pid2}=    Get Process Id    b2
-    ${result}=    check connection    5670    ${pid1}    ${pid2}
-    Should Be True    ${result}    msg=The connection between cbd central and rrd is not established.
+    ${pid1}    Get Process Id    b1
+    ${pid2}    Get Process Id    b2
+    ${result}    Check Connection    5670    ${pid1}    ${pid2}
+    Should Be True    ${result}    The connection between cbd central and rrd is not established.
 
     Send Signal To Process    SIGTERM    b1
-    ${result}=    Wait For Process    b1    timeout=60s    on_timeout=kill
-    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    msg=Broker service badly stopped
+    ${result}    Wait For Process    b1    timeout=60s    on_timeout=kill
+    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker service badly stopped
     Send Signal To Process    SIGTERM    b2
-    ${result}=    Wait For Process    b2    timeout=60s    on_timeout=kill
-    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    msg=Broker service badly stopped
+    ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
+    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker service badly stopped
 
 Start Stop Instance
     [Arguments]    ${interval}
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Sleep    ${interval}
     Send Signal To Process    SIGTERM    b1
-    ${result}=    Wait For Process    b1    timeout=60s    on_timeout=kill
-    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    msg=Broker instance badly stopped
+    ${result}    Wait For Process    b1    timeout=60s    on_timeout=kill
+    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker instance badly stopped
 
 Prepare Suite
     Clean Before Suite

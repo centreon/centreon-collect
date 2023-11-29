@@ -16,6 +16,9 @@
 ** For more information : contact@centreon.com
 */
 
+#include <absl/strings/match.h>
+
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/io/factory.hh"
 #include "com/centreon/broker/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -46,4 +49,18 @@ std::shared_ptr<stream> factory::new_stream(
       "This is probably a bug, this protocol does not support feature "
       "negotiation");
   return nullptr;
+}
+
+bool factory::direct_grpc_serialized(const config::endpoint& cfg) {
+  if (cfg.type == "bbdo_client" || cfg.type == "bbdo_server") {
+    auto it = cfg.params.find("transport_protocol");
+    if (it != cfg.params.end()) {
+      return absl::EqualsIgnoreCase(it->second, "grpc") &&
+             config::applier::state::instance()
+                     .get_bbdo_version()
+                     .total_version >=
+                 bbdo::bbdo_version(3, 1, 0).total_version;
+    }
+  }
+  return false;
 }

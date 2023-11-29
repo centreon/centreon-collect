@@ -15,6 +15,7 @@ message Timeserie {
   uint32 rrd_retention = 4;
 }
 
+/*io::storage, storage::de_rebuild_message*/
 message RebuildMessage {
   enum State {
     START = 0;

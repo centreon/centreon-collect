@@ -41,11 +41,13 @@ static com::centreon::broker::grpc::grpc_config::pointer conf1(
 
 class channel_test : public channel {
  public:
-  using event_cont = std::multimap<system_clock::time_point, event_ptr>;
-  event_cont sent;
+  using event_send_cont = std::multimap<system_clock::time_point,
+                                        channel::event_with_data::pointer>;
+  event_send_cont sent;
 
   std::queue<event_ptr> to_read;
-  event_cont readen;
+  using event_read_cont = std::multimap<system_clock::time_point, event_ptr>;
+  event_read_cont readen;
 
   using pointer = std::shared_ptr<channel_test>;
   pointer shared_from_this() {
@@ -55,7 +57,7 @@ class channel_test : public channel {
   channel_test(const grpc_config::pointer& conf)
       : channel("channel_test", conf) {}
 
-  void start_write(const event_ptr& to_send) override {
+  void start_write(const channel::event_with_data::pointer& to_send) override {
     pool::io_context().post(
         [me = shared_from_this()]() { me->simul_on_write(); });
   }
@@ -94,7 +96,7 @@ TEST_F(grpc_channel_tester, write_all) {
   channel->start();
 
   for (int ii = 0; ii < 100; ++ii) {
-    channel->write(std::make_shared<grpc_event_type>());
+    channel->write(std::make_shared<channel::event_with_data>());
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(10));
   ASSERT_EQ((channel->sent.size()), 100);
@@ -182,10 +184,11 @@ TEST_F(grpc_channel_tester, throw_write_after_failure) {
   int failure_ind = channel->failure_ind = rand() % 100 + 10;
 
   for (int32_t ii = 0; ii <= failure_ind; ++ii) {
-    channel->write(std::make_shared<grpc_event_type>());
+    channel->write(std::make_shared<channel::event_with_data>());
   }
   std::this_thread::sleep_for(std::chrono::milliseconds(20));
 
-  ASSERT_THROW(channel->write(std::make_shared<grpc_event_type>()), msg_fmt);
+  ASSERT_THROW(channel->write(std::make_shared<channel::event_with_data>()),
+               msg_fmt);
   ASSERT_THROW(channel->read(std::chrono::milliseconds(1)), msg_fmt);
 }

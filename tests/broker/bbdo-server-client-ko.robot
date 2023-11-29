@@ -27,14 +27,14 @@ BSCSSK1
     Broker Config Log    rrd    tcp    debug
     Broker Config Log    central    core    error
     Broker Config Log    rrd    core    error
-    ${start}=    Get Current Date    exclude_millis=True
+    ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
     Start Broker
 
     # Client cannot connect. It returns an error
-    ${content}=    Create List    peer tcp://localhost:5670 is sending corrupted data
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No message about the bad connection.
+    ${content}    Create List    peer tcp://localhost:5670 is sending corrupted data
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No message about the bad connection.
 
     Kindly Stop Broker
 
@@ -52,15 +52,15 @@ BSCSSK2
     Broker Config Log    rrd    tcp    debug
     Broker Config Log    central    core    error
     Broker Config Log    rrd    core    error
-    ${start}=    Get Current Date    exclude_millis=True
+    ${start}    Get Current Date    exclude_millis=True
     Sleep    1s
     Start Broker
 
     # Client cannot connect. It returns an error
-    ${content}=    Create List
+    ${content}    Create List
     ...    BBDO: invalid protocol header, aborting connection: waiting for message of type 'version_response' but nothing received
-    ${result}=    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    msg=No message about the bad connection.
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    No message about the bad connection.
 
     Kindly Stop Broker
 
@@ -71,22 +71,22 @@ Start Stop Service
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-rrd.json    alias=b2
     Sleep    ${interval}
-    ${pid1}=    Get Process Id    b1
-    ${pid2}=    Get Process Id    b2
-    ${result}=    check connection    5670    ${pid1}    ${pid2}
-    Should Be True    ${result}    msg=The connection between cbd central and rrd is not established.
+    ${pid1}    Get Process Id    b1
+    ${pid2}    Get Process Id    b2
+    ${result}    Check Connection    5670    ${pid1}    ${pid2}
+    Should Be True    ${result}    The connection between cbd central and rrd is not established.
 
     Send Signal To Process    SIGTERM    b1
-    ${result}=    Wait Or Dump And Kill Process    b1    60s
-    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    msg=Broker service badly stopped
+    ${result}    Wait Or Dump And Kill Process    b1    /usr/sbin/cbd    60s
+    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker service badly stopped
     Send Signal To Process    SIGTERM    b2
-    ${result}=    Wait Or Dump And Kill Process    b2    60s
-    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    msg=Broker service badly stopped
+    ${result}    Wait Or Dump And Kill Process    b2    /usr/sbin/cbd    60s
+    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker service badly stopped
 
 Start Stop Instance
     [Arguments]    ${interval}
     Start Process    /usr/sbin/cbd    ${EtcRoot}/centreon-broker/central-broker.json    alias=b1
     Sleep    ${interval}
     Send Signal To Process    SIGTERM    b1
-    ${result}=    Wait Or Dump And Kill Process    b1    60s
-    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    msg=Broker instance badly stopped
+    ${result}    Wait Or Dump And Kill Process    b1    /usr/sbin/cbd    60s
+    Should Be True    ${result.rc} == -15 or ${result.rc} == 0    Broker instance badly stopped

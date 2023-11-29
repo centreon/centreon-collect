@@ -129,6 +129,12 @@ void rebuilder::rebuild_graphs(const std::shared_ptr<io::data>& d) {
             v.check_interval = 5 * 60;
         }
 
+        if (mids.empty()) {
+          log_v2::sql()->error("Metrics rebuild: metrics don't exist: {}",
+                               ids_str);
+          return;
+        }
+
         std::string mids_str{fmt::format("{}", fmt::join(mids, ","))};
         multiplexing::publisher().write(start_rebuild);
 

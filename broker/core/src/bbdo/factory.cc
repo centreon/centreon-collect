@@ -16,10 +16,12 @@
 ** For more information : contact@centreon.com
 */
 
-#include "com/centreon/broker/bbdo/factory.hh"
+#include <absl/strings/match.h>
 
 #include "com/centreon/broker/bbdo/acceptor.hh"
 #include "com/centreon/broker/bbdo/connector.hh"
+#include "com/centreon/broker/bbdo/factory.hh"
+#include "com/centreon/broker/config/applier/state.hh"
 #include "com/centreon/broker/config/parser.hh"
 #include "com/centreon/broker/io/protocols.hh"
 #include "com/centreon/broker/log_v2.hh"
@@ -78,26 +80,27 @@ io::endpoint* factory::new_endpoint(
   // Return value.
   std::unique_ptr<io::endpoint> retval;
 
+  std::map<std::string, std::string>::const_iterator it;
   // Coarse endpoint ?
   bool coarse = false;
-  {
-    auto it = cfg.params.find("coarse");
-    if (it != cfg.params.end()) {
-      if (!absl::SimpleAtob(it->second, &coarse)) {
-        log_v2::bbdo()->error(
-            "factory: cannot parse the 'coarse' boolean: the content is '{}'",
-            it->second);
-        coarse = false;
-      }
+  it = cfg.params.find("coarse");
+  if (it != cfg.params.end()) {
+    if (!absl::SimpleAtob(it->second, &coarse)) {
+      log_v2::bbdo()->error(
+          "factory: cannot parse the 'coarse' boolean: the content is '{}'",
+          it->second);
+      coarse = false;
     }
   }
+
+  // only grpc serialization?
+  bool grpc_serialized = direct_grpc_serialized(cfg);
 
   // Negotiation allowed ?
   bool negotiate = false;
   std::list<std::shared_ptr<io::extension>> extensions;
   if (!coarse) {
-    std::map<std::string, std::string>::const_iterator it(
-        cfg.params.find("negotiation"));
+    it = cfg.params.find("negotiation");
     if (it == cfg.params.end() || it->second != "no")
       negotiate = true;
     extensions = _extensions(cfg);
@@ -105,24 +108,19 @@ io::endpoint* factory::new_endpoint(
 
   // Ack limit.
   uint32_t ack_limit{1000};
-  {
-    std::map<std::string, std::string>::const_iterator it(
-        cfg.params.find("ack_limit"));
-    if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &ack_limit)) {
-      log_v2::bbdo()->error(
-          "BBDO: Bad value for ack_limit, it must be an integer.");
-      ack_limit = 1000;
-    }
+  it = cfg.params.find("ack_limit");
+  if (it != cfg.params.end() && !absl::SimpleAtoi(it->second, &ack_limit)) {
+    log_v2::bbdo()->error(
+        "BBDO: Bad value for ack_limit, it must be an integer.");
+    ack_limit = 1000;
   }
 
   // Create object.
   std::string host;
-  {
-    std::map<std::string, std::string>::const_iterator it{
-        cfg.params.find("host")};
-    if (it != cfg.params.end())
-      host = it->second;
-  }
+
+  it = cfg.params.find("host");
+  if (it != cfg.params.end())
+    host = it->second;
 
   /* The substream is an acceptor (usually the substream a TCP acceptor */
   if (is_acceptor) {
@@ -130,12 +128,13 @@ io::endpoint* factory::new_endpoint(
     // When the connection is made to the map server, no retention is needed,
     // otherwise we want it.
     bool keep_retention{false};
-    auto it = cfg.params.find("retention");
+    it = cfg.params.find("retention");
     if (it != cfg.params.end()) {
       if (cfg.type == "bbdo_server") {
         if (!absl::SimpleAtob(it->second, &keep_retention)) {
           log_v2::bbdo()->error(
-              "BBDO: cannot parse the 'retention' boolean: its content is '{}'",
+              "BBDO: cannot parse the 'retention' boolean: its content is "
+              "'{}'",
               it->second);
           keep_retention = false;
         }
@@ -167,7 +166,7 @@ io::endpoint* factory::new_endpoint(
 
     retval = std::make_unique<bbdo::acceptor>(
         cfg.name, negotiate, cfg.read_timeout, acceptor_is_output, coarse,
-        ack_limit, std::move(extensions));
+        ack_limit, std::move(extensions), grpc_serialized);
     if (acceptor_is_output && keep_retention)
       is_acceptor = false;
     log_v2::bbdo()->debug("BBDO: new acceptor {}", cfg.name);
@@ -175,7 +174,7 @@ io::endpoint* factory::new_endpoint(
     bool connector_is_input = cfg.get_io_type() == config::endpoint::input;
     retval = std::make_unique<bbdo::connector>(
         negotiate, cfg.read_timeout, connector_is_input, coarse, ack_limit,
-        std::move(extensions));
+        std::move(extensions), grpc_serialized);
     log_v2::bbdo()->debug("BBDO: new connector {}", cfg.name);
   }
   return retval.release();

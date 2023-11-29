@@ -13,14 +13,14 @@ Library             ../resources/specific-duplication.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save logs If Failed
+Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
 BESEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear DB    severities
+    # Clear Db    severities
     Config Engine    ${1}
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
@@ -30,20 +30,20 @@ BESEV1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    check severity With Timeout    severity20    5    1    30
-    Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
-    ${result}=    check severity With Timeout    severity1    1    5    30
-    Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
+    ${result}    Check Severity With Timeout    severity20    5    1    30
+    Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
+    ${result}    Check Severity With Timeout    severity1    1    5    30
+    Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
 
 BESEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear DB    severities
+    # Clear Db    severities
     Config Engine    ${1}
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
@@ -53,21 +53,21 @@ BESEV2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Sleep    1s
     Start Broker
-    ${result}=    check severity With Timeout    severity20    5    1    30
-    Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
-    ${result}=    check severity With Timeout    severity1    1    5    30
-    Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
+    ${result}    Check Severity With Timeout    severity20    5    1    30
+    Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
+    ${result}    Check Severity With Timeout    severity1    1    5    30
+    Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
 
 BEUSEV1
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Broker is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear DB    severities
+    # Clear Db    severities
     Config Engine    ${1}
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
@@ -75,26 +75,24 @@ BEUSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
-    ${result}=    check severity With Timeout    severity20    5    1    30
-    Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
-    ${result}=    check severity With Timeout    severity1    1    5    30
-    Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
+    ${result}    Check Severity With Timeout    severity20    5    1    30
+    Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
+    ${result}    Check Severity With Timeout    severity1    1    5    30
+    Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
 
 BEUSEV2
     [Documentation]    Engine is configured with some severities. When broker receives them, it stores them in the centreon_storage.severities table. Engine is started before.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear DB    severities
+    # Clear Db    severities
     Config Engine    ${1}
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
@@ -102,27 +100,25 @@ BEUSEV2
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    debug
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Sleep    1s
     Start Broker
-    ${result}=    check severity With Timeout    severity20    5    1    30
-    Should Be True    ${result}    msg=severity20 should be of level 5 with icon_id 1
-    ${result}=    check severity With Timeout    severity1    1    5    30
-    Should Be True    ${result}    msg=severity1 should be of level 1 with icon_id 5
+    ${result}    Check Severity With Timeout    severity20    5    1    30
+    Should Be True    ${result}    severity20 should be of level 5 with icon_id 1
+    ${result}    Check Severity With Timeout    severity1    1    5    30
+    Should Be True    ${result}    severity1 should be of level 1 with icon_id 5
     Stop Engine
     Kindly Stop Broker
 
 BEUSEV3
     [Documentation]    Four services have a severity added. Then we remove the severity from service 1. Then we change severity 11 to severity7 for service 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear DB    severities
+    # Clear Db    severities
     Config Engine    ${1}
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
@@ -131,29 +127,27 @@ BEUSEV3
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
     Sleep    2s
 
-    ${result}=    check service severity With Timeout    1    1    11    60
-    Should Be True    ${result}    msg=Service (1, 1) should have severity_id=11
+    ${result}    Check Service Severity With Timeout    1    1    11    60
+    Should Be True    ${result}    Service (1, 1) should have severity_id=11
 
     Remove Severities From Services    ${0}
     Add Severity To Services    0    11    [2, 4]
     Add Severity To Services    0    7    [3]
     Reload Engine
     Reload Broker
-    ${result}=    check service severity With Timeout    1    3    7    60
-    Should Be True    ${result}    msg=Service (1, 3) should have severity_id=7
-    ${result}=    check service severity With Timeout    1    1    None    60
-    Should Be True    ${result}    msg=Service (1, 1) should have no severity
+    ${result}    Check Service Severity With Timeout    1    3    7    60
+    Should Be True    ${result}    Service (1, 3) should have severity_id=7
+    ${result}    Check Service Severity With Timeout    1    1    None    60
+    Should Be True    ${result}    Service (1, 1) should have no severity
 
     Stop Engine
     Kindly Stop Broker
@@ -176,38 +170,35 @@ BEUSEV4
     Config Broker    rrd
     Config Broker    module    2
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}=    check_service_severity_With_Timeout    1    2    19    60
-    Should Be True    ${result}    msg=First step: Service (1, 2) should have severity_id=19
+    ${result}    Check Service Severity With Timeout    1    2    19    60
+    Should Be True    ${result}    First step: Service (1, 2) should have severity_id=19
 
-    ${result}=    check service severity With Timeout    1    4    19    60
-    Should Be True    ${result}    msg=First step: Service (1, 4) should have severity_id=19
+    ${result}    Check Service Severity With Timeout    1    4    19    60
+    Should Be True    ${result}    First step: Service (1, 4) should have severity_id=19
 
-    ${result}=    check service severity With Timeout    26    501    19    60
-    Should Be True    ${result}    msg=First step: Service (26, 501) should have severity_id=19
+    ${result}    Check Service Severity With Timeout    26    501    19    60
+    Should Be True    ${result}    First step: Service (26, 501) should have severity_id=19
 
-    ${result}=    check service severity With Timeout    26    502    19    60
-    Should Be True    ${result}    msg=First step: Service (26, 502) should have severity_id=19
+    ${result}    Check Service Severity With Timeout    26    502    19    60
+    Should Be True    ${result}    First step: Service (26, 502) should have severity_id=19
 
-    ${result}=    check service severity With Timeout    1    3    17    60
-    Should Be True    ${result}    msg=First step: Service (1, 3) should have severity_id=17
+    ${result}    Check Service Severity With Timeout    1    3    17    60
+    Should Be True    ${result}    First step: Service (1, 3) should have severity_id=17
 
-    ${result}=    check service severity With Timeout    1    5    17    60
-    Should Be True    ${result}    msg=First step: Service (1, 5) should have severity_id=17
+    ${result}    Check Service Severity With Timeout    1    5    17    60
+    Should Be True    ${result}    First step: Service (1, 5) should have severity_id=17
 
-    ${result}=    check service severity With Timeout    26    503    17    60
-    Should Be True    ${result}    msg=First step: Service (26, 503) should have severity_id=17
+    ${result}    Check Service Severity With Timeout    26    503    17    60
+    Should Be True    ${result}    First step: Service (26, 503) should have severity_id=17
 
     Remove Severities From Services    ${0}
     Create Severities File    ${0}    ${18}
@@ -216,17 +207,17 @@ BEUSEV4
     Reload Engine
     Reload Broker
     Sleep    3s
-    ${result}=    check service severity With Timeout    26    503    17    60
-    Should Be True    ${result}    msg=Second step: Service (26, 503) should have severity_id=17
+    ${result}    Check Service Severity With Timeout    26    503    17    60
+    Should Be True    ${result}    Second step: Service (26, 503) should have severity_id=17
 
-    ${result}=    check service severity With Timeout    1    4    None    60
-    Should Be True    ${result}    msg=Second step: Service (1, 4) should have severity_id=None
+    ${result}    Check Service Severity With Timeout    1    4    None    60
+    Should Be True    ${result}    Second step: Service (1, 4) should have severity_id=None
 
-    ${result}=    check service severity With Timeout    1    3    None    60
-    Should Be True    ${result}    msg=Second step: Service (1, 3) should have severity_id=17
+    ${result}    Check Service Severity With Timeout    1    3    None    60
+    Should Be True    ${result}    Second step: Service (1, 3) should have severity_id=17
 
-    ${result}=    check service severity With Timeout    1    5    None    60
-    Should Be True    ${result}    msg=Second step: Service (1, 5) should have severity_id=17
+    ${result}    Check Service Severity With Timeout    1    5    None    60
+    Should Be True    ${result}    Second step: Service (1, 5) should have severity_id=17
 
     Stop Engine
     Kindly Stop Broker
@@ -254,32 +245,29 @@ BETUSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}=    check service severity With Timeout    1    2    1    60
-    Should Be True    ${result}    msg=First step: Service (1, 2) should have severity_id=1
+    ${result}    Check Service Severity With Timeout    1    2    1    60
+    Should Be True    ${result}    First step: Service (1, 2) should have severity_id=1
 
-    ${result}=    check service severity With Timeout    1    4    1    60
-    Should Be True    ${result}    msg=First step: Service (1, 4) should have severity_id=1
+    ${result}    Check Service Severity With Timeout    1    4    1    60
+    Should Be True    ${result}    First step: Service (1, 4) should have severity_id=1
 
-    ${result}=    check service severity With Timeout    1    5    3    60
-    Should Be True    ${result}    msg=First step: Service (1, 5) should have severity_id=3
+    ${result}    Check Service Severity With Timeout    1    5    3    60
+    Should Be True    ${result}    First step: Service (1, 5) should have severity_id=3
 
-    ${result}=    check service severity With Timeout    26    502    3    60
-    Should Be True    ${result}    msg=First step: Service (26, 502) should have severity_id=3
+    ${result}    Check Service Severity With Timeout    26    502    3    60
+    Should Be True    ${result}    First step: Service (26, 502) should have severity_id=3
 
-    ${result}=    check service severity With Timeout    26    503    5    60
-    Should Be True    ${result}    msg=First step: Service (26, 503) should have severity_id=5
+    ${result}    Check Service Severity With Timeout    26    503    5    60
+    Should Be True    ${result}    First step: Service (26, 503) should have severity_id=5
 
     Stop Engine
     Kindly Stop Broker

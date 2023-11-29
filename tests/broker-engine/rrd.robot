@@ -14,7 +14,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Test Clean
+Test Teardown       Stop Engine Broker And Save Logs
 
 
 *** Test Cases ***
@@ -58,7 +58,7 @@ BRRDDM1
         END
     END
     FOR    ${m}    IN    @{metrics}
-        Log to Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Waiting for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 
@@ -126,11 +126,11 @@ BRRDDID1
     END
 
     FOR    ${i}    IN    @{indexes}
-        log to console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/status/${i}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/status/${i}.rrd    20s
     END
     FOR    ${m}    IN    @{metrics}
-        log to console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
+        Log To Console    Wait for ${VarRoot}/lib/centreon/metrics/${m}.rrd to be deleted
         Wait Until Removed    ${VarRoot}/lib/centreon/metrics/${m}.rrd    20s
     END
 
@@ -402,9 +402,43 @@ BRRDRMU1
         ...    Data before RRD rebuild contain index_id % 3. The expected average is 100 if modulo==0, 75 if modulo==1, 0 if modulo==2 .
     END
 
+RRD1
+    [Documentation]    RRD metric rebuild asked with gRPC API. Three non existing indexes IDs are selected then an error message is sent. This is done with unified_sql output.
+    [Tags]    rrd    metric    rebuild    unified_sql    grpc
+    Config Engine    ${1}
+    Config Broker    rrd
+    Config Broker    central
+    Config Broker    module
+    Config BBDO3    ${1}
+    Broker Config Log    rrd    rrd    trace
+    Broker Config Log    central    sql    trace
+    Broker Config Flush Log    central    0
+    Broker Config Flush Log    rrd    0
+    Broker Config Flush Log    central    0
+    Broker Config Flush Log    rrd    0
+    Create Metrics    3
+
+    ${start}    Get Round Current Date
+    Run Keywords    Start Broker    AND    Start Engine
+    ${result}    Check Connections
+    Should Be True    ${result}    Engine and Broker not connected
+
+    # We get 3 indexes to rebuild
+    ${index}    Get Not Existing Indexes    3
+    Rebuild Rrd Graphs    51001    ${index}    1
+    Log To Console    Indexes to rebuild: ${index}
+    ${metrics}    Get Metrics Matching Indexes    ${index}
+    Log To Console    Metrics to rebuild: ${metrics}
+    ${content}    Create List    Metrics rebuild: metrics don't exist
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
+    Should Be True    ${result}    Central did not send metrics to rebuild
+
+    ${content1}    Create List    mysql_connection: You have an error in your SQL syntax
+    ${result}    Find In Log With Timeout    ${rrdLog}    ${start}    ${content1}    45
+    Should Not Be True    ${result}    Database did not receive command to rebuild metrics
 
 *** Keywords ***
 Test Clean
     Stop Engine
     Kindly Stop Broker
-    Save logs If Failed
+    Save Logs If Failed

@@ -23,13 +23,11 @@ EBBPS1
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -76,11 +74,11 @@ EBBPS1
             ...    ${first_service_status_content}
             ...    30
             Should Be True    ${result}    No service_status processing found.
-            Log to Console    Stopping Broker
+            Log To Console    Stopping Broker
             Kindly Stop Broker
-            Log to Console    Waiting for 5s
+            Log To Console    Waiting for 5s
             Sleep    5s
-            Log to Console    Restarting Broker
+            Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
             Start Broker
         END
@@ -108,13 +106,11 @@ EBBPS2
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -162,9 +158,9 @@ EBBPS2
             ...    30
             Should Be True    ${result}    No service_status processing found.
             Kindly Stop Broker
-            Log to Console    Waiting for 5s
+            Log To Console    Waiting for 5s
             Sleep    5s
-            Log to Console    Restarting Broker
+            Log To Console    Restarting Broker
             ${start_broker}    Get Current Date
             Start Broker
         END
@@ -193,12 +189,11 @@ EBMSSM
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    debug
@@ -240,12 +235,11 @@ EBPS2
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
@@ -286,9 +280,7 @@ RLCode
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    error
     Broker Config Log    central    lua    debug
@@ -296,7 +288,7 @@ RLCode
 
     ${INITIAL_SCRIPT_CONTENT}    Catenate
     ...    function init(params)
-    ...    broker_log:set_parameters('/tmp/toto.log', 2)
+    ...    broker_log:set_parameters(2, '/tmp/toto.log')
     ...    end
     ...
     ...    function write(d)
@@ -321,12 +313,12 @@ RLCode
 
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    "lua logs produced"
+    Should Be True    ${result}    The lua virtual machine is not correctly initialized
 
     # Define the new content to take place of the first one
     ${new_content}    Catenate
     ...    function init(params)
-    ...    broker_log:set_parameters('/tmp/titi.log', 2)
+    ...    broker_log:set_parameters(2, '/tmp/titi.log')
     ...    end
     ...
     ...    function write(d)
@@ -334,7 +326,7 @@ RLCode
     ...    return true
     ...    end
 
-    # Create the second LUA script file
+    # Create the LUA script file from the content
     Create File    /tmp/toto.lua    ${new_content}
     ${start}    Get Current Date
 
@@ -342,11 +334,65 @@ RLCode
 
     ${content}    Create List    lua: initializing the Lua virtual machine
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    lua file not initialized
+    Should Be True    ${result}    The Lua virtual machine is not correctly initialized
+
+    Stop Engine
+    Kindly Stop Broker
+
+metric_mapping
+    [Documentation]    Check if metric name exists using a stream connector
+    [Tags]    broker    engine    bbdo    unified_sql    metric
+    Clear Commands Status
+    Clear Retention
+
+    Remove File    /tmp/test.log
+    Config Engine    ${1}    ${1}    ${10}
+    Config Broker    central
+    Config Broker    module
+    Broker Config Add Item    central    bbdo_version    3.0.1
+    Broker Config Add Item    module0    bbdo_version    3.0.1
+    Broker Config Log    central    lua    debug
+    Broker Config Log    module0    neb    debug
+    Config Broker Sql Output    central    unified_sql
+
+    ${new_content}    Catenate
+    ...    function init(params)
+    ...    broker_log:set_parameters(1, "/tmp/test.log")
+    ...    end
+    ...
+    ...    function write(d)
+    ...    if d._type == 196617 then
+    ...    broker_log:info(0, "name: " .. tostring(d.name) .. " corresponds to metric id " .. tostring(d.metric_id))
+    ...    end
+    ...    return true
+    ...    end
+
+    # Create the initial LUA script file
+    Create File    /tmp/test-metric.lua    ${new_content}
+
+    Broker Config Add Lua Output    central    test-metric    /tmp/test-metric.lua
+
+    ${start}    Get Current Date
+
+    Start Broker
+    Start Engine
+
+    ${content}    Create List    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message about check_for_external_commands() should be available.
+
+    # We force several checks with metrics
+    FOR    ${i}    IN RANGE    ${10}
+        Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
+    END
+
+    Wait Until Created    /tmp/test.log    30s
+    ${grep_res}    Grep File    /tmp/test.log    name: metric1 corresponds to metric id
+    Should Not Be Empty    ${grep_res}    metric name "metric1" not found
 
 
 *** Keywords ***
 Test Clean
     Stop Engine
     Kindly Stop Broker
-    Save logs If Failed
+    Save Logs If Failed

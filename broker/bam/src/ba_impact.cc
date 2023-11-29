@@ -169,7 +169,7 @@ std::string ba_impact::get_output() const {
     for (auto it = _impacts.begin(), end = _impacts.end(); it != end; ++it) {
       if (it->second.hard_impact.get_nominal() > eps) {
         lst.emplace_back(fmt::format(
-            "KPI{} (impact: {})", it->first->get_id(),
+            "KPI {} (impact: {})", it->first->get_name(),
             static_cast<int32_t>(it->second.hard_impact.get_nominal())));
       }
     }

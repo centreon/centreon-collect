@@ -19,7 +19,7 @@ Test Setup          Stop Processes
 BEUHSEV1
     [Documentation]    Four hosts have a severity added. Then we remove the severity from host 1. Then we change severity 10 to severity8 for host 3.
     [Tags]    broker    engine    protobuf    bbdo    severities
-    # Clear DB    severities
+    # Clear Db    severities
     Config Engine    ${1}
     Create Severities File    ${0}    ${20}
     Config Engine Add Cfg File    ${0}    severities.cfg
@@ -28,29 +28,27 @@ BEUHSEV1
     Config Broker    rrd
     Config Broker    module
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    1
     Broker Config Log    module0    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
     Sleep    2s
 
-    ${result}=    check host severity With Timeout    1    10    60
-    Should Be True    ${result}    msg=Host 1 should have severity_id=10
+    ${result}    Check Host Severity With Timeout    1    10    60
+    Should Be True    ${result}    Host 1 should have severity_id=10
 
     Remove Severities From Hosts    ${0}
     Add Severity To Hosts    0    10    [2, 4]
     Add Severity To Hosts    0    8    [3]
     Reload Engine
     Reload Broker
-    ${result}=    check host severity With Timeout    3    8    60
-    Should Be True    ${result}    msg=Host 3 should have severity_id=8
-    ${result}=    check host severity With Timeout    1    None    60
-    Should Be True    ${result}    msg=Host 1 should have no severity
+    ${result}    Check Host Severity With Timeout    3    8    60
+    Should Be True    ${result}    Host 3 should have severity_id=8
+    ${result}    Check Host Severity With Timeout    1    None    60
+    Should Be True    ${result}    Host 1 should have no severity
 
     Stop Engine
     Kindly Stop Broker
@@ -73,39 +71,36 @@ BEUHSEV2
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}=    check host severity With Timeout    2    18    60
-    Should Be True    ${result}    msg=First step: Host 2 should have severity_id=18
+    ${result}    Check Host Severity With Timeout    2    18    60
+    Should Be True    ${result}    First step: Host 2 should have severity_id=18
 
-    ${result}=    check host severity With Timeout    4    18    60
-    Should Be True    ${result}    msg=First step: Host 4 should have severity_id=18
+    ${result}    Check Host Severity With Timeout    4    18    60
+    Should Be True    ${result}    First step: Host 4 should have severity_id=18
 
-    ${result}=    check host severity With Timeout    26    18    60
-    Should Be True    ${result}    msg=First step: Host 26 should have severity_id=18
+    ${result}    Check Host Severity With Timeout    26    18    60
+    Should Be True    ${result}    First step: Host 26 should have severity_id=18
 
-    ${result}=    check host severity With Timeout    27    18    60
-    Should Be True    ${result}    msg=First step: Host 27 should have severity_id=18
+    ${result}    Check Host Severity With Timeout    27    18    60
+    Should Be True    ${result}    First step: Host 27 should have severity_id=18
 
-    ${result}=    check host severity With Timeout    3    16    60
-    Should Be True    ${result}    msg=First step: Host 3 should have severity_id=16
+    ${result}    Check Host Severity With Timeout    3    16    60
+    Should Be True    ${result}    First step: Host 3 should have severity_id=16
 
-    ${result}=    check host severity With Timeout    5    16    60
-    Should Be True    ${result}    msg=First step: Host 5 should have severity_id=16
+    ${result}    Check Host Severity With Timeout    5    16    60
+    Should Be True    ${result}    First step: Host 5 should have severity_id=16
 
-    ${result}=    check host severity With Timeout    28    16    60
-    Should Be True    ${result}    msg=First step: Host 28 should have severity_id=16
+    ${result}    Check Host Severity With Timeout    28    16    60
+    Should Be True    ${result}    First step: Host 28 should have severity_id=16
 
     Remove Severities From Hosts    ${0}
     Create Severities File    ${0}    ${18}
@@ -114,17 +109,17 @@ BEUHSEV2
     Reload Engine
     Reload Broker
     Sleep    3s
-    ${result}=    check host severity With Timeout    28    16    60
-    Should Be True    ${result}    msg=Second step: Host 28 should have severity_id=16
+    ${result}    Check Host Severity With Timeout    28    16    60
+    Should Be True    ${result}    Second step: Host 28 should have severity_id=16
 
-    ${result}=    check host severity With Timeout    4    None    60
-    Should Be True    ${result}    msg=Second step: Host 4 should have severity_id=None
+    ${result}    Check Host Severity With Timeout    4    None    60
+    Should Be True    ${result}    Second step: Host 4 should have severity_id=None
 
-    ${result}=    check host severity With Timeout    3    None    60
-    Should Be True    ${result}    msg=Second step: Host 3 should have severity_id=17
+    ${result}    Check Host Severity With Timeout    3    None    60
+    Should Be True    ${result}    Second step: Host 3 should have severity_id=17
 
-    ${result}=    check host severity With Timeout    5    None    60
-    Should Be True    ${result}    msg=Second step: Host 5 should have severity_id=17
+    ${result}    Check Host Severity With Timeout    5    None    60
+    Should Be True    ${result}    Second step: Host 5 should have severity_id=17
 
     Stop Engine
     Kindly Stop Broker
@@ -152,33 +147,30 @@ BETUHSEV1
     Config Broker    rrd
     Config Broker    module    ${2}
     Config Broker Sql Output    central    unified_sql
-    Broker Config Add Item    module0    bbdo_version    3.0.0
-    Broker Config Add Item    module1    bbdo_version    3.0.0
-    Broker Config Add Item    central    bbdo_version    3.0.0
-    Broker Config Add Item    rrd    bbdo_version    3.0.0
+    Config BBDO3    2
     Broker Config Log    module0    neb    debug
     Broker Config Log    module1    neb    debug
     Broker Config Log    central    sql    trace
     Clear Retention
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Engine
     Start Broker
     Sleep    5s
     # We need to wait a little before reloading Engine
-    ${result}=    check host severity With Timeout    2    2    60
-    Should Be True    ${result}    msg=First step: Host 2 should have severity_id=2
+    ${result}    Check Host Severity With Timeout    2    2    60
+    Should Be True    ${result}    First step: Host 2 should have severity_id=2
 
-    ${result}=    check host severity With Timeout    4    2    60
-    Should Be True    ${result}    msg=First step: Host 4 should have severity_id=2
+    ${result}    Check Host Severity With Timeout    4    2    60
+    Should Be True    ${result}    First step: Host 4 should have severity_id=2
 
-    ${result}=    check host severity With Timeout    5    4    60
-    Should Be True    ${result}    msg=First step: Host 5 should have severity_id=4
+    ${result}    Check Host Severity With Timeout    5    4    60
+    Should Be True    ${result}    First step: Host 5 should have severity_id=4
 
-    ${result}=    check host severity With Timeout    31    6    60
-    Should Be True    ${result}    msg=First step: Host 31 should have severity_id=6
+    ${result}    Check Host Severity With Timeout    31    6    60
+    Should Be True    ${result}    First step: Host 31 should have severity_id=6
 
-    ${result}=    check host severity With Timeout    33    10    60
-    Should Be True    ${result}    msg=First step: Host 33 should have severity_id=10
+    ${result}    Check Host Severity With Timeout    33    10    60
+    Should Be True    ${result}    First step: Host 33 should have severity_id=10
 
     Stop Engine
     Kindly Stop Broker

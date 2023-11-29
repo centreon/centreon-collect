@@ -22,6 +22,7 @@
 #include "com/centreon/broker/grpc/stream.hh"
 
 #include "com/centreon/broker/grpc/client.hh"
+#include "com/centreon/broker/grpc/grpc_bridge.hh"
 #include "com/centreon/broker/grpc/server.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
@@ -38,13 +39,16 @@ struct formatter<io::raw> : ostream_formatter {};
 }  // namespace fmt
 
 com::centreon::broker::grpc::stream::stream(const grpc_config::pointer& conf)
-    : io::stream("GRPC"), _accept(false) {
+    : io::stream("GRPC"), _accept(false), _conf(conf) {
   _channel = client::create(conf);
 }
 
 com::centreon::broker::grpc::stream::stream(
     const std::shared_ptr<accepted_service>& accepted)
-    : io::stream("GRPC"), _accept(true), _channel(accepted) {}
+    : io::stream("GRPC"),
+      _accept(true),
+      _channel(accepted),
+      _conf(_channel->get_conf()) {}
 
 com::centreon::broker::grpc::stream::~stream() noexcept {
   if (_channel)
@@ -62,7 +66,8 @@ com::centreon::broker::grpc::stream::~stream() noexcept {
       SPDLOG_LOGGER_TRACE(log_v2::grpc(), "receive:{}",                       \
                           *std::static_pointer_cast<io::raw>(d));             \
     } else {                                                                  \
-      return false;                                                           \
+      d = protobuf_to_event(read_res.first);                                  \
+      return d ? true : false;                                                \
     }                                                                         \
   } else {                                                                    \
     if (_channel->is_down()) {                                                \
@@ -92,11 +97,17 @@ int32_t com::centreon::broker::grpc::stream::write(
   if (_channel->is_down())
     throw msg_fmt("Connection lost");
 
-  event_ptr to_send(std::make_shared<grpc_event_type>());
+  channel::event_with_data::pointer to_send;
 
-  std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
-  to_send->mutable_buffer()->assign(raw_src->_buffer.begin(),
-                                    raw_src->_buffer.end());
+  if (_conf->get_grpc_serialized() &&
+      std::dynamic_pointer_cast<io::protobuf_base>(d)) {  // no bbdo serialize
+    to_send = create_event_with_data(d);
+  } else {
+    to_send = std::make_shared<channel::event_with_data>();
+    std::shared_ptr<io::raw> raw_src = std::static_pointer_cast<io::raw>(d);
+    to_send->grpc_event.mutable_buffer()->assign(raw_src->_buffer.begin(),
+                                                 raw_src->_buffer.end());
+  }
   return _channel->write(to_send);
 }
 

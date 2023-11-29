@@ -159,6 +159,7 @@ jobs:
                   -G "Ninja" \
                   -DCMAKE_C_COMPILER_LAUNCHER=${SCCACHE_PATH} \
                   -DCMAKE_CXX_COMPILER_LAUNCHER=${SCCACHE_PATH} \
+                  -DDEBUG_ROBOT=OFF \
                   -DWITH_TESTING=OFF \
                   -DWITH_BENCH=ON \
                   -DWITH_MODULE_SIMU=OFF \

@@ -134,10 +134,10 @@ void client::OnReadDone(bool ok) {
   on_read_done(ok);
 }
 
-void client::start_write(const event_ptr& to_send) {
+void client::start_write(const event_with_data::pointer& to_send) {
   std::lock_guard<std::recursive_mutex> l(_hold_mutex);
   if (_hold_to_remove) {
-    StartWrite(to_send.get());
+    StartWrite(&to_send->grpc_event);
   }
 }
 

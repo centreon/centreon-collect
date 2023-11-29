@@ -12,6 +12,8 @@ from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb
 from cpuinfo import get_cpu_info
 from robot.api import logger
 from dateutil import parser as date_parser
+from Common import get_version
+from Common import is_using_direct_grpc
 
 
 class delta_process_stat:
@@ -127,7 +129,7 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     """! store a bench result and process stat difference in an unqlite file
     it also stores git information
     @param file_path  path of the unqlite file
-    @param test_name name of the state
+    @param test_name name of the state if we are using direct grpc serialization, _grpc is appended to
     @param broker_or_engine a string equal to engine or broker to identify stats owning
     @param resources_consumed a delta_process_stat object
     @param end_process_stat stat of the process at the end of the test
@@ -145,7 +147,11 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
     row['kernel_time'] = row['kernel_time'].seconds + \
         row['kernel_time'].nanos / 1000000000.0
     info = get_cpu_info()
-    row['cpu'] = info["brand_raw"]
+    if 'brand_raw' in info:
+        row['cpu'] = info["brand_raw"]
+    else:
+        row['cpu'] = 'unknown cpu'
+        logger.console(f"unable to get cpu info: {info}")
     row['nb_core'] = info["count"]
     row['memory_size'] = psutil.virtual_memory().total
     row['memory_used'] = end_process_stat.vm_size
@@ -156,11 +162,10 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         for key, value in other_bench_data.items():
             row[key] = value
 
-    # rev_name is like <commit sha> <branch>~*
-    rev_name_dev_branch = re.compile(
-        r'[0-9a-f]+\s(dev[\w\.]+).*')
-    remote_rev_name_dev_branch = re.compile(
-        r'[0-9a-f]+\sremotes/origin/(dev[\w\.]+).*')
+    version = get_version()
+    version = version[0:version.rfind(".")] + ".x"
+    row['origin'] = version
+
     # git branch and commit
     try:
         repo = Repo(os.getcwd())
@@ -169,33 +174,14 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         repo = Repo(os.getcwd() + "/..")
     commit = repo.head.commit
     row['date_commit'] = commit.authored_datetime.timestamp()
-    origin_found = False
-    while True:
-        m = rev_name_dev_branch.match(commit.name_rev)
-        if m is not None:
-            row['origin'] = m.group(1)
-            origin_found = True
-            break
-        m = remote_rev_name_dev_branch.match(commit.name_rev)
-        if m is not None:
-            row['origin'] = m.group(1)
-            origin_found = True
-            break
-
-        parents = commit.parents
-        if len(parents) == 0:
-            break
-        commit = parents[0]
-
-    if not origin_found:
-        logger.console(
-            f"origin not found for commit {repo.head.commit} your branch needs rebase?")
-        return False
     if repo.is_dirty():
         row['commit'] = f'uncommited files last_commit:{repo.head.commit.hexsha}'
     else:
         row['commit'] = repo.head.commit.hexsha
     row['t'] = time.time()
+    row['branch'] = repo.head.name
+    if is_using_direct_grpc():
+        test_name += "_grpc"
     db = UnQLite(file_path)
     benchs = db.collection(
         f'collectbench_{test_name}_{broker_or_engine}_{bench_event_result["id"]}')

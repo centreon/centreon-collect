@@ -32,18 +32,18 @@ TestBadUser
     Start Engine
 
     ${start}=  Get Current Date
-    ${content}=    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}=  Get Current Date
-    schedule forced host check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
-    ${content}=    Create List    fail to connect to toto@127.0.0.10
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message fail to connect to toto@127.0.0.10 should be available.
+    ${content}    Create List    fail to connect to toto@127.0.0.10
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message fail to connect to toto@127.0.0.10 should be available.
     Stop Engine
 
 TestBadPwd
@@ -61,18 +61,18 @@ TestBadPwd
     Start Engine
 
     ${start}=  Get Current Date
-    ${content}=    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}=  Get Current Date
-    schedule forced host check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
+    Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
 
-    ${content}=    Create List    fail to connect to testconnssh@127.0.0.11
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-    Should Be True    ${result}    msg=A message fail to connect to testconnssh@127.0.0.11 should be available.
+    ${content}    Create List    fail to connect to testconnssh@127.0.0.11
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+    Should Be True    ${result}    A message fail to connect to testconnssh@127.0.0.11 should be available.
     Stop Engine
 
 Test6Hosts
@@ -87,7 +87,7 @@ Test6Hosts
     Config Engine    ${1}
     Engine Config Set Value  ${0}  log_level_commands  trace
     Engine Config Add Command  ${0}  ssh_linux_snmp  $USER1$/check_by_ssh -H $HOSTADDRESS$ -l $_HOSTUSER$ -a $_HOSTPASSWORD$ -C "echo -n toto=$HOSTADDRESS$"  SSH Connector
-    ${run_env}=    Run Env
+    ${run_env}    Run Env
     Engine Config Set Value In Hosts  ${0}  host_1  _USER  testconnssh
     Engine Config Replace Value In Hosts  ${0}  host_1  check_command  ssh_linux_snmp
     Engine Config Set Value In Hosts  ${0}  host_1  _IDENTITYFILE  /home/testconnssh/.ssh/id_rsa
@@ -107,31 +107,31 @@ Test6Hosts
     Start Engine
 
     ${start}=  Get Current Date
-    ${content}=    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
-    ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1;    check_for_external_commands()
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
-    ...    msg=An Initial host state on host_1 should be raised before we can start our external commands.
+    ...    An Initial host state on host_1 should be raised before we can start our external commands.
 
     ${start}=  Get Current Date
     FOR    ${idx}    IN RANGE    1    7
-        schedule forced host check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
+        Schedule Forced Host Check    host_${idx}    /tmp/var/lib/centreon-engine/config0/rw/centengine.cmd
     END
     
     IF    "${run_env}" == "docker"
-        ${content}=    Create List    output='toto=127.0.0.1'
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=A message output='toto=127.0.0.1' should be available.
+        ${content}    Create List    output='toto=127.0.0.1'
+        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        Should Be True    ${result}    A message output='toto=127.0.0.1' should be available.
     ELSE
-        ${content}=    Create List    output='toto=::1'
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=A message output='toto=::1' should be available.
+        ${content}    Create List    output='toto=::1'
+        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        Should Be True    ${result}    A message output='toto=::1' should be available.
     END
 
     FOR    ${idx}    IN RANGE    2    7
-        ${content}=    Create List    output='toto=127.0.0.${idx}
-        ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
-        Should Be True    ${result}    msg=A message output='toto=127.0.0.${idx}' should be available.
+        ${content}    Create List    output='toto=127.0.0.${idx}
+        ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
+        Should Be True    ${result}    A message output='toto=127.0.0.${idx}' should be available.
     END
 
     Stop Engine
@@ -156,5 +156,5 @@ Save SSH Logs If Failed
 
 Save SSH Logs
     Save Logs
-    ${failDir}=    Catenate    SEPARATOR=    failed/    ${Test Name}
+    ${failDir}    Catenate    SEPARATOR=    failed/    ${Test Name}
     Copy File  ${ENGINE_LOG}/config0/connector_ssh.log  ${failDir}

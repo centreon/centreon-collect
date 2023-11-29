@@ -47,6 +47,7 @@ endif()
 add_definitions("-D_GLIBCXX_USE_CXX11_ABI=1")
 
 option(NG "C++17 build." OFF)
+option(DEBUG_ROBOT OFF)
 
 if(NG)
   set(CMAKE_CXX_STANDARD 17)
@@ -127,11 +128,15 @@ if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm")
 endif()
 
 # Version.
-set(COLLECT_MAJOR 23)
-set(COLLECT_MINOR 10)
+set(COLLECT_MAJOR 24)
+set(COLLECT_MINOR 04)
 set(COLLECT_PATCH 0)
 set(COLLECT_VERSION "${COLLECT_MAJOR}.${COLLECT_MINOR}.${COLLECT_PATCH}")
 add_definitions(-DCENTREON_CONNECTOR_VERSION=\"${COLLECT_VERSION}\")
+
+if (DEBUG_ROBOT)
+  add_definitions(-DDEBUG_ROBOT)
+endif()
 
 # ########### CONSTANTS ###########
 set(USER_BROKER centreon-broker)

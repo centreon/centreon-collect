@@ -12,6 +12,7 @@ nlohmann_json/3.11.2
 opentelemetry-cpp/1.8.1
 spdlog/1.11.0
 zlib/1.2.13
+abseil/20230125.3
 
 [generators]
 cmake

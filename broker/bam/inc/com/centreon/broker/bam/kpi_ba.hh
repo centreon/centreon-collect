@@ -57,7 +57,7 @@ class kpi_ba : public kpi {
                        const timestamp& event_start_time);
 
  public:
-  kpi_ba(uint32_t kpi_id, uint32_t ba_id);
+  kpi_ba(uint32_t kpi_id, uint32_t ba_id, const std::string& ba_name);
   ~kpi_ba() noexcept = default;
   kpi_ba(const kpi_ba&) = delete;
   kpi_ba& operator=(const kpi_ba&) = delete;

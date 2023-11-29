@@ -12,6 +12,7 @@ Library             ../resources/Common.py
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
+Test Teardown       Save Logs If failed
 
 
 *** Test Cases ***
@@ -21,7 +22,7 @@ BDB1
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-sql    db_name    centreon
+    Broker Config Output Set    central    central-broker-master-sql    db_name    centreon
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -40,7 +41,7 @@ BDB2
     Broker Config Log    central    sql    info
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-perfdata    db_name    centreon
+    Broker Config Output Set    central    central-broker-master-perfdata    db_name    centreon
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -58,7 +59,7 @@ BDB3
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-sql    db_name    centreon1
+    Broker Config Output Set    central    central-broker-master-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -74,8 +75,8 @@ BDB4
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-perfdata    db_name    centreon1
-    Broker Config Output set    central    central-broker-master-sql    db_name    centreon1
+    Broker Config Output Set    central    central-broker-master-perfdata    db_name    centreon1
+    Broker Config Output Set    central    central-broker-master-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -93,8 +94,8 @@ BDB5
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-perfdata    db_host    1.2.3.4
-    Broker Config Output set    central    central-broker-master-sql    db_host    1.2.3.4
+    Broker Config Output Set    central    central-broker-master-perfdata    db_host    1.2.3.4
+    Broker Config Output Set    central    central-broker-master-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -110,7 +111,7 @@ BDB6
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-sql    db_host    1.2.3.4
+    Broker Config Output Set    central    central-broker-master-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -126,8 +127,8 @@ BDB7
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-sql    db_password    centreon1
-    Broker Config Output set    central    central-broker-master-perfdata    db_password    centreon1
+    Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
+    Broker Config Output Set    central    central-broker-master-perfdata    db_password    centreon1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
@@ -141,8 +142,8 @@ BDB8
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-perfdata    db_password    centreon1
-    Broker Config Output set    central    central-broker-master-sql    db_password    centreon1
+    Broker Config Output Set    central    central-broker-master-perfdata    db_password    centreon1
+    Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
@@ -156,7 +157,7 @@ BDB9
     Config Broker    central
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-master-sql    db_password    centreon1
+    Broker Config Output Set    central    central-broker-master-sql    db_password    centreon1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
@@ -262,8 +263,8 @@ BDBM1
     @{lst}    Create List    1    6
     FOR    ${c}    IN    @{lst}
         Config Broker    central
-        Broker Config Output set    central    central-broker-master-sql    connections_count    ${c}
-        Broker Config Output set    central    central-broker-master-perfdata    connections_count    ${c}
+        Broker Config Output Set    central    central-broker-master-sql    connections_count    ${c}
+        Broker Config Output Set    central    central-broker-master-perfdata    connections_count    ${c}
         Config Broker    rrd
         Config Broker    module
         Config Engine    ${1}
@@ -278,7 +279,7 @@ BDBM1
         ${result}    Get Broker Stats Size    central    mysql manager
         Should Be True
         ...    ${result} >= ${c} + 1
-        ...    The stats file should contain at less ${c} + 1 connections to the database.
+        ...    The stats file should contain at least ${c} + 1 connections to the database.
         Kindly Stop Broker
         Stop Engine
     END
@@ -289,16 +290,15 @@ BDBU1
     Config Broker    central
     Config Broker Sql Output    central    unified_sql
     Config Broker    rrd
-    Config Broker    module
     # We replace the usual centreon_storage database by centreon to make the wanted error
-    Broker Config Output set    central    central-broker-unified-sql    db_name    centreon
+    Broker Config Output Set    central    central-broker-unified-sql    db_name    centreon
     Broker Config Log    central    sql    trace
     Broker Config Flush Log    central    0
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
         ${content}    Create List    Table 'centreon\..*' doesn't exist
-        ${result}    Find Regex In Log with timeout    ${centralLog}    ${start}    ${content}    60
+        ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    60
         Should Be True    ${result}    A message about some missing tables in 'centreon' database should appear
         Kindly Stop Broker
     END
@@ -310,7 +310,7 @@ BDBU3
     Config Broker Sql Output    central    unified_sql
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-unified-sql    db_name    centreon1
+    Broker Config Output Set    central    central-broker-unified-sql    db_name    centreon1
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -327,7 +327,7 @@ BDBU5
     Config Broker Sql Output    central    unified_sql
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-unified-sql    db_host    1.2.3.4
+    Broker Config Output Set    central    central-broker-unified-sql    db_host    1.2.3.4
     FOR    ${i}    IN RANGE    0    5
         ${start}    Get Current Date
         Start Broker
@@ -344,7 +344,7 @@ BDBU7
     Config Broker Sql Output    central    unified_sql
     Config Broker    rrd
     Config Broker    module
-    Broker Config Output set    central    central-broker-unified-sql    db_password    centreon1
+    Broker Config Output Set    central    central-broker-unified-sql    db_password    centreon1
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection: error while starting connection
@@ -364,7 +364,7 @@ BDBU10
     ${start}    Get Current Date
     Start Broker
     ${content}    Create List    mysql_connection 0x[0-9a-f]* : commit
-    ${result}    Find Regex In Log with timeout    ${centralLog}    ${start}    ${content}    40
+    ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    40
     Should Be True    ${result[0]}    Log concerning a commit (connection ok) is missing.
     Kindly Stop Broker
 
@@ -375,8 +375,8 @@ BDBMU1
     FOR    ${c}    IN    @{lst}
         Config Broker    central
         Config Broker Sql Output    central    unified_sql
-        Broker Config Output set    central    central-broker-unified-sql    connections_count    ${c}
-        Broker Config Output set    central    central-broker-unified-sql    retry_interval    5
+        Broker Config Output Set    central    central-broker-unified-sql    connections_count    ${c}
+        Broker Config Output Set    central    central-broker-unified-sql    retry_interval    5
         Config Broker    rrd
         Config Broker    module
         Config Engine    ${1}

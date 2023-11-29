@@ -29,7 +29,7 @@ struct detail_centreon_event;
 std::ostream& operator<<(std::ostream&, const detail_centreon_event&);
 }  // namespace grpc
 namespace stream {
-std::ostream& operator<<(std::ostream&, const centreon_event&);
+std::ostream& operator<<(std::ostream&, const CentreonEvent&);
 }  // namespace stream
 }  // namespace broker
 }  // namespace centreon
@@ -37,7 +37,7 @@ std::ostream& operator<<(std::ostream&, const centreon_event&);
 
 namespace centreon_grpc = com::centreon::broker::grpc;
 namespace centreon_stream = com::centreon::broker::stream;
-using grpc_event_type = centreon_stream::centreon_event;
+using grpc_event_type = centreon_stream::CentreonEvent;
 using event_ptr = std::shared_ptr<grpc_event_type>;
 
 CCB_BEGIN()
@@ -48,9 +48,9 @@ using channel_ptr = std::shared_ptr<::grpc::Channel>;
 using uint64_vector = std::vector<uint64_t>;
 
 struct detail_centreon_event {
-  detail_centreon_event(const centreon_stream::centreon_event& todump)
+  detail_centreon_event(const centreon_stream::CentreonEvent& todump)
       : to_dump(todump) {}
-  const centreon_stream::centreon_event& to_dump;
+  const centreon_stream::CentreonEvent& to_dump;
 };
 
 const std::string authorization_header("authorization");
@@ -69,23 +69,55 @@ constexpr uint32_t calc_accept_all_compression_mask() {
  *
  */
 class channel : public std::enable_shared_from_this<channel> {
+ public:
+  /**
+   * @brief we pass our protobuf objects to grpc_event without copy
+   * so we must avoid that grpc_event delete message of protobuf object
+   * This the goal of this struct.
+   * At destruction, it releases protobuf object from grpc_event.
+   * Destruction of protobuf object is the job of shared_ptr<io::protobuf>
+   */
+  struct event_with_data {
+    using pointer = std::shared_ptr<event_with_data>;
+    grpc_event_type grpc_event;
+    std::shared_ptr<io::data> bbdo_event;
+    typedef google::protobuf::Message* (grpc_event_type::*releaser_type)();
+    releaser_type releaser;
+
+    event_with_data() : releaser(nullptr) {}
+
+    event_with_data(const std::shared_ptr<io::data>& bbdo_evt,
+                    releaser_type relser)
+        : bbdo_event(bbdo_evt), releaser(relser) {}
+
+    event_with_data(const event_with_data&) = delete;
+    event_with_data& operator=(const event_with_data&) = delete;
+
+    ~event_with_data() {
+      if (releaser) {
+        (grpc_event.*releaser)();
+      }
+    }
+  };
+
  private:
   channel& operator=(const channel&) = delete;
   channel(const channel&) = delete;
 
  protected:
-  using event_queue = std::list<event_ptr>;
+  using read_queue = std::deque<event_ptr>;
+  using write_queue = std::deque<event_with_data::pointer>;
 
   const std::string _class_name;
 
   /// read section
-  event_queue _read_queue;
+  read_queue _read_queue;
   bool _read_pending;
   event_ptr _read_current;
 
   // write section
-  event_queue _write_queue;
-  event_ptr _write_current;
+  write_queue _write_queue;
+  event_with_data::pointer _write_current;
   bool _write_pending;
 
   bool _error;
@@ -101,7 +133,7 @@ class channel : public std::enable_shared_from_this<channel> {
   void start_read(bool first_read);
   void start_write();
 
-  virtual void start_write(const event_ptr&) = 0;
+  virtual void start_write(const event_with_data::pointer&) = 0;
   virtual void start_read(event_ptr&, bool first_read) = 0;
 
   void on_write_done(bool ok);
@@ -118,6 +150,7 @@ class channel : public std::enable_shared_from_this<channel> {
   virtual void shutdown() = 0;
   bool is_down() const { return _error || _thrown; };
   bool is_alive() const { return !_error && !_thrown; }
+  grpc_config::pointer get_conf() const { return _conf; }
 
   std::pair<event_ptr, bool> read(time_t deadline) {
     return read(system_clock::from_time_t(deadline));
@@ -127,7 +160,7 @@ class channel : public std::enable_shared_from_this<channel> {
   }
   std::pair<event_ptr, bool> read(const system_clock::time_point& deadline);
 
-  int write(const event_ptr&);
+  int write(const event_with_data::pointer&);
   int flush();
   virtual int stop();
 
@@ -140,7 +173,7 @@ CCB_END()
 namespace fmt {
 // formatter specializations for fmt
 template <>
-struct formatter<centreon_stream::centreon_event> : ostream_formatter {};
+struct formatter<centreon_stream::CentreonEvent> : ostream_formatter {};
 
 template <>
 struct formatter<centreon_grpc::detail_centreon_event> : ostream_formatter {};
