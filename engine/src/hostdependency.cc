@@ -328,7 +328,7 @@ hostdependency_mmap::iterator hostdependency::hostdependencies_find(
  *          servicedependencies().end() otherwise.
  */
 hostdependency_mmap::iterator hostdependency::hostdependencies_find(
-    const std::pair<absl::string_view, size_t>& key) {
+    const std::pair<std::string_view, size_t>& key) {
   std::pair<hostdependency_mmap::iterator, hostdependency_mmap::iterator> p;
 
   p = hostdependencies.equal_range(key.first);

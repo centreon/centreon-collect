@@ -69,8 +69,8 @@ servicedependency_helper::servicedependency_helper(Servicedependency* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool servicedependency_helper::hook(absl::string_view key,
-                                    const absl::string_view& value) {
+bool servicedependency_helper::hook(std::string_view key,
+                                    const std::string_view& value) {
   Servicedependency* obj = static_cast<Servicedependency*>(mut_obj());
   key = validate_key(key);
 
@@ -79,7 +79,7 @@ bool servicedependency_helper::hook(absl::string_view key,
     uint32_t options = action_sd_none;
     auto arr = absl::StrSplit(value, ',');
     for (auto& v : arr) {
-      absl::string_view vv = absl::StripAsciiWhitespace(v);
+      std::string_view vv = absl::StripAsciiWhitespace(v);
       if (vv == "o" || vv == "ok")
         options |= action_sd_ok;
       else if (vv == "u" || vv == "unknown")

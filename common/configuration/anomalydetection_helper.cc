@@ -58,8 +58,8 @@ anomalydetection_helper::anomalydetection_helper(Anomalydetection* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool anomalydetection_helper::hook(absl::string_view key,
-                                   const absl::string_view& value) {
+bool anomalydetection_helper::hook(std::string_view key,
+                                   const std::string_view& value) {
   Anomalydetection* obj = static_cast<Anomalydetection*>(mut_obj());
   key = validate_key(key);
   if (key == "contactgroups") {
@@ -72,7 +72,7 @@ bool anomalydetection_helper::hook(absl::string_view key,
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
-      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      std::string_view v = absl::StripAsciiWhitespace(*it);
       if (v == "o" || v == "ok")
         options |= action_svc_ok;
       else if (v == "w" || v == "warning")
@@ -109,7 +109,7 @@ bool anomalydetection_helper::hook(absl::string_view key,
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
-      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      std::string_view v = absl::StripAsciiWhitespace(*it);
       if (v == "u" || v == "unknown")
         options |= action_svc_unknown;
       else if (v == "w" || v == "warning")
@@ -140,7 +140,7 @@ bool anomalydetection_helper::hook(absl::string_view key,
     uint16_t options(action_svc_none);
     auto values = absl::StrSplit(value, ',');
     for (auto it = values.begin(); it != values.end(); ++it) {
-      absl::string_view v = absl::StripAsciiWhitespace(*it);
+      std::string_view v = absl::StripAsciiWhitespace(*it);
       if (v == "u" || v == "unknown")
         options |= action_svc_unknown;
       else if (v == "o" || v == "ok")
@@ -285,8 +285,8 @@ void anomalydetection_helper::_init() {
  *
  * @return True if the customvariable has been well stored.
  */
-bool anomalydetection_helper::insert_customvariable(absl::string_view key,
-                                                    absl::string_view value) {
+bool anomalydetection_helper::insert_customvariable(std::string_view key,
+                                                    std::string_view value) {
   if (key[0] != '_')
     return false;
 

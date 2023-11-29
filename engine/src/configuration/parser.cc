@@ -323,8 +323,8 @@ void parser::_parse_directory_configuration(std::string const& path) {
 }
 
 bool set_global(std::unique_ptr<message_helper>& helper,
-                const absl::string_view& key,
-                const absl::string_view& value) {
+                const std::string_view& key,
+                const std::string_view& value) {
   //    const absl::flat_hash_map<std::string, std::string>& correspondence =
   //    {}) {
   State* msg = static_cast<State*>(helper->mut_obj());
@@ -434,8 +434,8 @@ bool set_global(std::unique_ptr<message_helper>& helper,
  * @return true on success.
  */
 bool set(std::unique_ptr<message_helper>& helper,
-         const absl::string_view& key,
-         const absl::string_view& value) {
+         const std::string_view& key,
+         const std::string_view& value) {
   Message* msg = helper->mut_obj();
   const Descriptor* desc = msg->GetDescriptor();
   const FieldDescriptor* f;
@@ -587,10 +587,10 @@ void parser::_parse_global_configuration(const std::string& path,
   auto tab{absl::StrSplit(content, '\n')};
   auto& cfg_helper = _pb_helper[pb_config];
   for (auto it = tab.begin(); it != tab.end(); ++it) {
-    absl::string_view l = absl::StripAsciiWhitespace(*it);
+    std::string_view l = absl::StripAsciiWhitespace(*it);
     if (l.empty() || l[0] == '#')
       continue;
-    std::pair<absl::string_view, absl::string_view> p =
+    std::pair<std::string_view, std::string_view> p =
         absl::StrSplit(l, absl::MaxSplits('=', 1));
     p.first = absl::StripTrailingAsciiWhitespace(p.first);
     p.second = absl::StripLeadingAsciiWhitespace(p.second);
@@ -650,7 +650,7 @@ void parser::_parse_object_definitions(const std::string& path,
   std::string type;
 
   for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
-    absl::string_view l = absl::StripAsciiWhitespace(*it);
+    std::string_view l = absl::StripAsciiWhitespace(*it);
     if (l.empty() || l[0] == '#' || l[0] == ';')
       continue;
 
@@ -776,7 +776,7 @@ void parser::_parse_object_definitions(const std::string& path,
         /* Main part where keys/values are read */
         /* ------------------------------------ */
         size_t pos = l.find_first_of(" \t");
-        absl::string_view key = l.substr(0, pos);
+        std::string_view key = l.substr(0, pos);
         if (pos != std::string::npos) {
           l.remove_prefix(pos);
           l = absl::StripLeadingAsciiWhitespace(l);
@@ -902,10 +902,10 @@ void parser::_parse_resource_file(const std::string& path, State* pb_config) {
   auto tab{absl::StrSplit(content, '\n')};
   int current_line = 1;
   for (auto it = tab.begin(); it != tab.end(); ++it, current_line++) {
-    absl::string_view l = absl::StripLeadingAsciiWhitespace(*it);
+    std::string_view l = absl::StripLeadingAsciiWhitespace(*it);
     if (l.empty() || l[0] == '#' || l[0] == ';')
       continue;
-    std::pair<absl::string_view, absl::string_view> p =
+    std::pair<std::string_view, std::string_view> p =
         absl::StrSplit(l, absl::MaxSplits('=', 1));
     p.first = absl::StripTrailingAsciiWhitespace(p.first);
     p.second = absl::StripLeadingAsciiWhitespace(p.second);

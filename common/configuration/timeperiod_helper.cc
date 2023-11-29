@@ -46,17 +46,16 @@ timeperiod_helper::timeperiod_helper(Timeperiod* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool timeperiod_helper::hook(absl::string_view key,
-                             const absl::string_view& value) {
+bool timeperiod_helper::hook(std::string_view key,
+                             const std::string_view& value) {
   Timeperiod* obj = static_cast<Timeperiod*>(mut_obj());
   key = validate_key(key);
-  auto get_timerange = [](const absl::string_view& value, auto* day) -> bool {
+  auto get_timerange = [](const std::string_view& value, auto* day) -> bool {
     auto arr = absl::StrSplit(value, ',');
     for (auto& d : arr) {
-      std::pair<absl::string_view, absl::string_view> v =
-          absl::StrSplit(d, '-');
+      std::pair<std::string_view, std::string_view> v = absl::StrSplit(d, '-');
       Timerange tr;
-      std::pair<absl::string_view, absl::string_view> p =
+      std::pair<std::string_view, std::string_view> p =
           absl::StrSplit(v.first, ':');
       uint32_t h, m;
       if (!absl::SimpleAtoi(p.first, &h) || !absl::SimpleAtoi(p.second, &m))

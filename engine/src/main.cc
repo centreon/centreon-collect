@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
                         legacy_conf ? "legacy" : "protobuf");
   } else {
     config_logger->info("Legacy configuration mechanism used");
-    legacy_conf = true;
+    legacy_conf = false;
   }
   if (legacy_conf)
     config = new configuration::state;
@@ -413,7 +413,7 @@ int main(int argc, char* argv[]) {
       };
 
       try {
-        absl::string_view listen_address;
+        std::string_view listen_address;
         uint16_t port;
         std::unique_ptr<enginerpc, std::function<void(enginerpc*)>> rpc;
         if (legacy_conf) {

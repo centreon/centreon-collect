@@ -520,8 +520,8 @@ void broker_contact_status(int type, contact* cntct) {
  */
 void broker_custom_variable(int type,
                             void* data,
-                            const absl::string_view& varname,
-                            const absl::string_view& varvalue,
+                            const std::string_view& varname,
+                            const std::string_view& varvalue,
                             struct timeval const* timestamp) {
   // Config check.
   if (legacy_conf) {

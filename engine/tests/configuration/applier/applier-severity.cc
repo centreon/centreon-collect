@@ -92,7 +92,7 @@ TEST_F(ApplierSeverity, ModifySeverityFromConfig) {
 
   ASSERT_EQ(engine::severity::severities.size(), 1u);
   ASSERT_EQ(engine::severity::severities.begin()->second->name(),
-            absl::string_view("severity1"));
+            std::string_view("severity1"));
 }
 
 // Given a severity applier
@@ -123,14 +123,14 @@ TEST_F(ApplierSeverity, PbModifySeverityFromConfig) {
   ASSERT_EQ(engine::severity::severities.begin()->second->level(), 12);
   ASSERT_EQ(engine::severity::severities.begin()->second->icon_id(), 14);
   ASSERT_EQ(engine::severity::severities.begin()->second->name(),
-            absl::string_view("severity1"));
+            std::string_view("severity1"));
 
   // No change here
   aply.modify_object(&pb_config.mutable_severities()->at(0), sv);
   ASSERT_EQ(engine::severity::severities.begin()->second->level(), 12);
   ASSERT_EQ(engine::severity::severities.begin()->second->icon_id(), 14);
   ASSERT_EQ(engine::severity::severities.begin()->second->name(),
-            absl::string_view("severity1"));
+            std::string_view("severity1"));
 }
 
 // Given a severity applier

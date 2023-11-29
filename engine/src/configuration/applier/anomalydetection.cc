@@ -301,7 +301,7 @@ void applier::anomalydetection::expand_objects(configuration::state& s) {
 void applier::anomalydetection::expand_objects(configuration::State& s) {
   std::list<std::unique_ptr<Service>> expanded;
   // Let's consider all the macros defined in s.
-  absl::flat_hash_set<absl::string_view> cvs;
+  absl::flat_hash_set<std::string_view> cvs;
   for (auto& cv : s.macros_filter().data())
     cvs.emplace(cv);
 

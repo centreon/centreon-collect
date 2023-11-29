@@ -100,13 +100,13 @@ TEST_F(ApplierHost, PbHostRenamed) {
   const host_map& hm = engine::host::hosts;
   ASSERT_EQ(hm.size(), 1u);
   auto h1 = hm.begin()->second;
-  ASSERT_EQ(h1->name(), absl::string_view("test_host"));
+  ASSERT_EQ(h1->name(), std::string_view("test_host"));
 
   hst.set_host_name("test_host1");
   hst_aply.modify_object(&pb_config.mutable_hosts()->at(0), hst);
   ASSERT_EQ(hm.size(), 1u);
   h1 = hm.begin()->second;
-  ASSERT_EQ(h1->name(), absl::string_view("test_host1"));
+  ASSERT_EQ(h1->name(), std::string_view("test_host1"));
   ASSERT_EQ(get_host_id(h1->name()), 12u);
 }
 
@@ -145,7 +145,7 @@ TEST_F(ApplierHost, PbHostRemoved) {
   const host_map& hm = engine::host::hosts;
   ASSERT_EQ(hm.size(), 1u);
   auto h1 = hm.begin()->second;
-  ASSERT_EQ(h1->name(), absl::string_view("test_host"));
+  ASSERT_EQ(h1->name(), std::string_view("test_host"));
 
   hst_aply.remove_object(0);
 
@@ -154,7 +154,7 @@ TEST_F(ApplierHost, PbHostRemoved) {
   hst_aply.add_object(hst);
   h1 = hm.begin()->second;
   ASSERT_EQ(hm.size(), 1u);
-  ASSERT_EQ(h1->name(), absl::string_view("test_host1"));
+  ASSERT_EQ(h1->name(), std::string_view("test_host1"));
   ASSERT_EQ(get_host_id(h1->name()), 12u);
 }
 

@@ -212,7 +212,7 @@ class c_strtok {
   c_strtok(const std::string_view src) : _src(src), _pos(0) {}
 
   absl::optional<std::string_view> extract(char sep);
-  bool extract(char sep, absl::string_view& extracted);
+  bool extract(char sep, std::string_view& extracted);
   bool extract(char sep, std::string& extracted);
   bool extract(char sep, int& extracted);
 };

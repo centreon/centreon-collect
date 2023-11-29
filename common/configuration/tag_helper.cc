@@ -50,7 +50,7 @@ tag_helper::tag_helper(Tag* obj)
  * @param key The key to parse.
  * @param value The value corresponding to the key
  */
-bool tag_helper::hook(absl::string_view key, const absl::string_view& value) {
+bool tag_helper::hook(std::string_view key, const std::string_view& value) {
   Tag* obj = static_cast<Tag*>(mut_obj());
   key = validate_key(key);
 

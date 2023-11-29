@@ -121,7 +121,7 @@ void applier::contactgroup::add_object(const configuration::Contactgroup& obj) {
  * @param s State being applied.
  */
 void applier::contactgroup::expand_objects(configuration::State& s) {
-  absl::flat_hash_set<absl::string_view> resolved;
+  absl::flat_hash_set<std::string_view> resolved;
 
   for (auto& cg : *s.mutable_contactgroups())
     _resolve_members(s, cg, resolved);
@@ -385,7 +385,7 @@ void applier::contactgroup::resolve_object(
 void applier::contactgroup::_resolve_members(
     configuration::State& s,
     configuration::Contactgroup& obj,
-    absl::flat_hash_set<absl::string_view>& resolved) {
+    absl::flat_hash_set<std::string_view>& resolved) {
   if (resolved.contains(obj.contactgroup_name()))
     return;
 

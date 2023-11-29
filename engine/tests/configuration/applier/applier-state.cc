@@ -633,7 +633,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   /* Service */
   ASSERT_EQ(cfg.services().size(), SERVICES);
   auto sit = cfg.services().begin();
-  ASSERT_EQ(sit->host_name(), absl::string_view("Centreon-central"));
+  ASSERT_EQ(sit->host_name(), std::string_view("Centreon-central"));
   ASSERT_EQ(sit->service_id(), 196);
   ASSERT_TRUE(sit->should_register());
   ASSERT_TRUE(sit->checks_active());
@@ -657,10 +657,10 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(cfg.commands().size(), 15u);
   auto cit = cfg.commands().begin();
   ASSERT_EQ(cit->command_name(),
-            absl::string_view("App-Centreon-MySQL-Partitioning"));
+            std::string_view("App-Centreon-MySQL-Partitioning"));
   ASSERT_EQ(
       cit->command_line(),
-      absl::string_view(
+      std::string_view(
           "$CENTREONPLUGINS$/centreon_centreon_database.pl "
           "--plugin=database::mysql::plugin "
           "--dyn-mode=apps::centreon::sql::mode::partitioning "
@@ -674,20 +674,20 @@ TEST_F(ApplierState, StateLegacyParsing) {
 
   /* One command inherites from command_template */
   while (cit != cfg.commands().end() &&
-         cit->command_name() != absl::string_view("base_host_alive")) {
+         cit->command_name() != std::string_view("base_host_alive")) {
     ++cit;
   }
 
   ASSERT_NE(cit, cfg.commands().end());
-  ASSERT_EQ(cit->command_name(), absl::string_view("base_host_alive"));
+  ASSERT_EQ(cit->command_name(), std::string_view("base_host_alive"));
   ASSERT_EQ(cit->command_line(),
-            absl::string_view("$USER1$/check_icmp -H $HOSTADDRESS$ -w "
-                              "3000.0,80% -c 5000.0,100% -p 1"));
+            std::string_view("$USER1$/check_icmp -H $HOSTADDRESS$ -w "
+                             "3000.0,80% -c 5000.0,100% -p 1"));
 
   ASSERT_EQ(cfg.timeperiods().size(), TIMEPERIODS);
   auto tit = cfg.timeperiods().begin();
-  EXPECT_EQ(tit->timeperiod_name(), absl::string_view("24x7"));
-  EXPECT_EQ(tit->alias(), absl::string_view("24_Hours_A_Day,_7_Days_A_Week"));
+  EXPECT_EQ(tit->timeperiod_name(), std::string_view("24x7"));
+  EXPECT_EQ(tit->alias(), std::string_view("24_Hours_A_Day,_7_Days_A_Week"));
   EXPECT_EQ(tit->timeranges()[0].size(),
             1u);  // std::string("00:00-24:00"));
   EXPECT_EQ(tit->timeranges()[0].begin()->get_range_start(), 0);
@@ -707,7 +707,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(cfg.contacts().size(), CONTACTS);
   auto ctit = cfg.contacts().begin();
   const auto ct = *ctit;
-  EXPECT_EQ(ct.contact_name(), absl::string_view("John_Doe"));
+  EXPECT_EQ(ct.contact_name(), std::string_view("John_Doe"));
   EXPECT_TRUE(ct.can_submit_commands());
   EXPECT_TRUE(ct.host_notifications_enabled());
   EXPECT_EQ(ct.host_notification_options(),
@@ -729,43 +729,43 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_TRUE(hgit != cfg.hostgroups().end());
   const auto hg = *hgit;
   ASSERT_EQ(hg.hostgroup_id(), 3u);
-  ASSERT_EQ(hg.hostgroup_name(), absl::string_view("hg1"));
-  ASSERT_EQ(hg.alias(), absl::string_view("hg1"));
+  ASSERT_EQ(hg.hostgroup_name(), std::string_view("hg1"));
+  ASSERT_EQ(hg.alias(), std::string_view("hg1"));
   ASSERT_EQ(hg.members().size(), 3u);
   {
     auto it = hg.members().begin();
-    ASSERT_EQ(*it, absl::string_view("Centreon-central_2"));
+    ASSERT_EQ(*it, std::string_view("Centreon-central_2"));
     ++it;
-    ASSERT_EQ(*it, absl::string_view("Centreon-central_3"));
+    ASSERT_EQ(*it, std::string_view("Centreon-central_3"));
     ++it;
-    ASSERT_EQ(*it, absl::string_view("Centreon-central_4"));
+    ASSERT_EQ(*it, std::string_view("Centreon-central_4"));
   }
-  ASSERT_EQ(hg.notes(), absl::string_view("note_hg1"));
-  ASSERT_EQ(hg.notes_url(), absl::string_view());
-  ASSERT_EQ(hg.action_url(), absl::string_view());
+  ASSERT_EQ(hg.notes(), std::string_view("note_hg1"));
+  ASSERT_EQ(hg.notes_url(), std::string_view());
+  ASSERT_EQ(hg.action_url(), std::string_view());
 
   ASSERT_EQ(cfg.servicegroups().size(), SERVICEGROUPS);
   auto sgit = cfg.servicegroups().begin();
   ASSERT_TRUE(sgit != cfg.servicegroups().end());
   const auto sg = *sgit;
   EXPECT_EQ(sg.servicegroup_id(), 2u);
-  EXPECT_EQ(sg.servicegroup_name(), absl::string_view("Database-MySQL"));
-  EXPECT_EQ(sg.alias(), absl::string_view("Database-MySQL"));
+  EXPECT_EQ(sg.servicegroup_name(), std::string_view("Database-MySQL"));
+  EXPECT_EQ(sg.alias(), std::string_view("Database-MySQL"));
   EXPECT_EQ(sg.members().size(), 67u);
   {
     auto it = sg.members().begin();
-    EXPECT_EQ(it->first, absl::string_view("Centreon-central"));
-    EXPECT_EQ(it->second, absl::string_view("Connection-Time"));
+    EXPECT_EQ(it->first, std::string_view("Centreon-central"));
+    EXPECT_EQ(it->second, std::string_view("Connection-Time"));
     ++it;
-    EXPECT_EQ(it->first, absl::string_view("Centreon-central"));
-    EXPECT_EQ(it->second, absl::string_view("Connections-Number"));
+    EXPECT_EQ(it->first, std::string_view("Centreon-central"));
+    EXPECT_EQ(it->second, std::string_view("Connections-Number"));
     ++it;
-    EXPECT_EQ(it->first, absl::string_view("Centreon-central"));
-    EXPECT_EQ(it->second, absl::string_view("Myisam-Keycache"));
+    EXPECT_EQ(it->first, std::string_view("Centreon-central"));
+    EXPECT_EQ(it->second, std::string_view("Myisam-Keycache"));
   }
-  ASSERT_EQ(sg.notes(), absl::string_view());
-  ASSERT_EQ(sg.notes_url(), absl::string_view());
-  ASSERT_EQ(sg.action_url(), absl::string_view());
+  ASSERT_EQ(sg.notes(), std::string_view());
+  ASSERT_EQ(sg.notes_url(), std::string_view());
+  ASSERT_EQ(sg.action_url(), std::string_view());
 
   auto sdit = cfg.servicedependencies().begin();
   while (sdit != cfg.servicedependencies().end() &&
@@ -773,11 +773,11 @@ TEST_F(ApplierState, StateLegacyParsing) {
                    "sg1") != sdit->servicegroups().end())
     ++sdit;
   ASSERT_TRUE(sdit != cfg.servicedependencies().end());
-  ASSERT_EQ(*sdit->hosts().begin(), absl::string_view("Centreon-central"));
+  ASSERT_EQ(*sdit->hosts().begin(), std::string_view("Centreon-central"));
   ASSERT_EQ(*sdit->dependent_service_description().begin(),
-            absl::string_view("Connections-Number"));
+            std::string_view("Connections-Number"));
   ASSERT_EQ(*sdit->dependent_hosts().begin(),
-            absl::string_view("Centreon-central"));
+            std::string_view("Centreon-central"));
   ASSERT_TRUE(sdit->inherits_parent());
   ASSERT_EQ(sdit->execution_failure_options(),
             configuration::servicedependency::ok |
@@ -809,15 +809,15 @@ TEST_F(ApplierState, StateLegacyParsing) {
 
   auto cgit = cfg.contactgroups().begin();
   ASSERT_EQ(cfg.contactgroups().size(), 2u);
-  ASSERT_EQ(cgit->contactgroup_name(), absl::string_view("Guest"));
-  ASSERT_EQ(cgit->alias(), absl::string_view("Guests Group"));
+  ASSERT_EQ(cgit->contactgroup_name(), std::string_view("Guest"));
+  ASSERT_EQ(cgit->alias(), std::string_view("Guests Group"));
   ASSERT_EQ(cgit->members().size(), 0u);
   ASSERT_EQ(cgit->contactgroup_members().size(), 0u);
 
   ++cgit;
   ASSERT_TRUE(cgit != cfg.contactgroups().end());
-  ASSERT_EQ(cgit->contactgroup_name(), absl::string_view("Supervisors"));
-  ASSERT_EQ(cgit->alias(), absl::string_view("Centreon supervisors"));
+  ASSERT_EQ(cgit->contactgroup_name(), std::string_view("Supervisors"));
+  ASSERT_EQ(cgit->alias(), std::string_view("Centreon supervisors"));
   ASSERT_EQ(cgit->members().size(), 1u);
   ASSERT_EQ(*cgit->members().begin(), "John_Doe");
   ASSERT_EQ(cgit->contactgroup_members().size(), 0u);
@@ -828,15 +828,15 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(cfg.connectors().size(), 2);
   auto cnit = cfg.connectors().begin();
   ASSERT_TRUE(cnit != cfg.connectors().end());
-  ASSERT_EQ(cnit->connector_name(), absl::string_view("Perl Connector"));
+  ASSERT_EQ(cnit->connector_name(), std::string_view("Perl Connector"));
   ASSERT_EQ(cnit->connector_line(),
-            absl::string_view(
+            std::string_view(
                 "/usr/lib64/centreon-connector/centreon_connector_perl "
                 "--log-file=/var/log/centreon-engine/connector-perl.log"));
   ++cnit;
-  ASSERT_EQ(cnit->connector_name(), absl::string_view("SSH Connector"));
+  ASSERT_EQ(cnit->connector_name(), std::string_view("SSH Connector"));
   ASSERT_EQ(cnit->connector_line(),
-            absl::string_view(
+            std::string_view(
                 "/usr/lib64/centreon-connector/centreon_connector_ssh "
                 "--log-file=/var/log/centreon-engine/connector-ssh.log"));
   ++cnit;
@@ -846,7 +846,7 @@ TEST_F(ApplierState, StateLegacyParsing) {
   ASSERT_EQ(cfg.severities().size(), 2);
   auto svit = cfg.severities().begin();
   ASSERT_TRUE(svit != cfg.severities().end());
-  ASSERT_EQ(svit->severity_name(), absl::string_view("severity1"));
+  ASSERT_EQ(svit->severity_name(), std::string_view("severity1"));
   EXPECT_EQ(svit->key().first, 5);
   EXPECT_EQ(svit->level(), 1);
   EXPECT_EQ(svit->icon_id(), 3);
@@ -857,11 +857,11 @@ TEST_F(ApplierState, StateLegacyParsing) {
   auto seit = std::find_if(
       cfg.serviceescalations().begin(), cfg.serviceescalations().end(),
       [](const configuration::serviceescalation& se) {
-        return se.service_description().front() == absl::string_view("Cpu");
+        return se.service_description().front() == std::string_view("Cpu");
       });
   EXPECT_TRUE(seit != cfg.serviceescalations().end());
-  EXPECT_EQ(seit->hosts().front(), absl::string_view("Centreon-central"));
-  ASSERT_EQ(seit->service_description().front(), absl::string_view("Cpu"));
+  EXPECT_EQ(seit->hosts().front(), std::string_view("Centreon-central"));
+  ASSERT_EQ(seit->service_description().front(), std::string_view("Cpu"));
   ++seit;
   ASSERT_EQ(seit->hosts().size(), 1);
   ASSERT_EQ(seit->contactgroups().size(), 1);
@@ -934,14 +934,14 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_TRUE(cfg.services()[0].obj().register_());
   ASSERT_TRUE(cfg.services()[0].checks_active());
   ASSERT_EQ(cfg.services()[0].host_name(),
-            absl::string_view("Centreon-central"));
+            std::string_view("Centreon-central"));
   ASSERT_EQ(cfg.services()[0].service_description(),
-            absl::string_view("proc-sshd"));
+            std::string_view("proc-sshd"));
   ASSERT_EQ(cfg.services()[0].contactgroups().data().size(), 2u);
   EXPECT_EQ(cfg.services()[0].contactgroups().data()[0],
-            absl::string_view("Guest"));
+            std::string_view("Guest"));
   EXPECT_EQ(cfg.services()[0].contactgroups().data()[1],
-            absl::string_view("Supervisors"));
+            std::string_view("Supervisors"));
 
   EXPECT_EQ(cfg.services()[0].contacts().data().size(), 1u);
   EXPECT_EQ(cfg.services()[0].contacts().data()[0], std::string("John_Doe"));
@@ -971,16 +971,16 @@ TEST_F(ApplierState, StateParsing) {
   EXPECT_EQ(res, exp);
 
   ASSERT_EQ(cfg.commands().size(), 15u);
-  auto fnd_cmd = std::find_if(
-      cfg.commands().begin(), cfg.commands().end(),
-      [](const configuration::Command& cmd) {
-        return cmd.command_name() ==
-               absl::string_view("App-Centreon-MySQL-Partitioning");
-      });
+  auto fnd_cmd =
+      std::find_if(cfg.commands().begin(), cfg.commands().end(),
+                   [](const configuration::Command& cmd) {
+                     return cmd.command_name() ==
+                            std::string_view("App-Centreon-MySQL-Partitioning");
+                   });
   ASSERT_TRUE(fnd_cmd != cfg.commands().end());
   ASSERT_EQ(
       fnd_cmd->command_line(),
-      absl::string_view(
+      std::string_view(
           "$CENTREONPLUGINS$/centreon_centreon_database.pl "
           "--plugin=database::mysql::plugin "
           "--dyn-mode=apps::centreon::sql::mode::partitioning "
@@ -996,23 +996,23 @@ TEST_F(ApplierState, StateParsing) {
   auto cit = std::find_if(cfg.commands().begin(), cfg.commands().end(),
                           [](const configuration::Command& cmd) {
                             return cmd.command_name() ==
-                                   absl::string_view("base_host_alive");
+                                   std::string_view("base_host_alive");
                           });
 
   ASSERT_NE(cit, cfg.commands().end());
-  ASSERT_EQ(cit->command_name(), absl::string_view("base_host_alive"));
+  ASSERT_EQ(cit->command_name(), std::string_view("base_host_alive"));
   ASSERT_EQ(cit->command_line(),
-            absl::string_view("$USER1$/check_icmp -H $HOSTADDRESS$ -w "
-                              "3000.0,80% -c 5000.0,100% -p 1"));
+            std::string_view("$USER1$/check_icmp -H $HOSTADDRESS$ -w "
+                             "3000.0,80% -c 5000.0,100% -p 1"));
 
   ASSERT_EQ(cfg.timeperiods().size(), TIMEPERIODS);
   auto tit =
       std::find_if(cfg.timeperiods().begin(), cfg.timeperiods().end(),
                    [](const configuration::Timeperiod& tp) {
-                     return tp.timeperiod_name() == absl::string_view("24x7");
+                     return tp.timeperiod_name() == std::string_view("24x7");
                    });
   ASSERT_NE(tit, cfg.timeperiods().end());
-  EXPECT_EQ(tit->alias(), absl::string_view("24_Hours_A_Day,_7_Days_A_Week"));
+  EXPECT_EQ(tit->alias(), std::string_view("24_Hours_A_Day,_7_Days_A_Week"));
   EXPECT_EQ(tit->timeranges().sunday().size(),
             1u);  // std::string("00:00-24:00"));
   EXPECT_EQ(tit->timeranges().sunday()[0].range_start(), 0);
@@ -1042,7 +1042,7 @@ TEST_F(ApplierState, StateParsing) {
             configuration::action_svc_warning |
                 configuration::action_svc_unknown |
                 configuration::action_svc_critical);
-  EXPECT_EQ(ct.alias(), absl::string_view("admin"));
+  EXPECT_EQ(ct.alias(), std::string_view("admin"));
   EXPECT_EQ(ct.contactgroups().data().size(), 0u);
 
   ASSERT_EQ(cfg.hostgroups().size(), HOSTGROUPS);
@@ -1052,20 +1052,20 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_TRUE(hgit != cfg.hostgroups().end());
   const auto hg = *hgit;
   ASSERT_EQ(hg.hostgroup_id(), 3u);
-  ASSERT_EQ(hg.hostgroup_name(), absl::string_view("hg1"));
-  ASSERT_EQ(hg.alias(), absl::string_view("hg1"));
+  ASSERT_EQ(hg.hostgroup_name(), std::string_view("hg1"));
+  ASSERT_EQ(hg.alias(), std::string_view("hg1"));
   ASSERT_EQ(hg.members().data().size(), 3u);
   {
     auto it = hg.members().data().begin();
-    ASSERT_EQ(*it, absl::string_view("Centreon-central_2"));
+    ASSERT_EQ(*it, std::string_view("Centreon-central_2"));
     ++it;
-    ASSERT_EQ(*it, absl::string_view("Centreon-central_3"));
+    ASSERT_EQ(*it, std::string_view("Centreon-central_3"));
     ++it;
-    ASSERT_EQ(*it, absl::string_view("Centreon-central_4"));
+    ASSERT_EQ(*it, std::string_view("Centreon-central_4"));
   }
-  ASSERT_EQ(hg.notes(), absl::string_view("note_hg1"));
-  ASSERT_EQ(hg.notes_url(), absl::string_view());
-  ASSERT_EQ(hg.action_url(), absl::string_view());
+  ASSERT_EQ(hg.notes(), std::string_view("note_hg1"));
+  ASSERT_EQ(hg.notes_url(), std::string_view());
+  ASSERT_EQ(hg.action_url(), std::string_view());
 
   ASSERT_EQ(cfg.servicegroups().size(), SERVICEGROUPS);
   auto sgit = cfg.servicegroups().begin();
@@ -1075,12 +1075,12 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_TRUE(sgit != cfg.servicegroups().end());
   const auto sg = *sgit;
   ASSERT_EQ(sg.servicegroup_id(), 2u);
-  ASSERT_EQ(sg.servicegroup_name(), absl::string_view("Database-MySQL"));
-  ASSERT_EQ(sg.alias(), absl::string_view("Database-MySQL"));
+  ASSERT_EQ(sg.servicegroup_name(), std::string_view("Database-MySQL"));
+  ASSERT_EQ(sg.alias(), std::string_view("Database-MySQL"));
   ASSERT_EQ(sg.members().data().size(), 67u);
   {
-    auto find_pair = [&data = sg.members().data()](absl::string_view first,
-                                                   absl::string_view second) {
+    auto find_pair = [&data = sg.members().data()](std::string_view first,
+                                                   std::string_view second) {
       auto retval = std::find_if(
           data.begin(), data.end(),
           [&first, &second](const configuration::PairStringSet_Pair& m) {
@@ -1099,9 +1099,9 @@ TEST_F(ApplierState, StateParsing) {
     it = find_pair("Centreon-central", "Myisam-Keycache");
     ASSERT_NE(it, sg.members().data().end());
   }
-  ASSERT_EQ(sg.notes(), absl::string_view());
-  ASSERT_EQ(sg.notes_url(), absl::string_view());
-  ASSERT_EQ(sg.action_url(), absl::string_view());
+  ASSERT_EQ(sg.notes(), std::string_view());
+  ASSERT_EQ(sg.notes_url(), std::string_view());
+  ASSERT_EQ(sg.action_url(), std::string_view());
 
   auto sdit = cfg.servicedependencies().begin();
   while (sdit != cfg.servicedependencies().end() &&
@@ -1111,11 +1111,11 @@ TEST_F(ApplierState, StateParsing) {
     ++sdit;
   ASSERT_TRUE(sdit != cfg.servicedependencies().end());
   ASSERT_TRUE(*sdit->hosts().data().begin() ==
-              absl::string_view("Centreon-central"));
+              std::string_view("Centreon-central"));
   ASSERT_TRUE(*sdit->dependent_service_description().data().begin() ==
-              absl::string_view("Connections-Number"));
+              std::string_view("Connections-Number"));
   ASSERT_TRUE(*sdit->dependent_hosts().data().begin() ==
-              absl::string_view("Centreon-central"));
+              std::string_view("Centreon-central"));
   ASSERT_TRUE(sdit->inherits_parent());
   ASSERT_EQ(sdit->execution_failure_options(),
             configuration::action_sd_unknown | configuration::action_sd_ok);
@@ -1142,15 +1142,15 @@ TEST_F(ApplierState, StateParsing) {
 
   auto cgit = cfg.contactgroups().begin();
   ASSERT_EQ(cfg.contactgroups().size(), 2u);
-  ASSERT_EQ(cgit->contactgroup_name(), absl::string_view("Guest"));
-  ASSERT_EQ(cgit->alias(), absl::string_view("Guests Group"));
+  ASSERT_EQ(cgit->contactgroup_name(), std::string_view("Guest"));
+  ASSERT_EQ(cgit->alias(), std::string_view("Guests Group"));
   ASSERT_EQ(cgit->members().data().size(), 0u);
   ASSERT_EQ(cgit->contactgroup_members().data().size(), 0u);
 
   ++cgit;
   ASSERT_TRUE(cgit != cfg.contactgroups().end());
-  ASSERT_EQ(cgit->contactgroup_name(), absl::string_view("Supervisors"));
-  ASSERT_EQ(cgit->alias(), absl::string_view("Centreon supervisors"));
+  ASSERT_EQ(cgit->contactgroup_name(), std::string_view("Supervisors"));
+  ASSERT_EQ(cgit->alias(), std::string_view("Centreon supervisors"));
   ASSERT_EQ(cgit->members().data().size(), 1u);
   ASSERT_EQ(*cgit->members().data().begin(), "John_Doe");
   ASSERT_EQ(cgit->contactgroup_members().data().size(), 0u);
@@ -1161,15 +1161,15 @@ TEST_F(ApplierState, StateParsing) {
   ASSERT_EQ(cfg.connectors().size(), 2);
   auto cnit = cfg.connectors().begin();
   ASSERT_TRUE(cnit != cfg.connectors().end());
-  ASSERT_EQ(cnit->connector_name(), absl::string_view("Perl Connector"));
+  ASSERT_EQ(cnit->connector_name(), std::string_view("Perl Connector"));
   ASSERT_EQ(cnit->connector_line(),
-            absl::string_view(
+            std::string_view(
                 "/usr/lib64/centreon-connector/centreon_connector_perl "
                 "--log-file=/var/log/centreon-engine/connector-perl.log"));
   ++cnit;
-  ASSERT_EQ(cnit->connector_name(), absl::string_view("SSH Connector"));
+  ASSERT_EQ(cnit->connector_name(), std::string_view("SSH Connector"));
   ASSERT_EQ(cnit->connector_line(),
-            absl::string_view(
+            std::string_view(
                 "/usr/lib64/centreon-connector/centreon_connector_ssh "
                 "--log-file=/var/log/centreon-engine/connector-ssh.log"));
   ++cnit;
@@ -1180,7 +1180,7 @@ TEST_F(ApplierState, StateParsing) {
   auto svit = cfg.severities().begin();
   ++svit;
   ASSERT_TRUE(svit != cfg.severities().end());
-  ASSERT_EQ(svit->severity_name(), absl::string_view("severity1"));
+  ASSERT_EQ(svit->severity_name(), std::string_view("severity1"));
   EXPECT_EQ(svit->key().id(), 5);
   EXPECT_EQ(svit->level(), 1);
   EXPECT_EQ(svit->icon_id(), 3);
@@ -1191,9 +1191,9 @@ TEST_F(ApplierState, StateParsing) {
   auto seit = cfg.serviceescalations().begin();
   EXPECT_TRUE(seit != cfg.serviceescalations().end());
   EXPECT_EQ(*seit->hosts().data().begin(),
-            absl::string_view("Centreon-central"));
+            std::string_view("Centreon-central"));
   ASSERT_EQ(*seit->service_description().data().begin(),
-            absl::string_view("Cpu"));
+            std::string_view("Cpu"));
   ++seit;
   ASSERT_EQ(seit->hosts().data().size(), 1);
   ASSERT_EQ(seit->contactgroups().data().size(), 1);

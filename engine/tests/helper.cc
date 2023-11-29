@@ -114,7 +114,7 @@ void deinit_config_state(void) {
  *
  * @return A Path.
  */
-configuration::Path build_path(absl::string_view path) {
+configuration::Path build_path(std::string_view path) {
   configuration::Path retval;
   auto arr = absl::StrSplit(path, "->");
   const Message* conf = &pb_config;
