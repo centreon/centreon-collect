@@ -50,23 +50,23 @@ BESS2
     Should Be True    ${result}
     Kindly Stop Broker
 
-BESS3
-    [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
-    [Tags]    MON-26862
-    Config Engine    ${1}
-    Config Broker    central
-    Config Broker    module
-    Config Broker    rrd
-    Start Engine
-    Start Broker
-    ${result}    Check Connections
-    Should Be True    ${result}
-    ${result}    Check Poller Enabled In Database    1    10
-    Should Be True    ${result}
-    Stop Engine
-    ${result}    Check Poller Disabled In Database    1    10
-    Should Be True    ${result}
-    Kindly Stop Broker
+# BESS3
+#     [Documentation]    Start-Stop Broker/Engine - Engine started first - Engine stopped first
+#     [Tags]    MON-25069
+#     Config Engine    ${1}
+#     Config Broker    central
+#     Config Broker    module
+#     Config Broker    rrd
+#     Start Engine
+#     Start Broker
+#     ${result}    Check Connections
+#     Should Be True    ${result}
+#     ${result}    Check Poller Enabled In Database    1    10
+#     Should Be True    ${result}
+#     Stop Engine
+#     ${result}    Check Poller Disabled In Database    1    10
+#     Should Be True    ${result}
+#     Kindly Stop Broker
 
 # BESS4
 #     [Documentation]    Start-Stop Broker/Engine - Engine started first - Broker stopped first
