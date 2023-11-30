@@ -24,7 +24,7 @@
 #include "com/centreon/connector/perl/orders/parser.hh"
 #include "com/centreon/connector/reporter.hh"
 
-CCCP_BEGIN()
+namespace com::centreon::connector::perl {
 
 /**
  *  @class policy policy.hh "com/centreon/connector/perl/policy.hh"
@@ -72,6 +72,6 @@ class policy : public com::centreon::connector::policy_interface {
   void on_version() override;
 };
 
-CCCP_END()
+}  // namespace com::centreon::connector::perl
 
 #endif  // !CCCP_POLICY_HH

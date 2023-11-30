@@ -31,8 +31,7 @@ namespace beast = boost::beast;
 
 namespace com::centreon::broker {
 
-namespace http_client {
-namespace detail {
+namespace http_client::detail {
 /**
  * @brief to avoid read certificate on each request, this singleton do the job
  * it maintains a certificate cache
@@ -120,10 +119,9 @@ void certificate_cache::clean() {
   }
 }
 
-}  // namespace detail
-};  // namespace http_client
+};  // namespace http_client::detail
 
-}
+}  // namespace com::centreon::broker
 
 /**
  * @brief Construct a new https connection::https connection object

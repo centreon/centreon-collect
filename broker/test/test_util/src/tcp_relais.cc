@@ -23,11 +23,7 @@ using namespace asio::ip;
 
 extern std::shared_ptr<asio::io_context> g_io_context;
 
-namespace com {
-namespace centreon {
-namespace broker {
-namespace test_util {
-namespace detail {
+namespace com::centreon::broker::test_util::detail {
 
 class incomming_outgoing;
 
@@ -135,12 +131,7 @@ class tcp_relais_impl : public std::enable_shared_from_this<tcp_relais_impl> {
   void shutdown_relays();
 };
 
-}  // namespace detail
-}  // namespace test_util
-
-}  // namespace broker
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::broker::test_util::detail
 
 using namespace com::centreon::broker::test_util;
 using namespace com::centreon::broker::test_util::detail;

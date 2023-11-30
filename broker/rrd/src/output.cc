@@ -1,20 +1,20 @@
 /**
-* Copyright 2011-2015,2017, 2020-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2011-2015,2017, 2020-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/rrd/output.hh"
 #include "com/centreon/broker/rrd/internal.hh"
@@ -38,10 +38,7 @@
 using namespace com::centreon::broker;
 using namespace com::centreon::broker::rrd;
 
-namespace com {
-namespace centreon {
-namespace broker {
-namespace rrd {
+namespace com::centreon::broker::rrd {
 
 template <class map_type>
 std::vector<typename map_type::key_type> keys_of_map(const map_type& data) {
@@ -153,10 +150,7 @@ output<cached<asio::ip::tcp::socket>>::output(std::string const& metrics_path,
       _backend(metrics_path, cache_size) {
   _backend.connect_remote("localhost", port);
 }
-}  // namespace rrd
-}  // namespace broker
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::broker::rrd
 
 /**
  *  Read data.

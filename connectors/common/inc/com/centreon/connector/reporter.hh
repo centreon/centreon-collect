@@ -21,7 +21,7 @@
 
 #include "com/centreon/connector/result.hh"
 
-Cnamespace com::centreon {
+namespace com::centreon::connector {
 
 /**
  *  @class reporter reporter.hh "com/centreon/connector/ssh/reporter.hh"
@@ -57,6 +57,6 @@ class reporter : public std::enable_shared_from_this<reporter> {
   const std::string& get_buffer() const { return *_buffer; }
 };
 
-C}()
+}  // namespace com::centreon::connector
 
 #endif  // !CCC_REPORTER_HH

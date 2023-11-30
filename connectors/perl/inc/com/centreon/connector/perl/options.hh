@@ -21,7 +21,7 @@
 
 #include "com/centreon/misc/get_options.hh"
 
-CCCP_BEGIN()
+namespace com::centreon::connector::perl {
 
 /**
  *  @class options options.hh "com/centreon/connector/perl/options.hh"
@@ -42,6 +42,6 @@ class options : public com::centreon::misc::get_options {
   std::string usage() const override;
 };
 
-CCCP_END()
+}  // namespace com::centreon::connector::perl
 
 #endif  // !CCCP_OPTIONS_HH

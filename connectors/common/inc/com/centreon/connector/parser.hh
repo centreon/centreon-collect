@@ -19,8 +19,7 @@
 #ifndef CCC_ORDERS_PARSER_HH
 #define CCC_ORDERS_PARSER_HH
 
-
-Cnamespace com::centreon {
+namespace com::centreon::connector {
 
 class policy_interface;
 
@@ -70,6 +69,6 @@ class parser : public std::enable_shared_from_this<parser> {
   parser& operator=(parser const& p) = delete;
 };
 
-C}()
+}  // namespace com::centreon::connector
 
 #endif  // !CCC_ORDERS_PARSER_HH

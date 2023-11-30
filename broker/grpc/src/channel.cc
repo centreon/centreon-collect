@@ -37,9 +37,7 @@ using channel_trash_type = com::centreon::broker::misc::trash<channel>;
 
 static channel_trash_type* _trash(new channel_trash_type);
 
-namespace com {
-namespace centreon {
-namespace broker {
+namespace com::centreon::broker {
 namespace stream {
 std::ostream& operator<<(std::ostream& st,
                          const centreon_stream::CentreonEvent& to_dump) {
@@ -76,9 +74,7 @@ std::ostream& operator<<(std::ostream& st,
   return st;
 }
 }  // namespace grpc
-}  // namespace broker
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::broker
 
 channel::channel(const std::string& class_name,
                  const grpc_config::pointer& conf)

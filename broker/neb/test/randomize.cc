@@ -35,9 +35,7 @@ static std::list<char*> generated;
  *  @param[out]    t        Base object.
  *  @param[out]    values   Generated values.
  */
-namespace com {
-namespace centreon {
-namespace broker {
+namespace com::centreon::broker {
 void randomize(io::data& t, std::vector<randval>* values) {
   using namespace com::centreon::exceptions;
   using namespace com::centreon::broker;
@@ -151,6 +149,4 @@ void randomize_cleanup() {
   io::protocols::unload();
 }
 
-}  // Namespace broker
-}  // Namespace centreon
-}  // Namespace com
+}  // namespace com::centreon::broker

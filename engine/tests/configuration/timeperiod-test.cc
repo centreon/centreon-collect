@@ -35,8 +35,7 @@ using namespace com::centreon::engine;
 
 using string_vector = std::vector<std::string>;
 
-namespace com::centreon::engine {
-namespace configuration {
+namespace com::centreon::engine::configuration {
 class time_period_comparator {
   static const std::regex name_extractor, alias_extractor, skip_extractor,
       day_extractor, date_extractor, date_range1_extractor,
@@ -646,9 +645,7 @@ timerange_list time_period_comparator::extract_timerange(
   return ret;
 }
 
-}  // namespace configuration
-
-}
+}  // namespace com::centreon::engine::configuration
 
 std::vector<string_vector> parse_timeperiods_cfg(const std::string& file_path) {
   std::vector<string_vector> ret;
