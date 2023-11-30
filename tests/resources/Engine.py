@@ -3193,7 +3193,7 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines[i +
-                  1] = f"    command_line                    {ENGINE_HOME}/check.pl --id 0 --state {status}\n"
+                  1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
             break
 
     with open(filename, "w") as f:

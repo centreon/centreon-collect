@@ -131,11 +131,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
                 for i in range(1, self.commands_per_poller_count * self.instances + 1):
                     name = f"command_{i}"
                     cursor.execute(
-<<<<<<< HEAD
-                        f"INSERT INTO command (command_name,command_line) VALUES (\"{name}\",\"{ENGINE_HOME}/check.pl --id {i}\")")
-=======
                         "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl --id {1}\")".format(ENGINE_HOME, i, name))
->>>>>>> 122d7f5310 (fix(tests): check.pl improved)
                     self.command[name] = cursor.lastrowid
 
                 # Two specific commands
