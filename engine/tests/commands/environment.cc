@@ -23,8 +23,8 @@
 
 using namespace com::centreon::engine::commands;
 
-static std::vector<absl::string_view> to_vector(char** data) {
-  std::vector<absl::string_view> retval;
+static std::vector<std::string_view> to_vector(char** data) {
+  std::vector<std::string_view> retval;
   if (data != nullptr)
     while (*data != nullptr) {
       retval.emplace_back(*data);

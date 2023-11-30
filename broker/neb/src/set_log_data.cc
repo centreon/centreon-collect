@@ -55,7 +55,7 @@ static char* log_extract(char** lasts) {
  *
  * @return A status code.
  */
-static int status_id(const absl::string_view& status) {
+static int status_id(const std::string_view& status) {
   int retval;
   if (status == "DOWN" || status == "WARNING")
     retval = 1;
@@ -73,12 +73,12 @@ static int status_id(const absl::string_view& status) {
 /**
  *  Get the notification status of a log.
  */
-static int notification_status_id(const absl::string_view& status) {
+static int notification_status_id(const std::string_view& status) {
   int retval;
   size_t pos_start = status.find_first_of('(');
   if (pos_start != std::string::npos) {
     size_t pos_end = status.find_first_of(')', pos_start);
-    absl::string_view nstatus = status.substr(pos_start, pos_end - pos_start);
+    std::string_view nstatus = status.substr(pos_start, pos_end - pos_start);
     retval = status_id(nstatus);
   } else
     retval = status_id(status);
@@ -88,7 +88,7 @@ static int notification_status_id(const absl::string_view& status) {
 /**
  *  Get the id of a log type.
  */
-static LogEntry_LogType type_id(const absl::string_view& type) {
+static LogEntry_LogType type_id(const std::string_view& type) {
   LogEntry_LogType id;
   if (type == "HARD")
     id = LogEntry_LogType_HARD;

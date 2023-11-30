@@ -44,10 +44,10 @@ static auto read_file = [](const std::string& file_path) -> std::string {
   }
 };
 
-static auto extract_io_value = [](const absl::string_view& label_value,
+static auto extract_io_value = [](const std::string_view& label_value,
                                   const std::string& file_path) -> uint64_t {
   size_t value_index = label_value.find_first_of(" :");
-  if (value_index == absl::string_view::npos) {
+  if (value_index == std::string_view::npos) {
     BOOST_THROW_EXCEPTION(process_stat::exception()
                           << process_stat::errinfo_bad_info_format(
                                  std::string(label_value.data()))

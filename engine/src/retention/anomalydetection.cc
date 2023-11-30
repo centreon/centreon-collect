@@ -46,7 +46,7 @@ bool anomalydetection::operator!=(anomalydetection const& right) const throw() {
   return !operator==(right);
 }
 
-static constexpr absl::string_view _sensitivity_key("sensitivity");
+static constexpr std::string_view _sensitivity_key("sensitivity");
 bool anomalydetection::set(char const* key, char const* value) {
   if (_sensitivity_key == key) {
     double sensitivity;

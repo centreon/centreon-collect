@@ -625,7 +625,7 @@ static int32_t l_broker_cache_get_check_command(lua_State* L) {
     service_id = luaL_checkinteger(L, 3);
 
   try {
-    absl::string_view check_command =
+    std::string_view check_command =
         cache->get_check_command(host_id, service_id);
     lua_pushlstring(L, check_command.data(), check_command.size());
   } catch (std::exception const& e) {

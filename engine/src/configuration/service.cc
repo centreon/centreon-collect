@@ -2159,7 +2159,7 @@ bool service::_set_timezone(std::string const& value) {
  */
 bool service::_set_category_tags(const std::string& value) {
   bool ret = true;
-  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  std::list<std::string_view> tags{absl::StrSplit(value, ',')};
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {
@@ -2194,7 +2194,7 @@ bool service::_set_category_tags(const std::string& value) {
  */
 bool service::_set_group_tags(const std::string& value) {
   bool ret = true;
-  std::list<absl::string_view> tags{absl::StrSplit(value, ',')};
+  std::list<std::string_view> tags{absl::StrSplit(value, ',')};
   for (std::set<std::pair<uint64_t, uint16_t>>::iterator it(_tags.begin()),
        end(_tags.end());
        it != end;) {

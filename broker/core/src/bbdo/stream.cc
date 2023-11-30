@@ -934,7 +934,7 @@ void stream::negotiate(stream::negotiation_type neg) {
       log_v2::bbdo(), "BBDO: we have extensions '{}' and peer has '{}'",
       extensions,
       fmt::string_view(peer_extensions.data(), peer_extensions.size()));
-  std::list<absl::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
+  std::list<std::string_view> peer_ext{absl::StrSplit(peer_extensions, ' ')};
   for (auto& ext : _extensions) {
     // Find matching extension in peer extension list.
     auto peer_it{std::find(peer_ext.begin(), peer_ext.end(), ext->name())};

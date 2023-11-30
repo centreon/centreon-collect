@@ -388,13 +388,13 @@ void mysql::_get_server_infos() {
     _server_version = future.get();
   }
 
-  std::vector<absl::string_view> v =
+  std::vector<std::string_view> v =
       absl::StrSplit(_server_version, absl::ByAnyChar(".-"));
   if (v.size() >= 4) {
     int32_t major;
     int32_t minor;
     int32_t patch;
-    absl::string_view server = v[3];
+    std::string_view server = v[3];
     if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
         absl::SimpleAtoi(v[2], &patch)) {
       log_v2::sql()->info("connected to '{}' Server, version {}.{}.{}",

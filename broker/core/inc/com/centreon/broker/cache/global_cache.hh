@@ -48,11 +48,11 @@ using string =
 
 using host_serv_pair = std::pair<uint64_t /*host_id*/, uint64_t /*serv_id*/>;
 
-inline bool operator==(const string& left, const absl::string_view& right) {
+inline bool operator==(const string& left, const std::string_view& right) {
   return left.compare(0, right.length(), right.data()) == 0;
 }
 
-inline bool operator!=(const string& left, const absl::string_view& right) {
+inline bool operator!=(const string& left, const std::string_view& right) {
   return left.compare(0, right.length(), right.data()) != 0;
 }
 
@@ -80,7 +80,7 @@ struct metric_info {
 struct resource_info {
   resource_info(const char_allocator& char_alloc) : name(char_alloc) {}
 
-  resource_info(const absl::string_view& nam,
+  resource_info(const std::string_view& nam,
                 uint64_t res_id,
                 uint64_t sev_id,
 
@@ -182,13 +182,13 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual void set_metric_info(uint64_t metric_id,
                                uint64_t index_id,
-                               const absl::string_view& name,
-                               const absl::string_view& unit,
+                               const std::string_view& name,
+                               const std::string_view& unit,
                                double min,
                                double max) = 0;
 
   virtual void store_instance(uint64_t instance_id,
-                              const absl::string_view& instance_name) = 0;
+                              const std::string_view& instance_name) = 0;
 
   /**
    * @brief As we don't have access to the repeated TagInfo type, we fill
@@ -197,13 +197,13 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
    */
 
   virtual void store_host(uint64_t host_id,
-                          const absl::string_view& host_name,
+                          const std::string_view& host_name,
                           uint64_t resource_id,
                           uint64_t severity_id) = 0;
 
   virtual void store_service(uint64_t host_id,
                              uint64_t service_id,
-                             const absl::string_view& service_description,
+                             const std::string_view& service_description,
                              uint64_t resource_id,
                              uint64_t severity_id) = 0;
 
@@ -243,7 +243,7 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
   virtual void append_host_group(uint64_t host, std::ostream& request_body) = 0;
 
   virtual void add_tag(uint64_t tag_id,
-                       const absl::string_view& tag_name,
+                       const std::string_view& tag_name,
                        TagType tag_type,
                        uint64_t poller_id) = 0;
 

@@ -139,7 +139,7 @@ int main(int argc, char** argv) {
         std::cout << " * " << m << std::endl;
     } else {
       for (int i = optind; i < argc; i++) {
-        absl::string_view full_cmd{argv[i]};
+        std::string_view full_cmd{argv[i]};
         size_t first = full_cmd.find_first_not_of(" \t");
         size_t last = full_cmd.find_first_of(" \t\n{(", first);
         std::string cmd;

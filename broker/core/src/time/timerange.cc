@@ -190,7 +190,7 @@ bool timerange::to_time_t(struct tm const& midnight,
   return (true);
 }
 
-static bool _build_time_t(const absl::string_view& time_str, uint64_t& ret) {
+static bool _build_time_t(const std::string_view& time_str, uint64_t& ret) {
   const char* endc = time_str.data() + time_str.size();
   const char* begin_str = time_str.data();
   char* endptr;
@@ -241,18 +241,17 @@ bool timerange::build_timeranges_from_string(const std::string& line,
   if (line.empty())
     return true;
 
-  std::list<absl::string_view> timeranges_str{absl::StrSplit(line, ',')};
+  std::list<std::string_view> timeranges_str{absl::StrSplit(line, ',')};
   for (auto& t : timeranges_str) {
     size_t pos = t.find('-');
     if (pos == std::string::npos)
       return false;
     uint64_t start_time;
-    if (!_build_time_t(absl::string_view(t.data(), pos), start_time))
+    if (!_build_time_t(std::string_view(t.data(), pos), start_time))
       return false;
     uint64_t end_time;
-    if (!_build_time_t(
-            absl::string_view(t.data() + pos + 1, t.size() - pos - 1),
-            end_time))
+    if (!_build_time_t(std::string_view(t.data() + pos + 1, t.size() - pos - 1),
+                       end_time))
       return false;
     timeranges.emplace_front(start_time, end_time);
   }

@@ -593,7 +593,7 @@ bool dump::save(std::string const& path) {
  *  @return The output stream.
  */
 std::ostream& dump::service(std::ostream& os,
-                            const absl::string_view& class_name,
+                            const std::string_view& class_name,
                             class service const& obj) {
   std::string hostname;
   if (obj.get_host_ptr())
