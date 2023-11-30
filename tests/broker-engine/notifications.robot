@@ -864,12 +864,14 @@ not15
    ## Time to set the service1 to CRITICAL HARD.
 
     Service1 Check Critical
+
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
     ${new_date}    Get Current Date
     ## Time to set the service2 to CRITICAL HARD.
+
     Service2 Check Critical
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
@@ -877,6 +879,7 @@ not15
     Should Be True    ${result}     the dependency not working and the service_é has recieved a notification
 
     ## Time to set the service1 to OK  hard
+
     Service1 Check OK
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;
@@ -1002,13 +1005,13 @@ not17
     END
 
     ${result}    Check Service Status With Timeout    host_3    service_3    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_3;service_3;CRITICAL;command_notif;critical
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent for service3
 
-    ## Time to set the service3 to UP  hard
+    ## Time to set the service3 to OK hard
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_3    service_3    0    ok
     Sleep    1s
@@ -1028,7 +1031,7 @@ not17
     END
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
+    Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1041,7 +1044,7 @@ not17
     END
 
     ${result}    Check Service Status With Timeout    host_3    service_3    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
+    Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
@@ -1054,13 +1057,13 @@ not17
     END
 
     ${result}    Check Service Status With Timeout    host_4    service_4    ${2}    60    HARD
-    Should Be True    ${result}    Service (host_4,service_4) should be OK HARD
+    Should Be True    ${result}    Service (host_4,service_4) should be CRITICAL HARD
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is sent for service4 dependency not working
 
-    ## Time to set the service1 to UP  hard
+    ## Time to set the service1 to OK hard
     FOR   ${i}    IN RANGE    ${3}
         Process Service Check result    host_1    service_1    0    ok
     Sleep    1s
@@ -1185,7 +1188,7 @@ not18
     Kindly Stop Broker
 
 not19
-    [Documentation]    notification delay
+    [Documentation]    notification delay where first notification delay equal retry check
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    interval_length    1    True
@@ -1231,10 +1234,10 @@ not19
     Kindly Stop Broker
 
 not20
-    [Documentation]    notification delay
+    [Documentation]    notification delay where first notification delay greater than retry check 
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
-    Engine Config Set Value    0    interval_length    5    True
+    Engine Config Set Value    0    interval_length    1    True
     Config Notifications
     Engine Config Set Value In Hosts    0    host_1    notifications_enabled    1
     Engine Config Set Value In Hosts    0    host_1    notification_options    d,r
@@ -1277,7 +1280,7 @@ not20
     Kindly Stop Broker
 
 not21
-    [Documentation]    notification delay
+    [Documentation]    notification delay where first notification delay greater than retry check by 1 min
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    interval_length    1    True
@@ -1322,7 +1325,7 @@ not21
     Kindly Stop Broker
 
 not22
-    [Documentation]    notification delay
+    [Documentation]    notification delay where first notification delay samller than retry check
     [Tags]    broker    engine    services    hosts    notification
     Config Engine    ${1}    ${1}    ${1}
     Engine Config Set Value    0    interval_length    1    True
