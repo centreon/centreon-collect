@@ -122,7 +122,7 @@ class DbConf:
                 for i in range(1, self.hosts_count + 1):
                     name = "checkh{}".format(i)
                     cursor.execute(
-                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl --id 0 {1}\")".format(ENGINE_HOME, i, name))
+                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl --id 0 --state {1}\")".format(ENGINE_HOME, i, name))
                     self.command[name] = cursor.lastrowid
                 connection.commit()
 
