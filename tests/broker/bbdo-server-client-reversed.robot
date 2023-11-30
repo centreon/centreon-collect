@@ -37,9 +37,9 @@ BSCSSRR1
     Broker Config Log    central    config    debug
     ${start}    Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
-    ${content}    Create List    creating new failover 'central-broker-master-output'
+    ${content}    Create List    creating new failover 'centreon-broker-master-rrd'
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No information about 'central-broker-master-output' failover creation.
+    Should Be True    ${result}    No information about 'centreon-broker-master-rrd' failover creation.
 
 BSCSSPRR1
     [Documentation]    Start-Stop two instances of broker and no coredump. The server contains a listen address, reversed and retention. centreon-broker-master-rrd is then a failover.
@@ -75,13 +75,13 @@ BSCSSGRR1
     ${start}    Get Round Current Date
     Repeat Keyword    5 times    Start Stop Service    0
     ${content}    Create List
-    ...    endpoint applier: creating new failover 'central-broker-master-output'
+    ...    endpoint applier: creating new failover 'centreon-broker-master-rrd'
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result}    No information about 'central-broker-master-output' failover construction
+    Should Be True    ${result}    No information about 'centreon-broker-master-rrd' failover construction
     ${content}    Create List
-    ...    failover::failover constructor 0x[a-f0-9]* central-broker-master-output
+    ...    failover::failover constructor 0x[a-f0-9]* centreon-broker-master-rrd
     ${result}    Find Regex In Log With Timeout    ${centralLog}    ${start}    ${content}    30
-    Should Be True    ${result[0]}    No information about 'central-broker-master-output' failover construction
+    Should Be True    ${result[0]}    No information about 'centreon-broker-master-rrd' failover construction
 
 BSCSSTRR1
     [Documentation]    Start-Stop two instances of broker and no coredump. Encryption is enabled. transport protocol is tcp, reversed and retention.
