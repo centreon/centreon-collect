@@ -3093,7 +3093,11 @@ def ctn_config_host_command_status(idx: int, cmd_name: str, status: int):
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines[i +
+<<<<<<< HEAD
                   1] = f"    command_line                    {ENGINE_HOME}/check.pl --id 0 --state {status}\n"
+=======
+                  1] = f"    command_line                    {ENGINE_HOME}/check.pl --id 0 {status}\n"
+>>>>>>> 122d7f5310 (fix(tests): check.pl improved)
             break
 
     with open(filename, "w") as f:

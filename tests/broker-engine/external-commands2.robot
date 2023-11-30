@@ -1388,7 +1388,11 @@ BESERVCHECK
     ...    host_1
     ...    service_1
     ...    30
+<<<<<<< HEAD
     ...    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_id}
+=======
+    ...    ${VarRoot}/lib/centreon-engine/check.pl --id ${command_param}
+>>>>>>> 122d7f5310 (fix(tests): check.pl improved)
     Should Be True    ${result}    service table not updated
 
 BEHOSTCHECK
@@ -1409,6 +1413,11 @@ BEHOSTCHECK
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     Execute SQL String    UPDATE hosts SET command_line='toto' WHERE name='host_1'
+<<<<<<< HEAD
     Ctn Schedule Forced Host Check    host_1
     ${result}    Ctn Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
+=======
+    Schedule Forced Host Check    host_1
+    ${result}    Check Host Check With Timeout    host_1    30    ${VarRoot}/lib/centreon-engine/check.pl --id 0
+>>>>>>> 122d7f5310 (fix(tests): check.pl improved)
     Should Be True    ${result}    hosts table not updated
