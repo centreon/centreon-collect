@@ -1,23 +1,25 @@
-/*
-** Copyright 2011-2013 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2011-2013 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/timestamp.hh"
+
 #include <sys/time.h>
+
 #include <limits>
 
 using namespace com::centreon;
@@ -188,9 +190,7 @@ timestamp& timestamp::operator-=(const timestamp& right) {
  *
  *  @param[in] msecs  Time in milliseconds.
  */
-void timestamp::add_mseconds(int32_t msecs) {
-  add_useconds(msecs * 1000);
-}
+void timestamp::add_mseconds(int32_t msecs) { add_useconds(msecs * 1000); }
 
 /**
  *  Add microseconds to this object.
@@ -262,36 +262,28 @@ timestamp timestamp::now() noexcept {
  *
  *  @param[in] msecs  Time in milliseconds.
  */
-void timestamp::sub_mseconds(int32_t msecs) {
-  add_mseconds(-msecs);
-}
+void timestamp::sub_mseconds(int32_t msecs) { add_mseconds(-msecs); }
 
 /**
  *  Substract seconds from this object.
  *
  *  @param[in] secs  Time in seconds.
  */
-void timestamp::sub_seconds(time_t secs) noexcept {
-  _secs -= secs;
-}
+void timestamp::sub_seconds(time_t secs) noexcept { _secs -= secs; }
 
 /**
  *  Add seconds from this object.
  *
  *  @param[in] secs  Time in seconds.
  */
-void timestamp::add_seconds(time_t secs) noexcept {
-  _secs += secs;
-}
+void timestamp::add_seconds(time_t secs) noexcept { _secs += secs; }
 
 /**
  *  Substract microseconds from this object.
  *
  *  @param[in] usecs  Time in microseconds.
  */
-void timestamp::sub_useconds(int32_t usecs) {
-  add_useconds(-usecs);
-}
+void timestamp::sub_useconds(int32_t usecs) { add_useconds(-usecs); }
 
 /**
  *  Get the time in milliseconds.
@@ -307,9 +299,7 @@ int64_t timestamp::to_mseconds() const noexcept {
  *
  *  @return The time in seconds.
  */
-time_t timestamp::to_seconds() const noexcept {
-  return _secs;
-}
+time_t timestamp::to_seconds() const noexcept { return _secs; }
 
 /**
  *  Get the time in microseconds.
@@ -320,7 +310,7 @@ int64_t timestamp::to_useconds() const noexcept {
   return _secs * 1000000ll + _usecs;
 }
 
-CC_BEGIN()
+namespace com::centreon {
 
 std::ostream& operator<<(std::ostream& s, const timestamp& to_dump) {
   struct tm tmp;
@@ -332,5 +322,4 @@ std::ostream& operator<<(std::ostream& s, const timestamp& to_dump) {
 
   return s;
 }
-
-CC_END()
+}  // namespace com::centreon

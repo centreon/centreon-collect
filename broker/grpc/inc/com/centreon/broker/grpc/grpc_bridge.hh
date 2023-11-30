@@ -20,10 +20,9 @@
 #define CCB_GRPC_BRIDGE_HH
 
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "grpc_stream.pb.h"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 std::shared_ptr<io::data> protobuf_to_event(const event_ptr& stream_content);
@@ -33,6 +32,6 @@ std::shared_ptr<channel::event_with_data> create_event_with_data(
 
 };  // namespace grpc
 
-CCB_END()
+}
 
 #endif

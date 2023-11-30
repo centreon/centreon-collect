@@ -26,7 +26,7 @@
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/io/stream.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 class test_visitor : public io::stream {
  public:
   class test_event {
@@ -148,6 +148,6 @@ class test_visitor : public io::stream {
     }
   }
 };
-CCB_END()
+}
 
 #endif  // !CCB_TEST_VISITOR_HH

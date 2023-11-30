@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/configuration/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class command : public object {
@@ -62,6 +62,6 @@ typedef std::shared_ptr<command> command_ptr;
 typedef std::set<command> set_command;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_COMMAND_HH

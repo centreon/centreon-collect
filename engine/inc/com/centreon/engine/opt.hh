@@ -20,7 +20,7 @@
 #ifndef CCE_OPT_HH
 #define CCE_OPT_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 template <typename T>
 class opt {
@@ -70,6 +70,6 @@ class opt {
   bool _is_set;
 };
 
-CCE_END()
+}
 
 #endif  // !CCE_OPT_HH

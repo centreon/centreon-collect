@@ -20,9 +20,8 @@
 #define CCB_CONFIG_APPLIER_ENDPOINT_HH
 
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations.
 namespace io {
@@ -88,6 +87,6 @@ class endpoint {
 }  // namespace applier
 }  // namespace config
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CONFIG_APPLIER_ENDPOINT_HH

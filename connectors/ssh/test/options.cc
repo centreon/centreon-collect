@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,7 +19,6 @@
 
 #include <gtest/gtest.h>
 
-#include "com/centreon/connector/ssh/namespace.hh"
 #include "com/centreon/connector/ssh/orders/options.hh"
 
 using namespace com::centreon::connector::orders;

@@ -22,12 +22,11 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/host_service.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/neb/service_status.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -72,6 +71,6 @@ class service : public host_service, public service_status {
 };
 }  // namespace neb
 
-CCB_END()
+}
 
 #endif  // !CCB_NEB_SERVICE_HH

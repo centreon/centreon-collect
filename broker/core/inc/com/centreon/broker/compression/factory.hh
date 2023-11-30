@@ -20,9 +20,8 @@
 #define CCB_COMPRESSION_FACTORY_HH
 
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace compression {
 /**
@@ -50,6 +49,6 @@ class factory : public io::factory {
 };
 }  // namespace compression
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_COMPRESSION_FACTORY_HH

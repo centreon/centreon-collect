@@ -23,15 +23,15 @@
 #include "com/centreon/engine/host.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class hostgroup;
-CCE_END()
+}
 
 using hostgroup_map =
     absl::flat_hash_map<std::string,
                         std::shared_ptr<com::centreon::engine::hostgroup>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class hostgroup {
  public:
   hostgroup(uint64_t id,
@@ -69,7 +69,7 @@ class hostgroup {
   std::string _notes_url;
   std::string _action_url;
 };
-CCE_END()
+}
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::hostgroup const& obj);

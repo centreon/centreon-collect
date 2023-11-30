@@ -23,7 +23,7 @@
 #include "com/centreon/broker/io/endpoint.hh"
 #include "temporary_stream.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class temporary_endpoint temporary_endpoint.hh
@@ -72,6 +72,6 @@ class temporary_endpoint : public io::endpoint {
   }
 };
 
-CCB_END()
+}
 
 #endif  // !CCB_TEMPORARY_ENDPOINT_HH

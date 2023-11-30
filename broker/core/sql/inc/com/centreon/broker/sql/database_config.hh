@@ -19,9 +19,8 @@
 #ifndef CCB_DATABASE_CONFIG_HH
 #define CCB_DATABASE_CONFIG_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 namespace config {
@@ -111,7 +110,7 @@ class database_config {
 
 std::ostream& operator<<(std::ostream& s, const database_config cfg);
 
-CCB_END()
+}
 
 namespace fmt {
 // formatter specializations for fmt

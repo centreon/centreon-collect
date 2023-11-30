@@ -24,17 +24,16 @@
 #include <list>
 #include <memory>
 #include <string>
-#include "com/centreon/engine/namespace.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class contact;
 class contactgroup;
 
 namespace configuration {
 class contactgroup;
 }
-CCE_END()
+}
 
 using contactgroup_map =
     absl::flat_hash_map<std::string,
@@ -44,7 +43,7 @@ using contactgroup_map_unsafe =
 using contact_map_unsafe =
     absl::flat_hash_map<std::string, com::centreon::engine::contact*>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 class contactgroup {
  public:
@@ -70,7 +69,7 @@ class contactgroup {
   std::string _name;
 };
 
-CCE_END()
+}
 
 std::ostream& operator<<(std::ostream& os, contactgroup_map_unsafe const& obj);
 

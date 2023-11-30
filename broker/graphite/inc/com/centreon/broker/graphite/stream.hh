@@ -24,9 +24,8 @@
 #include "com/centreon/broker/graphite/macro_cache.hh"
 #include "com/centreon/broker/graphite/query.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 class database_config;
@@ -95,6 +94,6 @@ class stream : public io::stream {
 };
 }  // namespace graphite
 
-CCB_END()
+}
 
 #endif  // !CCB_GRAPHITE_STREAM_HH

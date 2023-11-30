@@ -23,7 +23,7 @@
 #include "com/centreon/logging/engine.hh"
 #include "com/centreon/misc/stringifier.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace logging {
 struct setprecision {
@@ -60,6 +60,6 @@ class temp_logger {
 };
 }  // namespace logging
 
-CC_END()
+}
 
 #endif  // !CC_LOGGING_TEMP_LOGGER_HH

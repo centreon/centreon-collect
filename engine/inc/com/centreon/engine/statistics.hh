@@ -28,7 +28,7 @@ struct buffer_stats {
   uint32_t total;
 };
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class statistics {
   statistics();
 
@@ -38,5 +38,5 @@ class statistics {
   bool get_external_command_buffer_stats(buffer_stats& retval) const noexcept;
 };
 
-CCE_END()
+}
 #endif /* !CCE_STATISTICS_HH */

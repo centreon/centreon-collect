@@ -24,11 +24,10 @@
 #include "com/centreon/broker/bam/internal.hh"
 #include "com/centreon/broker/bam/timeperiod_map.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/mysql_multi_insert.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 class database_config;
@@ -139,6 +138,6 @@ class reporting_stream : public io::stream {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_REPORTING_STREAM_HH

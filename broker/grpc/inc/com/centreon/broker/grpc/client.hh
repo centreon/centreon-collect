@@ -21,7 +21,7 @@
 
 #include "channel.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 /**
@@ -71,6 +71,6 @@ class client : public channel,
 
 }  // namespace grpc
 
-CCB_END()
+}
 
 #endif  // !CCB_GRPC_STREAM_HH

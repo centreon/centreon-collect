@@ -24,7 +24,7 @@
 #include "com/centreon/engine/configuration/object.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class service;
@@ -80,6 +80,6 @@ typedef std::shared_ptr<serviceextinfo> serviceextinfo_ptr;
 typedef std::list<serviceextinfo_ptr> list_serviceextinfo;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_SERVICEEXTINFO_HH

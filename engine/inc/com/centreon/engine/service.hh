@@ -28,7 +28,7 @@
 #include "com/centreon/engine/tag.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class contact;
 namespace commands {
 class command;
@@ -37,7 +37,7 @@ class host;
 class service;
 class servicegroup;
 class serviceescalation;
-CCE_END()
+}
 
 using service_map =
     absl::flat_hash_map<std::pair<std::string, std::string>,
@@ -49,7 +49,7 @@ using service_id_map =
     absl::flat_hash_map<std::pair<uint64_t, uint64_t>,
                         std::shared_ptr<com::centreon::engine::service>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 enum service_type {
   NONE = -1,
@@ -239,7 +239,7 @@ class service : public notifier {
   host* _host_ptr;
   bool _host_problem_at_last_check;
 };
-CCE_END()
+}
 
 com::centreon::engine::service* add_service(
     uint64_t host_id,
@@ -298,7 +298,7 @@ std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::service const& obj);
 std::ostream& operator<<(std::ostream& os, service_map_unsafe const& obj);
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 com::centreon::engine::service& find_service(uint64_t host_id,
                                              uint64_t service_id);
@@ -310,6 +310,6 @@ std::pair<std::string, std::string> get_host_and_service_names(
     const uint64_t service_id);
 uint64_t get_service_id(std::string const& host, std::string const& svc);
 
-CCE_END()
+}
 
 #endif  // !CCE_SERVICE_HH

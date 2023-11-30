@@ -23,7 +23,7 @@
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class program : public object {
@@ -114,6 +114,6 @@ class program : public object {
 typedef std::shared_ptr<program> program_ptr;
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_PROGRAM_HH

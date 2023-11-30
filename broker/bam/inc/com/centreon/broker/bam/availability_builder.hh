@@ -19,11 +19,10 @@
 #ifndef CCB_BAM_AVAILABILITY_BUILDER_HH
 #define CCB_BAM_AVAILABILITY_BUILDER_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/time/timeperiod.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -89,6 +88,6 @@ class availability_builder {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_AVAILABILITY_BUILDER_HH

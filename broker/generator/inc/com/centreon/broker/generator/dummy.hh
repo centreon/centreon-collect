@@ -24,9 +24,8 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace generator {
 /**
@@ -61,6 +60,6 @@ class dummy : public io::data {
 };
 }  // namespace generator
 
-CCB_END()
+}
 
 #endif  // !CCB_GENERATOR_DUMMY_HH

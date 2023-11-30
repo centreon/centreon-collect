@@ -19,11 +19,10 @@
 #ifndef CCB_RRD_LIB_HH
 #define CCB_RRD_LIB_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/rrd/backend.hh"
 #include "com/centreon/broker/rrd/creator.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace rrd {
 /**
@@ -60,6 +59,6 @@ class lib : public backend {
 };
 }  // namespace rrd
 
-CCB_END()
+}
 
 #endif  // !CCB_RRD_LIB_HH

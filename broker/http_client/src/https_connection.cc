@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,7 +29,7 @@ using namespace com::centreon::broker::http_client;
 
 namespace beast = boost::beast;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_client {
 namespace detail {
@@ -123,7 +123,7 @@ void certificate_cache::clean() {
 }  // namespace detail
 };  // namespace http_client
 
-CCB_END()
+}
 
 /**
  * @brief Construct a new https connection::https connection object

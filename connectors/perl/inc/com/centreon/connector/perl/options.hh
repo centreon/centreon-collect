@@ -19,7 +19,6 @@
 #ifndef CCCP_OPTIONS_HH
 #define CCCP_OPTIONS_HH
 
-#include "com/centreon/connector/perl/namespace.hh"
 #include "com/centreon/misc/get_options.hh"
 
 CCCP_BEGIN()

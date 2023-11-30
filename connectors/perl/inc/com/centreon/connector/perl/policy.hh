@@ -21,7 +21,6 @@
 
 #include "com/centreon/connector/ipolicy.hh"
 #include "com/centreon/connector/perl/checks/check.hh"
-#include "com/centreon/connector/perl/namespace.hh"
 #include "com/centreon/connector/perl/orders/parser.hh"
 #include "com/centreon/connector/reporter.hh"
 

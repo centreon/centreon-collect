@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011-2012, 2021, 2023 Centreon
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,9 +23,8 @@
 
 #include "com/centreon/broker/io/stream.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 class persistent_cache;
@@ -73,6 +72,6 @@ class endpoint {
 };
 }  // namespace io
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_IO_ENDPOINT_HH

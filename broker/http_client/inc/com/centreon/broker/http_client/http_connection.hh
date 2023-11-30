@@ -21,7 +21,7 @@
 
 #include "http_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_client {
 /**
@@ -209,7 +209,7 @@ class http_connection : public connection_base {
 
 }  // namespace http_client
 
-CCB_END()
+}
 
 namespace fmt {
 

@@ -22,10 +22,9 @@
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/computable.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -61,6 +60,6 @@ class bool_expression : public computable {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BOOL_EXPRESSION_HH

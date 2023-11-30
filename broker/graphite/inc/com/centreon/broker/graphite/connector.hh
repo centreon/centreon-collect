@@ -20,10 +20,9 @@
 #define CCB_GRAPHITE_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace graphite {
 /**
@@ -59,6 +58,6 @@ class connector : public io::endpoint {
 };
 }  // namespace graphite
 
-CCB_END()
+}
 
 #endif  // !CCB_GRAPHITE_CONNECTOR_HH

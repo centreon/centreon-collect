@@ -22,10 +22,9 @@
 #include <climits>
 
 #include "com/centreon/broker/multiplexing/muxer.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/processing/stat_visitable.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 namespace io {
@@ -102,6 +101,6 @@ class feeder : public stat_visitable,
 };
 }  // namespace processing
 
-CCB_END()
+}
 
 #endif  // !CCB_PROCESSING_FEEDER_HH

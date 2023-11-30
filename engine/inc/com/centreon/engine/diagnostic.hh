@@ -20,7 +20,7 @@
 #ifndef CCE_DIAGNOSTIC_HH
 #define CCE_DIAGNOSTIC_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /**
  *  @class diagnostic diagnostic.hh "com/centreon/engine/diagnostic.hh"
@@ -45,6 +45,6 @@ class diagnostic {
   void _exec_cp(std::string const& src, std::string const& dst);
 };
 
-CCE_END()
+}
 
 #endif  // !CCE_DIAGNOSTIC_HH

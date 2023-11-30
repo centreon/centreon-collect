@@ -20,7 +20,6 @@
 #define CCB_LUA_BROKER_EVENT_HH
 
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/namespace.hh"
 
 extern "C" {
 #include "lauxlib.h"
@@ -28,7 +27,7 @@ extern "C" {
 #include "lualib.h"
 }
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -56,6 +55,6 @@ class broker_event {
 };
 }  // namespace lua
 
-CCB_END()
+}
 
 #endif  // !CCB_LUA_BROKER_EVENT_HH

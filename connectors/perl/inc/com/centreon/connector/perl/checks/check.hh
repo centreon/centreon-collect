@@ -19,13 +19,11 @@
 #ifndef CCCP_CHECKS_CHECK_HH
 #define CCCP_CHECKS_CHECK_HH
 
-#include "com/centreon/connector/namespace.hh"
-#include "com/centreon/connector/perl/namespace.hh"
 
-CCC_BEGIN()
+Cnamespace com::centreon {
 class result;
 class reporter;
-CCC_END()
+C}()
 
 CCCP_BEGIN()
 

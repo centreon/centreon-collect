@@ -29,9 +29,8 @@
 #include <sstream>
 #include <string>
 
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace string {
 bool get_next_line(std::ifstream& stream, std::string& line, unsigned int& pos);
@@ -227,6 +226,6 @@ class c_strtok {
 
 }  // namespace string
 
-CCE_END()
+}
 
 #endif  // !CCE_MISC_STRING_HH

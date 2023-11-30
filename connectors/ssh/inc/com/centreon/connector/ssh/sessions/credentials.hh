@@ -20,11 +20,9 @@
 #define CCCS_SESSIONS_CREDENTIALS_HH
 
 #include <string>
-#include "com/centreon/connector/ssh/namespace.hh"
 
-CCCS_BEGIN()
+namespace com::centreon::connector::ssh::sessions {
 
-namespace sessions {
 /**
  *  @class credentials credentials.hh
  * "com/centreon/connector/ssh/sessions/credentials.hh"
@@ -36,10 +34,8 @@ namespace sessions {
 class credentials {
  public:
   credentials();
-  credentials(std::string const& host,
-              std::string const& user,
-              std::string const& password,
-              std::string const& key = "",
+  credentials(std::string const& host, std::string const& user,
+              std::string const& password, std::string const& key = "",
               unsigned short port = 22);
   credentials(credentials const& c);
   ~credentials() = default;
@@ -70,9 +66,7 @@ class credentials {
 
 std::ostream& operator<<(std::ostream&, const credentials&);
 
-}  // namespace sessions
-
-CCCS_END()
+}  // namespace com::centreon::connector::ssh::sessions
 
 namespace fmt {
 // formatter specializations for fmt

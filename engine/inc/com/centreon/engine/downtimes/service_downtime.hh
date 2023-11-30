@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/downtimes/downtime.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace downtimes {
 class service_downtime : public downtime {
@@ -54,6 +54,6 @@ class service_downtime : public downtime {
 };
 }  // namespace downtimes
 
-CCE_END()
+}
 
 #endif  // !CCE_DOWNTIMES_SERVICE_DOWTIME_HH

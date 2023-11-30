@@ -22,9 +22,8 @@
 #include "com/centreon/broker/ceof/ceof_serializable.hh"
 #include "com/centreon/broker/ceof/ceof_visitor.hh"
 #include "com/centreon/broker/ceof/ceof_writer.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace ceof {
 /**
@@ -45,6 +44,6 @@ class ceof_serializer : public ceof_visitor {
 };
 }  // namespace ceof
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CEOF_CEOF_SERIALIZER_HH

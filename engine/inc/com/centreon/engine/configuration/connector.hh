@@ -23,7 +23,7 @@
 #include "com/centreon/engine/commands/connector.hh"
 #include "com/centreon/engine/configuration/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class connector : public object {
@@ -60,6 +60,6 @@ typedef std::shared_ptr<connector> connector_ptr;
 typedef std::set<connector> set_connector;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_CONNECTOR_HH

@@ -19,9 +19,8 @@
 #ifndef CONNECTORS_INC_COM_CENTREON_CONNECTOR_IPOLICY_H_
 #define CONNECTORS_INC_COM_CENTREON_CONNECTOR_IPOLICY_H_
 
-#include "namespace.hh"
 
-CCC_BEGIN()
+Cnamespace com::centreon {
 namespace orders {
 class options;
 }
@@ -39,6 +38,6 @@ class policy_interface : public std::enable_shared_from_this<policy_interface> {
   virtual void on_version() = 0;
 };
 
-CCC_END()
+C}()
 
 #endif

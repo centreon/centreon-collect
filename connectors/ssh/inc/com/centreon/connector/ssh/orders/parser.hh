@@ -20,11 +20,8 @@
 #define CCCS_ORDERS_PARSER_HH
 
 #include "com/centreon/connector/parser.hh"
-#include "com/centreon/connector/ssh/namespace.hh"
 
-CCCS_BEGIN()
-
-namespace orders {
+namespace com::centreon::connector::ssh::orders {
 
 /**
  *  @class parser parser.hh "com/centreon/connector/ssh/orders/parser.hh"
@@ -54,7 +51,5 @@ class parser : public com::centreon::connector::parser {
 };
 
 }  // namespace orders
-
-CCCS_END()
 
 #endif  // !CCCS_ORDERS_PARSER_HH

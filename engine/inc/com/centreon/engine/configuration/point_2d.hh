@@ -20,7 +20,7 @@
 #ifndef CCE_CONFIGURATION_POINT_2D_HH
 #define CCE_CONFIGURATION_POINT_2D_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class point_2d {
@@ -41,6 +41,6 @@ class point_2d {
 };
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_POINT_2D_HH

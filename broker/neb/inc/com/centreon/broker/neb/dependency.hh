@@ -20,9 +20,8 @@
 #define CCB_NEB_DEPENDENCY_HH
 
 #include "com/centreon/broker/io/data.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -55,6 +54,6 @@ class dependency : public io::data {
 };
 }  // namespace neb
 
-CCB_END()
+}
 
 #endif  // !CCB_NEB_DEPENDENCY_HH

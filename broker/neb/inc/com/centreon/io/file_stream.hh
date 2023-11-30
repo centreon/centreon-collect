@@ -20,9 +20,8 @@
 #define CC_IO_FILE_STREAM_HH
 
 #include "com/centreon/handle.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace io {
 /**
@@ -63,6 +62,6 @@ class file_stream : public handle {
 };
 }  // namespace io
 
-CC_END()
+}
 
 #endif  // !CC_IO_FILE_STREAM_HH

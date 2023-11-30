@@ -21,9 +21,8 @@
 
 #include <sys/types.h>
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace rrd {
 /**
@@ -98,6 +97,6 @@ class creator {
 };
 }  // namespace rrd
 
-CCB_END()
+}
 
 #endif  // !CCB_RRD_CREATOR_HH

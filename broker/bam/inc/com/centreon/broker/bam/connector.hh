@@ -20,10 +20,9 @@
 #define CCB_BAM_CONNECTOR_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/database_config.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -67,6 +66,6 @@ class connector : public io::endpoint {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_CONNECTOR_HH

@@ -25,13 +25,12 @@
 #include <mutex>
 #include <thread>
 #include <vector>
-#include "com/centreon/namespace.hh"
 #include "com/centreon/task.hh"
 #include "com/centreon/timestamp.hh"
 
 #include <iostream>
 
-CC_BEGIN()
+namespace com::centreon {
 
 class task_manager {
   struct internal_task {
@@ -89,6 +88,6 @@ class task_manager {
   uint32_t execute(timestamp const& now = timestamp::now());
 };
 
-CC_END()
+}
 
 #endif  // ! CC_TASK_MANAGER_HH

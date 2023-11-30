@@ -22,7 +22,7 @@
 #include <atomic>
 #include "com/centreon/task.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 // Forward declaration.
 class handle;
@@ -57,6 +57,6 @@ class handle_action : public task {
   bool _is_threadable;
 };
 
-CC_END()
+}
 
 #endif  // !CC_HANDLE_ACTION_HH

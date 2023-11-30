@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2020-2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

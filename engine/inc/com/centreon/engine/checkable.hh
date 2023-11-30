@@ -24,9 +24,8 @@
 #include <forward_list>
 #include <memory>
 #include <string>
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 namespace commands {
 class command;
 }
@@ -241,6 +240,6 @@ class checkable {
   whitelist_last_result _whitelist_last_result;
 };
 
-CCE_END()
+}
 
 #endif /* !CCE_CHECKABLE */

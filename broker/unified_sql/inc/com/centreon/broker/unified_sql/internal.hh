@@ -27,7 +27,7 @@
 #include "broker/core/src/broker.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bbdo {
 /**
@@ -64,6 +64,6 @@ using pb_metric_mapping =
                  make_type(io::storage, storage::de_pb_metric_mapping)>;
 
 }  // namespace storage
-CCB_END()
+}
 
 #endif  // !CCB_UNIFIED_SQL_INTERNAL_HH

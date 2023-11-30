@@ -19,9 +19,8 @@
 #ifndef CCC_CHECKS_RESULT_HH
 #define CCC_CHECKS_RESULT_HH
 
-#include "com/centreon/connector/namespace.hh"
 
-CCC_BEGIN()
+Cnamespace com::centreon {
 
 /**
  *  @class result result.hh "com/centreon/connector/ssh/checks/result.hh"
@@ -62,6 +61,6 @@ class result {
   std::string _output;
 };
 
-CCC_END()
+C}()
 
 #endif  // !CCC_CHECKS_RESULT_HH

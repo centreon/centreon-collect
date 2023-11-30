@@ -28,7 +28,7 @@ extern "C" {
 #include "lualib.h"
 }
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace simu {
 /**
@@ -70,6 +70,6 @@ class luabinding {
 };
 }  // namespace simu
 
-CCB_END()
+}
 
 #endif  // !CCB_SIMU_SIMU_HH

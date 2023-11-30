@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/bam/ba.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -51,6 +51,6 @@ class ba_ratio_percent : public ba {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BA_RATIO_PERCENT_HH

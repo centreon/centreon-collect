@@ -32,7 +32,7 @@
 #include "com/centreon/broker/neb/service_group_member.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace lua {
 /**
@@ -143,6 +143,6 @@ class macro_cache {
 };
 }  // namespace lua
 
-CCB_END()
+}
 
 #endif  // !CCB_LUA_MACRO_CACHE_HH

@@ -24,13 +24,12 @@
 #include <set>
 #include <string>
 #include <utility>
-#include "com/centreon/engine/namespace.hh"
 
 typedef std::list<std::string> list_string;
 typedef std::set<std::string> set_string;
 typedef std::set<std::pair<std::string, std::string> > set_pair_string;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 template <typename T>
@@ -64,6 +63,6 @@ class group {
 };
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_GROUP_HH

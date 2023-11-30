@@ -40,7 +40,7 @@ namespace centreon_stream = com::centreon::broker::stream;
 using grpc_event_type = centreon_stream::CentreonEvent;
 using event_ptr = std::shared_ptr<grpc_event_type>;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace grpc {
 
@@ -168,7 +168,7 @@ class channel : public std::enable_shared_from_this<channel> {
 };
 }  // namespace grpc
 
-CCB_END()
+}
 
 namespace fmt {
 // formatter specializations for fmt

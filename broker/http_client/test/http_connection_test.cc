@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
 #include <boost/beast/ssl.hpp>
 
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/namespace.hh"
 
 using system_clock = std::chrono::system_clock;
 using time_point = system_clock::time_point;

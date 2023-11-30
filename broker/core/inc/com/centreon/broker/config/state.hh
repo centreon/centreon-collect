@@ -25,9 +25,7 @@
 #include "bbdo/bbdo/bbdo_version.hh"
 #include "com/centreon/broker/config/endpoint.hh"
 
-CCB_BEGIN()
-
-namespace config {
+namespace com::centreon::broker::config {
 
 /**
  *  @class state state.hh "com/centreon/broker/config/state.hh"
@@ -149,8 +147,6 @@ class state {
   stats_exporter_conf& mut_stats_exporter();
   const stats_exporter_conf& get_stats_exporter() const;
 };
-}  // namespace config
-
-CCB_END()
+}  // namespace com::centreon::broker::config
 
 #endif  // !CCB_CONFIG_STATE_HH

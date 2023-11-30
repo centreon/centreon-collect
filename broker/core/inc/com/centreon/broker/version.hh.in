@@ -1,26 +1,32 @@
-/*
-** Copyright 2013,2015 Merethis
-**
-** All rights reserved.
-*/
+/**
+ * Copyright 2013-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_VERSION_HH
 #  define CCB_VERSION_HH
 
-#  include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
-
 #  define CENTREON_BROKER_VERSION_INCLUDE "@CENTREON_BROKER_VERSION@"
 
-namespace            version {
+namespace com::centreon::broker::version {
   // Compile-time values.
   unsigned int const major = @COLLECT_MAJOR@;
   unsigned int const minor = @COLLECT_MINOR@;
   unsigned int const patch = @COLLECT_PATCH@;
   char const* const  string = "@CENTREON_BROKER_VERSION@";
 }
-
-CCB_END()
 
 #endif // !CCB_VERSION_HH

@@ -21,9 +21,8 @@
 
 #include <string>
 #include "com/centreon/logging/backend.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace logging {
 /**
@@ -56,6 +55,6 @@ class syslogger : public backend {
 };
 }  // namespace logging
 
-CC_END()
+}
 
 #endif  // !CC_LOGGING_SYSLOGGER_HH

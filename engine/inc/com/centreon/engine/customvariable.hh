@@ -20,7 +20,7 @@
 #ifndef CCE_OBJECTS_CUSTOMVARIABLE_HH
 #define CCE_OBJECTS_CUSTOMVARIABLE_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 /**
  * @class customvariable customvariable.hh
@@ -55,6 +55,6 @@ class customvariable {
 
 typedef std::unordered_map<std::string, customvariable> map_customvar;
 
-CCE_END()
+}
 
 #endif  // !CCE_OBJECTS_CUSTOMVARIABLE_HH

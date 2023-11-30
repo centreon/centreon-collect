@@ -25,7 +25,6 @@
 # define CENTREON_CLIB_VERSION_PATCH  @COLLECT_PATCH@
 # define CENTREON_CLIB_VERSION_STRING "@CLIB_VERSION@"
 
-# include "com/centreon/namespace.hh"
 
 CC_BEGIN()
 

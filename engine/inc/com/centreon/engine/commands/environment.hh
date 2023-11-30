@@ -21,7 +21,7 @@
 #ifndef CCE_COMMANDS_ENVIRONMENT_HH
 #define CCE_COMMANDS_ENVIRONMENT_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace commands {
 /**
@@ -58,6 +58,6 @@ class environment {
 };
 }  // namespace commands
 
-CCE_END()
+}
 
 #endif  // !CC_COMMANDS_ENVIRONMENT_HH

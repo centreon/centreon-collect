@@ -21,9 +21,8 @@
 
 #include <string>
 #include <thread>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace misc {
 /**
@@ -77,6 +76,6 @@ class stringifier {
 };
 }  // namespace misc
 
-CC_END()
+}
 
 #endif  // !CC_MISC_STRINGIFIER_HH

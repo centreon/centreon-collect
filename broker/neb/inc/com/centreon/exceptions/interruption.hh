@@ -20,9 +20,8 @@
 #define CC_EXCEPTIONS_INTERRUPTION_HH
 
 #include "com/centreon/exceptions/basic.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace exceptions {
 /**
@@ -49,7 +48,7 @@ class interruption : public basic {
 };
 }  // namespace exceptions
 
-CC_END()
+}
 
 #if defined(__GNUC__)
 #define FUNCTION __PRETTY_FUNCTION__

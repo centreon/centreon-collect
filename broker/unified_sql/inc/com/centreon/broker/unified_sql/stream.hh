@@ -38,7 +38,7 @@
 #include "com/centreon/broker/unified_sql/rebuilder.hh"
 #include "com/centreon/broker/unified_sql/stored_timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 namespace unified_sql {
 struct int64_not_minus_one {
   int64_t value;
@@ -53,7 +53,7 @@ struct uint64_not_null {
 };
 
 }  // namespace unified_sql
-CCB_END()
+}
 namespace fmt {
 template <>
 struct formatter<com::centreon::broker::timestamp> {
@@ -117,7 +117,7 @@ struct formatter<com::centreon::broker::unified_sql::uint64_not_null> {
 
 }  // namespace fmt
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 /* Forward declarations */
 namespace neb {
 class service_status;
@@ -502,6 +502,6 @@ class stream : public io::stream {
   void update() override;
 };
 }  // namespace unified_sql
-CCB_END()
+}
 
 #endif /* !CCB_UNIFIED_SQL_STREAM_HH */

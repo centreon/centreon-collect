@@ -22,7 +22,6 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include <sys/types.h>
-#include "com/centreon/connector/perl/namespace.hh"
 
 // Global Perl interpreter.
 extern PerlInterpreter* my_perl;

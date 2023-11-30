@@ -23,9 +23,9 @@
 #include "com/centreon/engine/daterange.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class timeperiod;
-CCE_END()
+}
 
 typedef std::unordered_map<std::string,
                            std::shared_ptr<com::centreon::engine::timeperiod>>
@@ -33,7 +33,7 @@ typedef std::unordered_map<std::string,
 typedef std::unordered_multimap<std::string, com::centreon::engine::timeperiod*>
     timeperiodexclusion;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 class timeperiod {
  public:
@@ -68,7 +68,7 @@ class timeperiod {
   timeperiodexclusion _exclusions;
 };
 
-CCE_END()
+}
 
 bool check_time_against_period(time_t test_time,
                                com::centreon::engine::timeperiod* tperiod);

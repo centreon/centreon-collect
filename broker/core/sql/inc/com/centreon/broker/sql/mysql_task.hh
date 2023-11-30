@@ -24,7 +24,7 @@
 
 using msg_fmt = com::centreon::exceptions::msg_fmt;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 typedef int (*mysql_callback)(MYSQL* conn, void* data);
 
@@ -214,6 +214,6 @@ class mysql_task_statement_int : public mysql_task {
 };
 }  // namespace database
 
-CCB_END()
+}
 
 #endif  // CCB_MYSQL_TASK_HH

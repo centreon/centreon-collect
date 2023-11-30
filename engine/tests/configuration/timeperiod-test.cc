@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -35,7 +35,7 @@ using namespace com::centreon::engine;
 
 using string_vector = std::vector<std::string>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 namespace configuration {
 class time_period_comparator {
   static const std::regex name_extractor, alias_extractor, skip_extractor,
@@ -648,7 +648,7 @@ timerange_list time_period_comparator::extract_timerange(
 
 }  // namespace configuration
 
-CCE_END()
+}
 
 std::vector<string_vector> parse_timeperiods_cfg(const std::string& file_path) {
   std::vector<string_vector> ret;

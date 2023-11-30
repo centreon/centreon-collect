@@ -20,9 +20,8 @@
 #define CCB_BAM_BOOL_XOR_HH
 
 #include "com/centreon/broker/bam/bool_binary_operator.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -44,6 +43,6 @@ class bool_xor : public bool_binary_operator {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BOOL_XOR_HH

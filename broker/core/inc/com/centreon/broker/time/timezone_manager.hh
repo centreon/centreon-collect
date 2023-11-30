@@ -19,9 +19,8 @@
 #ifndef CCB_CORE_TIME_TIMEZONE_MANAGER_HH
 #define CCB_CORE_TIME_TIMEZONE_MANAGER_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace time {
 /**
@@ -68,6 +67,6 @@ class timezone_manager {
 };
 }  // namespace time
 
-CCB_END()
+}
 
 #endif  // !CCB_CORE_TIME_TIMEZONE_MANAGER_HH

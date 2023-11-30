@@ -23,10 +23,9 @@
 #include "com/centreon/broker/influxdb/influxdb.hh"
 #include "com/centreon/broker/influxdb/macro_cache.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 class database_config;
@@ -80,6 +79,6 @@ class stream : public io::stream {
 };
 }  // namespace influxdb
 
-CCB_END()
+}
 
 #endif  // !CCB_INFLUXDB_STREAM_HH

@@ -19,9 +19,8 @@
 #ifndef CC_HANDLE_HH
 #define CC_HANDLE_HH
 
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 typedef int native_handle;
 native_handle const native_handle_null = -1;
@@ -45,6 +44,6 @@ class handle {
   virtual unsigned long write(void const* data, unsigned long size) = 0;
 };
 
-CC_END()
+}
 
 #endif  // !CC_HANDLE_HH

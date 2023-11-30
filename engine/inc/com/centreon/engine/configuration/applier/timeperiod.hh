@@ -23,7 +23,7 @@
 #include "com/centreon/engine/timeperiod.hh"
 
 // Forward declaration.
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 // Forward declarations.
@@ -50,6 +50,6 @@ class timeperiod {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_APPLIER_TIMEPERIOD_HH

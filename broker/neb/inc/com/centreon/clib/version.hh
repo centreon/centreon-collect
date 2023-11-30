@@ -25,9 +25,8 @@
 #define CENTREON_CLIB_VERSION_PATCH 2
 #define CENTREON_CLIB_VERSION_STRING "21.04.2"
 
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace clib {
 namespace version {
@@ -45,6 +44,6 @@ char const* get_string() throw();
 }  // namespace version
 }  // namespace clib
 
-CC_END()
+}
 
 #endif  // !CC_HANDLE_HH

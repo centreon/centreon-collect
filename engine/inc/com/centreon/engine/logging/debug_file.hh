@@ -22,7 +22,7 @@
 
 #include "com/centreon/logging/file.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace logging {
 /**
@@ -42,6 +42,6 @@ class debug_file : public com::centreon::logging::file {
 };
 }  // namespace logging
 
-CCE_END()
+}
 
 #endif  // !CCE_LOGGING_DEBUG_FILE_HH

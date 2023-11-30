@@ -1,30 +1,27 @@
-/*
-** Copyright 2017 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2017,2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_FILE_SPLITTER_HH
 #define CCB_FILE_SPLITTER_HH
 
 #include "com/centreon/broker/file/fs_file.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace file {
+namespace com::centreon::broker::file {
 /**
  *  @class splitter splitter.hh "com/centreon/broker/file/splitter.hh"
  *  @brief Manage multi-file splitting.
@@ -80,8 +77,7 @@ class splitter : public fs_file {
   bool _open_write_file();
 
  public:
-  splitter(const std::string& path,
-           uint32_t max_file_size = 100000000u,
+  splitter(const std::string& path, uint32_t max_file_size = 100000000u,
            bool auto_delete = false);
   ~splitter();
   splitter(const splitter&) = delete;
@@ -102,8 +98,6 @@ class splitter : public fs_file {
   long get_woffset() const;
   size_t max_file_size() const;
 };
-}  // namespace file
-
-CCB_END()
+}  // namespace com::centreon::broker::file
 
 #endif  // !CCB_FILE_SPLITTER_HH

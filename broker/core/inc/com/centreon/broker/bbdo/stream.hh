@@ -1,20 +1,20 @@
-/*
-** Copyright 2013,2017-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2013,2017-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_BBDO_STREAM_HH
 #define CCB_BBDO_STREAM_HH
@@ -23,9 +23,7 @@
 #include "com/centreon/broker/io/extension.hh"
 #include "com/centreon/broker/io/stream.hh"
 
-CCB_BEGIN()
-
-namespace bbdo {
+namespace com::centreon::broker::bbdo {
 /**
  *  @class stream stream.hh "com/centreon/broker/bbdo/stream.hh"
  *  @brief BBDO stream.
@@ -64,9 +62,7 @@ class stream : public io::stream {
     std::deque<std::vector<char>> _buf;
 
    public:
-    buffer(uint32_t event_id,
-           uint32_t source_id,
-           uint32_t dest_id,
+    buffer(uint32_t event_id, uint32_t source_id, uint32_t dest_id,
            std::vector<char>&& v)
         : _event_id(event_id), _source_id(source_id), _dest_id(dest_id) {
       _buf.push_back(v);
@@ -90,8 +86,7 @@ class stream : public io::stream {
     }
     ~buffer() noexcept = default;
 
-    bool matches(uint32_t event_id,
-                 uint32_t source_id,
+    bool matches(uint32_t event_id, uint32_t source_id,
                  uint32_t dest_id) const noexcept {
       return event_id == _event_id && source_id == _source_id &&
              dest_id == _dest_id;
@@ -99,12 +94,10 @@ class stream : public io::stream {
 
     std::vector<char> to_vector() {
       size_t s = 0;
-      for (auto& v : _buf)
-        s += v.size();
+      for (auto& v : _buf) s += v.size();
       std::vector<char> retval;
       retval.reserve(s);
-      for (auto& v : _buf)
-        retval.insert(retval.end(), v.begin(), v.end());
+      for (auto& v : _buf) retval.insert(retval.end(), v.begin(), v.end());
       _buf.clear();
       return retval;
     }
@@ -164,8 +157,7 @@ class stream : public io::stream {
  public:
   enum negotiation_type { negotiate_first = 1, negotiate_second, negotiated };
 
-  stream(bool is_input,
-         bool grpc_serialized = false,
+  stream(bool is_input, bool grpc_serialized = false,
          const std::list<std::shared_ptr<io::extension>>& extensions = {});
   ~stream();
   stream(const stream&) = delete;
@@ -185,8 +177,6 @@ class stream : public io::stream {
   void send_event_acknowledgement();
   std::list<std::string> get_running_config();
 };
-}  // namespace bbdo
-
-CCB_END()
+}  // namespace com::centreon::broker::bbdo
 
 #endif  // !CCB_BBDO_STREAM_HH
