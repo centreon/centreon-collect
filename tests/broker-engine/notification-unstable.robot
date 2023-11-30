@@ -791,19 +791,22 @@ not15
    ## Time to set the service1 to CRITICAL HARD.
 
     Service1 Check Critical
-    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;critical
+
+    ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;CRITICAL;command_notif;
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent
 
  
     ## Time to set the service2 to CRITICAL HARD.
+
     Service2 Check Critical
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}     the dependency not working and the service_é has recieved a notification
 
-    ## Time to set the service1 to UP  hard
+    ## Time to set the service1 to OK  hard
+
     Service1 Check OK
 
     ${content}    Create List    SERVICE NOTIFICATION: John_Doe;host_1;service_1;RECOVERY (OK);command_notif;ok
@@ -939,10 +942,10 @@ not17
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is not sent for service3
 
-    ## Time to set the service3 to OK hard
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
-        Sleep    1s
+    ## Time to set the service3 to UP  hard
+    FOR   ${i}    IN RANGE    ${3}
+        Process Service Check result    host_3    service_3    0    ok
+    Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_3    service_3    ${0}    90    HARD
@@ -998,10 +1001,10 @@ not17
     ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    The notification is sent for service4 dependency not working
 
-    ## Time to set the service1 to OK hard
-    FOR   ${i}    IN RANGE    ${4}
-        Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
-        Sleep    1s
+    ## Time to set the service1 to UP  hard
+    FOR   ${i}    IN RANGE    ${3}
+        Process Service Check result    host_1    service_1    0    ok
+    Sleep    1s
     END
     
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
