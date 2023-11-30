@@ -654,3 +654,32 @@ message Acknowledgement {
   bool persistent_comment = 11;
   uint32 state = 12;
 }
+
+/*io::neb, neb::de_pb_host_dependency*/
+message HostDependency {
+  BBDOHeader header = 1;
+
+  string dependency_period= 2;
+  uint64 dependent_host_id = 3;
+  bool enabled = 4;
+  string execution_failure_options = 5;
+  uint64 host_id = 6;
+  bool inherits_parent = 7;
+  string notification_failure_options = 8;
+}
+
+
+/*io::neb, neb::de_pb_service_dependency*/
+message ServiceDependency {
+  BBDOHeader header = 1;
+
+  string dependency_period= 2;
+  uint64 dependent_host_id = 3;
+  bool enabled = 4;
+  string execution_failure_options = 5;
+  uint64 host_id = 6;
+  bool inherits_parent = 7;
+  string notification_failure_options = 8;
+  uint64 dependent_service_id = 9;
+  uint64 service_id = 10;
+}

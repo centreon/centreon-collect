@@ -129,7 +129,7 @@ static struct {
   uint32_t macro;
   int (*callback)(int, void*);
 } const gl_pb_engine_callbacks[] = {
-    {NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &neb::callback_dependency},
+    {NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &neb::callback_pb_dependency},
     {NEBCALLBACK_ADAPTIVE_HOST_DATA, &neb::callback_pb_host},
     {NEBCALLBACK_ADAPTIVE_SERVICE_DATA, &neb::callback_pb_service},
     {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_pb_custom_variable},
@@ -773,7 +773,8 @@ int neb::callback_dependency(int callback_type, void* data) {
       if (!dep->get_dependent_hostname().empty() &&
           !dep->get_dependent_service_description().empty()) {
         dep_ids = engine::get_host_and_service_id(
-            dep->get_hostname(), dep->get_service_description());
+            dep->get_dependent_hostname(),
+            dep->get_dependent_service_description());
       } else {
         SPDLOG_LOGGER_ERROR(
             log_v2::neb(),
@@ -817,6 +818,165 @@ int neb::callback_dependency(int callback_type, void* data) {
 
       // Publish dependency event.
       neb::gl_publisher.write(svc_dep);
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
+
+  return 0;
+}
+
+/**
+ *  @brief Function that process dependency data.
+ *
+ *  This function is called by Centreon Engine when some dependency data
+ *  is available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA).
+ *  @param[in] data          A pointer to a
+ *                           nebstruct_adaptive_dependency_data
+ *                           containing the dependency data.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_dependency(int, void* data) {
+  // Log message.
+  SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating dependency event");
+
+  try {
+    // Input variables.
+    nebstruct_adaptive_dependency_data* nsadd(
+        static_cast<nebstruct_adaptive_dependency_data*>(data));
+
+    // Host dependency.
+    if ((NEBTYPE_HOSTDEPENDENCY_ADD == nsadd->type) ||
+        (NEBTYPE_HOSTDEPENDENCY_UPDATE == nsadd->type) ||
+        (NEBTYPE_HOSTDEPENDENCY_DELETE == nsadd->type)) {
+      // Find IDs.
+      uint64_t host_id;
+      uint64_t dep_host_id;
+
+      engine::hostdependency* dep(
+          static_cast<engine::hostdependency*>(nsadd->object_ptr));
+      if (!dep->get_hostname().empty()) {
+        host_id = engine::get_host_id(dep->get_hostname());
+      } else {
+        SPDLOG_LOGGER_ERROR(
+            log_v2::neb(),
+            "callbacks: dependency callback called without valid host");
+        host_id = 0;
+      }
+      if (!dep->get_dependent_hostname().empty()) {
+        dep_host_id = engine::get_host_id(dep->get_dependent_hostname());
+      } else {
+        SPDLOG_LOGGER_INFO(
+            log_v2::neb(),
+            "callbacks: dependency callback called without valid dependent "
+            "host");
+        dep_host_id = 0;
+      }
+
+      // Generate service dependency event.
+      auto hd{std::make_shared<pb_host_dependency>()};
+      HostDependency& hst_dep = hd->mut_obj();
+      hst_dep.set_host_id(host_id);
+      hst_dep.set_dependent_host_id(dep_host_id);
+      hst_dep.set_enabled(nsadd->type != NEBTYPE_HOSTDEPENDENCY_DELETE);
+      if (!dep->get_dependency_period().empty())
+        hst_dep.set_dependency_period(dep->get_dependency_period());
+      {
+        std::string options;
+        if (dep->get_fail_on_down())
+          options.append("d");
+        if (dep->get_fail_on_up())
+          options.append("o");
+        if (dep->get_fail_on_pending())
+          options.append("p");
+        if (dep->get_fail_on_unreachable())
+          options.append("u");
+        if (dep->get_dependency_type() == engine::dependency::notification)
+          hst_dep.set_notification_failure_options(options);
+        else if (dep->get_dependency_type() == engine::dependency::execution)
+          hst_dep.set_execution_failure_options(options);
+      }
+      hst_dep.set_inherits_parent(dep->get_inherits_parent());
+      SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: host {} depends on host {}",
+                         dep_host_id, host_id);
+
+      // Publish dependency event.
+      neb::gl_publisher.write(hd);
+    }
+    // Service dependency.
+    else if ((NEBTYPE_SERVICEDEPENDENCY_ADD == nsadd->type) ||
+             (NEBTYPE_SERVICEDEPENDENCY_UPDATE == nsadd->type) ||
+             (NEBTYPE_SERVICEDEPENDENCY_DELETE == nsadd->type)) {
+      // Find IDs.
+      std::pair<uint64_t, uint64_t> ids;
+      std::pair<uint64_t, uint64_t> dep_ids;
+      engine::servicedependency* dep(
+          static_cast<engine::servicedependency*>(nsadd->object_ptr));
+      if (!dep->get_hostname().empty() &&
+          !dep->get_service_description().empty()) {
+        ids = engine::get_host_and_service_id(dep->get_hostname(),
+                                              dep->get_service_description());
+      } else {
+        SPDLOG_LOGGER_ERROR(
+            log_v2::neb(),
+            "callbacks: dependency callback called without valid service");
+        ids.first = 0;
+        ids.second = 0;
+      }
+      if (!dep->get_dependent_hostname().empty() &&
+          !dep->get_dependent_service_description().empty()) {
+        dep_ids = engine::get_host_and_service_id(
+            dep->get_dependent_hostname(),
+            dep->get_dependent_service_description());
+      } else {
+        SPDLOG_LOGGER_ERROR(
+            log_v2::neb(),
+            "callbacks: dependency callback called without valid dependent "
+            "service");
+        dep_ids.first = 0;
+        dep_ids.second = 0;
+      }
+
+      // Generate service dependency event.
+      auto sd{std::make_shared<pb_service_dependency>()};
+      ServiceDependency& svc_dep = sd->mut_obj();
+      svc_dep.set_host_id(ids.first);
+      svc_dep.set_service_id(ids.second);
+      svc_dep.set_dependent_host_id(dep_ids.first);
+      svc_dep.set_dependent_service_id(dep_ids.second);
+      svc_dep.set_enabled(nsadd->type != NEBTYPE_SERVICEDEPENDENCY_DELETE);
+      if (!dep->get_dependency_period().empty())
+        svc_dep.set_dependency_period(dep->get_dependency_period());
+      {
+        std::string options;
+        if (dep->get_fail_on_critical())
+          options.append("c");
+        if (dep->get_fail_on_ok())
+          options.append("o");
+        if (dep->get_fail_on_pending())
+          options.append("p");
+        if (dep->get_fail_on_unknown())
+          options.append("u");
+        if (dep->get_fail_on_warning())
+          options.append("w");
+        if (dep->get_dependency_type() == engine::dependency::notification)
+          svc_dep.set_notification_failure_options(options);
+        else if (dep->get_dependency_type() == engine::dependency::execution)
+          svc_dep.set_execution_failure_options(options);
+      }
+      svc_dep.set_inherits_parent(dep->get_inherits_parent());
+      SPDLOG_LOGGER_INFO(
+          log_v2::neb(),
+          "callbacks: service ({}, {}) depends on service ({}, {})",
+          dep_ids.first, dep_ids.second, ids.first, ids.second);
+
+      // Publish dependency event.
+      neb::gl_publisher.write(sd);
     }
   }
   // Avoid exception propagation to C code.

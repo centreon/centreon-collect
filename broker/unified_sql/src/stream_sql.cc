@@ -1204,6 +1204,74 @@ void stream::_process_host_dependency(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a host dependency event.
+ *
+ *  @param[in] e Uncasted host dependency.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::host_dependency % _mysql.connections_count();
+  _finish_action(-1, actions::hosts | actions::host_parents |
+                         actions::comments | actions::downtimes |
+                         actions::host_dependencies |
+                         actions::service_dependencies);
+
+  // Cast object.
+  const neb::pb_host_dependency& hd_protobuf =
+      *static_cast<neb::pb_host_dependency const*>(d.get());
+  const HostDependency& hd = hd_protobuf.obj();
+
+  // Insert/Update.
+  if (hd.enabled()) {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: enabling host dependency of {} on {}",
+                       hd.dependent_host_id(), hd.host_id());
+
+    // Prepare queries.
+    if (!_pb_host_dependency_insupdate.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_host_dependency::static_type(), unique);
+      _pb_host_dependency_insupdate = qp.prepare_insert_or_update_table(
+          _mysql, "hosts_hosts_dependencies ", /*space is mandatory to avoid
+                               conflict with _process_host_dependency*/
+          {{3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
+           {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
+           {2, "dependency_period", 0,
+            get_hosts_hosts_dependencies_col_size(
+                hosts_hosts_dependencies_dependency_period)},
+           {5, "execution_failure_options", 0,
+            get_hosts_hosts_dependencies_col_size(
+                hosts_hosts_dependencies_execution_failure_options)},
+           {7, "inherits_parent", 0, 0},
+           {8, "notification_failure_options", 0,
+            get_hosts_hosts_dependencies_col_size(
+                hosts_hosts_dependencies_notification_failure_options)}});
+    }
+
+    // Process object.
+    _pb_host_dependency_insupdate << hd_protobuf;
+    _mysql.run_statement(_pb_host_dependency_insupdate,
+                         database::mysql_error::store_host_dependency, conn);
+    _add_action(conn, actions::host_dependencies);
+  }
+  // Delete.
+  else {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: removing host dependency of {} on {}",
+                       hd.dependent_host_id(), hd.host_id());
+    std::string query(fmt::format(
+        "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
+        " AND host_id={}",
+        hd.dependent_host_id(), hd.host_id()));
+    _mysql.run_query(query, database::mysql_error::empty, conn);
+    _add_action(conn, actions::host_dependencies);
+  }
+}
+
+/**
  *  Process a host group event.
  *
  *  @param[in] e Uncasted host group.
@@ -2871,6 +2939,84 @@ void stream::_process_service_dependency(const std::shared_ptr<io::data>& d) {
         "AND dependent_service_id={} AND host_id={} AND service_id={}",
         sd.dependent_host_id, sd.dependent_service_id, sd.host_id,
         sd.service_id));
+    _mysql.run_query(query, database::mysql_error::empty, conn);
+    _add_action(conn, actions::service_dependencies);
+  }
+}
+
+/**
+ *  Process a service dependency event.
+ *
+ *  @param[in] e Uncasted service dependency.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service_dependency(
+    const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::service_dependency % _mysql.connections_count();
+  _finish_action(-1, actions::hosts | actions::host_parents |
+                         actions::downtimes | actions::comments |
+                         actions::host_dependencies |
+                         actions::service_dependencies);
+
+  // Cast object.
+  const neb::pb_service_dependency& proto_obj =
+      *static_cast<neb::pb_service_dependency const*>(d.get());
+  const ServiceDependency& sd = proto_obj.obj();
+
+  // Insert/Update.
+  if (sd.enabled()) {
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: enabling service dependency of ({}, {}) on ({}, {})",
+        sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
+        sd.service_id());
+
+    // Prepare queries.
+    if (!_pb_service_dependency_insupdate.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {6, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {10, "service_id", io::protobuf_base::invalid_on_zero, 0},
+          {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
+          {9, "dependent_service_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_service_dependency::static_type(), unique);
+      _pb_service_dependency_insupdate = qp.prepare_insert_or_update_table(
+          _mysql, "services_services_dependencies ", /*space is mandatory to
+                              avoid conflict with _process_service_dependency*/
+          {{6, "host_id", io::protobuf_base::invalid_on_zero, 0},
+           {10, "service_id", io::protobuf_base::invalid_on_zero, 0},
+           {3, "dependent_host_id", io::protobuf_base::invalid_on_zero, 0},
+           {9, "dependent_service_id", io::protobuf_base::invalid_on_zero, 0},
+           {2, "dependency_period", 0,
+            get_services_services_dependencies_col_size(
+                services_services_dependencies_dependency_period)},
+           {5, "execution_failure_options", 0,
+            get_services_services_dependencies_col_size(
+                services_services_dependencies_execution_failure_options)},
+           {7, "inherits_parent", 0, 0},
+           {8, "notification_failure_options", 0,
+            get_services_services_dependencies_col_size(
+                services_services_dependencies_notification_failure_options)}});
+    }
+
+    // Process object.
+    _pb_service_dependency_insupdate << proto_obj;
+    _mysql.run_statement(_pb_service_dependency_insupdate,
+                         database::mysql_error::store_service_dependency, conn);
+    _add_action(conn, actions::service_dependencies);
+  }
+  // Delete.
+  else {
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: removing service dependency of ({}, {}) on ({}, {})",
+        sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
+        sd.service_id());
+    std::string query(fmt::format(
+        "DELETE FROM services_services_dependencies WHERE dependent_host_id={} "
+        "AND dependent_service_id={} AND host_id={} AND service_id={}",
+        sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
+        sd.service_id()));
     _mysql.run_query(query, database::mysql_error::empty, conn);
     _add_action(conn, actions::service_dependencies);
   }

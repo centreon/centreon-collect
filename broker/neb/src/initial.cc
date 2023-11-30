@@ -170,7 +170,8 @@ static void send_downtimes_list() {
 /**
  *  Send to the global publisher the list of host dependencies within Nagios.
  */
-static void send_host_dependencies_list() {
+static void send_host_dependencies_list(
+    neb_sender callbackfct = neb::callback_dependency) {
   // Start log message.
   log_v2::neb()->info("init: beginning host dependencies dump");
 
@@ -188,7 +189,7 @@ static void send_host_dependencies_list() {
       nsadd.object_ptr = it->second.get();
 
       // Callback.
-      neb::callback_dependency(NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &nsadd);
+      callbackfct(NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &nsadd);
     }
   } catch (std::exception const& e) {
     log_v2::neb()->info(
@@ -202,6 +203,10 @@ static void send_host_dependencies_list() {
   log_v2::neb()->info("init: end of host dependencies dump");
 
   return;
+}
+
+static void send_pb_host_dependencies_list() {
+  send_host_dependencies_list(neb::callback_pb_dependency);
 }
 
 /**
@@ -349,7 +354,8 @@ static void send_host_parents_list() {
  *  Send to the global publisher the list of service dependencies within
  *  Nagios.
  */
-static void send_service_dependencies_list() {
+static void send_service_dependencies_list(
+    neb_sender sender_fct = neb::callback_dependency) {
   // Start log message.
   log_v2::neb()->info("init: beginning service dependencies dump");
 
@@ -368,7 +374,7 @@ static void send_service_dependencies_list() {
       nsadd.object_ptr = it->second.get();
 
       // Callback.
-      neb::callback_dependency(NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &nsadd);
+      sender_fct(NEBCALLBACK_ADAPTIVE_DEPENDENCY_DATA, &nsadd);
     }
   } catch (std::exception const& e) {
     log_v2::neb()->error(
@@ -381,6 +387,10 @@ static void send_service_dependencies_list() {
 
   // End log message.
   log_v2::neb()->info("init: end of service dependencies dump");
+}
+
+static void send_pb_service_dependencies_list() {
+  send_service_dependencies_list(neb::callback_pb_dependency);
 }
 
 /**
@@ -514,7 +524,7 @@ void neb::send_initial_pb_configuration() {
   send_host_parents_list();
   send_host_group_list();
   send_service_group_list();
-  send_host_dependencies_list();
-  send_service_dependencies_list();
+  send_pb_host_dependencies_list();
+  send_pb_service_dependencies_list();
   send_instance_configuration();
 }

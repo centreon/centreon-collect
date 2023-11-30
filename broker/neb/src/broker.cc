@@ -198,6 +198,13 @@ void broker_module_init(void const* arg) {
       e.register_event(make_type(io::neb, neb::de_pb_acknowledgement),
                        "Acknowledgement", &neb::pb_acknowledgement::operations,
                        "acknowledgements");
+      e.register_event(neb::pb_host_dependency::static_type(), "HostDependency",
+                       &neb::pb_host_dependency::operations,
+                       "hosts_hosts_dependencies");
+      e.register_event(neb::pb_service_dependency::static_type(),
+                       "ServiceDependency",
+                       &neb::pb_service_dependency::operations,
+                       "services_services_dependencies");
     }
   }
 }

@@ -100,6 +100,14 @@ using pb_acknowledgement =
     io::protobuf<Acknowledgement,
                  make_type(io::neb, neb::de_pb_acknowledgement)>;
 
+using pb_host_dependency =
+    io::protobuf<HostDependency,
+                 make_type(io::neb, neb::de_pb_host_dependency)>;
+
+using pb_service_dependency =
+    io::protobuf<ServiceDependency,
+                 make_type(io::neb, neb::de_pb_service_dependency)>;
+
 }  // namespace neb
 
 }

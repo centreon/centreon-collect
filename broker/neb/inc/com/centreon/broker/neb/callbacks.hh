@@ -33,6 +33,7 @@ int callback_pb_comment(int callback_type, void* data);
 int callback_custom_variable(int callback_type, void* data);
 int callback_pb_custom_variable(int callback_type, void* data);
 int callback_dependency(int callback_type, void* data);
+int callback_pb_dependency(int callback_type, void* data);
 int callback_downtime(int callback_type, void* data);
 int callback_pb_downtime(int callback_type, void* data);
 int callback_external_command(int callback_type, void* data);
