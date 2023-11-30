@@ -1,23 +1,23 @@
-/*
-** Copyright 1999-2009           Ethan Galstad
-** Copyright 2009-2010           Nagios Core Development Team and Community
-*Contributors
-** Copyright 2011-2013,2016-2017 Centreon
-**
-** This file is part of Centreon Engine.
-**
-** Centreon Engine is free software: you can redistribute it and/or
-** modify it under the terms of the GNU General Public License version 2
-** as published by the Free Software Foundation.
-**
-** Centreon Engine is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY; without even the implied warranty of
-** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-** General Public License for more details.
-**
-** You should have received a copy of the GNU General Public License
-** along with Centreon Engine. If not, see
-** <http://www.gnu.org/licenses/>.
+/**
+* Copyright 1999-2009           Ethan Galstad
+* Copyright 2009-2010           Nagios Core Development Team and Community
+Contributors
+* Copyright 2011-2013,2016-2017 Centreon
+*
+* This file is part of Centreon Engine.
+*
+* Centreon Engine is free software: you can redistribute it and/or
+* modify it under the terms of the GNU General Public License version 2
+* as published by the Free Software Foundation.
+*
+* Centreon Engine is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+* General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with Centreon Engine. If not, see
+* <http://www.gnu.org/licenses/>.
 */
 
 #include "com/centreon/engine/globals.hh"
@@ -29,8 +29,11 @@
 using namespace com::centreon::engine;
 using com::centreon::common::log_v2::log_v2;
 
+#if LEGACY_CONF
+configuration::state* config = nullptr;
+#else
 configuration::State pb_config;
-configuration::state* config(NULL);
+#endif
 
 char const* sigs[] = {"EXIT", "HUP",    "INT",    "QUIT",  "ILL",    "TRAP",
                       "ABRT", "BUS",    "FPE",    "KILL",  "USR1",   "SEGV",

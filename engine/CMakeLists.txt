@@ -540,6 +540,35 @@ target_link_libraries(
   CONAN_PKG::zlib
   dl)
 
+# centengine target.
+add_executable(centengine_legacy "${SRC_DIR}/main.cc")
+target_compile_definitions(centengine_legacy PRIVATE LEGACY_CONF)
+
+set_property(TARGET centengine_legacy PROPERTY ENABLE_EXPORTS "1")
+add_dependencies(centengine_legacy centreon_clib)
+
+# Link centengine with required libraries.
+target_link_libraries(
+  centengine_legacy
+  "-rdynamic"
+  centreon_clib
+  log_v2
+  "-Wl,-whole-archive"
+  enginerpc
+  cce_core
+  engine_config
+  "-Wl,-no-whole-archive"
+  -L${CONAN_LIB_DIRS_GRPC}
+  "-Wl,--whole-archive"
+  grpc++
+  "-Wl,--no-whole-archive"
+  CONAN_PKG::grpc
+  ${absl_LIBS}
+  CONAN_PKG::openssl
+  ${c-ares_LIBS}
+  CONAN_PKG::zlib
+  dl)
+
 # centenginestats target.
 add_executable("centenginestats" "${SRC_DIR}/centenginestats.cc")
 add_dependencies("centenginestats" centreon_clib)

@@ -122,20 +122,15 @@ int main(int argc, char* argv[]) {
   init_loggers();
   configuration::applier::logging::instance();
 
-  // Load singletons and global variable.
-  const char* legacy = getenv("CENTENGINE_LEGACY");
-  config_logger->set_level(spdlog::level::level_enum::info);
-  if (legacy && absl::SimpleAtob(legacy, &legacy_conf)) {
-    config_logger->info("Configuration mechanism used: {}",
-                        legacy_conf ? "legacy" : "protobuf");
-  } else {
-    config_logger->info("Legacy configuration mechanism used");
-    legacy_conf = false;
-  }
-  if (legacy_conf)
-    config = new configuration::state;
-  else
-    config = nullptr;
+#ifdef LEGACY_CONF
+  config_logger->info("Configuration mechanism used: legacy");
+  config = new configuration::state;
+  legacy_conf = true;
+#else
+  config_logger->info("Configuration mechanism used: protobuf");
+  config = nullptr;
+  legacy_conf = false;
+#endif
 
   logging::broker backend_broker_log;
 
@@ -425,8 +420,7 @@ int main(int argc, char* argv[]) {
           }
           port = config.grpc_port();
 
-          if (!port)
-            port = generate_port();
+          if (!port) port = generate_port();
 
           listen_address = config.rpc_listen_address();
           rpc = std::unique_ptr<enginerpc, std::function<void(enginerpc*)>>(
@@ -458,8 +452,7 @@ int main(int argc, char* argv[]) {
           for (auto& m : config.broker_module()) {
             std::string filename;
             std::string args;
-            if (!string::split(m, filename, args, ' '))
-              filename = m;
+            if (!string::split(m, filename, args, ' ')) filename = m;
             broker::loader::instance().add_module(filename, args);
           }
           neb_init_callback_list();
@@ -480,8 +473,7 @@ int main(int argc, char* argv[]) {
           }
           port = pb_config.grpc_port();
 
-          if (!port)
-            port = generate_port();
+          if (!port) port = generate_port();
 
           listen_address = pb_config.rpc_listen_address();
           rpc = std::unique_ptr<enginerpc, std::function<void(enginerpc*)>>(
