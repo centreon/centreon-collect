@@ -3,13 +3,10 @@
 use strict;
 use warnings;
 use Getopt::Long;
-<<<<<<< HEAD
-=======
 
 if ($#ARGV < 1) {
     die "The script must be used with one integer argument\n";
 }
->>>>>>> 122d7f5310 (fix(tests): check.pl improved)
 
 my $d = time();
 my $dd = localtime();

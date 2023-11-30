@@ -123,11 +123,7 @@ VALUES (1,'24x7','24_Hours_A_Day,_7_Days_A_Week','00:00-24:00','00:00-24:00','00
                 for i in range(1, self.hosts_count + 1):
                     name = f"checkh{i}"
                     cursor.execute(
-<<<<<<< HEAD
-                        f"INSERT INTO command (command_name,command_line) VALUES (\"{name}\",\"{ENGINE_HOME}/check.pl --id 0 --state {i}\")")
-=======
-                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl --id 0 {1}\")".format(ENGINE_HOME, i, name))
->>>>>>> 122d7f5310 (fix(tests): check.pl improved)
+                        "INSERT INTO command (command_name,command_line) VALUES (\"{2}\",\"{0}/check.pl --id 0 --state {1}\")".format(ENGINE_HOME, i, name))
                     self.command[name] = cursor.lastrowid
                 connection.commit()
 
