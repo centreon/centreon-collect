@@ -394,6 +394,7 @@ static std::string const default_use_timezone("");
 static bool const default_use_true_regexp_matching(false);
 static const std::string default_rpc_listen_address("localhost");
 
+
 /**
  *  Default constructor.
  */

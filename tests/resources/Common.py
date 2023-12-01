@@ -2,6 +2,7 @@ from robot.api import logger
 from subprocess import getoutput, Popen, DEVNULL
 import re
 import os
+from pwd import getpwnam
 import time
 import psutil
 from dateutil import parser
@@ -1445,3 +1446,19 @@ def wait_until_file_modified(path: str, date: str, timeout: int = TIMEOUT):
 
     logger.console(f"{path} not modified since {date}")
     return False
+
+
+def set_user_id_from_name(user_name: str):
+    """! modify user id
+    @param user_name  user name as centreon-engine
+    """
+    user_id = getpwnam(user_name).pw_uid
+    os.setuid(user_id)
+
+
+def get_uid():
+    return os.getuid()
+
+
+def set_uid(user_id: int):
+    os.setuid(user_id)

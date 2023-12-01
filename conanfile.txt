@@ -11,6 +11,7 @@ nlohmann_json/3.11.2
 openssl/1.1.1t
 opentelemetry-cpp/1.8.1
 protobuf/3.21.9
+rapidyaml/0.5.0
 spdlog/1.11.0
 zlib/1.2.13
 

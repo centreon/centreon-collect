@@ -172,9 +172,23 @@ class checkable {
   uint64_t icon_id() const;
   std::forward_list<std::shared_ptr<tag>>& mut_tags();
   const std::forward_list<std::shared_ptr<tag>>& tags() const;
+
+  bool is_whitelist_allowed(const std::string& process_cmd);
+
   timeperiod* check_period_ptr;
 
  private:
+  /**
+   * @brief we store in this struct the last result of whitelist
+   * check in order to not check command line each time
+   *
+   */
+  struct whitelist_last_result {
+    unsigned whitelist_instance_id;
+    std::string process_cmd;
+    bool allowed;
+  };
+
   std::string _name;
   std::string _display_name;
   std::string _check_command;
@@ -222,6 +236,9 @@ class checkable {
   std::shared_ptr<severity> _severity;
   uint64_t _icon_id;
   std::forward_list<std::shared_ptr<tag>> _tags;
+
+  // whitelist cache
+  whitelist_last_result _whitelist_last_result;
 };
 
 CCE_END()

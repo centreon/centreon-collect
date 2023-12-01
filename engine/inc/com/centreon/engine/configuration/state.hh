@@ -41,6 +41,7 @@
 CCE_BEGIN()
 
 namespace configuration {
+
 /**
  *  @class state state.hh
  *  @brief Simple configuration state class.
@@ -661,6 +662,7 @@ class state {
   std::string _log_level_runtime;
   std::string _use_timezone;
   bool _use_true_regexp_matching;
+
 };
 }  // namespace configuration
 

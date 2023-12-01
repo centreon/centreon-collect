@@ -20,10 +20,12 @@
 
 #include "com/centreon/engine/checks/checker.hh"
 
+#include "com/centreon/engine/log_v2.hh"
+
 #include "com/centreon/engine/broker.hh"
+#include "com/centreon/engine/configuration/whitelist.hh"
 #include "com/centreon/engine/exceptions/error.hh"
 #include "com/centreon/engine/globals.hh"
-#include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/engine/macros.hh"
 #include "com/centreon/engine/neberrors.hh"
 #include "com/centreon/engine/objects.hh"
@@ -506,8 +508,8 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
                       hst->get_check_command_ptr()->get_command_line());
 
   engine_logger(dbg_commands, more)
-      << "Processed host check ommand: " << processed_cmd;
-  SPDLOG_LOGGER_TRACE(log_v2::commands(), "Processed host check ommand: {}",
+      << "Processed host check command: " << processed_cmd;
+  SPDLOG_LOGGER_TRACE(log_v2::commands(), "Processed host check command: {}",
                       processed_cmd);
 
   // Cleanup.
@@ -524,27 +526,44 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
                         config->host_check_timeout(), false, 0,
                         tmp_processed_cmd, nullptr, nullptr);
 
-  // Run command.
   commands::result res;
-  try {
-    cmd->run(processed_cmd, *macros, config->host_check_timeout(), res);
-  } catch (std::exception const& e) {
+
+  auto run_failure = [&](const std::string& reason) {
     // Update check result.
     res.command_id = 0;
     res.end_time = timestamp::now();
     res.exit_code = service::state_unknown;
     res.exit_status = process::normal;
-    res.output = "(Execute command failed)";
+    res.output = reason;
     res.start_time = res.end_time;
+  };
 
-    engine_logger(log_runtime_warning, basic)
-        << "Error: Synchronous host check command execution failed: "
-        << e.what();
-    SPDLOG_LOGGER_WARN(
-        log_v2::runtime(),
-        "Error: Synchronous host check command execution failed: {}", e.what());
+  if (!hst->is_whitelist_allowed(processed_cmd)) {
+    SPDLOG_LOGGER_ERROR(log_v2::commands(),
+                        "host {}: this command cannot be executed because of "
+                        "security restrictions on the poller. A whitelist has "
+                        "been defined, and it does not include this command.",
+                        hst->name());
+    SPDLOG_LOGGER_DEBUG(log_v2::commands(),
+                        "host {}: command not allowed by whitelist {}",
+                        hst->name(), processed_cmd);
+    run_failure(configuration::command_blacklist_output);
+  } else {
+    // Run command.
+    try {
+      cmd->run(processed_cmd, *macros, config->host_check_timeout(), res);
+    } catch (std::exception const& e) {
+      run_failure("(Execute command failed)");
+
+      engine_logger(log_runtime_warning, basic)
+          << "Error: Synchronous host check command execution failed: "
+          << e.what();
+      SPDLOG_LOGGER_WARN(
+          log_v2::runtime(),
+          "Error: Synchronous host check command execution failed: {}",
+          e.what());
+    }
   }
-
   unsigned int execution_time(0);
   if (res.end_time >= res.start_time)
     execution_time = res.end_time.to_seconds() - res.start_time.to_seconds();

@@ -4,6 +4,10 @@ use strict;
 use warnings;
 use Getopt::Long;
 
+if ($#ARGV < 1) {
+    die "The script must be used with one integer argument\n";
+}
+
 my $d = time();
 my $dd = localtime();
 
@@ -22,10 +26,6 @@ unless (defined $id) {
 {
     use integer;
     $d = ($d + 3 * $id) & 0x1ff;
-}
-
-if ($#ARGV gt 1) {
-    die "The script must be used with one integer argument\n";
 }
 
 my $status = -1;
