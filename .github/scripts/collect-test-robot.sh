@@ -56,6 +56,7 @@ else
 fi
 
 
+
 ulimit -c unlimited
 echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
 
@@ -68,3 +69,4 @@ cd tests
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
 robot -e unstable $test_file
+
