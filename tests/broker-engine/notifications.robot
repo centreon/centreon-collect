@@ -1003,6 +1003,8 @@ not17
         Sleep    1s
     END
 
+    Set Service state    ${38}    ${2}
+
     ${result}    Check Service Status With Timeout    host_3    service_3    ${2}    90    HARD
     Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
 
@@ -1029,6 +1031,8 @@ not17
         Sleep    1s
     END
 
+    Set Service state    ${38}    ${2}
+
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    90    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
 
@@ -1037,12 +1041,13 @@ not17
     Should Be True    ${result}    The notification is not sent for service1
 
     ## Time to set the service3 to CRITICAL HARD.
+
     FOR   ${i}    IN RANGE    ${4}
         Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
         Sleep    1s
     END
     
-    Set Service state    ${30}    ${2}
+    Set Service state    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_3    service_3    ${2}    90    HARD
     Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
@@ -1057,7 +1062,7 @@ not17
         Sleep    1s
     END
 
-    Set Service state    ${30}    ${2}
+    Set Service state    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_4    service_4    ${2}    90    HARD
     Should Be True    ${result}    Service (host_4,service_4) should be CRITICAL HARD
