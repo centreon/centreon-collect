@@ -57,7 +57,7 @@ EBBPS1
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    60
         ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 1
+        ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 1
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
@@ -94,7 +94,7 @@ EBBPS1
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    120
         ${output}    Query
-        ...    SELECT count(*) FROM resources WHERE name like 'service\_%' and parent_name='host_1' and status <> 2
+        ...    SELECT count(*) FROM resources WHERE name like 'service\_%%' and parent_name='host_1' and status <> 2
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
@@ -140,7 +140,7 @@ EBBPS2
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    120
         ${output}    Query
-        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 1
+        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%%' AND s.state <> 1
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
@@ -176,7 +176,7 @@ EBBPS2
     Log To Console    date=${date}
     FOR    ${index}    IN RANGE    60
         ${output}    Query
-        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%' AND s.state <> 2
+        ...    SELECT count(*) FROM services s LEFT JOIN hosts h ON s.host_id=h.host_id WHERE h.name='host_1' AND s.description LIKE 'service\_%%' AND s.state <> 2
         Log To Console    ${output}
         Sleep    1s
         IF    "${output}" == "((0,),)"    BREAK
@@ -223,7 +223,7 @@ EBMSSM
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
     FOR    ${i}    IN RANGE    ${500}
         ${output}    Query
-        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%" AND s.last_check >= ${start}
+        ...    SELECT COUNT(s.last_check) FROM metrics m LEFT JOIN index_data i ON m.index_id = i.id LEFT JOIN services s ON s.host_id = i.host_id AND s.service_id = i.service_id WHERE metric_name LIKE "metric_%%" AND s.last_check >= ${start}
         IF    ${output[0][0]} >= 100000    BREAK
         Sleep    1s
     END
