@@ -56,15 +56,18 @@ class contactgroup {
   ~contactgroup() noexcept = default;
   contactgroup(const contactgroup&) = delete;
   contactgroup& operator=(const contactgroup&) = delete;
+#ifdef LEGACY_CONF
   void add_object(configuration::contactgroup const& obj);
+  void modify_object(configuration::contactgroup const& obj);
+  void remove_object(configuration::contactgroup const& obj);
+#else
   void add_object(const configuration::Contactgroup& obj);
-  void expand_objects(configuration::State& s);
-  void expand_objects(configuration::state& s);
   void modify_object(configuration::Contactgroup* to_modify,
                      const configuration::Contactgroup& new_object);
-  void modify_object(configuration::contactgroup const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::contactgroup const& obj);
+#endif
+  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::state& s);
   void resolve_object(const configuration::Contactgroup& obj);
   void resolve_object(configuration::contactgroup const& obj);
 };

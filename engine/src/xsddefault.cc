@@ -49,51 +49,49 @@ static int xsddefault_status_log_fd(-1);
 
 /* initialize status data */
 int xsddefault_initialize_status_data() {
-  if (legacy_conf) {
-    if (verify_config || config->status_file().empty())
-      return OK;
-
-    if (xsddefault_status_log_fd == -1) {
-      // delete the old status log (it might not exist).
-      unlink(config->status_file().c_str());
-
-      if ((xsddefault_status_log_fd =
-               open(config->status_file().c_str(), O_WRONLY | O_CREAT,
-                    S_IRUSR | S_IWUSR | S_IRGRP)) == -1) {
-        engine_logger(engine::logging::log_runtime_error,
-                      engine::logging::basic)
-            << "Error: Unable to open status data file '"
-            << config->status_file() << "': " << strerror(errno);
-        runtime_logger->error("Error: Unable to open status data file '{}': {}",
-                              config->status_file(), strerror(errno));
-        return ERROR;
-      }
-      set_cloexec(xsddefault_status_log_fd);
-    }
+#ifdef LEGACY_CONF
+  if (verify_config || config->status_file().empty())
     return OK;
-  } else {
-    if (verify_config || pb_config.status_file().empty())
-      return OK;
 
-    if (xsddefault_status_log_fd == -1) {
-      // delete the old status log (it might not exist).
-      unlink(pb_config.status_file().c_str());
+  if (xsddefault_status_log_fd == -1) {
+    // delete the old status log (it might not exist).
+    unlink(config->status_file().c_str());
 
-      if ((xsddefault_status_log_fd =
-               open(pb_config.status_file().c_str(), O_WRONLY | O_CREAT,
-                    S_IRUSR | S_IWUSR | S_IRGRP)) == -1) {
-        engine_logger(engine::logging::log_runtime_error,
-                      engine::logging::basic)
-            << "Error: Unable to open status data file '"
-            << pb_config.status_file() << "': " << strerror(errno);
-        runtime_logger->error("Error: Unable to open status data file '{}': {}",
-                              pb_config.status_file(), strerror(errno));
-        return ERROR;
-      }
-      set_cloexec(xsddefault_status_log_fd);
+    if ((xsddefault_status_log_fd =
+             open(config->status_file().c_str(), O_WRONLY | O_CREAT,
+                  S_IRUSR | S_IWUSR | S_IRGRP)) == -1) {
+      engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
+          << "Error: Unable to open status data file '" << config->status_file()
+          << "': " << strerror(errno);
+      runtime_logger->error("Error: Unable to open status data file '{}': {}",
+                            config->status_file(), strerror(errno));
+      return ERROR;
     }
-    return OK;
+    set_cloexec(xsddefault_status_log_fd);
   }
+  return OK;
+#else
+  if (verify_config || pb_config.status_file().empty())
+    return OK;
+
+  if (xsddefault_status_log_fd == -1) {
+    // delete the old status log (it might not exist).
+    unlink(pb_config.status_file().c_str());
+
+    if ((xsddefault_status_log_fd =
+             open(pb_config.status_file().c_str(), O_WRONLY | O_CREAT,
+                  S_IRUSR | S_IWUSR | S_IRGRP)) == -1) {
+      engine_logger(engine::logging::log_runtime_error, engine::logging::basic)
+          << "Error: Unable to open status data file '"
+          << pb_config.status_file() << "': " << strerror(errno);
+      runtime_logger->error("Error: Unable to open status data file '{}': {}",
+                            pb_config.status_file(), strerror(errno));
+      return ERROR;
+    }
+    set_cloexec(xsddefault_status_log_fd);
+  }
+  return OK;
+#endif
 }
 
 // cleanup status data before terminating.
@@ -101,18 +99,18 @@ int xsddefault_cleanup_status_data(int delete_status_data) {
   if (verify_config)
     return OK;
 
-  // delete the status log.
-  if (legacy_conf) {
-    if (delete_status_data && !config->status_file().empty()) {
-      if (unlink(config->status_file().c_str()))
-        return ERROR;
-    }
-  } else {
-    if (delete_status_data && !pb_config.status_file().empty()) {
-      if (unlink(pb_config.status_file().c_str()))
-        return ERROR;
-    }
+    // delete the status log.
+#ifdef LEGACY_CONF
+  if (delete_status_data && !config->status_file().empty()) {
+    if (unlink(config->status_file().c_str()))
+      return ERROR;
   }
+#else
+  if (delete_status_data && !pb_config.status_file().empty()) {
+    if (unlink(pb_config.status_file().c_str()))
+      return ERROR;
+  }
+#endif
 
   if (xsddefault_status_log_fd != -1) {
     close(xsddefault_status_log_fd);
@@ -125,11 +123,9 @@ int xsddefault_cleanup_status_data(int delete_status_data) {
 /****************** STATUS DATA OUTPUT FUNCTIONS ******************/
 /******************************************************************/
 
+#if LEGACY_CONF
 /* write all status data to file */
 int xsddefault_save_status_data() {
-  if (!legacy_conf)
-    return xsddefault_save_pb_status_data();
-
   if (xsddefault_status_log_fd == -1)
     return OK;
 
@@ -792,9 +788,9 @@ int xsddefault_save_status_data() {
 
   return OK;
 }
-
+#else
 /* write all status data to file */
-int xsddefault_save_pb_status_data() {
+int xsddefault_save_status_data() {
   if (xsddefault_status_log_fd == -1)
     return OK;
 
@@ -1457,3 +1453,4 @@ int xsddefault_save_pb_status_data() {
 
   return OK;
 }
+#endif

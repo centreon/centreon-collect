@@ -53,35 +53,6 @@ class ApplierPbContact : public ::testing::Test {
 
   void TearDown() override { deinit_config_state(); }
 
-  configuration::contact valid_contact_config() const {
-    // Add command.
-    {
-      configuration::command cmd;
-      cmd.parse("command_name", "cmd");
-      cmd.parse("command_line", "true");
-      configuration::applier::command aplyr;
-      aplyr.add_object(cmd);
-    }
-    // Add timeperiod.
-    {
-      configuration::timeperiod tperiod;
-      tperiod.parse("timeperiod_name", "24x7");
-      tperiod.parse("alias", "24x7");
-      tperiod.parse("monday", "00:00-24:00");
-      configuration::applier::timeperiod aplyr;
-      aplyr.add_object(tperiod);
-    }
-    // Valid contact configuration
-    // (will generate 0 warnings or 0 errors).
-    configuration::contact ctct;
-    ctct.parse("contact_name", "admin");
-    ctct.parse("host_notification_period", "24x7");
-    ctct.parse("service_notification_period", "24x7");
-    ctct.parse("host_notification_commands", "cmd");
-    ctct.parse("service_notification_commands", "cmd");
-    return ctct;
-  }
-
   configuration::Contact valid_pb_contact_config() const {
     // Add command.
     {

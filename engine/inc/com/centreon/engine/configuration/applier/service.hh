@@ -44,17 +44,20 @@ class service {
   service(const service&) = delete;
   ~service() noexcept = default;
   service& operator=(const service&) = delete;
-  void add_object(const configuration::Service& obj);
+#ifdef LEGACY_CONF
   void add_object(configuration::service const& obj);
-  void expand_objects(configuration::State& s);
+  void modify_object(configuration::service const& obj);
+  void remove_object(configuration::service const& obj);
   void expand_objects(configuration::state& s);
+  void resolve_object(configuration::service const& obj);
+#else
+  void add_object(const configuration::Service& obj);
   void modify_object(configuration::Service* old_obj,
                      const configuration::Service& new_obj);
-  void modify_object(configuration::service const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::service const& obj);
+  void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Service& obj);
-  void resolve_object(configuration::service const& obj);
+#endif
 };
 }  // namespace applier
 }  // namespace configuration

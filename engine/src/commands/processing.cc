@@ -18,6 +18,7 @@
 */
 
 #include "com/centreon/engine/commands/processing.hh"
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/commands/commands.hh"
 #include "com/centreon/engine/flapping.hh"
@@ -832,13 +833,13 @@ bool processing::execute(const std::string& cmdstr) {
 
   bool log_passive_checks;
   bool log_external_commands;
-  if (legacy_conf) {
-    log_passive_checks = config->log_passive_checks();
-    log_external_commands = config->log_external_commands();
-  } else {
-    log_passive_checks = pb_config.log_passive_checks();
-    log_external_commands = pb_config.log_external_commands();
-  }
+#ifdef LEGACY_CONF
+  log_passive_checks = config->log_passive_checks();
+  log_external_commands = config->log_external_commands();
+#else
+  log_passive_checks = pb_config.log_passive_checks();
+  log_external_commands = pb_config.log_external_commands();
+#endif
 
   std::unordered_map<std::string, command_info>::const_iterator it =
       _lst_command.find(command_name);
@@ -913,9 +914,11 @@ void processing::_wrapper_read_state_information() {
   try {
     retention::state state;
     retention::parser p;
-    const std::string& retention_file = legacy_conf
-                                            ? config->state_retention_file()
-                                            : pb_config.state_retention_file();
+#ifdef LEGACY_CONF
+    const std::string& retention_file = config->state_retention_file();
+#else
+    const std::string& retention_file = pb_config.state_retention_file();
+#endif
     p.parse(retention_file, state);
     retention::applier::state app_state;
     app_state.apply(*config, state);
@@ -928,8 +931,11 @@ void processing::_wrapper_read_state_information() {
 }
 
 void processing::_wrapper_save_state_information() {
-  retention::dump::save(legacy_conf ? config->state_retention_file()
-                                    : pb_config.state_retention_file());
+#ifdef LEGACY_CONF
+  retention::dump::save(config->state_retention_file());
+#else
+  retention::dump::save(pb_config.state_retention_file());
+#endif
 }
 
 void processing::wrapper_enable_host_and_child_notifications(host* hst) {

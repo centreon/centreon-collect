@@ -46,17 +46,20 @@ class serviceescalation {
   serviceescalation(const serviceescalation&) = delete;
   ~serviceescalation() noexcept = default;
   serviceescalation& operator=(const serviceescalation&) = delete;
+#ifdef LEGACY_CONF
   void add_object(const configuration::serviceescalation& obj);
-  void add_object(const configuration::Serviceescalation& obj);
-  void expand_objects(configuration::State& s);
-  void expand_objects(configuration::state& s);
-  void modify_object(configuration::Serviceescalation* old_obj,
-                     const configuration::Serviceescalation& new_obj);
   void modify_object(const configuration::serviceescalation& obj);
   void remove_object(const configuration::serviceescalation& obj);
-  void remove_object(ssize_t idx);
-  void resolve_object(const configuration::Serviceescalation& obj);
+  void expand_objects(configuration::state& s);
   void resolve_object(const configuration::serviceescalation& obj);
+#else
+  void add_object(const configuration::Serviceescalation& obj);
+  void modify_object(configuration::Serviceescalation* old_obj,
+                     const configuration::Serviceescalation& new_obj);
+  void remove_object(ssize_t idx);
+  void expand_objects(configuration::State& s);
+  void resolve_object(const configuration::Serviceescalation& obj);
+#endif
 };
 }  // namespace applier
 }  // namespace configuration

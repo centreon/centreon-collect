@@ -21,9 +21,11 @@
 */
 
 #include "com/centreon/engine/events/loop.hh"
+
 #include <chrono>
 #include <future>
 #include <thread>
+
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/command_manager.hh"
 #include "com/centreon/engine/configuration/applier/state.hh"
@@ -91,25 +93,7 @@ void loop::run() {
  */
 loop::loop() : _need_reload(0), _reload_running(false) {}
 
-static void pb_apply_conf(std::atomic<bool>* reloading) {
-  process_logger->info("Starting to reload configuration.");
-  try {
-    configuration::State config;
-    configuration::state_helper config_hlp(&config);
-    {
-      configuration::parser p;
-      std::string path(::pb_config.cfg_main());
-      p.parse(path, &config);
-    }
-    configuration::applier::state::instance().apply(config);
-    process_logger->info("Configuration reloaded, main loop continuing.");
-  } catch (std::exception const& e) {
-    config_logger->error("Error: {}", e.what());
-  }
-  *reloading = false;
-  process_logger->info("Reload configuration finished.");
-}
-
+#ifdef LEGACY_CONF
 static void apply_conf(std::atomic<bool>* reloading) {
   engine_logger(log_info_message, more) << "Starting to reload configuration.";
   process_logger->info("Starting to reload configuration.");
@@ -132,6 +116,26 @@ static void apply_conf(std::atomic<bool>* reloading) {
   engine_logger(log_info_message, more) << "Reload configuration finished.";
   process_logger->info("Reload configuration finished.");
 }
+#else
+static void apply_conf(std::atomic<bool>* reloading) {
+  process_logger->info("Starting to reload configuration.");
+  try {
+    configuration::State config;
+    configuration::state_helper config_hlp(&config);
+    {
+      configuration::parser p;
+      std::string path(::pb_config.cfg_main());
+      p.parse(path, &config);
+    }
+    configuration::applier::state::instance().apply(config);
+    process_logger->info("Configuration reloaded, main loop continuing.");
+  } catch (std::exception const& e) {
+    config_logger->error("Error: {}", e.what());
+  }
+  *reloading = false;
+  process_logger->info("Reload configuration finished.");
+}
+#endif
 
 /**
  *  Slot to dispatch Centreon Engine events.
@@ -167,10 +171,7 @@ void loop::_dispatching() {
         engine_logger(log_info_message, most) << "Reloading...";
         process_logger->info("Reloading...");
         reloading = true;
-        if (legacy_conf)
-          std::async(std::launch::async, apply_conf, &reloading);
-        else
-          std::async(std::launch::async, pb_apply_conf, &reloading);
+        std::async(std::launch::async, apply_conf, &reloading);
       } else {
         engine_logger(log_info_message, most) << "Already reloading...";
         process_logger->info("Already reloading...");
@@ -190,23 +191,23 @@ void loop::_dispatching() {
     uint32_t interval_length;
     int32_t command_check_interval;
     double sleep_time;
-    if (legacy_conf) {
-      time_change_threshold = config->time_change_threshold();
-      max_parallel_service_checks = config->max_parallel_service_checks();
-      execute_service_checks = config->execute_service_checks();
-      execute_host_checks = config->execute_host_checks();
-      interval_length = config->interval_length();
-      sleep_time = config->sleep_time();
-      command_check_interval = config->command_check_interval();
-    } else {
-      time_change_threshold = pb_config.time_change_threshold();
-      max_parallel_service_checks = pb_config.max_parallel_service_checks();
-      execute_service_checks = pb_config.execute_service_checks();
-      execute_host_checks = pb_config.execute_host_checks();
-      interval_length = pb_config.interval_length();
-      sleep_time = pb_config.sleep_time();
-      command_check_interval = pb_config.command_check_interval();
-    }
+#ifdef LEGACY_CONF
+    time_change_threshold = config->time_change_threshold();
+    max_parallel_service_checks = config->max_parallel_service_checks();
+    execute_service_checks = config->execute_service_checks();
+    execute_host_checks = config->execute_host_checks();
+    interval_length = config->interval_length();
+    sleep_time = config->sleep_time();
+    command_check_interval = config->command_check_interval();
+#else
+    time_change_threshold = pb_config.time_change_threshold();
+    max_parallel_service_checks = pb_config.max_parallel_service_checks();
+    execute_service_checks = pb_config.execute_service_checks();
+    execute_host_checks = pb_config.execute_host_checks();
+    interval_length = pb_config.interval_length();
+    sleep_time = pb_config.sleep_time();
+    command_check_interval = pb_config.command_check_interval();
+#endif
     // Hey, wait a second...  we traveled back in time!
     if (current_time < _last_time)
       compensate_for_system_time_change(

@@ -37,11 +37,10 @@
 #define CONF_LEGACY
 #define CONF_PROTO
 
-//#ifdef __cplusplus
-// extern "C" {
-//#endif /* C++ */
+// #ifdef __cplusplus
+//  extern "C" {
+// #endif /* C++ */
 
-extern bool legacy_conf;
 extern int config_errors;
 extern int config_warnings;
 
@@ -150,9 +149,9 @@ extern char* illegal_output_chars;
 extern unsigned int use_large_installation_tweaks;
 extern uint32_t instance_heartbeat_interval;
 
-//#ifdef __cplusplus
-//}
-//#endif /* C++ */
+// #ifdef __cplusplus
+// }
+// #endif /* C++ */
 
 void init_loggers();
 

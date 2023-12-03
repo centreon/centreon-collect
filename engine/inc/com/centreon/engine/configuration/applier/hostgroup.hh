@@ -36,26 +36,31 @@ class hostgroup {
   ~hostgroup() noexcept = default;
   hostgroup(const hostgroup&) = delete;
   hostgroup& operator=(const hostgroup&) = delete;
-  void add_object(const configuration::Hostgroup& obj);
+#ifdef LEGACY_CONF
   void add_object(configuration::hostgroup const& obj);
-  void expand_objects(configuration::State& s);
+  void modify_object(configuration::hostgroup const& obj);
   void expand_objects(configuration::state& s);
+  void remove_object(configuration::hostgroup const& obj);
+  void resolve_object(configuration::hostgroup const& obj);
+#else
+  void add_object(const configuration::Hostgroup& obj);
+  void expand_objects(configuration::State& s);
   void modify_object(configuration::Hostgroup* old_obj,
                      const configuration::Hostgroup& new_obj);
-  void modify_object(configuration::hostgroup const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::hostgroup const& obj);
   void resolve_object(const configuration::Hostgroup& obj);
-  void resolve_object(configuration::hostgroup const& obj);
+#endif
 
  private:
   typedef std::map<configuration::hostgroup::key_type, configuration::hostgroup>
       resolved_set;
 
+#ifdef LEGACY_CONF
   void _resolve_members(configuration::state& s,
                         configuration::hostgroup const& obj);
 
   resolved_set _resolved;
+#endif
 };
 }  // namespace applier
 }  // namespace configuration

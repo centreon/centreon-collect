@@ -43,17 +43,20 @@ class host {
    */
   ~host() noexcept = default;
   host& operator=(host const& right) = delete;
-  void add_object(const configuration::Host& obj);
+#ifdef LEGACY_CONF
   void add_object(configuration::host const& obj);
-  void expand_objects(configuration::State& s);
+  void modify_object(configuration::host const& obj);
+  void remove_object(configuration::host const& obj);
+  void resolve_object(configuration::host const& obj);
   void expand_objects(configuration::state& s);
+#else
+  void add_object(const configuration::Host& obj);
   void modify_object(configuration::Host* old_obj,
                      const configuration::Host& new_obj);
-  void modify_object(configuration::host const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::host const& obj);
   void resolve_object(const configuration::Host& obj);
-  void resolve_object(configuration::host const& obj);
+  void expand_objects(configuration::State& s);
+#endif
 };
 }  // namespace applier
 }  // namespace configuration

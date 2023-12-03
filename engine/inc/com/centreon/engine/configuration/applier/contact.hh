@@ -44,15 +44,18 @@ class contact {
   contact(contact const&) = delete;
   contact& operator=(const contact&) = delete;
 
-  void add_object(const configuration::Contact& obj);
-  void add_object(const configuration::contact& obj);
   void expand_objects(configuration::State& s);
   void expand_objects(configuration::state& s);
+#ifdef LEGACY_CONF
+  void add_object(const configuration::contact& obj);
+  void modify_object(const configuration::contact& obj);
+  void remove_object(const configuration::contact& obj);
+#else
+  void add_object(const configuration::Contact& obj);
   void modify_object(configuration::Contact* to_modify,
                      const configuration::Contact& new_object);
-  void modify_object(const configuration::contact& obj);
   void remove_object(ssize_t idx);
-  void remove_object(const configuration::contact& obj);
+#endif
   void resolve_object(const configuration::Contact& obj);
   void resolve_object(const configuration::contact& obj);
 };

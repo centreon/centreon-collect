@@ -23,10 +23,6 @@ set(ENGINERPC_DIR
     PARENT_SCOPE)
 set(INC_DIR "../inc/com/centreon/engine/")
 
-set(ENGINERPC enginerpc)
-set(ENGINERPC
-    enginerpc
-    PARENT_SCOPE)
 # Include directories.
 include_directories(${ENGINERPC_DIR} ${CMAKE_SOURCE_DIR}/common/src
                     ${CMAKE_SOURCE_DIR}/common/inc ${CONAN_INCLUDE_DIRS_GRPC})
@@ -60,20 +56,39 @@ target_link_libraries(cerpc CONAN_PKG::protobuf)
 
 # mod_enginerpc target.
 add_library(
-  ${ENGINERPC} STATIC
+  enginerpc_legacy STATIC
   # Sources.
   engine_impl.cc enginerpc.cc
   # Headers.
   "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
 
-add_dependencies(${ENGINERPC} centreon_common)
+add_dependencies(enginerpc_legacy centreon_common)
 
-target_precompile_headers(${ENGINERPC} PRIVATE precomp_inc/precomp.hh)
+target_precompile_headers(enginerpc_legacy PRIVATE precomp_inc/precomp.hh)
 
 # Prettier name.
 set_property(
-  TARGET ${ENGINERPC}
+  TARGET enginerpc_legacy
   PROPERTY PREFIX ""
   PROPERTY POSITION_INDEPENDENT_CODE ON)
 # Link target with libraries.
-target_link_libraries(${ENGINERPC} cerpc centreon_common CONAN_PKG::spdlog)
+target_link_libraries(enginerpc_legacy cerpc centreon_common CONAN_PKG::spdlog)
+
+add_library(
+  enginerpc STATIC
+  # Sources.
+  engine_impl.cc enginerpc.cc
+  # Headers.
+  "${INC_DIR}/engine_impl.hh" "${INC_DIR}/enginerpc.hh")
+
+add_dependencies(enginerpc centreon_common)
+
+target_precompile_headers(enginerpc PRIVATE precomp_inc/precomp.hh)
+
+# Prettier name.
+set_property(
+  TARGET enginerpc
+  PROPERTY PREFIX ""
+  PROPERTY POSITION_INDEPENDENT_CODE ON)
+# Link target with libraries.
+target_link_libraries(enginerpc cerpc centreon_common CONAN_PKG::spdlog)

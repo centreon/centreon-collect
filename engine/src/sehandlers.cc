@@ -52,15 +52,15 @@ int obsessive_compulsive_host_check_processor(
   bool obsess_over_hosts;
   std::string_view ochp_command;
   uint32_t ochp_timeout;
-  if (legacy_conf) {
-    obsess_over_hosts = config->obsess_over_hosts();
-    ochp_command = config->ochp_command();
-    ochp_timeout = config->ochp_timeout();
-  } else {
-    obsess_over_hosts = pb_config.obsess_over_hosts();
-    ochp_command = pb_config.ochp_command();
-    ochp_timeout = pb_config.ochp_timeout();
-  }
+#ifdef LEGACY_CONF
+  obsess_over_hosts = config->obsess_over_hosts();
+  ochp_command = config->ochp_command();
+  ochp_timeout = config->ochp_timeout();
+#else
+  obsess_over_hosts = pb_config.obsess_over_hosts();
+  ochp_command = pb_config.ochp_command();
+  ochp_timeout = pb_config.ochp_timeout();
+#endif
 
   engine_logger(dbg_functions, basic)
       << "obsessive_compulsive_host_check_processor()";
@@ -162,17 +162,17 @@ int run_global_service_event_handler(nagios_macros* mac,
   std::string_view global_service_event_handler;
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  if (legacy_conf) {
-    enable_event_handlers = config->enable_event_handlers();
-    global_service_event_handler = config->global_service_event_handler();
-    log_event_handlers = config->log_event_handlers();
-    event_handler_timeout = config->event_handler_timeout();
-  } else {
-    enable_event_handlers = pb_config.enable_event_handlers();
-    global_service_event_handler = pb_config.global_service_event_handler();
-    log_event_handlers = pb_config.log_event_handlers();
-    event_handler_timeout = pb_config.event_handler_timeout();
-  }
+#ifdef LEGACY_CONF
+  enable_event_handlers = config->enable_event_handlers();
+  global_service_event_handler = config->global_service_event_handler();
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  enable_event_handlers = pb_config.enable_event_handlers();
+  global_service_event_handler = pb_config.global_service_event_handler();
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
 
   if (svc == nullptr)
     return ERROR;
@@ -274,13 +274,13 @@ int run_service_event_handler(nagios_macros* mac,
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  if (legacy_conf) {
-    log_event_handlers = config->log_event_handlers();
-    event_handler_timeout = config->event_handler_timeout();
-  } else {
-    log_event_handlers = pb_config.log_event_handlers();
-    event_handler_timeout = pb_config.event_handler_timeout();
-  }
+#ifdef LEGACY_CONF
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
 
   engine_logger(dbg_functions, basic) << "run_service_event_handler()";
   functions_logger->trace("run_service_event_handler()");
@@ -376,13 +376,13 @@ int handle_host_event(com::centreon::engine::host* hst) {
 
   bool enable_event_handlers;
   std::string_view global_host_event_handler;
-  if (legacy_conf) {
-    enable_event_handlers = config->enable_event_handlers();
-    global_host_event_handler = config->global_host_event_handler();
-  } else {
-    enable_event_handlers = pb_config.enable_event_handlers();
-    global_host_event_handler = pb_config.global_host_event_handler();
-  }
+#ifdef LEGACY_CONF
+  enable_event_handlers = config->enable_event_handlers();
+  global_host_event_handler = config->global_host_event_handler();
+#else
+  enable_event_handlers = pb_config.enable_event_handlers();
+  global_host_event_handler = pb_config.global_host_event_handler();
+#endif
 
   /* send event data to broker */
   broker_statechange_data(
@@ -432,17 +432,17 @@ int run_global_host_event_handler(nagios_macros* mac,
   std::string_view global_host_event_handler;
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  if (legacy_conf) {
-    enable_event_handlers = config->enable_event_handlers();
-    global_host_event_handler = config->global_host_event_handler();
-    log_event_handlers = config->log_event_handlers();
-    event_handler_timeout = config->event_handler_timeout();
-  } else {
-    enable_event_handlers = pb_config.enable_event_handlers();
-    global_host_event_handler = pb_config.global_host_event_handler();
-    log_event_handlers = pb_config.log_event_handlers();
-    event_handler_timeout = pb_config.event_handler_timeout();
-  }
+#ifdef LEGACY_CONF
+  enable_event_handlers = config->enable_event_handlers();
+  global_host_event_handler = config->global_host_event_handler();
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  enable_event_handlers = pb_config.enable_event_handlers();
+  global_host_event_handler = pb_config.global_host_event_handler();
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
 
   if (hst == nullptr)
     return ERROR;
@@ -537,13 +537,13 @@ int run_host_event_handler(nagios_macros* mac,
 
   bool log_event_handlers;
   uint32_t event_handler_timeout;
-  if (legacy_conf) {
-    log_event_handlers = config->log_event_handlers();
-    event_handler_timeout = config->event_handler_timeout();
-  } else {
-    log_event_handlers = pb_config.log_event_handlers();
-    event_handler_timeout = pb_config.event_handler_timeout();
-  }
+#ifdef LEGACY_CONF
+  log_event_handlers = config->log_event_handlers();
+  event_handler_timeout = config->event_handler_timeout();
+#else
+  log_event_handlers = pb_config.log_event_handlers();
+  event_handler_timeout = pb_config.event_handler_timeout();
+#endif
 
   engine_logger(dbg_functions, basic) << "run_host_event_handler()";
   functions_logger->trace("run_host_event_handler()");

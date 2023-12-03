@@ -44,15 +44,18 @@ class hostescalation {
   ~hostescalation() noexcept = default;
   hostescalation(hostescalation const&) = delete;
   hostescalation& operator=(hostescalation const&) = delete;
-  void add_object(const configuration::Hostescalation& obj);
+#ifdef LEGACY_CONF
   void add_object(const configuration::hostescalation& obj);
-  void expand_objects(configuration::State& s);
-  void expand_objects(configuration::state& s);
+  void modify_object(configuration::hostescalation const& obj);
+  void remove_object(configuration::hostescalation const& obj);
+#else
+  void add_object(const configuration::Hostescalation& obj);
   void modify_object(configuration::Hostescalation* to_modify,
                      const configuration::Hostescalation& new_object);
-  void modify_object(configuration::hostescalation const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::hostescalation const& obj);
+#endif
+  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::state& s);
   void resolve_object(const configuration::Hostescalation& obj);
   void resolve_object(configuration::hostescalation const& obj);
 };

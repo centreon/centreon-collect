@@ -50,10 +50,13 @@ namespace applier {
 class state {
  public:
   void apply_ng(const configuration::State& new_cfg);
-  void apply(configuration::State& new_cfg);
+#ifdef LEGACY_CONF
   void apply(configuration::state& new_cfg);
-  void apply(configuration::State& new_cfg, retention::state& state);
   void apply(configuration::state& new_cfg, retention::state& state);
+#else
+  void apply(configuration::State& new_cfg);
+  void apply(configuration::State& new_cfg, retention::state& state);
+#endif
   void apply_log_config(configuration::State& new_cfg);
   void apply_log_config(configuration::state& new_cfg);
   static state& instance();
@@ -110,10 +113,13 @@ class state {
 
   template <typename ConfigurationType, typename ApplierType>
   void _expand(configuration::State& new_state);
-  void _processing(configuration::State& new_cfg,
-                   retention::state* state = NULL);
+#ifdef LEGACY_CONF
   void _processing(configuration::state& new_cfg,
-                   retention::state* state = NULL);
+                   retention::state* state = nullptr);
+#else
+  void _processing(configuration::State& new_cfg,
+                   retention::state* state = nullptr);
+#endif
   template <typename ConfigurationType, typename ApplierType>
   void _resolve(std::set<ConfigurationType>& cfg);
   template <typename ConfigurationType, typename ApplierType>

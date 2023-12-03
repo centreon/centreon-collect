@@ -81,40 +81,6 @@ class ApplierContact : public ::testing::Test {
     ctct.parse("service_notification_commands", "cmd");
     return ctct;
   }
-
-  configuration::Contact valid_pb_contact_config() const {
-    // Add command.
-    {
-      configuration::Command cmd;
-      configuration::command_helper cmd_hlp(&cmd);
-      cmd.set_command_name("cmd");
-      cmd.set_command_line("true");
-      configuration::applier::command aplyr;
-      aplyr.add_object(cmd);
-    }
-    // Add timeperiod.
-    {
-      configuration::Timeperiod tperiod;
-      configuration::timeperiod_helper tp_help(&tperiod);
-      tperiod.set_timeperiod_name("24x7");
-      tperiod.set_alias("24x7");
-      configuration::Timerange* tr = tperiod.mutable_timeranges()->add_monday();
-      // monday: 00:00-24:00
-      tr->set_range_start(0);
-      tr->set_range_end(24 * 3600);
-      configuration::applier::timeperiod aplyr;
-      aplyr.add_object(tperiod);
-    }
-    // Valid contact configuration
-    // (will generate 0 warnings or 0 errors).
-    configuration::Contact ctct;
-    ctct.set_contact_name("admin");
-    ctct.set_host_notification_period("24x7");
-    ctct.set_service_notification_period("24x7");
-    fill_string_group(ctct.mutable_host_notification_commands(), "cmd");
-    fill_string_group(ctct.mutable_service_notification_commands(), "cmd");
-    return ctct;
-  }
 };
 
 // Given a contact applier

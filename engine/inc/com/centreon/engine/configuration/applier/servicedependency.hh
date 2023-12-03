@@ -57,17 +57,20 @@ class servicedependency {
   ~servicedependency() noexcept = default;
   servicedependency(const servicedependency&) = delete;
   servicedependency& operator=(const servicedependency&) = delete;
-  void add_object(const configuration::Servicedependency& obj);
+#ifdef LEGACY_CONF
   void add_object(configuration::servicedependency const& obj);
+  void modify_object(configuration::servicedependency const& obj);
   void expand_objects(configuration::state& s);
-  void expand_objects(configuration::State& s);
+  void remove_object(configuration::servicedependency const& obj);
+  void resolve_object(configuration::servicedependency const& obj);
+#else
+  void add_object(const configuration::Servicedependency& obj);
   void modify_object(configuration::Servicedependency* old_obj,
                      const configuration::Servicedependency& new_obj);
-  void modify_object(configuration::servicedependency const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::servicedependency const& obj);
+  void expand_objects(configuration::State& s);
   void resolve_object(const configuration::Servicedependency& obj);
-  void resolve_object(configuration::servicedependency const& obj);
+#endif
 };
 }  // namespace applier
 }  // namespace configuration

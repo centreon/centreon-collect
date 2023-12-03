@@ -28,7 +28,6 @@ extern "C" {
 int xsddefault_initialize_status_data();
 int xsddefault_cleanup_status_data(int delete_status_data);
 int xsddefault_save_status_data();
-int xsddefault_save_pb_status_data();
 
 #ifdef __cplusplus
 }

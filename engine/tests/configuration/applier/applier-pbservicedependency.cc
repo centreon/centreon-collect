@@ -88,6 +88,57 @@ TEST_F(ApplierServiceDependency, AddDependencyWithoutExpansion) {
   ASSERT_THROW(sd_apply.add_object(sd), std::exception);
 }
 
+TEST_F(ApplierServiceDependency, PbAddDependencyWithoutExpansion) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host1");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_aply.add_object(hst);
+
+  hst.set_host_name("test_host2");
+  hst.set_address("127.0.0.2");
+  hst.set_host_id(13);
+  hst_aply.add_object(hst);
+  ASSERT_EQ(host::hosts.size(), 2u);
+
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  configuration::command_helper cmd_hlp(&cmd);
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd_aply.add_object(cmd);
+
+  configuration::applier::service svc_aply;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_host_name("test_host1");
+  svc.set_service_description("test_svc1");
+  svc.set_service_id(12);
+  svc.set_check_command("cmd");
+  svc.set_host_id(12);
+  svc_aply.add_object(svc);
+
+  svc.set_host_name("test_host2");
+  svc.set_service_description("test_svc2");
+  svc.set_service_id(13);
+  svc.set_host_id(13);
+  svc_aply.add_object(svc);
+  ASSERT_EQ(service::services.size(), 2u);
+
+  configuration::applier::servicedependency sd_apply;
+  configuration::Servicedependency sd;
+  configuration::servicedependency_helper sd_hlp(&sd);
+  sd_hlp.hook("hosts", "test_host1");
+  sd_hlp.hook("dependent_hosts", "test_host2");
+  sd_hlp.hook("service_description", "test_svc1");
+  sd_hlp.hook("dependent_service_description", "test_svc2");
+  /* the dependency type is missing because configuration is not
+   * expanded. */
+  ASSERT_THROW(sd_apply.add_object(sd), std::exception);
+}
+
 TEST_F(ApplierServiceDependency, AddDependency) {
   configuration::applier::host hst_aply;
   configuration::host hst;
@@ -134,5 +185,55 @@ TEST_F(ApplierServiceDependency, AddDependency) {
   /* Just to simulate the expansion */
   sd.dependency_type(configuration::servicedependency::execution_dependency);
 
+  ASSERT_NO_THROW(sd_apply.add_object(sd));
+}
+
+TEST_F(ApplierServiceDependency, PbAddDependency) {
+  configuration::applier::host hst_aply;
+  configuration::Host hst;
+  configuration::host_helper hst_hlp(&hst);
+  hst.set_host_name("test_host1");
+  hst.set_address("127.0.0.1");
+  hst.set_host_id(12);
+  hst_aply.add_object(hst);
+
+  hst.set_host_name("test_host2");
+  hst.set_address("127.0.0.2");
+  hst.set_host_id(13);
+  hst_aply.add_object(hst);
+  ASSERT_EQ(host::hosts.size(), 2u);
+
+  configuration::applier::command cmd_aply;
+  configuration::Command cmd;
+  cmd.set_command_name("cmd");
+  cmd.set_command_line("echo 1");
+  cmd_aply.add_object(cmd);
+
+  configuration::applier::service svc_aply;
+  configuration::Service svc;
+  configuration::service_helper svc_hlp(&svc);
+  svc.set_host_name("test_host1");
+  svc.set_service_description("test_svc1");
+  svc.set_service_id(12);
+  svc.set_check_command("cmd");
+  svc.set_host_id(12);
+  svc_aply.add_object(svc);
+
+  svc.set_host_name("test_host2");
+  svc.set_service_description("test_svc2");
+  svc.set_service_id(13);
+  svc.set_host_id(13);
+  svc_aply.add_object(svc);
+  ASSERT_EQ(service::services.size(), 2u);
+
+  configuration::applier::servicedependency sd_apply;
+  configuration::Servicedependency sd;
+  configuration::servicedependency_helper sd_hlp(&sd);
+  sd_hlp.hook("hosts", "test_host1");
+  sd_hlp.hook("dependent_hosts", "test_host2");
+  sd_hlp.hook("service_description", "test_svc1");
+  sd_hlp.hook("dependent_service_description", "test_svc2");
+  /* Just to simulate the expansion */
+  sd.set_dependency_type(configuration::DependencyKind::execution_dependency);
   ASSERT_NO_THROW(sd_apply.add_object(sd));
 }

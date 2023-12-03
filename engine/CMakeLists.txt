@@ -498,13 +498,30 @@ include_directories(enginerpc ${CMAKE_SOURCE_DIR}/common/src)
 add_library(cce_core ${LIBRARY_TYPE} ${FILES})
 add_dependencies(cce_core engine_rpc)
 add_dependencies(cce_core centreon_clib)
-#add_dependencies(cce_core target_configuration)
 
 target_precompile_headers(cce_core PRIVATE ${PRECOMP_HEADER})
 
 # Link target with required libraries.
 target_link_libraries(
   cce_core
+  CONAN_PKG::nlohmann_json
+  ${MATH_LIBRARIES}
+  ${PTHREAD_LIBRARIES}
+  ${SOCKET_LIBRARIES}
+  centreon_clib
+  ${fmt_LIBRARIES}
+  CONAN_PKG::spdlog)
+
+add_library(cce_core_legacy ${LIBRARY_TYPE} ${FILES})
+add_dependencies(cce_core_legacy engine_rpc)
+add_dependencies(cce_core_legacy centreon_clib)
+target_compile_definitions(cce_core_legacy PRIVATE LEGACY_CONF)
+
+target_precompile_headers(cce_core_legacy PRIVATE ${PRECOMP_HEADER})
+
+# Link target with required libraries.
+target_link_libraries(
+  cce_core_legacy
   CONAN_PKG::nlohmann_json
   ${MATH_LIBRARIES}
   ${PTHREAD_LIBRARIES}
@@ -554,9 +571,9 @@ target_link_libraries(
   centreon_clib
   log_v2
   "-Wl,-whole-archive"
-  enginerpc
-  cce_core
-  engine_config
+  enginerpc_legacy
+  cce_core_legacy
+  engine_config_legacy
   "-Wl,-no-whole-archive"
   -L${CONAN_LIB_DIRS_GRPC}
   "-Wl,--whole-archive"

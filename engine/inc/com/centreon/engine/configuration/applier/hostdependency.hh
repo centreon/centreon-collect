@@ -46,15 +46,18 @@ class hostdependency {
   hostdependency(const hostdependency&) = delete;
   ~hostdependency() noexcept = default;
   hostdependency& operator=(const hostdependency&) = delete;
+#ifdef LEGACY_CONF
   void add_object(configuration::hostdependency const& obj);
+  void modify_object(configuration::hostdependency const& obj);
+  void remove_object(configuration::hostdependency const& obj);
+#else
   void add_object(const configuration::Hostdependency& obj);
-  void expand_objects(configuration::State& s);
-  void expand_objects(configuration::state& s);
   void modify_object(configuration::Hostdependency* to_modify,
                      const configuration::Hostdependency& new_obj);
-  void modify_object(configuration::hostdependency const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::hostdependency const& obj);
+#endif
+  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::state& s);
   void resolve_object(const configuration::Hostdependency& obj);
   void resolve_object(configuration::hostdependency const& obj);
 };

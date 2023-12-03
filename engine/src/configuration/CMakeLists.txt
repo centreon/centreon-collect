@@ -29,6 +29,64 @@ set(FILES
 
 # Set files.
 add_library(
+  engine_config_legacy STATIC
+  # Sources.
+  "${SRC_DIR}/anomalydetection.cc"
+  "${SRC_DIR}/command.cc"
+  "${SRC_DIR}/connector.cc"
+  "${SRC_DIR}/contact.cc"
+  "${SRC_DIR}/contactgroup.cc"
+  "${SRC_DIR}/customvariable.cc"
+  "${SRC_DIR}/diff_state.cc"
+  "${SRC_DIR}/group.cc"
+  "${SRC_DIR}/host.cc"
+  "${SRC_DIR}/hostdependency.cc"
+  "${SRC_DIR}/hostescalation.cc"
+  "${SRC_DIR}/hostgroup.cc"
+  "${SRC_DIR}/object.cc"
+  "${SRC_DIR}/parser.cc"
+  "${SRC_DIR}/point_2d.cc"
+  "${SRC_DIR}/point_3d.cc"
+  "${SRC_DIR}/state.cc"
+  "${SRC_DIR}/service.cc"
+  "${SRC_DIR}/servicedependency.cc"
+  "${SRC_DIR}/serviceescalation.cc"
+  "${SRC_DIR}/servicegroup.cc"
+  "${SRC_DIR}/severity.cc"
+  "${SRC_DIR}/tag.cc"
+  "${SRC_DIR}/timeperiod.cc"
+  # Headers.
+  "${INC_DIR}/anomalydetection.hh"
+  "${INC_DIR}/command.hh"
+  "${INC_DIR}/connector.hh"
+  "${INC_DIR}/contactgroup.hh"
+  "${INC_DIR}/customvariable.hh"
+  "${INC_DIR}/contact.hh"
+  "${INC_DIR}/file_info.hh"
+  "${INC_DIR}/group.hh"
+  "${INC_DIR}/host.hh"
+  "${INC_DIR}/hostdependency.hh"
+  "${INC_DIR}/hostescalation.hh"
+  "${INC_DIR}/hostgroup.hh"
+  "${INC_DIR}/object.hh"
+  "${INC_DIR}/parser.hh"
+  "${INC_DIR}/point_2d.hh"
+  "${INC_DIR}/point_3d.hh"
+  "${INC_DIR}/servicedependency.hh"
+  "${INC_DIR}/serviceescalation.hh"
+  "${INC_DIR}/servicegroup.hh"
+  "${INC_DIR}/service.hh"
+  "${INC_DIR}/severity.hh"
+  "${INC_DIR}/state.hh"
+  "${INC_DIR}/tag.hh"
+  "${INC_DIR}/timeperiod.hh")
+
+target_link_libraries(engine_config_legacy CONAN_PKG::spdlog CONAN_PKG::abseil
+                      pb_configuration_lib log_v2)
+target_compile_definitions(engine_config_legacy PRIVATE LEGACY_CONF)
+
+# Set files.
+add_library(
   engine_config STATIC
   # Sources.
   "${SRC_DIR}/anomalydetection.cc"

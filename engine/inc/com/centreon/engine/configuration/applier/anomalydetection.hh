@@ -41,15 +41,18 @@ class anomalydetection {
   anomalydetection(const anomalydetection&) = delete;
   ~anomalydetection() noexcept = default;
   anomalydetection& operator=(const anomalydetection&) = delete;
-  void add_object(const configuration::Anomalydetection& obj);
+#ifdef LEGACY_CONF
   void add_object(configuration::anomalydetection const& obj);
-  void expand_objects(configuration::State& s);
-  void expand_objects(configuration::state& s);
+  void modify_object(configuration::anomalydetection const& obj);
+  void remove_object(configuration::anomalydetection const& obj);
+#else
+  void add_object(const configuration::Anomalydetection& obj);
   void modify_object(configuration::Anomalydetection* old_obj,
                      const configuration::Anomalydetection& new_obj);
-  void modify_object(configuration::anomalydetection const& obj);
   void remove_object(ssize_t idx);
-  void remove_object(configuration::anomalydetection const& obj);
+#endif
+  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::state& s);
   void resolve_object(const configuration::Anomalydetection& obj);
   void resolve_object(configuration::anomalydetection const& obj);
 };

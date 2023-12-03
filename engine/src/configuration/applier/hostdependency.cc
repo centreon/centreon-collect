@@ -57,6 +57,7 @@ size_t hostdependency_key_l(const hostdependency& hd) {
 }  // namespace centreon
 }  // namespace com
 
+#ifdef LEGACY_CONF
 /**
  *  Add new hostdependency.
  *
@@ -131,6 +132,54 @@ void applier::hostdependency::add_object(
 }
 
 /**
+ *  @brief Modify host dependency.
+ *
+ *  Host dependencies cannot be defined with anything else than their
+ *  full content. Therefore no modification can occur.
+ *
+ *  @param[in] obj  Unused.
+ */
+void applier::hostdependency::modify_object(
+    configuration::hostdependency const& obj) {
+  (void)obj;
+  throw engine_error()
+      << "Could not modify a host dependency: "
+      << "Host dependency objects can only be added or removed, "
+      << "this is likely a software bug that you should report to "
+      << "Centreon Engine developers";
+}
+
+/**
+ *  Remove old host dependency.
+ *
+ *  @param[in] obj  The host dependency to remove from the monitoring
+ *                  engine.
+ */
+void applier::hostdependency::remove_object(
+    configuration::hostdependency const& obj) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Removing a host dependency.");
+
+  // Find host dependency.
+  hostdependency_mmap::iterator it(
+      engine::hostdependency::hostdependencies_find(obj.key()));
+  if (it != engine::hostdependency::hostdependencies.end()) {
+    com::centreon::engine::hostdependency* dependency(it->second.get());
+
+    // Notify event broker.
+    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE, dependency);
+
+    // Remove host dependency from its list.
+    engine::hostdependency::hostdependencies.erase(it);
+  }
+
+  // Remove dependency from the global configuration set.
+  config->hostdependencies().erase(obj);
+}
+
+#else
+/**
  *  Add new hostdependency.
  *
  *  @param[in] obj  The new host dependency to add into the monitoring
@@ -202,6 +251,57 @@ void applier::hostdependency::add_object(
 
   broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_ADD, hd.get());
 }
+
+/**
+ *  @brief Modify host dependency.
+ *
+ *  Host dependencies cannot be defined with anything else than their
+ *  full content. Therefore no modification can occur.
+ *
+ *  @param[in] obj  Unused.
+ */
+void applier::hostdependency::modify_object(
+    configuration::Hostdependency* old_obj [[_may_be_unused]],
+    const configuration::Hostdependency& new_obj [[_may_be_unused]]) {
+  throw engine_error()
+      << "Could not modify a host dependency: Host dependency objects can only "
+         "be added or removed, this is likely a software bug that you should "
+         "report to Centreon Engine developers";
+}
+
+/**
+ *  Remove old host dependency.
+ *
+ *  @param[in] idx  The index of the host dependency configuration to remove
+ * from engine.
+ */
+void applier::hostdependency::remove_object(ssize_t idx) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Removing a host dependency.");
+
+  // Find host dependency.
+  auto& obj = pb_config.hostdependencies(0);
+  size_t key = hostdependency_key(obj);
+
+  hostdependency_mmap::iterator it =
+      engine::hostdependency::hostdependencies_find(
+          {obj.dependent_hosts().data(0), key});
+  if (it != engine::hostdependency::hostdependencies.end()) {
+    com::centreon::engine::hostdependency* dependency(it->second.get());
+
+    // Notify event broker.
+    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE, dependency);
+
+    // Remove host dependency from its list.
+    engine::hostdependency::hostdependencies.erase(it);
+  }
+
+  // Remove dependency from the global configuration set.
+  pb_config.mutable_hostdependencies()->DeleteSubrange(idx, 1);
+}
+
+#endif
 
 /**
  *  Expand host dependencies.
@@ -330,102 +430,6 @@ void applier::hostdependency::expand_objects(configuration::state& s) {
 
   // Set expanded host dependencies in configuration state.
   s.hostdependencies().swap(expanded);
-}
-
-/**
- *  @brief Modify host dependency.
- *
- *  Host dependencies cannot be defined with anything else than their
- *  full content. Therefore no modification can occur.
- *
- *  @param[in] obj  Unused.
- */
-void applier::hostdependency::modify_object(
-    configuration::Hostdependency* old_obj [[_may_be_unused]],
-    const configuration::Hostdependency& new_obj [[_may_be_unused]]) {
-  throw engine_error()
-      << "Could not modify a host dependency: Host dependency objects can only "
-         "be added or removed, this is likely a software bug that you should "
-         "report to Centreon Engine developers";
-}
-
-/**
- *  @brief Modify host dependency.
- *
- *  Host dependencies cannot be defined with anything else than their
- *  full content. Therefore no modification can occur.
- *
- *  @param[in] obj  Unused.
- */
-void applier::hostdependency::modify_object(
-    configuration::hostdependency const& obj) {
-  (void)obj;
-  throw engine_error()
-      << "Could not modify a host dependency: "
-      << "Host dependency objects can only be added or removed, "
-      << "this is likely a software bug that you should report to "
-      << "Centreon Engine developers";
-}
-
-/**
- *  Remove old host dependency.
- *
- *  @param[in] obj  The host dependency to remove from the monitoring
- *                  engine.
- */
-void applier::hostdependency::remove_object(
-    configuration::hostdependency const& obj) {
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  logger->debug("Removing a host dependency.");
-
-  // Find host dependency.
-  hostdependency_mmap::iterator it(
-      engine::hostdependency::hostdependencies_find(obj.key()));
-  if (it != engine::hostdependency::hostdependencies.end()) {
-    com::centreon::engine::hostdependency* dependency(it->second.get());
-
-    // Notify event broker.
-    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE, dependency);
-
-    // Remove host dependency from its list.
-    engine::hostdependency::hostdependencies.erase(it);
-  }
-
-  // Remove dependency from the global configuration set.
-  config->hostdependencies().erase(obj);
-}
-
-/**
- *  Remove old host dependency.
- *
- *  @param[in] idx  The index of the host dependency configuration to remove
- * from engine.
- */
-void applier::hostdependency::remove_object(ssize_t idx) {
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  logger->debug("Removing a host dependency.");
-
-  // Find host dependency.
-  auto& obj = pb_config.hostdependencies(0);
-  size_t key = hostdependency_key(obj);
-
-  hostdependency_mmap::iterator it =
-      engine::hostdependency::hostdependencies_find(
-          {obj.dependent_hosts().data(0), key});
-  if (it != engine::hostdependency::hostdependencies.end()) {
-    com::centreon::engine::hostdependency* dependency(it->second.get());
-
-    // Notify event broker.
-    broker_adaptive_dependency_data(NEBTYPE_HOSTDEPENDENCY_DELETE, dependency);
-
-    // Remove host dependency from its list.
-    engine::hostdependency::hostdependencies.erase(it);
-  }
-
-  // Remove dependency from the global configuration set.
-  pb_config.mutable_hostdependencies()->DeleteSubrange(idx, 1);
 }
 
 /**

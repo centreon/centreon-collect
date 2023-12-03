@@ -71,27 +71,27 @@ connector::connector(const std::string& connector_name,
     _restart = std::thread(&connector::_restart_loop, this),
     _thread_cv.wait(lck, [this] { return _thread_running; });
   }
-  if (legacy_conf) {
-    {
-      UNIQUE_LOCK(lck, _lock);
-      _process.setpgid_on_exec(config->use_setpgid());
-    }
-    if (config->enable_environment_macros()) {
-      engine_logger(log_runtime_warning, basic)
-          << "Warning: Connector does not enable environment macros";
-      runtime_logger->warn(
-          "Warning: Connector does not enable environment macros");
-    }
-  } else {
-    {
-      UNIQUE_LOCK(lck, _lock);
-      _process.setpgid_on_exec(pb_config.use_setpgid());
-    }
-    if (pb_config.enable_environment_macros()) {
-      runtime_logger->warn(
-          "Warning: Connector does not enable environment macros");
-    }
+#ifdef LEGACY_CONF
+  {
+    UNIQUE_LOCK(lck, _lock);
+    _process.setpgid_on_exec(config->use_setpgid());
   }
+  if (config->enable_environment_macros()) {
+    engine_logger(log_runtime_warning, basic)
+        << "Warning: Connector does not enable environment macros";
+    runtime_logger->warn(
+        "Warning: Connector does not enable environment macros");
+  }
+#else
+  {
+    UNIQUE_LOCK(lck, _lock);
+    _process.setpgid_on_exec(pb_config.use_setpgid());
+  }
+  if (pb_config.enable_environment_macros()) {
+    runtime_logger->warn(
+        "Warning: Connector does not enable environment macros");
+  }
+#endif
 }
 
 /**
@@ -436,17 +436,17 @@ void connector::_connector_close() {
 
   // Waiting connector quit.
   bool is_timeout;
-  if (legacy_conf) {
-    is_timeout =
-        _cv_query.wait_for(
-            lock, std::chrono::seconds(config->service_check_timeout())) ==
-        std::cv_status::timeout;
-  } else {
-    is_timeout =
-        _cv_query.wait_for(
-            lock, std::chrono::seconds(pb_config.service_check_timeout())) ==
-        std::cv_status::timeout;
-  }
+#ifdef LEGACY_CONF
+  is_timeout =
+      _cv_query.wait_for(
+          lock, std::chrono::seconds(config->service_check_timeout())) ==
+      std::cv_status::timeout;
+#else
+  is_timeout =
+      _cv_query.wait_for(
+          lock, std::chrono::seconds(pb_config.service_check_timeout())) ==
+      std::cv_status::timeout;
+#endif
   if (is_timeout || !_query_quit_ok) {
     _process.kill();
     if (is_timeout) {
@@ -491,14 +491,15 @@ void connector::_connector_start() {
 
     // Waiting connector version, or 1 seconds.
     bool is_timeout;
-    if (legacy_conf)
-      is_timeout = !_cv_query.wait_for(
-          lock, std::chrono::seconds(config->service_check_timeout()),
-          [this] { return _version_set; });
-    else
-      is_timeout = !_cv_query.wait_for(
-          lock, std::chrono::seconds(pb_config.service_check_timeout()),
-          [this] { return _version_set; });
+#ifdef LEGACY_CONF
+    is_timeout = !_cv_query.wait_for(
+        lock, std::chrono::seconds(config->service_check_timeout()),
+        [this] { return _version_set; });
+#else
+    is_timeout = !_cv_query.wait_for(
+        lock, std::chrono::seconds(pb_config.service_check_timeout()),
+        [this] { return _version_set; });
+#endif
 
     if (is_timeout || !_query_version_ok) {
       _process.kill();

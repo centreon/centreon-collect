@@ -31,31 +31,7 @@
 using namespace com::centreon::engine::configuration;
 using com::centreon::common::log_v2::log_v2;
 
-/**
- * @brief Add new connector.
- *
- * @param obj The new connector to add into the monitoring engine.
- */
-void applier::connector::add_object(const configuration::Connector& obj) {
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  logger->debug("Creating new connector '{}'.", obj.connector_name());
-
-  // Expand command line.
-  nagios_macros* macros = get_global_macros();
-  std::string command_line;
-  process_macros_r(macros, obj.connector_line(), command_line, 0);
-
-  // Add connector to the global configuration set.
-  auto* cfg_cnn = pb_config.add_connectors();
-  cfg_cnn->CopyFrom(obj);
-
-  // Create connector.
-  auto cmd = std::make_shared<commands::connector>(
-      obj.connector_name(), command_line, &checks::checker::instance());
-  commands::connector::connectors[obj.connector_name()] = cmd;
-}
-
+#ifdef LEGACY_CONF
 /**
  *  Add new connector.
  *
@@ -82,26 +58,89 @@ void applier::connector::add_object(configuration::connector const& obj) {
 }
 
 /**
- *  @brief Expand connector.
+ *  Modify connector.
  *
- *  Connector configuration objects do not need expansion. Therefore
- *  this method only copy obj to expanded.
- *
- *  @param[in] s  Unused.
+ *  @param[in] obj  The connector to modify in the monitoring engine.
  */
-void applier::connector::expand_objects(configuration::State& s
-                                        [[maybe_unused]]) {}
+void applier::connector::modify_object(configuration::connector const& obj) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Modifying connector '{}'.", obj.connector_name());
+
+  // Find old configuration.
+  set_connector::iterator it_cfg(config->connectors_find(obj.key()));
+  if (it_cfg == config->connectors().end())
+    throw(engine_error() << "Cannot modify non-existing connector '"
+                         << obj.connector_name() << "'");
+
+  // Find connector object.
+  connector_map::iterator it_obj(
+      commands::connector::connectors.find(obj.key()));
+  if (it_obj == commands::connector::connectors.end())
+    throw(engine_error() << "Could not modify non-existing "
+                         << "connector object '" << obj.connector_name()
+                         << "'");
+  commands::connector* c(it_obj->second.get());
+
+  // Update the global configuration set.
+  config->connectors().erase(it_cfg);
+  config->connectors().insert(obj);
+
+  // Expand command line.
+  nagios_macros* macros(get_global_macros());
+  std::string command_line;
+  process_macros_r(macros, obj.connector_line(), command_line, 0);
+  std::string processed_cmd(command_line);
+
+  // Set the new command line.
+  c->set_command_line(processed_cmd);
+}
 
 /**
- *  @brief Expand connector.
+ *  Remove old connector.
  *
- *  Connector configuration objects do not need expansion. Therefore
- *  this method only copy obj to expanded.
- *
- *  @param[in] s  Unused.
+ *  @param[in] obj  The new connector to remove from the monitoring
+ *                  engine.
  */
-void applier::connector::expand_objects(configuration::state& s) {
-  (void)s;
+void applier::connector::remove_object(configuration::connector const& obj) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Removing connector '{}'.", obj.connector_name());
+
+  // Find connector.
+  connector_map::iterator it(commands::connector::connectors.find(obj.key()));
+  if (it != commands::connector::connectors.end()) {
+    // Remove connector object.
+    commands::connector::connectors.erase(it);
+  }
+
+  // Remove connector from the global configuration set.
+  config->connectors().erase(obj);
+}
+#else
+/**
+ * @brief Add new connector.
+ *
+ * @param obj The new connector to add into the monitoring engine.
+ */
+void applier::connector::add_object(const configuration::Connector& obj) {
+  // Logging.
+  auto logger = log_v2::instance().get(log_v2::CONFIG);
+  logger->debug("Creating new connector '{}'.", obj.connector_name());
+
+  // Expand command line.
+  nagios_macros* macros = get_global_macros();
+  std::string command_line;
+  process_macros_r(macros, obj.connector_line(), command_line, 0);
+
+  // Add connector to the global configuration set.
+  auto* cfg_cnn = pb_config.add_connectors();
+  cfg_cnn->CopyFrom(obj);
+
+  // Create connector.
+  auto cmd = std::make_shared<commands::connector>(
+      obj.connector_name(), command_line, &checks::checker::instance());
+  commands::connector::connectors[obj.connector_name()] = cmd;
 }
 
 /**
@@ -144,45 +183,6 @@ void applier::connector::modify_object(
   c->set_command_line(command_line);
 }
 
-/**
- *  Modify connector.
- *
- *  @param[in] obj  The connector to modify in the monitoring engine.
- */
-void applier::connector::modify_object(configuration::connector const& obj) {
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  logger->debug("Modifying connector '{}'.", obj.connector_name());
-
-  // Find old configuration.
-  set_connector::iterator it_cfg(config->connectors_find(obj.key()));
-  if (it_cfg == config->connectors().end())
-    throw(engine_error() << "Cannot modify non-existing connector '"
-                         << obj.connector_name() << "'");
-
-  // Find connector object.
-  connector_map::iterator it_obj(
-      commands::connector::connectors.find(obj.key()));
-  if (it_obj == commands::connector::connectors.end())
-    throw(engine_error() << "Could not modify non-existing "
-                         << "connector object '" << obj.connector_name()
-                         << "'");
-  commands::connector* c(it_obj->second.get());
-
-  // Update the global configuration set.
-  config->connectors().erase(it_cfg);
-  config->connectors().insert(obj);
-
-  // Expand command line.
-  nagios_macros* macros(get_global_macros());
-  std::string command_line;
-  process_macros_r(macros, obj.connector_line(), command_line, 0);
-  std::string processed_cmd(command_line);
-
-  // Set the new command line.
-  c->set_command_line(processed_cmd);
-}
-
 void applier::connector::remove_object(ssize_t idx) {
   // Logging.
   const configuration::Connector& obj = pb_config.connectors()[idx];
@@ -201,26 +201,29 @@ void applier::connector::remove_object(ssize_t idx) {
   pb_config.mutable_connectors()->DeleteSubrange(idx, 1);
 }
 
+#endif
+
 /**
- *  Remove old connector.
+ *  @brief Expand connector.
  *
- *  @param[in] obj  The new connector to remove from the monitoring
- *                  engine.
+ *  Connector configuration objects do not need expansion. Therefore
+ *  this method only copy obj to expanded.
+ *
+ *  @param[in] s  Unused.
  */
-void applier::connector::remove_object(configuration::connector const& obj) {
-  // Logging.
-  auto logger = log_v2::instance().get(log_v2::CONFIG);
-  logger->debug("Removing connector '{}'.", obj.connector_name());
+void applier::connector::expand_objects(configuration::State& s
+                                        [[maybe_unused]]) {}
 
-  // Find connector.
-  connector_map::iterator it(commands::connector::connectors.find(obj.key()));
-  if (it != commands::connector::connectors.end()) {
-    // Remove connector object.
-    commands::connector::connectors.erase(it);
-  }
-
-  // Remove connector from the global configuration set.
-  config->connectors().erase(obj);
+/**
+ *  @brief Expand connector.
+ *
+ *  Connector configuration objects do not need expansion. Therefore
+ *  this method only copy obj to expanded.
+ *
+ *  @param[in] s  Unused.
+ */
+void applier::connector::expand_objects(configuration::state& s) {
+  (void)s;
 }
 
 /**

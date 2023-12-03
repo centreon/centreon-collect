@@ -511,15 +511,26 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   timeval start_cmd;
   timeval end_cmd{0, 0};
   gettimeofday(&start_cmd, nullptr);
+#ifdef LEGACY_CONF
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
                         NEBATTR_NONE, start_cmd, end_cmd, 0,
                         config->host_check_timeout(), false, 0,
                         tmp_processed_cmd, nullptr, nullptr);
+#else
+  broker_system_command(NEBTYPE_SYSTEM_COMMAND_START, NEBFLAG_NONE,
+                        NEBATTR_NONE, start_cmd, end_cmd, 0,
+                        pb_config.host_check_timeout(), false, 0,
+                        tmp_processed_cmd, nullptr, nullptr);
+#endif
 
   // Run command.
   commands::result res;
   try {
+#ifdef LEGACY_CONF
     cmd->run(processed_cmd, *macros, config->host_check_timeout(), res);
+#else
+    cmd->run(processed_cmd, *macros, pb_config.host_check_timeout(), res);
+#endif
   } catch (std::exception const& e) {
     // Update check result.
     res.command_id = 0;
@@ -549,16 +560,25 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   memset(&end_cmd, 0, sizeof(end_time));
   end_cmd.tv_sec = res.end_time.to_seconds();
   end_cmd.tv_usec = res.end_time.to_useconds() - end_cmd.tv_sec * 1000000ull;
+#ifdef LEGACY_CONF
   broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
                         start_cmd, end_cmd, execution_time,
                         config->host_check_timeout(),
                         res.exit_status == process::timeout, res.exit_code,
                         tmp_processed_cmd, res.output.c_str(), nullptr);
+#else
+  broker_system_command(NEBTYPE_SYSTEM_COMMAND_END, NEBFLAG_NONE, NEBATTR_NONE,
+                        start_cmd, end_cmd, execution_time,
+                        pb_config.host_check_timeout(),
+                        res.exit_status == process::timeout, res.exit_code,
+                        tmp_processed_cmd, res.output.c_str(), nullptr);
+#endif
 
   // Cleanup.
   clear_volatile_macros_r(macros);
 
   // If the command timed out.
+#ifdef LEGACY_CONF
   if (res.exit_status == process::timeout) {
     res.output = fmt::format("Host check timed out after {}  seconds",
                              config->host_check_timeout());
@@ -572,6 +592,21 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
         "seconds",
         processed_cmd, hst->name(), config->host_check_timeout());
   }
+#else
+  if (res.exit_status == process::timeout) {
+    res.output = fmt::format("Host check timed out after {}  seconds",
+                             pb_config.host_check_timeout());
+    engine_logger(log_runtime_warning, basic)
+        << "Warning: Host check command '" << processed_cmd << "' for host '"
+        << hst->name() << "' timed out after " << pb_config.host_check_timeout()
+        << " seconds";
+    SPDLOG_LOGGER_WARN(
+        runtime_logger,
+        "Warning: Host check command '{}' for host '{}' timed out after {} "
+        "seconds",
+        processed_cmd, hst->name(), pb_config.host_check_timeout());
+  }
+#endif
 
   // Update values.
   hst->set_execution_time(execution_time);

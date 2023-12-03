@@ -143,11 +143,11 @@ void get_datetime_string(time_t const* raw_time,
 #endif /* HAVE_TM_ZONE || HAVE_TZNAME */
 
   int32_t date_format;
-  if (legacy_conf) {
-    date_format = config->date_format();
-  } else {
-    date_format = pb_config.date_format();
-  }
+#ifdef LEGACY_CONF
+  date_format = config->date_format();
+#else
+  date_format = pb_config.date_format();
+#endif
 
   /* ctime() style date/time */
   if (type == LONG_DATE_TIME)
@@ -162,11 +162,10 @@ void get_datetime_string(time_t const* raw_time,
                month, year, hour, minute, second);
     else if (date_format == DATE_FORMAT_ISO8601 ||
              date_format == DATE_FORMAT_STRICT_ISO8601)
-      snprintf(
-          buffer, buffer_length, "%04d-%02d-%02d%c%02d:%02d:%02d", year, month,
-          day,
-          (date_format == DATE_FORMAT_STRICT_ISO8601) ? 'T' : ' ',
-          hour, minute, second);
+      snprintf(buffer, buffer_length, "%04d-%02d-%02d%c%02d:%02d:%02d", year,
+               month, day,
+               (date_format == DATE_FORMAT_STRICT_ISO8601) ? 'T' : ' ', hour,
+               minute, second);
     else
       snprintf(buffer, buffer_length, "%02d-%02d-%04d %02d:%02d:%02d", month,
                day, year, hour, minute, second);

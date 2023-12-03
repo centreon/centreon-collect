@@ -48,15 +48,18 @@ class command {
   ~command() noexcept = default;
   command(const command&) = delete;
   command& operator=(const command&) = delete;
-  void add_object(const configuration::Command& obj);
+#ifdef LEGACY_CONF
   void add_object(const configuration::command& obj);
-  void expand_objects(configuration::State& s);
-  void expand_objects(configuration::state& s);
+  void modify_object(const configuration::command& obj);
+  void remove_object(const configuration::command& obj);
+#else
+  void add_object(const configuration::Command& obj);
   void modify_object(configuration::Command* to_modify,
                      const configuration::Command& new_obj);
-  void modify_object(const configuration::command& obj);
   void remove_object(ssize_t idx);
-  void remove_object(const configuration::command& obj);
+#endif
+  void expand_objects(configuration::State& s);
+  void expand_objects(configuration::state& s);
   void resolve_object(const configuration::Command& obj);
   void resolve_object(const configuration::command& obj);
 };

@@ -54,17 +54,6 @@ TEST_F(ApplierHost, NewHostWithoutHostId) {
   ASSERT_THROW(hst_aply.add_object(hst), std::exception);
 }
 
-TEST_F(ApplierHost, PbNewHostWithoutHostId) {
-  configuration::applier::host hst_aply;
-  configuration::Service svc;
-  configuration::service_helper svc_hlp(&svc);
-  configuration::Host hst;
-  configuration::host_helper hst_hlp(&hst);
-  hst.set_host_name("test_host");
-  hst.set_address("127.0.0.1");
-  ASSERT_THROW(hst_aply.add_object(hst), std::exception);
-}
-
 // Given a host configuration
 // When we change the host name in the configuration
 // Then the applier modify_object changes the host name without changing
@@ -89,27 +78,6 @@ TEST_F(ApplierHost, HostRenamed) {
   ASSERT_EQ(get_host_id(h1->name()), 12u);
 }
 
-TEST_F(ApplierHost, PbHostRenamed) {
-  configuration::applier::host hst_aply;
-  configuration::Host hst;
-  configuration::host_helper hst_hlp(&hst);
-  hst.set_host_name("test_host");
-  hst.set_address("127.0.0.1");
-  hst.set_host_id(12);
-  hst_aply.add_object(hst);
-  const host_map& hm = engine::host::hosts;
-  ASSERT_EQ(hm.size(), 1u);
-  auto h1 = hm.begin()->second;
-  ASSERT_EQ(h1->name(), std::string_view("test_host"));
-
-  hst.set_host_name("test_host1");
-  hst_aply.modify_object(&pb_config.mutable_hosts()->at(0), hst);
-  ASSERT_EQ(hm.size(), 1u);
-  h1 = hm.begin()->second;
-  ASSERT_EQ(h1->name(), std::string_view("test_host1"));
-  ASSERT_EQ(get_host_id(h1->name()), 12u);
-}
-
 TEST_F(ApplierHost, HostRemoved) {
   configuration::applier::host hst_aply;
   configuration::host hst;
@@ -131,30 +99,6 @@ TEST_F(ApplierHost, HostRemoved) {
   h1 = hm.begin()->second;
   ASSERT_EQ(hm.size(), 1u);
   ASSERT_TRUE(h1->name() == "test_host1");
-  ASSERT_EQ(get_host_id(h1->name()), 12u);
-}
-
-TEST_F(ApplierHost, PbHostRemoved) {
-  configuration::applier::host hst_aply;
-  configuration::Host hst;
-  configuration::host_helper hst_hlp(&hst);
-  hst.set_host_name("test_host");
-  hst.set_address("127.0.0.1");
-  hst.set_host_id(12);
-  hst_aply.add_object(hst);
-  const host_map& hm = engine::host::hosts;
-  ASSERT_EQ(hm.size(), 1u);
-  auto h1 = hm.begin()->second;
-  ASSERT_EQ(h1->name(), std::string_view("test_host"));
-
-  hst_aply.remove_object(0);
-
-  ASSERT_EQ(hm.size(), 0u);
-  hst.set_host_name("test_host1");
-  hst_aply.add_object(hst);
-  h1 = hm.begin()->second;
-  ASSERT_EQ(hm.size(), 1u);
-  ASSERT_EQ(h1->name(), std::string_view("test_host1"));
   ASSERT_EQ(get_host_id(h1->name()), 12u);
 }
 
