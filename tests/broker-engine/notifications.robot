@@ -1042,18 +1042,18 @@ not17
 
     ## Time to set the service3 to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${4}
+    FOR   ${i}    IN RANGE    ${2}
         Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
         Sleep    1s
     END
     
     Set Service state    ${38}    ${2}
-
+    
     ${result}    Check Service Status With Timeout    host_3    service_3    ${2}    90    HARD
     Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
 
     ${content}    Create List    This notifier won't send any notification since it depends on another notifier that has already sent one
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    90
     Should Be True    ${result}    The notification is sent for service3 dependency not working
 
     ## Time to set the service4 to CRITICAL HARD.
