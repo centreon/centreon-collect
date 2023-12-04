@@ -137,7 +137,7 @@ jobs:
           --workdir /test_collect \
           ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
           ./.github/scripts/collect-test-robot.sh \
-          ${{ matrix.feature }} ${{inputs.database_type}} ${{inputs.tests_params}}
+          ${{ matrix.feature }} ${{inputs.database_type}}
 
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
