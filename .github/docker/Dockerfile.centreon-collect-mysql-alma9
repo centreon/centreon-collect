@@ -19,7 +19,7 @@ baseurl=https://repo.goreleaser.com/yum/
 enabled=1
 gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
 
-dnf install -y cmake \
+dnf --best install -y cmake \
     gcc \
     gcc-c++ \
     gdb \
@@ -32,7 +32,6 @@ dnf install -y cmake \
     gnutls-devel \
     iproute \
     libgcrypt-devel \
-    libssh2-devel \
     lua-devel \
     make \
     perl-ExtUtils-Embed.noarch \

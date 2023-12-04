@@ -58,36 +58,43 @@ jobs:
 
   robot-test:
     needs: [get-version, package]
+
     strategy:
       fail-fast: false
       matrix:
         include:
           - distrib: el9
-            image: centreon-collect-alma9
+            image: centreon-collect-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mariadb
+            test_group_name: robot_test-mariadb-el9-amd64
           - distrib: el9
-            image: centreon-collect-mysql-alma9
+            image: centreon-collect-mysql-alma9-test
             package_extension: rpm
             arch: amd64
             database_type: mysql
+            test_group_name: robot_test-mysql-el9-amd64
           - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64
+            image: centreon-collect-debian-bullseye-arm64-test
             package_extension: deb
             arch: arm64
             database_type: mariadb
-    name: robot test ${{ matrix.database_type }} ${{ matrix.distrib }} ${{ matrix.arch }}
+            test_group_name: robot_test-mariadb-el9-arm64
+
+    name: ${{ matrix.test_group_name }}
 
     uses: ./.github/workflows/robot-test.yml
     with:
       distrib: ${{ matrix.distrib }}
       arch: ${{ matrix.arch }}
       image: ${{ matrix.image }}
+      image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
       image_version: ${{ needs.get-version.outputs.img_version }}
       package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
       package_cache_path: ./*.${{ matrix.package_extension}}
       database_type: ${{ matrix.database_type }}
+      test_group_name: ${{matrix.test_group_name}}
     secrets:
       registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
       registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}

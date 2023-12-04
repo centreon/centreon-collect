@@ -20,7 +20,7 @@ enabled=1
 gpgcheck=0' | tee /etc/yum.repos.d/goreleaser.repo
 
 curl -LsS "https://r.mariadb.com/downloads/mariadb_repo_setup" | bash -s -- --os-type=rhel --os-version=8 --mariadb-server-version="mariadb-10.5"
-dnf install -y cmake \
+dnf --best install -y cmake \
     gcc \
     gcc-c++ \
     gdb \
@@ -36,7 +36,6 @@ dnf install -y cmake \
     MariaDB-server \
     gnutls-devel \
     libgcrypt-devel \
-    libssh2-devel \
     lua-devel \
     make \
     perl-ExtUtils-Embed.noarch \
