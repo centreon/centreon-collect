@@ -1408,7 +1408,7 @@ Config Notifications
     ...    /usr/bin/true
 
 Config Escalations
-    [Documentation]    Configuring engine notification escalations settings.
+    [Documentation]    Configuring engine notification escalations settings
     Engine Config Set Value In Services    0    service_1    notification_options    c
     Engine Config Set Value In Services    0    service_1    notifications_enabled    1
     Engine Config Set Value In Services    0    service_1    first_notification_delay    0
