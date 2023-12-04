@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/notifier.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class contact;
 
 class notification {
@@ -61,6 +61,6 @@ class notification {
 
 std::ostream& operator<<(std::ostream& os, notification const& obj);
 
-CCE_END()
+}
 
 #endif  // !CCE_NOTIFICATION_HH

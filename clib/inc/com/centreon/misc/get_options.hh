@@ -23,9 +23,8 @@
 #include <string>
 #include <vector>
 #include "com/centreon/misc/argument.hh"
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace misc {
 /**
@@ -76,6 +75,6 @@ class get_options {
 };
 }  // namespace misc
 
-CC_END()
+}
 
 #endif  // !CC_MISC_GET_OPTIONS_HH

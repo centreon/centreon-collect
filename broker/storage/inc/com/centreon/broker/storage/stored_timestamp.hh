@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace storage {
 /**
@@ -59,6 +59,6 @@ class stored_timestamp {
 };
 }  // namespace storage
 
-CCB_END()
+}
 
 #endif  //! CCB_SQL_STORED_TIMESTAMP_HH

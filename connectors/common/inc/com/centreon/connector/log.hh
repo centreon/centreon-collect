@@ -19,9 +19,7 @@
 #ifndef CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_
 #define CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_
 
-#include "com/centreon/connector/namespace.hh"
-
-CCC_BEGIN();
+namespace com::centreon::connector {
 
 class log {
  private:
@@ -43,5 +41,5 @@ class log {
   static std::shared_ptr<spdlog::logger> core();
 };
 
-CCC_END();
+}  // namespace com::centreon::connector
 #endif  // CONNECTORS_PERL_INC_COM_CENTREON_CONNECTOR_PERL_LOG_H_

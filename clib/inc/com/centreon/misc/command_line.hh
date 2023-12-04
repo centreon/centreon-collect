@@ -21,9 +21,8 @@
 
 #include <string>
 #include <vector>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace misc {
 /**
@@ -58,6 +57,6 @@ class command_line {
 };
 }  // namespace misc
 
-CC_END()
+}
 
 #endif  // !CC_MISC_COMMAND_LINE_HH

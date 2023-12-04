@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011, 2019-2021 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,7 +23,6 @@
 #include "com/centreon/broker/mapping/entry.hh"
 #include "com/centreon/broker/mapping/property.hh"
 #include "com/centreon/broker/mapping/source.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/events.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
@@ -36,9 +35,7 @@ static std::list<char*> generated;
  *  @param[out]    t        Base object.
  *  @param[out]    values   Generated values.
  */
-namespace com {
-namespace centreon {
-namespace broker {
+namespace com::centreon::broker {
 void randomize(io::data& t, std::vector<randval>* values) {
   using namespace com::centreon::exceptions;
   using namespace com::centreon::broker;
@@ -152,6 +149,4 @@ void randomize_cleanup() {
   io::protocols::unload();
 }
 
-}  // Namespace broker
-}  // Namespace centreon
-}  // Namespace com
+}  // namespace com::centreon::broker

@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/bam/bool_expression.hh"
 #include "com/centreon/broker/bam/bool_value.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -53,6 +52,6 @@ class bool_call : public bool_value {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BOOL_CALL_HH

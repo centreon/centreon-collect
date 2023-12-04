@@ -24,7 +24,7 @@
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class service : public object {
@@ -241,6 +241,6 @@ typedef std::shared_ptr<service> service_ptr;
 typedef std::list<service_ptr> list_service;
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_SERVICE_HH

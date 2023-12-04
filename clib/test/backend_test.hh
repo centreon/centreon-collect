@@ -22,7 +22,7 @@
 #include "com/centreon/logging/backend.hh"
 #include "com/centreon/misc/stringifier.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace logging {
 /**
@@ -66,6 +66,6 @@ class backend_test : public backend {
 };
 }  // namespace logging
 
-CC_END()
+}
 
 #endif  // !CC_TEST_LOGGING_BACKEND_TEST_HH

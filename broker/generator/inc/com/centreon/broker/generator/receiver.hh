@@ -19,9 +19,8 @@
 #ifndef CCB_GENERATOR_RECEIVER_HH
 #define CCB_GENERATOR_RECEIVER_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace generator {
 /**
@@ -45,6 +44,6 @@ class receiver : public io::stream {
 };
 }  // namespace generator
 
-CCB_END()
+}
 
 #endif  // !CCB_GENERATOR_RECEIVER_HH

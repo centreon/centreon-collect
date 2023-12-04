@@ -22,7 +22,7 @@
 #include "com/centreon/broker/http_tsdb/line_protocol_query.hh"
 #include "com/centreon/broker/http_tsdb/stream.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 class database_config;
@@ -62,6 +62,6 @@ class stream : public http_tsdb::stream {
 
 };  // namespace victoria_metrics
 
-CCB_END()
+}
 
 #endif  // !CCB_VICTORIA_METRICS_STREAM_HH

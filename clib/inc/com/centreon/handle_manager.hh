@@ -25,7 +25,7 @@
 #include <utility>
 #include "com/centreon/handle.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 // Forward declarations.
 class handle_action;
@@ -62,6 +62,6 @@ class handle_manager {
   task_manager* _task_manager;
 };
 
-CC_END()
+}
 
 #endif  // !CC_HANDLE_MANAGER_POSIX_HH

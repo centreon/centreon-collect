@@ -22,7 +22,7 @@
 #include "com/centreon/broker/sql/mysql_bind_base.hh"
 #include "com/centreon/broker/sql/mysql_column.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations
 class mysql;
@@ -310,6 +310,6 @@ class mysql_bulk_bind : public mysql_bind_base {
 
 }  // namespace database
 
-CCB_END()
+}
 
 #endif  // CCB_MYSQL_BULK_BIND_HH

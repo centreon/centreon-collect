@@ -23,7 +23,7 @@
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace storage {
 using pb_index_mapping =
@@ -38,6 +38,6 @@ using pb_status =
     io::protobuf<Status, make_type(io::storage, storage::de_pb_status)>;
 
 }  // namespace storage
-CCB_END()
+}
 
 #endif  // !CCB_GRAPHITE_INTERNAL_HH

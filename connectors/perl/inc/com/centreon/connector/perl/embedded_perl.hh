@@ -22,12 +22,11 @@
 #include <EXTERN.h>
 #include <perl.h>
 #include <sys/types.h>
-#include "com/centreon/connector/perl/namespace.hh"
 
 // Global Perl interpreter.
 extern PerlInterpreter* my_perl;
 
-CCCP_BEGIN()
+namespace com::centreon::connector::perl {
 
 /**
  *  @class embedded_perl embedded_perl.hh
@@ -59,6 +58,6 @@ class embedded_perl {
   char** _argv;
 };
 
-CCCP_END()
+}  // namespace com::centreon::connector::perl
 
 #endif  // !CCCP_EMBEDDED_PERL_HH

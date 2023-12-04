@@ -21,11 +21,10 @@
 
 #include "com/centreon/broker/bam/bool_value.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 
 #define COMPARE_EPSILON 0.0001
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -62,6 +61,6 @@ class bool_binary_operator : public bool_value {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_BOOL_BINARY_OPERATOR_HH

@@ -1,19 +1,19 @@
-/*
-** Copyright 2018 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2018 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include <absl/strings/str_split.h>
@@ -388,13 +388,13 @@ void mysql::_get_server_infos() {
     _server_version = future.get();
   }
 
-  std::vector<absl::string_view> v =
+  std::vector<std::string_view> v =
       absl::StrSplit(_server_version, absl::ByAnyChar(".-"));
   if (v.size() >= 4) {
     int32_t major;
     int32_t minor;
     int32_t patch;
-    absl::string_view server = v[3];
+    std::string_view server = v[3];
     if (absl::SimpleAtoi(v[0], &major) && absl::SimpleAtoi(v[1], &minor) &&
         absl::SimpleAtoi(v[2], &patch)) {
       log_v2::sql()->info("connected to '{}' Server, version {}.{}.{}",

@@ -29,9 +29,8 @@
 #include <sstream>
 #include <string>
 
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace string {
 bool get_next_line(std::ifstream& stream, std::string& line, unsigned int& pos);
@@ -212,21 +211,21 @@ void unescape(char* buffer);
  * threads
  */
 class c_strtok {
-  absl::string_view _src;
-  using size_type = absl::string_view::size_type;
+  std::string_view _src;
+  using size_type = std::string_view::size_type;
   size_type _pos;
 
  public:
-  c_strtok(const absl::string_view src) : _src(src), _pos(0) {}
+  c_strtok(const std::string_view src) : _src(src), _pos(0) {}
 
-  boost::optional<absl::string_view> extract(char sep);
-  bool extract(char sep, absl::string_view& extracted);
+  boost::optional<std::string_view> extract(char sep);
+  bool extract(char sep, std::string_view& extracted);
   bool extract(char sep, std::string& extracted);
   bool extract(char sep, int& extracted);
 };
 
 }  // namespace string
 
-CCE_END()
+}
 
 #endif  // !CCE_MISC_STRING_HH

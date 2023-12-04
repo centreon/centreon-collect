@@ -26,7 +26,7 @@
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class serviceextinfo;
@@ -243,6 +243,6 @@ typedef std::unordered_map<std::pair<std::string, std::string>,
     map_anomalydetection;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_ANOMALYDETECTION_HH

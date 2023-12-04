@@ -19,10 +19,9 @@
 #ifndef CCB_QUERY_PREPARATOR_HH
 #define CCB_QUERY_PREPARATOR_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  *  @class query_preparator query_preparator.hh
@@ -112,6 +111,6 @@ class query_preparator {
                                             const std::string& table);
 };
 
-CCB_END()
+}
 
 #endif  // !CCB_QUERY_PREPARATOR_HH

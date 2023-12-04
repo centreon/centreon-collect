@@ -19,9 +19,8 @@
 #ifndef CCB_CORE_TIME_TIMERANGE_HH
 #define CCB_CORE_TIME_TIMERANGE_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace time {
 /**
@@ -65,6 +64,6 @@ class timerange {
 };
 }  // namespace time
 
-CCB_END()
+}
 
 #endif  // !CCB_CORE_TIME_TIMERANGE_HH

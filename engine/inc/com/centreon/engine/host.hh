@@ -23,12 +23,12 @@
 #include "com/centreon/engine/service.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class contact;
 class host;
 class hostgroup;
 class hostescalation;
-CCE_END()
+}
 
 using host_map =
     absl::flat_hash_map<std::string,
@@ -38,7 +38,7 @@ using host_map_unsafe =
 using host_id_map =
     absl::flat_hash_map<uint64_t, std::shared_ptr<com::centreon::engine::host>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host : public notifier {
  public:
   static std::array<std::pair<uint32_t, std::string>, 3> const tab_host_states;
@@ -288,7 +288,7 @@ class host : public notifier {
   std::list<hostgroup*> _hostgroups;
 };
 
-CCE_END()
+}
 
 int is_host_immediate_child_of_host(com::centreon::engine::host* parent,
                                     com::centreon::engine::host* child);
@@ -303,7 +303,7 @@ std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::host const& obj);
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 void check_for_expired_acknowledgement(com::centreon::engine::host* h);
 com::centreon::engine::host& find_host(uint64_t host_id);
@@ -311,7 +311,7 @@ bool host_exists(uint64_t host_id) noexcept;
 uint64_t get_host_id(std::string const& name);
 std::string get_host_name(const uint64_t host_id);
 
-CCE_END()
+}
 
 std::ostream& operator<<(std::ostream& os, host_map_unsafe const& obj);
 

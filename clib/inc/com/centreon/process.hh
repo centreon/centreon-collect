@@ -28,7 +28,7 @@
 #include <string>
 #include "com/centreon/timestamp.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 class process_listener;
 class process_manager;
@@ -129,6 +129,6 @@ class process {
   void set_timeout(bool timeout);
 };
 
-CC_END()
+}
 
 #endif  // !CC_PROCESS_POSIX_HH

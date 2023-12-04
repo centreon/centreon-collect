@@ -1,19 +1,19 @@
-/*
-** Copyright 2017-2022 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2017-2022 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
@@ -196,10 +196,10 @@ int32_t macro_cache::get_severity(uint64_t host_id, uint64_t service_id) const {
  *
  * @return A string view pointing to the check command.
  */
-absl::string_view macro_cache::get_check_command(uint64_t host_id,
-                                                 uint64_t service_id) const {
+std::string_view macro_cache::get_check_command(uint64_t host_id,
+                                                uint64_t service_id) const {
   /* Case of services */
-  absl::string_view retval;
+  std::string_view retval;
   if (service_id) {
     auto found = _services.find({host_id, service_id});
     if (found == _services.end())

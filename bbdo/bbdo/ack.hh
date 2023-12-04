@@ -25,11 +25,8 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bbdo {
+namespace com::centreon::broker::bbdo {
 /**
  *  @class ack ack.hh "com/centreon/broker/bbdo/ack.hh"
  *  @brief An ack event sent between two bbdo's endpoint.
@@ -58,8 +55,6 @@ class ack : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace bbdo
-
-CCB_END()
+}  // namespace com::centreon::broker::bbdo
 
 #endif  // !CCB_BBDO_VERSION_RESPONSE_HH

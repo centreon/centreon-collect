@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2011 - 2013, 2020 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -108,8 +108,7 @@ void result::_internal_copy(result const& right) {
   output = right.output;
 }
 
-CCE_BEGIN()
-namespace commands {
+namespace com::centreon::engine::commands {
 std::ostream& operator<<(std::ostream& s, const result& to_dump) {
   s << "start_time=" << to_dump.start_time << ", end_time=" << to_dump.end_time
     << ", exit_code=" << to_dump.exit_code
@@ -118,6 +117,4 @@ std::ostream& operator<<(std::ostream& s, const result& to_dump) {
   return s;
 }
 
-}  // namespace commands
-
-CCE_END()
+}  // namespace com::centreon::engine::commands

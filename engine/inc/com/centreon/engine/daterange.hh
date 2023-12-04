@@ -24,15 +24,15 @@
 
 struct timeperiod_struct;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class daterange;
-CCE_END()
+}
 
 using daterange_list = std::list<com::centreon::engine::daterange>;
 
 using exception_array = std::array<daterange_list, DATERANGE_TYPES>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 class daterange {
  public:
@@ -120,6 +120,6 @@ std::ostream& operator<<(std::ostream& os,
 
 std::ostream& operator<<(std::ostream& os, exception_array const& obj);
 
-CCE_END()
+}
 
 #endif  // !CCE_OBJECTS_DATERANGE_HH

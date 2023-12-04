@@ -19,9 +19,8 @@
 #ifndef CCB_INFLUXDB_COLUMN_HH
 #define CCB_INFLUXDB_COLUMN_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace influxdb {
 /**
@@ -54,6 +53,6 @@ class column {
 };
 }  // namespace influxdb
 
-CCB_END()
+}
 
 #endif  // !CCB_INFLUXDB_COLUMN_HH

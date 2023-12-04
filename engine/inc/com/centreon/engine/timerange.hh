@@ -20,9 +20,8 @@
 #ifndef CCE_OBJECTS_TIMERANGE_HH
 #define CCE_OBJECTS_TIMERANGE_HH
 
-#include "com/centreon/engine/namespace.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class timerange {
  public:
   timerange(uint64_t start, uint64_t end);
@@ -54,6 +53,6 @@ std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::timerange const& obj);
 std::ostream& operator<<(std::ostream& os, timerange_list const& obj);
 
-CCE_END()
+}
 
 #endif  // !CCE_OBJECTS_TIMERANGE_HH

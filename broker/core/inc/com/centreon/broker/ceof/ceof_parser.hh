@@ -21,9 +21,8 @@
 
 #include "com/centreon/broker/ceof/ceof_iterator.hh"
 #include "com/centreon/broker/ceof/ceof_token.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace ceof {
 /**
@@ -47,6 +46,6 @@ class ceof_parser {
 };
 }  // namespace ceof
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_CEOF_CEOF_PARSER_HH

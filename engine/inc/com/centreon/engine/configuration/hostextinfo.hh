@@ -26,7 +26,7 @@
 #include "com/centreon/engine/configuration/point_3d.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class host;
@@ -89,6 +89,6 @@ typedef std::shared_ptr<hostextinfo> hostextinfo_ptr;
 typedef std::list<hostextinfo_ptr> list_hostextinfo;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_HOSTEXTINFO_HH

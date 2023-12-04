@@ -23,7 +23,7 @@
 #include "bbdo/storage.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace storage {
 using pb_index_mapping =
@@ -33,6 +33,6 @@ using pb_metric_mapping =
     io::protobuf<MetricMapping,
                  make_type(io::storage, storage::de_pb_metric_mapping)>;
 }  // namespace storage
-CCB_END()
+}
 
 #endif  // !CCB_LUA_INTERNAL_HH

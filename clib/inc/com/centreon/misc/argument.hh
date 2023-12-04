@@ -20,9 +20,8 @@
 #define CC_MISC_ARGUMENT_HH
 
 #include <string>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 namespace misc {
 /**
@@ -69,6 +68,6 @@ class argument {
 };
 }  // namespace misc
 
-CC_END()
+}
 
 #endif  // !CC_MISC_ARGUMENT_HH

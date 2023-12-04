@@ -21,7 +21,6 @@
 
 #include "com/centreon/broker/http_client/http_client.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/persistent_cache.hh"
 #include "http_tsdb_config.hh"
 #include "internal.hh"
@@ -29,7 +28,7 @@
 
 namespace http_client = com::centreon::broker::http_client;
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace http_tsdb {
 
@@ -156,6 +155,6 @@ class stream : public io::stream, public std::enable_shared_from_this<stream> {
 };
 }  // namespace http_tsdb
 
-CCB_END()
+}
 
 #endif  // !CCB_HTTP_TSDB_STREAM_HH

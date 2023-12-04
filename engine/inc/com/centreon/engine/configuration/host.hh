@@ -28,7 +28,7 @@
 #include "com/centreon/engine/customvariable.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class hostextinfo;
@@ -230,6 +230,6 @@ typedef std::list<host> list_host;
 typedef std::set<host> set_host;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_HOST_HH

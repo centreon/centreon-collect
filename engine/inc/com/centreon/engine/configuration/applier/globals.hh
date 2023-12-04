@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/configuration/state.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 namespace applier {
@@ -48,6 +48,6 @@ class globals {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_APPLIER_GLOBALS_HH

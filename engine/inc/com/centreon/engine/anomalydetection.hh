@@ -28,7 +28,7 @@
 
 #include "com/centreon/engine/service.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 class anomalydetection : public service {
  public:
@@ -152,7 +152,7 @@ class anomalydetection : public service {
 
   static const pointer_set& get_anomaly(uint64_t dependent_service_id);
 };
-CCE_END()
+}
 
 com::centreon::engine::anomalydetection* add_anomalydetection(
     uint64_t host_id,

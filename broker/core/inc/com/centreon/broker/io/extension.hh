@@ -1,29 +1,25 @@
-/*
-** Copyright 2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2021-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_IO_EXTENSION_HH
 #define CCB_IO_EXTENSION_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
-
-namespace io {
+namespace com::centreon::broker::io {
 
 /**
  * @class extension extension.hh "com/centreon/broker/bbdo/extension.hh"
@@ -85,7 +81,6 @@ class extension {
   bool is_optional() const { return _optional; }
   bool is_mandatory() const { return _mandatory; }
 };
-}  // namespace io
+}  // namespace com::centreon::broker::io
 
-CCB_END()
 #endif /* !CCB_IO_EXTENSION_HH */

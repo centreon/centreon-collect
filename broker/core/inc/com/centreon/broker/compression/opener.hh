@@ -20,9 +20,8 @@
 #define CCB_COMPRESSION_OPENER_HH
 
 #include "com/centreon/broker/io/endpoint.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace compression {
 /**
@@ -46,6 +45,6 @@ class opener : public io::endpoint {
 };
 }  // namespace compression
 
-CCB_END()
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_COMPRESSION_OPENER_HH

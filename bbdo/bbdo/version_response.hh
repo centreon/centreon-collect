@@ -26,11 +26,8 @@
 #include "com/centreon/broker/io/event_info.hh"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/mapping/entry.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
-
-namespace bbdo {
+namespace com::centreon::broker::bbdo {
 /**
  *  @class version_response version_response.hh
  * "com/centreon/broker/bbdo/version_response.hh"
@@ -63,8 +60,6 @@ class version_response : public io::data {
   static mapping::entry const entries[];
   static io::event_info::event_operations const operations;
 };
-}  // namespace bbdo
-
-CCB_END()
+}  // namespace com::centreon::broker::bbdo
 
 #endif  // !CCB_BBDO_VERSION_RESPONSE_HH

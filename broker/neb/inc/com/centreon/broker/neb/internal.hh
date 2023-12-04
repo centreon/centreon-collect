@@ -26,10 +26,9 @@
 #include "bbdo/tag.pb.h"
 #include "com/centreon/broker/io/protobuf.hh"
 #include "com/centreon/broker/multiplexing/publisher.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/callback.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 // Forward declaration.
@@ -103,6 +102,6 @@ using pb_acknowledgement =
 
 }  // namespace neb
 
-CCB_END()
+}
 
 #endif  // !CCB_NEB_INTERNAL_HH

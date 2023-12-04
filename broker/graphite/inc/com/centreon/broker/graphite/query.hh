@@ -20,9 +20,8 @@
 #define CCB_GRAPHITE_QUERY_HH
 
 #include "com/centreon/broker/graphite/macro_cache.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace graphite {
 /**
@@ -82,6 +81,6 @@ class query {
 };
 }  // namespace graphite
 
-CCB_END()
+}
 
 #endif  // !CCB_GRAPHITE_QUERY_HH

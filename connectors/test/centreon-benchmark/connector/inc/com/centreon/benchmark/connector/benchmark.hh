@@ -22,7 +22,6 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include "com/centreon/benchmark/connector/namespace.hh"
 
 CCB_CONNECTOR_BEGIN()
 

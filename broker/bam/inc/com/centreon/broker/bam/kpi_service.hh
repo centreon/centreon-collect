@@ -25,10 +25,9 @@
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/bam/service_listener.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -109,6 +108,6 @@ class kpi_service : public service_listener, public kpi {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_KPI_SERVICE_HH

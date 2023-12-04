@@ -20,11 +20,8 @@
 #define CCCP_ORDERS_PARSER_HH
 
 #include "com/centreon/connector/parser.hh"
-#include "com/centreon/connector/perl/namespace.hh"
 
-#include "com/centreon/connector/namespace.hh"
-
-CCC_BEGIN()
+namespace com::centreon::connector {
 
 namespace orders {
 class options : public std::string {
@@ -33,9 +30,9 @@ class options : public std::string {
 };
 }  // namespace orders
 
-CCC_END()
+}  // namespace com::centreon::connector
 
-CCCP_BEGIN()
+namespace com::centreon::connector::perl {
 
 namespace orders {
 /**
@@ -66,6 +63,6 @@ class parser : public com::centreon::connector::parser {
 };
 }  // namespace orders
 
-CCCP_END()
+}  // namespace com::centreon::connector::perl
 
 #endif  // !CCCP_ORDERS_PARSER_HH

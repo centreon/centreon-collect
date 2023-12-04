@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2023 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,11 +19,9 @@
 #ifndef CCE_CONFIGURATION_WHITELIST_HH
 #define CCE_CONFIGURATION_WHITELIST_HH
 
-#include "com/centreon/engine/namespace.hh"
+#include "com/centreon/engine/log_v2.hh"
 
-CCE_BEGIN()
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 extern const std::string command_blacklist_output;
 
@@ -107,8 +105,6 @@ whitelist::whitelist(string_iter dir_path_begin, string_iter dir_path_end) {
   }
 }
 
-};  // namespace configuration
-
-CCE_END()
+}  // namespace com::centreon::engine::configuration
 
 #endif

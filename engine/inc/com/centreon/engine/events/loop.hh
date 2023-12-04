@@ -27,7 +27,7 @@
 using timed_event_list =
     std::deque<std::unique_ptr<com::centreon::engine::timed_event>>;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace events {
 /**
@@ -86,6 +86,6 @@ class loop {
 };
 }  // namespace events
 
-CCE_END()
+}
 
 #endif  // !CCE_EVENTS_LOOP_HH

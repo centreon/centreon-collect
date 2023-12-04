@@ -20,9 +20,8 @@
 #define CCB_MYSQL_BIND_BASE_HH
 
 #include <mysql.h>
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declarations
 class mysql;
@@ -57,6 +56,6 @@ class mysql_bind_base {
 
 }  // namespace database
 
-CCB_END()
+}
 
 #endif  // CCB_MYSQL_BIND_BASE_HH

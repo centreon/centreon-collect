@@ -28,9 +28,8 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
-#include "com/centreon/namespace.hh"
 
-CC_BEGIN()
+namespace com::centreon {
 
 class process;
 class process_listener;
@@ -143,6 +142,6 @@ class process_manager {
   void wait_for_update() const noexcept;
 };
 
-CC_END()
+}
 
 #endif  // !CC_PROCESS_MANAGER_POSIX_HH

@@ -19,9 +19,8 @@
 #ifndef CCB_BAM_EXP_TOKENIZER_HH
 #define CCB_BAM_EXP_TOKENIZER_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -57,6 +56,6 @@ class exp_tokenizer {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_EXP_TOKENIZER_HH

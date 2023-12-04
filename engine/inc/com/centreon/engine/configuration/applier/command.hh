@@ -20,7 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_COMMAND_HH
 #define CCE_CONFIGURATION_APPLIER_COMMAND_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 // Forward declarations.
 namespace commands {
@@ -50,6 +50,6 @@ class command {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_APPLIER_COMMAND_HH

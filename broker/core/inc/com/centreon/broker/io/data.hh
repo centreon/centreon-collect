@@ -19,11 +19,7 @@
 #ifndef CCB_IO_DATA_HH
 #define CCB_IO_DATA_HH
 
-#include "com/centreon/broker/namespace.hh"
-
-CCB_BEGIN()
-
-namespace io {
+namespace com::centreon::broker::io {
 /**
  *  @class data data.hh "com/centreon/broker/io/data.hh"
  *  @brief Data abstraction.
@@ -93,9 +89,7 @@ inline std::ostream& operator<<(std::ostream& s, const data::dump_json& d) {
 
 using data_read_handler = std::function<void(const std::shared_ptr<data>&)>;
 
-}  // namespace io
-
-CCB_END()
+}  // namespace com::centreon::broker::io
 
 namespace fmt {
 template <>

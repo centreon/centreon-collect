@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/io/factory.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace simu {
 /**
@@ -45,6 +45,6 @@ class factory : public io::factory {
 };
 }  // namespace simu
 
-CCB_END()
+}
 
 #endif  // !CCB_SIMU_FACTORY_HH

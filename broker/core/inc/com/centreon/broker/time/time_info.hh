@@ -19,9 +19,8 @@
 #ifndef CCB_CORE_TIME_TIME_INFO_HH
 #define CCB_CORE_TIME_TIME_INFO_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace time {
 /**
@@ -35,6 +34,6 @@ struct time_info {
 };
 }  // namespace time
 
-CCB_END()
+}
 
 #endif  // !CCB_CORE_TIME_TIME_INFO_HH

@@ -1,32 +1,31 @@
-/*
-** Copyright 2009-2017-2021 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
-*/
+/**
+ * Copyright 2009-2017-2023 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #ifndef CCB_MULTIPLEXING_MUXER_HH
 #define CCB_MULTIPLEXING_MUXER_HH
 
 #include <absl/container/flat_hash_map.h>
+
 #include "com/centreon/broker/multiplexing/engine.hh"
 #include "com/centreon/broker/multiplexing/muxer_filter.hh"
 #include "com/centreon/broker/persistent_file.hh"
 
-CCB_BEGIN()
-
-namespace multiplexing {
+namespace com::centreon::broker::multiplexing {
 /**
  *  @class muxer muxer.hh "com/centreon/broker/multiplexing/muxer.hh"
  *  @brief Receive and send events from/to the multiplexing engine.
@@ -83,10 +82,8 @@ class muxer : public io::stream {
 
   void _update_stats(void) noexcept;
 
-  muxer(std::string name,
-        const std::shared_ptr<engine>& parent,
-        const muxer_filter& r_filter,
-        const muxer_filter& w_filter,
+  muxer(std::string name, const std::shared_ptr<engine>& parent,
+        const muxer_filter& r_filter, const muxer_filter& w_filter,
         bool persistent = false);
 
  public:
@@ -107,8 +104,7 @@ class muxer : public io::stream {
   void publish(const std::deque<std::shared_ptr<io::data>>& event);
   bool read(std::shared_ptr<io::data>& event, time_t deadline) override;
   template <class container>
-  bool read(container& to_fill,
-            size_t max_to_read,
+  bool read(container& to_fill, size_t max_to_read,
             read_handler&& handler) noexcept;
   const std::string& read_filters_as_str() const;
   const std::string& write_filters_as_str() const;
@@ -141,8 +137,7 @@ class muxer : public io::stream {
  * events as soon as data will be available
  */
 template <class container>
-bool muxer::read(container& to_fill,
-                 size_t max_to_read,
+bool muxer::read(container& to_fill, size_t max_to_read,
                  read_handler&& handler) noexcept {
   std::unique_lock<std::mutex> lock(_mutex);
 
@@ -163,8 +158,6 @@ bool muxer::read(container& to_fill,
   }
 }
 
-}  // namespace multiplexing
-
-CCB_END()
+}  // namespace com::centreon::broker::multiplexing
 
 #endif  // !CCB_MULTIPLEXING_MUXER_HH

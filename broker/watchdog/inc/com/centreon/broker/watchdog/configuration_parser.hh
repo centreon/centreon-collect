@@ -21,11 +21,10 @@
 
 #include <nlohmann/json.hpp>
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/watchdog/configuration.hh"
 #include "com/centreon/broker/watchdog/instance_configuration.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace watchdog {
 /**
@@ -54,6 +53,6 @@ class configuration_parser {
 };
 }  // namespace watchdog
 
-CCB_END()
+}
 
 #endif  // !CCB_WATCHDOG_CONFIGURATION_PARSER_HH

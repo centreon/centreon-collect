@@ -22,10 +22,9 @@
 #include "bbdo/bam/state.hh"
 #include "com/centreon/broker/bam/kpi.hh"
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "impact_values.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 // Forward declaration.
@@ -68,6 +67,6 @@ class kpi_boolexp : public kpi {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_KPI_BOOLEXP_HH

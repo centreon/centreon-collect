@@ -18,9 +18,8 @@
 #ifndef CCB_UNIFIED_SQL_BULK_QUERIES_HH
 #define CCB_UNIFIED_SQL_BULK_QUERIES_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 namespace unified_sql {
 /**
  * @class bulk_queries "com/centreon/broker/unified_sql/bulk_queries.hh"
@@ -74,6 +73,6 @@ class bulk_queries {
   std::time_t next_time() const;
 };
 }  // namespace unified_sql
-CCB_END()
+}
 
 #endif /* !CCB_UNIFIED_SQL_BULK_QUERIES_HH */

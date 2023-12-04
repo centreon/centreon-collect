@@ -20,10 +20,9 @@
 #define CCB_STORAGE_STREAM_HH
 
 #include "com/centreon/broker/io/stream.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/sql/mysql.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 // Forward declaration.
 class database_config;
@@ -90,6 +89,6 @@ class stream : public io::stream {
 };
 }  // namespace storage
 
-CCB_END()
+}
 
 #endif  // !CCB_STORAGE_STREAM_HH

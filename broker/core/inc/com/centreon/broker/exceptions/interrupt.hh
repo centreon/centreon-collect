@@ -19,9 +19,8 @@
 #ifndef CCB_EXCEPTIONS_INTERRUPT_HH
 #define CCB_EXCEPTIONS_INTERRUPT_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace exceptions {
 /**
@@ -39,6 +38,6 @@ class interrupt : public std::exception {
 };
 }  // namespace exceptions
 
-CCB_END()
+}
 
 #endif  // !CCB_EXCEPTIONS_INTERRUPT_HH

@@ -19,9 +19,8 @@
 #define CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_POOL_HH_
 
 #include "broker.pb.h"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 /**
  * @brief The Broker's thread pool.
@@ -107,6 +106,6 @@ class pool {
   double get_last_check_latency();
 };
 
-CCB_END()
+}
 
 #endif  // CENTREON_BROKER_CORE_INC_COM_CENTREON_BROKER_POOL_HH_

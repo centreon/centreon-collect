@@ -19,9 +19,8 @@
 #ifndef CCB_BAM_EXP_PARSER_HH
 #define CCB_BAM_EXP_PARSER_HH
 
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -55,6 +54,6 @@ class exp_parser {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_EXP_PARSER_HH

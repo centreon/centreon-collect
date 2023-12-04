@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/retention/contact.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 // Forward declaration.
 class contact;
 
@@ -45,6 +45,6 @@ class contact {
 }  // namespace applier
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_APPLIER_CONTACT_HH

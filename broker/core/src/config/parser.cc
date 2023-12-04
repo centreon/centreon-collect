@@ -1,19 +1,19 @@
-/*
-** Copyright 2011-2013,2015,2017-2023 Centreon
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-**
-** For more information : contact@centreon.com
+/**
+* Copyright 2011-2013,2015,2017-2023 Centreon
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*     http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "AS IS" BASIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*
+* For more information : contact@centreon.com
 */
 
 #include "com/centreon/broker/config/parser.hh"
@@ -100,7 +100,7 @@ absl::optional<bool> parser::check_and_read<bool>(const nlohmann::json& elem,
       return {ret};
     else if (ret.is_string()) {
       bool tmp;
-      if (!absl::SimpleAtob(ret.get<absl::string_view>(), &tmp))
+      if (!absl::SimpleAtob(ret.get<std::string_view>(), &tmp))
         throw msg_fmt(
             "config parser: cannot parse key '{}': the string value must "
             "contain a boolean (1/0, yes/no, true/false)",
@@ -212,7 +212,7 @@ state parser::parse(std::string const& file) {
         } else if (it.key() == "bbdo_version" && it.value().is_string()) {
           std::string version = json_document["centreonBroker"]["bbdo_version"]
                                     .get<std::string>();
-          std::list<absl::string_view> v = absl::StrSplit(version, '.');
+          std::list<std::string_view> v = absl::StrSplit(version, '.');
           if (v.size() != 3)
             throw msg_fmt("config parser: cannot parse bbdo_version '{}'",
                           version);

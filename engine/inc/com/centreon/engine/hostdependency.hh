@@ -24,18 +24,18 @@
 #include "com/centreon/engine/dependency.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class host;
 class hostdependency;
 class timeperiod;
-CCE_END()
+}
 
 typedef std::unordered_multimap<
     std::string,
     std::shared_ptr<com::centreon::engine::hostdependency>>
     hostdependency_mmap;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class hostdependency : public dependency {
  public:
   hostdependency(std::string const& dependent_hostname,
@@ -76,7 +76,7 @@ class hostdependency : public dependency {
   bool _fail_on_unreachable;
 };
 
-CCE_END()
+}
 
 std::ostream& operator<<(std::ostream& os,
                          com::centreon::engine::hostdependency const& obj);

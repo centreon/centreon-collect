@@ -25,7 +25,7 @@
 #include "com/centreon/engine/shared.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class timeperiod;
 
 class escalation {
@@ -66,6 +66,6 @@ class escalation {
   contactgroup_map_unsafe _contact_groups;
   Uuid _uuid;
 };
-CCE_END()
+}
 
 #endif  // !CCE_ESCALATION_HH

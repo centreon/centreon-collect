@@ -21,11 +21,10 @@
 
 #include "com/centreon/broker/io/data.hh"
 #include "com/centreon/broker/io/events.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/neb/internal.hh"
 #include "com/centreon/broker/timestamp.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -57,6 +56,6 @@ class check : public io::data {
 };
 }  // namespace neb
 
-CCB_END()
+}
 
 #endif  // !CCB_NEB_CHECK_HH

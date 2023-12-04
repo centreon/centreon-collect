@@ -21,7 +21,7 @@
 #include "com/centreon/engine/configuration/state.hh"
 #include "log_v2_base.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class log_v2 : public log_v2_base {
   std::array<std::shared_ptr<spdlog::logger>, 13> _log;
   std::atomic_bool _running;
@@ -117,6 +117,6 @@ class log_v2 : public log_v2_base {
     return _instance->get_logger(log_v2::log_runtime, "runtime");
   }
 };
-CCE_END()
+}
 
 #endif /* !CCE_LOG_V2_HH */

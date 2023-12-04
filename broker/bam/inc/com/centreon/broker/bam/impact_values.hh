@@ -20,9 +20,8 @@
 #define CCB_BAM_IMPACT_VALUES_HH
 
 #include "bbdo/bam/state.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 /**
@@ -61,6 +60,6 @@ class impact_values {
 };
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif  // !CCB_BAM_IMPACT_VALUES_HH

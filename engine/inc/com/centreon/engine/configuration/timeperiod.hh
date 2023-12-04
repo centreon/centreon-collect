@@ -25,7 +25,7 @@
 #include "com/centreon/engine/daterange.hh"
 #include "com/centreon/engine/opt.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 namespace test {
@@ -85,6 +85,6 @@ typedef std::shared_ptr<timeperiod> timeperiod_ptr;
 typedef std::set<timeperiod> set_timeperiod;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_TIMEPERIOD_HH

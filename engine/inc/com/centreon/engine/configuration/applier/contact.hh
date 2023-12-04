@@ -20,7 +20,7 @@
 #ifndef CCE_CONFIGURATION_APPLIER_CONTACT_HH
 #define CCE_CONFIGURATION_APPLIER_CONTACT_HH
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 // Forward declarations.
@@ -45,6 +45,6 @@ class contact {
 }  // namespace applier
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_APPLIER_CONTACT_HH

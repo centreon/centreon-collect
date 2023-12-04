@@ -24,7 +24,7 @@
 #include "com/centreon/engine/opt.hh"
 #include "com/centreon/engine/retention/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class host : public object {
@@ -227,6 +227,6 @@ typedef std::shared_ptr<host> host_ptr;
 typedef std::list<host_ptr> list_host;
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_HOST_HH

@@ -24,9 +24,9 @@
 #include "com/centreon/engine/hash.hh"
 
 /* Forward declaration. */
-CCE_BEGIN()
+namespace com::centreon::engine {
 class serviceescalation;
-CCE_END()
+}
 
 typedef std::unordered_multimap<
     std::pair<std::string, std::string>,
@@ -34,7 +34,7 @@ typedef std::unordered_multimap<
     pair_hash>
     serviceescalation_mmap;
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class serviceescalation : public escalation {
  public:
   serviceescalation(std::string const& hostname,
@@ -58,6 +58,6 @@ class serviceescalation : public escalation {
   std::string _description;
 };
 
-CCE_END()
+}
 
 #endif  // !CCE_SERVICEESCALATION_HH

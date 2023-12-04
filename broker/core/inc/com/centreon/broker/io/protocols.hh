@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/io/factory.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace io {
 /**
@@ -60,6 +60,6 @@ class protocols {
 };
 }  // namespace io
 
-CCB_END()
+}
 
 #endif  // !CCB_IO_PROTOCOLS_HH

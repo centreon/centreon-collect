@@ -22,9 +22,8 @@
 #include <libssh2.h>
 
 #include "com/centreon/connector/result.hh"
-#include "com/centreon/connector/ssh/namespace.hh"
 
-CCCS_BEGIN()
+namespace com::centreon::connector::ssh {
 
 namespace sessions {
 class session;
@@ -46,11 +45,8 @@ class check : public std::enable_shared_from_this<check> {
   using string_list = std::list<std::string>;
 
   check(const std::shared_ptr<sessions::session>& session,
-        unsigned long long cmd_id,
-        string_list const& cmds,
-        const time_point& tmt,
-        int skip_stdout = -1,
-        int skip_stderr = -1);
+        unsigned long long cmd_id, string_list const& cmds,
+        const time_point& tmt, int skip_stdout = -1, int skip_stderr = -1);
   ~check() noexcept;
 
   template <class callback_type>
@@ -102,7 +98,7 @@ std::ostream& operator<<(std::ostream& os, const check& chk);
 
 }  // namespace checks
 
-CCCS_END()
+}  // namespace com::centreon::connector::ssh
 
 namespace fmt {
 // formatter specializations for fmt

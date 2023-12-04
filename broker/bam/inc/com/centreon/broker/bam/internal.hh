@@ -22,9 +22,8 @@
 #include "bbdo/bam.pb.h"
 #include "com/centreon/broker/io/events.hh"
 #include "com/centreon/broker/io/protobuf.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace bam {
 using pb_inherited_downtime =
@@ -78,6 +77,6 @@ using pb_dimension_truncate_table_signal =
 
 }  // namespace bam
 
-CCB_END()
+}
 
 #endif

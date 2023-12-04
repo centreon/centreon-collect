@@ -26,11 +26,11 @@
 #include <stdint.h>
 #include "com/centreon/engine/downtimes/downtime.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class timed_event;
-CCE_END()
+}
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 class timed_event {
   void _exec_event_service_check();
   void _exec_event_command_check();
@@ -104,7 +104,7 @@ class timed_event {
 
   std::string const& name() const noexcept;
 };
-CCE_END()
+}
 
 #ifdef __cplusplus
 extern "C" {
@@ -119,7 +119,6 @@ time_t adjust_timestamp_for_time_change(int64_t time_difference, time_t ts);
 #ifdef __cplusplus
 
 #include <ostream>
-#include "com/centreon/engine/namespace.hh"
 
 #endif /* C++ */
 

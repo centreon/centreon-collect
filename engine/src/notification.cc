@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2019 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -250,9 +250,7 @@ const std::set<std::string>& notification::get_contacts() const {
   return _notified_contact;
 }
 
-namespace com {
-namespace centreon {
-namespace engine {
+namespace com::centreon::engine {
 /**
  *  operator<< to dump a notification in a stream
  *
@@ -272,6 +270,4 @@ std::ostream& operator<<(std::ostream& os, notification const& obj) {
   os << "\n";
   return os;
 }
-}  // namespace engine
-}  // namespace centreon
-}  // namespace com
+}  // namespace com::centreon::engine

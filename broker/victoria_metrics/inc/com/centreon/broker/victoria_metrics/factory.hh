@@ -21,7 +21,7 @@
 
 #include "com/centreon/broker/http_tsdb/factory.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace victoria_metrics {
 /**
@@ -46,6 +46,6 @@ class factory : public http_tsdb::factory {
 };
 }  // namespace victoria_metrics
 
-CCB_END()
+}
 
 #endif  // !CCB_VICTORIA_METRICS_FACTORY_HH

@@ -19,30 +19,26 @@
 
 #define C4_NO_DEBUG_BREAK 1
 
+#include "com/centreon/engine/configuration/whitelist.hh"
+
 #include <fnmatch.h>
 #include <grp.h>
 #include <sys/types.h>
 
 #include <filesystem>
 #include <iostream>
-
-#include "absl/base/call_once.h"
-
 #include <ryml.hpp>
 
+#include "absl/base/call_once.h"
 #include "com/centreon/engine/log_v2.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
-
-#include "com/centreon/engine/configuration/whitelist.hh"
 
 using namespace com::centreon;
 using namespace com::centreon::exceptions;
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
 
-CCE_BEGIN()
-
-namespace configuration {
+namespace com::centreon::engine::configuration {
 
 const std::string command_blacklist_output(
     "UNKNOWN: this command cannot be executed because of security restrictions "
@@ -63,9 +59,7 @@ void on_rapidyaml_error(const char* buff,
                 buff);
 }
 
-}  // namespace configuration
-
-CCE_END();
+}  // namespace com::centreon::engine::configuration
 
 std::unique_ptr<whitelist> whitelist::_instance;
 

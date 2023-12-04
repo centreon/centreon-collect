@@ -19,10 +19,9 @@
 #ifndef CCC_REPORTER_HH
 #define CCC_REPORTER_HH
 
-#include "com/centreon/connector/namespace.hh"
 #include "com/centreon/connector/result.hh"
 
-CCC_BEGIN()
+namespace com::centreon::connector {
 
 /**
  *  @class reporter reporter.hh "com/centreon/connector/ssh/reporter.hh"
@@ -58,6 +57,6 @@ class reporter : public std::enable_shared_from_this<reporter> {
   const std::string& get_buffer() const { return *_buffer; }
 };
 
-CCC_END()
+}  // namespace com::centreon::connector
 
 #endif  // !CCC_REPORTER_HH

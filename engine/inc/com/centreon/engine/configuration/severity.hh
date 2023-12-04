@@ -23,7 +23,7 @@
 
 #include "com/centreon/engine/configuration/object.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 class severity : public object {
@@ -72,6 +72,6 @@ class severity : public object {
 typedef std::set<severity> set_severity;
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_SEVERITY_HH

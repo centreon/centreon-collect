@@ -22,7 +22,7 @@
 
 #include "com/centreon/engine/string.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace retention {
 class object {
@@ -75,6 +75,6 @@ class object {
 typedef std::shared_ptr<object> object_ptr;
 }  // namespace retention
 
-CCE_END()
+}
 
 #endif  // !CCE_RETENTION_OBJECT_HH

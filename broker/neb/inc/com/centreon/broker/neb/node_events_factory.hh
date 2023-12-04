@@ -20,9 +20,8 @@
 #define CCB_NEB_NODE_EVENTS_FACTORY_HH
 
 #include "com/centreon/broker/io/factory.hh"
-#include "com/centreon/broker/namespace.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace neb {
 /**
@@ -47,6 +46,6 @@ class node_events_factory : public io::factory {
 };
 }  // namespace neb
 
-CCB_END()
+}
 
 #endif  // !CCB_NEB_NODE_EVENTS_FACTORY_HH

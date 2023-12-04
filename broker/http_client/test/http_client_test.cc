@@ -1,4 +1,4 @@
-/*
+/**
  * Copyright 2022 Centreon (https://www.centreon.com/)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,7 +26,6 @@
 #include <com/centreon/common/defer.hh>
 
 #include "com/centreon/broker/log_v2.hh"
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/broker/pool.hh"
 #include "com/centreon/common/defer.hh"
 

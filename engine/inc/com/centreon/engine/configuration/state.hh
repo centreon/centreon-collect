@@ -38,7 +38,7 @@
 #include "com/centreon/engine/configuration/timeperiod.hh"
 #include "com/centreon/engine/logging/logger.hh"
 
-CCE_BEGIN()
+namespace com::centreon::engine {
 
 namespace configuration {
 
@@ -666,6 +666,6 @@ class state {
 };
 }  // namespace configuration
 
-CCE_END()
+}
 
 #endif  // !CCE_CONFIGURATION_STATE_HH

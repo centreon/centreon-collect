@@ -23,7 +23,7 @@
 #include "com/centreon/broker/sql/mysql_bulk_bind.hh"
 #include "com/centreon/broker/sql/mysql_stmt_base.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace database {
 class mysql_bulk_stmt : public mysql_stmt_base {
@@ -214,6 +214,6 @@ class mysql_bulk_stmt : public mysql_stmt_base {
 
 }  // namespace database
 
-CCB_END()
+}
 
 #endif  // CCB_MYSQL_BULK_STMT_HH

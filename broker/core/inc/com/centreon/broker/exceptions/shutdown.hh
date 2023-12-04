@@ -19,10 +19,9 @@
 #ifndef CCB_EXCEPTIONS_SHUTDOWN_HH
 #define CCB_EXCEPTIONS_SHUTDOWN_HH
 
-#include "com/centreon/broker/namespace.hh"
 #include "com/centreon/exceptions/msg_fmt.hh"
 
-CCB_BEGIN()
+namespace com::centreon::broker {
 
 namespace exceptions {
 /**
@@ -43,6 +42,6 @@ class shutdown : public com::centreon::exceptions::msg_fmt {
 };
 }  // namespace exceptions
 
-CCB_END()
+}
 
 #endif  // !CCB_EXCEPTIONS_SHUTDOWN_HH
