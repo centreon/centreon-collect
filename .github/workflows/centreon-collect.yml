@@ -78,6 +78,7 @@ jobs:
 
   package:
     needs: [get-version]
+    if: ${{ ! contains(fromJson('["stable"]'), needs.get-version.outputs.stability) }}
     uses: ./.github/workflows/package-collect.yml
     with:
       version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}

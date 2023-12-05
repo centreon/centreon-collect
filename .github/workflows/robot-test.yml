@@ -10,6 +10,9 @@ on:
       image:
         required: true
         type: string
+      image_test:
+        required: true
+        type: string
       image_version:
         required: true
         type: string
@@ -20,6 +23,9 @@ on:
         required: true
         type: string
       database_type:
+        required: true
+        type: string
+      test_group_name:
         required: true
         type: string
     secrets:
@@ -34,7 +40,44 @@ on:
 
 
 jobs:
+  test-image-to-cache:
+    runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
+      - name: Login to Proxy Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
+      - name: load image
+        run: |
+          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+        shell: bash
+
+      - name: image to disk
+        run: |
+          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+        shell: bash
+
+      - name: image to cache
+        uses: actions/cache/save@v3
+        with:
+          path: /tmp/${{inputs.image}}
+          key: ${{inputs.image_test}}
+
   robot-test-list:
+    needs: [test-image-to-cache]
     runs-on: ubuntu-22.04
     outputs:
       features: ${{ steps.list-features.outputs.features }}
@@ -52,25 +95,26 @@ jobs:
   robot-test:
     needs: [robot-test-list]
     runs-on: ${{ contains(inputs.image, 'arm') && fromJson('["self-hosted", "collect-arm64"]') || 'ubuntu-22.04' }}
-    container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image}}:${{ inputs.image_version }}
-      options: --privileged --ulimit core=-1 --security-opt seccomp=unconfined
-      credentials:
-        username: ${{ secrets.registry_username }}
-        password: ${{ secrets.registry_password }}
 
     strategy:
       fail-fast: false
       matrix:
         feature: ${{ fromJson(needs.robot-test-list.outputs.features) }}
 
-    name: ${{ matrix.feature }} ${{inputs.database_type}}
+    name: ${{ matrix.feature }} ${{inputs.test_group_name}}
 
     steps:
       - name: Checkout sources
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Restore image
+        uses: actions/cache@v3
+        with:
+          path: /tmp/${{inputs.image}}
+          key: ${{inputs.image_test}}
+          fail-on-cache-miss: true
 
       - name: Restore packages
         uses: actions/cache@v3
@@ -79,30 +123,42 @@ jobs:
           key: ${{ inputs.package_cache_key }}
           fail-on-cache-miss: true
 
+      - name: load image
+        run: |
+          docker load --input /tmp/${{ inputs.image }}
+
       - name: Test ${{ matrix.feature }}
-        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{inputs.database_type}}
-        shell: bash
+        run: |
+          docker run --rm --privileged --ulimit core=-1 --security-opt seccomp=unconfined \
+          -v $(pwd):/test_collect  \
+          --env AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
+          --env AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
+          --env AWS_BUCKET=centreon-collect-robot-report \
+          --workdir /test_collect \
+          ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}} \
+          ./.github/scripts/collect-test-robot.sh \
+          ${{ matrix.feature }} ${{inputs.database_type}}
+
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.collect_s3_access_key }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.collect_s3_secret_key }}
-          AWS_BUCKET: centreon-collect-robot-report
 
       - name: Move reports
         if: ${{ failure() }}
         run: |
           mkdir reports
-          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.database_type}}
+          FILE_PREFIX=`echo "${{ matrix.feature }}" | sed -e "s#/#__#g"`-${{inputs.test_group_name}}
           if [ -d tests/failed ] ; then
-            mv tests/log.html reports/$FILE_PREFIX-log.html
-            mv tests/output.xml reports/$FILE_PREFIX-output.xml
-            mv tests/failed reports/$FILE_PREFIX-failed
+            cp -rp tests/failed reports/$FILE_PREFIX-failed
+            cp tests/log.html reports/$FILE_PREFIX-log.html
+            cp tests/output.xml reports/$FILE_PREFIX-output.xml
           fi
 
       - name: Upload Test Results
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
-          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          name: reports-${{inputs.test_group_name}}
           path: reports
           retention-days: 1
 
@@ -117,7 +173,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v3
         with:
-          name: robot-test-reports-${{inputs.database_type}}-${{ inputs.distrib }}-${{ inputs.arch }}
+          name: reports-${{inputs.test_group_name}}
           path: reports
 
       - uses: actions/setup-python@v4
