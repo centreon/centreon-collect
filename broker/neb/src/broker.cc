@@ -205,6 +205,16 @@ void broker_module_init(void const* arg) {
                        "ServiceDependency",
                        &neb::pb_service_dependency::operations,
                        "services_services_dependencies");
+      e.register_event(neb::pb_host_group::static_type(), "HostGroup",
+                       &neb::pb_host_group::operations, "hostgroups");
+      e.register_event(
+          neb::pb_host_group_member::static_type(), "HostGroupMember",
+          &neb::pb_host_group_member::operations, "hosts_hostgroups");
+      e.register_event(neb::pb_service_group::static_type(), "ServiceGroup",
+                       &neb::pb_service_group::operations, "servicegroups");
+      e.register_event(
+          neb::pb_service_group_member::static_type(), "ServiceGroupMember",
+          &neb::pb_service_group_member::operations, "services_servicegroups");
     }
   }
 }

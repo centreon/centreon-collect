@@ -155,10 +155,10 @@ TEST_F(victoria_request_test, request_body_test_default_victoria_extra_column) {
     return tag_iter >= tags + 4 ? 0 : (tag_iter++)->id();
   });
   cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
-  cache::global_cache::instance_ptr()->add_host_group(89, 14);
-  cache::global_cache::instance_ptr()->add_host_group(88, 14);
-  cache::global_cache::instance_ptr()->add_service_group(1278, 14, 78);
-  cache::global_cache::instance_ptr()->add_service_group(1279, 14, 78);
+  cache::global_cache::instance_ptr()->add_host_group(89, 14, 1);
+  cache::global_cache::instance_ptr()->add_host_group(88, 14, 2);
+  cache::global_cache::instance_ptr()->add_service_group(1278, 14, 78, 4);
+  cache::global_cache::instance_ptr()->add_service_group(1279, 14, 78, 5);
 
   http_tsdb::line_protocol_query metric_columns(
       victoria_metrics::stream::allowed_macros,
@@ -243,10 +243,10 @@ TEST_F(victoria_request_test, request_body_test_victoria_extra_column) {
     return tag_iter >= tags + 4 ? 0 : (tag_iter++)->id();
   });
   cache::global_cache::instance_ptr()->set_index_mapping(45, 14, 78);
-  cache::global_cache::instance_ptr()->add_host_group(89, 14);
-  cache::global_cache::instance_ptr()->add_host_group(88, 14);
-  cache::global_cache::instance_ptr()->add_service_group(1278, 14, 78);
-  cache::global_cache::instance_ptr()->add_service_group(1279, 14, 78);
+  cache::global_cache::instance_ptr()->add_host_group(89, 14, 1);
+  cache::global_cache::instance_ptr()->add_host_group(88, 14, 2);
+  cache::global_cache::instance_ptr()->add_service_group(1278, 14, 78, 5);
+  cache::global_cache::instance_ptr()->add_service_group(1279, 14, 78, 6);
 
   json column = R"([
     {"name" : "host", "is_tag" : "true", "value" : "$HOST$", "type":"string"},

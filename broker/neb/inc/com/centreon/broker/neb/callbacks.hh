@@ -40,6 +40,8 @@ int callback_external_command(int callback_type, void* data);
 int callback_pb_external_command(int callback_type, void* data);
 int callback_group(int callback_type, void* data);
 int callback_group_member(int callback_type, void* data);
+int callback_pb_group(int callback_type, void* data);
+int callback_pb_group_member(int callback_type, void* data);
 int callback_host(int callback_type, void* data);
 int callback_host_check(int callback_type, void* data);
 int callback_pb_host_check(int callback_type, void* data);

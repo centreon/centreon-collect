@@ -212,7 +212,9 @@ static void send_pb_host_dependencies_list() {
 /**
  *  Send to the global publisher the list of host groups within Engine.
  */
-static void send_host_group_list() {
+static void send_host_group_list(
+    neb_sender group_sender = neb::callback_group,
+    neb_sender group_member_sender = neb::callback_group_member) {
   // Start log message.
   log_v2::neb()->info("init: beginning host group dump");
 
@@ -228,7 +230,7 @@ static void send_host_group_list() {
     nsgd.object_ptr = it->second.get();
 
     // Callback.
-    neb::callback_group(NEBCALLBACK_GROUP_DATA, &nsgd);
+    group_sender(NEBCALLBACK_GROUP_DATA, &nsgd);
 
     // Dump host group members.
     for (host_map_unsafe::const_iterator hit{it->second->members.begin()},
@@ -242,12 +244,16 @@ static void send_host_group_list() {
       nsgmd.group_ptr = it->second.get();
 
       // Callback.
-      neb::callback_group_member(NEBCALLBACK_GROUP_MEMBER_DATA, &nsgmd);
+      group_member_sender(NEBCALLBACK_GROUP_MEMBER_DATA, &nsgmd);
     }
   }
 
   // End log message.
   log_v2::neb()->info("init: end of host group dump");
+}
+
+static void send_pb_host_group_list() {
+  send_host_group_list(neb::callback_pb_group, neb::callback_pb_group_member);
 }
 
 /**
@@ -396,7 +402,9 @@ static void send_pb_service_dependencies_list() {
 /**
  *  Send to the global publisher the list of service groups within Engine.
  */
-static void send_service_group_list() {
+static void send_service_group_list(
+    neb_sender group_sender = neb::callback_group,
+    neb_sender group_member_sender = neb::callback_group_member) {
   // Start log message.
   log_v2::neb()->info("init: beginning service group dump");
 
@@ -412,7 +420,7 @@ static void send_service_group_list() {
     nsgd.object_ptr = it->second.get();
 
     // Callback.
-    neb::callback_group(NEBCALLBACK_GROUP_DATA, &nsgd);
+    group_sender(NEBCALLBACK_GROUP_DATA, &nsgd);
 
     // Dump service group members.
     for (service_map_unsafe::const_iterator sit{it->second->members.begin()},
@@ -426,12 +434,17 @@ static void send_service_group_list() {
       nsgmd.group_ptr = it->second.get();
 
       // Callback.
-      neb::callback_group_member(NEBCALLBACK_GROUP_MEMBER_DATA, &nsgmd);
+      group_member_sender(NEBCALLBACK_GROUP_MEMBER_DATA, &nsgmd);
     }
   }
 
   // End log message.
   log_v2::neb()->info("init: end of service groups dump");
+}
+
+static void send_pb_service_group_list() {
+  send_service_group_list(neb::callback_pb_group,
+                          neb::callback_pb_group_member);
 }
 
 /**
@@ -491,6 +504,7 @@ static void send_instance_configuration() {
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_configuration() {
+  SPDLOG_LOGGER_INFO(log_v2::neb(), "init: send poller conf");
   send_severity_list();
   send_tag_list();
   send_host_list();
@@ -515,6 +529,7 @@ void neb::send_initial_configuration() {
  *  Send initial configuration to the global publisher.
  */
 void neb::send_initial_pb_configuration() {
+  SPDLOG_LOGGER_INFO(log_v2::neb(), "init: send poller pb conf");
   send_severity_list();
   send_tag_list();
   send_pb_host_list();
@@ -522,8 +537,8 @@ void neb::send_initial_pb_configuration() {
   send_pb_custom_variables_list();
   send_downtimes_list();
   send_host_parents_list();
-  send_host_group_list();
-  send_service_group_list();
+  send_pb_host_group_list();
+  send_pb_service_group_list();
   send_pb_host_dependencies_list();
   send_pb_service_dependencies_list();
   send_instance_configuration();

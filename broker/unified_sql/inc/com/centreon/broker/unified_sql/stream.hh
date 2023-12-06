@@ -342,8 +342,10 @@ class stream : public io::stream {
   database::mysql_stmt _host_dependency_insupdate;
   database::mysql_stmt _pb_host_dependency_insupdate;
   database::mysql_stmt _host_group_insupdate;
+  database::mysql_stmt _pb_host_group_insupdate;
   database::mysql_stmt _host_group_member_delete;
   database::mysql_stmt _host_group_member_insert;
+  database::mysql_stmt _pb_host_group_member_insert;
   database::mysql_stmt _host_insupdate;
   database::mysql_stmt _pb_host_insupdate;
   database::mysql_stmt _host_parent_delete;
@@ -358,8 +360,11 @@ class stream : public io::stream {
   database::mysql_stmt _service_dependency_insupdate;
   database::mysql_stmt _pb_service_dependency_insupdate;
   database::mysql_stmt _service_group_insupdate;
+  database::mysql_stmt _pb_service_group_insupdate;
   database::mysql_stmt _service_group_member_delete;
   database::mysql_stmt _service_group_member_insert;
+  database::mysql_stmt _pb_service_group_member_delete;
+  database::mysql_stmt _pb_service_group_member_insert;
   database::mysql_stmt _service_insupdate;
   database::mysql_stmt _pb_service_insupdate;
   database::mysql_stmt _service_status_update;
@@ -418,7 +423,9 @@ class stream : public io::stream {
   void _process_host_dependency(const std::shared_ptr<io::data>& d);
   void _process_pb_host_dependency(const std::shared_ptr<io::data>& d);
   void _process_host_group(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_group(const std::shared_ptr<io::data>& d);
   void _process_host_group_member(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_group_member(const std::shared_ptr<io::data>& d);
   void _process_host(const std::shared_ptr<io::data>& d);
   void _process_host_parent(const std::shared_ptr<io::data>& d);
   void _process_host_status(const std::shared_ptr<io::data>& d);
@@ -432,7 +439,9 @@ class stream : public io::stream {
   void _process_service_dependency(const std::shared_ptr<io::data>& d);
   void _process_pb_service_dependency(const std::shared_ptr<io::data>& d);
   void _process_service_group(const std::shared_ptr<io::data>& d);
+  void _process_pb_service_group(const std::shared_ptr<io::data>& d);
   void _process_service_group_member(const std::shared_ptr<io::data>& d);
+  void _process_pb_service_group_member(const std::shared_ptr<io::data>& d);
   void _process_service(const std::shared_ptr<io::data>& d);
   void _process_service_status(const std::shared_ptr<io::data>& d);
   void _process_instance_configuration(const std::shared_ptr<io::data>& d);
@@ -463,7 +472,9 @@ class stream : public io::stream {
   void _clean_tables(uint32_t instance_id);
   void _clean_group_table();
   void _prepare_hg_insupdate_statement();
+  void _prepare_pb_hg_insupdate_statement();
   void _prepare_sg_insupdate_statement();
+  void _prepare_pb_sg_insupdate_statement();
   void _finish_action(int32_t conn, uint32_t action);
   void _finish_actions();
   void _add_action(int32_t conn, actions action);

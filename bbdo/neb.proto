@@ -683,3 +683,49 @@ message ServiceDependency {
   uint64 dependent_service_id = 9;
   uint64 service_id = 10;
 }
+
+/*io::neb, neb::de_pb_host_group*/
+message HostGroup {
+  BBDOHeader header = 1;
+
+  bool enabled = 2;
+  uint64 hostgroup_id = 3;
+  string name = 4;
+  uint64 poller_id = 5;
+}
+
+
+/*io::neb, neb::de_pb_service_group*/
+message ServiceGroup {
+  BBDOHeader header = 1;
+
+  bool enabled = 2;
+  uint64 servicegroup_id = 3;
+  string name = 4;
+  uint64 poller_id = 5;
+}
+
+
+/*io::neb, neb::de_pb_host_group_member*/
+message HostGroupMember {
+  BBDOHeader header = 1;
+
+  bool enabled = 2;
+  uint64 hostgroup_id = 3;
+  string name = 4;
+  uint64 host_id = 5;
+  uint64 poller_id = 6;
+}
+
+/*io::neb, neb::de_pb_service_group_member*/
+message ServiceGroupMember {
+  BBDOHeader header = 1;
+
+  bool enabled = 2;
+  uint64 servicegroup_id = 3;
+  string name = 4;
+  uint64 host_id = 5;
+  uint64 poller_id = 6;
+  uint64 service_id = 7;
+}
+

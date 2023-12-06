@@ -144,6 +144,10 @@ enum data_element {
   de_pb_responsive_instance = 46,
   de_pb_host_dependency = 47,
   de_pb_service_dependency = 48,
+  de_pb_host_group = 49,
+  de_pb_host_group_member = 50,
+  de_pb_service_group = 51,
+  de_pb_service_group_member = 52
 };
 }  // namespace neb
 namespace storage {

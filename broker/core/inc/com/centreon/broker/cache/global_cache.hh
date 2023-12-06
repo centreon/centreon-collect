@@ -224,17 +224,20 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual const string* get_instance_name(uint64_t instance_id) const = 0;
 
-  virtual void add_host_group(uint64_t group, uint64_t host) = 0;
+  virtual void add_host_group(uint64_t group,
+                              uint64_t host,
+                              uint64_t poller_id) = 0;
   virtual void remove_host_from_group(uint64_t group, uint64_t host) = 0;
-  virtual void remove_host_group(uint64_t group) = 0;
+  virtual void remove_host_group(uint64_t group, uint64_t poller_id) = 0;
 
   virtual void add_service_group(uint64_t group,
                                  uint64_t host,
-                                 uint64_t service) = 0;
+                                 uint64_t service,
+                                 uint64_t poller_id) = 0;
   virtual void remove_service_from_group(uint64_t group,
                                          uint64_t host,
                                          uint64_t service) = 0;
-  virtual void remove_service_group(uint64_t group) = 0;
+  virtual void remove_service_group(uint64_t group, uint64_t poller_id) = 0;
 
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,

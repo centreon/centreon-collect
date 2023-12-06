@@ -240,14 +240,16 @@ void global_cache_data::set_index_mapping(uint64_t index_id,
  * @param group
  * @param host
  */
-void global_cache_data::add_host_group(uint64_t group, uint64_t host) {
+void global_cache_data::add_host_group(uint64_t group,
+                                       uint64_t host,
+                                       uint64_t poller_id) {
   try {
     absl::WriterMutexLock l(&_protect);
-    _host_group->emplace(host_group_element{host, group});
+    _host_group->emplace(host_group_element{host, group, poller_id});
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
     allocation_exception_handler();
-    add_host_group(group, host);
+    add_host_group(group, host, poller_id);
   }
 }
 
@@ -267,9 +269,16 @@ void global_cache_data::remove_host_from_group(uint64_t group, uint64_t host) {
  *
  * @param group
  */
-void global_cache_data::remove_host_group(uint64_t group) {
+void global_cache_data::remove_host_group(uint64_t group, uint64_t poller_id) {
   absl::WriterMutexLock l(&_protect);
-  _host_group->get<1>().erase(group);
+  auto range_iters = _host_group->get<1>().equal_range(group);
+  while (range_iters.first != range_iters.second) {
+    if (range_iters.first->poller_id == poller_id) {
+      range_iters.first = _host_group->get<1>().erase(range_iters.first);
+    } else {
+      ++range_iters.first;
+    }
+  }
 }
 
 /**
@@ -281,14 +290,16 @@ void global_cache_data::remove_host_group(uint64_t group) {
  */
 void global_cache_data::add_service_group(uint64_t group,
                                           uint64_t host,
-                                          uint64_t service) {
+                                          uint64_t service,
+                                          uint64_t poller_id) {
   try {
     absl::WriterMutexLock l(&_protect);
-    _service_group->emplace(service_group_element{{host, service}, group});
+    _service_group->emplace(
+        service_group_element{{host, service}, group, poller_id});
   } catch (const interprocess::bad_alloc& e) {
     SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
     allocation_exception_handler();
-    add_service_group(group, host, service);
+    add_service_group(group, host, service, poller_id);
   }
 }
 
@@ -311,9 +322,17 @@ void global_cache_data::remove_service_from_group(uint64_t group,
  *
  * @param group
  */
-void global_cache_data::remove_service_group(uint64_t group) {
+void global_cache_data::remove_service_group(uint64_t group,
+                                             uint64_t poller_id) {
   absl::WriterMutexLock l(&_protect);
-  _service_group->get<1>().erase(group);
+  auto range_iters = _service_group->get<1>().equal_range(group);
+  while (range_iters.first != range_iters.second) {
+    if (range_iters.first->poller_id == poller_id) {
+      range_iters.first = _service_group->get<1>().erase(range_iters.first);
+    } else {
+      ++range_iters.first;
+    }
+  }
 }
 
 /**

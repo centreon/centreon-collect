@@ -1054,6 +1054,24 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.close()
 
 
+def rename_service_group(index: int, old_servicegroup_name: str, new_service_group_name: str):
+    """!
+        rename a service group
+        @param index index of the poller
+        @param old_servicegroup_name  service group name to look for and to replace
+        @param new_service_group_name
+    """
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "r") as f:
+        ll = f.readlines()
+    group_name_search = re.compile(fr"^\s+servicegroup_name\s+{old_servicegroup_name}$")
+    for i in range(len(ll)):
+        l = ll[i]
+        if group_name_search.match(l):
+            ll[i] = f"    servicegroup_name                  {new_service_group_name}\n"
+            break
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "w") as f:
+        f.writelines(ll)
+
 def add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)

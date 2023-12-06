@@ -411,12 +411,38 @@ void stream::_prepare_hg_insupdate_statement() {
   }
 }
 
+void stream::_prepare_pb_hg_insupdate_statement() {
+  if (!_pb_host_group_insupdate.prepared()) {
+    query_preparator::event_pb_unique unique{
+        {3, "hostgroup_id", io::protobuf_base::invalid_on_zero, 0}};
+    query_preparator qp(neb::pb_host_group::static_type(), unique);
+    _pb_host_group_insupdate = qp.prepare_insert_or_update_table(
+        _mysql, "hostgroups ", /*space is mandatory to avoid
+                             conflict with _process_host_dependency*/
+        {{3, "hostgroup_id", io::protobuf_base::invalid_on_zero, 0},
+         {4, "name", 0, get_hostgroups_col_size(hostgroups_name)}});
+  }
+}
+
 void stream::_prepare_sg_insupdate_statement() {
   if (!_service_group_insupdate.prepared()) {
     query_preparator::event_unique unique;
     unique.insert("servicegroup_id");
     query_preparator qp(neb::service_group::static_type(), unique);
     _service_group_insupdate = qp.prepare_insert_or_update(_mysql);
+  }
+}
+
+void stream::_prepare_pb_sg_insupdate_statement() {
+  if (!_pb_service_group_insupdate.prepared()) {
+    query_preparator::event_pb_unique unique{
+        {3, "servicegroup_id", io::protobuf_base::invalid_on_zero, 0}};
+    query_preparator qp(neb::pb_service_group::static_type(), unique);
+    _pb_service_group_insupdate = qp.prepare_insert_or_update_table(
+        _mysql, "servicegroups ", /*space is mandatory to avoid
+                             conflict with _process_host_dependency*/
+        {{3, "servicegroup_id", io::protobuf_base::invalid_on_zero, 0},
+         {4, "name", 0, get_servicegroups_col_size(servicegroups_name)}});
   }
 }
 
@@ -1303,7 +1329,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
 
     auto cache_ptr = cache::global_cache::instance_ptr();
     if (cache_ptr) {
-      cache_ptr->remove_host_group(hg.id);
+      cache_ptr->remove_host_group(hg.id, hg.poller_id);
     }
 
     // Delete group members.
@@ -1318,6 +1344,60 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
                       hg.id, hg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, conn);
       _hostgroup_cache.erase(hg.id);
+    }
+  }
+  _add_action(conn, actions::hostgroups);
+}
+
+/**
+ *  Process a host group event.
+ *
+ *  @param[in] e Uncasted host group.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::host_group % _mysql.connections_count();
+
+  // Cast object.
+  std::shared_ptr<neb::pb_host_group> hgd =
+      std::static_pointer_cast<neb::pb_host_group>(d);
+  const HostGroup& hg = hgd->obj();
+
+  if (hg.enabled()) {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: enabling host group {} ('{}' on instance {})",
+                       hg.hostgroup_id(), hg.name(), hg.poller_id());
+    _prepare_pb_hg_insupdate_statement();
+
+    _pb_host_group_insupdate << *hgd;
+    _mysql.run_statement(_pb_host_group_insupdate,
+                         database::mysql_error::store_host_group, conn);
+    _hostgroup_cache.insert(hg.hostgroup_id());
+  }
+  // Delete group.
+  else {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: disabling host group {} ('{}' on instance {})",
+                       hg.hostgroup_id(), hg.name(), hg.poller_id());
+
+    auto cache_ptr = cache::global_cache::instance_ptr();
+    if (cache_ptr) {
+      cache_ptr->remove_host_group(hg.hostgroup_id(), hg.poller_id());
+    }
+
+    // Delete group members.
+    {
+      _finish_action(-1, actions::hosts);
+      std::string query(
+          fmt::format("DELETE hosts_hostgroups FROM hosts_hostgroups "
+                      "LEFT JOIN hosts"
+                      " ON hosts_hostgroups.host_id=hosts.host_id"
+                      " WHERE hosts_hostgroups.hostgroup_id={} AND "
+                      "hosts.instance_id={}",
+                      hg.hostgroup_id(), hg.poller_id()));
+      _mysql.run_query(query, database::mysql_error::empty, conn);
+      _hostgroup_cache.erase(hg.hostgroup_id());
     }
   }
   _add_action(conn, actions::hostgroups);
@@ -1357,7 +1437,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
     if (cache_ptr) {
-      cache_ptr->add_host_group(hgm.group_id, hgm.host_id);
+      cache_ptr->add_host_group(hgm.group_id, hgm.host_id, hgm.poller_id);
     }
     // We only need to try to insert in this table as the
     // host_id/hostgroup_id should be UNIQUE.
@@ -1372,11 +1452,11 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     /* If the group does not exist, we create it. */
     if (_cache_host_instance[hgm.host_id]) {
       if (_hostgroup_cache.find(hgm.group_id) == _hostgroup_cache.end()) {
-        SPDLOG_LOGGER_ERROR(
-            log_v2::sql(),
-            "SQL: host group {} does not exist - insertion before insertion of "
-            "members",
-            hgm.group_id);
+        SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                            "SQL: host group {} {} does not exist - insertion "
+                            "before insertion of "
+                            "members",
+                            hgm.group_id, hgm.group_name);
         _prepare_hg_insupdate_statement();
 
         neb::host_group hg;
@@ -1425,6 +1505,114 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
     _host_group_member_delete << hgm;
     _mysql.run_statement(_host_group_member_delete,
                          database::mysql_error::delete_host_group_member, conn);
+    _add_action(conn, actions::hostgroups);
+  }
+}
+
+/**
+ *  Process a host group member event.
+ *
+ *  @param[in] e Uncasted host group member.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::host_group % _mysql.connections_count();
+  _finish_action(-1, actions::hosts);
+
+  // Cast object.
+  const neb::pb_host_group_member& hgmp{
+      *static_cast<const neb::pb_host_group_member*>(d.get())};
+  const HostGroupMember& hgm = hgmp.obj();
+
+  if (!_host_instance_known(hgm.host_id())) {
+    SPDLOG_LOGGER_WARN(
+        log_v2::sql(),
+        "SQL: host {0} not added to hostgroup {1} because host {0} is not "
+        "known by any poller",
+        hgm.host_id(), hgm.hostgroup_id());
+    return;
+  }
+
+  auto cache_ptr = cache::global_cache::instance_ptr();
+
+  if (hgm.enabled()) {
+    // Log message.
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: enabling membership of host {} to host group {} on instance {}",
+        hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
+
+    if (cache_ptr) {
+      cache_ptr->add_host_group(hgm.hostgroup_id(), hgm.host_id(),
+                                hgm.poller_id());
+    }
+    // We only need to try to insert in this table as the
+    // host_id/hostgroup_id should be UNIQUE.
+    if (!_pb_host_group_member_insert.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {3, "hostgroup_id", io::protobuf_base::invalid_on_zero, 0},
+          {5, "host_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_host_group_member::static_type(), unique);
+      _pb_host_group_member_insert = qp.prepare_insert_into(
+          _mysql, "hosts_hostgroups ", /*space is mandatory to avoid
+                               conflict with _process_host_dependency*/
+          {{3, "hostgroup_id", io::protobuf_base::invalid_on_zero, 0},
+           {5, "host_id", io::protobuf_base::invalid_on_zero, 0}});
+    }
+
+    /* If the group does not exist, we create it. */
+    if (_cache_host_instance[hgm.host_id()]) {
+      if (_hostgroup_cache.find(hgm.hostgroup_id()) == _hostgroup_cache.end()) {
+        SPDLOG_LOGGER_ERROR(log_v2::sql(),
+                            "SQL: host group {} {} does not exist - insertion "
+                            "before insertion of "
+                            "members",
+                            hgm.hostgroup_id(), hgm.name());
+        _prepare_pb_hg_insupdate_statement();
+
+        neb::pb_host_group hg;
+        hg.mut_obj().set_hostgroup_id(hgm.hostgroup_id());
+        hg.mut_obj().set_name(hgm.name());
+        hg.mut_obj().set_enabled(true);
+        hg.mut_obj().set_poller_id(_cache_host_instance[hgm.host_id()]);
+
+        _pb_host_group_insupdate << hg;
+        _mysql.run_statement(_pb_host_group_insupdate,
+                             database::mysql_error::store_host_group, conn);
+        _hostgroup_cache.insert(hgm.hostgroup_id());
+      }
+
+      _pb_host_group_member_insert << hgmp;
+      _mysql.run_statement(_pb_host_group_member_insert,
+                           database::mysql_error::store_host_group_member,
+                           conn);
+      _add_action(conn, actions::hostgroups);
+    } else
+      SPDLOG_LOGGER_ERROR(
+          log_v2::sql(),
+          "SQL: host with host_id = {} does not exist - unable to store "
+          "unexisting host in a hostgroup. You should restart centengine.",
+          hgm.host_id());
+  }
+  // Delete.
+  else {
+    // Log message.
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: disabling membership of host {} to host group {} on instance {}",
+        hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
+
+    if (cache_ptr) {
+      cache_ptr->remove_host_from_group(hgm.hostgroup_id(), hgm.host_id());
+    }
+
+    std::string query = fmt::format(
+        "DELETE FROM hosts_hostgroup WHERE host_id={} and hostgroup_id = {}",
+        hgm.host_id(), hgm.hostgroup_id());
+
+    _mysql.run_query(query, database::mysql_error::delete_host_group_member,
+                     conn);
     _add_action(conn, actions::hostgroups);
   }
 }
@@ -3055,7 +3243,7 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
                        sg.id, sg.name, sg.poller_id);
     auto cache_ptr = cache::global_cache::instance_ptr();
     if (cache_ptr) {
-      cache_ptr->remove_service_group(sg.id);
+      cache_ptr->remove_service_group(sg.id, sg.poller_id);
     }
 
     // Delete group members.
@@ -3071,6 +3259,61 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
           sg.id, sg.poller_id));
       _mysql.run_query(query, database::mysql_error::empty, conn);
       _servicegroup_cache.erase(sg.id);
+    }
+  }
+  _add_action(conn, actions::servicegroups);
+}
+
+/**
+ *  Process a service group event.
+ *
+ *  @param[in] e Uncasted service group.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::service_group % _mysql.connections_count();
+
+  // Cast object.
+  const neb::pb_service_group& sgp{
+      *static_cast<const neb::pb_service_group*>(d.get())};
+  const ServiceGroup& sg = sgp.obj();
+
+  // Insert/update group.
+  if (sg.enabled()) {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: enabling service group {} ('{}' on instance {})",
+                       sg.servicegroup_id(), sg.name(), sg.poller_id());
+    _prepare_pb_sg_insupdate_statement();
+
+    _pb_service_group_insupdate << sgp;
+    _mysql.run_statement(_pb_service_group_insupdate,
+                         database::mysql_error::store_service_group, conn);
+    _servicegroup_cache.insert(sg.servicegroup_id());
+  }
+  // Delete group.
+  else {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: disabling service group {} ('{}' on instance {})",
+                       sg.servicegroup_id(), sg.name(), sg.poller_id());
+    auto cache_ptr = cache::global_cache::instance_ptr();
+    if (cache_ptr) {
+      cache_ptr->remove_service_group(sg.servicegroup_id(), sg.poller_id());
+    }
+
+    // Delete group members.
+    {
+      _finish_action(-1, actions::services);
+      std::string query(fmt::format(
+          "DELETE services_servicegroups FROM services_servicegroups "
+          "LEFT "
+          "JOIN hosts ON services_servicegroups.host_id=hosts.host_id "
+          "WHERE "
+          "services_servicegroups.servicegroup_id={} AND "
+          "hosts.instance_id={}",
+          sg.servicegroup_id(), sg.poller_id()));
+      _mysql.run_query(query, database::mysql_error::empty, conn);
+      _servicegroup_cache.erase(sg.servicegroup_id());
     }
   }
   _add_action(conn, actions::servicegroups);
@@ -3101,7 +3344,8 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
     if (cache_ptr) {
-      cache_ptr->add_service_group(sgm.group_id, sgm.host_id, sgm.service_id);
+      cache_ptr->add_service_group(sgm.group_id, sgm.host_id, sgm.service_id,
+                                   sgm.poller_id);
     }
     // We only need to try to insert in this table as the
     // host_id/service_id/servicegroup_id combo should be UNIQUE.
@@ -3166,6 +3410,118 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
     }
     _service_group_member_delete << sgm;
     _mysql.run_statement(_service_group_member_delete,
+                         database::mysql_error::delete_service_group_member,
+                         conn);
+    _add_action(conn, actions::servicegroups);
+  }
+}
+
+/**
+ *  Process a service group member event.
+ *
+ *  @param[in] e Uncasted service group member.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_service_group_member(
+    const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::service_group % _mysql.connections_count();
+  _finish_action(-1, actions::services);
+
+  // Cast object.
+  const neb::pb_service_group_member& sgmp{
+      *static_cast<const neb::pb_service_group_member*>(d.get())};
+
+  const ServiceGroupMember& sgm = sgmp.obj();
+
+  auto cache_ptr = cache::global_cache::instance_ptr();
+  if (sgm.enabled()) {
+    // Log message.
+    SPDLOG_LOGGER_INFO(
+        log_v2::sql(),
+        "SQL: enabling membership of service ({}, {}) to service group {} on "
+        "instance {}",
+        sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
+        sgm.poller_id());
+
+    if (cache_ptr) {
+      cache_ptr->add_service_group(sgm.servicegroup_id(), sgm.host_id(),
+                                   sgm.service_id(), sgm.poller_id());
+    }
+    // We only need to try to insert in this table as the
+    // host_id/service_id/servicegroup_id combo should be UNIQUE.
+    if (!_pb_service_group_member_insert.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {3, "servicegroup_id", io::protobuf_base::invalid_on_zero, 0},
+          {5, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {7, "service_id", io::protobuf_base::invalid_on_zero, 0},
+      };
+      query_preparator qp(neb::pb_service_group_member::static_type(), unique);
+
+      _pb_service_group_member_insert = qp.prepare_insert_into(
+          _mysql, "services_servicegroups ",
+          {
+              {3, "servicegroup_id", io::protobuf_base::invalid_on_zero, 0},
+              {5, "host_id", io::protobuf_base::invalid_on_zero, 0},
+              {7, "service_id", io::protobuf_base::invalid_on_zero, 0},
+          });
+    }
+
+    /* If the group does not exist, we create it. */
+    if (_servicegroup_cache.find(sgm.servicegroup_id()) ==
+        _servicegroup_cache.end()) {
+      SPDLOG_LOGGER_ERROR(
+          log_v2::sql(),
+          "SQL: service group {} does not exist - insertion before insertion "
+          "of members",
+          sgm.servicegroup_id());
+      _prepare_sg_insupdate_statement();
+
+      neb::pb_service_group sg;
+      sg.mut_obj().set_servicegroup_id(sgm.servicegroup_id());
+      sg.mut_obj().set_name(sgm.name());
+      sg.mut_obj().set_enabled(true);
+      sg.mut_obj().set_poller_id(sgm.poller_id());
+
+      _pb_service_group_insupdate << sg;
+      _mysql.run_statement(_pb_service_group_insupdate,
+                           database::mysql_error::store_service_group, conn);
+      _servicegroup_cache.insert(sgm.servicegroup_id());
+    }
+
+    _pb_service_group_member_insert << sgmp;
+    _mysql.run_statement(_pb_service_group_member_insert,
+                         database::mysql_error::store_service_group_member,
+                         conn);
+    _add_action(conn, actions::servicegroups);
+  }
+  // Delete.
+  else {
+    // Log message.
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: disabling membership of service ({}, {}) to "
+                       "service group {} on "
+                       "instance {}",
+                       sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
+                       sgm.poller_id());
+
+    if (cache_ptr) {
+      cache_ptr->remove_service_from_group(sgm.servicegroup_id(), sgm.host_id(),
+                                           sgm.service_id());
+    }
+
+    if (!_pb_service_group_member_delete.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {3, "servicegroup_id", io::protobuf_base::invalid_on_zero, 0},
+          {5, "host_id", io::protobuf_base::invalid_on_zero, 0},
+          {7, "service_id", io::protobuf_base::invalid_on_zero, 0},
+      };
+      query_preparator qp(neb::pb_service_group_member::static_type(), unique);
+      _pb_service_group_member_delete =
+          qp.prepare_delete_table(_mysql, "services_servicegroups ");
+    }
+    _service_group_member_delete << sgmp;
+    _mysql.run_statement(_pb_service_group_member_delete,
                          database::mysql_error::delete_service_group_member,
                          conn);
     _add_action(conn, actions::servicegroups);
