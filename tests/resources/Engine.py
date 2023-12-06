@@ -2342,7 +2342,7 @@ def set_service_state(id: int, state: int):
     with open('/tmp/states', 'a+') as f:
         lines = f.readlines()
 
-    r = re.compile(rf"^{id}=>[0-9]+") 
+    r = re.compile(rf"^{id}=>[0-9]+")
     found = False
 
     for i in range(len(lines)):
