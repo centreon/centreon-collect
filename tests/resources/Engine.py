@@ -1956,15 +1956,15 @@ def config_engine_remove_cfg_file(poller: int, fic: str):
     ff.close()
 
 
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):
         v = math.sin((now + m) / 1000) * 5
-        pd.append(f"metric{m}={v}")
+        pd.append(f"{metric_name}{m}={v}")
+        logger.trace(f"{metric_name}{m}={v}")
     full_output = " ".join(pd)
     process_service_check_result(hst, svc, state, full_output, config)
-
 
 def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
     if use_grpc > 0:

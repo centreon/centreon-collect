@@ -134,7 +134,7 @@ Service_increased_huge_check_interval
 
     ${metrics}    Get Metrics For Service    ${new_service_id}
 
-    Should Not Be Equal    ${metrics}    None    no metric found for service ${new_service_id}
+    Should Not Be Equal    ${metrics}    ${None}    no metric found for service ${new_service_id}
 
     FOR    ${m}    IN    @{metrics}
         ${result}    Wait Until File Modified    ${VarRoot}/lib/centreon/metrics/${m}.rrd    ${start}
