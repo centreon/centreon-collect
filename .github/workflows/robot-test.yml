@@ -14,7 +14,44 @@ on:
         required: true
 
 jobs:
+  test-image-to-cache:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+
+      - name: Login to Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
+      - name: Login to Proxy Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ vars.DOCKER_PROXY_REGISTRY_URL }}
+          username: ${{ secrets.registry_username }}
+          password: ${{ secrets.registry_password }}
+
+      - name: load image
+        run: |
+          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+        shell: bash
+
+      - name: image to disk
+        run: |
+          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+        shell: bash
+
+      - name: image to cache
+        uses: actions/cache/save@v3
+        with:
+          path: /tmp/${{inputs.image}}
+          key: ${{inputs.image_test}}
+
   robot-test-list:
+    needs: [test-image-to-cache]
     runs-on: ubuntu-22.04
     outputs:
       features: ${{ steps.list-features.outputs.features }}
@@ -54,7 +91,7 @@ jobs:
           key: cache-${{ github.sha }}-rpmbuild-centreon-collect-${{ inputs.distrib }}-${{ github.head_ref || github.ref_name }}
 
       - name: Test ${{ matrix.feature }}
-        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }}
+        run: bash ./.github/scripts/collect-test-robot.sh ${{ matrix.feature }} ${{ inputs.distrib }}
         shell: bash
 
       - name: Move reports
