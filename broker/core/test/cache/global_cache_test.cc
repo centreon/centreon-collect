@@ -154,9 +154,9 @@ TEST_F(global_cache_test, Group) {
     obj->store_service(ii, ii + 1, fmt::format("service_{}", ii), ii + 10000000,
                        2);
     for (unsigned jj = 0; jj < 10; ++jj)
-      obj->add_host_group(ii / 10 + jj, ii);
+      obj->add_host_to_group(ii / 10 + jj, ii, ii & 1);
     for (unsigned jj = 0; jj < 10; ++jj)
-      obj->add_service_group(ii / 10 + 1000 + jj, ii, ii + 1);
+      obj->add_service_to_group(ii / 10 + 1000 + jj, ii, ii + 1, ii & 1);
   }
 
   // check host groups
@@ -192,11 +192,26 @@ TEST_F(global_cache_test, Group) {
     ASSERT_EQ(serv_grp.str(), "1001,1002,1003,1004,1005,1006,1007,1008,1009");
   }
 
-  obj->remove_service_group(1005);
+  // service group remove from poller 0 but not from poller 1
+  obj->remove_service_group_members(1005, 0);
   {
     std::ostringstream serv_grp;
     obj->append_service_group(0, 1, serv_grp);
     ASSERT_EQ(serv_grp.str(), "1001,1002,1003,1004,1006,1007,1008,1009");
+  }
+  {
+    std::ostringstream serv_grp;
+    obj->append_service_group(1, 2, serv_grp);
+    ASSERT_EQ(serv_grp.str(),
+              "1000,1001,1002,1003,1004,1005,1006,1007,1008,1009");
+  }
+
+  // remove from all pollers
+  obj->remove_service_group_members(1005, 1);
+  {
+    std::ostringstream serv_grp;
+    obj->append_service_group(1, 2, serv_grp);
+    ASSERT_EQ(serv_grp.str(), "1000,1001,1002,1003,1004,1006,1007,1008,1009");
   }
 
   obj->remove_host_from_group(10, 55);
@@ -206,11 +221,22 @@ TEST_F(global_cache_test, Group) {
     ASSERT_EQ(host_grp.str(), "5,6,7,8,9,11,12,13,14");
   }
 
-  obj->remove_host_group(13);
+  obj->remove_host_group_members(13, 1);
   {
     std::ostringstream host_grp;
     obj->append_host_group(55, host_grp);
     ASSERT_EQ(host_grp.str(), "5,6,7,8,9,11,12,14");
+  }
+  {
+    std::ostringstream host_grp;
+    obj->append_host_group(54, host_grp);
+    ASSERT_EQ(host_grp.str(), "5,6,7,8,9,10,11,12,13,14");
+  }
+  obj->remove_host_group_members(13, 0);
+  {
+    std::ostringstream host_grp;
+    obj->append_host_group(54, host_grp);
+    ASSERT_EQ(host_grp.str(), "5,6,7,8,9,10,11,12,14");
   }
 }
 

@@ -113,7 +113,7 @@ struct resource_info {
  * When you insert data, you must catch interprocess::bad_allo and call
  * allocation_exception_handler to grow file outside any lock
  * @code {.c++}
- * void global_cache_data::add_service_group(uint64_t group,
+ * void global_cache_data::add_service_to_group(uint64_t group,
  *                                         uint64_t host,
  *                                         uint64_t service) {
  * try {
@@ -122,7 +122,7 @@ struct resource_info {
  * } catch (const interprocess::bad_alloc& e) {
  *   SPDLOG_LOGGER_DEBUG(log_v2::core(), "file full => grow");
  *   allocation_exception_handler();
- *   add_service_group(group, host, service);
+ *   add_service_to_group(group, host, service);
  * }
  *}
  * @endcode
@@ -224,17 +224,22 @@ class global_cache : public std::enable_shared_from_this<global_cache> {
 
   virtual const string* get_instance_name(uint64_t instance_id) const = 0;
 
-  virtual void add_host_group(uint64_t group, uint64_t host) = 0;
-  virtual void remove_host_from_group(uint64_t group, uint64_t host) = 0;
-  virtual void remove_host_group(uint64_t group) = 0;
-
-  virtual void add_service_group(uint64_t group,
+  virtual void add_host_to_group(uint64_t group,
                                  uint64_t host,
-                                 uint64_t service) = 0;
+                                 uint64_t poller_id) = 0;
+  virtual void remove_host_from_group(uint64_t group, uint64_t host) = 0;
+  virtual void remove_host_group_members(uint64_t group,
+                                         uint64_t poller_id) = 0;
+
+  virtual void add_service_to_group(uint64_t group,
+                                    uint64_t host,
+                                    uint64_t service,
+                                    uint64_t poller_id) = 0;
   virtual void remove_service_from_group(uint64_t group,
                                          uint64_t host,
                                          uint64_t service) = 0;
-  virtual void remove_service_group(uint64_t group) = 0;
+  virtual void remove_service_group_members(uint64_t group,
+                                            uint64_t poller_id) = 0;
 
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,

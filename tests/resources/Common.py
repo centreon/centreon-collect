@@ -1251,8 +1251,13 @@ def check_number_of_relations_between_hostgroup_and_hosts(hostgroup: int, value:
     return False
 
 
-def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int):
+def check_number_of_relations_between_servicegroup_and_services(servicegroup: int, value: int, timeout: int, service_group_name: str = None ):
     limit = time.time() + timeout
+    request = f"SELECT count(*) from servicegroups s join services_servicegroups sg on s.servicegroup_id = sg.servicegroup_id  WHERE s.servicegroup_id={servicegroup}"
+
+    if service_group_name is not None:
+        request += f" AND name='{service_group_name}'"
+
     while time.time() < limit:
         connection = pymysql.connect(host=DB_HOST,
                                      user=DB_USER,
@@ -1263,8 +1268,7 @@ def check_number_of_relations_between_servicegroup_and_services(servicegroup: in
 
         with connection:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT count(*) FROM services_servicegroups WHERE servicegroup_id={}".format(servicegroup))
+                cursor.execute(request)
                 result = cursor.fetchall()
                 if len(result) > 0:
                     if int(result[0]['count(*)']) == value:

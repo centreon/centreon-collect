@@ -87,14 +87,14 @@ void applier::servicegroup::add_object(configuration::servicegroup const& obj) {
   // Add servicegroup id to the other props.
   sg->set_id(obj.servicegroup_id());
 
-  // Notify event broker.
-  broker_group(NEBTYPE_SERVICEGROUP_ADD, sg.get());
-
   // Apply resolved services on servicegroup.
   for (set_pair_string::const_iterator it(obj.members().begin()),
        end(obj.members().end());
        it != end; ++it)
     sg->members[{it->first, it->second}] = nullptr;
+
+  // Notify event broker.
+  broker_group(NEBTYPE_SERVICEGROUP_ADD, sg.get());
 }
 
 /**
