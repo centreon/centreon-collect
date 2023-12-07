@@ -1061,7 +1061,7 @@ not17
     FOR   ${i}    IN RANGE    ${4}
         Process Service Result Hard    host_4    service_4    ${2}    The service_4 is CRITICAL
         Sleep    1s
-    END
+        Sleep    1s
 
     Set Service state    ${38}    ${2}
 
