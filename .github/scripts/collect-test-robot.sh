@@ -35,9 +35,6 @@ else
 fi
 
 
-ulimit -c unlimited
-echo '/tmp/core.%p' > /proc/sys/kernel/core_pattern
-
 #remove git dubious ownership
 /usr/bin/git config --global --add safe.directory $PWD
 
