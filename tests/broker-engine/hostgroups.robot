@@ -300,10 +300,12 @@ EBNHGU4_${test_label}
 
     Sleep    2s
     # clear lua file
-    Create File    /tmp/lua-engine.log
-    Sleep    2s
-    ${grep_result}    Grep File    /tmp/lua-engine.log    no host_group_name 1
-    Should Be True    len("""${grep_result}""") < 10    hostgroup 1 still exist
+    # this part of test is disable because group erasure is desactivated in macrocache.cc
+    # it will be reactivated when global cache will be implemented
+    # Create File    /tmp/lua-engine.log
+    # Sleep    2s
+    # ${grep_result}    Grep File    /tmp/lua-engine.log    no host_group_name 1
+    # Should Be True    len("""${grep_result}""") < 10    hostgroup 1 still exist
 
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3

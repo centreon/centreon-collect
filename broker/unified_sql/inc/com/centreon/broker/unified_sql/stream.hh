@@ -53,7 +53,7 @@ struct uint64_not_null {
 };
 
 }  // namespace unified_sql
-}
+}  // namespace com::centreon::broker
 namespace fmt {
 template <>
 struct formatter<com::centreon::broker::timestamp> {
@@ -335,7 +335,6 @@ class stream : public io::stream {
   database::mysql_stmt _acknowledgement_insupdate;
   database::mysql_stmt _pb_acknowledgement_insupdate;
   database::mysql_stmt _custom_variable_delete;
-  database::mysql_stmt _event_handler_insupdate;
   database::mysql_stmt _flapping_status_insupdate;
   database::mysql_stmt _host_check_update;
   database::mysql_stmt _pb_host_check_update;
@@ -518,6 +517,6 @@ class stream : public io::stream {
   void update() override;
 };
 }  // namespace unified_sql
-}
+}  // namespace com::centreon::broker
 
 #endif /* !CCB_UNIFIED_SQL_STREAM_HH */

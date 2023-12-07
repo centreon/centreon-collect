@@ -1329,7 +1329,7 @@ void stream::_process_host_group(const std::shared_ptr<io::data>& d) {
 
     auto cache_ptr = cache::global_cache::instance_ptr();
     if (cache_ptr) {
-      cache_ptr->remove_host_group(hg.id, hg.poller_id);
+      cache_ptr->remove_host_group_members(hg.id, hg.poller_id);
     }
 
     // Delete group members.
@@ -1383,7 +1383,7 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
 
     auto cache_ptr = cache::global_cache::instance_ptr();
     if (cache_ptr) {
-      cache_ptr->remove_host_group(hg.hostgroup_id(), hg.poller_id());
+      cache_ptr->remove_host_group_members(hg.hostgroup_id(), hg.poller_id());
     }
 
     // Delete group members.
@@ -1437,7 +1437,7 @@ void stream::_process_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id, hgm.group_id, hgm.poller_id);
 
     if (cache_ptr) {
-      cache_ptr->add_host_group(hgm.group_id, hgm.host_id, hgm.poller_id);
+      cache_ptr->add_host_to_group(hgm.group_id, hgm.host_id, hgm.poller_id);
     }
     // We only need to try to insert in this table as the
     // host_id/hostgroup_id should be UNIQUE.
@@ -1544,8 +1544,8 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
     if (cache_ptr) {
-      cache_ptr->add_host_group(hgm.hostgroup_id(), hgm.host_id(),
-                                hgm.poller_id());
+      cache_ptr->add_host_to_group(hgm.hostgroup_id(), hgm.host_id(),
+                                   hgm.poller_id());
     }
     // We only need to try to insert in this table as the
     // host_id/hostgroup_id should be UNIQUE.
@@ -3243,7 +3243,7 @@ void stream::_process_service_group(const std::shared_ptr<io::data>& d) {
                        sg.id, sg.name, sg.poller_id);
     auto cache_ptr = cache::global_cache::instance_ptr();
     if (cache_ptr) {
-      cache_ptr->remove_service_group(sg.id, sg.poller_id);
+      cache_ptr->remove_service_group_members(sg.id, sg.poller_id);
     }
 
     // Delete group members.
@@ -3298,7 +3298,8 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
                        sg.servicegroup_id(), sg.name(), sg.poller_id());
     auto cache_ptr = cache::global_cache::instance_ptr();
     if (cache_ptr) {
-      cache_ptr->remove_service_group(sg.servicegroup_id(), sg.poller_id());
+      cache_ptr->remove_service_group_members(sg.servicegroup_id(),
+                                              sg.poller_id());
     }
 
     // Delete group members.
@@ -3344,8 +3345,8 @@ void stream::_process_service_group_member(const std::shared_ptr<io::data>& d) {
         sgm.host_id, sgm.service_id, sgm.group_id, sgm.poller_id);
 
     if (cache_ptr) {
-      cache_ptr->add_service_group(sgm.group_id, sgm.host_id, sgm.service_id,
-                                   sgm.poller_id);
+      cache_ptr->add_service_to_group(sgm.group_id, sgm.host_id, sgm.service_id,
+                                      sgm.poller_id);
     }
     // We only need to try to insert in this table as the
     // host_id/service_id/servicegroup_id combo should be UNIQUE.
@@ -3445,8 +3446,8 @@ void stream::_process_pb_service_group_member(
         sgm.poller_id());
 
     if (cache_ptr) {
-      cache_ptr->add_service_group(sgm.servicegroup_id(), sgm.host_id(),
-                                   sgm.service_id(), sgm.poller_id());
+      cache_ptr->add_service_to_group(sgm.servicegroup_id(), sgm.host_id(),
+                                      sgm.service_id(), sgm.poller_id());
     }
     // We only need to try to insert in this table as the
     // host_id/service_id/servicegroup_id combo should be UNIQUE.

@@ -1,20 +1,20 @@
 /**
-* Copyright 2017-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2017-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
@@ -753,8 +753,7 @@ void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
                       hg->name, hg->id, hg->enabled);
   if (hg->enabled)
     _host_groups[hg->id] = data;
-  else
-    _host_groups.erase(hg->id);
+  //erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -771,8 +770,7 @@ void macro_cache::_process_pb_host_group(
                       hg.name(), hg.hostgroup_id(), hg.enabled());
   if (hg.enabled())
     _host_groups[hg.hostgroup_id()] = data;
-  else
-    _host_groups.erase(hg.hostgroup_id());
+  //erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -949,8 +947,7 @@ void macro_cache::_process_service_group(
                       sg->id);
   if (sg->enabled)
     _service_groups[sg->id] = data;
-  else
-    _service_groups.erase(sg->id);
+  //erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -967,8 +964,7 @@ void macro_cache::_process_pb_service_group(
                       sg.name(), sg.servicegroup_id());
   if (sg.enabled())
     _service_groups[sg.servicegroup_id()] = data;
-  else
-    _service_groups.erase(sg.servicegroup_id());
+  //erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**

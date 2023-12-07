@@ -161,7 +161,7 @@ EBNSGU3_${test_label}
 
     FOR    ${loop_index}    IN RANGE    30
         ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_name:servicegroup_1
-        Exit For Loop If    len("""${grep_result}""") > 10
+        IF    len("""${grep_result}""") > 10    BREAK
         Sleep    1s
     END
 
@@ -180,7 +180,7 @@ EBNSGU3_${test_label}
 
     FOR    ${loop_index}    IN RANGE    30
         ${grep_result}    Grep File    /tmp/lua-engine.log    service_group_name:servicegroup_test
-        Exit For Loop If   len("""${grep_result}""") > 10
+        IF    len("""${grep_result}""") > 10    BREAK
         Sleep    1s
     END
 
@@ -197,10 +197,12 @@ EBNSGU3_${test_label}
     Should Be True    ${result}    still a relation between the servicegroup 1 and services.
 
     # clear lua file
-    Create File    /tmp/lua-engine.log
-    Sleep    2s
-    ${grep_result}    Grep File    /tmp/lua-engine.log    no service_group_name 1
-    Should Be True    len("""${grep_result}""") < 10    servicegroup 1 still exist
+    # this part of test is disable because group erasure is desactivated in macrocache.cc
+    # it will be reactivated when global cache will be implemented
+    # Create File    /tmp/lua-engine.log
+    # Sleep    2s
+    # ${grep_result}    Grep File    /tmp/lua-engine.log    no service_group_name 1
+    # Should Be True    len("""${grep_result}""") < 10    servicegroup 1 still exist
 
     Examples:    Use_BBDO3    test_label    --
     ...    True    BBDO3
