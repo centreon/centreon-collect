@@ -1,12 +1,7 @@
 *** Settings ***
 Documentation       Centreon Engine forced checks tests
 
-Resource            ../resources/resources.robot
-Library             DateTime
-Library             Process
-Library             OperatingSystem
-Library             ../resources/Broker.py
-Library             ../resources/Engine.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite

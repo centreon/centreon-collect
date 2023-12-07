@@ -1,15 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker RRD metric rebuild/deletion with rrdcached
 
-Resource            ../resources/resources.robot
-Library             DatabaseLibrary
-Library             Process
-Library             OperatingSystem
-Library             DateTime
-Library             Collections
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite With rrdcached
 Suite Teardown      Clean After Suite With rrdcached

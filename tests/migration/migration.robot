@@ -1,14 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine are configured in bbdo2 with sql/storage outputs. Then we change these outputs to unified_sql. The we change bbdo2 to bbdo3. And we make all the way in reverse order.
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             OperatingSystem
-Library             DateTime
-Library             Collections
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite

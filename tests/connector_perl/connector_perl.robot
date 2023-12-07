@@ -1,10 +1,7 @@
 *** Settings ***
 Documentation       centreon_connector_perl tests.
 
-Resource            ../resources/resources.robot
-Library             ../resources/Engine.py
-Library             Process
-Library             OperatingSystem
+Resource            ../resources/import.resource
 
 Suite Setup         Start engine
 Suite Teardown      Stop engine

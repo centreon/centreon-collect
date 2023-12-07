@@ -1,13 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and Engine anomaly detection
 
-Resource            ../resources/resources.robot
-Library             DateTime
-Library             Process
-Library             OperatingSystem
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
