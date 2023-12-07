@@ -1075,7 +1075,7 @@ not17
     FOR   ${i}    IN RANGE    ${4}
         Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
         Sleep    1s
-    END
+        Sleep    1s
     
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
