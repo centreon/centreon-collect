@@ -60,7 +60,7 @@ BECCC2
         Sleep    1s
     END
 
-    ${version}    Get The Version
+    ${version}    Common.Get The Version
     ${expected}    Catenate    Connected to a Centreon Broker    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
     Stop Engine
@@ -92,7 +92,7 @@ BECCC3
         IF    len("${content.strip()}") > 0    BREAK
         Sleep    1s
     END
-    ${version}    Get The Version
+    ${version}    Common.Get The Version
     ${expected}    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
     Stop Engine
@@ -186,7 +186,7 @@ BECCC6
         IF    len("""${content.strip().split()}""") > 50    BREAK
         Sleep    1s
     END
-    ${version}    Get The Version
+    ${version}    Common.Get The Version
     ${vers}    Split String    ${version}    .
     ${mm}    Evaluate    """${vers}[0]""".lstrip("0")
     ${m}    Evaluate    """${vers}[1]""".lstrip("0")

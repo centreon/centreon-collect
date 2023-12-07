@@ -12,7 +12,7 @@ from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb
 from cpuinfo import get_cpu_info
 from robot.api import logger
 from dateutil import parser as date_parser
-from Common import get_version
+from Common import get_the_version
 from Common import is_using_direct_grpc
 
 
