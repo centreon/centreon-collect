@@ -1419,7 +1419,7 @@ def grep(file_path: str, pattern: str):
     return ""
 
 
-def get_version():
+def get_the_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
     f.close()
