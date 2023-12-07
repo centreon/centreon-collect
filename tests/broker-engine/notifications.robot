@@ -1482,7 +1482,7 @@ Service2 Check Critical
 Service2 Check OK
     FOR   ${i}    IN RANGE    ${3}
         Process Service Result Hard    host_2    service_2    ${0}    The service_2 is OK
-    Sleep    1s
+        Sleep    1s
     END
 
     ${result}    Check Service Status With Timeout    host_2    service_2    ${0}    60    HARD
