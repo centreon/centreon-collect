@@ -47,7 +47,7 @@ not1
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     
     ## Time to set the service to CRITICAL HARD.
-    Set Service state    ${30}    ${2}
+    Set Service State    ${30}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    90    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
