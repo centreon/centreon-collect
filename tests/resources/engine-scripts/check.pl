@@ -3,6 +3,10 @@
 use strict;
 use warnings;
 
+if ($#ARGV < 1) {
+    die "The script must be used with one integer argument\n";
+}
+
 my $d = time();
 my $dd = localtime();
 {
@@ -10,14 +14,15 @@ my $dd = localtime();
     $d = ($d + 3 * $ARGV[0]) & 0x1ff;
 }
 
-if ($#ARGV ne 0) {
-    die "The script must be used with one integer argument\n";
-}
-
 my $status = -1;
 
 if ($ARGV[0] eq 0) {
   printf("Host check $dd");
+  if ($#ARGV eq 1) {
+    $status = $ARGV[1];
+  } else {
+    $status = 0;
+  }
 }
 else {
   if (open(FH, '<', "/tmp/states")) {
@@ -51,4 +56,4 @@ else {
   printf("Test check $ARGV[0] | metric=%.2f;%.2f;%.2f\n", $d, $w, $c);
   exit $status;
 }
-exit 0;
+exit $status;
