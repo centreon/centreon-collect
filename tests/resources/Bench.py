@@ -162,7 +162,7 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         for key, value in other_bench_data.items():
             row[key] = value
 
-    version = get_version()
+    version = get_the_version()
     version = version[0:version.rfind(".")] + ".x"
     row['origin'] = version
 
