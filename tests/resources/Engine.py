@@ -695,7 +695,7 @@ define contact {
             f = open(config_dir + "/escalations.cfg", "w")
             f.close()
 
-            f = open(config_dir + "/meta_services.cfg", "w")
+            f = open(f"{config_dir}/meta_services.cfg", "w")
             f.close()
 
             if not exists(ENGINE_HOME):
