@@ -92,7 +92,7 @@ BECCC3
         IF    len("${content.strip()}") > 0    BREAK
         Sleep    1s
     END
-    ${version}    Common.Get The Version
+    ${version}    Common.Get Collect Version
     ${expected}    Catenate    Connected to a Centreon Engine    ${version}    gRPC server
     Should Be Equal As Strings    ${content.strip()}    ${expected}
     Stop Engine
