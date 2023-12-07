@@ -75,7 +75,7 @@ pip3 install grpcio==1.33.2 grpcio_tools==1.33.2
 On other rpm based distributions, you can try the following commands to initialize your robot tests:
 
 ```
-pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl pymysql
+pip3 install -U robotframework robotframework-databaselibrary robotframework-httpctrl robotframework-examples pymysql
 
 yum install python3-devel -y
 

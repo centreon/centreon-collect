@@ -1755,21 +1755,51 @@ def external_command(func):
     return wrapper
 
 
-def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0'):
+def process_service_check_result_with_metrics(hst: str, svc: str, state: int, output: str, metrics: int, config='config0', metric_name='metric'):
     now = int(time.time())
     pd = [output + " | "]
     for m in range(metrics):
         v = math.sin((now + m) / 1000) * 5
-        pd.append(f"metric{m}={v}")
+        pd.append(f"{metric_name}{m}={v}")
+        logger.trace(f"{metric_name}{m}={v}")
     full_output = " ".join(pd)
     process_service_check_result(hst, svc, state, full_output, config)
 
+def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0', use_grpc=0, nb_check=1):
+    if use_grpc > 0:
+        port = 50001 + int(config[6:])
+        with grpc.insecure_channel(f"127.0.0.1:{port}") as channel:
+            stub = engine_pb2_grpc.EngineStub(channel)
+            for i in range(nb_check):
+                indexed_output = f"{output}_{i}"
+                stub.ProcessServiceCheckResult(engine_pb2.Check(
+                    host_name=hst, svc_desc=svc, output=indexed_output, code=state))
+    else:
+        now = int(time.time())
+        with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
+            for i in range(nb_check):
+                cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}_{i}\n"
+                f.write(cmd)
 
-def process_service_check_result(hst: str, svc: str, state: int, output: str, config='config0'):
-    now = int(time.time())
-    with open(f"{VAR_ROOT}/lib/centreon-engine/{config}/rw/centengine.cmd", "w") as f:
-            cmd = f"[{now}] PROCESS_SERVICE_CHECK_RESULT;{hst};{svc};{state};{output}\n"
-            f.write(cmd)
+
+@external_command
+def acknowledge_service_problem(hst, service, typ='NORMAL'):
+    if typ == 'NORMAL':
+        logger.console('acknowledgement is normal')
+        sticky = 1
+    elif typ == 'STICKY':
+        logger.console('acknowledgement is sticky')
+        sticky = 2
+    else:
+        logger.console('acknowledgement type is none')
+        sticky = 0
+
+    return f"ACKNOWLEDGE_SVC_PROBLEM;{hst};{service};{sticky};0;0;admin;Service ({hst},{service}) acknowledged\n"
+
+
+@external_command
+def remove_service_acknowledgement(hst, service):
+    return f"REMOVE_SVC_ACKNOWLEDGEMENT;{hst};{service}\n"
 
 
 @external_command
