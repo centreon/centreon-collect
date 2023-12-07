@@ -338,7 +338,7 @@ not6
 
     Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
-    Set Service state    ${30}    ${0}
+    Set Service State    ${30}    ${0}
 
     ${content}    Create List    This notifier shouldn't have notifications sent out at this time
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
