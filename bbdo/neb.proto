@@ -729,3 +729,12 @@ message ServiceGroupMember {
   uint64 service_id = 7;
 }
 
+/*io::neb, neb::de_pb_host_parent*/
+message HostParent {
+  BBDOHeader header = 1;
+
+  bool enabled = 2;
+  uint64 child_id = 3;
+  uint64 parent_id = 4;
+}
+

@@ -1930,6 +1930,26 @@ def remove_tags_from_hosts(poller: int, type: str):
     ff.close()
 
 
+def add_parent_to_host(poller: int, host: str, parent_host: str):
+    """! Function to add line 'parents     host_toto' in hosts.cfg
+    @param poller index of the configuration (from 0)
+    @param host child host
+    @param parent_host parent of the child host
+    """
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(rf"^\s*host_name\s+{host}$")
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines.insert(
+                i + 1, f"    parents                        {parent_host}\n")
+            break
+
+    with open(f"{CONF_DIR}/config{poller}/hosts.cfg", "w") as ff:
+        ff.writelines(lines)
+
+
+
 def add_template_to_services(poller: int, tmpl: str, svc_lst):
     ff = open("{}/config{}/services.cfg".format(CONF_DIR, poller), "r")
     lines = ff.readlines()

@@ -65,6 +65,7 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
+            -DNG=ON \
             ..
 
           sudo ninja

@@ -69,20 +69,6 @@ else
   apt-get install -y python3-dev
 fi
 
-
-echo "########################## Install centreon collect ###########################"
-cd ..
-echo "Installation..."
-if [ "$distrib" = "ALMALINUX" ]; then
-  dnf clean all
-  rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
-  dnf install -y ./*.rpm
-else
-  apt-get update
-#  apt-get install -y ./*.deb
-fi
-
-
 if [ $database_type == 'mysql' ]; then
   killall -w mysqldtoto
 else
