@@ -107,6 +107,7 @@ class global_cache_data : public global_cache {
   struct host_group_element {
     uint64_t host;
     uint64_t group;
+    uint64_t poller_id;
     inline bool operator<(const host_group_element& right) const {
       if (host != right.host) {
         return host < right.host;
@@ -129,6 +130,7 @@ class global_cache_data : public global_cache {
   struct service_group_element {
     host_serv_pair serv;
     uint64_t group;
+    uint64_t poller_id;
     inline bool operator<(const service_group_element& right) const {
       if (serv != right.serv) {
         return serv < right.serv;
@@ -265,17 +267,22 @@ class global_cache_data : public global_cache {
 
   const string* get_instance_name(uint64_t instance_id) const override;
 
-  virtual void add_host_group(uint64_t group, uint64_t host) override;
-  virtual void remove_host_from_group(uint64_t group, uint64_t host) override;
-  virtual void remove_host_group(uint64_t group) override;
-
-  virtual void add_service_group(uint64_t group,
+  virtual void add_host_to_group(uint64_t group,
                                  uint64_t host,
-                                 uint64_t service) override;
+                                 uint64_t poller_id) override;
+  virtual void remove_host_from_group(uint64_t group, uint64_t host) override;
+  virtual void remove_host_group_members(uint64_t group,
+                                         uint64_t poller_id) override;
+
+  virtual void add_service_to_group(uint64_t group,
+                                    uint64_t host,
+                                    uint64_t service,
+                                    uint64_t poller_id) override;
   virtual void remove_service_from_group(uint64_t group,
                                          uint64_t host,
                                          uint64_t service) override;
-  virtual void remove_service_group(uint64_t group) override;
+  virtual void remove_service_group_members(uint64_t group,
+                                            uint64_t poller_id) override;
   virtual void append_service_group(uint64_t host,
                                     uint64_t service,
                                     std::ostream& request_body) override;

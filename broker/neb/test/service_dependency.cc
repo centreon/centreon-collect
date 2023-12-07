@@ -25,7 +25,7 @@
 
 using namespace com::centreon::broker;
 
-class ServiceDependency : public ::testing::Test {
+class ServiceDependencyTest : public ::testing::Test {
   void SetUp() override { randomize_init(); };
 
   void TearDown() override { randomize_cleanup(); };
@@ -34,7 +34,7 @@ class ServiceDependency : public ::testing::Test {
 /**
  *  Check service_dependency's assignment operator.
  */
-TEST_F(ServiceDependency, Assign) {
+TEST_F(ServiceDependencyTest, Assign) {
   // Object #1.
   neb::service_dependency sdep1;
   std::vector<randval> randvals1;
@@ -59,7 +59,7 @@ TEST_F(ServiceDependency, Assign) {
 /**
  *  Check service_dependency's copy constructor.
  */
-TEST_F(ServiceDependency, CopyCtor) {
+TEST_F(ServiceDependencyTest, CopyCtor) {
   // Object #1.
   neb::service_dependency sdep1;
   std::vector<randval> randvals1;
@@ -80,7 +80,7 @@ TEST_F(ServiceDependency, CopyCtor) {
 /**
  *  Check service_dependency's default constructor.
  */
-TEST_F(ServiceDependency, DefaultCtor) {
+TEST_F(ServiceDependencyTest, DefaultCtor) {
   // Object.
   neb::service_dependency sdep;
 

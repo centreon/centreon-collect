@@ -1054,6 +1054,24 @@ def add_service_group(index: int, id_service_group: int, members: list):
     f.close()
 
 
+def rename_service_group(index: int, old_servicegroup_name: str, new_service_group_name: str):
+    """!
+        rename a service group
+        @param index index of the poller
+        @param old_servicegroup_name  service group name to look for and to replace
+        @param new_service_group_name
+    """
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "r") as f:
+        ll = f.readlines()
+    group_name_search = re.compile(fr"^\s+servicegroup_name\s+{old_servicegroup_name}$")
+    for i in range(len(ll)):
+        l = ll[i]
+        if group_name_search.match(l):
+            ll[i] = f"    servicegroup_name                  {new_service_group_name}\n"
+            break
+    with open(f"{ETC_ROOT}/centreon-engine/config{index}/servicegroups.cfg", "w") as f:
+        f.writelines(ll)
+
 def add_contact_group(index: int, id_contact_group: int, members: list):
     with open(f"{ETC_ROOT}/centreon-engine/config{index}/contactgroups.cfg", "a+") as f:
         logger.console(members)
@@ -2248,3 +2266,50 @@ def config_host_command_status(idx: int, cmd_name: str, status: int):
 
     with open(filename, "w") as f:
         f.writelines(lines)
+
+
+def add_host_dependency(idx: int, host_name:str, dependent_host_name:str):
+    """!
+    add a host dependency in dependencies.cfg file
+    @param idx index ofthe poller usually 0
+    @host_name  host whose dependent_host_name is dependent
+    @dependent_host_name
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define hostdependency {{
+    execution_failure_criteria     d,p 
+    notification_failure_criteria  o,u
+    dependency_period              24x7
+    inherits_parent                1 
+    dependent_host_name            {dependent_host_name} 
+    host_name                      {host_name} 
+}}
+""")
+        
+def add_service_dependency(idx: int, host_name:str, dependent_host_name:str, service:str, dependent_service:str):
+    """!
+    add a host dependency in dependencies.cfg file
+    @param idx index ofthe poller usually 0
+    @host_name  host whose denendent_host_name is dependent
+    @dependent_host_name
+    @service  service whose dependent_service is dependent
+    @dependent_service
+    """
+    filename = f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg"
+    with open(filename, "a+") as f:
+        f.write(f"""
+define servicedependency {{
+    execution_failure_criteria     c 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependency_period              24x7
+    dependent_host_name            {dependent_host_name} 
+    host_name                      {host_name}
+    dependent_service_description  {dependent_service} 
+    service_description            {service} 
+}}
+""")
+
+

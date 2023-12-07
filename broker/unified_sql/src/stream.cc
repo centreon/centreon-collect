@@ -108,7 +108,12 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_instance,
     &stream::_process_pb_acknowledgement,
     &stream::_process_pb_responsive_instance,
-};
+    &stream::_process_pb_host_dependency,
+    &stream::_process_pb_service_dependency,
+    &stream::_process_pb_host_group,
+    &stream::_process_pb_host_group_member,
+    &stream::_process_pb_service_group,
+    &stream::_process_pb_service_group_member};
 
 constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /

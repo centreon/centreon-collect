@@ -1,20 +1,20 @@
 /**
-* Copyright 2017-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2017-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/lua/macro_cache.hh"
 #include "bbdo/bam/dimension_ba_bv_relation_event.hh"
@@ -355,8 +355,7 @@ std::string const& macro_cache::get_notes(uint64_t host_id,
  *
  *  @return             A std::map
  */
-const absl::btree_map<std::pair<uint64_t, uint64_t>,
-                      std::shared_ptr<neb::host_group_member>>&
+const absl::btree_map<std::pair<uint64_t, uint64_t>, std::shared_ptr<io::data>>&
 macro_cache::get_host_group_members() const {
   return _host_group_members;
 }
@@ -373,7 +372,12 @@ std::string const& macro_cache::get_host_group_name(uint64_t id) const {
 
   if (found == _host_groups.end())
     throw msg_fmt("lua: could not find information on host group {}", id);
-  return found->second->name;
+  if (found->second->type() == neb::host_group::static_type())
+    return std::static_pointer_cast<neb::host_group>(found->second)->name;
+  else
+    return std::static_pointer_cast<neb::pb_host_group>(found->second)
+        ->obj()
+        .name();
 }
 
 /**
@@ -409,7 +413,7 @@ std::string const& macro_cache::get_service_description(
  *  @return   A map indexed by host_id/service_id/group_id.
  */
 absl::btree_map<std::tuple<uint64_t, uint64_t, uint64_t>,
-                std::shared_ptr<neb::service_group_member>> const&
+                std::shared_ptr<io::data>> const&
 macro_cache::get_service_group_members() const {
   return _service_group_members;
 }
@@ -426,7 +430,12 @@ std::string const& macro_cache::get_service_group_name(uint64_t id) const {
 
   if (found == _service_groups.end())
     throw msg_fmt("lua: could not find information on service group {}", id);
-  return found->second->name;
+  if (found->second->type() == neb::service_group::static_type())
+    return std::static_pointer_cast<neb::service_group>(found->second)->name;
+  else
+    return std::static_pointer_cast<neb::pb_service_group>(found->second)
+        ->obj()
+        .name();
 }
 
 /**
@@ -521,8 +530,14 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::host_group::static_type():
       _process_host_group(data);
       break;
+    case neb::pb_host_group::static_type():
+      _process_pb_host_group(data);
+      break;
     case neb::host_group_member::static_type():
       _process_host_group_member(data);
+      break;
+    case neb::pb_host_group_member::static_type():
+      _process_pb_host_group_member(data);
       break;
     case neb::service::static_type():
       _process_service(data);
@@ -536,8 +551,14 @@ void macro_cache::write(std::shared_ptr<io::data> const& data) {
     case neb::service_group::static_type():
       _process_service_group(data);
       break;
+    case neb::pb_service_group::static_type():
+      _process_pb_service_group(data);
+      break;
     case neb::service_group_member::static_type():
       _process_service_group_member(data);
+      break;
+    case neb::pb_service_group_member::static_type():
+      _process_pb_service_group_member(data);
       break;
     case neb::custom_variable::static_type():
       _process_custom_variable(data);
@@ -727,10 +748,29 @@ void macro_cache::_process_pb_adaptive_host(
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host_group> const& hg =
       std::static_pointer_cast<neb::host_group>(data);
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(), "lua: processing host group '{}' of id {}",
-                      hg->name, hg->id);
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing host group '{}' of id {} enabled: {}",
+                      hg->name, hg->id, hg->enabled);
   if (hg->enabled)
-    _host_groups[hg->id] = hg;
+    _host_groups[hg->id] = data;
+  //erasure is desactivated because a group cen be owned by several pollers
+}
+
+/**
+ *  Process a host group event.
+ *
+ *  @param data  The event.
+ */
+void macro_cache::_process_pb_host_group(
+    std::shared_ptr<io::data> const& data) {
+  const HostGroup& hg =
+      std::static_pointer_cast<neb::pb_host_group>(data)->obj();
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing pb host group '{}' of id {}, enabled {}",
+                      hg.name(), hg.hostgroup_id(), hg.enabled());
+  if (hg.enabled())
+    _host_groups[hg.hostgroup_id()] = data;
+  //erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -745,12 +785,32 @@ void macro_cache::_process_host_group_member(
   SPDLOG_LOGGER_DEBUG(
       log_v2::lua(),
       "lua: processing host group member (group_name: '{}', group_id: {}, "
-      "host_id: {})",
-      hgm->group_name, hgm->group_id, hgm->host_id);
+      "host_id: {}, enabled: {})",
+      hgm->group_name, hgm->group_id, hgm->host_id, hgm->enabled);
   if (hgm->enabled)
-    _host_group_members[{hgm->host_id, hgm->group_id}] = hgm;
+    _host_group_members[{hgm->host_id, hgm->group_id}] = data;
   else
     _host_group_members.erase({hgm->host_id, hgm->group_id});
+}
+
+/**
+ *  Process a host group member event.
+ *
+ *  @param data  The event.
+ */
+void macro_cache::_process_pb_host_group_member(
+    std::shared_ptr<io::data> const& data) {
+  const HostGroupMember& hgm =
+      std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::lua(),
+      "lua: processing pb host group member (group_name: '{}', group_id: {}, "
+      "host_id: {}, enabled: {})",
+      hgm.name(), hgm.hostgroup_id(), hgm.host_id(), hgm.enabled());
+  if (hgm.enabled())
+    _host_group_members[{hgm.host_id(), hgm.hostgroup_id()}] = data;
+  else
+    _host_group_members.erase({hgm.host_id(), hgm.hostgroup_id()});
 }
 
 /**
@@ -886,7 +946,25 @@ void macro_cache::_process_service_group(
                       "lua: processing service group '{}' of id {}", sg->name,
                       sg->id);
   if (sg->enabled)
-    _service_groups[sg->id] = sg;
+    _service_groups[sg->id] = data;
+  //erasure is desactivated because a group cen be owned by several pollers
+}
+
+/**
+ *  Process a service group event.
+ *
+ *  @param sg  The event.
+ */
+void macro_cache::_process_pb_service_group(
+    std::shared_ptr<io::data> const& data) {
+  const ServiceGroup& sg =
+      std::static_pointer_cast<neb::pb_service_group>(data)->obj();
+  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+                      "lua: processing pb service group '{}' of id {}",
+                      sg.name(), sg.servicegroup_id());
+  if (sg.enabled())
+    _service_groups[sg.servicegroup_id()] = data;
+  //erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -900,14 +978,38 @@ void macro_cache::_process_service_group_member(
   SPDLOG_LOGGER_DEBUG(
       log_v2::lua(),
       "lua: processing service group member (group_name: {}, group_id: {}, "
-      "host_id: {}, service_id: {}",
-      sgm->group_name, sgm->group_id, sgm->host_id, sgm->service_id);
+      "host_id: {}, service_id: {}, enabled: {}",
+      sgm->group_name, sgm->group_id, sgm->host_id, sgm->service_id,
+      sgm->enabled);
   if (sgm->enabled)
     _service_group_members[std::make_tuple(sgm->host_id, sgm->service_id,
                                            sgm->group_id)] = sgm;
   else
     _service_group_members.erase(
         std::make_tuple(sgm->host_id, sgm->service_id, sgm->group_id));
+}
+
+/**
+ *  Process a service group member event.
+ *
+ *  @param data  The event.
+ */
+void macro_cache::_process_pb_service_group_member(
+    std::shared_ptr<io::data> const& data) {
+  const ServiceGroupMember& sgm =
+      std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
+  SPDLOG_LOGGER_DEBUG(
+      log_v2::lua(),
+      "lua: processing pb service group member (group_name: {}, group_id: {}, "
+      "host_id: {}, service_id: {} enabled: {}",
+      sgm.name(), sgm.servicegroup_id(), sgm.host_id(), sgm.service_id(),
+      sgm.enabled());
+  if (sgm.enabled())
+    _service_group_members[std::make_tuple(sgm.host_id(), sgm.service_id(),
+                                           sgm.servicegroup_id())] = data;
+  else
+    _service_group_members.erase(std::make_tuple(
+        sgm.host_id(), sgm.service_id(), sgm.servicegroup_id()));
 }
 
 /**

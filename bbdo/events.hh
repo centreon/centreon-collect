@@ -101,7 +101,7 @@ enum data_element {
   de_custom_variable,
   de_custom_variable_status,
   de_downtime,
-  de_event_handler = 6,
+  de_event_handler = 6,    // unused
   de_flapping_status = 7,  // unused
   de_host_check = 8,
   de_host_dependency = 9,
@@ -142,6 +142,12 @@ enum data_element {
   de_pb_instance = 44,
   de_pb_acknowledgement = 45,
   de_pb_responsive_instance = 46,
+  de_pb_host_dependency = 47,
+  de_pb_service_dependency = 48,
+  de_pb_host_group = 49,
+  de_pb_host_group_member = 50,
+  de_pb_service_group = 51,
+  de_pb_service_group_member = 52
 };
 }  // namespace neb
 namespace storage {

@@ -453,12 +453,27 @@ static int l_broker_cache_get_servicegroups(lua_State* L) {
     int i{1};
     for (auto it(first), end(second); it != end; ++it) {
       lua_createtable(L, 0, 2);
-      lua_pushinteger(L, it->second->group_id);
-      lua_setfield(L, -2, "group_id");
+      if (it->second->type() == neb::service_group_member::static_type()) {
+        const neb::service_group_member& sgm =
+            *std::static_pointer_cast<neb::service_group_member>(it->second);
 
-      lua_pushstring(L, it->second->group_name.c_str());
-      lua_setfield(L, -2, "group_name");
+        lua_pushinteger(L, sgm.group_id);
+        lua_setfield(L, -2, "group_id");
 
+        lua_pushstring(L, sgm.group_name.c_str());
+        lua_setfield(L, -2, "group_name");
+
+      } else {
+        const ServiceGroupMember& sgm =
+            std::static_pointer_cast<neb::pb_service_group_member>(it->second)
+                ->obj();
+
+        lua_pushinteger(L, sgm.servicegroup_id());
+        lua_setfield(L, -2, "group_id");
+
+        lua_pushstring(L, sgm.name().c_str());
+        lua_setfield(L, -2, "group_name");
+      }
       lua_rawseti(L, -2, i);
       ++i;
     }
@@ -489,12 +504,25 @@ static int l_broker_cache_get_hostgroups(lua_State* L) {
     int i = 1;
     for (auto it(first); it != second; ++it) {
       lua_createtable(L, 0, 2);
-      lua_pushinteger(L, it->second->group_id);
-      lua_setfield(L, -2, "group_id");
+      std::shared_ptr<io::data> evt = it->second;
+      if (it->second->type() == neb::host_group_member::static_type()) {
+        const neb::host_group_member& hgm =
+            *std::static_pointer_cast<neb::host_group_member>(it->second);
+        lua_pushinteger(L, hgm.group_id);
+        lua_setfield(L, -2, "group_id");
 
-      lua_pushstring(L, it->second->group_name.c_str());
-      lua_setfield(L, -2, "group_name");
+        lua_pushstring(L, hgm.group_name.c_str());
+        lua_setfield(L, -2, "group_name");
+      } else {
+        const HostGroupMember& hgm =
+            std::static_pointer_cast<neb::pb_host_group_member>(it->second)
+                ->obj();
+        lua_pushinteger(L, hgm.hostgroup_id());
+        lua_setfield(L, -2, "group_id");
 
+        lua_pushstring(L, hgm.name().c_str());
+        lua_setfield(L, -2, "group_name");
+      }
       lua_rawseti(L, -2, i);
       ++i;
     }

@@ -71,14 +71,14 @@ void applier::hostgroup::add_object(configuration::hostgroup const& obj) {
   // Add new items to the configuration state.
   engine::hostgroup::hostgroups.insert({hg->get_group_name(), hg});
 
-  // Notify event broker.
-  broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
-
   // Apply resolved hosts on hostgroup.
   for (set_string::const_iterator it(obj.members().begin()),
        end(obj.members().end());
        it != end; ++it)
     hg->members.insert({*it, nullptr});
+
+  // Notify event broker.
+  broker_group(NEBTYPE_HOSTGROUP_ADD, hg.get());
 }
 
 /**
