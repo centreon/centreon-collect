@@ -39,13 +39,13 @@ jobs:
             dockerfile: centreon-collect-alma9-test
             image: centreon-collect-alma9-test
             tag: ${{ needs.get-version.outputs.test_img_version }}
-          - runner: collect-arm64
+          - runner: collect
             dockerfile: centreon-collect-debian-bullseye
-            image: centreon-collect-debian-bullseye-arm64
+            image: centreon-collect-debian-bullseye
             tag: ${{ needs.get-version.outputs.img_version }}
-          - runner: collect-arm64
+          - runner: collect
             dockerfile: centreon-collect-debian-bullseye-test
-            image: centreon-collect-debian-bullseye-arm64-test
+            image: centreon-collect-debian-bullseye-test
             tag: ${{ needs.get-version.outputs.test_img_version }}
 
     runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
