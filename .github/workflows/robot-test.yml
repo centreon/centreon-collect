@@ -1,7 +1,10 @@
 on:
   workflow_call:
     inputs:
-      image_name:
+      image:
+        required: true
+        type: string
+      full_name:
         required: true
         type: string
       distrib:
@@ -36,19 +39,19 @@ jobs:
 
       - name: load image
         run: |
-          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_name}}
+          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.full_name}}
         shell: bash
 
       - name: image to disk
         run: |
-          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_name}}
+          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.full_name}}
         shell: bash
 
       - name: image to cache
         uses: actions/cache/save@v3
         with:
           path: /tmp/${{inputs.image}}
-          key: ${{inputs.image_name}}
+          key: ${{inputs.full_name}}
 
   robot-test-list:
     needs: [test-image-to-cache]
@@ -70,7 +73,7 @@ jobs:
     needs: [robot-test-list]
     runs-on: ubuntu-22.04
     container:
-      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.image_name }}
+      image: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ inputs.full_name }}
       credentials:
         username: ${{ secrets.registry_username }}
         password: ${{ secrets.registry_password }}
