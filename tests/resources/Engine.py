@@ -307,14 +307,14 @@ define command {
         if cmd % 2 == 0:
             retval = """define command {{
     command_name                    command_{1}
-    command_line                    {0}/check.pl {1}
+    command_line                    {0}/check.pl --id {1}
     connector                       Perl Connector
 }}
 """.format(ENGINE_HOME, cmd)
         else:
             retval = """define command {{
     command_name                    command_{1}
-    command_line                    {0}/check.pl {1}
+    command_line                    {0}/check.pl --id {1}
 }}
 """.format(ENGINE_HOME, cmd)
         return retval
@@ -385,6 +385,72 @@ define command {
     contact_groups                 {2}
     }}
     """.format(name, SG, contactgroup)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define servicedependency {{
+    ;dependency_name               HD_test
+    execution_failure_criteria     n 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependent_host_name            {0} 
+    host_name                      {1} 
+    dependent_service_description  {2} 
+    service_description            {3} 
+
+    }}
+    """.format(dependenthost, host, dependentservice, service)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define servicedependency {{
+    ;dependency_name               MSD_test 
+    execution_failure_criteria     n 
+    notification_failure_criteria  c 
+    inherits_parent                1 
+    dependent_servicegroup_name    {0} 
+    servicegroup_name              {1} 
+
+    }}
+    """.format(dependentservicegroup, servicegroup)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define hostdependency {{
+    ;dependency_name               HD_test2 
+    execution_failure_criteria     n 
+    notification_failure_criteria  d 
+    inherits_parent                1 
+    dependent_host_name            {0} 
+    host_name                      {1} 
+
+    }}
+    """.format(dependenthost, host)
+            ff.write(content)
+
+    @staticmethod
+    def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+        config_file = f"{CONF_DIR}/config{poller}/dependencies.cfg"
+        with open(config_file, "a+") as ff:
+            content = """define hostdependency {{
+    ;dependency_name               HD_test2 
+    execution_failure_criteria     n 
+    notification_failure_criteria  d 
+    inherits_parent                1 
+    dependent_hostgroup_name       {0} 
+    hostgroup_name                 {1} 
+
+    }}
+    """.format(dependenthostgrp, hostgrp)
             ff.write(content)
 
     @staticmethod
@@ -474,7 +540,7 @@ passive_checks_enabled 1
             for i in range(self.last_host_id):
                 f.write("""define command {{
     command_name                    checkh{1}
-    command_line                    {0}/check.pl 0
+    command_line                    {0}/check.pl --id 0
 }}
 """.format(ENGINE_HOME, i + 1))
             f.write("""define command {{
@@ -627,6 +693,9 @@ define contact {
                 f.write("#contactgroups.cfg\n")
 
             f = open(config_dir + "/escalations.cfg", "w")
+            f.close()
+
+            f = open(f"{config_dir}/meta_services.cfg", "w")
             f.close()
 
             if not exists(ENGINE_HOME):
@@ -919,6 +988,17 @@ def engine_config_set_value_in_escalations(idx: int, desc: str, key: str, value:
         if m is not None:
             lines.insert(i + 1, f"    {key}                     {value}\n")
     with open(f"{ETC_ROOT}/centreon-engine/config{idx}/escalations.cfg", "w") as ff:
+        ff.writelines(lines)
+
+def engine_config_set_value_in_dependencies(idx: int, desc: str, key: str, value: str):
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "r") as ff:
+        lines = ff.readlines()
+    r = re.compile(r"^\s*;;dependency_name\s+" + desc + "\s*$")
+    for i in range(len(lines)):
+        m = r.match(lines[i])
+        if m is not None:
+            lines.insert(i + 1, f"    {key}                     {value}\n")
+    with open(f"{ETC_ROOT}/centreon-engine/config{idx}/dependencies.cfg", "w") as ff:
         ff.writelines(lines)
 
 
@@ -1658,10 +1738,20 @@ def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-
 def create_severities_file(poller: int, nb: int, offset: int = 1):
     engine.create_severities(poller, nb, offset)
 
-
 def create_escalations_file(poller: int, name: int, SG: str, contactgroup: str):
     engine.create_escalations_file(poller, name, SG, contactgroup)
 
+def create_dependencies_file(poller: int, dependenthost: str, host: str, dependentservice: str, service: str):
+    engine.create_dependencies_file(poller, dependenthost, host, dependentservice, service)
+
+def create_dependenciesgrp_file(poller: int, dependentservicegroup: str, servicegroup: str):
+    engine.create_dependenciesgrp_file(poller, dependentservicegroup, servicegroup)
+
+def create_dependencieshst_file(poller: int, dependenthost: str, host: str):
+    engine.create_dependencieshst_file(poller, dependenthost, host)
+
+def create_dependencieshstgrp_file(poller: int, dependenthostgrp: str, hostgrp: str):
+    engine.create_dependencieshstgrp_file(poller, dependenthostgrp, hostgrp)
 
 def create_template_file(poller: int, typ: str, what: str, ids: list):
     engine.create_template_file(poller, typ, what, ids)
@@ -1702,7 +1792,6 @@ def engine_config_remove_tag(poller: int, tag_id: int):
     f = open(filename, "w")
     f.writelines(lines)
     f.close()
-
 
 
 def config_engine_add_cfg_file(poller: int, cfg: str):
@@ -2233,7 +2322,6 @@ def send_bench(id: int, port: int):
         stub = engine_pb2_grpc.EngineStub(channel)
         stub.SendBench(engine_pb2.BenchParam(id=id, ts=ts))
 
-
 def config_host_command_status(idx: int, cmd_name: str, status: int):
     filename = f"{ETC_ROOT}/centreon-engine/config{idx}/commands.cfg"
     with open(filename, "r") as f:
@@ -2243,8 +2331,28 @@ def config_host_command_status(idx: int, cmd_name: str, status: int):
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines[i +
-                  1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
+                  1] = f"    command_line                    {ENGINE_HOME}/check.pl --id 0 --state {status}\n"
             break
 
     with open(filename, "w") as f:
+        f.writelines(lines)
+
+def set_service_state(id: int, state: int):
+    # Read the contents of the file and split it into lines
+    with open('/tmp/states', 'a+') as f:
+        lines = f.readlines()
+
+    r = re.compile(rf"^{id}=>[0-9]+")
+    found = False
+
+    for i in range(len(lines)):
+        if r.match(lines[i]):
+            lines[i] = f"{id}=>{state}\n"
+            found = True
+            break
+
+    if not found:
+        lines.append(f"{id}=>{state}\n")
+
+    with open('/tmp/states', 'w') as f:
         f.writelines(lines)
