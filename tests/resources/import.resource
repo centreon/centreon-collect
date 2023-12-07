@@ -1,7 +1,7 @@
 *** Settings ***
 Documentation       Importation of all resources
 
-# collection
+# Collection
 Library             Telnet
 Library             String
 Library             DateTime
@@ -9,7 +9,7 @@ Library             Collections
 Library             DatabaseLibrary
 Library             Examples
 Library             HttpCtrl.Server
-# creation
+# Creation
 Resource            resources.resource
 # Python Library
 Library             Engine.py

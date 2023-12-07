@@ -12,7 +12,7 @@ from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb
 from cpuinfo import get_cpu_info
 from robot.api import logger
 from dateutil import parser as date_parser
-from Common import get_the_version
+from Common import get_collect_version
 from Common import is_using_direct_grpc
 
 
@@ -162,7 +162,7 @@ def store_result_in_unqlite(file_path: str, test_name: str,  broker_or_engine: s
         for key, value in other_bench_data.items():
             row[key] = value
 
-    version = get_the_version()
+    version = get_collect_version()
     version = version[0:version.rfind(".")] + ".x"
     row['origin'] = version
 
