@@ -22,14 +22,35 @@ jobs:
 
   create-and-push-docker:
     needs: [get-version]
-    runs-on: [self-hosted, collect]
 
     strategy:
       fail-fast: false
       matrix:
-        distrib: [alma8, alma9, debian-bullseye]
         include:
-          - project: collect
+          - runner: collect
+            dockerfile: centreon-collect-alma8
+            image: centreon-collect-alma8
+            tag: ${{ needs.get-version.outputs.img_version }}
+          - runner: collect
+            dockerfile: centreon-collect-alma9
+            image: centreon-collect-alma9
+            tag: ${{ needs.get-version.outputs.img_version }}
+          - runner: collect
+            dockerfile: centreon-collect-alma9-test
+            image: centreon-collect-alma9-test
+            tag: ${{ needs.get-version.outputs.test_img_version }}
+          - runner: collect-arm64
+            dockerfile: centreon-collect-debian-bullseye
+            image: centreon-collect-debian-bullseye-arm64
+            tag: ${{ needs.get-version.outputs.img_version }}
+          - runner: collect-arm64
+            dockerfile: centreon-collect-debian-bullseye-test
+            image: centreon-collect-debian-bullseye-arm64-test
+            tag: ${{ needs.get-version.outputs.test_img_version }}
+
+    runs-on: ${{ fromJson(format('["self-hosted", "{0}"]', matrix.runner)) }}
+
+    name: build container ${{ matrix.image }}
 
     steps:
       - name: Checkout sources
@@ -49,21 +70,15 @@ jobs:
           username: ${{ secrets.DOCKER_REGISTRY_ID }}
           password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-      - name: Set up Docker context for builds
-        shell: bash
-        id: buildx-context
-        run: |
-          docker context create buildx-context
-
       - uses: docker/setup-buildx-action@v2
-        with:
-          endpoint: buildx-context
 
-      - uses: docker/build-push-action@v3
+      - name: Build image ${{ matrix.image }}:${{ matrix.tag }}
+        uses: docker/build-push-action@v3
         with:
-          file: .github/docker/Dockerfile.${{ matrix.project }}-${{ matrix.distrib }}
+          file: .github/docker/Dockerfile.${{ matrix.dockerfile }}
           context: .
           build-args: "REGISTRY_URL=${{ vars.DOCKER_PROXY_REGISTRY_URL }}"
+          platforms: ${{ contains(matrix.runner, 'arm') && 'linux/arm64' || 'linux/amd64' }}
           pull: true
           push: true
-          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/centreon-${{ matrix.project }}-${{ matrix.distrib }}:${{ needs.get-version.outputs.img_version }}
+          tags: ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{ matrix.image }}:${{ matrix.tag }}

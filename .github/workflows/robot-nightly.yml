@@ -23,9 +23,6 @@ jobs:
 
       - run: |
           gh workflow run robot-nightly.yml -r "dev-23.04.x"
-          gh workflow run robot-nightly.yml -r "dev-22.10.x"
-          gh workflow run robot-nightly.yml -r "dev-22.04.x"
-          gh workflow run robot-nightly.yml -r "dev-21.10.x"
         shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
