@@ -910,7 +910,7 @@ not16
     Engine Config Set Value In Contacts    0    John_Doe    service_notification_commands    command_notif,command_notif1
 
 
-    ${start}=    Get Current Date
+    ${start}    Get Current Date
     Start Broker
     Start Engine
 
