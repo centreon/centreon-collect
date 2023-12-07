@@ -51,6 +51,7 @@ jobs:
 
     uses: ./.github/workflows/robot-test.yml
     with:
+      image: ${{ matrix.image }}
       image_name: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
       distrib: ${{ matrix.distrib }}
     secrets:
