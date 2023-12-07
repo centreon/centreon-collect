@@ -45,7 +45,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - image: centreon-collect-alma9
+          - image: centreon-collect-alma9-test
             distrib: el9
     name: robot test ${{ matrix.distrib }}
 
