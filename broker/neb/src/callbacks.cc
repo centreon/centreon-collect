@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/callbacks.hh"
 
@@ -135,7 +135,7 @@ static struct {
     {NEBCALLBACK_CUSTOM_VARIABLE_DATA, &neb::callback_pb_custom_variable},
     {NEBCALLBACK_GROUP_DATA, &neb::callback_pb_group},
     {NEBCALLBACK_GROUP_MEMBER_DATA, &neb::callback_pb_group_member},
-    {NEBCALLBACK_RELATION_DATA, &neb::callback_relation},
+    {NEBCALLBACK_RELATION_DATA, &neb::callback_pb_relation},
     {NEBCALLBACK_BENCH_DATA, &neb::callback_pb_bench}};
 
 // Registered callbacks.
@@ -2935,6 +2935,64 @@ int neb::callback_relation(int callback_type, void* data) {
           SPDLOG_LOGGER_INFO(
               log_v2::neb(), "callbacks: host {} is parent of host {}",
               new_host_parent->parent_id, new_host_parent->host_id);
+          neb::gl_publisher.write(new_host_parent);
+        }
+      }
+    }
+  }
+  // Avoid exception propagation to C code.
+  catch (...) {
+  }
+  return 0;
+}
+
+/**
+ *  @brief Function that process relation data.
+ *
+ *  This function is called by Engine when some relation data is
+ *  available.
+ *
+ *  @param[in] callback_type Type of the callback
+ *                           (NEBCALLBACK_RELATION_DATA).
+ *  @param[in] data          Pointer to a nebstruct_relation_data
+ *                           containing the relationship.
+ *
+ *  @return 0 on success.
+ */
+int neb::callback_pb_relation(int callback_type, void* data) {
+  // Log message.
+  SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating pb relation event");
+  (void)callback_type;
+
+  try {
+    // Input variable.
+    nebstruct_relation_data const* relation(
+        static_cast<nebstruct_relation_data*>(data));
+
+    // Host parent.
+    if ((NEBTYPE_PARENT_ADD == relation->type) ||
+        (NEBTYPE_PARENT_DELETE == relation->type)) {
+      if (relation->hst && relation->dep_hst && !relation->svc &&
+          !relation->dep_svc) {
+        // Find host IDs.
+        int host_id;
+        int parent_id;
+        {
+          host_id = engine::get_host_id(relation->dep_hst->name());
+          parent_id = engine::get_host_id(relation->hst->name());
+        }
+        if (host_id && parent_id) {
+          // Generate parent event.
+          auto new_host_parent{std::make_shared<pb_host_parent>()};
+          new_host_parent->mut_obj().set_enabled(relation->type !=
+                                                 NEBTYPE_PARENT_DELETE);
+          new_host_parent->mut_obj().set_child_id(host_id);
+          new_host_parent->mut_obj().set_parent_id(parent_id);
+
+          // Send event.
+          SPDLOG_LOGGER_INFO(log_v2::neb(),
+                             "callbacks: pb host {} is parent of host {}",
+                             parent_id, host_id);
           neb::gl_publisher.write(new_host_parent);
         }
       }

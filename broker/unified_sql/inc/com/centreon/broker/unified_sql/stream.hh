@@ -349,6 +349,8 @@ class stream : public io::stream {
   database::mysql_stmt _pb_host_insupdate;
   database::mysql_stmt _host_parent_delete;
   database::mysql_stmt _host_parent_insert;
+  database::mysql_stmt _pb_host_parent_delete;
+  database::mysql_stmt _pb_host_parent_insert;
   database::mysql_stmt _host_status_update;
   database::mysql_stmt _instance_insupdate;
   database::mysql_stmt _pb_instance_insupdate;
@@ -427,6 +429,7 @@ class stream : public io::stream {
   void _process_pb_host_group_member(const std::shared_ptr<io::data>& d);
   void _process_host(const std::shared_ptr<io::data>& d);
   void _process_host_parent(const std::shared_ptr<io::data>& d);
+  void _process_pb_host_parent(const std::shared_ptr<io::data>& d);
   void _process_host_status(const std::shared_ptr<io::data>& d);
   void _process_instance(const std::shared_ptr<io::data>& d);
   void _process_pb_instance(const std::shared_ptr<io::data>& d);

@@ -6,7 +6,6 @@ Resource            ../resources/import.resource
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
 Test Setup          Stop Processes
-Test Teardown       Save Logs If Failed
 
 
 *** Test Cases ***
@@ -50,7 +49,7 @@ BEPBBEE2
     ...    Configuration check error: bbdo versions >= 3.0.0 need the unified_sql module to be configured.
     ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Message about a missing config of unified_sql not available.
-    Stop Engine
+    [Teardown]    Stop Engine Broker And Save Logs
 
 BEPBBEE3
     [Documentation]    bbdo_version 3 generates new bbdo protobuf service status messages.
@@ -145,7 +144,7 @@ BEPBRI1
     END
 
     Should Not Be Empty    ${grep_res}    "responsive":false not found
-    Kindly Stop Broker    True
+    [Teardown]    Stop Engine Broker And Save Logs    True
 
 BEPBCVS
     [Documentation]    bbdo_version 3 communication of custom variables.
@@ -190,7 +189,6 @@ BEPB_HOST_DEPENDENCY
     ${start}    Get Current Date
     Start Broker    True
     Start Engine
-
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
 
     FOR    ${index}    IN RANGE    30
@@ -258,5 +256,45 @@ BEPB_SERVICE_DEPENDENCY
         IF    "${output}" == "()"    BREAK
     END
     Should Be Equal As Strings    ${output}    ()    host dependency not deleted from database
+
+    [Teardown]    Stop Engine Broker And Save Logs    True
+
+BEPBHostParent
+    [Documentation]    bbdo_version 3 communication of host parent relations
+    [Tags]    broker    engine    protobuf    bbdo
+    Config Engine    ${1}
+    Add Parent To Host    0    host_1    host_2
+    Config Broker    central
+    Config BBDO3    ${1}
+    Broker Config Log    central    sql    trace
+    Config Broker Sql Output    central    unified_sql
+    Clear Retention
+    ${start}    Get Current Date
+    Start Broker    True
+    Start Engine
+    Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
+
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query
+        ...    SELECT child_id, parent_id FROM hosts_hosts_parents
+        Log To Console    ${output}
+        Sleep    1s
+        IF    "${output}" == "((1, 2),)"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ((1, 2),)    host parent not inserted
+
+    # remove host
+    Config Engine    ${1}
+    Reload Broker    True
+    Reload Engine
+
+    FOR    ${index}    IN RANGE    30
+        ${output}    Query
+        ...    SELECT child_id, parent_id FROM hosts_hosts_parents
+        Log To Console    ${output}
+        Sleep    1s
+        IF    "${output}" == "()"    BREAK
+    END
+    Should Be Equal As Strings    ${output}    ()    host parent not deleted
 
     [Teardown]    Stop Engine Broker And Save Logs    True

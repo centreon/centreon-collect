@@ -1734,6 +1734,71 @@ void stream::_process_host_parent(const std::shared_ptr<io::data>& d) {
 }
 
 /**
+ *  Process a host parent event.
+ *
+ *  @param[in] e Uncasted host parent.
+ *
+ * @return The number of events that can be acknowledged.
+ */
+void stream::_process_pb_host_parent(const std::shared_ptr<io::data>& d) {
+  int32_t conn = special_conn::host_parent % _mysql.connections_count();
+  _finish_action(-1, actions::hosts | actions::host_dependencies |
+                         actions::comments | actions::downtimes);
+
+  std::shared_ptr<neb::pb_host_parent> hpp =
+      std::static_pointer_cast<neb::pb_host_parent>(d);
+  const HostParent& hp = hpp->obj();
+
+  // Enable parenting.
+  if (hp.enabled()) {
+    // Log message.
+    SPDLOG_LOGGER_INFO(log_v2::sql(), "SQL: pb host {} is parent of host {}",
+                       hp.parent_id(), hp.child_id());
+
+    // Prepare queries.
+    if (!_host_parent_insert.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {3, "child_id", io::protobuf_base::invalid_on_zero, 0},
+          {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_host_parent::static_type());
+      _pb_host_parent_insert = qp.prepare_insert_into(
+          _mysql, "hosts_hosts_parents",
+          {{3, "child_id", io::protobuf_base::invalid_on_zero, 0},
+           {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}},
+          true);
+    }
+
+    // Insert.
+    _pb_host_parent_insert << *hpp;
+    _mysql.run_statement(_pb_host_parent_insert,
+                         database::mysql_error::store_host_parentship, conn);
+    _add_action(conn, actions::host_parents);
+  }
+  // Disable parenting.
+  else {
+    SPDLOG_LOGGER_INFO(log_v2::sql(),
+                       "SQL: pb host {} is not parent of host {} anymore",
+                       hp.parent_id(), hp.child_id());
+
+    // Prepare queries.
+    if (!_pb_host_parent_delete.prepared()) {
+      query_preparator::event_pb_unique unique{
+          {3, "child_id", io::protobuf_base::invalid_on_zero, 0},
+          {4, "parent_id", io::protobuf_base::invalid_on_zero, 0}};
+      query_preparator qp(neb::pb_host_parent::static_type(), unique);
+      _pb_host_parent_delete =
+          qp.prepare_delete_table(_mysql, "hosts_hosts_parents");
+    }
+
+    // Delete.
+    _pb_host_parent_delete << *hpp;
+    _mysql.run_statement(_pb_host_parent_delete, database::mysql_error::empty,
+                         conn);
+    _add_action(conn, actions::host_parents);
+  }
+}
+
+/**
  *  Process a host status event.
  *
  *  @param[in] e Uncasted host status.

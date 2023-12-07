@@ -19,7 +19,6 @@
 #ifndef CCB_NEB_CALLBACKS_HH
 #define CCB_NEB_CALLBACKS_HH
 
-
 namespace com::centreon::broker {
 
 namespace neb {
@@ -53,6 +52,7 @@ int callback_pb_process(int callback_type, void* data);
 int callback_program_status(int callback_type, void* data);
 int callback_pb_program_status(int callback_type, void* data);
 int callback_relation(int callback_type, void* data);
+int callback_pb_relation(int callback_type, void* data);
 int callback_service(int callback_type, void* data);
 int callback_service_check(int callback_type, void* data);
 int callback_pb_service_check(int callback_type, void* data);
@@ -70,6 +70,6 @@ int callback_pb_bench(int callback_type, void* data);
 void unregister_callbacks();
 }  // namespace neb
 
-}
+}  // namespace com::centreon::broker
 
 #endif  // !CCB_NEB_CALLBACKS_HH
