@@ -28,7 +28,7 @@ echo "Installation..."
 if [ "$distrib" != "bullseye" ]; then
   dnf clean all
   rm -f ./*-selinux-*.rpm # avoid to install selinux packages which are dependent to centreon-common-selinux
-  dnf install -y ./*.rpm
+  rpm -Uvh --nodeps --force ./*.rpm
 else
   apt-get update
   apt-get install -y ./*.deb
