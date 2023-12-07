@@ -36,19 +36,19 @@ jobs:
 
       - name: load image
         run: |
-          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+          docker pull ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_name}}
         shell: bash
 
       - name: image to disk
         run: |
-          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_test}}
+          docker save -o /tmp/${{inputs.image}} ${{ vars.DOCKER_INTERNAL_REGISTRY_URL }}/${{inputs.image_name}}
         shell: bash
 
       - name: image to cache
         uses: actions/cache/save@v3
         with:
           path: /tmp/${{inputs.image}}
-          key: ${{inputs.image_test}}
+          key: ${{inputs.image_name}}
 
   robot-test-list:
     needs: [test-image-to-cache]
