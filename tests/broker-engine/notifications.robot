@@ -918,7 +918,8 @@ not16
     ${content}=    Create List    check_for_external_commands()
     ${result}=    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    msg=A message telling check_for_external_commands() should be available.
-    ## Time to set the service to CRITICAL HARD.
+
+    # Time to set the service to CRITICAL HARD.
 
     Service1 Check Critical
 
