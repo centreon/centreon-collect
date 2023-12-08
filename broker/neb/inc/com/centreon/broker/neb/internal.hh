@@ -123,6 +123,9 @@ using pb_service_group_member =
                  make_type(io::neb, neb::de_pb_service_group_member)>;
 using pb_host_parent =
     io::protobuf<HostParent, make_type(io::neb, neb::de_pb_host_parent)>;
+using pb_instance_configuration =
+    io::protobuf<InstanceConfiguration,
+                 make_type(io::neb, neb::de_pb_instance_configuration)>;
 
 }  // namespace neb
 

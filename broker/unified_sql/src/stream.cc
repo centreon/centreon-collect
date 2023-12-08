@@ -86,7 +86,7 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_service_group_member,
     &stream::_process_service,
     &stream::_process_service_status,
-    &stream::_process_instance_configuration,
+    nullptr,  // instance configuration
     &stream::_process_responsive_instance,
     &stream::_process_pb_service,
     &stream::_process_pb_adaptive_service,
@@ -114,7 +114,9 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_pb_host_group_member,
     &stream::_process_pb_service_group,
     &stream::_process_pb_service_group_member,
-    &stream::_process_pb_host_parent};
+    &stream::_process_pb_host_parent,
+    nullptr  // pb_instance_configuration
+};
 
 constexpr size_t neb_processing_table_size =
     sizeof(stream::neb_processing_table) /
@@ -710,8 +712,10 @@ int32_t stream::write(const std::shared_ptr<io::data>& data) {
   uint16_t cat = category_of_type(type);
   uint16_t elem = element_of_type(type);
   if (cat == io::neb) {
-    if (elem < neb_processing_table_size && neb_processing_table[elem]) {
-      (this->*(neb_processing_table[elem]))(data);
+    if (elem < neb_processing_table_size) {
+      if (neb_processing_table[elem]) {
+        (this->*(neb_processing_table[elem]))(data);
+      }
     } else {
       SPDLOG_LOGGER_ERROR(log_v2::sql(), "unknown neb event type: {}", elem);
     }

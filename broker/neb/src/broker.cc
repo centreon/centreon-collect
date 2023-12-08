@@ -218,6 +218,10 @@ void broker_module_init(void const* arg) {
 
       e.register_event(neb::pb_host_parent::static_type(), "HostParent",
                        &neb::pb_host_parent::operations, "hosts_hosts_parents");
+
+      e.register_event(neb::pb_instance_configuration::static_type(),
+                       "InstanceConfiguration",
+                       &neb::pb_instance_configuration::operations, "no_table");
     }
   }
 }

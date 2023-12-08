@@ -219,6 +219,7 @@ def check_multiplicity_when_engine_restarted(file1: str, file2: str):
                                 0x10025,        # pb_custom_variable
                                 0x10027,        # pb_host_check
                                 0x10028,        # pb_service_check
+                                0x10036         # pb_instance_configuration
                                 ]:
                     if md5 in lst:
                         lst[md5] += 1

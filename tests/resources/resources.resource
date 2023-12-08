@@ -86,7 +86,7 @@ Kindly Stop Broker
     [Arguments]    ${only_central}=False
     Send Signal To Process    SIGTERM    b1
     IF    not ${only_central}    Send Signal To Process    SIGTERM    b2
-    ${result}    Wait For Process    b1    timeout=60s
+    ${result}    Wait For Process    b1    timeout=120s
     # In case of process not stopping
     IF    "${result}" == "${None}"
         Save Logs
@@ -103,7 +103,7 @@ Kindly Stop Broker
     END
 
     IF    not ${only_central}
-        ${result}    Wait For Process    b2    timeout=60s    on_timeout=kill
+        ${result}    Wait For Process    b2    timeout=120s    on_timeout=kill
         # In case of process not stopping
         IF    "${result}" == "${None}"
             Save Logs

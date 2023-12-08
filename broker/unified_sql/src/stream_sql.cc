@@ -4816,16 +4816,6 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
 }
 
 /**
- *  Process an instance configuration event.
- *
- *  @param[in] e  Uncasted instance configuration.
- *
- * @return The number of events that can be acknowledged.
- */
-void stream::_process_instance_configuration(const std::shared_ptr<io::data>& d
-                                             __attribute__((unused))) {}
-
-/**
  *  Process a responsive instance event.
  *
  * @return The number of events that can be acknowledged.

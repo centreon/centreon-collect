@@ -738,3 +738,11 @@ message HostParent {
   uint64 parent_id = 4;
 }
 
+/*io::neb, neb::de_pb_instance_configuration*/
+message InstanceConfiguration {
+  BBDOHeader header = 1;
+  bool loaded = 2;
+  uint64 poller_id = 3;
+}
+
+

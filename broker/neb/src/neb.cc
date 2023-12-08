@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2016, 2018-2021 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2016, 2018-2021 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include <clocale>
 #include <csignal>
@@ -189,12 +189,21 @@ int nebmodule_init(int flags, char const* args, void* handle) {
  *  @return OK.
  */
 int nebmodule_reload() {
-  std::shared_ptr<neb::instance_configuration> ic(
-      new neb::instance_configuration);
-  ic->loaded = true;
-  ic->poller_id = config::applier::state::instance().poller_id();
   multiplexing::publisher p;
-  p.write(ic);
+  if (com::centreon::broker::config::applier::state::instance()
+          .get_bbdo_version()
+          .major_v > 2) {
+    auto ic = std::make_shared<neb::pb_instance_configuration>();
+    ic->mut_obj().set_loaded(true);
+    ic->mut_obj().set_poller_id(config::applier::state::instance().poller_id());
+    p.write(ic);
+  } else {
+    std::shared_ptr<neb::instance_configuration> ic(
+        new neb::instance_configuration);
+    ic->loaded = true;
+    ic->poller_id = config::applier::state::instance().poller_id();
+    p.write(ic);
+  }
   return 0;
 }
 }
