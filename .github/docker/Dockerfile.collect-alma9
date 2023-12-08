@@ -13,7 +13,7 @@ dnf config-manager --set-enabled crb
 
 dnf install -y epel-release
 
-dnf install -y cmake \
+dnf --best install -y cmake \
     gcc \
     gcc-c++ \
     gettext \
