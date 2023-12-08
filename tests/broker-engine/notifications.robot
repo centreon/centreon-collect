@@ -90,7 +90,7 @@ not2
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
     ## Time to set the service to CRITICAL HARD.
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -151,7 +151,7 @@ not3
 
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
     Sleep    60s
 
     # Let's wait for the external command check start
@@ -197,7 +197,7 @@ not4
     # Time to set the service to CRITICAL HARD.
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
     Sleep    60s
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -214,7 +214,7 @@ not4
     # Time to set the service to OK HARD.
     Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
 
-    Set Service state    ${30}    ${0}
+    Set Service State    ${30}    ${0}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
@@ -268,7 +268,7 @@ not5
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
 
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    70    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -318,7 +318,7 @@ not6
     ## Time to set the service to CRITICAL HARD.
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
 
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_2,service_2) should be CRITICAL HARD
@@ -410,7 +410,7 @@ not8
     ## Time to set the host to DOWN HARD.
     FOR    ${i}    IN RANGE    ${4}
         Schedule Forced Host Check    host_1    ${VarRoot}/lib/centreon-engine/config0/rw/centengine.cmd
-        Sleep    5s
+            Sleep    5s
     END
 
     ${content}    Create List    HOST NOTIFICATION: John_Doe;host_1;DOWN;command_notif;
@@ -598,7 +598,7 @@ not12
     ## Time to set the service to CRITICAL HARD.
 
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -654,7 +654,7 @@ not13
 
     Process Service Result Hard    host_1    service_1    ${2}    The service_1 is CRITICAL
     Process Service Result Hard    host_2    service_2    ${2}    The service_2 is CRITICAL
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -1002,9 +1002,9 @@ not17
     FOR   ${i}    IN RANGE    ${4}
         Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
         Sleep    1s
-        Sleep    1s
+    END
 
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_3    service_3    ${2}    90    HARD
     Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
@@ -1014,10 +1014,10 @@ not17
     Should Be True    ${result}    The notification is not sent for service3
 
     ## Time to set the service3 to OK hard
-    FOR   ${i}    IN RANGE    ${4}
+    FOR   ${i}    IN RANGE    ${3}
         Process Service Result Hard    host_3    service_3    ${0}    The service_3 is OK
-        Sleep    1s
-        Sleep    1s
+            Sleep    1s
+    END
 
     ${result}    Check Service Status With Timeout    host_3    service_3    ${0}    90    HARD
     Should Be True    ${result}    Service (host_3,service_3) should be OK HARD
@@ -1032,7 +1032,7 @@ not17
         Sleep    1s
     END
 
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    90    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -1043,12 +1043,12 @@ not17
 
     ## Time to set the service3 to CRITICAL HARD.
 
-    FOR   ${i}    IN RANGE    ${2}
+    FOR   ${i}    IN RANGE    ${3}
         Process Service Result Hard    host_3    service_3    ${2}    The service_3 is CRITICAL
-        Sleep    1s
-        Sleep    1s
+            Sleep    1s
+    END
     
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
     
     ${result}    Check Service Status With Timeout    host_3    service_3    ${2}    90    HARD
     Should Be True    ${result}    Service (host_3,service_3) should be CRITICAL HARD
@@ -1060,10 +1060,10 @@ not17
     ## Time to set the service4 to CRITICAL HARD.
     FOR   ${i}    IN RANGE    ${4}
         Process Service Result Hard    host_4    service_4    ${2}    The service_4 is CRITICAL
-        Sleep    1s
-        Sleep    1s
+            Sleep    1s
+    END
 
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_4    service_4    ${2}    90    HARD
     Should Be True    ${result}    Service (host_4,service_4) should be CRITICAL HARD
@@ -1075,8 +1075,8 @@ not17
     ## Time to set the service1 to OK hard
     FOR   ${i}    IN RANGE    ${4}
         Process Service Result Hard    host_1    service_1    ${0}    The service_1 is OK
-        Sleep    1s
-        Sleep    1s
+            Sleep    1s
+    END
     
     ${result}    Check Service Status With Timeout    host_1    service_1    ${0}    90    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be OK HARD
@@ -1230,7 +1230,7 @@ not19
         Sleep    1s
     END
     
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -1275,7 +1275,7 @@ not20
         Sleep    1s
     END
     
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
     
     FOR   ${i}    IN RANGE    ${4}
         ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
@@ -1322,7 +1322,7 @@ not21
         Sleep    1s
     END
     
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
@@ -1367,7 +1367,7 @@ not22
         Sleep    1s
     END
     
-    Set Service state    ${38}    ${2}
+    Set Service State    ${38}    ${2}
 
     ${result}    Check Service Status With Timeout    host_1    service_1    ${2}    60    HARD
     Should Be True    ${result}    Service (host_1,service_1) should be CRITICAL HARD
