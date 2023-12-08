@@ -36,7 +36,7 @@ EFHC1
     ${result}    Check Host Status    host_1    4    1    False
     Should Be True    ${result}    host_1 should be pending
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
@@ -79,7 +79,7 @@ EFHC2
     ${start}    Get Current Date
     Start Engine
     Start Broker
-    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
@@ -129,7 +129,7 @@ EFHCU1
     Start Broker
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
-    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
@@ -178,7 +178,7 @@ EFHCU2
     Start Broker
     ${result}    Check Host Status    host_1    4    1    True
     Should Be True    ${result}    host_1 should be pending
-    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
@@ -223,7 +223,7 @@ EMACROS
     Start Engine
     Start Broker
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}
@@ -266,7 +266,7 @@ EMACROS_NOTIF
     Start Engine
     Start Broker
 
-    ${content}    Create List    INITIAL HOST STATE: host_1;
+    ${content}    Create List    check_for_external_commands()
     ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True
     ...    ${result}

@@ -1596,13 +1596,11 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
+def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
-    f = open(pipe, "w")
-    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}\n".format(host, now)
-    f.write(cmd)
-    f.close()
-    time.sleep(0.05)
+    cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
+    with open(pipe, "w") as f:
+        f.write(cmd)
 
 
 def create_severities_file(poller: int, nb: int, offset: int = 1):
