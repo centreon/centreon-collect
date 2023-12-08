@@ -124,7 +124,7 @@ static void send_pb_custom_variables_list() {
 /**
  *  Send to the global publisher the list of downtimes.
  */
-static void send_downtimes_list() {
+static void send_downtimes_list(neb_sender sender = neb::callback_downtime) {
   // Start log message.
   log_v2::neb()->info("init: beginning downtimes dump");
 
@@ -160,11 +160,18 @@ static void send_downtimes_list() {
     nsdd.downtime_id = p.second->get_downtime_id();
 
     // Callback.
-    neb::callback_downtime(NEBCALLBACK_DOWNTIME_DATA, &nsdd);
+    sender(NEBCALLBACK_DOWNTIME_DATA, &nsdd);
   }
 
   // End log message.
   log_v2::neb()->info("init: end of downtimes dump");
+}
+
+/**
+ *  Send to the global publisher the list of downtimes.
+ */
+static void send_pb_downtimes_list() {
+  send_downtimes_list(neb::callback_pb_downtime);
 }
 
 /**
@@ -320,7 +327,7 @@ static void send_pb_host_list() {
 /**
  *  Send to the global publisher the list of host parents within Nagios.
  */
-static void send_host_parents_list() {
+static void send_host_parents_list(neb_sender sender = neb::callback_relation) {
   // Start log message.
   log_v2::neb()->info("init: beginning host parents dump");
 
@@ -341,7 +348,7 @@ static void send_host_parents_list() {
         nsrd.dep_hst = it->second.get();
 
         // Callback.
-        neb::callback_relation(NEBTYPE_PARENT_ADD, &nsrd);
+        sender(NEBTYPE_PARENT_ADD, &nsrd);
       }
     }
   } catch (std::exception const& e) {
@@ -354,6 +361,13 @@ static void send_host_parents_list() {
 
   // End log message.
   log_v2::neb()->info("init: end of host parents dump");
+}
+
+/**
+ *  Send to the global publisher the list of host parents within Nagios.
+ */
+static void send_pb_host_parents_list() {
+  send_host_parents_list(neb::callback_pb_relation);
 }
 
 /**
@@ -521,8 +535,8 @@ void neb::send_initial_pb_configuration() {
   send_pb_host_list();
   send_pb_service_list();
   send_pb_custom_variables_list();
-  send_downtimes_list();
-  send_host_parents_list();
+  send_pb_downtimes_list();
+  send_pb_host_parents_list();
   send_pb_host_group_list();
   send_pb_service_group_list();
   send_pb_host_dependencies_list();
