@@ -327,8 +327,6 @@ cd build
 echo "$conan install .. --build=missing"
 $conan install .. --build=missing
 
-NG="-DNG=ON"
-
 if [ "$SC" -eq 1 ] ; then
   SCCACHE="-DCMAKE_C_COMPILER_LAUNCHER=sccache -DCMAKE_CXX_COMPILER_LAUNCHER=sccache"
 else

@@ -104,7 +104,6 @@ jobs:
                   -DWITH_CREATE_FILES=OFF \
                   -DWITH_CONFIG_FILES=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                  -DNG=ON \
                   .
 
           sudo ninja

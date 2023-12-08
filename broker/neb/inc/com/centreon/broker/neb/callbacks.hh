@@ -19,9 +19,8 @@
 #ifndef CCB_NEB_CALLBACKS_HH
 #define CCB_NEB_CALLBACKS_HH
 
-namespace com::centreon::broker {
+namespace com::centreon::broker::neb {
 
-namespace neb {
 extern unsigned gl_mod_flags;
 extern void* gl_mod_handle;
 
@@ -68,8 +67,7 @@ int callback_tag(int callback_type, void* data) noexcept;
 int callback_pb_bench(int callback_type, void* data);
 
 void unregister_callbacks();
-}  // namespace neb
 
-}  // namespace com::centreon::broker
+}  // namespace com::centreon::broker::neb
 
 #endif  // !CCB_NEB_CALLBACKS_HH
