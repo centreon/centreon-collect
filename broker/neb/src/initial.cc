@@ -1,20 +1,20 @@
 /**
-* Copyright 2009-2022 Centreon
-*
-* Licensed under the Apache License, Version 2.0 (the "License");
-* you may not use this file except in compliance with the License.
-* You may obtain a copy of the License at
-*
-*     http://www.apache.org/licenses/LICENSE-2.0
-*
-* Unless required by applicable law or agreed to in writing, software
-* distributed under the License is distributed on an "AS IS" BASIS,
-* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-* See the License for the specific language governing permissions and
-* limitations under the License.
-*
-* For more information : contact@centreon.com
-*/
+ * Copyright 2009-2022 Centreon
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * For more information : contact@centreon.com
+ */
 
 #include "com/centreon/broker/neb/initial.hh"
 #include "com/centreon/broker/config/applier/state.hh"
@@ -481,19 +481,6 @@ static void send_pb_service_list() {
   send_service_list(neb::callback_pb_service);
 }
 
-/**
- *  Send the instance configuration loaded event.
- */
-static void send_instance_configuration() {
-  log_v2::neb()->info(
-      "init: sending initial instance configuration loading event");
-  std::shared_ptr<neb::instance_configuration> ic(
-      new neb::instance_configuration);
-  ic->loaded = true;
-  ic->poller_id = config::applier::state::instance().poller_id();
-  neb::gl_publisher.write(ic);
-}
-
 /**************************************
  *                                     *
  *          Global Functions           *
@@ -516,7 +503,6 @@ void neb::send_initial_configuration() {
   send_service_group_list();
   send_host_dependencies_list();
   send_service_dependencies_list();
-  send_instance_configuration();
 }
 
 /**************************************
@@ -541,5 +527,4 @@ void neb::send_initial_pb_configuration() {
   send_pb_service_group_list();
   send_pb_host_dependencies_list();
   send_pb_service_dependencies_list();
-  send_instance_configuration();
 }

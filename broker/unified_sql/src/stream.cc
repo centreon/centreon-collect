@@ -86,7 +86,7 @@ constexpr void (stream::*const stream::neb_processing_table[])(
     &stream::_process_service_group_member,
     &stream::_process_service,
     &stream::_process_service_status,
-    &stream::_process_instance_configuration,
+    nullptr,
     &stream::_process_responsive_instance,
     &stream::_process_pb_service,
     &stream::_process_pb_adaptive_service,

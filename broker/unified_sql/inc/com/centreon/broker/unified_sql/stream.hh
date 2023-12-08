@@ -446,7 +446,6 @@ class stream : public io::stream {
   void _process_pb_service_group_member(const std::shared_ptr<io::data>& d);
   void _process_service(const std::shared_ptr<io::data>& d);
   void _process_service_status(const std::shared_ptr<io::data>& d);
-  void _process_instance_configuration(const std::shared_ptr<io::data>& d);
   void _process_responsive_instance(const std::shared_ptr<io::data>& d);
 
   void _process_pb_host(const std::shared_ptr<io::data>& d);

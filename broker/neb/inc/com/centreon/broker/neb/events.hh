@@ -32,7 +32,6 @@
 #include "com/centreon/broker/neb/host_parent.hh"
 #include "com/centreon/broker/neb/host_status.hh"
 #include "com/centreon/broker/neb/instance.hh"
-#include "com/centreon/broker/neb/instance_configuration.hh"
 #include "com/centreon/broker/neb/instance_status.hh"
 #include "com/centreon/broker/neb/log_entry.hh"
 #include "com/centreon/broker/neb/responsive_instance.hh"
