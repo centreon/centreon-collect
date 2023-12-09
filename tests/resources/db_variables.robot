@@ -7,5 +7,5 @@ ${DBHost}           localhost
 ${DBUser}           centreon
 ${DBPass}           centreon
 ${DBPort}           3306
-${DBUserRoot}       root_centreon
+${DBUserRoot}       root
 ${DBPassRoot}       centreon
