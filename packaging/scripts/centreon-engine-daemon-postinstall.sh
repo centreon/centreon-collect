@@ -32,7 +32,6 @@ if [ "$1" = "configure" ] ; then
     /var/log/centreon-engine
   chmod -R g+w \
     /etc/centreon-engine \
-    /var/lib/centreon-engine \
     /var/log/centreon-engine
 fi
 
