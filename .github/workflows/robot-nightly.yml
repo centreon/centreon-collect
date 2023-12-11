@@ -33,7 +33,7 @@ jobs:
   veracode-analysis:
     needs: [get-version]
     uses: ./.github/workflows/veracode-analysis.yml
-    if: github.ref_name == 'develop'
+    #if: github.ref_name == 'develop'
     with:
       module_name: centreon-collect
       major_version: ${{ needs.get-version.outputs.version }}

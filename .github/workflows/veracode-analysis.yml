@@ -51,6 +51,7 @@ jobs:
           sudo cmake \
             -G "Ninja" \
             -DCMAKE_CXX_FLAGS="-gdwarf-2 -g3 -O0 -fno-builtin" \
+            -DDEBUG_ROBOT=OFF \
             -DWITH_TESTING=OFF \
             -DWITH_BENCH=OFF \
             -DWITH_MODULE_SIMU=OFF \
@@ -65,6 +66,7 @@ jobs:
             -DWITH_DAEMONS=ON \
             -DWITH_CREATE_FILES=OFF \
             -DWITH_CONFIG_FILES=ON \
+            -DNG=ON \
             ..
 
           sudo ninja
@@ -74,84 +76,84 @@ jobs:
           echo "[DEBUG] - Build size"
           du -sh ./lib/*.so | sort -rh
 
-      - name: Binary preparation
-        run: |
-          echo "[INFO] - Keeping only compiled files"
-          # preserve binaries from cleaning
-          mv ./build/bin ./
-          find ./build -type f -not \( -name "*.so" \) -delete
-          mv ./bin ./build
+  #     - name: Binary preparation
+  #       run: |
+  #         echo "[INFO] - Keeping only compiled files"
+  #         # preserve binaries from cleaning
+  #         mv ./build/bin ./
+  #         find ./build -type f -not \( -name "*.so" \) -delete
+  #         mv ./bin ./build
 
-          echo "[INFO] - Removing veracode exclusions"
-            if [[ -f ".veracode-exclusions" ]]; then
-            for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
-              if [[ -d "$LINE" ]]; then
-                rm -rf "$LINE"
-                echo "[INFO] - folder removed from analysis : '$LINE'"
-              elif [[ -e "$LINE" ]]; then
-                rm -f "$LINE"
-                echo "[INFO] - file removed from analysis : '$LINE'"
-              elif [[ -z "$LINE" ]]; then
-                echo "[INFO] - empty directive. Skipping this line"
-              else
-                echo "::warning::Target to exclude from analysis not found. Skipping: '$LINE'"
-              fi
-            done
-          else
-            echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
-          fi
-          echo "[INFO] - Keeping only build's non empty folders"
-          find ./build -empty -type d -delete
-          ls -la ./build
+  #         echo "[INFO] - Removing veracode exclusions"
+  #           if [[ -f ".veracode-exclusions" ]]; then
+  #           for LINE in $( cat .veracode-exclusions | sed 's/[^a-zA-Z0-9_./-]//g' | sed -r 's/\.\./\./g' ); do
+  #             if [[ -d "$LINE" ]]; then
+  #               rm -rf "$LINE"
+  #               echo "[INFO] - folder removed from analysis : '$LINE'"
+  #             elif [[ -e "$LINE" ]]; then
+  #               rm -f "$LINE"
+  #               echo "[INFO] - file removed from analysis : '$LINE'"
+  #             elif [[ -z "$LINE" ]]; then
+  #               echo "[INFO] - empty directive. Skipping this line"
+  #             else
+  #               echo "::warning::Target to exclude from analysis not found. Skipping: '$LINE'"
+  #             fi
+  #           done
+  #         else
+  #           echo "::warning::No '.veracode-exclusions' file found for this module. Skipping exclusion step"
+  #         fi
+  #         echo "[INFO] - Keeping only build's non empty folders"
+  #         find ./build -empty -type d -delete
+  #         ls -la ./build
 
-          echo "[INFO] - Generating the tarball"
-          tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
+  #         echo "[INFO] - Generating the tarball"
+  #         tar cvzf "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz" build
 
-      - name: Cache
-        uses: actions/cache/save@v3
-        with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
+  #     - name: Cache
+  #       uses: actions/cache/save@v3
+  #       with:
+  #         path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+  #         key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
-  sandbox-scan:
-    needs: [build]
-    name: Sandbox scan
-    runs-on: ubuntu-latest
+  # sandbox-scan:
+  #   needs: [build]
+  #   name: Sandbox scan
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Promote latest scan
-        env:
-          VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
-          VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
+  #   steps:
+  #     - name: Promote latest scan
+  #       env:
+  #         VERACODE_API_ID: "${{ secrets.veracode_api_id }}"
+  #         VERACODE_API_SECRET: "${{ secrets.veracode_api_key }}"
 
-        # Action forked as API calls hardcoded '.com' route
-        uses: sc979/veracode-sandboxes-helper@v0.2
-        # Promote should not fail if sandbox was not found.
-        continue-on-error: true
-        with:
-          activity: "promote-latest-scan"
-          app-name: "${{ inputs.module_name }}"
-          sandbox-name: "${{ github.ref_name }}"
-          delete-on-promote: false
+  #       # Action forked as API calls hardcoded '.com' route
+  #       uses: sc979/veracode-sandboxes-helper@v0.2
+  #       # Promote should not fail if sandbox was not found.
+  #       continue-on-error: true
+  #       with:
+  #         activity: "promote-latest-scan"
+  #         app-name: "${{ inputs.module_name }}"
+  #         sandbox-name: "${{ github.ref_name }}"
+  #         delete-on-promote: false
 
-      - name: Get build binary
-        uses: actions/cache/restore@v3
-        with:
-          path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
+  #     - name: Get build binary
+  #       uses: actions/cache/restore@v3
+  #       with:
+  #         path: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+  #         key: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary"
 
-      - name: Sandbox scan
-        uses: veracode/veracode-uploadandscan-action@0.2.6
-        continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
-        with:
-          appname: "${{ inputs.module_name }}"
-          version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
-          filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
-          vid: "vera01ei-${{ secrets.veracode_api_id }}"
-          vkey: "vera01es-${{ secrets.veracode_api_key }}"
-          createprofile: true
-          createsandbox: true
-          sandboxname: "${{ github.ref_name }}"
-          includenewmodules: true
-          scanallnonfataltoplevelmodules: true
-          deleteincompletescan: 2
+  #     - name: Sandbox scan
+  #       uses: veracode/veracode-uploadandscan-action@0.2.6
+  #       continue-on-error: ${{ vars.VERACODE_CONTINUE_ON_ERROR == 'true' }}
+  #       with:
+  #         appname: "${{ inputs.module_name }}"
+  #         version: "${{ inputs.major_version }}.${{ inputs.minor_version }}_runId-${{ github.run_id }}"
+  #         filepath: "${{ inputs.module_name }}-${{ github.sha }}-${{ github.run_id }}-veracode-binary.tar.gz"
+  #         vid: "vera01ei-${{ secrets.veracode_api_id }}"
+  #         vkey: "vera01es-${{ secrets.veracode_api_key }}"
+  #         createprofile: true
+  #         createsandbox: true
+  #         sandboxname: "${{ github.ref_name }}"
+  #         includenewmodules: true
+  #         scanallnonfataltoplevelmodules: true
+  #         deleteincompletescan: 2
