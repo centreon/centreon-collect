@@ -6,9 +6,10 @@ concurrency:
   cancel-in-progress: true
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: '0 0 * * *'
+  pull_request:
+  # workflow_dispatch:
+  # schedule:
+  #   - cron: '0 0 * * *'
 
 jobs:
   dispatch-to-maintained-branches:
@@ -46,118 +47,118 @@ jobs:
       docker_registry_id: ${{ secrets.DOCKER_REGISTRY_ID }}
       docker_registry_passwd: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
 
-  package:
-    needs: [get-version]
-    uses: ./.github/workflows/package-collect.yml
-    with:
-      version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
-      img_version: ${{ needs.get-version.outputs.img_version }}
-      release: ${{ needs.get-version.outputs.release }}
-      commit_hash: ${{ github.sha }}
-    secrets: inherit
+  # package:
+  #   needs: [get-version]
+  #   uses: ./.github/workflows/package-collect.yml
+  #   with:
+  #     version: ${{ needs.get-version.outputs.version }}.${{ needs.get-version.outputs.patch }}
+  #     img_version: ${{ needs.get-version.outputs.img_version }}
+  #     release: ${{ needs.get-version.outputs.release }}
+  #     commit_hash: ${{ github.sha }}
+  #   secrets: inherit
 
-  robot-test:
-    needs: [get-version, package]
+  # robot-test:
+  #   needs: [get-version, package]
 
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - distrib: el9
-            image: centreon-collect-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64
-            tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-mysql-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mysql
-            test_group_name: robot_test-mysql-el9-amd64
-            tests_params: '{}'
-          - distrib: bullseye
-            image: centreon-collect-debian-bullseye-arm64-test
-            package_extension: deb
-            arch: arm64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-arm64
-            tests_params: '{}'
-          - distrib: el9
-            image: centreon-collect-alma9-test
-            package_extension: rpm
-            arch: amd64
-            database_type: mariadb
-            test_group_name: robot_test-mariadb-el9-amd64-grpc
-            tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       include:
+  #         - distrib: el9
+  #           image: centreon-collect-alma9-test
+  #           package_extension: rpm
+  #           arch: amd64
+  #           database_type: mariadb
+  #           test_group_name: robot_test-mariadb-el9-amd64
+  #           tests_params: '{}'
+  #         - distrib: el9
+  #           image: centreon-collect-mysql-alma9-test
+  #           package_extension: rpm
+  #           arch: amd64
+  #           database_type: mysql
+  #           test_group_name: robot_test-mysql-el9-amd64
+  #           tests_params: '{}'
+  #         - distrib: bullseye
+  #           image: centreon-collect-debian-bullseye-arm64-test
+  #           package_extension: deb
+  #           arch: arm64
+  #           database_type: mariadb
+  #           test_group_name: robot_test-mariadb-el9-arm64
+  #           tests_params: '{}'
+  #         - distrib: el9
+  #           image: centreon-collect-alma9-test
+  #           package_extension: rpm
+  #           arch: amd64
+  #           database_type: mariadb
+  #           test_group_name: robot_test-mariadb-el9-amd64-grpc
+  #           tests_params: '{"default_transport":"grpc","default_bbdo_version":"3.1.0"}'
 
-    name: ${{ matrix.test_group_name }}
+  #   name: ${{ matrix.test_group_name }}
 
-    uses: ./.github/workflows/robot-test.yml
-    with:
-      distrib: ${{ matrix.distrib }}
-      arch: ${{ matrix.arch }}
-      image: ${{ matrix.image }}
-      image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
-      image_version: ${{ needs.get-version.outputs.img_version }}
-      package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-      package_cache_path: ./*.${{ matrix.package_extension}}
-      database_type: ${{ matrix.database_type }}
-      tests_params: ${{matrix.tests_params}}
-      test_group_name: ${{matrix.test_group_name}}
-    secrets:
-      registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
-      registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
-      collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
-      collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
+  #   uses: ./.github/workflows/robot-test.yml
+  #   with:
+  #     distrib: ${{ matrix.distrib }}
+  #     arch: ${{ matrix.arch }}
+  #     image: ${{ matrix.image }}
+  #     image_test: ${{ matrix.image }}:${{ needs.get-version.outputs.test_img_version }}
+  #     image_version: ${{ needs.get-version.outputs.img_version }}
+  #     package_cache_key: cache-${{ github.sha }}-${{ matrix.package_extension}}-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+  #     package_cache_path: ./*.${{ matrix.package_extension}}
+  #     database_type: ${{ matrix.database_type }}
+  #     tests_params: ${{matrix.tests_params}}
+  #     test_group_name: ${{matrix.test_group_name}}
+  #   secrets:
+  #     registry_username: ${{ secrets.DOCKER_REGISTRY_ID }}
+  #     registry_password: ${{ secrets.DOCKER_REGISTRY_PASSWD }}
+  #     collect_s3_access_key: ${{ secrets.COLLECT_S3_ACCESS_KEY }}
+  #     collect_s3_secret_key: ${{ secrets.COLLECT_S3_SECRET_KEY }}
 
-  deliver-rpm:
-    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [robot-test, get-version]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        distrib: [el8, el9]
-    name: deliver ${{ matrix.distrib }}
+  # deliver-rpm:
+  #   if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [robot-test, get-version]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       distrib: [el8, el9]
+  #   name: deliver ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
 
-      - name: Publish RPM packages
-        uses: ./.github/actions/delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
+  #     - name: Publish RPM packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         module_name: collect
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: cache-${{ github.sha }}-rpm-centreon-collect-${{ matrix.distrib }}-amd64-${{ github.head_ref || github.ref_name }}
+  #         stability: ${{ needs.get-version.outputs.stability }}
 
-  deliver-deb:
-    if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
-    needs: [robot-test, get-version]
-    runs-on: [self-hosted, common]
-    strategy:
-      matrix:
-        include:
-          - distrib: bullseye
-            arch: amd64
-          - distrib: bullseye
-            arch: arm64
-    name: deliver ${{ matrix.distrib }}
+  # deliver-deb:
+  #   if: ${{ contains(fromJson('["unstable"]'), needs.get-version.outputs.stability) }}
+  #   needs: [robot-test, get-version]
+  #   runs-on: [self-hosted, common]
+  #   strategy:
+  #     matrix:
+  #       include:
+  #         - distrib: bullseye
+  #           arch: amd64
+  #         - distrib: bullseye
+  #           arch: arm64
+  #   name: deliver ${{ matrix.distrib }}
 
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v4
+  #   steps:
+  #     - name: Checkout sources
+  #       uses: actions/checkout@v4
 
-      - name: Publish DEB packages
-        uses: ./.github/actions/delivery
-        with:
-          module_name: collect
-          distrib: ${{ matrix.distrib }}
-          version: ${{ needs.get-version.outputs.version }}
-          artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
-          cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
-          stability: ${{ needs.get-version.outputs.stability }}
+  #     - name: Publish DEB packages
+  #       uses: ./.github/actions/delivery
+  #       with:
+  #         module_name: collect
+  #         distrib: ${{ matrix.distrib }}
+  #         version: ${{ needs.get-version.outputs.version }}
+  #         artifactory_token: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
+  #         cache_key: cache-${{ github.sha }}-deb-centreon-collect-${{ matrix.distrib }}-${{ matrix.arch }}-${{ github.head_ref || github.ref_name }}
+  #         stability: ${{ needs.get-version.outputs.stability }}
