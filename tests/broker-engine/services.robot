@@ -20,7 +20,7 @@ Test Teardown       Save Logs If Failed
 *** Test Cases ***
 SDER
     [Documentation]    The check attempts and the max check attempts of (host_1,service_1) are changed to 280 thanks to the retention.dat file. Then engine and broker are started and broker should write these values in the services and resources tables. We only test the services table because we need a resources table that allows bigger numbers for these two attributes. But we see that broker doesn't crash anymore.
-    [Tags]    MON-24549
+    [Tags]    MON-24549    MON-32712
     Config Engine    ${1}    ${1}    ${25}
     Config Broker    rrd
     Config Broker    central
