@@ -29,6 +29,26 @@ ANO_NOFILE
     Stop Broker    True
     Stop Engine
 
+ANO_NOFILE_VERIF_CONFIG_NO_ERROR
+    [Documentation]    an anomaly detection without threshold file doesn't display error on config check
+    [Tags]    broker    engine    anomaly
+    Config Engine    ${1}    ${50}    ${20}
+    Create Anomaly Detection    ${0}    ${1}    ${1}    metric
+    Remove File    /tmp/anomaly_threshold.json
+    Clear Retention
+    Create Directory    ${ENGINE_LOG}/config0
+    Start Process
+    ...    /usr/sbin/centengine
+    ...    -v
+    ...    ${EtcRoot}/centreon-engine/config0/centengine.cfg
+    ...    alias=e0
+    ...    stderr=${engineLog0}
+    ...    stdout=${engineLog0}
+    ${result}    Wait For Process    e0    30
+    Should Be Equal As Integers    ${result.rc}    0    engine not gracefully stopped
+    ${content}    Grep File    ${engineLog0}    Fail to read thresholds file
+    Should Be True    len("""${content}""") < 2    anomalydetection error message must not be found
+
 ANO_TOO_OLD_FILE
     [Documentation]    an anomaly detection with an oldest threshold file must be in unknown state
     [Tags]    broker    engine    anomaly
