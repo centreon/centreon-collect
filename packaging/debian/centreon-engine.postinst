@@ -27,7 +27,6 @@ if [ "$1" = "configure" ] ; then
         /var/log/centreon-engine
     chmod -vR g+w \
         /etc/centreon-engine \
-        /var/lib/centreon-engine \
         /var/log/centreon-engine
 
     mv /usr/share/centreon-engine/extra/centreonengine_integrate_centreon_engine2centreon.sh /usr/share/centreon-engine/extra/integrate_centreon_engine2centreon.sh
