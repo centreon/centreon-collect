@@ -7,6 +7,8 @@ Library             OperatingSystem
 Library             DateTime
 Library             Collections
 Library             DatabaseLibrary
+Library             String
+Library             Examples
 Library             ../resources/Engine.py
 Library             ../resources/Broker.py
 Library             ../resources/Common.py
@@ -23,13 +25,11 @@ EBBPS1
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -41,7 +41,7 @@ EBBPS1
     Start Broker
     Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
@@ -51,7 +51,7 @@ EBBPS1
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    Unified sql stream supports column-wise binding in prepared statements
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -70,7 +70,7 @@ EBBPS1
         Process Service Check Result    host_1    service_${i+1}    2    warning${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
-            ${result}    Find In Log with timeout
+            ${result}    Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
             ...    ${first_service_status_content}
@@ -108,13 +108,11 @@ EBBPS2
     [Tags]    broker    engine    services    unified_sql
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    rrd
     Config Broker    central
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    info
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    trace
@@ -126,7 +124,7 @@ EBBPS2
     Start Broker
     Start Engine
     ${content}    Create List    INITIAL SERVICE STATE: host_1;service_1000;
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    30
     Should Be True
     ...    ${result}
     ...    An Initial service state on host_1:service_1000 should be raised before we can start external commands.
@@ -136,7 +134,7 @@ EBBPS2
     ${content}    Create List
     ...    connected to 'MariaDB' Server
     ...    Unified sql stream supports column-wise binding in prepared statements
-    ${result}    Find In Log with timeout    ${centralLog}    ${start}    ${content}    30
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    30
     Should Be True    ${result}    Prepared statements should be supported with this version of MariaDB.
 
     Connect To Database    pymysql    ${DBName}    ${DBUser}    ${DBPass}    ${DBHost}    ${DBPort}
@@ -155,7 +153,7 @@ EBBPS2
         Process Service Check Result    host_1    service_${i+1}    2    critical${i}
         IF    ${i} % 200 == 0
             ${first_service_status_content}    Create List    unified_sql service_status processing
-            ${result}    Find In Log with timeout
+            ${result}    Find In Log With Timeout
             ...    ${centralLog}
             ...    ${start_broker}
             ...    ${first_service_status_content}
@@ -193,16 +191,16 @@ EBMSSM
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    debug
     Config Broker Sql Output    central    unified_sql
+    Config Broker Remove Rrd Output    central
     Clear Retention
     ${start}    Get Current Date
     Start Broker
@@ -211,7 +209,7 @@ EBMSSM
 
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     ${start}    Get Round Current Date
@@ -239,12 +237,11 @@ EBPS2
     Clear Metrics
     Config Engine    ${1}    ${1}    ${1000}
     # We want all the services to be passive to avoid parasite checks during our test.
-    Set Services passive    ${0}    service_.*
+    Set Services Passive    ${0}    service_.*
     Config Broker    central
     Config Broker    rrd
     Config Broker    module    ${1}
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    central    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Flush Log    central    0
     Broker Config Log    central    core    error
     Broker Config Log    central    tcp    error
@@ -259,18 +256,16 @@ EBPS2
     Start Engine
     # Let's wait for the external command check start
     ${content}    Create List    check_for_external_commands()
-    ${result}    Find In Log with Timeout    ${engineLog0}    ${start}    ${content}    60
+    ${result}    Find In Log With Timeout    ${engineLog0}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling check_for_external_commands() should be available.
 
     # Let's wait for one "INSERT INTO data_bin" to appear in stats.
-
     FOR    ${i}    IN RANGE    ${1000}
         Process Service Check Result With Metrics    host_1    service_${i+1}    1    warning${i}    20
     END
-
     ${start}    Get Current Date
-    ${content}    create list    Check if some statements are ready,    sscr_bind connections
-    ${result}    Find In Log with Timeout    ${centralLog}    ${start}    ${content}    60
+    ${content}    Create List    Check if some statements are ready,    sscr_bind connections
+    ${result}    Find In Log With Timeout    ${centralLog}    ${start}    ${content}    60
     Should Be True    ${result}    A message telling that statements are available should be displayed
     Stop mysql
     Stop Engine
@@ -287,9 +282,7 @@ RLCode
     Config Broker    central
     Config Broker    module
     Config Broker    rrd
-    Broker Config Add Item    central    bbdo_version    3.0.1
-    Broker Config Add Item    module0    bbdo_version    3.0.1
-    Broker Config Add Item    rrd    bbdo_version    3.0.1
+    Config BBDO3    1
     Broker Config Log    central    tcp    error
     Broker Config Log    central    sql    error
     Broker Config Log    central    lua    debug
@@ -404,4 +397,4 @@ metric_mapping
 Test Clean
     Stop Engine
     Kindly Stop Broker
-    Save logs If Failed
+    Save Logs If Failed

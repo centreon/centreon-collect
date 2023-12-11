@@ -304,14 +304,14 @@ define command {
         if cmd % 2 == 0:
             retval = """define command {{
     command_name                    command_{1}
-    command_line                    {0}/check.pl {1}
+    command_line                    {0}/check.pl --id {1}
     connector                       Perl Connector
 }}
 """.format(ENGINE_HOME, cmd)
         else:
             retval = """define command {{
     command_name                    command_{1}
-    command_line                    {0}/check.pl {1}
+    command_line                    {0}/check.pl --id {1}
 }}
 """.format(ENGINE_HOME, cmd)
         return retval
@@ -467,7 +467,7 @@ passive_checks_enabled 1
             for i in range(self.last_host_id):
                 f.write("""define command {{
     command_name                    checkh{1}
-    command_line                    {0}/check.pl 0
+    command_line                    {0}/check.pl --id 0
 }}
 """.format(ENGINE_HOME, i + 1))
             f.write("""define command {{
@@ -1596,13 +1596,11 @@ def schedule_forced_svc_check(host: str, svc: str, pipe: str = VAR_ROOT + "/lib/
     time.sleep(0.05)
 
 
-def schedule_forced_host_check(host: str, pipe: str = VAR_ROOT + "/lib/centreon-engine/config0/rw/centengine.cmd"):
+def schedule_forced_host_check(host: str, pipe: str = f"{VAR_ROOT}/lib/centreon-engine/config0/rw/centengine.cmd"):
     now = int(time.time())
-    f = open(pipe, "w")
-    cmd = "[{1}] SCHEDULE_FORCED_HOST_CHECK;{0};{1}\n".format(host, now)
-    f.write(cmd)
-    f.close()
-    time.sleep(0.05)
+    cmd = f"[{now}] SCHEDULE_FORCED_HOST_CHECK;{host};{now}\n"
+    with open(pipe, "w") as f:
+        f.write(cmd)
 
 
 def create_severities_file(poller: int, nb: int, offset: int = 1):
@@ -2123,7 +2121,7 @@ def config_host_command_status(idx: int, cmd_name: str, status: int):
     for i in range(len(lines)):
         if r.match(lines[i]):
             lines[i +
-                  1] = f"    command_line                    {ENGINE_HOME}/check.pl 0 {status}\n"
+                  1] = f"    command_line                    {ENGINE_HOME}/check.pl --id 0 --state {status}\n"
             break
 
     with open(filename, "w") as f:
