@@ -1,5 +1,5 @@
 *** Settings ***
-Resource    ./db_variables.robot
+Resource    ./db_variables.resource
 Library     Process
 Library     OperatingSystem
 Library     Common.py

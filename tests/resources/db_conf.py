@@ -4,7 +4,7 @@ import pymysql.cursors
 from robot.libraries.BuiltIn import BuiltIn
 
 
-BuiltIn().import_resource('db_variables.robot')
+BuiltIn().import_resource('db_variables.resource')
 DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
 DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
 DB_USER_ROOT = BuiltIn().get_variable_value("${DBUserRoot}")

@@ -13,7 +13,7 @@ from robot.libraries.BuiltIn import BuiltIn
 
 TIMEOUT = 30
 
-BuiltIn().import_resource('db_variables.robot')
+BuiltIn().import_resource('db_variables.resource')
 DB_NAME_STORAGE = BuiltIn().get_variable_value("${DBName}")
 DB_NAME_CONF = BuiltIn().get_variable_value("${DBNameConf}")
 DB_USER = BuiltIn().get_variable_value("${DBUser}")
@@ -1423,7 +1423,7 @@ def grep(file_path: str, pattern: str):
     return ""
 
 
-def get_version():
+def get_collect_version():
     f = open("../CMakeLists.txt", "r")
     lines = f.readlines()
     f.close()

@@ -1,8 +1,8 @@
 #!/bin/bash
-DBUserRoot=$(awk '($1=="${DBUserRoot}") {print $2}' resources/db_variables.robot)
-DBPassRoot=$(awk '($1=="${DBPassRoot}") {print $2}' resources/db_variables.robot)
-DBStorage=$(awk '($1=="${DBName}") {print $2}' resources/db_variables.robot)
-DBConf=$(awk '($1=="${DBNameConf}") {print $2}' resources/db_variables.robot)
+DBUserRoot=$(awk '($1=="${DBUserRoot}") {print $2}' resources/db_variables.resource)
+DBPassRoot=$(awk '($1=="${DBPassRoot}") {print $2}' resources/db_variables.resource)
+DBStorage=$(awk '($1=="${DBName}") {print $2}' resources/db_variables.resource)
+DBConf=$(awk '($1=="${DBNameConf}") {print $2}' resources/db_variables.resource)
 
 if [ -z $DBUserRoot ] ; then
     DBUserRoot="root"

@@ -1,13 +1,7 @@
 *** Settings ***
 Documentation       centreon_connector_ssh tests.
 
-Resource            ../resources/resources.robot
-Library             ../resources/Engine.py
-Library             ../resources/Broker.py
-Library             ../resources/Common.py
-Library             Process
-Library             DateTime
-Library             OperatingSystem
+Resource            ../resources/import.resource
 
 Suite Setup         Prepare ssh
 Suite Teardown      Clean Whitelist

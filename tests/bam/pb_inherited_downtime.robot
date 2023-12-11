@@ -1,13 +1,7 @@
 *** Settings ***
 Documentation       Centreon Broker and BAM with bbdo version 3.0.1
 
-Resource            ../resources/resources.robot
-Library             Process
-Library             DatabaseLibrary
-Library             DateTime
-Library             OperatingSystem
-Library             ../resources/Broker.py
-Library             ../resources/Engine.py
+Resource            ../resources/import.resource
 
 Suite Setup         Clean Before Suite
 Suite Teardown      Clean After Suite
