@@ -68,5 +68,6 @@ cd tests
 ./init-proto.sh
 
 echo "####################### Run Centreon Collect Robot Tests #######################"
-robot -x output.xml -e unstable $test_file
+robot -e unstable $test_file
+rebot -x xunitOut.xml output.xml
 
