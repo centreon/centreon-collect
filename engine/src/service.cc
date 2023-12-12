@@ -21,8 +21,6 @@
 
 #include <absl/strings/match.h>
 
-#include "com/centreon/engine/log_v2.hh"
-
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
 #include "com/centreon/engine/configuration/whitelist.hh"
@@ -2720,13 +2718,13 @@ int service::run_async_check_local(int check_options,
   // allowed by whitelist?
   if (!is_whitelist_allowed(processed_cmd)) {
     SPDLOG_LOGGER_ERROR(
-        commang_logger,
+        commands_logger,
         "service {}: this command cannot be executed because of "
         "security restrictions on the poller. A whitelist has "
         "been defined, and it does not include this command.",
         name());
 
-    SPDLOG_LOGGER_DEBUG(command_logger,
+    SPDLOG_LOGGER_DEBUG(commands_logger,
                         "service {}: command not allowed by whitelist {}",
                         name(), processed_cmd);
     run_failure(configuration::command_blacklist_output);
@@ -2739,7 +2737,7 @@ int service::run_async_check_local(int check_options,
         uint64_t id =
             cmd->run(processed_cmd, *macros, config->service_check_timeout(),
                      check_result_info, this);
-        SPDLOG_LOGGER_DEBUG(log_v2::checks(),
+        SPDLOG_LOGGER_DEBUG(checks_logger,
                             "run id={} {} for service {} host {}", id,
                             processed_cmd, _service_id, _hostname);
       } catch (com::centreon::exceptions::interruption const& e) {
@@ -2749,7 +2747,7 @@ int service::run_async_check_local(int check_options,
 
         engine_logger(log_runtime_warning, basic)
             << "Error: Service check command execution failed: " << e.what();
-        SPDLOG_LOGGER_WARN(log_v2::runtime(),
+        SPDLOG_LOGGER_WARN(runtime_logger,
                            "Error: Service check command execution failed: {}",
                            e.what());
       }

@@ -16,15 +16,15 @@
  * For more information : contact@centreon.com
  *
  */
+#include "com/centreon/engine/configuration/whitelist.hh"
+
+#include <gtest/gtest.h>
 #include <utime.h>
+
 #include <filesystem>
 #include <fstream>
 
-#include <gtest/gtest.h>
-
-#include "com/centreon/engine/log_v2.hh"
-
-#include "com/centreon/engine/configuration/whitelist.hh"
+#include "common/log_v2/log_v2.hh"
 
 using namespace com::centreon::engine;
 using namespace com::centreon::engine::configuration;
@@ -41,13 +41,11 @@ class whitelist_test : public ::testing::Test {
 
  public:
   static void SetUpTestSuite() {
-    _old_log_level = log_v2::config()->level();
-    log_v2::config()->set_level(spdlog::level::trace);
+    _old_log_level = config_logger->level();
+    config_logger->set_level(spdlog::level::trace);
   }
 
-  static void TearDownTestSuite() {
-    log_v2::config()->set_level(_old_log_level);
-  }
+  static void TearDownTestSuite() { config_logger->set_level(_old_log_level); }
 };
 
 spdlog::level::level_enum whitelist_test::_old_log_level;

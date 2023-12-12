@@ -755,11 +755,12 @@ void macro_cache::_process_pb_adaptive_host(
 void macro_cache::_process_host_group(std::shared_ptr<io::data> const& data) {
   std::shared_ptr<neb::host_group> const& hg =
       std::static_pointer_cast<neb::host_group>(data);
-  SPDLOG_LOGGER_DEBUG(_logger, "lua: processing host group '{}' of id {} enabled: {}",
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
+                      "lua: processing host group '{}' of id {} enabled: {}",
                       hg->name, hg->id, hg->enabled);
   if (hg->enabled)
     _host_groups[hg->id] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -771,12 +772,12 @@ void macro_cache::_process_pb_host_group(
     std::shared_ptr<io::data> const& data) {
   const HostGroup& hg =
       std::static_pointer_cast<neb::pb_host_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(_logger,
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb host group '{}' of id {}, enabled {}",
                       hg.name(), hg.hostgroup_id(), hg.enabled());
   if (hg.enabled())
     _host_groups[hg.hostgroup_id()] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -789,7 +790,7 @@ void macro_cache::_process_host_group_member(
   std::shared_ptr<neb::host_group_member> const& hgm =
       std::static_pointer_cast<neb::host_group_member>(data);
   SPDLOG_LOGGER_DEBUG(
-      _logger,
+      _cache->logger(),
       "lua: processing host group member (group_name: '{}', group_id: {}, "
       "host_id: {}, enabled: {})",
       hgm->group_name, hgm->group_id, hgm->host_id, hgm->enabled);
@@ -809,7 +810,7 @@ void macro_cache::_process_pb_host_group_member(
   const HostGroupMember& hgm =
       std::static_pointer_cast<neb::pb_host_group_member>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing pb host group member (group_name: '{}', group_id: {}, "
       "host_id: {}, enabled: {})",
       hgm.name(), hgm.hostgroup_id(), hgm.host_id(), hgm.enabled());
@@ -953,7 +954,7 @@ void macro_cache::_process_service_group(
                       sg->id);
   if (sg->enabled)
     _service_groups[sg->id] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -965,12 +966,12 @@ void macro_cache::_process_pb_service_group(
     std::shared_ptr<io::data> const& data) {
   const ServiceGroup& sg =
       std::static_pointer_cast<neb::pb_service_group>(data)->obj();
-  SPDLOG_LOGGER_DEBUG(log_v2::lua(),
+  SPDLOG_LOGGER_DEBUG(_cache->logger(),
                       "lua: processing pb service group '{}' of id {}",
                       sg.name(), sg.servicegroup_id());
   if (sg.enabled())
     _service_groups[sg.servicegroup_id()] = data;
-  //erasure is desactivated because a group cen be owned by several pollers
+  // erasure is desactivated because a group cen be owned by several pollers
 }
 
 /**
@@ -1005,7 +1006,7 @@ void macro_cache::_process_pb_service_group_member(
   const ServiceGroupMember& sgm =
       std::static_pointer_cast<neb::pb_service_group_member>(data)->obj();
   SPDLOG_LOGGER_DEBUG(
-      log_v2::lua(),
+      _cache->logger(),
       "lua: processing pb service group member (group_name: {}, group_id: {}, "
       "host_id: {}, service_id: {} enabled: {}",
       sgm.name(), sgm.servicegroup_id(), sgm.host_id(), sgm.service_id(),

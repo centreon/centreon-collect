@@ -18,11 +18,10 @@
  */
 
 #include "com/centreon/engine/host.hh"
-#include <cassert>
 
 #include <fmt/chrono.h>
 
-#include "com/centreon/engine/log_v2.hh"
+#include <cassert>
 
 #include "com/centreon/engine/broker.hh"
 #include "com/centreon/engine/checks/checker.hh"
@@ -1841,12 +1840,12 @@ int host::run_async_check(int check_options,
 
   // allowed by whitelist?
   if (!is_whitelist_allowed(processed_cmd)) {
-    SPDLOG_LOGGER_ERROR(command_logger,
+    SPDLOG_LOGGER_ERROR(commands_logger,
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "
                         "been defined, and it does not include this command.",
                         name());
-    SPDLOG_LOGGER_DEBUG(command_logger,
+    SPDLOG_LOGGER_DEBUG(commands_logger,
                         "host {}: command not allowed by whitelist {}", name(),
                         processed_cmd);
     run_failure(configuration::command_blacklist_output);

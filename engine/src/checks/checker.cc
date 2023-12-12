@@ -530,12 +530,12 @@ com::centreon::engine::host::host_state checker::_execute_sync(host* hst) {
   };
 
   if (!hst->is_whitelist_allowed(processed_cmd)) {
-    SPDLOG_LOGGER_ERROR(log_v2::commands(),
+    SPDLOG_LOGGER_ERROR(commands_logger,
                         "host {}: this command cannot be executed because of "
                         "security restrictions on the poller. A whitelist has "
                         "been defined, and it does not include this command.",
                         hst->name());
-    SPDLOG_LOGGER_DEBUG(log_v2::commands(),
+    SPDLOG_LOGGER_DEBUG(commands_logger,
                         "host {}: command not allowed by whitelist {}",
                         hst->name(), processed_cmd);
     run_failure(configuration::command_blacklist_output);

@@ -20,9 +20,11 @@
 #define CC_EXCEPTIONS_BASIC_HH
 
 #include <exception>
+#include "com/centreon/misc/stringifier.hh"
 
+namespace com::centreon {
 
-namespace com::centreon::exceptions {
+namespace exceptions {
 /**
  *  @class basic basic.hh "com/centreon/exceptions/basic.hh"
  *  @brief Base exception class.
@@ -48,7 +50,9 @@ class basic : public std::exception {
 
   misc::stringifier _buffer;
 };
-}  // namespace com::centreon::exceptions
+}  // namespace exceptions
+
+}  // namespace com::centreon
 
 #if defined(__GNUC__)
 #define FUNCTION __PRETTY_FUNCTION__

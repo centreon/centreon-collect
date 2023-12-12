@@ -21,7 +21,7 @@
 #define CCE_CONFIGURATION_APPLIER_SERVICEDEPENDENCY_HH
 
 #include <absl/container/flat_hash_set.h>
-#include "configuration/state.pb.h"
+#include "common/configuration/state.pb.h"
 
 namespace com::centreon::engine {
 
