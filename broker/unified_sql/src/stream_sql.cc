@@ -1243,8 +1243,7 @@ void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
 
   // Insert/Update.
   if (hd.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: enabling host dependency of {} on {}",
+    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: enabling host dependency of {} on {}",
                        hd.dependent_host_id(), hd.host_id());
 
     // Prepare queries.
@@ -1278,8 +1277,7 @@ void stream::_process_pb_host_dependency(const std::shared_ptr<io::data>& d) {
   }
   // Delete.
   else {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
-                       "SQL: removing host dependency of {} on {}",
+    SPDLOG_LOGGER_INFO(_logger_sql, "SQL: removing host dependency of {} on {}",
                        hd.dependent_host_id(), hd.host_id());
     std::string query(fmt::format(
         "DELETE FROM hosts_hosts_dependencies WHERE dependent_host_id={}"
@@ -1360,7 +1358,7 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
   const HostGroup& hg = hgd->obj();
 
   if (hg.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
+    SPDLOG_LOGGER_INFO(_logger_sql,
                        "SQL: enabling host group {} ('{}' on instance {})",
                        hg.hostgroup_id(), hg.name(), hg.poller_id());
     _prepare_pb_hg_insupdate_statement();
@@ -1372,7 +1370,7 @@ void stream::_process_pb_host_group(const std::shared_ptr<io::data>& d) {
   }
   // Delete group.
   else {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
+    SPDLOG_LOGGER_INFO(_logger_sql,
                        "SQL: disabling host group {} ('{}' on instance {})",
                        hg.hostgroup_id(), hg.name(), hg.poller_id());
 
@@ -1523,7 +1521,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
 
   if (!_host_instance_known(hgm.host_id())) {
     SPDLOG_LOGGER_WARN(
-        log_v2::sql(),
+        _logger_sql,
         "SQL: host {0} not added to hostgroup {1} because host {0} is not "
         "known by any poller",
         hgm.host_id(), hgm.hostgroup_id());
@@ -1535,7 +1533,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
   if (hgm.enabled()) {
     // Log message.
     SPDLOG_LOGGER_INFO(
-        log_v2::sql(),
+        _logger_sql,
         "SQL: enabling membership of host {} to host group {} on instance {}",
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
@@ -1560,7 +1558,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
     /* If the group does not exist, we create it. */
     if (_cache_host_instance[hgm.host_id()]) {
       if (_hostgroup_cache.find(hgm.hostgroup_id()) == _hostgroup_cache.end()) {
-        SPDLOG_LOGGER_ERROR(log_v2::sql(),
+        SPDLOG_LOGGER_ERROR(_logger_sql,
                             "SQL: host group {} {} does not exist - insertion "
                             "before insertion of "
                             "members",
@@ -1586,7 +1584,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
       _add_action(conn, actions::hostgroups);
     } else
       SPDLOG_LOGGER_ERROR(
-          log_v2::sql(),
+          _logger_sql,
           "SQL: host with host_id = {} does not exist - unable to store "
           "unexisting host in a hostgroup. You should restart centengine.",
           hgm.host_id());
@@ -1595,7 +1593,7 @@ void stream::_process_pb_host_group_member(const std::shared_ptr<io::data>& d) {
   else {
     // Log message.
     SPDLOG_LOGGER_INFO(
-        log_v2::sql(),
+        _logger_sql,
         "SQL: disabling membership of host {} to host group {} on instance {}",
         hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
 
@@ -2035,11 +2033,11 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
           9, _cache_host_instance[h.host_id()]);
       if (h.severity_id()) {
         sid = _severity_cache[{h.severity_id(), 1}];
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+        SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "host {} with severity_id {} => uid = {}",
                             h.host_id(), h.severity_id(), sid);
       } else
-        SPDLOG_LOGGER_INFO(log_v2::sql(),
+        SPDLOG_LOGGER_INFO(_logger_sql,
                            "no host severity found in cache for host {}",
                            h.host_id());
       if (sid)
@@ -2068,7 +2066,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
         res_id = future.get();
         _resource_cache.insert({{h.host_id(), 0}, res_id});
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_CRITICAL(log_v2::sql(),
+        SPDLOG_LOGGER_CRITICAL(_logger_sql,
                                "SQL: unable to insert new host resource {}: {}",
                                h.host_id(), e.what());
 
@@ -2087,31 +2085,31 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
                 _resource_cache.insert({{h.host_id(), 0}, res.value_as_u64(0)});
             found = r.first;
             SPDLOG_LOGGER_DEBUG(
-                log_v2::sql(),
+                _logger_sql,
                 "Host resource (host {}) found in database with id {}",
                 h.host_id(), found->second);
           } else {
             SPDLOG_LOGGER_CRITICAL(
-                log_v2::sql(),
+                _logger_sql,
                 "Could not insert host resource in database and no host "
                 "resource in database with id {}: {}",
                 h.host_id(), e.what());
             return 0;
           }
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_CRITICAL(log_v2::sql(),
+          SPDLOG_LOGGER_CRITICAL(_logger_sql,
                                  "No host resource in database with id {}: {}",
                                  h.host_id(), e.what());
           return 0;
         }
       }
-      SPDLOG_LOGGER_DEBUG(log_v2::sql(), "insert resource {} for host{}",
-                          res_id, h.host_id());
+      SPDLOG_LOGGER_DEBUG(_logger_sql, "insert resource {} for host{}", res_id,
+                          h.host_id());
     }
     if (res_id == 0) {
       res_id = found->second;
-      SPDLOG_LOGGER_DEBUG(log_v2::sql(), "update resource {} for host{}",
-                          res_id, h.host_id());
+      SPDLOG_LOGGER_DEBUG(_logger_sql, "update resource {} for host{}", res_id,
+                          h.host_id());
       // UPDATE
       _resources_host_update.bind_value_as_u32(0, h.state());
       _resources_host_update.bind_value_as_u32(1,
@@ -2130,11 +2128,11 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
           8, _cache_host_instance[h.host_id()]);
       if (h.severity_id()) {
         sid = _severity_cache[{h.severity_id(), 1}];
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+        SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "host {} with severity_id {} => uid = {}",
                             h.host_id(), h.severity_id(), sid);
       } else
-        SPDLOG_LOGGER_INFO(log_v2::sql(),
+        SPDLOG_LOGGER_INFO(_logger_sql,
                            "no host severity found in cache for host {}",
                            h.host_id());
       if (sid)
@@ -2172,7 +2170,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
     _mysql.run_statement(_resources_tags_remove,
                          database::mysql_error::delete_resources_tags, conn);
     for (auto& tag : h.tags()) {
-      SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+      SPDLOG_LOGGER_DEBUG(_logger_sql,
                           "add tag ({}, {}) for resource {} for host{}",
                           tag.id(), tag.type(), res_id, h.host_id());
 
@@ -2180,7 +2178,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
 
       if (it_tags_cache == _tags_cache.end()) {
         SPDLOG_LOGGER_ERROR(
-            log_v2::sql(),
+            _logger_sql,
             "SQL: could not find in cache the tag ({}, {}) for host "
             "'{}': "
             "trying to add it.",
@@ -2201,7 +2199,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
           it_tags_cache =
               _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(log_v2::sql(),
+          SPDLOG_LOGGER_ERROR(_logger_sql,
                               "SQL: unable to insert new tag ({},{}): {}",
                               tag.id(), tag.type(), e.what());
         }
@@ -2211,7 +2209,7 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
         _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
         _resources_tags_insert.bind_value_as_u64(1, res_id);
         SPDLOG_LOGGER_DEBUG(
-            log_v2::sql(),
+            _logger_sql,
             "SQL: new relation between host (resource_id: {}, host_id: "
             "{}) "
             "and tag ({},{},{})",
@@ -2232,8 +2230,8 @@ uint64_t stream::_process_pb_host_in_resources(const Host& h, int32_t conn) {
       _add_action(conn, actions::resources);
     } else {
       SPDLOG_LOGGER_INFO(
-          log_v2::sql(),
-          "SQL: no need to remove host {}, it is not in database", h.host_id());
+          _logger_sql, "SQL: no need to remove host {}, it is not in database",
+          h.host_id());
     }
   }
   return res_id;
@@ -3159,8 +3157,7 @@ void stream::_process_pb_service_dependency(
   // Insert/Update.
   if (sd.enabled()) {
     SPDLOG_LOGGER_INFO(
-        log_v2::sql(),
-        "SQL: enabling service dependency of ({}, {}) on ({}, {})",
+        _logger_sql, "SQL: enabling service dependency of ({}, {}) on ({}, {})",
         sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
         sd.service_id());
 
@@ -3200,8 +3197,7 @@ void stream::_process_pb_service_dependency(
   // Delete.
   else {
     SPDLOG_LOGGER_INFO(
-        log_v2::sql(),
-        "SQL: removing service dependency of ({}, {}) on ({}, {})",
+        _logger_sql, "SQL: removing service dependency of ({}, {}) on ({}, {})",
         sd.dependent_host_id(), sd.dependent_service_id(), sd.host_id(),
         sd.service_id());
     std::string query(fmt::format(
@@ -3287,7 +3283,7 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
 
   // Insert/update group.
   if (sg.enabled()) {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
+    SPDLOG_LOGGER_INFO(_logger_sql,
                        "SQL: enabling service group {} ('{}' on instance {})",
                        sg.servicegroup_id(), sg.name(), sg.poller_id());
     _prepare_pb_sg_insupdate_statement();
@@ -3299,7 +3295,7 @@ void stream::_process_pb_service_group(const std::shared_ptr<io::data>& d) {
   }
   // Delete group.
   else {
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
+    SPDLOG_LOGGER_INFO(_logger_sql,
                        "SQL: disabling service group {} ('{}' on instance {})",
                        sg.servicegroup_id(), sg.name(), sg.poller_id());
     auto cache_ptr = cache::global_cache::instance_ptr();
@@ -3446,7 +3442,7 @@ void stream::_process_pb_service_group_member(
   if (sgm.enabled()) {
     // Log message.
     SPDLOG_LOGGER_INFO(
-        log_v2::sql(),
+        _logger_sql,
         "SQL: enabling membership of service ({}, {}) to service group {} on "
         "instance {}",
         sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
@@ -3479,7 +3475,7 @@ void stream::_process_pb_service_group_member(
     if (_servicegroup_cache.find(sgm.servicegroup_id()) ==
         _servicegroup_cache.end()) {
       SPDLOG_LOGGER_ERROR(
-          log_v2::sql(),
+          _logger_sql,
           "SQL: service group {} does not exist - insertion before insertion "
           "of members",
           sgm.servicegroup_id());
@@ -3506,7 +3502,7 @@ void stream::_process_pb_service_group_member(
   // Delete.
   else {
     // Log message.
-    SPDLOG_LOGGER_INFO(log_v2::sql(),
+    SPDLOG_LOGGER_INFO(_logger_sql,
                        "SQL: disabling membership of service ({}, {}) to "
                        "service group {} on "
                        "instance {}",
@@ -3849,7 +3845,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
           12, _cache_host_instance[s.host_id()]);
       if (s.severity_id() > 0) {
         sid = _severity_cache[{s.severity_id(), 0}];
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+        SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "service ({}, {}) with severity_id {} => uid = {}",
                             s.host_id(), s.service_id(), s.severity_id(), sid);
       }
@@ -3878,7 +3874,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
         _resource_cache.insert({{s.service_id(), s.host_id()}, res_id});
       } catch (const std::exception& e) {
         SPDLOG_LOGGER_CRITICAL(
-            log_v2::sql(),
+            _logger_sql,
             "SQL: unable to insert new service resource ({}, {}): {}",
             s.host_id(), s.service_id(), e.what());
 
@@ -3897,12 +3893,12 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
                 {{s.service_id(), s.host_id()}, res.value_as_u64(0)});
             found = r.first;
             SPDLOG_LOGGER_DEBUG(
-                log_v2::sql(),
+                _logger_sql,
                 "Service resource ({}, {}) found in database with id {}",
                 s.host_id(), s.service_id(), found->second);
           } else {
             SPDLOG_LOGGER_CRITICAL(
-                log_v2::sql(),
+                _logger_sql,
                 "Could not insert service resource in database and no "
                 "service resource in database with id ({},{}): {}",
                 s.host_id(), s.service_id(), e.what());
@@ -3910,7 +3906,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
           }
         } catch (const std::exception& e) {
           SPDLOG_LOGGER_CRITICAL(
-              log_v2::sql(),
+              _logger_sql,
               "No service resource in database with id ({}, {}): {}",
               s.host_id(), s.service_id(), e.what());
           return 0;
@@ -3942,7 +3938,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
           10, _cache_host_instance[s.host_id()]);
       if (s.severity_id() > 0) {
         sid = _severity_cache[{s.severity_id(), 0}];
-        SPDLOG_LOGGER_DEBUG(log_v2::sql(),
+        SPDLOG_LOGGER_DEBUG(_logger_sql,
                             "service ({}, {}) with severity_id {} => uid = {}",
                             s.host_id(), s.service_id(), s.severity_id(), sid);
       }
@@ -3983,7 +3979,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
 
       if (it_tags_cache == _tags_cache.end()) {
         SPDLOG_LOGGER_ERROR(
-            log_v2::sql(),
+            _logger_sql,
             "SQL: could not find in cache the tag ({}, {}) for service "
             "({},{}): trying to add it.",
             tag.id(), tag.type(), s.host_id(), s.service_id());
@@ -4002,7 +3998,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
           it_tags_cache =
               _tags_cache.insert({{tag.id(), tag.type()}, tag_id}).first;
         } catch (const std::exception& e) {
-          SPDLOG_LOGGER_ERROR(log_v2::sql(),
+          SPDLOG_LOGGER_ERROR(_logger_sql,
                               "SQL: unable to insert new tag ({},{}): {}",
                               tag.id(), tag.type(), e.what());
         }
@@ -4012,7 +4008,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
         _resources_tags_insert.bind_value_as_u64(0, it_tags_cache->second);
         _resources_tags_insert.bind_value_as_u64(1, res_id);
         SPDLOG_LOGGER_DEBUG(
-            log_v2::sql(),
+            _logger_sql,
             "SQL: new relation between service (resource_id: {},  ({}, "
             "{})) and tag ({},{})",
             res_id, s.host_id(), s.service_id(), tag.id(), tag.type());
@@ -4022,7 +4018,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
         _add_action(conn, actions::resources_tags);
       } else {
         SPDLOG_LOGGER_ERROR(
-            log_v2::sql(),
+            _logger_sql,
             "SQL: could not find the tag ({}, {}) in cache for host '{}'",
             tag.id(), tag.type(), s.service_id());
       }
@@ -4037,7 +4033,7 @@ uint64_t stream::_process_pb_service_in_resources(const Service& s,
       _add_action(conn, actions::resources);
     } else {
       SPDLOG_LOGGER_INFO(
-          log_v2::sql(),
+          _logger_sql,
           "SQL: no need to remove service ({}, {}), it is not in "
           "database",
           s.host_id(), s.service_id());
@@ -4716,8 +4712,7 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       if (cache_ptr) {
         cache_ptr->add_tag(tg.id(), tg.name(), tg.type(), tg.poller_id());
       }
-      SPDLOG_LOGGER_TRACE(log_v2::sql(), "SQL: {} tag {}", debug_action,
-                          tg.id());
+      SPDLOG_LOGGER_TRACE(_logger_sql, "SQL: {} tag {}", debug_action, tg.id());
       _tag_insert_update.bind_value_as_u64(0, tg.id());
       _tag_insert_update.bind_value_as_u32(1, tg.type());
       _tag_insert_update.bind_value_as_str(2, tg.name());
@@ -4729,11 +4724,11 @@ void stream::_process_tag(const std::shared_ptr<io::data>& d) {
       try {
         uint64_t tag_id = future.get();
         _tags_cache[{tg.id(), tg.type()}] = tag_id;
-        SPDLOG_LOGGER_TRACE(log_v2::sql(), "new tag ({}, {}, {}) {}", tag_id,
+        SPDLOG_LOGGER_TRACE(_logger_sql, "new tag ({}, {}, {}) {}", tag_id,
                             tg.id(), tg.type(), tg.name());
 
       } catch (const std::exception& e) {
-        SPDLOG_LOGGER_ERROR(log_v2::sql(),
+        SPDLOG_LOGGER_ERROR(_logger_sql,
                             "unified sql: unable to {} tag ({},{}): {}",
                             debug_action, tg.id(), tg.type(), e.what());
       }

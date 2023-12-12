@@ -33,5 +33,4 @@ bool writable(const std::string& name);
 bool readable(const std::string& name);
 }  // namespace com::centreon::broker::misc::filesystem
 
-}  // namespace com::centreon::broker
 #endif /* CCB_MISC_FILESYSTEM_HH */

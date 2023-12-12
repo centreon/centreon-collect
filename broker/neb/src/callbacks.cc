@@ -857,7 +857,7 @@ int neb::callback_dependency(int callback_type, void* data) {
  */
 int neb::callback_pb_dependency(int, void* data) {
   // Log message.
-  SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: generating dependency event");
+  SPDLOG_LOGGER_INFO(neb_logger, "callbacks: generating dependency event");
 
   // Input variables.
   nebstruct_adaptive_dependency_data* nsadd(
@@ -877,7 +877,7 @@ int neb::callback_pb_dependency(int, void* data) {
       host_id = engine::get_host_id(dep->get_hostname());
     } else {
       SPDLOG_LOGGER_ERROR(
-          log_v2::neb(),
+          neb_logger,
           "callbacks: dependency callback called without valid host");
       host_id = 0;
     }
@@ -885,7 +885,7 @@ int neb::callback_pb_dependency(int, void* data) {
       dep_host_id = engine::get_host_id(dep->get_dependent_hostname());
     } else {
       SPDLOG_LOGGER_INFO(
-          log_v2::neb(),
+          neb_logger,
           "callbacks: dependency callback called without valid dependent "
           "host");
       dep_host_id = 0;
@@ -915,7 +915,7 @@ int neb::callback_pb_dependency(int, void* data) {
         hst_dep.set_execution_failure_options(options);
     }
     hst_dep.set_inherits_parent(dep->get_inherits_parent());
-    SPDLOG_LOGGER_INFO(log_v2::neb(), "callbacks: host {} depends on host {}",
+    SPDLOG_LOGGER_INFO(neb_logger, "callbacks: host {} depends on host {}",
                        dep_host_id, host_id);
 
     // Publish dependency event.
@@ -936,7 +936,7 @@ int neb::callback_pb_dependency(int, void* data) {
                                             dep->get_service_description());
     } else {
       SPDLOG_LOGGER_ERROR(
-          log_v2::neb(),
+          neb_logger,
           "callbacks: dependency callback called without valid service");
       ids.first = 0;
       ids.second = 0;
@@ -948,7 +948,7 @@ int neb::callback_pb_dependency(int, void* data) {
           dep->get_dependent_service_description());
     } else {
       SPDLOG_LOGGER_ERROR(
-          log_v2::neb(),
+          neb_logger,
           "callbacks: dependency callback called without valid dependent "
           "service");
       dep_ids.first = 0;
@@ -984,8 +984,7 @@ int neb::callback_pb_dependency(int, void* data) {
     }
     svc_dep.set_inherits_parent(dep->get_inherits_parent());
     SPDLOG_LOGGER_INFO(
-        log_v2::neb(),
-        "callbacks: service ({}, {}) depends on service ({}, {})",
+        neb_logger, "callbacks: service ({}, {}) depends on service ({}, {})",
         dep_ids.first, dep_ids.second, ids.first, ids.second);
 
     // Publish dependency event.
@@ -1497,8 +1496,7 @@ int neb::callback_pb_group(int callback_type, void* data) {
   nebstruct_group_data const* group_data(
       static_cast<nebstruct_group_data*>(data));
 
-  SPDLOG_LOGGER_INFO(log_v2::neb(),
-                     "callbacks: generating pb group event type:{}",
+  SPDLOG_LOGGER_INFO(neb_logger, "callbacks: generating pb group event type:{}",
                      group_data->type);
 
   // Host group.
@@ -1521,14 +1519,14 @@ int neb::callback_pb_group(int callback_type, void* data) {
       // Send host group event.
       if (host_group->get_id()) {
         if (new_hg->obj().enabled())
-          SPDLOG_LOGGER_INFO(log_v2::neb(),
+          SPDLOG_LOGGER_INFO(neb_logger,
                              "callbacks: new pb host group {} ('{}' {} "
                              "members) on instance {}",
                              host_group->get_id(), new_hg->obj().name(),
                              host_group->members.size(),
                              new_hg->obj().poller_id());
         else
-          SPDLOG_LOGGER_INFO(log_v2::neb(),
+          SPDLOG_LOGGER_INFO(neb_logger,
                              "callbacks: disable pb host group {} ('{}' {} "
                              "members) on instance {}",
                              host_group->get_id(), new_hg->obj().name(),
@@ -1560,13 +1558,13 @@ int neb::callback_pb_group(int callback_type, void* data) {
       if (service_group->get_id()) {
         if (new_sg->obj().enabled())
           SPDLOG_LOGGER_INFO(
-              log_v2::neb(),
+              neb_logger,
               "callbacks:: new pb service group {} ('{}) on instance {}",
               service_group->get_id(), new_sg->obj().name(),
               new_sg->obj().poller_id());
         else
           SPDLOG_LOGGER_INFO(
-              log_v2::neb(),
+              neb_logger,
               "callbacks:: disable pb service group {} ('{}) on instance {}",
               service_group->get_id(), new_sg->obj().name(),
               new_sg->obj().poller_id());
@@ -1702,8 +1700,7 @@ int neb::callback_group_member(int callback_type, void* data) {
  */
 int neb::callback_pb_group_member(int callback_type, void* data) {
   // Log message.
-  SPDLOG_LOGGER_INFO(log_v2::neb(),
-                     "callbacks: generating pb group member event");
+  SPDLOG_LOGGER_INFO(neb_logger, "callbacks: generating pb group member event");
   (void)callback_type;
 
   // Input variable.
@@ -1728,7 +1725,7 @@ int neb::callback_pb_group_member(int callback_type, void* data) {
       if (host_id != 0 && hgm.hostgroup_id() != 0) {
         hgm.set_host_id(host_id);
         if (member_data->type == NEBTYPE_HOSTGROUPMEMBER_DELETE) {
-          SPDLOG_LOGGER_INFO(log_v2::neb(),
+          SPDLOG_LOGGER_INFO(neb_logger,
                              "callbacks: host {} is not a member of group "
                              "{} on instance {} "
                              "anymore",
@@ -1737,7 +1734,7 @@ int neb::callback_pb_group_member(int callback_type, void* data) {
           hgm.set_enabled(false);
         } else {
           SPDLOG_LOGGER_INFO(
-              log_v2::neb(),
+              neb_logger,
               "callbacks: host {} is a member of group {} on instance {}",
               hgm.host_id(), hgm.hostgroup_id(), hgm.poller_id());
           hgm.set_enabled(true);
@@ -1772,7 +1769,7 @@ int neb::callback_pb_group_member(int callback_type, void* data) {
       if (sgm.host_id() && sgm.service_id() && sgm.servicegroup_id()) {
         if (member_data->type == NEBTYPE_SERVICEGROUPMEMBER_DELETE) {
           SPDLOG_LOGGER_INFO(
-              log_v2::neb(),
+              neb_logger,
               "callbacks: service ({},{}) is not a member of group {} on "
               "instance {} anymore",
               sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),
@@ -1780,7 +1777,7 @@ int neb::callback_pb_group_member(int callback_type, void* data) {
           sgm.set_enabled(false);
         } else {
           SPDLOG_LOGGER_INFO(
-              log_v2::neb(),
+              neb_logger,
               "callbacks: service ({}, {}) is a member of group {} on "
               "instance {}",
               sgm.host_id(), sgm.service_id(), sgm.servicegroup_id(),

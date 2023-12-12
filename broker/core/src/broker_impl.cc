@@ -372,8 +372,8 @@ grpc::Status broker_impl::SetLogFlushPeriod(grpc::ServerContext* context
  * @return ::grpc::Status
  */
 ::grpc::Status broker_impl::GetProcessStats(
-    ::grpc::ServerContext* context,
-    const ::google::protobuf::Empty* request,
+    ::grpc::ServerContext* context [[maybe_unused]],
+    const ::google::protobuf::Empty* request [[maybe_unused]],
     ::com::centreon::common::pb_process_stat* response) {
   try {
     com::centreon::common::process_stat stat(getpid());
