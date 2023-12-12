@@ -117,11 +117,3 @@ jobs:
         with:
           path: ./*.deb
           key: cache-${{ github.sha }}-debbuild-centreon-collect-${{ matrix.distrib }}-${{ github.head_ref || github.ref_name }}
-
-      # set condition to true if artifacts are needed
-      - name: Upload package artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: packages-deb
-          path: ./*.deb
-          retention-days: 1
